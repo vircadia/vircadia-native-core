@@ -85,7 +85,6 @@ bool OctreeSendThread::process() {
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 packetDistributor(nodeData, viewFrustumChanged);
-                resendNackedPackets(nodeData);
             }
         }
     }
@@ -281,26 +280,6 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     return packetsSent;
 }
 
-int OctreeSendThread::resendNackedPackets(OctreeQueryNode* nodeData) {
-
-    const int MAX_PACKETS_RESEND = 10;
-    int packetsSent = 0;
-
-    const QByteArray* packet;
-    while (nodeData->hasNextNackedPacket() && packetsSent < MAX_PACKETS_RESEND) {
-        packet = nodeData->getNextNackedPacket();
-        if (packet) {
-            NodeList::getInstance()->writeDatagram(*packet, _node);
-            packetsSent++;
-
-            _totalBytes += packet->size();
-            _totalPackets++;
-            _totalWastedBytes += MAX_PACKET_SIZE - packet->size();
-        }
-    }
-    return packetsSent;
-}
-
 /// Version of voxel distributor that sends the deepest LOD level at once
 int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged) {
         
@@ -311,6 +290,10 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         return 0;
     }
     
+    // calculate max number of packets that can be sent during this interval
+    int clientMaxPacketsPerInterval = std::max(1, (nodeData->getMaxOctreePacketsPerSecond() / INTERVALS_PER_SECOND));
+    int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
+
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
@@ -407,9 +390,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // TODO: add these to stats page
         //quint64 startCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
         //quint64 startCompressCalls = OctreePacketData::getCompressContentCalls();
-
-        int clientMaxPacketsPerInterval = std::max(1,(nodeData->getMaxOctreePacketsPerSecond() / INTERVALS_PER_SECOND));
-        int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
 
         int extraPackingAttempts = 0;
         bool completedScene = false;
@@ -581,12 +561,26 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // send the environment packet
         // TODO: should we turn this into a while loop to better handle sending multiple special packets
         if (_myServer->hasSpecialPacketToSend(_node) && !nodeData->isShuttingDown()) {
-            trueBytesSent += _myServer->sendSpecialPacket(nodeData, _node);
+            int specialPacketsSent;
+            trueBytesSent += _myServer->sendSpecialPacket(_node, nodeData, specialPacketsSent);
             nodeData->resetOctreePacket();   // because nodeData's _sequenceNumber has changed
-            truePacketsSent++;
-            packetsSentThisInterval++;
+            truePacketsSent += specialPacketsSent;
+            packetsSentThisInterval += specialPacketsSent;
         }
 
+        // Re-send packets that were nacked by the client
+        while (nodeData->hasNextNackedPacket() && packetsSentThisInterval < maxPacketsPerInterval) {
+            const QByteArray* packet = nodeData->getNextNackedPacket();
+            if (packet) {
+                NodeList::getInstance()->writeDatagram(*packet, _node);
+                truePacketsSent++;
+                packetsSentThisInterval++;
+
+                _totalBytes += packet->size();
+                _totalPackets++;
+                _totalWastedBytes += MAX_PACKET_SIZE - packet->size();
+            }
+        }
 
         quint64 end = usecTimestampNow();
         int elapsedmsec = (end - start)/USECS_PER_MSEC;

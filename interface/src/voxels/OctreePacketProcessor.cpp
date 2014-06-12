@@ -1,5 +1,5 @@
 //
-//  VoxelPacketProcessor.cpp
+//  OctreePacketProcessor.cpp
 //  interface/src/voxels
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
@@ -13,18 +13,18 @@
 
 #include "Application.h"
 #include "Menu.h"
-#include "VoxelPacketProcessor.h"
+#include "OctreePacketProcessor.h"
 
-void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
+void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                            "VoxelPacketProcessor::processPacket()");
+                            "OctreePacketProcessor::processPacket()");
     
     QByteArray mutablePacket = packet;
 
     const int WAY_BEHIND = 300;
 
     if (packetsToProcessCount() > WAY_BEHIND && Application::getInstance()->getLogger()->extraDebugging()) {
-        qDebug("VoxelPacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
+        qDebug("OctreePacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
     }
     ssize_t messageLength = mutablePacket.size();
 

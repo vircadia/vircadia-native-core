@@ -14,6 +14,7 @@
 #include <QCryptographicHash>
 #include <QDataStream>
 #include <QMetaType>
+#include <QScriptValueIterator>
 #include <QUrl>
 #include <QtDebug>
 
@@ -30,6 +31,7 @@ REGISTER_SIMPLE_TYPE_STREAMER(uint)
 REGISTER_SIMPLE_TYPE_STREAMER(float)
 REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
 REGISTER_SIMPLE_TYPE_STREAMER(QColor)
+REGISTER_SIMPLE_TYPE_STREAMER(QScriptValue)
 REGISTER_SIMPLE_TYPE_STREAMER(QString)
 REGISTER_SIMPLE_TYPE_STREAMER(QUrl)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
@@ -285,6 +287,12 @@ void Bitstream::writeDelta(const QVariant& value, const QVariant& reference) {
     streamer->writeRawDelta(*this, value, reference);
 }
 
+void Bitstream::writeRawDelta(const QVariant& value, const QVariant& reference) {
+    const TypeStreamer* streamer = getTypeStreamers().value(value.userType());
+    _typeStreamerStreamer << streamer;
+    streamer->writeRawDelta(*this, value, reference);
+}
+
 void Bitstream::readRawDelta(QVariant& value, const QVariant& reference) {
     TypeReader typeReader;
     _typeStreamerStreamer >> typeReader;
@@ -307,6 +315,272 @@ void Bitstream::readRawDelta(QObject*& value, const QObject* reference) {
     ObjectReader objectReader;
     _metaObjectStreamer >> objectReader;
     value = objectReader.readDelta(*this, reference);
+}
+
+void Bitstream::writeRawDelta(const QScriptValue& value, const QScriptValue& reference) {
+    if (reference.isUndefined() || reference.isNull()) {
+        *this << value;
+    
+    } else if (reference.isBool()) {
+        if (value.isBool()) {
+            *this << false;
+            *this << value.toBool();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isNumber()) {
+        if (value.isNumber()) {
+            *this << false;
+            *this << value.toNumber();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isString()) {
+        if (value.isString()) {
+            *this << false;
+            *this << value.toString();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isVariant()) {
+        if (value.isVariant()) {
+            *this << false;
+            writeRawDelta(value.toVariant(), reference.toVariant());
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isQObject()) {
+        if (value.isQObject()) {
+            *this << false;
+            writeRawDelta(value.toQObject(), reference.toQObject());
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isQMetaObject()) {
+        if (value.isQMetaObject()) {
+            *this << false;
+            *this << value.toQMetaObject();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isDate()) {
+        if (value.isDate()) {
+            *this << false;
+            *this << value.toDateTime();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isRegExp()) {
+        if (value.isRegExp()) {
+            *this << false;
+            *this << value.toRegExp();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isArray()) {
+        if (value.isArray()) {
+            *this << false;
+            int length = value.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+            *this << length;
+            int referenceLength = reference.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+            for (int i = 0; i < length; i++) {
+                if (i < referenceLength) {
+                    writeDelta(value.property(i), reference.property(i));
+                } else {
+                    *this << value.property(i);
+                }
+            }
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else if (reference.isObject()) {
+        if (value.isObject() && !(value.isArray() || value.isRegExp() || value.isDate() ||
+                value.isQMetaObject() || value.isQObject() || value.isVariant())) {    
+            *this << false;
+            for (QScriptValueIterator it(value); it.hasNext(); ) {
+                it.next();
+                QScriptValue referenceValue = reference.property(it.scriptName());
+                if (it.value() != referenceValue) {
+                    *this << it.scriptName();
+                    writeRawDelta(it.value(), referenceValue);
+                }
+            }
+            for (QScriptValueIterator it(reference); it.hasNext(); ) {
+                it.next();
+                if (!value.property(it.scriptName()).isValid()) {
+                    *this << it.scriptName();
+                    writeRawDelta(QScriptValue(), it.value());
+                }
+            }
+            *this << QScriptString();
+            
+        } else {
+            *this << true;
+            *this << value;
+        }
+    } else {
+        *this << value;
+    }
+}
+
+void Bitstream::readRawDelta(QScriptValue& value, const QScriptValue& reference) {
+    if (reference.isUndefined() || reference.isNull()) {
+        *this >> value;
+    
+    } else if (reference.isBool()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            bool boolValue;
+            *this >> boolValue;
+            value = QScriptValue(boolValue);
+        }
+    } else if (reference.isNumber()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            qsreal numberValue;
+            *this >> numberValue;
+            value = QScriptValue(numberValue);
+        }
+    } else if (reference.isString()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            QString stringValue;
+            *this >> stringValue;
+            value = QScriptValue(stringValue);
+        }
+    } else if (reference.isVariant()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            QVariant variant;
+            readRawDelta(variant, reference.toVariant());
+            value = ScriptCache::getInstance()->getEngine()->newVariant(variant);
+        }
+    } else if (reference.isQObject()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            QObject* object;
+            readRawDelta(object, reference.toQObject());
+            value = ScriptCache::getInstance()->getEngine()->newQObject(object, QScriptEngine::ScriptOwnership);
+        }
+    } else if (reference.isQMetaObject()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            const QMetaObject* metaObject;
+            *this >> metaObject;
+            value = ScriptCache::getInstance()->getEngine()->newQMetaObject(metaObject);
+        }
+    } else if (reference.isDate()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            QDateTime dateTime;
+            *this >> dateTime;
+            value = ScriptCache::getInstance()->getEngine()->newDate(dateTime);
+        }
+    } else if (reference.isRegExp()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            QRegExp regExp;
+            *this >> regExp;
+            value = ScriptCache::getInstance()->getEngine()->newRegExp(regExp);
+        }
+    } else if (reference.isArray()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            int length;
+            *this >> length;
+            value = ScriptCache::getInstance()->getEngine()->newArray(length);
+            int referenceLength = reference.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+            for (int i = 0; i < length; i++) {
+                QScriptValue element;
+                if (i < referenceLength) {
+                    readDelta(element, reference.property(i));
+                } else {
+                    *this >> element;
+                }
+                value.setProperty(i, element);
+            }
+        }
+    } else if (reference.isObject()) {
+        bool typeChanged;
+        *this >> typeChanged;
+        if (typeChanged) {
+            *this >> value;
+            
+        } else {
+            // start by shallow-copying the reference
+            value = ScriptCache::getInstance()->getEngine()->newObject();
+            for (QScriptValueIterator it(reference); it.hasNext(); ) {
+                it.next();
+                value.setProperty(it.scriptName(), it.value());
+            }
+            // then apply the requested changes
+            forever {
+                QScriptString name;
+                *this >> name;
+                if (!name.isValid()) {
+                    break;
+                }
+                QScriptValue scriptValue;
+                readRawDelta(scriptValue, reference.property(name));
+                value.setProperty(name, scriptValue);
+            }
+        }
+    } else {
+        *this >> value;
+    }
 }
 
 Bitstream& Bitstream::operator<<(bool value) {
@@ -350,12 +624,28 @@ Bitstream& Bitstream::operator>>(uint& value) {
     return *this;
 }
 
+Bitstream& Bitstream::operator<<(qint64 value) {
+    return write(&value, 64);
+}
+
+Bitstream& Bitstream::operator>>(qint64& value) {
+    return read(&value, 64);
+}
+
 Bitstream& Bitstream::operator<<(float value) {
     return write(&value, 32);
 }
 
 Bitstream& Bitstream::operator>>(float& value) {
     return read(&value, 32);
+}
+
+Bitstream& Bitstream::operator<<(double value) {
+    return write(&value, 64);
+}
+
+Bitstream& Bitstream::operator>>(double& value) {
+    return read(&value, 64);
 }
 
 Bitstream& Bitstream::operator<<(const glm::vec3& value) {
@@ -417,6 +707,40 @@ Bitstream& Bitstream::operator>>(QUrl& url) {
     QString string;
     *this >> string;
     url = string;
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const QDateTime& dateTime) {
+    return *this << dateTime.toMSecsSinceEpoch();
+}
+
+Bitstream& Bitstream::operator>>(QDateTime& dateTime) {
+    qint64 msecsSinceEpoch;
+    *this >> msecsSinceEpoch;
+    dateTime = QDateTime::fromMSecsSinceEpoch(msecsSinceEpoch);
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const QRegExp& regExp) {
+    *this << regExp.pattern();
+    Qt::CaseSensitivity caseSensitivity = regExp.caseSensitivity();
+    write(&caseSensitivity, 1);
+    QRegExp::PatternSyntax syntax = regExp.patternSyntax();
+    write(&syntax, 3);
+    return *this << regExp.isMinimal();
+}
+
+Bitstream& Bitstream::operator>>(QRegExp& regExp) {
+    QString pattern;
+    *this >> pattern;
+    Qt::CaseSensitivity caseSensitivity = (Qt::CaseSensitivity)0;
+    read(&caseSensitivity, 1);
+    QRegExp::PatternSyntax syntax = (QRegExp::PatternSyntax)0;
+    read(&syntax, 3);
+    regExp = QRegExp(pattern, caseSensitivity, syntax);
+    bool minimal;
+    *this >> minimal;
+    regExp.setMinimal(minimal);
     return *this;
 }
 
@@ -543,6 +867,185 @@ Bitstream& Bitstream::operator>>(QScriptString& string) {
     return *this;
 }
 
+enum ScriptValueType {
+    INVALID_SCRIPT_VALUE,
+    UNDEFINED_SCRIPT_VALUE,
+    NULL_SCRIPT_VALUE,
+    BOOL_SCRIPT_VALUE,
+    NUMBER_SCRIPT_VALUE,
+    STRING_SCRIPT_VALUE,
+    VARIANT_SCRIPT_VALUE,
+    QOBJECT_SCRIPT_VALUE,
+    QMETAOBJECT_SCRIPT_VALUE,
+    DATE_SCRIPT_VALUE,
+    REGEXP_SCRIPT_VALUE,
+    ARRAY_SCRIPT_VALUE,
+    OBJECT_SCRIPT_VALUE
+};
+
+const int SCRIPT_VALUE_BITS = 4;
+
+static void writeScriptValueType(Bitstream& out, ScriptValueType type) {
+    out.write(&type, SCRIPT_VALUE_BITS);
+}
+
+static ScriptValueType readScriptValueType(Bitstream& in) {
+    ScriptValueType type = (ScriptValueType)0;
+    in.read(&type, SCRIPT_VALUE_BITS);
+    return type;
+}
+
+Bitstream& Bitstream::operator<<(const QScriptValue& value) {
+    if (value.isUndefined()) {
+        writeScriptValueType(*this, UNDEFINED_SCRIPT_VALUE);
+        
+    } else if (value.isNull()) {
+        writeScriptValueType(*this, NULL_SCRIPT_VALUE);
+    
+    } else if (value.isBool()) {
+        writeScriptValueType(*this, BOOL_SCRIPT_VALUE);
+        *this << value.toBool();
+    
+    } else if (value.isNumber()) {
+        writeScriptValueType(*this, NUMBER_SCRIPT_VALUE);
+        *this << value.toNumber();
+    
+    } else if (value.isString()) {
+        writeScriptValueType(*this, STRING_SCRIPT_VALUE);
+        *this << value.toString();
+    
+    } else if (value.isVariant()) {
+        writeScriptValueType(*this, VARIANT_SCRIPT_VALUE);
+        *this << value.toVariant();
+        
+    } else if (value.isQObject()) {
+        writeScriptValueType(*this, QOBJECT_SCRIPT_VALUE);
+        *this << value.toQObject();
+    
+    } else if (value.isQMetaObject()) {
+        writeScriptValueType(*this, QMETAOBJECT_SCRIPT_VALUE);
+        *this << value.toQMetaObject();
+        
+    } else if (value.isDate()) {
+        writeScriptValueType(*this, DATE_SCRIPT_VALUE);
+        *this << value.toDateTime();
+    
+    } else if (value.isRegExp()) {
+        writeScriptValueType(*this, REGEXP_SCRIPT_VALUE);
+        *this << value.toRegExp();
+    
+    } else if (value.isArray()) {
+        writeScriptValueType(*this, ARRAY_SCRIPT_VALUE);
+        int length = value.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+        *this << length;
+        for (int i = 0; i < length; i++) {
+            *this << value.property(i);
+        }
+    } else if (value.isObject()) {
+        writeScriptValueType(*this, OBJECT_SCRIPT_VALUE);
+        for (QScriptValueIterator it(value); it.hasNext(); ) {
+            it.next();
+            *this << it.scriptName();
+            *this << it.value();
+        }
+        *this << QScriptString();
+        
+    } else {
+        writeScriptValueType(*this, INVALID_SCRIPT_VALUE);
+    }
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(QScriptValue& value) {
+    switch (readScriptValueType(*this)) {
+        case UNDEFINED_SCRIPT_VALUE:
+            value = QScriptValue(QScriptValue::UndefinedValue);
+            break;
+        
+        case NULL_SCRIPT_VALUE:
+            value = QScriptValue(QScriptValue::NullValue);
+            break;
+        
+        case BOOL_SCRIPT_VALUE: {
+            bool boolValue;
+            *this >> boolValue;
+            value = QScriptValue(boolValue);
+            break;
+        }
+        case NUMBER_SCRIPT_VALUE: {
+            qsreal numberValue;
+            *this >> numberValue;
+            value = QScriptValue(numberValue);
+            break;
+        }
+        case STRING_SCRIPT_VALUE: {
+            QString stringValue;
+            *this >> stringValue;   
+            value = QScriptValue(stringValue);
+            break;
+        }
+        case VARIANT_SCRIPT_VALUE: {
+            QVariant variantValue;
+            *this >> variantValue;
+            value = ScriptCache::getInstance()->getEngine()->newVariant(variantValue);
+            break;
+        }
+        case QOBJECT_SCRIPT_VALUE: {
+            QObject* object;
+            *this >> object;
+            ScriptCache::getInstance()->getEngine()->newQObject(object, QScriptEngine::ScriptOwnership);
+            break;
+        }
+        case QMETAOBJECT_SCRIPT_VALUE: {
+            const QMetaObject* metaObject;
+            *this >> metaObject;
+            ScriptCache::getInstance()->getEngine()->newQMetaObject(metaObject);
+            break;
+        }
+        case DATE_SCRIPT_VALUE: {
+            QDateTime dateTime;
+            *this >> dateTime;
+            value = ScriptCache::getInstance()->getEngine()->newDate(dateTime);
+            break;
+        }
+        case REGEXP_SCRIPT_VALUE: {
+            QRegExp regExp;
+            *this >> regExp;
+            value = ScriptCache::getInstance()->getEngine()->newRegExp(regExp);
+            break;
+        }
+        case ARRAY_SCRIPT_VALUE: {
+            int length;
+            *this >> length;
+            value = ScriptCache::getInstance()->getEngine()->newArray(length);
+            for (int i = 0; i < length; i++) {
+                QScriptValue element;
+                *this >> element;
+                value.setProperty(i, element);
+            }
+            break;
+        }
+        case OBJECT_SCRIPT_VALUE: {
+            value = ScriptCache::getInstance()->getEngine()->newObject();
+            forever {
+                QScriptString name;
+                *this >> name;
+                if (!name.isValid()) {
+                    break;
+                }
+                QScriptValue scriptValue;
+                *this >> scriptValue;
+                value.setProperty(name, scriptValue);
+            }
+            break;
+        }
+        default:
+            value = QScriptValue();
+            break;
+    }
+    return *this;
+}
+
 Bitstream& Bitstream::operator<<(const SharedObjectPointer& object) {
     _sharedObjectStreamer << object;
     return *this;
@@ -561,7 +1064,7 @@ Bitstream& Bitstream::operator<(const QMetaObject* metaObject) {
     if (_metadataType == NO_METADATA) {
         return *this;
     }
-    const QVector<PropertyWriter>& propertyWriters = getPropertyWriters().value(metaObject);
+    const PropertyWriterVector& propertyWriters = getPropertyWriters().value(metaObject);
     *this << propertyWriters.size();
     QCryptographicHash hash(QCryptographicHash::Md5);
     foreach (const PropertyWriter& propertyWriter, propertyWriters) {
@@ -600,7 +1103,7 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
     }
     int storedPropertyCount;
     *this >> storedPropertyCount;
-    QVector<PropertyReader> properties(storedPropertyCount);
+    PropertyReaderVector properties(storedPropertyCount);
     for (int i = 0; i < storedPropertyCount; i++) {
         TypeReader typeReader;
         *this >> typeReader;
@@ -619,7 +1122,7 @@ Bitstream& Bitstream::operator>(ObjectReader& objectReader) {
         QCryptographicHash hash(QCryptographicHash::Md5);
         bool matches = true;
         if (metaObject) {
-            const QVector<PropertyWriter>& propertyWriters = getPropertyWriters().value(metaObject);
+            const PropertyWriterVector& propertyWriters = getPropertyWriters().value(metaObject);
             if (propertyWriters.size() == properties.size()) {
                 for (int i = 0; i < propertyWriters.size(); i++) {
                     const PropertyWriter& propertyWriter = propertyWriters.at(i);
@@ -899,14 +1402,17 @@ Bitstream& Bitstream::operator>(AttributePointer& attribute) {
     return *this;
 }
 
+const QString INVALID_STRING("%INVALID%");
+
 Bitstream& Bitstream::operator<(const QScriptString& string) {
-    return *this << string.toString();
+    return *this << (string.isValid() ? string.toString() : INVALID_STRING);
 }
 
 Bitstream& Bitstream::operator>(QScriptString& string) {
     QString rawString;
     *this >> rawString;
-    string = ScriptCache::getInstance()->getEngine()->toStringHandle(rawString);
+    string = (rawString == INVALID_STRING) ? QScriptString() :
+        ScriptCache::getInstance()->getEngine()->toStringHandle(rawString);
     return *this;
 }
 
@@ -990,17 +1496,17 @@ QHash<int, const TypeStreamer*>& Bitstream::getTypeStreamers() {
     return typeStreamers;
 }
 
-const QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*>& Bitstream::getEnumStreamers() {
-    static QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> enumStreamers = createEnumStreamers();
+const QHash<ScopeNamePair, const TypeStreamer*>& Bitstream::getEnumStreamers() {
+    static QHash<ScopeNamePair, const TypeStreamer*> enumStreamers = createEnumStreamers();
     return enumStreamers;
 }
 
-QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> Bitstream::createEnumStreamers() {
-    QHash<QPair<QByteArray, QByteArray>, const TypeStreamer*> enumStreamers;
+QHash<ScopeNamePair, const TypeStreamer*> Bitstream::createEnumStreamers() {
+    QHash<ScopeNamePair, const TypeStreamer*> enumStreamers;
     foreach (const QMetaObject* metaObject, getMetaObjects()) {
         for (int i = 0; i < metaObject->enumeratorCount(); i++) {
             QMetaEnum metaEnum = metaObject->enumerator(i);
-            const TypeStreamer*& streamer = enumStreamers[QPair<QByteArray, QByteArray>(metaEnum.scope(), metaEnum.name())];
+            const TypeStreamer*& streamer = enumStreamers[ScopeNamePair(metaEnum.scope(), metaEnum.name())];
             if (!streamer) {
                 streamer = new EnumTypeStreamer(metaEnum);
             }
@@ -1022,15 +1528,15 @@ QHash<QByteArray, const TypeStreamer*> Bitstream::createEnumStreamersByName() {
     return enumStreamersByName;
 }
 
-const QHash<const QMetaObject*, QVector<PropertyReader> >& Bitstream::getPropertyReaders() {
-    static QHash<const QMetaObject*, QVector<PropertyReader> > propertyReaders = createPropertyReaders();
+const QHash<const QMetaObject*, PropertyReaderVector>& Bitstream::getPropertyReaders() {
+    static QHash<const QMetaObject*, PropertyReaderVector> propertyReaders = createPropertyReaders();
     return propertyReaders;
 }
 
-QHash<const QMetaObject*, QVector<PropertyReader> > Bitstream::createPropertyReaders() {
-    QHash<const QMetaObject*, QVector<PropertyReader> > propertyReaders;
+QHash<const QMetaObject*, PropertyReaderVector> Bitstream::createPropertyReaders() {
+    QHash<const QMetaObject*, PropertyReaderVector> propertyReaders;
     foreach (const QMetaObject* metaObject, getMetaObjects()) {
-        QVector<PropertyReader>& readers = propertyReaders[metaObject];
+        PropertyReaderVector& readers = propertyReaders[metaObject];
         for (int i = 0; i < metaObject->propertyCount(); i++) {
             QMetaProperty property = metaObject->property(i);
             if (!property.isStored()) {
@@ -1039,7 +1545,7 @@ QHash<const QMetaObject*, QVector<PropertyReader> > Bitstream::createPropertyRea
             const TypeStreamer* streamer;
             if (property.isEnumType()) {
                 QMetaEnum metaEnum = property.enumerator();
-                streamer = getEnumStreamers().value(QPair<QByteArray, QByteArray>(
+                streamer = getEnumStreamers().value(ScopeNamePair(
                     QByteArray::fromRawData(metaEnum.scope(), strlen(metaEnum.scope())),
                     QByteArray::fromRawData(metaEnum.name(), strlen(metaEnum.name()))));
             } else {
@@ -1053,15 +1559,15 @@ QHash<const QMetaObject*, QVector<PropertyReader> > Bitstream::createPropertyRea
     return propertyReaders;
 }
 
-const QHash<const QMetaObject*, QVector<PropertyWriter> >& Bitstream::getPropertyWriters() {
-    static QHash<const QMetaObject*, QVector<PropertyWriter> > propertyWriters = createPropertyWriters();
+const QHash<const QMetaObject*, PropertyWriterVector>& Bitstream::getPropertyWriters() {
+    static QHash<const QMetaObject*, PropertyWriterVector> propertyWriters = createPropertyWriters();
     return propertyWriters;
 }
 
-QHash<const QMetaObject*, QVector<PropertyWriter> > Bitstream::createPropertyWriters() {
-    QHash<const QMetaObject*, QVector<PropertyWriter> > propertyWriters;
+QHash<const QMetaObject*, PropertyWriterVector> Bitstream::createPropertyWriters() {
+    QHash<const QMetaObject*, PropertyWriterVector> propertyWriters;
     foreach (const QMetaObject* metaObject, getMetaObjects()) {
-        QVector<PropertyWriter>& writers = propertyWriters[metaObject];
+        PropertyWriterVector& writers = propertyWriters[metaObject];
         for (int i = 0; i < metaObject->propertyCount(); i++) {
             QMetaProperty property = metaObject->property(i);
             if (!property.isStored()) {
@@ -1070,7 +1576,7 @@ QHash<const QMetaObject*, QVector<PropertyWriter> > Bitstream::createPropertyWri
             const TypeStreamer* streamer;
             if (property.isEnumType()) {
                 QMetaEnum metaEnum = property.enumerator();
-                streamer = getEnumStreamers().value(QPair<QByteArray, QByteArray>(
+                streamer = getEnumStreamers().value(ScopeNamePair(
                     QByteArray::fromRawData(metaEnum.scope(), strlen(metaEnum.scope())),
                     QByteArray::fromRawData(metaEnum.name(), strlen(metaEnum.name()))));
             } else {
@@ -1324,7 +1830,7 @@ void FieldReader::readDelta(Bitstream& in, const TypeStreamer* streamer, QVarian
 }
 
 ObjectReader::ObjectReader(const QByteArray& className, const QMetaObject* metaObject,
-        const QVector<PropertyReader>& properties) :
+        const PropertyReaderVector& properties) :
     _className(className),
     _metaObject(metaObject),
     _properties(properties) {

@@ -159,7 +159,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mousePressed(false),
         _audio(STARTUP_JITTER_SAMPLES),
         _enableProcessVoxelsThread(true),
-        _voxelProcessor(),
+        _octreeProcessor(),
         _voxelHideShowThread(&_voxels),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
@@ -419,7 +419,7 @@ Application::~Application() {
     _audio.thread()->quit();
     _audio.thread()->wait();
 
-    _voxelProcessor.terminate();
+    _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
@@ -518,7 +518,7 @@ void Application::initializeGL() {
     qDebug( "init() complete.");
 
     // create thread for parsing of voxel data independent of the main network and rendering threads
-    _voxelProcessor.initialize(_enableProcessVoxelsThread);
+    _octreeProcessor.initialize(_enableProcessVoxelsThread);
     _voxelEditSender.initialize(_enableProcessVoxelsThread);
     _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
     _particleEditSender.initialize(_enableProcessVoxelsThread);
@@ -1090,6 +1090,13 @@ void Application::focusOutEvent(QFocusEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
+
+    bool showMouse = true;
+    // If this mouse move event is emitted by a controller, dont show the mouse cursor
+    if (event->type() == CONTROLLER_MOVE_EVENT) {
+        showMouse = false;
+    }
+
     _controllerScriptingInterface.emitMouseMoveEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1097,10 +1104,9 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         return;
     }
 
-
     _lastMouseMove = usecTimestampNow();
 
-    if (_mouseHidden && !OculusManager::isConnected()) {
+    if (_mouseHidden && showMouse && !OculusManager::isConnected()) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;
@@ -1885,7 +1891,7 @@ void Application::updateThreads(float deltaTime) {
 
     // parse voxel packets
     if (!_enableProcessVoxelsThread) {
-        _voxelProcessor.threadRoutine();
+        _octreeProcessor.threadRoutine();
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
@@ -2096,11 +2102,11 @@ void Application::updateMyAvatar(float deltaTime) {
         }
     }
 
-    // sent a nack packet containing missing sequence numbers of received packets
+    // sent nack packets containing missing sequence numbers of received packets from nodes
     {
         quint64 now = usecTimestampNow();
         quint64 sinceLastNack = now - _lastNackTime;
-        const quint64 TOO_LONG_SINCE_LAST_NACK = 250 * MSECS_PER_SECOND;
+        const quint64 TOO_LONG_SINCE_LAST_NACK = 1 * USECS_PER_SECOND;
         if (sinceLastNack > TOO_LONG_SINCE_LAST_NACK) {
             _lastNackTime = now;
             sendNack();
@@ -2109,6 +2115,10 @@ void Application::updateMyAvatar(float deltaTime) {
 }
 
 void Application::sendNack() {
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
+        return;
+    }
 
     char packet[MAX_PACKET_SIZE];
     NodeList* nodeList = NodeList::getInstance();
@@ -2121,6 +2131,12 @@ void Application::sendNack() {
             || node->getType() == NodeType::ParticleServer
             || node->getType() == NodeType::ModelServer)
             ) {
+
+            // if there are octree packets from this node that are waiting to be processed,
+            // don't send a NACK since the missing packets may be among those waiting packets.
+            if (_octreeProcessor.hasPacketsToProcessFrom(node)) {
+                continue;
+            }
 
             QUuid nodeUUID = node->getUUID();
 
@@ -3239,6 +3255,11 @@ void Application::nodeAdded(SharedNodePointer node) {
 }
 
 void Application::nodeKilled(SharedNodePointer node) {
+
+    // this is here because connecting NodeList::nodeKilled to OctreePacketProcessor::nodeKilled doesn't work:
+    // OctreePacketProcessor::nodeKilled is not called when NodeList::nodeKilled is emitted for some reason.
+    _octreeProcessor.nodeKilled(node);
+
     if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
@@ -3484,8 +3505,10 @@ void Application::saveScripts() {
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
-    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptName) && !_scriptEnginesHash[scriptName]->isFinished()){
-        return _scriptEnginesHash[scriptName];
+    QUrl scriptUrl(scriptName);
+    const QString& scriptURLString = scriptUrl.toString();
+    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptURLString) && !_scriptEnginesHash[scriptURLString]->isFinished()){
+        return _scriptEnginesHash[scriptURLString];
     }
 
     ScriptEngine* scriptEngine;
@@ -3493,9 +3516,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
         scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     } else {
         // start the script on a new thread...
-        QUrl scriptUrl(scriptName);
         scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-        _scriptEnginesHash.insert(scriptName, scriptEngine);
+        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
 
         if (!scriptEngine->hasScript()) {
             qDebug() << "Application::loadScript(), script failed to load...";

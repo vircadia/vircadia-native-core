@@ -103,6 +103,7 @@ Menu::Menu() :
     _fastFPSAverage(ONE_SECOND_OF_FRAMES),
     _loginAction(NULL),
     _preferencesDialog(NULL),
+    _loginDialog(NULL),
     _snapshotsLocation()
 {
     Application *appInstance = Application::getInstance();
@@ -379,6 +380,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(oculusOptionsMenu, MenuOption::AllowOculusCameraModeChange, 0, false);
     addCheckableActionToQMenuAndActionHash(oculusOptionsMenu, MenuOption::DisplayOculusOverlays, 0, true);
 
+    QMenu* sixenseOptionsMenu = developerMenu->addMenu("Sixense Options");
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLeftHanded, 0, false);
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseInvertInputButtons, 0, false);
+
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(handOptionsMenu,
@@ -393,6 +399,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
+
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisableNackPackets, 0, false);
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
     
@@ -911,9 +919,11 @@ void sendFakeEnterEvent() {
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::loginForCurrentDomain() {
-    LoginDialog* loginDialog = new LoginDialog(Application::getInstance()->getWindow());
-    loginDialog->show();
-    loginDialog->resizeAndPosition(false);
+    if (!_loginDialog) {
+        _loginDialog = new LoginDialog(Application::getInstance()->getWindow());
+        _loginDialog->show();
+        _loginDialog->resizeAndPosition(false);
+    }
 }
 
 void Menu::editPreferences() {
