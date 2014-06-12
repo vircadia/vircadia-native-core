@@ -123,13 +123,13 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                 qDebug() << "sender has no known nodeUUID.";
             }
         }
-        trackInboundPackets(nodeUUID, sequence, transitTime, editsInPacket, processTime, lockWaitTime);
+        trackInboundPacket(nodeUUID, sequence, transitTime, editsInPacket, processTime, lockWaitTime);
     } else {
         qDebug("unknown packet ignored... packetType=%d", packetType);
     }
 }
 
-void OctreeInboundPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, int sequence, quint64 transitTime,
+void OctreeInboundPacketProcessor::trackInboundPacket(const QUuid& nodeUUID, unsigned short int sequence, quint64 transitTime,
             int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
 
     _totalTransitTime += transitTime;
@@ -142,31 +142,74 @@ void OctreeInboundPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, in
     // see if this is the first we've heard of this node...
     if (_singleSenderStats.find(nodeUUID) == _singleSenderStats.end()) {
         SingleSenderStats stats;
-
-        stats._totalTransitTime += transitTime;
-        stats._totalProcessTime += processTime;
-        stats._totalLockWaitTime += lockWaitTime;
-        stats._totalElementsInPacket += editsInPacket;
-        stats._totalPackets++;
-
+        stats.trackInboundPacket(sequence, transitTime, editsInPacket, processTime, lockWaitTime);
         _singleSenderStats[nodeUUID] = stats;
     } else {
         SingleSenderStats& stats = _singleSenderStats[nodeUUID];
-        stats._totalTransitTime += transitTime;
-        stats._totalProcessTime += processTime;
-        stats._totalLockWaitTime += lockWaitTime;
-        stats._totalElementsInPacket += editsInPacket;
-        stats._totalPackets++;
+        stats.trackInboundPacket(sequence, transitTime, editsInPacket, processTime, lockWaitTime);
     }
 }
 
+SingleSenderStats::SingleSenderStats()
+    : _totalTransitTime(0),
+    _totalProcessTime(0),
+    _totalLockWaitTime(0),
+    _totalElementsInPacket(0),
+    _totalPackets(0),
+    _missingSequenceNumbers()
+{
 
-SingleSenderStats::SingleSenderStats() {
-    _totalTransitTime = 0;
-    _totalProcessTime = 0;
-    _totalLockWaitTime = 0;
-    _totalElementsInPacket = 0;
-    _totalPackets = 0;
 }
 
+void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
+    int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
 
+    const int  MAX_REASONABLE_SEQUENCE_GAP = 1000;
+    const int MAX_MISSING_SEQUENCE_SIZE = 100;
+
+    unsigned short int expectedSequence = _totalPackets == 0 ? incomingSequence : _incomingLastSequence + 1;
+
+    if (incomingSequence == expectedSequence) {             // on time
+        _incomingLastSequence = incomingSequence;
+    }
+    else {
+        // ignore packet if sequence number gap is unreasonable
+        if (std::abs(incomingSequence - expectedSequence) > MAX_REASONABLE_SEQUENCE_GAP) {
+            qDebug() << "ignoring unreasonable packet... sequence:" << incomingSequence
+                << "_incomingLastSequence:" << _incomingLastSequence;
+            return;
+        }
+
+        if (incomingSequence > expectedSequence) {          // early
+
+            // add all sequence numbers that were skipped to the missing sequence numbers list
+            for (int missingSequence = expectedSequence; missingSequence < incomingSequence; missingSequence++) {
+                _missingSequenceNumbers.insert(missingSequence);
+            }
+            _incomingLastSequence = incomingSequence;
+
+        } else {                                            // late
+
+            // remove this from missing sequence number if it's in there
+            _missingSequenceNumbers.remove(incomingSequence);
+
+            // do not update _incomingLastSequence
+        }
+    }
+
+    // prune missing sequence list if it gets too big
+    if (_missingSequenceNumbers.size() > MAX_MISSING_SEQUENCE_SIZE) {
+        foreach(unsigned short int missingSequence, _missingSequenceNumbers) {
+            if (missingSequence <= std::max(0, _incomingLastSequence - MAX_REASONABLE_SEQUENCE_GAP)) {
+                _missingSequenceNumbers.remove(missingSequence);
+            }
+        }
+    }
+
+    // update other stats
+    _totalTransitTime += transitTime;
+    _totalProcessTime += processTime;
+    _totalLockWaitTime += lockWaitTime;
+    _totalElementsInPacket += editsInPacket;
+    _totalPackets++;
+}

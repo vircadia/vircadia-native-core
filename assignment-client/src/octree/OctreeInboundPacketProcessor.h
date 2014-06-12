@@ -32,12 +32,19 @@ public:
                 { return _totalElementsInPacket == 0 ? 0 : _totalProcessTime / _totalElementsInPacket; }
     quint64 getAverageLockWaitTimePerElement() const 
                 { return _totalElementsInPacket == 0 ? 0 : _totalLockWaitTime / _totalElementsInPacket; }
+
+    void trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
+        int editsInPacket, quint64 processTime, quint64 lockWaitTime);
+
         
     quint64 _totalTransitTime; 
     quint64 _totalProcessTime;
     quint64 _totalLockWaitTime;
     quint64 _totalElementsInPacket;
     quint64 _totalPackets;
+
+    unsigned short int _incomingLastSequence;
+    QSet<unsigned short int> _missingSequenceNumbers;
 };
 
 typedef std::map<QUuid, SingleSenderStats> NodeToSenderStatsMap;
@@ -69,7 +76,7 @@ protected:
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 
 private:
-    void trackInboundPackets(const QUuid& nodeUUID, int sequence, quint64 transitTime, 
+    void trackInboundPacket(const QUuid& nodeUUID, unsigned short int sequence, quint64 transitTime, 
             int voxelsInPacket, quint64 processTime, quint64 lockWaitTime);
 
     OctreeServer* _myServer;
