@@ -113,8 +113,16 @@ void SixenseManager::update(float deltaTime) {
 
 
         // Emulate the mouse so we can use scripts
-        if (numActiveControllers == 2) {
-            emulateMouse(palm);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLeftHanded)) {
+                if (numActiveControllers == 1){
+                    emulateMouse(palm);
+                }
+            } else {
+                if (numActiveControllers == 2) {
+                    emulateMouse(palm);
+                }
+            }
         }
 
         // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
@@ -348,16 +356,28 @@ void SixenseManager::emulateMouse(PalmData *palm) {
     }
     _oldPos = pos;
 
+    Qt::MouseButton bumperButton;
+    Qt::MouseButton triggerButton;
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseInvertInputButtons)) {
+        bumperButton = Qt::LeftButton;
+        triggerButton = Qt::RightButton;
+    } else {
+        bumperButton = Qt::RightButton;
+        triggerButton = Qt::LeftButton;
+    }
+    
     //Check for bumper press ( Right Click )
     if (palm->getControllerButtons() & BUTTON_FWD) {
         if (!_bumperPressed) {
             _bumperPressed = true;
-            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::RightButton, Qt::RightButton, 0);
+        
+            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, bumperButton, bumperButton, 0);
 
             Application::getInstance()->mousePressEvent(&mouseEvent);
         }
     } else if (_bumperPressed) {
-        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
+        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 
         Application::getInstance()->mouseReleaseEvent(&mouseEvent);
 
@@ -368,17 +388,20 @@ void SixenseManager::emulateMouse(PalmData *palm) {
     if (palm->getTrigger() == 1.0f) {
         if (!_triggerPressed) {
             _triggerPressed = true;
-            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::LeftButton, Qt::LeftButton, 0);
+
+            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, triggerButton, triggerButton, 0);
 
             Application::getInstance()->mousePressEvent(&mouseEvent);
         }
     } else if (_triggerPressed) {
-        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
+        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
 
         Application::getInstance()->mouseReleaseEvent(&mouseEvent);
 
         _triggerPressed = false;
     }
+
+
 }
 
 #endif  // HAVE_SIXENSE

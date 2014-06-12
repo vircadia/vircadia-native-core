@@ -45,7 +45,12 @@ void renderControllerPointer()
     int numberOfPalms = handData->getNumPalms();
 
  
-    int palmIndex = 3;
+    int palmIndex;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLeftHanded)) {
+        palmIndex = 2;
+    } else {
+        palmIndex = 3;
+    }
     const PalmData* palmData = NULL;
 
     if (palmIndex >= handData->getPalms().size()) {
@@ -326,7 +331,8 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
         glVertex2i(mouseX + crossPad, mouseY - pointerHeight);
       
         glEnd();
-    } else { //only render controller pointer if we aren't already rendering a mouse pointer
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+        //only render controller pointer if we aren't already rendering a mouse pointer
         renderControllerPointer();
     }
     glPopMatrix();
