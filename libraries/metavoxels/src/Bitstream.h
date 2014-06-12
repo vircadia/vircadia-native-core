@@ -47,6 +47,7 @@ typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 typedef QPair<QByteArray, QByteArray> ScopeNamePair;
 typedef QPair<QByteArray, int> NameIntPair;
 typedef QSharedPointer<TypeStreamer> TypeStreamerPointer;
+typedef QWeakPointer<TypeStreamer> WeakTypeStreamerPointer;
 typedef QVector<PropertyReader> PropertyReaderVector;
 typedef QVector<PropertyWriter> PropertyWriterVector;
 
@@ -441,6 +442,8 @@ private slots:
     void clearSharedObject(QObject* object);
 
 private:
+    
+    TypeStreamerPointer readGenericTypeStreamer(const QByteArray& name, int category);
     
     QDataStream& _underlying;
     quint8 _byte;
@@ -983,9 +986,12 @@ public:
 
     virtual const char* getName() const;
     
-private:
+protected:
+    
+    friend class Bitstream;
     
     QByteArray _name;
+    WeakTypeStreamerPointer _weakSelf;
 };
 
 /// A streamer for generic enums.
@@ -996,6 +1002,7 @@ public:
 
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
     
 private:
@@ -1071,6 +1078,7 @@ public:
 
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
     
 private:
@@ -1140,6 +1148,7 @@ public:
     
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
     
 private:
@@ -1220,6 +1229,7 @@ public:
     
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
     
 private:

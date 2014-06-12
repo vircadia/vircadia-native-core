@@ -1216,7 +1216,15 @@ Bitstream& Bitstream::operator>(TypeStreamerPointer& streamer) {
         }
         return *this;
     }
+    if (_genericsMode == ALL_GENERICS) {
+        streamer = readGenericTypeStreamer(typeName, category);
+        return *this;
+    }
     if (!baseStreamer) {
+        if (_genericsMode == FALLBACK_GENERICS) {
+            streamer = readGenericTypeStreamer(typeName, category);
+            return *this;
+        }
         baseStreamer = getInvalidTypeStreamer();
     }
     switch (category) {
@@ -1224,8 +1232,7 @@ Bitstream& Bitstream::operator>(TypeStreamerPointer& streamer) {
             if (_metadataType == FULL_METADATA) {
                 int keyCount;
                 *this >> keyCount;
-                QMetaEnum metaEnum = (baseStreamer && baseStreamer->getCategory() == TypeStreamer::ENUM_CATEGORY) ?
-                    baseStreamer->getMetaEnum() : QMetaEnum();
+                QMetaEnum metaEnum = baseStreamer->getMetaEnum();
                 QHash<int, int> mappings;
                 bool matches = (keyCount == metaEnum.keyCount());
                 int highestValue = 0;
@@ -1248,7 +1255,7 @@ Bitstream& Bitstream::operator>(TypeStreamerPointer& streamer) {
                 int bits;
                 *this >> bits;
                 QCryptographicHash hash(QCryptographicHash::Md5);
-                if (baseStreamer && baseStreamer->getCategory() == TypeStreamer::ENUM_CATEGORY) {
+                if (baseStreamer->getCategory() == TypeStreamer::ENUM_CATEGORY) {
                     QMetaEnum metaEnum = baseStreamer->getMetaEnum();
                     for (int i = 0; i < metaEnum.keyCount(); i++) {
                         hash.addData(metaEnum.key(i), strlen(metaEnum.key(i)) + 1);
@@ -1269,8 +1276,7 @@ Bitstream& Bitstream::operator>(TypeStreamerPointer& streamer) {
         case TypeStreamer::SET_CATEGORY: {
             TypeStreamerPointer valueStreamer;
             *this >> valueStreamer;
-            if (!(baseStreamer && baseStreamer->getCategory() == category &&
-                    valueStreamer == baseStreamer->getValueStreamer())) {
+            if (!(baseStreamer->getCategory() == category && valueStreamer == baseStreamer->getValueStreamer())) {
                 streamer = TypeStreamerPointer(category == TypeStreamer::LIST_CATEGORY ?
                     new MappedListTypeStreamer(baseStreamer, valueStreamer) :
                         new MappedSetTypeStreamer(baseStreamer, valueStreamer));
@@ -1280,7 +1286,7 @@ Bitstream& Bitstream::operator>(TypeStreamerPointer& streamer) {
         case TypeStreamer::MAP_CATEGORY: {
             TypeStreamerPointer keyStreamer, valueStreamer;
             *this >> keyStreamer >> valueStreamer;
-            if (!(baseStreamer && baseStreamer->getCategory() == TypeStreamer::MAP_CATEGORY &&
+            if (!(baseStreamer->getCategory() == TypeStreamer::MAP_CATEGORY &&
                     keyStreamer == baseStreamer->getKeyStreamer() && valueStreamer == baseStreamer->getValueStreamer())) {
                 streamer = TypeStreamerPointer(new MappedMapTypeStreamer(baseStreamer, keyStreamer, valueStreamer));
             }
@@ -1298,9 +1304,7 @@ Bitstream& Bitstream::operator>(TypeStreamerPointer& streamer) {
         if (_metadataType == FULL_METADATA) {
             QByteArray fieldName;
             *this >> fieldName;
-            if (baseStreamer) {
-                index = baseStreamer->getFieldIndex(fieldName);
-            }
+            index = baseStreamer->getFieldIndex(fieldName);
         }
         fields[i] = StreamerIndexPair(typeStreamer, index);
     }
@@ -1308,49 +1312,44 @@ Bitstream& Bitstream::operator>(TypeStreamerPointer& streamer) {
     if (_metadataType == HASH_METADATA) {
         QCryptographicHash hash(QCryptographicHash::Md5);
         bool matches = true;
-        if (baseStreamer) {
-            const QVector<MetaField>& localFields = baseStreamer->getMetaFields();
-            if (fieldCount != localFields.size()) {
-                matches = false;
-                
-            } else {
-                if (fieldCount == 0) {
-                    return *this;
-                }
-                for (int i = 0; i < fieldCount; i++) {
-                    const MetaField& localField = localFields.at(i);
-                    if (fields.at(i).first != localField.getStreamer()) {
-                        matches = false;
-                        break;
-                    }
-                    hash.addData(localField.getName().constData(), localField.getName().size() + 1);
-                }   
+        const QVector<MetaField>& localFields = baseStreamer->getMetaFields();
+        if (fieldCount != localFields.size()) {
+            matches = false;
+            
+        } else {
+            if (fieldCount == 0) {
+                return *this;
             }
+            for (int i = 0; i < fieldCount; i++) {
+                const MetaField& localField = localFields.at(i);
+                if (fields.at(i).first != localField.getStreamer()) {
+                    matches = false;
+                    break;
+                }
+                hash.addData(localField.getName().constData(), localField.getName().size() + 1);
+            }   
         }
         QByteArray localHashResult = hash.result();
         QByteArray remoteHashResult(localHashResult.size(), 0);
         read(remoteHashResult.data(), remoteHashResult.size() * BITS_IN_BYTE);
-        if (baseStreamer && matches && localHashResult == remoteHashResult) {
+        if (matches && localHashResult == remoteHashResult) {
             // since everything is the same, we can use the default streamer
             return *this;
         }
-    } else if (baseStreamer) {
-        // if all fields are the same type and in the right order, we can use the (more efficient) default streamer
-        const QVector<MetaField>& localFields = baseStreamer->getMetaFields();
-        if (fieldCount != localFields.size()) {
+    }
+    // if all fields are the same type and in the right order, we can use the (more efficient) default streamer
+    const QVector<MetaField>& localFields = baseStreamer->getMetaFields();
+    if (fieldCount != localFields.size()) {
+        streamer = TypeStreamerPointer(new MappedStreamableTypeStreamer(baseStreamer, fields));
+        return *this;
+    }
+    for (int i = 0; i < fieldCount; i++) {
+        const StreamerIndexPair& field = fields.at(i);
+        if (field.first != localFields.at(i).getStreamer() || field.second != i) {
             streamer = TypeStreamerPointer(new MappedStreamableTypeStreamer(baseStreamer, fields));
             return *this;
         }
-        for (int i = 0; i < fieldCount; i++) {
-            const StreamerIndexPair& field = fields.at(i);
-            if (field.first != localFields.at(i).getStreamer() || field.second != i) {
-                streamer = TypeStreamerPointer(new MappedStreamableTypeStreamer(baseStreamer, fields));
-                return *this;
-            }
-        }
-        return *this;
     }
-    streamer = TypeStreamerPointer(new MappedStreamableTypeStreamer(baseStreamer, fields));
     return *this;
 }
 
@@ -1442,6 +1441,81 @@ void Bitstream::clearSharedObject(QObject* object) {
     if (id != 0) {
         emit sharedObjectCleared(id);
     }
+}
+
+const int MD5_HASH_SIZE = 16;
+
+TypeStreamerPointer Bitstream::readGenericTypeStreamer(const QByteArray& name, int category) {
+    TypeStreamerPointer streamer;
+    switch (category) {
+        case TypeStreamer::ENUM_CATEGORY: {
+            QVector<NameIntPair> values;
+            int bits;
+            QByteArray hash;
+            if (_metadataType == FULL_METADATA) {
+                int keyCount;
+                *this >> keyCount;
+                values.resize(keyCount);
+                int highestValue = 0;
+                for (int i = 0; i < keyCount; i++) {
+                    QByteArray name;
+                    int value;
+                    *this >> name >> value;
+                    values[i] = NameIntPair(name, value);
+                    highestValue = qMax(highestValue, value);
+                }
+                bits = getBitsForHighestValue(highestValue);
+                
+            } else {
+                *this >> bits;
+                hash.resize(MD5_HASH_SIZE);
+                read(hash.data(), hash.size() * BITS_IN_BYTE);
+            }
+            streamer = TypeStreamerPointer(new GenericEnumTypeStreamer(name, values, bits, hash));
+            break;
+        }
+        case TypeStreamer::STREAMABLE_CATEGORY: {
+            int fieldCount;
+            *this >> fieldCount;
+            QVector<StreamerNamePair> fields(fieldCount);
+            QByteArray hash;
+            if (fieldCount == 0) {
+                streamer = TypeStreamerPointer(new GenericStreamableTypeStreamer(name, fields, hash));
+                break;
+            }
+            for (int i = 0; i < fieldCount; i++) {
+                TypeStreamerPointer streamer;
+                *this >> streamer;
+                QByteArray name;
+                if (_metadataType == FULL_METADATA) {
+                    *this >> name;
+                }
+                fields[i] = StreamerNamePair(streamer, name);
+            }
+            if (_metadataType == HASH_METADATA) {
+                hash.resize(MD5_HASH_SIZE);
+                read(hash.data(), hash.size() * BITS_IN_BYTE);
+            }
+            streamer = TypeStreamerPointer(new GenericStreamableTypeStreamer(name, fields, hash));
+            break;
+        }
+        case TypeStreamer::LIST_CATEGORY:
+        case TypeStreamer::SET_CATEGORY: {
+            TypeStreamerPointer valueStreamer;
+            *this >> valueStreamer;
+            streamer = TypeStreamerPointer(category == TypeStreamer::LIST_CATEGORY ?
+                new GenericListTypeStreamer(name, valueStreamer) : new GenericSetTypeStreamer(name, valueStreamer));
+            break;
+        }
+        case TypeStreamer::MAP_CATEGORY: {
+            TypeStreamerPointer keyStreamer, valueStreamer;
+            *this >> keyStreamer >> valueStreamer;
+            streamer = TypeStreamerPointer(new GenericMapTypeStreamer(name, keyStreamer, valueStreamer));
+            break;
+        }
+    }
+    static_cast<GenericTypeStreamer*>(streamer.data())->_weakSelf = streamer;
+    return streamer;
 }
 
 QHash<QByteArray, const QMetaObject*>& Bitstream::getMetaObjects() {
@@ -1985,6 +2059,12 @@ void GenericEnumTypeStreamer::write(Bitstream& out, const QVariant& value) const
     out.write(&intValue, _bits);
 }
 
+QVariant GenericEnumTypeStreamer::read(Bitstream& in) const {
+    int intValue = 0;
+    in.read(&intValue, _bits);
+    return QVariant::fromValue(GenericValue(_weakSelf, intValue));
+}
+
 TypeStreamer::Category GenericEnumTypeStreamer::getCategory() const {
     return ENUM_CATEGORY;
 }
@@ -2042,6 +2122,9 @@ GenericStreamableTypeStreamer::GenericStreamableTypeStreamer(const QByteArray& n
 
 void GenericStreamableTypeStreamer::writeMetadata(Bitstream& out, bool full) const {
     out << _fields.size();
+    if (_fields.isEmpty()) {
+        return;
+    }
     foreach (const StreamerNamePair& field, _fields) {
         out << field.first.data();
         if (full) {
@@ -2065,6 +2148,14 @@ void GenericStreamableTypeStreamer::write(Bitstream& out, const QVariant& value)
     for (int i = 0; i < _fields.size(); i++) {
         _fields.at(i).first->write(out, values.at(i));
     }
+}
+
+QVariant GenericStreamableTypeStreamer::read(Bitstream& in) const {
+    QVariantList values;
+    foreach (const StreamerNamePair& field, _fields) {
+        values.append(field.first->read(in));
+    }
+    return QVariant::fromValue(GenericValue(_weakSelf, values));
 }
 
 TypeStreamer::Category GenericStreamableTypeStreamer::getCategory() const {
@@ -2122,6 +2213,16 @@ void GenericListTypeStreamer::write(Bitstream& out, const QVariant& value) const
     foreach (const QVariant& element, values) {
         _valueStreamer->write(out, element);
     }
+}
+
+QVariant GenericListTypeStreamer::read(Bitstream& in) const {
+    QVariantList values;
+    int size;
+    in >> size;
+    for (int i = 0; i < size; i++) {
+        values.append(_valueStreamer->read(in));
+    }
+    return QVariant::fromValue(GenericValue(_weakSelf, values));
 }
 
 TypeStreamer::Category GenericListTypeStreamer::getCategory() const {
@@ -2216,6 +2317,18 @@ void GenericMapTypeStreamer::write(Bitstream& out, const QVariant& value) const 
         _keyStreamer->write(out, pair.first);
         _valueStreamer->write(out, pair.second);
     }
+}
+
+QVariant GenericMapTypeStreamer::read(Bitstream& in) const {
+    QVariantPairList values;
+    int size;
+    in >> size;
+    for (int i = 0; i < size; i++) {
+        QVariant key = _keyStreamer->read(in);
+        QVariant value = _valueStreamer->read(in);
+        values.append(QVariantPair(key, value));
+    }
+    return QVariant::fromValue(GenericValue(_weakSelf, QVariant::fromValue(values)));
 }
 
 TypeStreamer::Category GenericMapTypeStreamer::getCategory() const {
