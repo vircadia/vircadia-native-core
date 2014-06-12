@@ -549,15 +549,18 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
                             << modelItemID.id << "creatorTokenID=" << modelItemID.creatorTokenID;
                 }                
                 
+                // TODO: We need to optimize this... some things we need to do.
+                //   1) findModelByID() currently recurses the entire tree to find the model, that sucks and needs
+                //      to be fixed to use a hash for faster ID lookup
+                //   2) it's also inefficient to call readModelDataFromBuffer() twice. It would be better to just
+                //      pull out the model item ID, then look it up, then read the rest of the data in the buffer
                 const ModelItem* existingModelItem = _myTree->findModelByID(modelItemID.id, true);
                 if (existingModelItem) {
-                    //qDebug() << "ModelTreeElement::readElementDataFromBuffer()... model item already exists...";
-                    tempModel.copyChangedProperties(*existingModelItem); // copy original properties...
-                    bytesForThisModel = tempModel.readModelDataFromBuffer(dataAt, bytesLeftToRead, args); // reread only the changed properties
+                    // copy original properties...
+                    tempModel.copyChangedProperties(*existingModelItem); 
+                    // reread only the changed properties
+                    bytesForThisModel = tempModel.readModelDataFromBuffer(dataAt, bytesLeftToRead, args); 
                 }
-                
-                //qDebug() << "ModelTreeElement::readElementDataFromBuffer()... _myTree->storeModel(tempModel)";
-
                 _myTree->storeModel(tempModel);
                 dataAt += bytesForThisModel;
                 bytesLeftToRead -= bytesForThisModel;
