@@ -244,7 +244,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_octreeProcessor, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
     connect(nodeList, SIGNAL(uuidChanged(const QUuid&)), _myAvatar, SLOT(setSessionUUID(const QUuid&)));
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
@@ -1090,6 +1089,13 @@ void Application::focusOutEvent(QFocusEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
+
+    bool showMouse = true;
+    // If this mouse move event is emitted by a controller, dont show the mouse cursor
+    if (event->type() == CONTROLLER_MOVE_EVENT) {
+        showMouse = false;
+    }
+
     _controllerScriptingInterface.emitMouseMoveEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1097,10 +1103,9 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         return;
     }
 
-
     _lastMouseMove = usecTimestampNow();
 
-    if (_mouseHidden && !OculusManager::isConnected()) {
+    if (_mouseHidden && showMouse && !OculusManager::isConnected()) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;
@@ -3249,6 +3254,11 @@ void Application::nodeAdded(SharedNodePointer node) {
 }
 
 void Application::nodeKilled(SharedNodePointer node) {
+
+    // this is here because connecting NodeList::nodeKilled to OctreePacketProcessor::nodeKilled doesn't work:
+    // OctreePacketProcessor::nodeKilled is not called when NodeList::nodeKilled is emitted for some reason.
+    _octreeProcessor.nodeKilled(node);
+
     if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
@@ -3494,8 +3504,10 @@ void Application::saveScripts() {
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
-    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptName) && !_scriptEnginesHash[scriptName]->isFinished()){
-        return _scriptEnginesHash[scriptName];
+    QUrl scriptUrl(scriptName);
+    const QString& scriptURLString = scriptUrl.toString();
+    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptURLString) && !_scriptEnginesHash[scriptURLString]->isFinished()){
+        return _scriptEnginesHash[scriptURLString];
     }
 
     ScriptEngine* scriptEngine;
@@ -3503,9 +3515,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
         scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     } else {
         // start the script on a new thread...
-        QUrl scriptUrl(scriptName);
         scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-        _scriptEnginesHash.insert(scriptName, scriptEngine);
+        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
 
         if (!scriptEngine->hasScript()) {
             qDebug() << "Application::loadScript(), script failed to load...";

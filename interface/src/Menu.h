@@ -27,6 +27,7 @@
 #include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
 #include "ui/JSConsole.h"
+#include "ui/LoginDialog.h"
 #include "ui/ScriptEditorWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
@@ -270,6 +271,7 @@ private:
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AnimationsDialog> _animationsDialog;
+    QPointer<LoginDialog> _loginDialog;
     QAction* _chatAction;
     QString _snapshotsLocation;
 };
@@ -397,6 +399,9 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString SimpleShadows = "Simple";
+    const QString SixenseInvertInputButtons = "Invert Sixense Mouse Input Buttons";
+    const QString SixenseLeftHanded = "Left Handed Sixense Mouse Input";
+    const QString SixenseMouseInput = "Enable Sixense Mouse Input";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowBordersModelNodes = "Show Model Nodes";
     const QString ShowBordersParticleNodes = "Show Particle Nodes";

@@ -32,6 +32,7 @@ private slots:
     void handleSSLErrors(QNetworkReply* networkReply, const QList<QSslError>& errorList);
     void handleLoadFinished(bool success);
     void handleWebViewDestroyed(QObject* destroyedObject);
+    void handleURLChanged(const QUrl& url);
 private:
     QPointer<QWebView> _activeWebView;
     QElapsedTimer _webViewRedisplayTimer;
