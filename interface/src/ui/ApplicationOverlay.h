@@ -46,13 +46,18 @@ private:
 
     typedef QPair<GLuint, GLuint> VerticesIndices;
 
+    void renderPointers();
     void renderControllerPointer();
+    void renderMagnifier(int mouseX, int mouseY);
+    void renderAudioMeter();
+    void renderStatsAndLogs();
     void renderTexturedHemisphere();
 
     QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;
     float _oculusAngle;
     float _distance;
+    float _textureFov;
     UIType _uiType;
     int _mouseX[2];
     int _mouseY[2];
