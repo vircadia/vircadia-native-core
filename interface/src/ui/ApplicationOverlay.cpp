@@ -289,7 +289,6 @@ void ApplicationOverlay::renderPointers() {
         mouseX -= pointerWidth / 2.0f;
         mouseY += pointerHeight / 2.0f;
 
-
         glBegin(GL_QUADS);
 
         glColor3f(1, 0, 0);

@@ -381,7 +381,17 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     if (pos.x() != _oldX[index] || pos.y() != _oldY[index]) {
         QMouseEvent mouseEvent(static_cast<QEvent::Type>(CONTROLLER_MOVE_EVENT), pos, Qt::NoButton, Qt::NoButton, 0);
 
-        Application::getInstance()->mouseMoveEvent(&mouseEvent);
+        //Only send the mouse event if the opposite left button isnt held down.
+        //This is specifically for edit voxels
+        if (triggerButton == Qt::LeftButton) {
+            if (!_triggerPressed[(int)(!index)]) {
+                Application::getInstance()->mouseMoveEvent(&mouseEvent);
+            }
+        } else {
+            if (!_bumperPressed[(int)(!index)]) {
+                Application::getInstance()->mouseMoveEvent(&mouseEvent);
+            }
+        } 
     }
     _oldX[index] = pos.x();
     _oldY[index] = pos.y();
