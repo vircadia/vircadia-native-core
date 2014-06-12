@@ -154,9 +154,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     MyAvatar* myAvatar = application->getAvatar();
     const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
 
-    const int widgetWidth = glWidget->width();
-    const int widgetHeight = glWidget->height();
-    const float magnification = 4.0f;
+  
 
     // Get vertical FoV of the displayed overlay texture
     const float halfVerticalAngle = _oculusAngle / 2.0f;
@@ -320,7 +318,7 @@ void ApplicationOverlay::renderControllerPointer() {
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
     int numberOfPalms = handData->getNumPalms();
 
-    for (int palmIndex = 2; palmIndex < 4; palmIndex++) {
+    for (unsigned int palmIndex = 2; palmIndex < 4; palmIndex++) {
         const PalmData* palmData = NULL;
 
         if (palmIndex >= handData->getPalms().size()) {
@@ -407,18 +405,9 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
     const float halfVerticalAngle = _oculusAngle / 2.0f;
     const float overlayAspectRatio = glWidget->width() / (float)glWidget->height();
     const float halfOverlayHeight = _distance * tan(halfVerticalAngle);
-    const float overlayHeight = halfOverlayHeight * 2.0f;
-
-    // The more vertices, the better the curve
-    const int numHorizontalVertices = 20;
-    const int numVerticalVertices = 20;
-    // U texture coordinate width at each quad
-    const float quadTexWidth = 1.0f / (numHorizontalVertices - 1);
-    const float quadTexHeight = 1.0f / (numVerticalVertices - 1);
 
     // Get horizontal angle and angle increment from vertical angle and aspect ratio
     const float horizontalAngle = halfVerticalAngle * 2.0f * overlayAspectRatio;
-    const float angleIncrement = horizontalAngle / (numHorizontalVertices - 1);
     const float halfHorizontalAngle = horizontalAngle / 2;
 
 

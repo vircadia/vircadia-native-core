@@ -353,7 +353,6 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
     float cursorRange = widget->width();
 
-
     pos.setX(cursorRange * xAngle);
     pos.setY(cursorRange * yAngle);
 
