@@ -1639,6 +1639,153 @@ QHash<const QMetaObject*, PropertyWriterVector> Bitstream::createPropertyWriters
     return propertyWriters;
 }
 
+MappedObjectStreamer::MappedObjectStreamer(const QVector<StreamerPropertyPair>& properties) :
+    _properties(properties) {
+}
+
+const char* MappedObjectStreamer::getName() const {
+    return _metaObject->className();
+}
+
+void MappedObjectStreamer::writeMetadata(Bitstream& out, bool full) const {
+    out << _properties.size();
+    if (_properties.isEmpty()) {
+        return;
+    }
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    foreach (const StreamerPropertyPair& property, _properties) {
+        out << property.first.data();
+        if (full) {
+            out << QByteArray::fromRawData(property.second.name(), strlen(property.second.name()));
+        } else {
+            hash.addData(property.second.name(), strlen(property.second.name()) + 1);
+        }
+    }
+    if (!full) {
+        QByteArray hashResult = hash.result();
+        out.write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
+    }
+}
+
+void MappedObjectStreamer::write(Bitstream& out, QObject* object) const {
+    foreach (const StreamerPropertyPair& property, _properties) {
+        property.first->write(out, property.second.read(object));
+    }
+}
+
+void MappedObjectStreamer::writeDelta(Bitstream& out, QObject* object, QObject* reference) const {
+    foreach (const StreamerPropertyPair& property, _properties) {
+        property.first->writeDelta(out, property.second.read(object), (reference && reference->metaObject() == _metaObject) ?
+            property.second.read(reference) : QVariant());
+    }
+}
+
+QObject* MappedObjectStreamer::read(Bitstream& in, QObject* object) const {
+    if (!object && _metaObject) {
+        object = _metaObject->newInstance();
+    }
+    foreach (const StreamerPropertyPair& property, _properties) {
+        QVariant value = property.first->read(in);
+        if (property.second.isValid() && object) {
+            property.second.write(object, value);
+        }
+    }
+    return object;
+}
+
+QObject* MappedObjectStreamer::readDelta(Bitstream& in, const QObject* reference, QObject* object) const {
+    if (!object && _metaObject) {
+        object = _metaObject->newInstance();
+    }
+    foreach (const StreamerPropertyPair& property, _properties) {
+        QVariant value;
+        property.first->readDelta(in, value, (property.second.isValid() && reference) ?
+            property.second.read(reference) : QVariant());
+        if (property.second.isValid() && object) {
+            property.second.write(object, value);
+        }
+    }
+    return object;
+}
+
+GenericObjectStreamer::GenericObjectStreamer(const QByteArray& name, const QVector<StreamerNamePair>& properties,
+        const QByteArray& hash) :
+    _name(name),
+    _properties(properties),
+    _hash(hash) {
+    
+    _metaObject = &GenericSharedObject::staticMetaObject;
+}
+
+const char* GenericObjectStreamer::getName() const {
+    return _name.constData();
+}
+
+void GenericObjectStreamer::writeMetadata(Bitstream& out, bool full) const {
+    out << _properties.size();
+    if (_properties.isEmpty()) {
+        return;
+    }
+    foreach (const StreamerNamePair& property, _properties) {
+        out << property.first.data();
+        if (full) {
+            out << property.second;
+        }
+    }
+    if (!full) {
+        if (_hash.isEmpty()) {
+            QCryptographicHash hash(QCryptographicHash::Md5);
+            foreach (const StreamerNamePair& property, _properties) {
+                hash.addData(property.second.constData(), property.second.size() + 1);
+            }
+            const_cast<GenericObjectStreamer*>(this)->_hash = hash.result();
+        }
+        out.write(_hash.constData(), _hash.size() * BITS_IN_BYTE);
+    }
+}
+
+void GenericObjectStreamer::write(Bitstream& out, QObject* object) const {
+    const QVariantList& values = static_cast<GenericSharedObject*>(object)->getValues();
+    for (int i = 0; i < _properties.size(); i++) {
+        _properties.at(i).first->write(out, values.at(i));
+    }
+}
+
+void GenericObjectStreamer::writeDelta(Bitstream& out, QObject* object, QObject* reference) const {
+    for (int i = 0; i < _properties.size(); i++) {
+        _properties.at(i).first->writeDelta(out, static_cast<GenericSharedObject*>(object)->getValues().at(i), reference ?
+            static_cast<GenericSharedObject*>(reference)->getValues().at(i) : QVariant());
+    }
+}
+
+QObject* GenericObjectStreamer::read(Bitstream& in, QObject* object) const {
+    if (!object) {
+        object = new GenericSharedObject(_weakSelf);
+    }
+    QVariantList values;
+    foreach (const StreamerNamePair& property, _properties) {
+        values.append(property.first->read(in));
+    }
+    static_cast<GenericSharedObject*>(object)->setValues(values);
+    return object;
+}
+
+QObject* GenericObjectStreamer::readDelta(Bitstream& in, const QObject* reference, QObject* object) const {
+    if (!object) {
+        object = new GenericSharedObject(_weakSelf);
+    }
+    QVariantList values;
+    for (int i = 0; i < _properties.size(); i++) {
+        const StreamerNamePair& property = _properties.at(i);
+        QVariant value;
+        property.first->readDelta(in, value, reference ?
+            static_cast<const GenericSharedObject*>(reference)->getValues().at(i) : QVariant());
+        values.append(value);
+    }
+    static_cast<GenericSharedObject*>(object)->setValues(values);
+    return object;
+}
+
 ObjectReader::ObjectReader(const QByteArray& className, const QMetaObject* metaObject,
         const PropertyReaderVector& properties) :
     _className(className),
@@ -1710,6 +1857,19 @@ void PropertyWriter::writeDelta(Bitstream& out, const QObject* object, const QOb
 
 MetaField::MetaField(const QByteArray& name, const TypeStreamer* streamer) :
     _name(name),
+    _streamer(streamer) {
+}
+
+GenericValue::GenericValue(const TypeStreamerPointer& streamer, const QVariant& value) :
+    _streamer(streamer),
+    _value(value) {
+}
+
+bool GenericValue::operator==(const GenericValue& other) const {
+    return _streamer == other._streamer && _value == other._value;
+}
+
+GenericSharedObject::GenericSharedObject(const ObjectStreamerPointer& streamer) :
     _streamer(streamer) {
 }
 
@@ -2069,19 +2229,6 @@ TypeStreamer::Category GenericEnumTypeStreamer::getCategory() const {
     return ENUM_CATEGORY;
 }
 
-GenericValue::GenericValue(const TypeStreamerPointer& streamer, const QVariant& value) :
-    _streamer(streamer),
-    _value(value) {
-}
-
-bool GenericValue::operator==(const GenericValue& other) const {
-    return _streamer == other._streamer && _value == other._value;
-}
-
-const TypeStreamer* GenericValueStreamer::getStreamerToWrite(const QVariant& value) const {
-    return value.value<GenericValue>().getStreamer().data();
-}
-
 MappedStreamableTypeStreamer::MappedStreamableTypeStreamer(const TypeStreamer* baseStreamer,
         const QVector<StreamerIndexPair>& fields) :
     _baseStreamer(baseStreamer),
@@ -2333,4 +2480,8 @@ QVariant GenericMapTypeStreamer::read(Bitstream& in) const {
 
 TypeStreamer::Category GenericMapTypeStreamer::getCategory() const {
     return MAP_CATEGORY;
+}
+
+const TypeStreamer* GenericValueStreamer::getStreamerToWrite(const QVariant& value) const {
+    return value.value<GenericValue>().getStreamer().data();
 }

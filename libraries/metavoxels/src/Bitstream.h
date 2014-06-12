@@ -37,6 +37,7 @@ class AttributeValue;
 class Bitstream;
 class GenericValue;
 class ObjectReader;
+class ObjectStreamer;
 class OwnedAttributeValue;
 class PropertyReader;
 class PropertyWriter;
@@ -46,6 +47,8 @@ typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
 typedef QPair<QByteArray, QByteArray> ScopeNamePair;
 typedef QPair<QByteArray, int> NameIntPair;
+typedef QSharedPointer<ObjectStreamer> ObjectStreamerPointer;
+typedef QWeakPointer<ObjectStreamer> WeakObjectStreamerPointer;
 typedef QSharedPointer<TypeStreamer> TypeStreamerPointer;
 typedef QWeakPointer<TypeStreamer> WeakTypeStreamerPointer;
 typedef QVector<PropertyReader> PropertyReaderVector;
@@ -766,6 +769,68 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
     return *this;
 }
 
+/// Contains the information required to stream an object.
+class ObjectStreamer {
+public:
+
+    virtual const char* getName() const = 0;    
+    virtual void writeMetadata(Bitstream& out, bool full) const = 0;
+    virtual void write(Bitstream& out, QObject* object) const = 0;
+    virtual void writeDelta(Bitstream& out, QObject* object, QObject* reference) const = 0;
+    virtual QObject* read(Bitstream& in, QObject* object = NULL) const = 0;
+    virtual QObject* readDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const = 0;
+    
+protected:
+
+    const QMetaObject* _metaObject;
+    ObjectStreamerPointer _self;
+};
+
+typedef QPair<TypeStreamerPointer, QMetaProperty> StreamerPropertyPair;
+
+/// A streamer that maps to a local class.
+class MappedObjectStreamer : public ObjectStreamer {
+public:
+
+    MappedObjectStreamer(const QVector<StreamerPropertyPair>& properties);
+
+    virtual const char* getName() const;
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual void write(Bitstream& out, QObject* object) const;
+    virtual void writeDelta(Bitstream& out, QObject* object, QObject* reference) const;
+    virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
+    virtual QObject* readDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
+    
+private:
+    
+    QVector<StreamerPropertyPair> _properties;
+};
+
+typedef QPair<TypeStreamerPointer, QByteArray> StreamerNamePair;
+
+/// A streamer for generic objects.
+class GenericObjectStreamer : public ObjectStreamer {
+public:
+
+    GenericObjectStreamer(const QByteArray& name, const QVector<StreamerNamePair>& properties, const QByteArray& hash);
+
+    virtual const char* getName() const;
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual void write(Bitstream& out, QObject* object) const;
+    virtual void writeDelta(Bitstream& out, QObject* object, QObject* reference) const;
+    virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
+    virtual QObject* readDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
+    
+private:
+    
+    friend class Bitstream;
+    
+    QByteArray _name;
+    WeakObjectStreamerPointer _weakSelf;
+    QVector<StreamerNamePair> _properties;
+    QByteArray _hash;
+};
+
 /// Contains the information required to read an object from the stream.
 class ObjectReader {
 public:
@@ -848,6 +913,44 @@ Q_DECLARE_METATYPE(const QMetaObject*)
 
 /// Macro for registering streamable meta-objects.
 #define REGISTER_META_OBJECT(x) static int x##Registration = Bitstream::registerMetaObject(#x, &x::staticMetaObject);
+
+/// Contains a value along with a pointer to its streamer.
+class GenericValue {
+public:
+    
+    GenericValue(const TypeStreamerPointer& streamer = TypeStreamerPointer(), const QVariant& value = QVariant());
+    
+    const TypeStreamerPointer& getStreamer() const { return _streamer; }
+    const QVariant& getValue() const { return _value; }
+    
+    bool operator==(const GenericValue& other) const;
+    
+private:
+    
+    TypeStreamerPointer _streamer;
+    QVariant _value;
+};
+
+Q_DECLARE_METATYPE(GenericValue)
+
+/// Contains a list of property values along with a pointer to their metadata.
+class GenericSharedObject : public SharedObject {
+    Q_OBJECT
+    
+public:
+
+    GenericSharedObject(const ObjectStreamerPointer& streamer);
+
+    const ObjectStreamerPointer& getStreamer() const { return _streamer; }
+
+    void setValues(const QVariantList& values) { _values = values; }
+    const QVariantList& getValues() const { return _values; }
+
+private:
+    
+    ObjectStreamerPointer _streamer;
+    QVariantList _values;
+};
 
 /// Interface for objects that can write values to and read values from bitstreams.
 class TypeStreamer {
@@ -1012,32 +1115,6 @@ private:
     QByteArray _hash;
 };
 
-/// Contains a value along with a pointer to its streamer.
-class GenericValue {
-public:
-    
-    GenericValue(const TypeStreamerPointer& streamer = TypeStreamerPointer(), const QVariant& value = QVariant());
-    
-    const TypeStreamerPointer& getStreamer() const { return _streamer; }
-    const QVariant& getValue() const { return _value; }
-    
-    bool operator==(const GenericValue& other) const;
-    
-private:
-    
-    TypeStreamerPointer _streamer;
-    QVariant _value;
-};
-
-Q_DECLARE_METATYPE(GenericValue)
-
-/// A streamer class for generic values.
-class GenericValueStreamer : public SimpleTypeStreamer<GenericValue> {
-public:
-    
-    virtual const TypeStreamer* getStreamerToWrite(const QVariant& value) const;
-};
-
 /// A streamer for types compiled by mtc.
 template<class T> class StreamableTypeStreamer : public SimpleTypeStreamer<T> {
 public:
@@ -1067,8 +1144,6 @@ private:
     const TypeStreamer* _baseStreamer;
     QVector<StreamerIndexPair> _fields;
 };
-
-typedef QPair<TypeStreamerPointer, QByteArray> StreamerNamePair;
 
 /// A streamer for generic enums.
 class GenericStreamableTypeStreamer : public GenericTypeStreamer {
@@ -1236,6 +1311,13 @@ private:
 
     TypeStreamerPointer _keyStreamer;
     TypeStreamerPointer _valueStreamer;
+};
+
+/// A streamer class for generic values.
+class GenericValueStreamer : public SimpleTypeStreamer<GenericValue> {
+public:
+    
+    virtual const TypeStreamer* getStreamerToWrite(const QVariant& value) const;
 };
 
 /// Macro for registering simple type streamers.
