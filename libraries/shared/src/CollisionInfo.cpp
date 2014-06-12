@@ -47,8 +47,8 @@ void CollisionList::clear() {
         //collision._intData = 0;
         //collision._floatDAta = 0.0f;
         //collision._vecData = glm::vec3(0.0f);
-        //collision._shapeA = -1;
-        //collision._shapeB = -1;
+        //collision._shapeA = NULL;
+        //collision._shapeB = NULL;
         //collision._damping;
         //collision._elasticity;
         //collision._contactPoint;

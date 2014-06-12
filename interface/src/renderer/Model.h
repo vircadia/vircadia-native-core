@@ -17,6 +17,7 @@
 #include <QUrl>
 
 #include <CapsuleShape.h>
+#include <PhysicalEntity.h>
 
 #include <AnimationCache.h>
 
@@ -33,7 +34,7 @@ typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject {
+class Model : public QObject, public PhysicalEntity {
     Q_OBJECT
     
 public:
@@ -137,7 +138,6 @@ public:
 
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
    
-    void setSimulationIndex(int index);
     void clearShapes();
     void rebuildShapes();
     void resetShapePositions(); // DEBUG method
@@ -167,6 +167,7 @@ public:
     const CapsuleShape& getBoundingShape() const { return _boundingShape; }
 
 protected:
+    virtual void setShapeBackPointers();
 
     QSharedPointer<NetworkGeometry> _geometry;
     

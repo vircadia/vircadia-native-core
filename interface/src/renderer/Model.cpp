@@ -16,14 +16,14 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/norm.hpp>
 
+#include <CapsuleShape.h>
 #include <GeometryUtil.h>
+#include <PhysicalEntity.h>
+#include <ShapeCollider.h>
+#include <SphereShape.h>
 
 #include "Application.h"
 #include "Model.h"
-
-#include <SphereShape.h>
-#include <CapsuleShape.h>
-#include <ShapeCollider.h>
 
 using namespace std;
 
@@ -33,6 +33,7 @@ static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 
 Model::Model(QObject* parent) :
     QObject(parent),
+    PhysicalEntity(PhysicalEntity::ENTITY_MODEL),
     _scale(1.0f, 1.0f, 1.0f),
     _scaleToFit(false),
     _scaleToFitLargestDimension(0.0f),
@@ -775,34 +776,6 @@ AnimationHandlePointer Model::createAnimationHandle() {
     return handle;
 }
 
-quint8 BITS_FOR_SHAPE_INDEX = 15;
-int MAX_SIMULATION_ID = 1 << (31 - BITS_FOR_SHAPE_INDEX);
-
-void Model::setSimulationIndex(int index) {
-    _simulationIndex = index;
-
-    if (_simulationIndex < 0 || _simulationIndex > MAX_SIMULATION_ID) {
-        // clear simulation ID's of all the shapes
-        for (int i = 0; i < _jointShapes.size(); i++) {
-            Shape* shape = _jointShapes[i];
-            if (shape) {
-                shape->setSimulationID(-1);
-            }
-        }
-    } else {
-        // update the simulation ID's of the shapes
-        // upper bits store this Model's index...
-        int shiftedIndex = _simulationIndex << BITS_FOR_SHAPE_INDEX;
-        for (int i = 0; i < _jointShapes.size(); i++) {
-            Shape* shape = _jointShapes[i];
-            if (shape) {
-                // ... lower bits are for the shape's index
-                shape->setSimulationID(shiftedIndex + i);
-            }
-        }
-    }
-}
-
 void Model::clearShapes() {
     for (int i = 0; i < _jointShapes.size(); ++i) {
         delete _jointShapes[i];
@@ -836,10 +809,12 @@ void Model::rebuildShapes() {
         }
         if (type == Shape::CAPSULE_SHAPE) {
             CapsuleShape* capsule = new CapsuleShape(radius, halfHeight);
+            capsule->setEntity(this);
             _jointShapes.push_back(capsule);
         } else if (type == Shape::SPHERE_SHAPE) {
             SphereShape* sphere = new SphereShape(radius, glm::vec3(0.0f));
             _jointShapes.push_back(sphere);
+            sphere->setEntity(this);
         } else {
             // this shape type is not handled and the joint shouldn't collide, 
             // however we must have a Shape* for each joint, so we push NULL
@@ -1813,6 +1788,10 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
 
         activeProgram->release();
     }
+}
+
+void Model::setShapeBackPointers() {
+    PhysicalEntity::setShapeBackPointers(_jointShapes, this);
 }
 
 void AnimationHandle::setURL(const QUrl& url) {

@@ -15,6 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+class PhysicalEntity;
 
 class Shape {
 public:
@@ -26,7 +27,7 @@ public:
         LIST_SHAPE
     };
 
-    Shape() : _type(UNKNOWN_SHAPE), _simulationID(-1), _boundingRadius(0.f), _position(0.f), _rotation() { }
+    Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.f), _position(0.f), _rotation() { }
     virtual ~Shape() {}
 
     int getType() const { return _type; }
@@ -37,23 +38,23 @@ public:
     virtual void setPosition(const glm::vec3& position) { _position = position; }
     virtual void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
-    void setSimulationID(int id) { _simulationID = id; }
-    int getSimulationID() const { return _simulationID; }
+    void setEntity(PhysicalEntity* entity) { _owningEntity = entity; }
+    PhysicalEntity* getEntity() const { return _owningEntity; }
 
 protected:
     // these ctors are protected (used by derived classes only)
-    Shape(Type type) : _type(type), _boundingRadius(0.f), _position(0.f), _rotation() {}
+    Shape(Type type) : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _position(0.f), _rotation() {}
 
     Shape(Type type, const glm::vec3& position) 
-        : _type(type), _boundingRadius(0.f), _position(position), _rotation() {}
+        : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _position(position), _rotation() {}
 
     Shape(Type type, const glm::vec3& position, const glm::quat& rotation) 
-        : _type(type), _boundingRadius(0.f), _position(position), _rotation(rotation) {}
+        : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _position(position), _rotation(rotation) {}
 
     void setBoundingRadius(float radius) { _boundingRadius = radius; }
 
     int _type;
-    int _simulationID;    // shape's simulation ID in SimulationEngine
+    PhysicalEntity* _owningEntity;
     float _boundingRadius;
     glm::vec3 _position;
     glm::quat _rotation;

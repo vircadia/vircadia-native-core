@@ -17,6 +17,8 @@
 
 #include <QVector>
 
+class Shape;
+
 const quint32 COLLISION_GROUP_ENVIRONMENT = 1U << 0;
 const quint32 COLLISION_GROUP_AVATARS     = 1U << 1;
 const quint32 COLLISION_GROUP_VOXELS      = 1U << 2;
@@ -33,8 +35,8 @@ public:
     CollisionInfo() 
         : _data(NULL),
         _intData(0),
-        _shapeA(-1),
-        _shapeB(-1),
+        _shapeA(NULL),
+        _shapeB(NULL),
         _damping(0.f),
         _elasticity(1.f),
         _contactPoint(0.f), 
@@ -45,8 +47,8 @@ public:
     CollisionInfo(qint32 type)
         : _data(NULL),
         _intData(0),
-        _shapeA(-1),
-        _shapeB(-1),
+        _shapeA(NULL),
+        _shapeB(NULL),
         _damping(0.f),
         _elasticity(1.f),
         _contactPoint(0.f), 
@@ -62,8 +64,11 @@ public:
     float _floatData;
     glm::vec3 _vecData;
 
-    int _shapeA;  // ID of shapeA in its SimulationEngine
-    int _shapeB;  // ID of shapeB in its SimulationEngine
+    Shape* getShapeA() const { return const_cast<Shape*>(_shapeA); }
+    Shape* getShapeB() const { return const_cast<Shape*>(_shapeB); }
+
+    const Shape* _shapeA;  // pointer to shapeA in this collision
+    const Shape* _shapeB;  // pointer to shapeB in this collision
 
     float _damping;           // range [0,1] of friction coeficient
     float _elasticity;        // range [0,1] of energy conservation

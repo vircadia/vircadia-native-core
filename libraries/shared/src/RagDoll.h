@@ -17,7 +17,7 @@
 
 #include <QVector>
 
-class Shape;
+#include "PhysicalEntity.h"
 
 class Constraint {
 public:
@@ -61,7 +61,7 @@ private:
     glm::vec3* _points[2];
 };
 
-class RagDoll {
+class RagDoll : public PhysicalEntity {
 public:
 
     RagDoll();
