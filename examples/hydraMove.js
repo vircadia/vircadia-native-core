@@ -19,8 +19,8 @@
 var damping = 0.9;
 var position = { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z };
 var joysticksCaptured = false;
-var THRUST_CONTROLLER = 1;
-var VIEW_CONTROLLER = 0;
+var THRUST_CONTROLLER = 0;
+var VIEW_CONTROLLER = 1;
 var INITIAL_THRUST_MULTPLIER = 1.0;
 var THRUST_INCREASE_RATE = 1.05;
 var MAX_THRUST_MULTIPLIER = 75.0;
