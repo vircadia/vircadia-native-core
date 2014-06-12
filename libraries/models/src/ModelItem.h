@@ -29,6 +29,7 @@ class ModelEditPacketSender;
 class ModelItemProperties;
 class ModelsScriptingInterface;
 class ModelTree;
+class ModelTreeElementExtraEncodeData;
 class ScriptEngine;
 class VoxelEditPacketSender;
 class VoxelsScriptingInterface;
@@ -286,11 +287,12 @@ public:
     
     void setProperties(const ModelItemProperties& properties);
 
-    OctreeElement::AppendState new___appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
-    int new___readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
-
-    OctreeElement::AppendState appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
+    OctreeElement::AppendState appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params,
+                                                ModelTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;
     int readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+
+    OctreeElement::AppendState oldVersionAppendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
+    int oldVersionReadModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
 
     static bool encodeModelEditMessageDetails(PacketType command, ModelItemID id, const ModelItemProperties& details,

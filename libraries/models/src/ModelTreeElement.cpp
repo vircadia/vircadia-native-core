@@ -56,14 +56,19 @@ ModelTreeElement* ModelTreeElement::addChildAtIndex(int index) {
 // contents across multiple packets.
 OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData* packetData, 
                                                                     EncodeBitstreamParams& params) const {
-    
+
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
     
     // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
-    ModelTreeElementExtraEncodeData* elementExtraEncodeData = NULL;
+    ModelTreeElementExtraEncodeData* modelTreeElementExtraEncodeData = NULL;
+    bool hadElementExtraData = false;
     if (extraEncodeData && extraEncodeData->contains(this)) {
-        elementExtraEncodeData = static_cast<ModelTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+        modelTreeElementExtraEncodeData = static_cast<ModelTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+        hadElementExtraData = true;
+    } else {
+        // if there wasn't one already, then create one
+        modelTreeElementExtraEncodeData = new ModelTreeElementExtraEncodeData();
     }
 
     LevelDetails elementLevel = packetData->startLevel();
@@ -77,11 +82,8 @@ OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData*
         const ModelItem& model = (*_modelItems)[i];
         bool includeThisModel = true;
         
-        if (elementExtraEncodeData) {
-            includeThisModel = elementExtraEncodeData->includedItems.contains(model.getModelItemID());
-            if (includeThisModel) { 
-                elementExtraEncodeData->includedItems.remove(model.getModelItemID()); // remove it
-            }
+        if (hadElementExtraData) {
+            includeThisModel = modelTreeElementExtraEncodeData->includedItems.contains(model.getModelItemID());
         }
         
         if (includeThisModel && params.viewFrustum) {
@@ -107,7 +109,7 @@ OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData*
             
             LevelDetails modelLevel = packetData->startLevel();
     
-            OctreeElement::AppendState appendModelState = model.appendModelData(packetData, params);
+            OctreeElement::AppendState appendModelState = model.appendModelData(packetData, params, modelTreeElementExtraEncodeData);
 
             // If none of this model data was able to be appended, then discard it
             // and don't include it in our model count
@@ -119,33 +121,33 @@ OctreeElement::AppendState ModelTreeElement::appendElementData(OctreePacketData*
                 packetData->endLevel(modelLevel);
                 actualNumberOfModels++;
             }
+            
+            // If the model item got completely appended, then we can remove it from the extra encode data
+            if (appendModelState == OctreeElement::COMPLETED) {
+                modelTreeElementExtraEncodeData->includedItems.remove(model.getModelItemID());
+            }
 
             // If any part of the model items didn't fit, then the element is considered partial
+            // NOTE: if the model item didn't fit or only partially fit, then the model item should have
+            // added itself to the extra encode data.
             if (appendModelState != OctreeElement::COMPLETED) {
                 appendElementState = OctreeElement::PARTIAL;
-                
-                // add this item into our list for the next appendElementData() pass
-                if (extraEncodeData) {
-                    if (!elementExtraEncodeData) {
-                        elementExtraEncodeData = new ModelTreeElementExtraEncodeData();
-                    }
-                    elementExtraEncodeData->includedItems.insert(model.getModelItemID(), true);
-                }
             }
         }
     }
     
-    // If we were provided with extraEncodeData, and we allocated and/or got elementExtraEncodeData
-    // then we need to do some additional processing
-    if (extraEncodeData && elementExtraEncodeData) {
+    // If we were provided with extraEncodeData, and we allocated and/or got modelTreeElementExtraEncodeData
+    // then we need to do some additional processing, namely make sure our extraEncodeData is up to date for
+    // this octree element.
+    if (extraEncodeData && modelTreeElementExtraEncodeData) {
 
         // If after processing we have some includedItems left in it, then make sure we re-add it back to our map
-        if (elementExtraEncodeData->includedItems.size()) {
-            extraEncodeData->insert(this, elementExtraEncodeData);
+        if (modelTreeElementExtraEncodeData->includedItems.size()) {
+            extraEncodeData->insert(this, modelTreeElementExtraEncodeData);
         } else {
             // otherwise, clean things up...
             extraEncodeData->remove(this);
-            delete elementExtraEncodeData;
+            delete modelTreeElementExtraEncodeData;
         }
     }
 
@@ -343,16 +345,22 @@ bool ModelTreeElement::findSpherePenetration(const glm::vec3& center, float radi
 }
 
 bool ModelTreeElement::updateModel(const ModelItem& model) {
+    const bool wantDebug = false;
+    if (wantDebug) {
+        ModelItemID modelItemID = model.getModelItemID();
+        qDebug() << "ModelTreeElement::updateModel(model) modelID.id="
+                        << modelItemID.id << "creatorTokenID=" << modelItemID.creatorTokenID;
+    }
+    
     // NOTE: this method must first lookup the model by ID, hence it is O(N)
     // and "model is not found" is worst-case (full N) but maybe we don't care?
     // (guaranteed that num models per elemen is small?)
-    const bool wantDebug = false;
     uint16_t numberOfModels = _modelItems->size();
     for (uint16_t i = 0; i < numberOfModels; i++) {
         ModelItem& thisModel = (*_modelItems)[i];
         if (thisModel.getID() == model.getID()) {
             int difference = thisModel.getLastUpdated() - model.getLastUpdated();
-            bool changedOnServer = thisModel.getLastEdited() < model.getLastEdited();
+            bool changedOnServer = thisModel.getLastEdited() <= model.getLastEdited();
             bool localOlder = thisModel.getLastUpdated() < model.getLastUpdated();
             if (changedOnServer || localOlder) {
                 if (wantDebug) {
@@ -506,6 +514,8 @@ bool ModelTreeElement::removeModelWithID(uint32_t id) {
 
 int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
+            
+    const bool wantDebugging = false;
 
     // If we're the root, but this bitstream doesn't support root elements with data, then
     // return without reading any bytes
@@ -532,6 +542,22 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
             for (uint16_t i = 0; i < numberOfModels; i++) {
                 ModelItem tempModel;
                 int bytesForThisModel = tempModel.readModelDataFromBuffer(dataAt, bytesLeftToRead, args);
+
+                if (wantDebugging) {
+                    ModelItemID modelItemID = tempModel.getModelItemID();
+                    qDebug() << "ModelTreeElement::readElementDataFromBuffer()... tempModel.modelItemID.id="
+                            << modelItemID.id << "creatorTokenID=" << modelItemID.creatorTokenID;
+                }                
+                
+                const ModelItem* existingModelItem = _myTree->findModelByID(modelItemID.id, true);
+                if (existingModelItem) {
+                    //qDebug() << "ModelTreeElement::readElementDataFromBuffer()... model item already exists...";
+                    tempModel.copyChangedProperties(*existingModelItem); // copy original properties...
+                    bytesForThisModel = tempModel.readModelDataFromBuffer(dataAt, bytesLeftToRead, args); // reread only the changed properties
+                }
+                
+                //qDebug() << "ModelTreeElement::readElementDataFromBuffer()... _myTree->storeModel(tempModel)";
+
                 _myTree->storeModel(tempModel);
                 dataAt += bytesForThisModel;
                 bytesLeftToRead -= bytesForThisModel;

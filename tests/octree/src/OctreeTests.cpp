@@ -16,6 +16,8 @@
 
 #include <ByteCountCoding.h>
 #include <ModelItem.h>
+#include <ModelTree.h>
+#include <ModelTreeElement.h>
 #include <Octree.h>
 #include <OctreeConstants.h>
 #include <PropertyFlags.h>
@@ -1270,7 +1272,7 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
 void OctreeTests::modelItemTests(bool verbose) {
 
     //verbose = true;
-    
+    ModelTreeElementExtraEncodeData modelTreeElementExtraEncodeData;
     int testsTaken = 0;
     int testsPassed = 0;
     int testsFailed = 0;
@@ -1288,7 +1290,7 @@ void OctreeTests::modelItemTests(bool verbose) {
     modelItem.setID(1042);
     modelItem.setModelURL("http://foo.com/foo.fbx");
 
-    bool appendResult = modelItem.new___appendModelData(&packetData, params);
+    bool appendResult = modelItem.appendModelData(&packetData, params, &modelTreeElementExtraEncodeData);
     int bytesWritten = packetData.getUncompressedSize();
     if (verbose) {
         qDebug() << "Test 1: bytesRead == bytesWritten ...";
@@ -1302,7 +1304,7 @@ void OctreeTests::modelItemTests(bool verbose) {
         const unsigned char* data = packetData.getUncompressedData();
         int bytesLeftToRead = packetData.getUncompressedSize();
     
-        int bytesRead =  modelItemFromBuffer.new___readModelDataFromBuffer(data, bytesLeftToRead, args);
+        int bytesRead =  modelItemFromBuffer.readModelDataFromBuffer(data, bytesLeftToRead, args);
         if (verbose) {
             qDebug() << "bytesRead=" << bytesRead;
             qDebug() << "modelItemFromBuffer.getID()=" << modelItemFromBuffer.getID();
@@ -1343,7 +1345,7 @@ void OctreeTests::modelItemTests(bool verbose) {
         QByteArray garbageData(almostFullOfData, 0);
         packetData.appendValue(garbageData);
 
-        appendResult = modelItem.new___appendModelData(&packetData, params);
+        appendResult = modelItem.appendModelData(&packetData, params, &modelTreeElementExtraEncodeData);
         bytesWritten = packetData.getUncompressedSize() - almostFullOfData;
         if (verbose) {
             qDebug() << "Test 3: attempt to appendModelData in nearly full packetData ...";
@@ -1370,7 +1372,7 @@ void OctreeTests::modelItemTests(bool verbose) {
         QByteArray garbageData(almostFullOfData, 0);
         packetData.appendValue(garbageData);
 
-        appendResult = modelItem.new___appendModelData(&packetData, params);
+        appendResult = modelItem.appendModelData(&packetData, params, &modelTreeElementExtraEncodeData);
         bytesWritten = packetData.getUncompressedSize() - almostFullOfData;
         if (verbose) {
             qDebug() << "Test 4: attempt to appendModelData in nearly full packetData which some should fit ...";
@@ -1392,7 +1394,7 @@ void OctreeTests::modelItemTests(bool verbose) {
         const unsigned char* data = packetData.getUncompressedData() + almostFullOfData;
         int bytesLeftToRead = packetData.getUncompressedSize() - almostFullOfData;
     
-        int bytesRead =  modelItemFromBuffer.new___readModelDataFromBuffer(data, bytesLeftToRead, args);
+        int bytesRead =  modelItemFromBuffer.readModelDataFromBuffer(data, bytesLeftToRead, args);
         if (verbose) {
             qDebug() << "Test 5: partial ModelItem written ... bytesRead == bytesWritten...";
             qDebug() << "bytesRead=" << bytesRead;

@@ -47,7 +47,7 @@ public:
 
 class ModelTreeElementExtraEncodeData {
 public:
-    QMap<ModelItemID, bool> includedItems; // for now, bool, soon ModelPropertyFlags
+    QMap<ModelItemID, ModelPropertyFlags> includedItems; // for now, bool, soon ModelPropertyFlags
 };
 
 
