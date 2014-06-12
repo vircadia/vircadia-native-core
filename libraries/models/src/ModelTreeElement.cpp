@@ -542,9 +542,9 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
             for (uint16_t i = 0; i < numberOfModels; i++) {
                 ModelItem tempModel;
                 int bytesForThisModel = tempModel.readModelDataFromBuffer(dataAt, bytesLeftToRead, args);
+                ModelItemID modelItemID = tempModel.getModelItemID();
 
                 if (wantDebugging) {
-                    ModelItemID modelItemID = tempModel.getModelItemID();
                     qDebug() << "ModelTreeElement::readElementDataFromBuffer()... tempModel.modelItemID.id="
                             << modelItemID.id << "creatorTokenID=" << modelItemID.creatorTokenID;
                 }                
