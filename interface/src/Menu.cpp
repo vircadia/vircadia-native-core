@@ -127,7 +127,7 @@ Menu::Menu() :
     toggleLoginMenuItem();
 
     // connect to the appropriate slots of the AccountManager so that we can change the Login/Logout menu item
-    connect(&accountManager, &AccountManager::accessTokenChanged, this, &Menu::toggleLoginMenuItem);
+    connect(&accountManager, &AccountManager::profileChanged, this, &Menu::toggleLoginMenuItem);
     connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
@@ -326,7 +326,7 @@ Menu::Menu() :
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, "None", 0, true));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
-    
+
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
@@ -407,7 +407,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisableNackPackets, 0, false);
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
-    
+
     QMenu* timingMenu = developerMenu->addMenu("Timing and Statistics Tools");
     QMenu* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayTimingDetails, 0, true);
@@ -462,7 +462,7 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope, 
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScope()));
@@ -1775,4 +1775,3 @@ QString Menu::getSnapshotsLocation() const {
     }
     return _snapshotsLocation;
 }
-
