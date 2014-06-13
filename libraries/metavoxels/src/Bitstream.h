@@ -39,8 +39,6 @@ class GenericValue;
 class ObjectReader;
 class ObjectStreamer;
 class OwnedAttributeValue;
-class PropertyReader;
-class PropertyWriter;
 class TypeStreamer;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
@@ -51,8 +49,6 @@ typedef QSharedPointer<ObjectStreamer> ObjectStreamerPointer;
 typedef QWeakPointer<ObjectStreamer> WeakObjectStreamerPointer;
 typedef QSharedPointer<TypeStreamer> TypeStreamerPointer;
 typedef QWeakPointer<TypeStreamer> WeakTypeStreamerPointer;
-typedef QVector<PropertyReader> PropertyReaderVector;
-typedef QVector<PropertyWriter> PropertyWriterVector;
 
 typedef QPair<QVariant, QVariant> QVariantPair;
 typedef QList<QVariantPair> QVariantPairList;
@@ -207,7 +203,7 @@ public:
 
     class WriteMappings {
     public:
-        QHash<const QMetaObject*, int> metaObjectOffsets;
+        QHash<const ObjectStreamer*, int> objectStreamerOffsets;
         QHash<const TypeStreamer*, int> typeStreamerOffsets;
         QHash<AttributePointer, int> attributeOffsets;
         QHash<QScriptString, int> scriptStringOffsets;
@@ -216,7 +212,7 @@ public:
 
     class ReadMappings {
     public:
-        QHash<int, ObjectReader> metaObjectValues;
+        QHash<int, ObjectStreamerPointer> objectStreamerValues;
         QHash<int, TypeStreamerPointer> typeStreamerValues;
         QHash<int, AttributePointer> attributeValues;
         QHash<int, QScriptString> scriptStringValues;
@@ -403,7 +399,10 @@ public:
     
     Bitstream& operator<<(const QMetaObject* metaObject);
     Bitstream& operator>>(const QMetaObject*& metaObject);
-    Bitstream& operator>>(ObjectReader& objectReader);
+    
+    Bitstream& operator<<(const ObjectStreamer* streamer);
+    Bitstream& operator>>(const ObjectStreamer*& streamer);
+    Bitstream& operator>>(ObjectStreamerPointer& streamer);
     
     Bitstream& operator<<(const TypeStreamer* streamer);
     Bitstream& operator>>(const TypeStreamer*& streamer);
@@ -421,11 +420,11 @@ public:
     Bitstream& operator<<(const SharedObjectPointer& object);
     Bitstream& operator>>(SharedObjectPointer& object);
     
-    Bitstream& operator<(const QMetaObject* metaObject);
-    Bitstream& operator>(ObjectReader& objectReader);
+    Bitstream& operator<(const ObjectStreamer* streamer);
+    Bitstream& operator>(ObjectStreamerPointer& streamer);
     
     Bitstream& operator<(const TypeStreamer* streamer);
-    Bitstream& operator>(TypeStreamerPointer& reader);
+    Bitstream& operator>(TypeStreamerPointer& streamer);
     
     Bitstream& operator<(const AttributePointer& attribute);
     Bitstream& operator>(AttributePointer& attribute);
@@ -446,6 +445,7 @@ private slots:
 
 private:
     
+    ObjectStreamerPointer readGenericObjectStreamer(const QByteArray& name);
     TypeStreamerPointer readGenericTypeStreamer(const QByteArray& name, int category);
     
     QDataStream& _underlying;
@@ -455,7 +455,7 @@ private:
     MetadataType _metadataType;
     GenericsMode _genericsMode;
 
-    RepeatedValueStreamer<const QMetaObject*, const QMetaObject*, ObjectReader> _metaObjectStreamer;
+    RepeatedValueStreamer<const ObjectStreamer*, const ObjectStreamer*, ObjectStreamerPointer> _objectStreamerStreamer;
     RepeatedValueStreamer<const TypeStreamer*, const TypeStreamer*, TypeStreamerPointer> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
@@ -472,6 +472,9 @@ private:
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
     
+    static const QHash<const QMetaObject*, const ObjectStreamer*>& getObjectStreamers();
+    static QHash<const QMetaObject*, const ObjectStreamer*> createObjectStreamers();
+    
     static const QHash<ScopeNamePair, const TypeStreamer*>& getEnumStreamers();
     static QHash<ScopeNamePair, const TypeStreamer*> createEnumStreamers();
     
@@ -480,12 +483,6 @@ private:
     
     static const TypeStreamer* getInvalidTypeStreamer();
     static const TypeStreamer* createInvalidTypeStreamer();
-    
-    static const QHash<const QMetaObject*, PropertyReaderVector>& getPropertyReaders();
-    static QHash<const QMetaObject*, PropertyReaderVector> createPropertyReaders();
-    
-    static const QHash<const QMetaObject*, PropertyWriterVector>& getPropertyWriters();
-    static QHash<const QMetaObject*, PropertyWriterVector> createPropertyWriters();
 };
 
 template<class T> inline void Bitstream::writeDelta(const T& value, const T& reference) {
@@ -769,37 +766,46 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
     return *this;
 }
 
+typedef QPair<TypeStreamerPointer, QMetaProperty> StreamerPropertyPair;
+
 /// Contains the information required to stream an object.
 class ObjectStreamer {
 public:
 
-    virtual const char* getName() const = 0;    
+    ObjectStreamer(const QMetaObject* metaObject);
+
+    const QMetaObject* getMetaObject() const { return _metaObject; }
+    const ObjectStreamerPointer& getSelf() const { return _self; }
+    
+    virtual const char* getName() const = 0;
+    virtual const QVector<StreamerPropertyPair>& getProperties() const;
     virtual void writeMetadata(Bitstream& out, bool full) const = 0;
-    virtual void write(Bitstream& out, QObject* object) const = 0;
-    virtual void writeDelta(Bitstream& out, QObject* object, QObject* reference) const = 0;
+    virtual void write(Bitstream& out, const QObject* object) const = 0;
+    virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const = 0;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const = 0;
-    virtual QObject* readDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const = 0;
+    virtual QObject* readRawDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const = 0;
     
 protected:
+    
+    friend class Bitstream;
 
     const QMetaObject* _metaObject;
     ObjectStreamerPointer _self;
 };
 
-typedef QPair<TypeStreamerPointer, QMetaProperty> StreamerPropertyPair;
-
 /// A streamer that maps to a local class.
 class MappedObjectStreamer : public ObjectStreamer {
 public:
 
-    MappedObjectStreamer(const QVector<StreamerPropertyPair>& properties);
+    MappedObjectStreamer(const QMetaObject* metaObject, const QVector<StreamerPropertyPair>& properties);
 
     virtual const char* getName() const;
+    virtual const QVector<StreamerPropertyPair>& getProperties() const;
     virtual void writeMetadata(Bitstream& out, bool full) const;
-    virtual void write(Bitstream& out, QObject* object) const;
-    virtual void writeDelta(Bitstream& out, QObject* object, QObject* reference) const;
+    virtual void write(Bitstream& out, const QObject* object) const;
+    virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
-    virtual QObject* readDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
+    virtual QObject* readRawDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
     
 private:
     
@@ -816,10 +822,10 @@ public:
 
     virtual const char* getName() const;
     virtual void writeMetadata(Bitstream& out, bool full) const;
-    virtual void write(Bitstream& out, QObject* object) const;
-    virtual void writeDelta(Bitstream& out, QObject* object, QObject* reference) const;
+    virtual void write(Bitstream& out, const QObject* object) const;
+    virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
-    virtual QObject* readDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
+    virtual QObject* readRawDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
     
 private:
     
@@ -829,69 +835,6 @@ private:
     WeakObjectStreamerPointer _weakSelf;
     QVector<StreamerNamePair> _properties;
     QByteArray _hash;
-};
-
-/// Contains the information required to read an object from the stream.
-class ObjectReader {
-public:
-
-    ObjectReader(const QByteArray& className = QByteArray(), const QMetaObject* metaObject = NULL,
-        const QVector<PropertyReader>& properties = QVector<PropertyReader>());
-
-    const QByteArray& getClassName() const { return _className; }
-    const QMetaObject* getMetaObject() const { return _metaObject; }
-
-    QObject* read(Bitstream& in, QObject* object = NULL) const;
-    QObject* readDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
-
-    bool operator==(const ObjectReader& other) const { return _className == other._className; }
-    bool operator!=(const ObjectReader& other) const { return _className != other._className; }
-
-private:
-
-    QByteArray _className;
-    const QMetaObject* _metaObject;
-    QVector<PropertyReader> _properties;
-};
-
-uint qHash(const ObjectReader& objectReader, uint seed = 0);
-
-QDebug& operator<<(QDebug& debug, const ObjectReader& objectReader);
-
-/// Contains the information required to read an object property from the stream and apply it.
-class PropertyReader {
-public:
-
-    PropertyReader(const TypeStreamerPointer& streamer = TypeStreamerPointer(),
-        const QMetaProperty& property = QMetaProperty());
-
-    const TypeStreamerPointer& getStreamer() const { return _streamer; }
-
-    void read(Bitstream& in, QObject* object) const;
-    void readDelta(Bitstream& in, QObject* object, const QObject* reference) const;
-
-private:
-
-    TypeStreamerPointer _streamer;
-    QMetaProperty _property;
-};
-
-/// Contains the information required to obtain an object property and write it to the stream.
-class PropertyWriter {
-public:
-
-    PropertyWriter(const QMetaProperty& property = QMetaProperty(), const TypeStreamer* streamer = NULL);
-
-    const QMetaProperty& getProperty() const { return _property; }
-    const TypeStreamer* getStreamer() const { return _streamer; }
-
-    void write(Bitstream& out, const QObject* object) const;
-    void writeDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
-
-private:
-    
-    QMetaProperty _property;
-    const TypeStreamer* _streamer;
 };
 
 /// Describes a metatype field.
