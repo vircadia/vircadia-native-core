@@ -22,7 +22,6 @@ class DataServerAccountInfo : public QObject {
     Q_OBJECT
 public:
     DataServerAccountInfo();
-    // DataServerAccountInfo(const QJsonObject& jsonObject);
     DataServerAccountInfo(const DataServerAccountInfo& otherInfo);
     DataServerAccountInfo& operator=(const DataServerAccountInfo& otherInfo);
 

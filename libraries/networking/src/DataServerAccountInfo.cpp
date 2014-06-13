@@ -24,21 +24,6 @@ DataServerAccountInfo::DataServerAccountInfo() :
 
 }
 
-/*
-DataServerAccountInfo::DataServerAccountInfo(const QJsonObject& jsonObject) :
-    _accessToken(jsonObject),
-    _username(),
-    _xmppPassword(),
-    _balance(0),
-    _hasBalance(false)
-{
-    QJsonObject userJSONObject = jsonObject["user"].toObject();
-    setUsername(userJSONObject["username"].toString());
-    setXMPPPassword(userJSONObject["xmpp_password"].toString());
-    setDiscourseApiKey(userJSONObject["discourse_api_key"].toString());
-}
-*/
-
 DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) {
     _accessToken = otherInfo._accessToken;
     _username = otherInfo._username;
