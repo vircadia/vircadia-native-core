@@ -156,6 +156,7 @@ SingleSenderStats::SingleSenderStats()
     _totalLockWaitTime(0),
     _totalElementsInPacket(0),
     _totalPackets(0),
+    _incomingLastSequence(0),
     _missingSequenceNumbers()
 {
 
@@ -168,23 +169,42 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
     const int MAX_MISSING_SEQUENCE_SIZE = 100;
 
     unsigned short int expectedSequence = _totalPackets == 0 ? incomingSequence : _incomingLastSequence + 1;
-
+    
     if (incomingSequence == expectedSequence) {             // on time
         _incomingLastSequence = incomingSequence;
     }
-    else {
-        // ignore packet if sequence number gap is unreasonable
-        if (std::abs(incomingSequence - expectedSequence) > MAX_REASONABLE_SEQUENCE_GAP) {
+    else {                                                  // out of order
+
+        const int UINT16_RANGE = 65536;
+
+        int incoming = (int)incomingSequence;
+        int expected = (int)expectedSequence;
+
+        // check if the gap between incoming and expected is reasonable, taking possible rollover into consideration
+        int absGap = std::abs(incoming - expected);
+        if (absGap >= UINT16_RANGE - MAX_REASONABLE_SEQUENCE_GAP) {
+            // rollover likely occurred between incoming and expected.
+            // correct the larger of the two so that it's within [-65536, -1] while the other remains within [0, 65535]
+            if (incoming > expected) {
+                incoming -= UINT16_RANGE;
+            } else {
+                expected -= UINT16_RANGE;
+            }
+        } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
+            // ignore packet if gap is unreasonable
             qDebug() << "ignoring unreasonable packet... sequence:" << incomingSequence
                 << "_incomingLastSequence:" << _incomingLastSequence;
             return;
         }
+        
+        // now that rollover has been corrected for (if it occurred), incoming and expected can be
+        // compared to each other directly, though one of them might be negative
 
-        if (incomingSequence > expectedSequence) {          // early
+        if (incoming > expected) {                          // early
 
             // add all sequence numbers that were skipped to the missing sequence numbers list
-            for (int missingSequence = expectedSequence; missingSequence < incomingSequence; missingSequence++) {
-                _missingSequenceNumbers.insert(missingSequence);
+            for (int missingSequence = expected; missingSequence < incoming; missingSequence++) {
+                _missingSequenceNumbers.insert(missingSequence < 0 ? missingSequence + UINT16_RANGE : missingSequence);
             }
             _incomingLastSequence = incomingSequence;
 
