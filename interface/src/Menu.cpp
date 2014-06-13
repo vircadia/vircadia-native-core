@@ -45,6 +45,7 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
+#include "devices/OculusManager.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -83,6 +84,7 @@ Menu::Menu() :
     _audioJitterBufferSamples(0),
     _bandwidthDialog(NULL),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
@@ -91,6 +93,9 @@ Menu::Menu() :
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
+    _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
+    _sixenseReticleMoveSpeed(DEFAULT_SIXENSE_RETICLE_MOVE_SPEED),
+    _invertSixenseButtons(DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS),
     _automaticAvatarLOD(true),
     _avatarLODDecreaseFPS(DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS),
     _avatarLODIncreaseFPS(ADJUST_LOD_UP_FPS),
@@ -387,7 +392,6 @@ Menu::Menu() :
 
     QMenu* sixenseOptionsMenu = developerMenu->addMenu("Sixense Options");
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseInvertInputButtons, 0, false);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 

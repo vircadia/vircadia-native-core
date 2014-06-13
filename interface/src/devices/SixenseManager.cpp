@@ -339,7 +339,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     Qt::MouseButton bumperButton;
     Qt::MouseButton triggerButton;
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseInvertInputButtons)) {
+    if (Menu::getInstance()->getInvertSixenseButtons()) {
         bumperButton = Qt::LeftButton;
         triggerButton = Qt::RightButton;
     } else {
@@ -351,7 +351,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     float xAngle = (atan2(direction.z, direction.x) + M_PI_2) + 0.5f;
     float yAngle = 1.0f - ((atan2(direction.z, direction.y) + M_PI_2) + 0.5f);
 
-    float cursorRange = widget->width();
+    float cursorRange = widget->width() * (1.0f - Menu::getInstance()->getSixenseReticleMoveSpeed() * 0.01f) * 2.0f;
 
     pos.setX(cursorRange * xAngle);
     pos.setY(cursorRange * yAngle);

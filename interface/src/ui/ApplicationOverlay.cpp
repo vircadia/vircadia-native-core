@@ -33,7 +33,7 @@ ApplicationOverlay::ApplicationOverlay() :
     _framebufferObject(NULL),
     _oculusAngle(65.0f * RADIANS_PER_DEGREE),
     _distance(0.5f),
-    _textureFov(PI / 2.5f),
+    _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
     _uiType(HEMISPHERE) {
 
 }
@@ -49,6 +49,8 @@ const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
+
+    _textureFov = Menu::getInstance()->getOculusUIAngularSize() * RADIANS_PER_DEGREE;
 
     Application* application = Application::getInstance();
 
@@ -153,8 +155,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
     const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
-
-  
 
     // Get vertical FoV of the displayed overlay texture
     const float halfVerticalAngle = _oculusAngle / 2.0f;
@@ -338,7 +338,7 @@ void ApplicationOverlay::renderControllerPointer() {
         float xAngle = (atan2(direction.z, direction.x) + M_PI_2) + 0.5f;
         float yAngle = 1.0f - ((atan2(direction.z, direction.y) + M_PI_2) + 0.5f);
 
-        float cursorRange = glWidget->width();
+        float cursorRange = glWidget->width() * (1.0f - Menu::getInstance()->getSixenseReticleMoveSpeed() * 0.01f) * 2.0f;
 
         int mouseX = cursorRange * xAngle;
         int mouseY = cursorRange * yAngle;

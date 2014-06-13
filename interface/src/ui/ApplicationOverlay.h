@@ -31,10 +31,7 @@ public:
 
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();
-    float getOculusAngle() const { return _oculusAngle; }
-
-    // Setters
-    void setOculusAngle(float oculusAngle) { _oculusAngle = oculusAngle; }
+   
     void setUIType(UIType uiType) { _uiType = uiType; }
 
 private:
