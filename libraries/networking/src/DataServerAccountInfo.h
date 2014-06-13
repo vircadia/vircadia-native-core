@@ -44,8 +44,7 @@ public:
     void setHasBalance(bool hasBalance) { _hasBalance = hasBalance; }
     Q_INVOKABLE void setBalanceFromJSON(const QJsonObject& jsonObject);
 
-    bool hasProfile() const { return _hasProfile; }
-    void setHasProfile(bool hasProfile) { _hasProfile = hasProfile; }
+    bool hasProfile() const;
 
     void setProfileInfoFromJSON(const QJsonObject& jsonObject);
 
@@ -62,7 +61,6 @@ private:
     QString _discourseApiKey;
     qint64 _balance;
     bool _hasBalance;
-    bool _hasProfile;
 };
 
 #endif // hifi_DataServerAccountInfo_h
