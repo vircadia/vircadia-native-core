@@ -78,7 +78,6 @@ void LocationManager::goTo(QString destination) {
         _userData = QJsonObject();
         _placeData = QJsonObject();
 
-        destination = QString(QUrl::toPercentEncoding(destination));
         JSONCallbackParameters callbackParams;
         callbackParams.jsonCallbackReceiver = this;
         callbackParams.jsonCallbackMethod = "goToUserFromResponse";
