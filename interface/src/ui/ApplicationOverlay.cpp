@@ -692,8 +692,11 @@ void ApplicationOverlay::renderTexturedHemisphere() {
     static VerticesIndices vbo(0, 0);
     int vertices = slices * (stacks - 1) + 1;
     int indices = slices * 2 * 3 * (stacks - 2) + slices * 3;
-    //We only generate the VBO once
-    if (vbo.first == 0) {
+
+    static float oldTextureFOV = _textureFov;
+    //We only generate the VBO when the _textureFov changes
+    if (vbo.first == 0 || oldTextureFOV != _textureFov) {
+        oldTextureFOV = _textureFov;
         TextureVertex* vertexData = new TextureVertex[vertices];
         TextureVertex* vertex = vertexData;
         for (int i = 0; i < stacks - 1; i++) {
@@ -718,7 +721,9 @@ void ApplicationOverlay::renderTexturedHemisphere() {
         vertex->uv.y = 0.5f;
         vertex++;
 
-        glGenBuffers(1, &vbo.first);
+        if (vbo.first == 0){
+            glGenBuffers(1, &vbo.first);
+        }
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
         const int BYTES_PER_VERTEX = sizeof(TextureVertex);
         glBufferData(GL_ARRAY_BUFFER, vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
