@@ -415,20 +415,6 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
     mouseX -= magnifyWidth / 2;
     mouseY -= magnifyHeight / 2;
 
-    //clamp the magnification
-    if (mouseX < 0) {
-        magnifyWidth += mouseX;
-        mouseX = 0;
-    } else if (mouseX + magnifyWidth > widgetWidth) {
-        magnifyWidth = widgetWidth - mouseX;
-    }
-    if (mouseY < 0) {
-        magnifyHeight += mouseY;
-        mouseY = 0;
-    } else if (mouseY + magnifyHeight > widgetHeight) {
-        magnifyHeight = widgetHeight - mouseY;
-    }
-
     float newWidth = magnifyWidth * magnification;
     float newHeight = magnifyHeight * magnification;
 
