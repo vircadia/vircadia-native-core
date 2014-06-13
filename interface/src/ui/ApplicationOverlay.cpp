@@ -333,14 +333,14 @@ void ApplicationOverlay::renderControllerPointer() {
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
-        // Get the angles, scaled between 0-1
-        float xAngle = (atan2(direction.z, direction.x) + M_PI_2) + 0.5f;
-        float yAngle = 1.0f - ((atan2(direction.z, direction.y) + M_PI_2) + 0.5f);
+        // Get the angles, scaled between (-0.5,0.5)
+        float xAngle = (atan2(direction.z, direction.x) + M_PI_2) ;
+        float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
-        float cursorRange = glWidget->width() * (1.0f - Menu::getInstance()->getSixenseReticleMoveSpeed() * 0.01f) * 2.0f;
+        float cursorRange = glWidget->width() * application->getSixenseManager()->getCursorPixelRangeMultiplier();
 
-        int mouseX = cursorRange * xAngle;
-        int mouseY = cursorRange * yAngle;
+        int mouseX = glWidget->width() / 2.0f + cursorRange * xAngle;
+        int mouseY = glWidget->height() / 2.0f + cursorRange * yAngle;
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
@@ -408,7 +408,6 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
     // Get horizontal angle and angle increment from vertical angle and aspect ratio
     const float horizontalAngle = halfVerticalAngle * 2.0f * overlayAspectRatio;
     const float halfHorizontalAngle = horizontalAngle / 2;
-
 
     float magnifyWidth = 80.0f;
     float magnifyHeight = 60.0f;

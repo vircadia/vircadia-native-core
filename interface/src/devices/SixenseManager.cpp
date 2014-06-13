@@ -185,6 +185,11 @@ void SixenseManager::update(float deltaTime) {
 #endif  // HAVE_SIXENSE
 }
 
+float SixenseManager::getCursorPixelRangeMultiplier() const {
+    //scales (0,100) to (0.4,2.0)
+    return ((Menu::getInstance()->getSixenseReticleMoveSpeed()) * 0.008f + 0.2f) * 2.0f;
+}
+
 #ifdef HAVE_SIXENSE
 
 // the calibration sequence is:
@@ -347,14 +352,14 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         triggerButton = Qt::LeftButton;
     }
 
-    // Get the angles, scaled between 0-1
-    float xAngle = (atan2(direction.z, direction.x) + M_PI_2) + 0.5f;
-    float yAngle = 1.0f - ((atan2(direction.z, direction.y) + M_PI_2) + 0.5f);
+    // Get the angles, scaled between (-0.5,0.5)
+    float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+    float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
-    float cursorRange = widget->width() * (1.0f - Menu::getInstance()->getSixenseReticleMoveSpeed() * 0.01f) * 2.0f;
+    float cursorRange = widget->width() * getCursorPixelRangeMultiplier();
 
-    pos.setX(cursorRange * xAngle);
-    pos.setY(cursorRange * yAngle);
+    pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
+    pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
 
     //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
     //we should unpress them.

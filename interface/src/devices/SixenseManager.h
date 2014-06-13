@@ -30,8 +30,8 @@ const unsigned int BUTTON_FWD = 1U << 7;
 // Event type that represents moving the controller
 const unsigned int CONTROLLER_MOVE_EVENT = 1500U;
 
-const float DEFAULT_SIXENSE_RETICLE_MOVE_SPEED = 1.0f;
-const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = true;
+const float DEFAULT_SIXENSE_RETICLE_MOVE_SPEED = 37.5f;
+const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
 
 /// Handles interaction with the Sixense SDK (e.g., Razer Hydra).
 class SixenseManager : public QObject {
@@ -42,6 +42,7 @@ public:
     ~SixenseManager();
     
     void update(float deltaTime);
+    float getCursorPixelRangeMultiplier() const;
     
 public slots:
     
