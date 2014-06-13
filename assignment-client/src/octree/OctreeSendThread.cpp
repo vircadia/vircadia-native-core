@@ -120,7 +120,7 @@ int OctreeSendThread::sendNack(OctreeQueryNode* nodeData) {
         return 0;
     }
     
-    OctreeInboundPacketProcessor* myServerPacketProcessor = _myServer->getInboundPacketProcessor();
+    const OctreeInboundPacketProcessor* myServerPacketProcessor = _myServer->getInboundPacketProcessor();
 
     // if there are packets from _node that are waiting to be processed,
     // don't send a NACK since the missing packets may be among those waiting packets.
@@ -128,15 +128,18 @@ int OctreeSendThread::sendNack(OctreeQueryNode* nodeData) {
         return 0;
     }
 
-    myServerPacketProcessor->lockSingleSenderStatsForRead();
+    // lock unlock required ????????? prolly: _singleSenderStats may have our node's entry deleted during this or something
+    // maybe just make a copy instead!!
 
-    const QSet<unsigned short int>& missingSequenceNumbersFromNode = myServerPacketProcessor
+    // lock
+
+    const QSet<unsigned short int> missingSequenceNumbersFromNode = myServerPacketProcessor
         ->getSingleSenderStats().at(_node->getUUID()).getMissingSequenceNumbers();
 
     // check if there are any sequence numbers that need to be nacked
     int numSequenceNumbersAvailable = missingSequenceNumbersFromNode.size();
     if (numSequenceNumbersAvailable == 0) {
-        myServerPacketProcessor->unlockSingleSenderStats();
+        //unlock
         return 0;
     }
 
@@ -166,8 +169,6 @@ int OctreeSendThread::sendNack(OctreeQueryNode* nodeData) {
         *sequenceNumberAt = *i;
         dataAt += sizeof(unsigned short int);
     }
-
-    myServerPacketProcessor->unlockSingleSenderStats();
 
     // send it
     OctreeServer::didCallWriteDatagram(this);
