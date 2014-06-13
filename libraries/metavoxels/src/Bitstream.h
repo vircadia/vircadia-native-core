@@ -918,6 +918,9 @@ public:
     virtual void write(Bitstream& out, const QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
 
+    virtual void writeVariant(Bitstream& out, const QVariant& value) const;
+    virtual QVariant readVariant(Bitstream& in) const;
+
     virtual void writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const;
     virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const;
 
@@ -1031,6 +1034,7 @@ public:
     GenericTypeStreamer(const QByteArray& name);
 
     virtual const char* getName() const;
+    virtual QVariant readVariant(Bitstream& in) const;
     
 protected:
     
@@ -1260,7 +1264,7 @@ private:
 class GenericValueStreamer : public SimpleTypeStreamer<GenericValue> {
 public:
     
-    virtual const TypeStreamer* getStreamerToWrite(const QVariant& value) const;
+    virtual void writeVariant(Bitstream& out, const QVariant& value) const;
 };
 
 /// Macro for registering simple type streamers.

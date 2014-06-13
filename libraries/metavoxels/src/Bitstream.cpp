@@ -760,8 +760,7 @@ Bitstream& Bitstream::operator<<(const QVariant& value) {
     }
     const TypeStreamer* streamer = getTypeStreamers().value(value.userType());
     if (streamer) {
-        _typeStreamerStreamer << streamer->getStreamerToWrite(value);
-        streamer->write(*this, value);
+        streamer->writeVariant(*this, value);
     } else {
         qWarning() << "Non-streamable type: " << value.typeName() << "\n";
     }
@@ -774,7 +773,7 @@ Bitstream& Bitstream::operator>>(QVariant& value) {
     if (!streamer) {
         value = QVariant();
     } else {
-        value = streamer->read(*this);
+        value = streamer->readVariant(*this);
     }
     return *this;
 }
@@ -1889,6 +1888,15 @@ QVariant TypeStreamer::read(Bitstream& in) const {
     return QVariant();
 }
 
+void TypeStreamer::writeVariant(Bitstream& out, const QVariant& value) const {
+    out << this;
+    write(out, value);
+}
+
+QVariant TypeStreamer::readVariant(Bitstream& in) const {
+    return read(in);
+}
+
 void TypeStreamer::writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const {
     if (value == reference) {
         out << false;
@@ -2151,6 +2159,10 @@ const char* GenericTypeStreamer::getName() const {
     return _name.constData();
 }
 
+QVariant GenericTypeStreamer::readVariant(Bitstream& in) const {
+    return QVariant::fromValue(GenericValue(_weakSelf, read(in)));
+}
+
 GenericEnumTypeStreamer::GenericEnumTypeStreamer(const QByteArray& name, const QVector<NameIntPair>& values,
         int bits, const QByteArray& hash) :
     GenericTypeStreamer(name),
@@ -2190,7 +2202,7 @@ void GenericEnumTypeStreamer::write(Bitstream& out, const QVariant& value) const
 QVariant GenericEnumTypeStreamer::read(Bitstream& in) const {
     int intValue = 0;
     in.read(&intValue, _bits);
-    return QVariant::fromValue(GenericValue(_weakSelf, intValue));
+    return intValue;
 }
 
 TypeStreamer::Category GenericEnumTypeStreamer::getCategory() const {
@@ -2270,7 +2282,7 @@ QVariant GenericStreamableTypeStreamer::read(Bitstream& in) const {
     foreach (const StreamerNamePair& field, _fields) {
         values.append(field.first->read(in));
     }
-    return QVariant::fromValue(GenericValue(_weakSelf, values));
+    return values;
 }
 
 TypeStreamer::Category GenericStreamableTypeStreamer::getCategory() const {
@@ -2337,7 +2349,7 @@ QVariant GenericListTypeStreamer::read(Bitstream& in) const {
     for (int i = 0; i < size; i++) {
         values.append(_valueStreamer->read(in));
     }
-    return QVariant::fromValue(GenericValue(_weakSelf, values));
+    return values;
 }
 
 TypeStreamer::Category GenericListTypeStreamer::getCategory() const {
@@ -2443,13 +2455,16 @@ QVariant GenericMapTypeStreamer::read(Bitstream& in) const {
         QVariant value = _valueStreamer->read(in);
         values.append(QVariantPair(key, value));
     }
-    return QVariant::fromValue(GenericValue(_weakSelf, QVariant::fromValue(values)));
+    return QVariant::fromValue(values);
 }
 
 TypeStreamer::Category GenericMapTypeStreamer::getCategory() const {
     return MAP_CATEGORY;
 }
 
-const TypeStreamer* GenericValueStreamer::getStreamerToWrite(const QVariant& value) const {
-    return value.value<GenericValue>().getStreamer().data();
+void GenericValueStreamer::writeVariant(Bitstream& out, const QVariant& value) const {
+    GenericValue genericValue = value.value<GenericValue>();
+    out << genericValue.getStreamer().data();
+    genericValue.getStreamer()->write(out, genericValue.getValue());
 }
+

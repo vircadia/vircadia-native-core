@@ -214,6 +214,35 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
         return true;
     }
     
+    // go back to the beginning and read everything as generics
+    inStream.device()->seek(0);
+    Bitstream genericIn(inStream, metadataType, Bitstream::ALL_GENERICS);
+    genericIn >> testObjectReadA;
+    genericIn >> testObjectReadB;
+    genericIn >> messageRead;
+    genericIn >> endRead;
+    
+    // reassign the ids
+    testObjectReadA->setID(testObjectWrittenA->getID());
+    testObjectReadA->setOriginID(testObjectWrittenA->getOriginID());
+    testObjectReadB->setID(testObjectWrittenB->getID());
+    testObjectReadB->setOriginID(testObjectWrittenB->getOriginID());
+    
+    // write it back out and compare
+    QByteArray compareArray;
+    QDataStream compareOutStream(&compareArray, QIODevice::WriteOnly);
+    Bitstream compareOut(compareOutStream, metadataType);
+    compareOut << testObjectReadA;
+    compareOut << testObjectReadB;
+    compareOut << messageRead;
+    compareOut << endRead;
+    compareOut.flush();
+    
+    if (array != compareArray) {
+        qDebug() << "Mismatch between written/generic written streams.";
+        return true;
+    }
+    
     return false;
 }
 
