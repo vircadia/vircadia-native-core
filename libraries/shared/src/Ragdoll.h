@@ -17,7 +17,7 @@
 
 #include <QVector>
 
-#include "PhysicalEntity.h"
+class Shape;
 
 class Constraint {
 public:
@@ -61,7 +61,7 @@ private:
     glm::vec3* _points[2];
 };
 
-class Ragdoll : public PhysicalEntity {
+class Ragdoll {
 public:
 
     Ragdoll();
@@ -69,9 +69,7 @@ public:
     
     /// Create points and constraints based on topology of collection of joints
     /// \param joints list of connected joint states
-    void init(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points);
-
-    void setShapes(QVector<Shape*>* shapes) { _shapes = shapes; }
+    void initShapesAndPoints(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points);
 
     /// Delete all data.
     void clear();
@@ -89,7 +87,7 @@ public:
     /// Moves and modifies elements of _shapes to agree with state of _points
     void updateShapes(const glm::quat& rotation, const glm::vec3& translation) const;
 
-private:
+protected:
     QVector<glm::vec3> _points;
     QVector<Constraint*> _constraints;
 

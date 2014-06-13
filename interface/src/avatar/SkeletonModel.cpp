@@ -17,7 +17,9 @@
 #include "Menu.h"
 #include "SkeletonModel.h"
 
-SkeletonModel::SkeletonModel(Avatar* owningAvatar) : 
+SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) : 
+    Model(parent),
+    Ragdoll(),
     _owningAvatar(owningAvatar) {
 }
 
@@ -36,10 +38,8 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
             parentIndices.push_back(state.getFBXJoint().parentIndex);
             points.push_back(state.getPosition());
         }
-        // ... and feed the results to _ragDoll
-        // It is OK that_jointShapes is probably empty at this stage: _ragDoll keeps a
-        // pointer to it and things will start working as soon as the list is populated.
-        _ragDoll.init(&_jointShapes, parentIndices, points);
+        // ... and feed the results to Ragdoll
+        initShapesAndPoints(&_jointShapes, parentIndices, points);
     }
 }
 
@@ -105,14 +105,13 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void SkeletonModel::simulateRagdoll(float deltaTime) {
-    // move ragdoll points toward joints
-    QVector<glm::vec3>& points = _ragDoll.getPoints();
+    // move ragdoll _points toward joints
     const int numStates = _jointStates.size();
-    assert(numStates == points.size());
+    assert(numStates == _points.size());
     float fraction = 0.1f; // fraction = 0.1f left intentionally low for demo purposes
     float oneMinusFraction = 1.0f - fraction;
     for (int i = 0; i < numStates; ++i) {
-        points[i] = oneMinusFraction * points[i] + fraction * _jointStates[i].getPosition();
+        _points[i] = oneMinusFraction * _points[i] + fraction * _jointStates[i].getPosition();
     }
 
     // enforce the constraints
@@ -121,7 +120,7 @@ void SkeletonModel::simulateRagdoll(float deltaTime) {
     int iterations = 0;
     float delta = 0.0f;
     do {
-        delta = _ragDoll.enforceConstraints();
+        delta = enforceConstraints();
         ++iterations;
     } while (delta > MIN_CONSTRAINT_ERROR && iterations < MAX_ITERATIONS);
 }
@@ -273,7 +272,7 @@ void SkeletonModel::updateJointState(int index) {
 void SkeletonModel::updateShapePositions() {
     if (isActive() && _owningAvatar->isMyAvatar() && 
             Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-        _ragDoll.updateShapes(_rotation, _translation);
+        updateShapes(_rotation, _translation);
     } else {
         Model::updateShapePositions();
     }
@@ -505,15 +504,14 @@ void SkeletonModel::renderRagdoll() {
     glPushMatrix();
 
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
-    QVector<glm::vec3> points = _ragDoll.getPoints();
-    int numPoints = points.size();
+    int numPoints = _points.size();
     float alpha = 0.3f;
     float radius1 = 0.008f;
     float radius2 = 0.01f;
     for (int i = 0; i < numPoints; ++i) {
         glPushMatrix();
         // draw each point as a yellow hexagon with black border
-        glm::vec3 position = _rotation * points[i];
+        glm::vec3 position = _rotation * _points[i];
         glTranslatef(position.x, position.y, position.z);
         glColor4f(0.0f, 0.0f, 0.0f, alpha);
         glutSolidSphere(radius2, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);

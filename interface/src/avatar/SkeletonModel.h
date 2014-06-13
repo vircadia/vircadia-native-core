@@ -19,12 +19,12 @@
 class Avatar;
 
 /// A skeleton loaded from a model.
-class SkeletonModel : public Model {
+class SkeletonModel : public Model, public Ragdoll {
     Q_OBJECT
     
 public:
 
-    SkeletonModel(Avatar* owningAvatar);
+    SkeletonModel(Avatar* owningAvatar, QObject* parent = NULL);
    
     void setJointStates(QVector<JointState> states);
 
@@ -121,7 +121,6 @@ private:
     void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
     
     Avatar* _owningAvatar;
-    Ragdoll _ragDoll;
 };
 
 #endif // hifi_SkeletonModel_h

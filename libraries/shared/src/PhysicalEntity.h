@@ -26,7 +26,6 @@ public:
     enum EntityType {
         ENTITY_UNKNOWN,
         ENTITY_MODEL,
-        ENTITY_RAGDOLL,
     };
 
     static void setShapeBackPointers(const QVector<Shape*>& shapes, PhysicalEntity* entity);

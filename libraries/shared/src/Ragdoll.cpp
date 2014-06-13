@@ -94,14 +94,14 @@ void DistanceConstraint::updateProxyShape(Shape* shape, const glm::quat& rotatio
 // Ragdoll
 // ----------------------------------------------------------------------------
 
-Ragdoll::Ragdoll() : PhysicalEntity(PhysicalEntity::ENTITY_RAGDOLL), _shapes(NULL) {
+Ragdoll::Ragdoll() : _shapes(NULL) {
 }
 
 Ragdoll::~Ragdoll() {
     clear();
 }
     
-void Ragdoll::init(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points) {
+void Ragdoll::initShapesAndPoints(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points) {
     clear();
     _shapes = shapes;
     const int numPoints = points.size();
@@ -121,9 +121,6 @@ void Ragdoll::init(QVector<Shape*>* shapes, const QVector<int>& parentIndices, c
             _constraints.push_back(stick);
         }
     }
-    if (_shapes) {
-        PhysicalEntity::setShapeBackPointers(*_shapes, this);
-    }
 }
 
 /// Delete all data.
@@ -134,9 +131,6 @@ void Ragdoll::clear() {
     }
     _constraints.clear();
     _points.clear();
-    if (_shapes) {
-        PhysicalEntity::setShapeBackPointers(*_shapes, NULL);
-    }
     _shapes = NULL;
 }
 
