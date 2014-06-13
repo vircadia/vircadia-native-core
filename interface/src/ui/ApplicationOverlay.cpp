@@ -316,7 +316,6 @@ void ApplicationOverlay::renderControllerPointer() {
     MyAvatar* myAvatar = application->getAvatar();
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
-    int numberOfPalms = handData->getNumPalms();
 
     for (unsigned int palmIndex = 2; palmIndex < 4; palmIndex++) {
         const PalmData* palmData = NULL;
@@ -430,8 +429,6 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
     } else if (mouseY + magnifyHeight > widgetHeight) {
         magnifyHeight = widgetHeight - mouseY;
     }
-
-    const float halfMagnifyHeight = magnifyHeight / 2.0f;
 
     float newWidth = magnifyWidth * magnification;
     float newHeight = magnifyHeight * magnification;
