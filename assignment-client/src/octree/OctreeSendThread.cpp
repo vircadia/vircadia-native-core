@@ -85,7 +85,6 @@ bool OctreeSendThread::process() {
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 packetDistributor(nodeData, viewFrustumChanged);
-                sendNack(nodeData);
             }
         }
     }
@@ -111,75 +110,6 @@ bool OctreeSendThread::process() {
 
     return isStillRunning();  // keep running till they terminate us
 }
-
-
-int OctreeSendThread::sendNack(OctreeQueryNode* nodeData) {
-
-    // if we're shutting down, then exit early       
-    if (nodeData->isShuttingDown()) {
-        return 0;
-    }
-    
-    const OctreeInboundPacketProcessor* myServerPacketProcessor = _myServer->getInboundPacketProcessor();
-
-    // if there are packets from _node that are waiting to be processed,
-    // don't send a NACK since the missing packets may be among those waiting packets.
-    if (myServerPacketProcessor->hasPacketsToProcessFrom(_node)) {
-        return 0;
-    }
-
-    // lock unlock required ????????? prolly: _singleSenderStats may have our node's entry deleted during this or something
-    // maybe just make a copy instead!!
-
-    // lock
-
-    const QSet<unsigned short int> missingSequenceNumbersFromNode = myServerPacketProcessor
-        ->getSingleSenderStats().at(_node->getUUID()).getMissingSequenceNumbers();
-
-    // check if there are any sequence numbers that need to be nacked
-    int numSequenceNumbersAvailable = missingSequenceNumbersFromNode.size();
-    if (numSequenceNumbersAvailable == 0) {
-        //unlock
-        return 0;
-    }
-
-    // construct nack packet
-
-    char packet[MAX_PACKET_SIZE];
-
-    char* dataAt = packet;
-    int bytesRemaining = MAX_PACKET_SIZE;
-
-    // pack header
-    int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeEditNack);
-    dataAt += numBytesPacketHeader;
-    bytesRemaining -= numBytesPacketHeader;
-    int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(unsigned short int);
-
-    // calculate and pack the number of sequence numbers
-    uint16_t numSequenceNumbers = std::min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
-    uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
-    *numSequenceNumbersAt = numSequenceNumbers;
-    dataAt += sizeof(uint16_t);
-
-    // pack sequence numbers
-    QSet<unsigned short int>::const_iterator begin = missingSequenceNumbersFromNode.begin(), end = missingSequenceNumbersFromNode.end();
-    for (QSet<unsigned short int>::const_iterator i = begin; i != end; i++) {
-        unsigned short int* sequenceNumberAt = (unsigned short int*)dataAt;
-        *sequenceNumberAt = *i;
-        dataAt += sizeof(unsigned short int);
-    }
-
-    // send it
-    OctreeServer::didCallWriteDatagram(this);
-    NodeList::getInstance()->writeDatagram((char*)packet, dataAt - packet, _node);
-
-    return 1;
-}
-
-
-
-
 
 quint64 OctreeSendThread::_usleepTime = 0;
 quint64 OctreeSendThread::_usleepCalls = 0;
