@@ -292,8 +292,8 @@ void ApplicationOverlay::renderPointers() {
 
 
     if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
-        const float pointerWidth = 10;
-        const float pointerHeight = 10;
+        const float pointerWidth = 20;
+        const float pointerHeight = 20;
 
         _numMagnifiers = 1;
         _mouseX[0] = application->getMouseX();
