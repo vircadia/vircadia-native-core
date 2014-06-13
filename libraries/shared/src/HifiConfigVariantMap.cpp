@@ -45,7 +45,7 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
                 // this option is simply a switch, so add it to the map with a value of `true`
                 mergedMap.insertMulti(key, QVariant(true));
             } else {
-                int maxIndex = (nextKeyIndex == -1) ? argumentList.size(): nextKeyIndex;
+                int maxIndex = (nextKeyIndex == -1) ? argumentList.size() : nextKeyIndex;
 
                 // there's at least one value associated with the option
                 // pull the first value to start
