@@ -76,7 +76,8 @@ MyAvatar::MyAvatar() :
     _lastFloorContactPoint(0.0f),
     _lookAtTargetAvatar(),
     _shouldRender(true),
-    _billboardValid(false)
+    _billboardValid(false),
+    _simulationEngine()
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
