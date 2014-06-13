@@ -37,6 +37,8 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
             points.push_back(state.getPosition());
         }
         // ... and feed the results to _ragDoll
+        // It is OK that_jointShapes is probably empty at this stage: _ragDoll keeps a
+        // pointer to it and things will start working as soon as the list is populated.
         _ragDoll.init(&_jointShapes, parentIndices, points);
     }
 }

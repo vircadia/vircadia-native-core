@@ -117,6 +117,19 @@ Model::SkinLocations Model::_skinCascadedShadowSpecularMapLocations;
 Model::SkinLocations Model::_skinCascadedShadowNormalSpecularMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 
+void Model::setTranslation(const glm::vec3& translation) { 
+    if (_translation != translation) {
+        _shapesAreDirty = !_jointShapes.isEmpty();
+        _translation = translation; 
+    }
+}
+void Model::setRotation(const glm::quat& rotation) { 
+    if (_rotation != rotation) {
+        _shapesAreDirty = !_jointShapes.isEmpty();
+        _rotation = rotation;
+    }
+}
+
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
     // if anyone sets scale manually, then we are no longer scaled to fit
@@ -131,7 +144,9 @@ void Model::setScaleInternal(const glm::vec3& scale) {
     const float ONE_PERCENT = 0.01f;
     if (relativeDeltaScale > ONE_PERCENT || scaleLength < EPSILON) {
         _scale = scale;
-        rebuildShapes();
+        if (_jointShapes.size() > 0) {
+            rebuildShapes();
+        }
     }
 }
 
@@ -553,7 +568,9 @@ bool Model::updateGeometry() {
             model->setURL(attachment.url);
             _attachments.append(model);
         }
-        rebuildShapes();
+        if (!_jointShapes.isEmpty()) {
+            rebuildShapes();
+        }
         needFullUpdate = true;
     }
     return needFullUpdate;
@@ -562,6 +579,18 @@ bool Model::updateGeometry() {
 // virtual
 void Model::setJointStates(QVector<JointState> states) {
     _jointStates = states;
+
+    // compute an approximate bounding radius for broadphase collision queries
+    // against SimulationEngine boundaries
+    int numJoints = _jointStates.size();
+    float radius = 0.0f;
+    for (int i = 0; i < numJoints; ++i) {
+        float distance = glm::length(_jointStates[i].getPosition());
+        if (distance > radius) {
+            radius = distance;
+        }
+    }
+    _boundingRadius = radius;
 }
 
 bool Model::render(float alpha, RenderMode mode, bool receiveShadows) {
@@ -940,7 +969,7 @@ void Model::resetShapePositions() {
     // Moves shapes to the joint default locations for debug visibility into
     // how the bounding shape is computed.
 
-    if (!_geometry || _rootIndex == -1) {
+    if (!_geometry || _rootIndex == -1 || _jointShapes.isEmpty()) {
         // geometry or joints have not yet been created
         return;
     }
@@ -1213,7 +1242,7 @@ void Model::simulateInternal(float deltaTime) {
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
-    _shapesAreDirty = true;
+    _shapesAreDirty = ! _jointShapes.isEmpty();
     
     // update the attachment transforms and simulate them
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -1348,7 +1377,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const gl
     for (int j = freeLineage.size() - 1; j >= 0; j--) {
         updateJointState(freeLineage.at(j));
     }
-    _shapesAreDirty = true;
+    _shapesAreDirty = !_jointShapes.isEmpty();
         
     return true;
 }
@@ -1435,6 +1464,11 @@ void Model::renderJointCollisionShapes(float alpha) {
 }
 
 void Model::renderBoundingCollisionShapes(float alpha) {
+    if (_jointShapes.isEmpty()) {
+        // the bounding shape has not been propery computed
+        // so no need to render it
+        return;
+    }
     glPushMatrix();
 
     Application::getInstance()->loadTranslatedViewMatrix(_translation);

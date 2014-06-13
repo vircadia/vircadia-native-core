@@ -42,10 +42,10 @@ public:
     Model(QObject* parent = NULL);
     virtual ~Model();
     
-    void setTranslation(const glm::vec3& translation) { _translation = translation; }
+    void setTranslation(const glm::vec3& translation);
     const glm::vec3& getTranslation() const { return _translation; }
     
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
+    void setRotation(const glm::quat& rotation);
     const glm::quat& getRotation() const { return _rotation; }
     
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
