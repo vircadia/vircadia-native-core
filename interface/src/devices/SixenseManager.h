@@ -47,7 +47,7 @@ public slots:
 private:
 #ifdef HAVE_SIXENSE
     void updateCalibration(const sixenseControllerData* controllers);
-    void emulateMouse(PalmData *palm);
+    void emulateMouse(PalmData* palm, int index);
 
     int _calibrationState;
 
@@ -70,11 +70,11 @@ private:
     quint64 _lastMovement;
     glm::vec3 _amountMoved;
 
-    // for mouse emulation
-    bool _triggerPressed;
-    bool _bumperPressed;
-    int _oldX;
-    int _oldY;
+    // for mouse emulation with the two controllers
+    bool _triggerPressed[2];
+    bool _bumperPressed[2];
+    int _oldX[2];
+    int _oldY[2];
 };
 
 #endif // hifi_SixenseManager_h
