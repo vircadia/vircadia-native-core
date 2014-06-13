@@ -41,7 +41,7 @@ public:
     /// Returns the unique local ID for this object.
     int getID() const { return _id; }
 
-    void setID(int id) { _weakHash.insert(_id = id, this); }
+    void setID(int id);
 
     /// Returns the local origin ID for this object.
     int getOriginID() const { return _originID; }
