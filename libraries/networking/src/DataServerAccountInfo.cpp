@@ -19,11 +19,13 @@ DataServerAccountInfo::DataServerAccountInfo() :
     _xmppPassword(),
     _discourseApiKey(),
     _balance(0),
-    _hasBalance(false)
+    _hasBalance(false),
+    _hasProfile(false)
 {
-    
+
 }
 
+/*
 DataServerAccountInfo::DataServerAccountInfo(const QJsonObject& jsonObject) :
     _accessToken(jsonObject),
     _username(),
@@ -36,6 +38,7 @@ DataServerAccountInfo::DataServerAccountInfo(const QJsonObject& jsonObject) :
     setXMPPPassword(userJSONObject["xmpp_password"].toString());
     setDiscourseApiKey(userJSONObject["discourse_api_key"].toString());
 }
+*/
 
 DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) {
     _accessToken = otherInfo._accessToken;
@@ -44,6 +47,7 @@ DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherI
     _discourseApiKey = otherInfo._discourseApiKey;
     _balance = otherInfo._balance;
     _hasBalance = otherInfo._hasBalance;
+    _hasProfile = otherInfo._hasProfile;
 }
 
 DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountInfo& otherInfo) {
@@ -54,19 +58,24 @@ DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountI
 
 void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     using std::swap;
-    
+
     swap(_accessToken, otherInfo._accessToken);
     swap(_username, otherInfo._username);
     swap(_xmppPassword, otherInfo._xmppPassword);
     swap(_discourseApiKey, otherInfo._discourseApiKey);
     swap(_balance, otherInfo._balance);
     swap(_hasBalance, otherInfo._hasBalance);
+    swap(_hasProfile, otherInfo._hasProfile);
+}
+
+void DataServerAccountInfo::setAccessTokenFromJSON(const QJsonObject& jsonObject) {
+    _accessToken = OAuthAccessToken(jsonObject);
 }
 
 void DataServerAccountInfo::setUsername(const QString& username) {
     if (_username != username) {
         _username = username;
-        
+
         qDebug() << "Username changed to" << username;
     }
 }
@@ -87,7 +96,7 @@ void DataServerAccountInfo::setBalance(qint64 balance) {
     if (!_hasBalance || _balance != balance) {
         _balance = balance;
         _hasBalance = true;
-        
+
         emit balanceChanged(_balance);
     }
 }
@@ -99,12 +108,20 @@ void DataServerAccountInfo::setBalanceFromJSON(const QJsonObject& jsonObject) {
     }
 }
 
+void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject) {
+    QJsonObject user = jsonObject["data"].toObject()["user"].toObject();
+    setUsername(user["username"].toString());
+    setXMPPPassword(user["xmpp_password"].toString());
+    setDiscourseApiKey(user["discourse_api_key"].toString());
+    setHasProfile(true);
+}
+
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
-    out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey;
+    out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey << info._hasProfile;
     return out;
 }
 
 QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info) {
-    in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey;
+    in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey >> info._hasProfile;
     return in;
 }
