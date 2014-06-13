@@ -1,5 +1,5 @@
 //
-//  RagDoll.h
+//  Ragdoll.h
 //  libraries/shared/src
 //
 //  Created by Andrew Meadows 2014.05.30
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_RagDoll_h
-#define hifi_RagDoll_h
+#ifndef hifi_Ragdoll_h
+#define hifi_Ragdoll_h
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -61,11 +61,11 @@ private:
     glm::vec3* _points[2];
 };
 
-class RagDoll : public PhysicalEntity {
+class Ragdoll : public PhysicalEntity {
 public:
 
-    RagDoll();
-    virtual ~RagDoll();
+    Ragdoll();
+    virtual ~Ragdoll();
     
     /// Create points and constraints based on topology of collection of joints
     /// \param joints list of connected joint states
@@ -93,8 +93,8 @@ private:
     QVector<glm::vec3> _points;
     QVector<Constraint*> _constraints;
 
-    // the RagDoll does NOT own the data in _shapes.
+    // the Ragdoll does NOT own the data in _shapes.
     QVector<Shape*>* _shapes;
 };
 
-#endif // hifi_RagDoll_h
+#endif // hifi_Ragdoll_h

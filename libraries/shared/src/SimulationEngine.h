@@ -15,7 +15,7 @@
 #include <QVector>
 
 #include "CollisionInfo.h"
-#include "RagDoll.h"
+#include "Ragdoll.h"
 
 class SimulationEngine {
 public:
@@ -24,9 +24,9 @@ public:
     ~SimulationEngine();
 
     /// \return true if doll was added to, or already in the list
-    bool addRagDoll(RagDoll* doll);
+    bool addRagdoll(Ragdoll* doll);
 
-    void removeRagDoll(RagDoll* doll);
+    void removeRagdoll(Ragdoll* doll);
 
     /// \param minError constraint motion below this value is considered "close enough"
     /// \param maxIterations max number of iterations before giving up
@@ -45,7 +45,7 @@ public:
 
 private:
     CollisionList _collisionList;
-    QVector<RagDoll*> _dolls;
+    QVector<Ragdoll*> _dolls;
 
     // some stats for performance queries
     int _enforcementIterations;

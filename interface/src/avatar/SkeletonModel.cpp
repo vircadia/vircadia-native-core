@@ -101,10 +101,10 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
     }
     
-    simulateRagDoll(deltaTime);
+    simulateRagdoll(deltaTime);
 }
 
-void SkeletonModel::simulateRagDoll(float deltaTime) {
+void SkeletonModel::simulateRagdoll(float deltaTime) {
     // move ragdoll points toward joints
     QVector<glm::vec3>& points = _ragDoll.getPoints();
     const int numStates = _jointStates.size();
@@ -171,7 +171,7 @@ void SkeletonModel::renderIKConstraints() {
     renderJointConstraints(getRightHandJointIndex());
     renderJointConstraints(getLeftHandJointIndex());
     //if (isActive() && _owningAvatar->isMyAvatar()) {
-    //    renderRagDoll();
+    //    renderRagdoll();
     //}
 }
 
@@ -272,7 +272,7 @@ void SkeletonModel::updateJointState(int index) {
 
 void SkeletonModel::updateShapePositions() {
     if (isActive() && _owningAvatar->isMyAvatar() && 
-            Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagDoll)) {
+            Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
         _ragDoll.updateShapes(_rotation, _translation);
     } else {
         Model::updateShapePositions();
@@ -498,7 +498,7 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
     return false;
 }
 
-void SkeletonModel::renderRagDoll() {
+void SkeletonModel::renderRagdoll() {
     const int BALL_SUBDIVISIONS = 6;
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);

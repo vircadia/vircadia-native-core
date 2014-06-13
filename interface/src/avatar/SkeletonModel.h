@@ -14,7 +14,7 @@
 
 #include "renderer/Model.h"
 
-#include <RagDoll.h>
+#include <Ragdoll.h>
 
 class Avatar;
 
@@ -29,7 +29,7 @@ public:
     void setJointStates(QVector<JointState> states);
 
     void simulate(float deltaTime, bool fullUpdate = true);
-    void simulateRagDoll(float deltaTime);
+    void simulateRagdoll(float deltaTime);
     void updateShapePositions();
 
     /// \param jointIndex index of hand joint
@@ -95,7 +95,7 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
-    void renderRagDoll();
+    void renderRagdoll();
 protected:
 
     /// \param jointIndex index of joint in model
@@ -121,7 +121,7 @@ private:
     void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
     
     Avatar* _owningAvatar;
-    RagDoll _ragDoll;
+    Ragdoll _ragDoll;
 };
 
 #endif // hifi_SkeletonModel_h

@@ -1,5 +1,5 @@
 //
-//  RagDoll.cpp
+//  Ragdoll.cpp
 //  libraries/shared/src
 //
 //  Created by Andrew Meadows 2014.05.30
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "RagDoll.h"
+#include "Ragdoll.h"
 
 #include "CapsuleShape.h"
 #include "CollisionInfo.h"
@@ -91,17 +91,17 @@ void DistanceConstraint::updateProxyShape(Shape* shape, const glm::quat& rotatio
 }
 
 // ----------------------------------------------------------------------------
-// RagDoll
+// Ragdoll
 // ----------------------------------------------------------------------------
 
-RagDoll::RagDoll() : PhysicalEntity(PhysicalEntity::ENTITY_RAGDOLL), _shapes(NULL) {
+Ragdoll::Ragdoll() : PhysicalEntity(PhysicalEntity::ENTITY_RAGDOLL), _shapes(NULL) {
 }
 
-RagDoll::~RagDoll() {
+Ragdoll::~Ragdoll() {
     clear();
 }
     
-void RagDoll::init(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points) {
+void Ragdoll::init(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points) {
     clear();
     _shapes = shapes;
     const int numPoints = points.size();
@@ -127,7 +127,7 @@ void RagDoll::init(QVector<Shape*>* shapes, const QVector<int>& parentIndices, c
 }
 
 /// Delete all data.
-void RagDoll::clear() {
+void Ragdoll::clear() {
     int numConstraints = _constraints.size();
     for (int i = 0; i < numConstraints; ++i) {
         delete _constraints[i];
@@ -140,7 +140,7 @@ void RagDoll::clear() {
     _shapes = NULL;
 }
 
-float RagDoll::enforceConstraints() {
+float Ragdoll::enforceConstraints() {
     float maxDistance = 0.0f;
     const int numConstraints = _constraints.size();
     for (int i = 0; i < numConstraints; ++i) {
@@ -151,7 +151,7 @@ float RagDoll::enforceConstraints() {
     return maxDistance;
 }
 
-void RagDoll::updateShapes(const glm::quat& rotation, const glm::vec3& translation) const {
+void Ragdoll::updateShapes(const glm::quat& rotation, const glm::vec3& translation) const {
     if (!_shapes) {
         return;
     }

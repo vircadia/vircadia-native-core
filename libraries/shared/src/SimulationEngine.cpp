@@ -27,7 +27,7 @@ SimulationEngine::~SimulationEngine() {
     _dolls.clear();
 }
 
-bool SimulationEngine::addRagDoll(RagDoll* doll) {
+bool SimulationEngine::addRagdoll(Ragdoll* doll) {
     int numDolls = _dolls.size();
     if (numDolls < MAX_DOLLS_PER_ENGINE) {
         for (int i = 0; i < numDolls; ++i) {
@@ -42,7 +42,7 @@ bool SimulationEngine::addRagDoll(RagDoll* doll) {
     return false;
 }
 
-void SimulationEngine::removeRagDoll(RagDoll* doll) {
+void SimulationEngine::removeRagdoll(Ragdoll* doll) {
     int numDolls = _dolls.size();
     for (int i = 0; i < numDolls; ++i) {
         if (doll == _dolls[i]) {
@@ -51,7 +51,7 @@ void SimulationEngine::removeRagDoll(RagDoll* doll) {
                 _dolls.pop_back();
             } else {
                 // swap the last for this one
-                RagDoll* lastDoll = _dolls[numDolls - 1];
+                Ragdoll* lastDoll = _dolls[numDolls - 1];
                 _dolls.pop_back();
                 _dolls[i] = lastDoll;
             }
