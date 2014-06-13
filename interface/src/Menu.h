@@ -336,6 +336,7 @@ namespace MenuOption {
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString EnableVRMode = "Enable VR Mode";
     const QString ExpandMiscAvatarTiming = "Expand Misc MyAvatar Timing";
     const QString ExpandAvatarUpdateTiming = "Expand MyAvatar update Timing";
     const QString ExpandAvatarSimulateTiming = "Expand MyAvatar simulate Timing";
@@ -400,7 +401,6 @@ namespace MenuOption {
     const QString SettingsImport = "Import Settings";
     const QString SimpleShadows = "Simple";
     const QString SixenseInvertInputButtons = "Invert Sixense Mouse Input Buttons";
-    const QString SixenseLeftHanded = "Left Handed Sixense Mouse Input";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowBordersModelNodes = "Show Model Nodes";

@@ -281,7 +281,7 @@ void NodeList::processSTUNResponse(const QByteArray& packet) {
                 int byteIndex = attributeStartIndex + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
                 
                 uint8_t addressFamily = 0;
-                memcpy(&addressFamily, packet.data(), sizeof(addressFamily));
+                memcpy(&addressFamily, packet.data() + byteIndex, sizeof(addressFamily));
 
                 byteIndex += sizeof(addressFamily);
 
