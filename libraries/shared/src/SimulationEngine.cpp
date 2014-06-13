@@ -11,6 +11,7 @@
 
 #include <glm/glm.hpp>
 
+#include "SharedUtil.h"
 #include "SimulationEngine.h"
 
 int MAX_DOLLS_PER_ENGINE = 32;
@@ -59,13 +60,26 @@ void SimulationEngine::removeRagDoll(RagDoll* doll) {
     }
 }
 
-float SimulationEngine::enforceConstraints() {
-    float maxMovement = 0.0f;
-    int numDolls = _dolls.size();
-    for (int i = 0; i < numDolls; ++i) {
-        maxMovement = glm::max(maxMovement, _dolls[i]->enforceConstraints());
-    }
-    return maxMovement;
+void SimulationEngine::enforceConstraints(float minError, int maxIterations, quint64 maxUsec) {
+    // enforce the constraints
+    int iterations = 0;
+    float delta = 0.0f;
+    quint64 now = usecTimestampNow();
+    quint64 startTime = now;
+    quint64 expiry = now + maxUsec;
+    float error = 0.0f;
+    do {
+        error = 0.0f;
+        int numDolls = _dolls.size();
+        for (int i = 0; i < numDolls; ++i) {
+            error = glm::max(error, _dolls[i]->enforceConstraints());
+        }
+        ++iterations;
+        now = usecTimestampNow();
+    } while (iterations < maxIterations && delta > minError && now < expiry);
+    _enforcementIterations = iterations;
+    _enforcementError = delta;
+    _enforcementTime = now - startTime;
 }
 
 int SimulationEngine::computeCollisions() {
