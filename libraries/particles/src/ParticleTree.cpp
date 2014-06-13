@@ -320,21 +320,21 @@ public:
     QVector<Particle*> _foundParticles;
 };
 
-bool ParticleTree::findInCubeForUpdateOperation(OctreeElement* element, void* extraData) {
+bool ParticleTree::findInCubeOperation(OctreeElement* element, void* extraData) {
     FindParticlesInCubeArgs* args = static_cast< FindParticlesInCubeArgs*>(extraData);
     const AACube& elementBox = element->getAACube();
     if (elementBox.touches(args->_cube)) {
         ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
-        particleTreeElement->getParticlesForUpdate(args->_cube, args->_foundParticles);
+        particleTreeElement->getParticles(args->_cube, args->_foundParticles);
         return true;
     }
     return false;
 }
 
-void ParticleTree::findParticlesForUpdate(const AACube& cube, QVector<Particle*> foundParticles) {
+void ParticleTree::findParticles(const AACube& cube, QVector<Particle*> foundParticles) {
     FindParticlesInCubeArgs args(cube);
     lockForRead();
-    recurseTreeWithOperation(findInCubeForUpdateOperation, &args);
+    recurseTreeWithOperation(findInCubeOperation, &args);
     unlock();
     // swap the two lists of particle pointers instead of copy
     foundParticles.swap(args._foundParticles);

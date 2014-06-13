@@ -67,7 +67,7 @@ public:
     /// \param cube the query cube
     /// \param foundModels[out] vector of non-const ModelItem*
     /// \remark Side effect: any initial contents in models will be lost
-    void findModelsForUpdate(const AACube& cube, QVector<ModelItem*> foundModels);
+    void findModels(const AACube& cube, QVector<ModelItem*> foundModels);
 
     void addNewlyCreatedHook(NewlyCreatedModelHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedModelHook* hook);
@@ -97,13 +97,12 @@ private:
     static bool findByIDOperation(OctreeElement* element, void* extraData);
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateModelItemIDOperation(OctreeElement* element, void* extraData);
-    static bool findInCubeForUpdateOperation(OctreeElement* element, void* extraData);
+    static bool findInCubeOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedModel(const ModelItem& newModel, const SharedNodePointer& senderNode);
 
     QReadWriteLock _newlyCreatedHooksLock;
-    std::vector<NewlyCreatedModelHook*> _newlyCreatedHooks;
-
+    QVector<NewlyCreatedModelHook*> _newlyCreatedHooks;
 
     QReadWriteLock _recentlyDeletedModelsLock;
     QMultiMap<quint64, uint32_t> _recentlyDeletedModelItemIDs;

@@ -245,7 +245,7 @@ void ParticleTreeElement::getParticles(const glm::vec3& searchPosition, float se
     }
 }
 
-void ParticleTreeElement::getParticlesForUpdate(const AACube& box, QVector<Particle*>& foundParticles) {
+void ParticleTreeElement::getParticles(const AACube& box, QVector<Particle*>& foundParticles) {
     QList<Particle>::iterator particleItr = _particles->begin();
     QList<Particle>::iterator particleEnd = _particles->end();
     AACube particleCube;

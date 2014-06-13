@@ -468,7 +468,7 @@ void ModelTreeElement::getModels(const glm::vec3& searchPosition, float searchRa
     }
 }
 
-void ModelTreeElement::getModelsForUpdate(const AACube& box, QVector<ModelItem*>& foundModels) {
+void ModelTreeElement::getModels(const AACube& box, QVector<ModelItem*>& foundModels) {
     QList<ModelItem>::iterator modelItr = _modelItems->begin();
     QList<ModelItem>::iterator modelEnd = _modelItems->end();
     AACube modelCube;
