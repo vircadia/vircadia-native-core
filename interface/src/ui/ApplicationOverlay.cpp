@@ -34,7 +34,10 @@ ApplicationOverlay::ApplicationOverlay() :
     _oculusAngle(65.0f * RADIANS_PER_DEGREE),
     _distance(0.5f),
     _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
-    _uiType(HEMISPHERE) {
+    _uiType(HEMISPHERE),
+    _crosshairTexture(0) {
+
+ 
 
 }
 
@@ -275,10 +278,22 @@ void ApplicationOverlay::renderPointers() {
     int mouseX = application->getMouseX();
     int mouseY = application->getMouseY();
 
+   
+    //lazily load crosshair texture
+    if (_crosshairTexture == 0) {
+        _crosshairTexture = Application::getInstance()->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/sixense-reticle.png"));
+    }
+    glEnable(GL_TEXTURE_2D);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
+    
+
+
+
     if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
         const float pointerWidth = 10;
         const float pointerHeight = 10;
-        const float crossPad = 4;
 
         _numMagnifiers = 1;
         _mouseX[0] = application->getMouseX();
@@ -289,25 +304,22 @@ void ApplicationOverlay::renderPointers() {
 
         glBegin(GL_QUADS);
 
-        glColor3f(1, 0, 0);
+        glColor3f(0.0f, 198.0f / 255.0f, 244.0f / 255.0f);
 
         //Horizontal crosshair
-        glVertex2i(mouseX, mouseY - crossPad);
-        glVertex2i(mouseX + pointerWidth, mouseY - crossPad);
-        glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight + crossPad);
-        glVertex2i(mouseX, mouseY - pointerHeight + crossPad);
-
-        //Vertical crosshair
-        glVertex2i(mouseX + crossPad, mouseY);
-        glVertex2i(mouseX + pointerWidth - crossPad, mouseY);
-        glVertex2i(mouseX + pointerWidth - crossPad, mouseY - pointerHeight);
-        glVertex2i(mouseX + crossPad, mouseY - pointerHeight);
+        glTexCoord2d(0.0f, 0.0f); glVertex2i(mouseX, mouseY);
+        glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + pointerWidth, mouseY);
+        glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight);
+        glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - pointerHeight);
 
         glEnd();
     } else if (application->getLastMouseMoveType() == CONTROLLER_MOVE_EVENT && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         renderControllerPointer();
     }
+
+    glDisable(GL_TEXTURE_2D);
+
 }
 
 void ApplicationOverlay::renderControllerPointer() {
@@ -349,13 +361,12 @@ void ApplicationOverlay::renderControllerPointer() {
 
         float pointerWidth = 40;
         float pointerHeight = 40;
-        float crossPad = 16;
+     
         //if we have the oculus, we should make the cursor smaller since it will be
         //magnified
         if (OculusManager::isConnected()) {
-            pointerWidth /= 4;
-            pointerHeight /= 4;
-            crossPad /= 4;
+            pointerWidth /= 2;
+            pointerHeight /= 2;
 
             _mouseX[_numMagnifiers] = mouseX;
             _mouseY[_numMagnifiers] = mouseY;
@@ -368,19 +379,12 @@ void ApplicationOverlay::renderControllerPointer() {
 
         glBegin(GL_QUADS);
 
-        glColor3f(0.0f, 0.0f, 1.0f);
+        glColor3f(0.0f, 198.0f/255.0f, 244.0f/255.0f);
 
-        //Horizontal crosshair
-        glVertex2i(mouseX, mouseY - crossPad);
-        glVertex2i(mouseX + pointerWidth, mouseY - crossPad);
-        glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight + crossPad);
-        glVertex2i(mouseX, mouseY - pointerHeight + crossPad);
-
-        //Vertical crosshair
-        glVertex2i(mouseX + crossPad, mouseY);
-        glVertex2i(mouseX + pointerWidth - crossPad, mouseY);
-        glVertex2i(mouseX + pointerWidth - crossPad, mouseY - pointerHeight);
-        glVertex2i(mouseX + crossPad, mouseY - pointerHeight);
+        glTexCoord2d(0.0f, 0.0f); glVertex2i(mouseX, mouseY);
+        glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + pointerWidth, mouseY);
+        glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight);
+        glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - pointerHeight);
 
         glEnd();
     }

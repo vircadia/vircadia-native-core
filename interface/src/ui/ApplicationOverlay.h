@@ -59,6 +59,8 @@ private:
     int _mouseX[2];
     int _mouseY[2];
     int _numMagnifiers;
+    
+    GLuint _crosshairTexture;
 };
 
 #endif // hifi_ApplicationOverlay_h
