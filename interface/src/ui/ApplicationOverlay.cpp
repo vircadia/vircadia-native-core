@@ -234,33 +234,10 @@ void ApplicationOverlay::renderPointers() {
     
 
     if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
-        const float pointerWidth = 20;
-        const float pointerHeight = 20;
-
+        //If we are in oculus, render reticle later
         _numMagnifiers = 1;
         _mouseX[0] = application->getMouseX();
         _mouseY[0] = application->getMouseY();
-
-        //If we are in oculus, render reticle later
-
-
-        if (!OculusManager::isConnected()) {
-
-            mouseX -= pointerWidth / 2.0f;
-            mouseY += pointerHeight / 2.0f;
-
-            glBegin(GL_QUADS);
-
-            glColor3f(0.0f, 198.0f / 255.0f, 244.0f / 255.0f);
-
-            //Horizontal crosshair
-            glTexCoord2d(0.0f, 0.0f); glVertex2i(mouseX, mouseY);
-            glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + pointerWidth, mouseY);
-            glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight);
-            glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - pointerHeight);
-
-            glEnd();
-        }
     } else if (application->getLastMouseMoveType() == CONTROLLER_MOVE_EVENT && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         renderControllerPointers();
