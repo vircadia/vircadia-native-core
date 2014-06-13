@@ -19,8 +19,6 @@ class QOpenGLFramebufferObject;
 class ApplicationOverlay {
 public:
 
-    enum UIType { HEMISPHERE, SEMICIRCLE, CURVED_SEMICIRCLE };
-
     ApplicationOverlay();
     ~ApplicationOverlay();
 
@@ -31,9 +29,7 @@ public:
 
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();
-   
-    void setUIType(UIType uiType) { _uiType = uiType; }
-
+  
 private:
     // Interleaved vertex data
     struct TextureVertex {
@@ -56,7 +52,6 @@ private:
     float _oculusAngle;
     float _distance;
     float _textureFov;
-    UIType _uiType;
     int _mouseX[2];
     int _mouseY[2];
     int _numMagnifiers;
