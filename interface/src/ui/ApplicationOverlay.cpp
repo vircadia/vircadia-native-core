@@ -37,8 +37,6 @@ ApplicationOverlay::ApplicationOverlay() :
     _uiType(HEMISPHERE),
     _crosshairTexture(0) {
 
- 
-
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
@@ -259,6 +257,8 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
         glEnd();
     }
 
+    renderControllerPointersOculus();
+
     glPopMatrix();
 
     glDepthMask(GL_TRUE);
@@ -289,8 +289,6 @@ void ApplicationOverlay::renderPointers() {
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     
 
-
-
     if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
         const float pointerWidth = 20;
         const float pointerHeight = 20;
@@ -299,30 +297,36 @@ void ApplicationOverlay::renderPointers() {
         _mouseX[0] = application->getMouseX();
         _mouseY[0] = application->getMouseY();
 
-        mouseX -= pointerWidth / 2.0f;
-        mouseY += pointerHeight / 2.0f;
+        //If we are in oculus, render reticle later
 
-        glBegin(GL_QUADS);
 
-        glColor3f(0.0f, 198.0f / 255.0f, 244.0f / 255.0f);
+        if (!OculusManager::isConnected()) {
 
-        //Horizontal crosshair
-        glTexCoord2d(0.0f, 0.0f); glVertex2i(mouseX, mouseY);
-        glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + pointerWidth, mouseY);
-        glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight);
-        glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - pointerHeight);
+            mouseX -= pointerWidth / 2.0f;
+            mouseY += pointerHeight / 2.0f;
 
-        glEnd();
+            glBegin(GL_QUADS);
+
+            glColor3f(0.0f, 198.0f / 255.0f, 244.0f / 255.0f);
+
+            //Horizontal crosshair
+            glTexCoord2d(0.0f, 0.0f); glVertex2i(mouseX, mouseY);
+            glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + pointerWidth, mouseY);
+            glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight);
+            glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - pointerHeight);
+
+            glEnd();
+        }
     } else if (application->getLastMouseMoveType() == CONTROLLER_MOVE_EVENT && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
-        renderControllerPointer();
+        renderControllerPointers();
     }
-
+    glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
 
 }
 
-void ApplicationOverlay::renderControllerPointer() {
+void ApplicationOverlay::renderControllerPointers() {
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
@@ -365,13 +369,12 @@ void ApplicationOverlay::renderControllerPointer() {
         //if we have the oculus, we should make the cursor smaller since it will be
         //magnified
         if (OculusManager::isConnected()) {
-            pointerWidth /= 2;
-            pointerHeight /= 2;
 
             _mouseX[_numMagnifiers] = mouseX;
             _mouseY[_numMagnifiers] = mouseY;
             _numMagnifiers++;
-
+            //If oculus is enabled, we draw the crosshairs later
+            continue;
         }
 
         mouseX -= pointerWidth / 2.0f;
@@ -390,13 +393,74 @@ void ApplicationOverlay::renderControllerPointer() {
     }
 }
 
+void ApplicationOverlay::renderControllerPointersOculus() {
+    Application* application = Application::getInstance();
+    QGLWidget* glWidget = application->getGLWidget();
+
+    const int widgetWidth = glWidget->width();
+    const int widgetHeight = glWidget->height();
+  
+    const float reticleSize = 50.0f;
+
+    glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
+    glDisable(GL_DEPTH_TEST);
+    
+    for (int i = 0; i < _numMagnifiers; i++) {
+
+        float mouseX = (float)_mouseX[i];
+        float mouseY = (float)_mouseY[i];
+        mouseX -= reticleSize / 2;
+        mouseY += reticleSize / 2;
+
+        // Get position on hemisphere using angle
+        if (_uiType == HEMISPHERE) {
+
+            //Get new UV coordinates from our magnification window
+            float newULeft = mouseX / widgetWidth;
+            float newURight = (mouseX + reticleSize) / widgetWidth;
+            float newVBottom = 1.0 - mouseY / widgetHeight;
+            float newVTop = 1.0 - (mouseY - reticleSize) / widgetHeight;
+
+            // Project our position onto the hemisphere using the UV coordinates
+            float lX = sin((newULeft - 0.5f) * _textureFov);
+            float rX = sin((newURight - 0.5f) * _textureFov);
+            float bY = sin((newVBottom - 0.5f) * _textureFov);
+            float tY = sin((newVTop - 0.5f) * _textureFov);
+
+            float dist;
+            //Bottom Left
+            dist = sqrt(lX * lX + bY * bY);
+            float blZ = sqrt(1.0f - dist * dist);
+            //Top Left
+            dist = sqrt(lX * lX + tY * tY);
+            float tlZ = sqrt(1.0f - dist * dist);
+            //Bottom Right
+            dist = sqrt(rX * rX + bY * bY);
+            float brZ = sqrt(1.0f - dist * dist);
+            //Top Right
+            dist = sqrt(rX * rX + tY * tY);
+            float trZ = sqrt(1.0f - dist * dist);
+
+            glBegin(GL_QUADS);
+
+            glColor3f(0.0f, 198.0f / 255.0f, 244.0f / 255.0f);
+            
+            glTexCoord2f(0.0f, 0.0f); glVertex3f(lX, tY, -tlZ);
+            glTexCoord2f(1.0f, 0.0f); glVertex3f(rX, tY, -trZ);
+            glTexCoord2f(1.0f, 1.0f); glVertex3f(rX, bY, -brZ);
+            glTexCoord2f(0.0f, 1.0f); glVertex3f(lX, bY, -blZ);
+
+            glEnd();
+        }
+    }
+    glEnable(GL_DEPTH_TEST);
+}
+
 //Renders a small magnification of the currently bound texture at the coordinates
 void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
 {
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
-    MyAvatar* myAvatar = application->getAvatar();
-    const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
 
     float leftX, rightX, leftZ, rightZ, topZ, bottomZ;
 

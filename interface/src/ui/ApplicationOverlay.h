@@ -44,7 +44,8 @@ private:
     typedef QPair<GLuint, GLuint> VerticesIndices;
 
     void renderPointers();
-    void renderControllerPointer();
+    void renderControllerPointers();
+    void renderControllerPointersOculus();
     void renderMagnifier(int mouseX, int mouseY);
     void renderAudioMeter();
     void renderStatsAndLogs();
