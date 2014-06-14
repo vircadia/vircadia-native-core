@@ -14,6 +14,7 @@
 
 #include <QHash>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QMetaProperty>
 #include <QMetaType>
@@ -38,6 +39,7 @@ class Attribute;
 class AttributeValue;
 class Bitstream;
 class GenericValue;
+class JSONWriter;
 class ObjectReader;
 class ObjectStreamer;
 class OwnedAttributeValue;
@@ -447,6 +449,8 @@ private slots:
 
 private:
     
+    friend class JSONWriter;
+    
     ObjectStreamerPointer readGenericObjectStreamer(const QByteArray& name);
     TypeStreamerPointer readGenericTypeStreamer(const QByteArray& name, int category);
     
@@ -771,21 +775,44 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
 /// Tracks state when writing to JSON.
 class JSONWriter {
 public:
-        
-    void addTypeStreamer(const TypeStreamer* streamer);
-    void addObjectStreamer(const ObjectStreamer* streamer);
+    
+    JSONWriter& operator<<(bool value);
+    JSONWriter& operator<<(int value);
+    JSONWriter& operator<<(uint value);
+    JSONWriter& operator<<(float value);
+    JSONWriter& operator<<(const QByteArray& value);
+    JSONWriter& operator<<(const QColor& value);
+    JSONWriter& operator<<(const QScriptValue& value);
+    JSONWriter& operator<<(const QString& value);
+    JSONWriter& operator<<(const QUrl& value);
+    JSONWriter& operator<<(const glm::vec3& value);
+    JSONWriter& operator<<(const glm::quat& value);
+    JSONWriter& operator<<(const QMetaObject* metaObject);
+    
+    JSONWriter& operator<<(const QVariant& value);
+    JSONWriter& operator<<(const SharedObjectPointer& object);
+    JSONWriter& operator<<(const QObject* object);
+    
     void addSharedObject(const SharedObjectPointer& object);
+    void addObjectStreamer(const ObjectStreamer* streamer);
+    void addTypeStreamer(const TypeStreamer* streamer);
+    
+    QJsonDocument getDocument() const;
     
 private:
 
-    QSet<QByteArray> _typeStreamerNames;
-    QJsonArray _typeStreamers;
+    QJsonValue getData(const QObject* object);
+
+    QJsonArray _contents;
+
+    QSet<int> _sharedObjectIDs;
+    QJsonArray _sharedObjects;
     
     QSet<QByteArray> _objectStreamerNames;
     QJsonArray _objectStreamers;
     
-    QSet<int> _sharedObjectIDs;
-    QJsonArray _sharedObjects;
+    QSet<QByteArray> _typeStreamerNames;
+    QJsonArray _typeStreamers;
 };
 
 /// Tracks state when reading from JSON.
@@ -958,6 +985,7 @@ public:
     
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual QJsonValue getJSONVariantData(JSONWriter& writer, const QVariant& value) const;
     
     virtual bool equal(const QVariant& first, const QVariant& second) const;
     
@@ -1037,6 +1065,7 @@ public:
     virtual const char* getName() const;
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
     virtual Category getCategory() const;
     virtual int getBits() const;
     virtual QMetaEnum getMetaEnum() const;
@@ -1099,6 +1128,7 @@ public:
 
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
@@ -1148,6 +1178,7 @@ public:
 
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
@@ -1219,6 +1250,7 @@ public:
     
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
@@ -1302,6 +1334,7 @@ public:
     
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
@@ -1316,6 +1349,7 @@ private:
 class GenericValueStreamer : public SimpleTypeStreamer<GenericValue> {
 public:
     
+    QJsonValue getJSONVariantData(JSONWriter& writer, const QVariant& value) const;
     virtual void writeVariant(Bitstream& out, const QVariant& value) const;
 };
 

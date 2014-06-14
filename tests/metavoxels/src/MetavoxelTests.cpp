@@ -243,6 +243,18 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
         return true;
     }
     
+    if (metadataType != Bitstream::FULL_METADATA) {
+        return false;
+    }
+    
+    // now write to JSON
+    JSONWriter jsonWriter;
+    jsonWriter << testObjectReadA;
+    jsonWriter << testObjectReadB;
+    jsonWriter << messageRead;
+    qDebug() << jsonWriter.getDocument().toJson();
+    qDebug();
+    
     return false;
 }
 
