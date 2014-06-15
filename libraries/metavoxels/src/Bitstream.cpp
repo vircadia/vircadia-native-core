@@ -1657,107 +1657,172 @@ const TypeStreamer* Bitstream::createInvalidTypeStreamer() {
     return streamer;
 }
 
-JSONWriter& JSONWriter::operator<<(bool value) {
-    _contents.append(value);
-    return *this;
+QJsonValue JSONWriter::getData(bool value) {
+    return value;
 }
 
-JSONWriter& JSONWriter::operator<<(int value) {
-    _contents.append(value);
-    return *this;
+QJsonValue JSONWriter::getData(int value) {
+    return value;
 }
 
-JSONWriter& JSONWriter::operator<<(uint value) {
-    _contents.append((int)value);
-    return *this;
+QJsonValue JSONWriter::getData(uint value) {
+    return (int)value;
 }
 
-JSONWriter& JSONWriter::operator<<(float value) {
-    _contents.append((double)value);
-    return *this;
+QJsonValue JSONWriter::getData(float value) {
+    return (double)value;
 }
 
-JSONWriter& JSONWriter::operator<<(const QByteArray& value) {
-    _contents.append(QString(value.toPercentEncoding()));
-    return *this;
+QJsonValue JSONWriter::getData(const QByteArray& value) {
+    return QString(value.toPercentEncoding());
 }
 
-JSONWriter& JSONWriter::operator<<(const QColor& value) {
-    _contents.append(value.name());
-    return *this;
+QJsonValue JSONWriter::getData(const QColor& value) {
+    return value.name();
 }
 
-JSONWriter& JSONWriter::operator<<(const QScriptValue& value) {
-    return *this;
+QJsonValue JSONWriter::getData(const QScriptValue& value) {
+    QJsonObject object;
+    if (value.isUndefined()) {
+        object.insert("type", QString("UNDEFINED"));
+        
+    } else if (value.isNull()) {
+        object.insert("type", QString("NULL"));
+    
+    } else if (value.isBool()) {
+        object.insert("type", QString("BOOL"));
+        object.insert("value", value.toBool());
+        
+    } else if (value.isNumber()) {
+        object.insert("type", QString("NUMBER"));
+        object.insert("value", value.toNumber());
+    
+    } else if (value.isString()) {
+        object.insert("type", QString("STRING"));
+        object.insert("value", value.toString());
+    
+    } else if (value.isVariant()) {
+        object.insert("type", QString("VARIANT"));
+        object.insert("value", getData(value.toVariant()));
+    
+    } else if (value.isQObject()) {
+        object.insert("type", QString("QOBJECT"));
+        object.insert("value", getData(value.toQObject()));
+    
+    } else if (value.isQMetaObject()) {
+        object.insert("type", QString("QMETAOBJECT"));
+        object.insert("value", getData(value.toQMetaObject()));
+        
+    } else if (value.isDate()) {
+        object.insert("type", QString("DATE"));
+        object.insert("value", getData(value.toDateTime()));
+        
+    } else if (value.isRegExp()) {
+        object.insert("type", QString("REGEXP"));
+        object.insert("value", getData(value.toRegExp()));
+    
+    } else if (value.isArray()) {
+        object.insert("type", QString("ARRAY"));
+        QJsonArray array;
+        int length = value.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+        for (int i = 0; i < length; i++) {
+            array.append(getData(value.property(i)));
+        }
+        object.insert("value", array);
+        
+    } else if (value.isObject()) {
+        object.insert("type", QString("OBJECT"));
+        QJsonObject valueObject;
+        for (QScriptValueIterator it(value); it.hasNext(); ) {
+            it.next();
+            valueObject.insert(it.name(), getData(it.value()));
+        }
+        object.insert("value", valueObject);
+        
+    } else {
+        object.insert("type", QString("INVALID"));
+    }
+    return object;
 }
 
-JSONWriter& JSONWriter::operator<<(const QString& value) {
-    _contents.append(value);
-    return *this;
+QJsonValue JSONWriter::getData(const QString& value) {
+    return value;
 }
 
-JSONWriter& JSONWriter::operator<<(const QUrl& value) {
-    _contents.append(value.toString());
-    return *this;
+QJsonValue JSONWriter::getData(const QUrl& value) {
+    return value.toString();
 }
 
-JSONWriter& JSONWriter::operator<<(const glm::vec3& value) {
+QJsonValue JSONWriter::getData(const QDateTime& value) {
+    return (qsreal)value.toMSecsSinceEpoch();
+}
+
+QJsonValue JSONWriter::getData(const QRegExp& value) {
+    QJsonObject object;
+    object.insert("pattern", value.pattern());
+    object.insert("caseSensitivity", (int)value.caseSensitivity());
+    object.insert("patternSyntax", (int)value.patternSyntax());
+    object.insert("minimal", value.isMinimal());
+    return object;
+}
+
+QJsonValue JSONWriter::getData(const glm::vec3& value) {
     QJsonArray array;
     array.append(value.x);
     array.append(value.y);
     array.append(value.z);
-    _contents.append(array);
-    return *this;
+    return array;
 }
 
-JSONWriter& JSONWriter::operator<<(const glm::quat& value) {
+QJsonValue JSONWriter::getData(const glm::quat& value) {
     QJsonArray array;
     array.append(value.x);
     array.append(value.y);
     array.append(value.z);
     array.append(value.w);
-    _contents.append(array);
-    return *this;
+    return array;
 }
 
-JSONWriter& JSONWriter::operator<<(const QMetaObject* metaObject) {
+QJsonValue JSONWriter::getData(const QMetaObject* metaObject) {
     if (!metaObject) {
-        _contents.append(QJsonValue());
-        return *this;
+        return QJsonValue();
     }
     const ObjectStreamer* streamer = Bitstream::getObjectStreamers().value(metaObject);
     addObjectStreamer(streamer);
-    _contents.append(QString(streamer->getName()));
-    return *this;
+    return QString(streamer->getName());
 }
 
-JSONWriter& JSONWriter::operator<<(const QVariant& value) {
+QJsonValue JSONWriter::getData(const QVariant& value) {
     if (!value.isValid()) {
-        _contents.append(QJsonValue());
-        return *this;
+        return QJsonValue();
     }
     const TypeStreamer* streamer = Bitstream::getTypeStreamers().value(value.userType());
     if (streamer) {
-        _contents.append(streamer->getJSONVariantData(*this, value));
+        return streamer->getJSONVariantData(*this, value);
     } else {
         qWarning() << "Non-streamable type:" << value.typeName();
+        return QJsonValue();
     }
-    return *this;
 }
 
-JSONWriter& JSONWriter::operator<<(const SharedObjectPointer& object) {
+QJsonValue JSONWriter::getData(const SharedObjectPointer& object) {
     if (object) {
         addSharedObject(object);
-        _contents.append(object->getID());
+        return object->getID();
     } else {
-        _contents.append(0);
+        return 0;
     }
-    return *this;
 }
 
-JSONWriter& JSONWriter::operator<<(const QObject* object) {
-    _contents.append(getData(object));
-    return *this;
+QJsonValue JSONWriter::getData(const QObject* object) {
+    if (!object) {
+        return QJsonValue();
+    }
+    const QMetaObject* metaObject = object->metaObject();
+    const ObjectStreamer* streamer = (metaObject == &GenericSharedObject::staticMetaObject) ?
+        static_cast<const GenericSharedObject*>(object)->getStreamer().data() :
+            Bitstream::getObjectStreamers().value(metaObject);
+    return streamer->getJSONData(*this, object);
 }
 
 void JSONWriter::addTypeStreamer(const TypeStreamer* streamer) {
@@ -1798,7 +1863,7 @@ void JSONWriter::addSharedObject(const SharedObjectPointer& object) {
         QJsonObject sharedObject;
         sharedObject.insert("id", object->getID());
         sharedObject.insert("originID", object->getOriginID());
-        sharedObject.insert("data", getData(object.data()));
+        sharedObject.insert("data", getData(static_cast<const QObject*>(object.data())));
         _sharedObjects.replace(index, sharedObject);
     }
 }
@@ -1810,17 +1875,6 @@ QJsonDocument JSONWriter::getDocument() const {
     top.insert("classes", _objectStreamers);
     top.insert("types", _typeStreamers);
     return QJsonDocument(top);
-}
-
-QJsonValue JSONWriter::getData(const QObject* object) {
-    if (!object) {
-        return QJsonValue();
-    }
-    const QMetaObject* metaObject = object->metaObject();
-    const ObjectStreamer* streamer = (metaObject == &GenericSharedObject::staticMetaObject) ?
-        static_cast<const GenericSharedObject*>(object)->getStreamer().data() :
-            Bitstream::getObjectStreamers().value(metaObject);
-    return streamer->getJSONData(*this, object);
 }
 
 ObjectStreamer::ObjectStreamer(const QMetaObject* metaObject) :

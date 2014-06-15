@@ -776,22 +776,32 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
 class JSONWriter {
 public:
     
-    JSONWriter& operator<<(bool value);
-    JSONWriter& operator<<(int value);
-    JSONWriter& operator<<(uint value);
-    JSONWriter& operator<<(float value);
-    JSONWriter& operator<<(const QByteArray& value);
-    JSONWriter& operator<<(const QColor& value);
-    JSONWriter& operator<<(const QScriptValue& value);
-    JSONWriter& operator<<(const QString& value);
-    JSONWriter& operator<<(const QUrl& value);
-    JSONWriter& operator<<(const glm::vec3& value);
-    JSONWriter& operator<<(const glm::quat& value);
-    JSONWriter& operator<<(const QMetaObject* metaObject);
+    QJsonValue getData(bool value);
+    QJsonValue getData(int value);
+    QJsonValue getData(uint value);
+    QJsonValue getData(float value);
+    QJsonValue getData(const QByteArray& value);
+    QJsonValue getData(const QColor& value);
+    QJsonValue getData(const QScriptValue& value);
+    QJsonValue getData(const QString& value);
+    QJsonValue getData(const QUrl& value);
+    QJsonValue getData(const QDateTime& value);
+    QJsonValue getData(const QRegExp& value);
+    QJsonValue getData(const glm::vec3& value);
+    QJsonValue getData(const glm::quat& value);
+    QJsonValue getData(const QMetaObject* value);
+    QJsonValue getData(const QVariant& value);
+    QJsonValue getData(const SharedObjectPointer& value);
+    QJsonValue getData(const QObject* value);
     
-    JSONWriter& operator<<(const QVariant& value);
-    JSONWriter& operator<<(const SharedObjectPointer& object);
-    JSONWriter& operator<<(const QObject* object);
+    template<class T> QJsonValue getData(const T& value);
+    
+    template<class T> QJsonValue getData(const QList<T>& list);
+    template<class T> QJsonValue getData(const QVector<T>& list);
+    template<class T> QJsonValue getData(const QSet<T>& set);
+    template<class K, class V> QJsonValue getData(const QHash<K, V>& hash);
+    
+    template<class T> JSONWriter& operator<<(const T& value) { _contents.append(getData(value)); return *this; }
     
     void addSharedObject(const SharedObjectPointer& object);
     void addObjectStreamer(const ObjectStreamer* streamer);
@@ -800,8 +810,6 @@ public:
     QJsonDocument getDocument() const;
     
 private:
-
-    QJsonValue getData(const QObject* object);
 
     QJsonArray _contents;
 
@@ -814,6 +822,45 @@ private:
     QSet<QByteArray> _typeStreamerNames;
     QJsonArray _typeStreamers;
 };
+
+template<class T> inline QJsonValue JSONWriter::getData(const T& value) {
+    return QJsonValue();
+}
+
+template<class T> inline QJsonValue JSONWriter::getData(const QList<T>& list) {
+    QJsonArray array;
+    foreach (const T& value, list) {
+        array.append(getData(value));
+    }
+    return array;
+}
+
+template<class T> inline QJsonValue JSONWriter::getData(const QVector<T>& vector) {
+    QJsonArray array;
+    foreach (const T& value, vector) {
+        array.append(getData(value));
+    }
+    return array;
+}
+
+template<class T> inline QJsonValue JSONWriter::getData(const QSet<T>& set) {
+    QJsonArray array;
+    foreach (const T& value, set) {
+        array.append(getData(value));
+    }
+    return array;
+}
+
+template<class K, class V> inline QJsonValue JSONWriter::getData(const QHash<K, V>& hash) {
+    QJsonArray array;
+    for (typename QHash<K, V>::const_iterator it = hash.constBegin(); it != hash.constEnd(); it++) {
+        QJsonArray pair;
+        pair.append(getData(it.key()));
+        pair.append(getData(it.value()));
+        array.append(pair);
+    }
+    return array;
+}
 
 /// Tracks state when reading from JSON.
 class JSONReader {
@@ -1042,6 +1089,8 @@ QDebug& operator<<(QDebug& debug, const QMetaObject* metaObject);
 template<class T> class SimpleTypeStreamer : public TypeStreamer {
 public:
     
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const {
+        return writer.getData(value.value<T>()); }
     virtual bool equal(const QVariant& first, const QVariant& second) const { return first.value<T>() == second.value<T>(); }
     virtual void write(Bitstream& out, const QVariant& value) const { out << value.value<T>(); }
     virtual QVariant read(Bitstream& in) const { T value; in >> value; return QVariant::fromValue(value); }
