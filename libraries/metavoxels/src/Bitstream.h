@@ -1418,6 +1418,7 @@ public:
     Bitstream& operator>>(Bitstream& in, X& obj); \
     template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
     template<> void Bitstream::readRawDelta(X& value, const X& reference); \
+    template<> QJsonValue JSONWriter::getData(const X& value); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type;
@@ -1427,6 +1428,7 @@ public:
     Bitstream& operator>>(Bitstream& in, X& obj); \
     template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
     template<> void Bitstream::readRawDelta(X& value, const X& reference); \
+    template<> QJsonValue JSONWriter::getData(const X& value); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     __attribute__((unused)) static const int* _TypePtr##X = &X::Type;
@@ -1437,6 +1439,7 @@ public:
     Bitstream& operator>>(Bitstream& in, X& obj); \
     template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
     template<> void Bitstream::readRawDelta(X& value, const X& reference); \
+    template<> QJsonValue JSONWriter::getData(const X& value); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type; \
@@ -1447,7 +1450,8 @@ public:
     Bitstream& operator<<(Bitstream& out, const S::N& obj); \
     Bitstream& operator>>(Bitstream& in, S::N& obj); \
     template<> inline void Bitstream::writeRawDelta(const S::N& value, const S::N& reference) { *this << value; } \
-    template<> inline void Bitstream::readRawDelta(S::N& value, const S::N& reference) { *this >> value; }
+    template<> inline void Bitstream::readRawDelta(S::N& value, const S::N& reference) { *this >> value; } \
+    template<> inline QJsonValue JSONWriter::getData(const S::N& value) { return (int)value; }
 
 #define IMPLEMENT_ENUM_METATYPE(S, N) \
     static int S##N##MetaTypeId = registerEnumMetaType<S::N>(&S::staticMetaObject, #N); \
