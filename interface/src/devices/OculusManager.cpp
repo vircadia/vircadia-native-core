@@ -72,6 +72,14 @@ void OculusManager::connect() {
 #endif
 }
 
+bool OculusManager::isConnected() {
+#ifdef HAVE_LIBOVR
+    return _isConnected && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode);
+#else
+    return false;
+#endif
+}
+
 void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenHeight) {
 #ifdef HAVE_LIBOVR
     _stereoConfig.SetFullViewport(Viewport(0, 0, screenWidth, screenHeight));

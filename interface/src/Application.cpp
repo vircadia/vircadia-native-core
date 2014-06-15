@@ -151,6 +151,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mouseX(0),
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
+        _lastMouseMoveType(QEvent::MouseMove),
         _mouseHidden(false),
         _seenMouseMove(false),
         _touchAvgX(0.0f),
@@ -1097,6 +1098,9 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         showMouse = false;
     }
 
+    // Used by application overlay to determine how to draw cursor(s)
+    _lastMouseMoveType = event->type();
+
     _controllerScriptingInterface.emitMouseMoveEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1376,6 +1380,9 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
     resizeGL(_glWidget->width(),_glWidget->height());
 }
 
+void Application::setEnableVRMode(bool enableVRMode) {
+    resizeGL(_glWidget->width(), _glWidget->height());
+}
 
 void Application::setRenderVoxels(bool voxelRender) {
     _voxelEditSender.setShouldSend(voxelRender);

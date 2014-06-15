@@ -206,6 +206,7 @@ public:
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     int getMouseX() const { return _mouseX; }
     int getMouseY() const { return _mouseY; }
+    unsigned int getLastMouseMoveType() const { return _lastMouseMoveType; }
     Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
@@ -345,6 +346,7 @@ private slots:
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
+    void setEnableVRMode(bool enableVRMode);
     void cameraMenuChanged();
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
@@ -505,6 +507,7 @@ private:
     int _mouseDragStartedX;
     int _mouseDragStartedY;
     quint64 _lastMouseMove;
+    unsigned int _lastMouseMoveType;
     bool _mouseHidden;
     bool _seenMouseMove;
 
@@ -520,6 +523,7 @@ private:
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     QSet<int> _keysPressed;
+
 
     GeometryCache _geometryCache;
     AnimationCache _animationCache;
