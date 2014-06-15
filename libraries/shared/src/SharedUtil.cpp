@@ -26,6 +26,7 @@
 #include <QtCore/QDebug>
 #include <QDateTime>
 #include <QElapsedTimer>
+#include <QThread>
 
 #include "OctalCode.h"
 #include "SharedUtil.h"
@@ -415,13 +416,16 @@ void printVoxelCode(unsigned char* voxelCode) {
 
 #ifdef _WIN32
     void usleep(int waitTime) {
-        __int64 time1 = 0, time2 = 0, sysFreq = 0;
-
-        QueryPerformanceCounter((LARGE_INTEGER *)&time1);
-        QueryPerformanceFrequency((LARGE_INTEGER *)&sysFreq);
-        do {
-            QueryPerformanceCounter((LARGE_INTEGER *)&time2);
-        } while( (time2 - time1) < waitTime);
+        quint64 compTime = waitTime + usecTimestampNow();
+        quint64 compTimeSleep = compTime - 2000;
+        while (true) {
+            if (usecTimestampNow() < compTimeSleep) {
+                QThread::msleep(1);
+            }
+            if (usecTimestampNow() >= compTime) {
+                break;
+            }
+        }
     }
 #endif
 
