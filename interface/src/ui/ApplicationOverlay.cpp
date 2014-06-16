@@ -36,6 +36,9 @@ ApplicationOverlay::ApplicationOverlay() :
     _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
     _crosshairTexture(0) {
 
+    _magActive[MOUSE] = false;
+    _magActive[LEFT_CONTROLLER] = false;
+    _magActive[RIGHT_CONTROLLER] = false;
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
@@ -45,7 +48,6 @@ ApplicationOverlay::~ApplicationOverlay() {
 }
 
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
-
 const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 
 // Renders the overlays either to a texture or to the screen
@@ -158,7 +160,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     MyAvatar* myAvatar = application->getAvatar();
     const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
 
-
     glActiveTexture(GL_TEXTURE0);
    
     glEnable(GL_BLEND);
@@ -194,8 +195,11 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glAlphaFunc(GL_GREATER, 0.01f);
 
     //Draw the magnifiers
-    for (int i = 0; i < _numMagnifiers; i++) {
-        renderMagnifier(_mouseX[i], _mouseY[i]);
+    for (int i = 0; i < 3; i++) {
+
+        if (_magActive[i]) {
+            renderMagnifier(_magX[i], _magY[i]);
+        } 
     }
 
     glDepthMask(GL_FALSE);   
@@ -220,7 +224,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 void ApplicationOverlay::renderPointers() {
     Application* application = Application::getInstance();
     // Render a crosshair over the mouse when in Oculus
-    _numMagnifiers = 0;
     int mouseX = application->getMouseX();
     int mouseY = application->getMouseY();
 
@@ -236,11 +239,19 @@ void ApplicationOverlay::renderPointers() {
 
     if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
         //If we are in oculus, render reticle later
-        _numMagnifiers = 1;
-        _mouseX[0] = application->getMouseX();
-        _mouseY[0] = application->getMouseY();
+        _reticleActive[MOUSE] = true;
+        _magActive[MOUSE] = true;
+        _mouseX[MOUSE] = application->getMouseX();
+        _mouseY[MOUSE] = application->getMouseY();
+        _magX[MOUSE] = _mouseX[MOUSE];
+        _magY[MOUSE] = _mouseY[MOUSE];
+
+        _reticleActive[LEFT_CONTROLLER] = false;
+        _reticleActive[RIGHT_CONTROLLER] = false;
+        
     } else if (application->getLastMouseMoveType() == CONTROLLER_MOVE_EVENT && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
+        _reticleActive[MOUSE] = false;
         renderControllerPointers();
     }
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -256,6 +267,8 @@ void ApplicationOverlay::renderControllerPointers() {
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
 
     for (unsigned int palmIndex = 2; palmIndex < 4; palmIndex++) {
+        const int index = palmIndex - 1;
+
         const PalmData* palmData = NULL;
 
         if (palmIndex >= handData->getPalms().size()) {
@@ -267,6 +280,8 @@ void ApplicationOverlay::renderControllerPointers() {
         } else {
             continue;
         }
+
+        int controllerButtons = palmData->getControllerButtons();
 
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
@@ -281,22 +296,35 @@ void ApplicationOverlay::renderControllerPointers() {
         int mouseX = glWidget->width() / 2.0f + cursorRange * xAngle;
         int mouseY = glWidget->height() / 2.0f + cursorRange * yAngle;
 
+        // If the 2 button is pressed, we disable the magnifier for this controller
+        if (controllerButtons & BUTTON_2) {
+            _magActive[index] = false;
+            _magX[index] = mouseX;
+            _magY[index] = mouseY;
+        }
+
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
             continue;
         }
-
+        _reticleActive[index] = true;
         float pointerWidth = 40;
         float pointerHeight = 40;
      
         //if we have the oculus, we should make the cursor smaller since it will be
         //magnified
         if (OculusManager::isConnected()) {
+          
+            _mouseX[index] = mouseX;
+            _mouseY[index] = mouseY;
 
-            _mouseX[_numMagnifiers] = mouseX;
-            _mouseY[_numMagnifiers] = mouseY;
-            _numMagnifiers++;
-            //If oculus is enabled, we draw the crosshairs later
+            if (controllerButtons & BUTTON_3) {
+                _magActive[index] = true;
+                _magX[index] = mouseX;
+                _magY[index] = mouseY;
+            }
+
+            // If oculus is enabled, we draw the crosshairs later
             continue;
         }
 
@@ -328,7 +356,12 @@ void ApplicationOverlay::renderControllerPointersOculus() {
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     glDisable(GL_DEPTH_TEST);
     
-    for (int i = 0; i < _numMagnifiers; i++) {
+    for (int i = 0; i < 3; i++) {
+
+        //Dont render the reticle if its inactive
+        if (!_reticleActive[i]) {
+            continue;
+        }
 
         float mouseX = (float)_mouseX[i];
         float mouseY = (float)_mouseY[i];
@@ -385,26 +418,22 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
 
     const int widgetWidth = glWidget->width();
     const int widgetHeight = glWidget->height();
-    const float magnification = 4.0f;
 
-    float magnifyWidth = 80.0f;
-    float magnifyHeight = 60.0f;
+    mouseX -= MAGNIFY_WIDTH / 2;
+    mouseY -= MAGNIFY_HEIGHT / 2;
 
-    mouseX -= magnifyWidth / 2;
-    mouseY -= magnifyHeight / 2;
-
-    float newWidth = magnifyWidth * magnification;
-    float newHeight = magnifyHeight * magnification;
+    float newWidth = MAGNIFY_WIDTH * MAGNIFY_MULT;
+    float newHeight = MAGNIFY_HEIGHT * MAGNIFY_MULT;
 
     // Magnification Texture Coordinates
     float magnifyULeft = mouseX / (float)widgetWidth;
-    float magnifyURight = (mouseX + magnifyWidth) / (float)widgetWidth;
+    float magnifyURight = (mouseX + MAGNIFY_WIDTH) / (float)widgetWidth;
     float magnifyVBottom = 1.0f - mouseY / (float)widgetHeight;
-    float magnifyVTop = 1.0f - (mouseY + magnifyHeight) / (float)widgetHeight;
+    float magnifyVTop = 1.0f - (mouseY + MAGNIFY_HEIGHT) / (float)widgetHeight;
 
     // Coordinates of magnification overlay
-    float newMouseX = (mouseX + magnifyWidth / 2) - newWidth / 2.0f;
-    float newMouseY = (mouseY + magnifyHeight / 2) + newHeight / 2.0f;
+    float newMouseX = (mouseX + MAGNIFY_WIDTH / 2) - newWidth / 2.0f;
+    float newMouseY = (mouseY + MAGNIFY_HEIGHT / 2) + newHeight / 2.0f;
 
     // Get position on hemisphere using angle
 

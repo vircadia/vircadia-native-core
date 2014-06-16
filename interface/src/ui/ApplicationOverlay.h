@@ -15,18 +15,22 @@
 class Overlays;
 class QOpenGLFramebufferObject;
 
+const float MAGNIFY_WIDTH = 160.0f;
+const float MAGNIFY_HEIGHT = 80.0f;
+const float MAGNIFY_MULT = 4.0f;
+
 // Handles the drawing of the overlays to the screen
 class ApplicationOverlay {
 public:
 
     ApplicationOverlay();
+
     ~ApplicationOverlay();
 
     void renderOverlay(bool renderToTexture = false);
     void displayOverlayTexture(Camera& whichCamera);
     void displayOverlayTextureOculus(Camera& whichCamera);
     void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
-
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();
   
@@ -36,6 +40,8 @@ private:
         glm::vec3 position;
         glm::vec2 uv;
     };
+
+    enum MousePointerDevice { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER };
 
     typedef QPair<GLuint, GLuint> VerticesIndices;
 
@@ -52,9 +58,13 @@ private:
     float _oculusAngle;
     float _distance;
     float _textureFov;
-    int _mouseX[2];
-    int _mouseY[2];
-    int _numMagnifiers;
+    // 0 = Mouse, 1 = Left Controller, 2 = Right Controller
+    bool _reticleActive[3];
+    int _mouseX[3];
+    int _mouseY[3];
+    bool _magActive[3];
+    int _magX[3];
+    int _magY[3];
     
     GLuint _crosshairTexture;
 };
