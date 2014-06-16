@@ -14,6 +14,9 @@
 
 #include <QVector>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 class Shape;
 
 // PhysicalEntity is the base class for anything that owns one or more Shapes that collide in a 
@@ -28,15 +31,33 @@ public:
         ENTITY_MODEL,
     };
 
-    static void setShapeBackPointers(const QVector<Shape*>& shapes, PhysicalEntity* entity);
-
-    PhysicalEntity(EntityType type = ENTITY_UNKNOWN) : _entityType(type) {}
+    PhysicalEntity(EntityType type = ENTITY_UNKNOWN);
     virtual ~PhysicalEntity() {}
 
+    void setTranslation(const glm::vec3& translation);
+    void setRotation(const glm::quat& rotation);
+
+    const glm::vec3& getTranslation() const { return _translation; }
+    const glm::quat& getRotation() const { return _rotation; }
+    float getBoundingRadius() const { return _boundingRadius; }
+
     EntityType getEntityType() const { return _entityType; }
-    
+
+    void setShapeBackPointers();
+
+    void setEnableShapes(bool enable);
+
+    virtual void buildShapes() = 0;
+    virtual void clearShapes();
+
 protected:
     EntityType _entityType;
+    glm::vec3 _translation;
+    glm::quat _rotation;
+    float _boundingRadius;
+    bool _shapesAreDirty;
+    bool _enableShapes;
+    QVector<Shape*> _shapes;
 };
 
 #endif // hifi_PhysicalEntity_h

@@ -87,17 +87,17 @@ public:
 
     /// \param rotation rotation into shapes' collision frame
     /// \param translation translation into shapes' collision frame
-    /// Moves and modifies elements of _shapes to agree with state of _points
+    /// Moves and modifies elements of _verletShapes to agree with state of _points
     void updateShapes(const glm::quat& rotation, const glm::vec3& translation) const;
 
-    const QVector<Shape*>* getShapes() const { return _shapes; }
+    const QVector<Shape*>* getShapes() const { return _verletShapes; }
 
 protected:
     QVector<glm::vec3> _points;
     QVector<Constraint*> _constraints;
 
-    // the Ragdoll does NOT own the data in _shapes.
-    QVector<Shape*>* _shapes;
+    // the Ragdoll does NOT own the data in _verletShapes.
+    QVector<Shape*>* _verletShapes;
 };
 
 #endif // hifi_Ragdoll_h

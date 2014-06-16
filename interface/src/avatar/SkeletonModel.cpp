@@ -39,7 +39,7 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
             points.push_back(state.getPosition());
         }
         // ... and feed the results to Ragdoll
-        initShapesAndPoints(&_jointShapes, parentIndices, points);
+        initShapesAndPoints(&_shapes, parentIndices, points);
     }
 }
 
@@ -126,7 +126,7 @@ void SkeletonModel::simulateRagdoll(float deltaTime) {
 }
 
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
-    if (jointIndex < 0 || jointIndex >= int(_jointShapes.size())) {
+    if (jointIndex < 0 || jointIndex >= int(_shapes.size())) {
         return;
     }
     if (jointIndex == getLeftHandJointIndex()
@@ -136,15 +136,15 @@ void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes)
         for (int i = 0; i < _jointStates.size(); i++) {
             const FBXJoint& joint = geometry.joints[i];
             int parentIndex = joint.parentIndex;
-            Shape* shape = _jointShapes[i];
+            Shape* shape = _shapes[i];
             if (i == jointIndex) {
                 // this shape is the hand
                 if (shape) {
                     shapes.push_back(shape);
                 }
-                if (parentIndex != -1 && _jointShapes[parentIndex]) {
+                if (parentIndex != -1 && _shapes[parentIndex]) {
                     // also add the forearm
-                    shapes.push_back(_jointShapes[parentIndex]);
+                    shapes.push_back(_shapes[parentIndex]);
                 }
             } else if (shape) {
                 while (parentIndex != -1) {

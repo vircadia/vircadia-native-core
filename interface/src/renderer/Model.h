@@ -42,12 +42,6 @@ public:
     Model(QObject* parent = NULL);
     virtual ~Model();
     
-    void setTranslation(const glm::vec3& translation);
-    const glm::vec3& getTranslation() const { return _translation; }
-    
-    void setRotation(const glm::quat& rotation);
-    const glm::quat& getRotation() const { return _rotation; }
-    
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
     bool getScaleToFit() const { return _scaleToFit; } /// is scale to fit enabled
@@ -69,8 +63,6 @@ public:
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
-    void setEnableCollisionShapes(bool enable);
-    
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
@@ -140,8 +132,9 @@ public:
 
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
    
-    void clearShapes();
-    void rebuildShapes();
+    // virtual override from PhysicalEntity
+    virtual void buildShapes();
+
     void resetShapePositions(); // DEBUG method
     virtual void updateShapePositions();
 
@@ -160,7 +153,6 @@ public:
 
     bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
     
-    float getBoundingRadius() const { return _boundingRadius; }
     float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
 
     /// Sets blended vertices computed in a separate thread.
@@ -169,12 +161,8 @@ public:
     const CapsuleShape& getBoundingShape() const { return _boundingShape; }
 
 protected:
-    virtual void setShapeBackPointers();
-
     QSharedPointer<NetworkGeometry> _geometry;
     
-    glm::vec3 _translation;
-    glm::quat _rotation;
     glm::vec3 _scale;
     glm::vec3 _offset;
 
@@ -182,19 +170,12 @@ protected:
     float _scaleToFitLargestDimension; /// this is the dimension that scale to fit will use
     bool _scaledToFit; /// have we scaled to fit
 
-    int _simulationIndex;   // set by SimulationEngine (if any)
-    
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center
     int _rootIndex;
     
     QVector<JointState> _jointStates;
 
-    bool _shapesAreDirty;
-    bool _enableCollisionShapes; /// build collision shapes for joints
-    QVector<Shape*> _jointShapes;
-    
-    float _boundingRadius;
     CapsuleShape _boundingShape;
     glm::vec3 _boundingShapeLocalOffset;
     

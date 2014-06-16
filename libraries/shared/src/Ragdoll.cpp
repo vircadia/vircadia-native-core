@@ -94,7 +94,7 @@ void DistanceConstraint::updateProxyShape(Shape* shape, const glm::quat& rotatio
 // Ragdoll
 // ----------------------------------------------------------------------------
 
-Ragdoll::Ragdoll() : _shapes(NULL) {
+Ragdoll::Ragdoll() : _verletShapes(NULL) {
 }
 
 Ragdoll::~Ragdoll() {
@@ -103,7 +103,7 @@ Ragdoll::~Ragdoll() {
     
 void Ragdoll::initShapesAndPoints(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points) {
     clear();
-    _shapes = shapes;
+    _verletShapes = shapes;
     const int numPoints = points.size();
     assert(numPoints == parentIndices.size());
     _points.reserve(numPoints);
@@ -131,7 +131,7 @@ void Ragdoll::clear() {
     }
     _constraints.clear();
     _points.clear();
-    _shapes = NULL;
+    _verletShapes = NULL;
 }
 
 float Ragdoll::enforceConstraints() {
@@ -146,14 +146,14 @@ float Ragdoll::enforceConstraints() {
 }
 
 void Ragdoll::updateShapes(const glm::quat& rotation, const glm::vec3& translation) const {
-    if (!_shapes) {
+    if (!_verletShapes) {
         return;
     }
-    int numShapes = _shapes->size();
+    int numShapes = _verletShapes->size();
     int numConstraints = _constraints.size();
 
     // NOTE: we assume a one-to-one relationship between shapes and constraints
     for (int i = 0; i < numShapes && i < numConstraints; ++i) {
-        _constraints[i]->updateProxyShape((*_shapes)[i], rotation, translation);
+        _constraints[i]->updateProxyShape((*_verletShapes)[i], rotation, translation);
     }
 }

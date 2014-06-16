@@ -82,7 +82,7 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-    _skeletonModel.setEnableCollisionShapes(true);
+    _skeletonModel.setEnableShapes(true);
     _simulationEngine.addRagdoll(&_skeletonModel);
 }
 
