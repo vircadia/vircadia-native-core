@@ -1877,6 +1877,49 @@ QJsonDocument JSONWriter::getDocument() const {
     return QJsonDocument(top);
 }
 
+JSONReader::JSONReader(const QJsonDocument& document) {
+    QJsonObject top = document.object();
+    QJsonArray types = top.value("types").toArray();
+    for (int i = types.size() - 1; i >= 0; i--) {
+        QJsonObject type = types.at(i).toObject();
+        QString name = type.value("name").toString();
+        QString category = type.value("category").toString();
+        if (category == "ENUM") {
+        
+        } else if (category == "STREAMABLE") {
+        
+        } else if (category == "LIST") {
+        
+        } else if (category == "SET") {
+        
+        } else if (category == "MAP") {
+        
+        }
+    }
+    
+    QJsonArray classes = top.value("classes").toArray();
+    for (int i = classes.size() - 1; i >= 0; i--) {
+        QJsonObject clazz = classes.at(i).toObject();
+        QString name = clazz.value("name").toString();
+        QJsonArray properties = clazz.value("properties").toArray();
+        foreach (const QJsonValue& property, properties) {
+            QJsonObject object = property.toObject();
+            object.value("type");
+            object.value("name");
+        }
+    }
+    
+    QJsonArray objects = top.value("objects").toArray();
+    for (int i = objects.size() - 1; i >= 0; i--) {
+        QJsonObject object = objects.at(i).toObject();
+        int id = object.value("id").toInt();
+        int originID = object.value("originID").toInt();
+        QJsonObject data = object.value("data").toObject();
+        
+    }
+    
+}
+
 ObjectStreamer::ObjectStreamer(const QMetaObject* metaObject) :
     _metaObject(metaObject) {
 }

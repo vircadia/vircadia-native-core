@@ -866,14 +866,16 @@ template<class K, class V> inline QJsonValue JSONWriter::getData(const QHash<K, 
 class JSONReader {
 public:
     
-    TypeStreamerPointer getTypeStreamer(const QByteArray& name) const { return _typeStreamers.value(name); }
-    ObjectStreamerPointer getObjectStreamer(const QByteArray& name) const { return _objectStreamers.value(name); }
+    JSONReader(const QJsonDocument& document);
+    
+    TypeStreamerPointer getTypeStreamer(const QString& name) const { return _typeStreamers.value(name); }
+    ObjectStreamerPointer getObjectStreamer(const QString& name) const { return _objectStreamers.value(name); }
     SharedObjectPointer getSharedObject(int id) const { return _sharedObjects.value(id); }
 
 private:
     
-    QHash<QByteArray, TypeStreamerPointer> _typeStreamers;
-    QHash<QByteArray, ObjectStreamerPointer> _objectStreamers;
+    QHash<QString, TypeStreamerPointer> _typeStreamers;
+    QHash<QString, ObjectStreamerPointer> _objectStreamers;
     QHash<int, SharedObjectPointer> _sharedObjects;
 };
 
