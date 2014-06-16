@@ -449,6 +449,7 @@ private slots:
 
 private:
     
+    friend class JSONReader;
     friend class JSONWriter;
     
     ObjectStreamerPointer readGenericObjectStreamer(const QByteArray& name);
@@ -477,7 +478,7 @@ private:
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
-    
+         
     static const QHash<const QMetaObject*, const ObjectStreamer*>& getObjectStreamers();
     static QHash<const QMetaObject*, const ObjectStreamer*> createObjectStreamers();
     
@@ -793,8 +794,9 @@ public:
     QJsonValue getData(const QVariant& value);
     QJsonValue getData(const SharedObjectPointer& value);
     QJsonValue getData(const QObject* value);
+    QJsonValue getData(const GenericValue& value);
     
-    template<class T> QJsonValue getData(const T& value);
+    template<class T> QJsonValue getData(const T& value) { return QJsonValue(); }
     
     template<class T> QJsonValue getData(const QList<T>& list);
     template<class T> QJsonValue getData(const QVector<T>& list);
@@ -822,10 +824,6 @@ private:
     QSet<QByteArray> _typeStreamerNames;
     QJsonArray _typeStreamers;
 };
-
-template<class T> inline QJsonValue JSONWriter::getData(const T& value) {
-    return QJsonValue();
-}
 
 template<class T> inline QJsonValue JSONWriter::getData(const QList<T>& list) {
     QJsonArray array;
@@ -866,19 +864,88 @@ template<class K, class V> inline QJsonValue JSONWriter::getData(const QHash<K, 
 class JSONReader {
 public:
     
-    JSONReader(const QJsonDocument& document);
+    JSONReader(const QJsonDocument& document, Bitstream::GenericsMode genericsMode = Bitstream::NO_GENERICS);
     
+    void putData(const QJsonValue& data, bool& value);
+    void putData(const QJsonValue& data, int& value);
+    void putData(const QJsonValue& data, uint& value);
+    void putData(const QJsonValue& data, float& value);
+    void putData(const QJsonValue& data, QByteArray& value);
+    void putData(const QJsonValue& data, QColor& value);
+    void putData(const QJsonValue& data, QScriptValue& value);
+    void putData(const QJsonValue& data, QString& value);
+    void putData(const QJsonValue& data, QUrl& value);
+    void putData(const QJsonValue& data, QDateTime& value);
+    void putData(const QJsonValue& data, QRegExp& value);
+    void putData(const QJsonValue& data, glm::vec3& value);
+    void putData(const QJsonValue& data, glm::quat& value);
+    void putData(const QJsonValue& data, const QMetaObject*& value);
+    void putData(const QJsonValue& data, QVariant& value);
+    void putData(const QJsonValue& data, SharedObjectPointer& value);
+    void putData(const QJsonValue& data, QObject*& value);
+    
+    template<class T> void putData(const QJsonValue& data, T& value) { value = T(); }
+    
+    template<class T> void putData(const QJsonValue& data, QList<T>& list);
+    template<class T> void putData(const QJsonValue& data, QVector<T>& list);
+    template<class T> void putData(const QJsonValue& data, QSet<T>& set);
+    template<class K, class V> void putData(const QJsonValue& data, QHash<K, V>& hash);
+    
+    template<class T> JSONReader& operator>>(T& value) { putData(*_contentsIterator++, value); return *this; }
+
     TypeStreamerPointer getTypeStreamer(const QString& name) const { return _typeStreamers.value(name); }
     ObjectStreamerPointer getObjectStreamer(const QString& name) const { return _objectStreamers.value(name); }
     SharedObjectPointer getSharedObject(int id) const { return _sharedObjects.value(id); }
 
 private:
     
+    QJsonArray _contents;
+    QJsonArray::const_iterator _contentsIterator;
+    
     QHash<QString, TypeStreamerPointer> _typeStreamers;
     QHash<QString, ObjectStreamerPointer> _objectStreamers;
     QHash<int, SharedObjectPointer> _sharedObjects;
 };
 
+template<class T> inline void JSONReader::putData(const QJsonValue& data, QList<T>& list) {
+    list.clear();
+    foreach (const QJsonValue& element, data.toArray()) {
+        T value;
+        putData(element, value);
+        list.append(value);
+    }
+}
+
+template<class T> inline void JSONReader::putData(const QJsonValue& data, QVector<T>& list) {
+    list.clear();
+    foreach (const QJsonValue& element, data.toArray()) {
+        T value;
+        putData(element, value);
+        list.append(value);
+    }
+}
+
+template<class T> inline void JSONReader::putData(const QJsonValue& data, QSet<T>& set) {
+    set.clear();
+    foreach (const QJsonValue& element, data.toArray()) {
+        T value;
+        putData(element, value);
+        set.insert(value);
+    }
+}
+
+template<class K, class V> inline void JSONReader::putData(const QJsonValue& data, QHash<K, V>& hash) {
+    hash.clear();
+    foreach (const QJsonValue& element, data.toArray()) {
+        QJsonArray pair = element.toArray();
+        K key;
+        putData(pair.at(0), key);
+        V value;
+        putData(pair.at(1), value);
+        hash.insert(key, value);
+    }
+}
+    
 typedef QPair<TypeStreamerPointer, QMetaProperty> StreamerPropertyPair;
 
 /// Contains the information required to stream an object.
@@ -895,6 +962,8 @@ public:
     virtual void writeMetadata(Bitstream& out, bool full) const = 0;
     virtual QJsonObject getJSONMetadata(JSONWriter& writer) const = 0;
     virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const = 0;
+    virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const = 0;
+    
     virtual void write(Bitstream& out, const QObject* object) const = 0;
     virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const = 0;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const = 0;
@@ -919,6 +988,7 @@ public:
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonObject getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const;
+    virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const;
     virtual void write(Bitstream& out, const QObject* object) const;
     virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
@@ -941,6 +1011,7 @@ public:
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonObject getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const;
+    virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const;
     virtual void write(Bitstream& out, const QObject* object) const;
     virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
@@ -1035,6 +1106,7 @@ public:
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
     virtual QJsonValue getJSONVariantData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     
     virtual bool equal(const QVariant& first, const QVariant& second) const;
     
@@ -1093,6 +1165,8 @@ public:
     
     virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const {
         return writer.getData(value.value<T>()); }
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+        T rawValue; reader.putData(data, rawValue); value = QVariant::fromValue(rawValue); }
     virtual bool equal(const QVariant& first, const QVariant& second) const { return first.value<T>() == second.value<T>(); }
     virtual void write(Bitstream& out, const QVariant& value) const { out << value.value<T>(); }
     virtual QVariant read(Bitstream& in) const { T value; in >> value; return QVariant::fromValue(value); }
@@ -1117,6 +1191,7 @@ public:
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     virtual Category getCategory() const;
     virtual int getBits() const;
     virtual QMetaEnum getMetaEnum() const;
@@ -1144,6 +1219,7 @@ public:
 
     MappedEnumTypeStreamer(const TypeStreamer* baseStreamer, int bits, const QHash<int, int>& mappings);
     
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
     
@@ -1180,6 +1256,7 @@ public:
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
@@ -1212,6 +1289,7 @@ public:
 
     MappedStreamableTypeStreamer(const TypeStreamer* baseStreamer, const QVector<StreamerIndexPair>& fields);
     
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
     
@@ -1230,6 +1308,7 @@ public:
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
@@ -1284,6 +1363,7 @@ public:
     
     MappedListTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer);
     
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
     
@@ -1302,6 +1382,7 @@ public:
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
@@ -1366,6 +1447,7 @@ public:
     MappedMapTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& keyStreamer,
         const TypeStreamerPointer& valueStreamer);
     
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
     
@@ -1386,6 +1468,7 @@ public:
     virtual void writeMetadata(Bitstream& out, bool full) const;
     virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     virtual void write(Bitstream& out, const QVariant& value) const;
     virtual QVariant read(Bitstream& in) const;
     virtual Category getCategory() const;
@@ -1421,6 +1504,7 @@ public:
     template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
     template<> void Bitstream::readRawDelta(X& value, const X& reference); \
     template<> QJsonValue JSONWriter::getData(const X& value); \
+    template<> void JSONReader::putData(const QJsonValue& data, X& value); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type;
@@ -1431,6 +1515,7 @@ public:
     template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
     template<> void Bitstream::readRawDelta(X& value, const X& reference); \
     template<> QJsonValue JSONWriter::getData(const X& value); \
+    template<> void JSONReader::putData(const QJsonValue& data, X& value); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     __attribute__((unused)) static const int* _TypePtr##X = &X::Type;
@@ -1442,6 +1527,7 @@ public:
     template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
     template<> void Bitstream::readRawDelta(X& value, const X& reference); \
     template<> QJsonValue JSONWriter::getData(const X& value); \
+    template<> void JSONReader::putData(const QJsonValue& data, X& value); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type; \
@@ -1453,7 +1539,8 @@ public:
     Bitstream& operator>>(Bitstream& in, S::N& obj); \
     template<> inline void Bitstream::writeRawDelta(const S::N& value, const S::N& reference) { *this << value; } \
     template<> inline void Bitstream::readRawDelta(S::N& value, const S::N& reference) { *this >> value; } \
-    template<> inline QJsonValue JSONWriter::getData(const S::N& value) { return (int)value; }
+    template<> inline QJsonValue JSONWriter::getData(const S::N& value) { return (int)value; } \
+    template<> inline void JSONReader::putData(const QJsonValue& data, S::N& value) { value = (S::N)data.toInt(); }
 
 #define IMPLEMENT_ENUM_METATYPE(S, N) \
     static int S##N##MetaTypeId = registerEnumMetaType<S::N>(&S::staticMetaObject, #N); \

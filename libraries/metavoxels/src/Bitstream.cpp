@@ -1825,6 +1825,10 @@ QJsonValue JSONWriter::getData(const QObject* object) {
     return streamer->getJSONData(*this, object);
 }
 
+QJsonValue JSONWriter::getData(const GenericValue& value) {
+    return value.getStreamer()->getJSONData(*this, value.getValue());
+}
+
 void JSONWriter::addTypeStreamer(const TypeStreamer* streamer) {
     if (!_typeStreamerNames.contains(streamer->getName())) {
         _typeStreamerNames.insert(streamer->getName());
@@ -1877,7 +1881,7 @@ QJsonDocument JSONWriter::getDocument() const {
     return QJsonDocument(top);
 }
 
-JSONReader::JSONReader(const QJsonDocument& document) {
+JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode genericsMode) {
     QJsonObject top = document.object();
     QJsonArray types = top.value("types").toArray();
     for (int i = types.size() - 1; i >= 0; i--) {
@@ -1918,6 +1922,155 @@ JSONReader::JSONReader(const QJsonDocument& document) {
         
     }
     
+    _contents = top.value("contents").toArray();
+    _contentsIterator = _contents.constBegin();
+}
+
+void JSONReader::putData(const QJsonValue& data, bool& value) {
+    value = data.toBool();
+}
+
+void JSONReader::putData(const QJsonValue& data, int& value) {
+    value = data.toInt();
+}
+
+void JSONReader::putData(const QJsonValue& data, uint& value) {
+    value = data.toInt();
+}
+
+void JSONReader::putData(const QJsonValue& data, float& value) {
+    value = data.toDouble();
+}
+
+void JSONReader::putData(const QJsonValue& data, QByteArray& value) {
+    value = QByteArray::fromPercentEncoding(data.toString().toLatin1());
+}
+
+void JSONReader::putData(const QJsonValue& data, QColor& value) {
+    value.setNamedColor(data.toString());
+}
+
+void JSONReader::putData(const QJsonValue& data, QScriptValue& value) {
+    QJsonObject object = data.toObject();
+    QString type = object.value("type").toString();
+    if (type == "UNDEFINED") {
+        value = QScriptValue(QScriptValue::UndefinedValue);
+        
+    } else if (type == "NULL") {
+        value = QScriptValue(QScriptValue::NullValue);
+    
+    } else if (type == "BOOL") {
+        value = QScriptValue(object.value("value").toBool());
+    
+    } else if (type == "NUMBER") {
+        value = QScriptValue(object.value("value").toDouble());
+    
+    } else if (type == "STRING") {
+        value = QScriptValue(object.value("value").toString());
+    
+    } else if (type == "VARIANT") {
+        QVariant variant;
+        putData(object.value("value"), variant);
+        value = ScriptCache::getInstance()->getEngine()->newVariant(variant);
+        
+    } else if (type == "QOBJECT") {
+        QObject* qObject;
+        putData(object.value("value"), qObject);
+        value = ScriptCache::getInstance()->getEngine()->newQObject(qObject, QScriptEngine::ScriptOwnership);
+    
+    } else if (type == "QMETAOBJECT") {
+        const QMetaObject* metaObject;
+        putData(object.value("value"), metaObject);
+        value = ScriptCache::getInstance()->getEngine()->newQMetaObject(metaObject);
+    
+    } else if (type == "DATE") {
+        QDateTime dateTime;
+        putData(object.value("value"), dateTime);
+        value = ScriptCache::getInstance()->getEngine()->newDate(dateTime);
+    
+    } else if (type == "REGEXP") {
+        QRegExp regExp;
+        putData(object.value("value"), regExp);
+        value = ScriptCache::getInstance()->getEngine()->newRegExp(regExp);
+    
+    } else if (type == "ARRAY") {
+        QJsonArray array = object.value("value").toArray();
+        value = ScriptCache::getInstance()->getEngine()->newArray(array.size());
+        for (int i = 0; i < array.size(); i++) {
+            QScriptValue element;
+            putData(array.at(i), element);
+            value.setProperty(i, element);
+        }
+    } else if (type == "OBJECT") {
+        QJsonObject jsonObject = object.value("value").toObject();
+        value = ScriptCache::getInstance()->getEngine()->newObject();
+        for (QJsonObject::const_iterator it = jsonObject.constBegin(); it != jsonObject.constEnd(); it++) {
+            QScriptValue element;
+            putData(it.value(), element);
+            value.setProperty(it.key(), element); 
+        }
+    } else {
+        value = QScriptValue();
+    }
+}
+
+void JSONReader::putData(const QJsonValue& data, QString& value) {
+    value = data.toString();
+}
+
+void JSONReader::putData(const QJsonValue& data, QUrl& value) {
+    value = data.toString();
+}
+
+void JSONReader::putData(const QJsonValue& data, QDateTime& value) {
+    value.setMSecsSinceEpoch((qint64)data.toDouble());
+}
+
+void JSONReader::putData(const QJsonValue& data, QRegExp& value) {
+    QJsonObject object = data.toObject();
+    value = QRegExp(object.value("pattern").toString(), (Qt::CaseSensitivity)object.value("caseSensitivity").toInt(),
+        (QRegExp::PatternSyntax)object.value("patternSyntax").toInt());
+    value.setMinimal(object.value("minimal").toBool());
+}
+
+void JSONReader::putData(const QJsonValue& data, glm::vec3& value) {
+    QJsonArray array = data.toArray();
+    value = glm::vec3(array.at(0).toDouble(), array.at(1).toDouble(), array.at(2).toDouble());
+}
+
+void JSONReader::putData(const QJsonValue& data, glm::quat& value) {
+    QJsonArray array = data.toArray();
+    value = glm::quat(array.at(0).toDouble(), array.at(1).toDouble(), array.at(2).toDouble(), array.at(3).toDouble());
+}
+
+void JSONReader::putData(const QJsonValue& data, const QMetaObject*& value) {
+    ObjectStreamerPointer streamer = _objectStreamers.value(data.toString());
+    value = streamer ? streamer->getMetaObject() : NULL;
+}
+
+void JSONReader::putData(const QJsonValue& data, QVariant& value) {
+    QJsonObject object = data.toObject();
+    QString type = object.value("type").toString();
+    const TypeStreamer* streamer = _typeStreamers.value(type).data();
+    if (!streamer) {
+        streamer = Bitstream::getTypeStreamers().value(QMetaType::type(type.toLatin1()));
+        if (!streamer) {
+            qWarning() << "Unknown type:" << type;
+            value = QVariant();
+            return;
+        }
+    }
+    streamer->putJSONData(*this, object.value("value"), value);
+}
+
+void JSONReader::putData(const QJsonValue& data, SharedObjectPointer& value) {
+    value = _sharedObjects.value(data.toInt()); 
+}
+
+void JSONReader::putData(const QJsonValue& data, QObject*& value) {
+    QJsonObject object = data.toObject();
+    ObjectStreamerPointer streamer = _objectStreamers.value(object.value("class").toString());
+    value = streamer ? streamer->putJSONData(*this, object) : NULL;
 }
 
 ObjectStreamer::ObjectStreamer(const QMetaObject* metaObject) :
@@ -1987,6 +2140,23 @@ QJsonObject MappedObjectStreamer::getJSONData(JSONWriter& writer, const QObject*
     }
     data.insert("properties", properties);
     return data;
+}
+
+QObject* MappedObjectStreamer::putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const {
+    if (!_metaObject) {
+        return NULL;
+    }
+    QObject* object = _metaObject->newInstance();
+    QJsonArray properties = jsonObject.value("properties").toArray();
+    for (int i = 0; i < _properties.size(); i++) {
+        const StreamerPropertyPair& property = _properties.at(i);
+        if (property.second.isValid()) {
+            QVariant value;
+            property.first->putJSONData(reader, properties.at(i), value);
+            property.second.write(object, value);
+        }
+    }
+    return object;
 }
 
 void MappedObjectStreamer::write(Bitstream& out, const QObject* object) const {
@@ -2091,6 +2261,19 @@ QJsonObject GenericObjectStreamer::getJSONData(JSONWriter& writer, const QObject
     }
     data.insert("properties", properties);
     return data;
+}
+
+QObject* GenericObjectStreamer::putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const {
+    GenericSharedObject* object = new GenericSharedObject(_weakSelf);
+    QJsonArray properties = jsonObject.value("properties").toArray();
+    QVariantList values;
+    for (int i = 0; i < _properties.size(); i++) {    
+        QVariant value;
+        _properties.at(i).first->putJSONData(reader, properties.at(i), value);
+        values.append(value);
+    }
+    object->setValues(values);
+    return object;
 }
 
 void GenericObjectStreamer::write(Bitstream& out, const QObject* object) const {
@@ -2249,6 +2432,10 @@ QJsonValue TypeStreamer::getJSONVariantData(JSONWriter& writer, const QVariant& 
     data.insert("type", QString(getName()));
     data.insert("value", getJSONData(writer, value));
     return data;   
+}
+
+void TypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = QVariant();
 }
 
 bool TypeStreamer::equal(const QVariant& first, const QVariant& second) const {
@@ -2440,6 +2627,10 @@ QJsonValue EnumTypeStreamer::getJSONData(JSONWriter& writer, const QVariant& val
     return value.toInt();
 }
 
+void EnumTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = data.toInt();
+}
+
 TypeStreamer::Category EnumTypeStreamer::getCategory() const {
     return ENUM_CATEGORY;
 }
@@ -2532,6 +2723,11 @@ MappedEnumTypeStreamer::MappedEnumTypeStreamer(const TypeStreamer* baseStreamer,
     _mappings(mappings) {
 }
 
+void MappedEnumTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = QVariant(_baseStreamer->getType(), 0);
+    _baseStreamer->setEnumValue(value, data.toInt(), _mappings);
+}
+
 QVariant MappedEnumTypeStreamer::read(Bitstream& in) const {
     QVariant object = QVariant(_baseStreamer->getType(), 0);
     int value = 0;
@@ -2608,6 +2804,10 @@ QJsonValue GenericEnumTypeStreamer::getJSONData(JSONWriter& writer, const QVaria
     return value.toInt();
 }
 
+void GenericEnumTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = data.toInt();
+}
+
 void GenericEnumTypeStreamer::write(Bitstream& out, const QVariant& value) const {
     int intValue = value.toInt();
     out.write(&intValue, _bits);
@@ -2627,6 +2827,19 @@ MappedStreamableTypeStreamer::MappedStreamableTypeStreamer(const TypeStreamer* b
         const QVector<StreamerIndexPair>& fields) :
     _baseStreamer(baseStreamer),
     _fields(fields) {
+}
+
+void MappedStreamableTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = QVariant(_baseStreamer->getType(), 0);
+    QJsonArray array = data.toArray();
+    for (int i = 0; i < _fields.size(); i++) {
+        const StreamerIndexPair& pair = _fields.at(i);
+        if (pair.second != -1) {
+            QVariant element;
+            pair.first->putJSONData(reader, array.at(i), element);
+            _baseStreamer->setField(value, pair.second, element);    
+        }
+    }
 }
 
 QVariant MappedStreamableTypeStreamer::read(Bitstream& in) const {
@@ -2709,6 +2922,17 @@ QJsonValue GenericStreamableTypeStreamer::getJSONData(JSONWriter& writer, const 
     return array;
 }
 
+void GenericStreamableTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    QJsonArray array = data.toArray();
+    QVariantList values;
+    for (int i = 0; i < _fields.size(); i++) {
+        QVariant element;
+        _fields.at(i).first->putJSONData(reader, array.at(i), element);
+        values.append(element);
+    }
+    value = values;
+}
+
 void GenericStreamableTypeStreamer::write(Bitstream& out, const QVariant& value) const {
     QVariantList values = value.toList();
     for (int i = 0; i < _fields.size(); i++) {
@@ -2731,6 +2955,15 @@ TypeStreamer::Category GenericStreamableTypeStreamer::getCategory() const {
 MappedListTypeStreamer::MappedListTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer) :
     _baseStreamer(baseStreamer),
     _valueStreamer(valueStreamer) {
+}
+
+void MappedListTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = QVariant(_baseStreamer->getType(), 0);
+    foreach (const QJsonValue& element, data.toArray()) {
+        QVariant elementValue;
+        _valueStreamer->putJSONData(reader, element, elementValue);
+        _baseStreamer->insert(value, elementValue);
+    }
 }
 
 QVariant MappedListTypeStreamer::read(Bitstream& in) const {
@@ -2789,6 +3022,17 @@ QJsonValue GenericListTypeStreamer::getJSONData(JSONWriter& writer, const QVaria
         array.append(_valueStreamer->getJSONData(writer, element));
     }
     return array;
+}
+
+void GenericListTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    QJsonArray array = data.toArray();
+    QVariantList values;
+    foreach (const QJsonValue& element, array) {
+        QVariant elementValue;
+        _valueStreamer->putJSONData(reader, element, elementValue);
+        values.append(elementValue);
+    }
+    value = values;
 }
 
 void GenericListTypeStreamer::write(Bitstream& out, const QVariant& value) const {
@@ -2851,6 +3095,18 @@ MappedMapTypeStreamer::MappedMapTypeStreamer(const TypeStreamer* baseStreamer, c
     _baseStreamer(baseStreamer),
     _keyStreamer(keyStreamer),
     _valueStreamer(valueStreamer) {
+}
+
+void MappedMapTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = QVariant(_baseStreamer->getType(), 0);
+    foreach (const QJsonValue& element, data.toArray()) {
+        QJsonArray pair = element.toArray();
+        QVariant elementKey;
+        _keyStreamer->putJSONData(reader, pair.at(0), elementKey);
+        QVariant elementValue;
+        _valueStreamer->putJSONData(reader, pair.at(1), elementValue);
+        _baseStreamer->insert(value, elementKey, elementValue);
+    }
 }
 
 QVariant MappedMapTypeStreamer::read(Bitstream& in) const {
@@ -2924,6 +3180,20 @@ QJsonValue GenericMapTypeStreamer::getJSONData(JSONWriter& writer, const QVarian
         array.append(pairArray);
     }
     return array;
+}
+
+void GenericMapTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    QJsonArray array = data.toArray();
+    QVariantPairList values;
+    foreach (const QJsonValue& element, array) {
+        QJsonArray pair = element.toArray();
+        QVariant elementKey;
+        _keyStreamer->putJSONData(reader, pair.at(0), elementKey);
+        QVariant elementValue;
+        _valueStreamer->putJSONData(reader, pair.at(1), elementValue);
+        values.append(QVariantPair(elementKey, elementValue));
+    }
+    value = QVariant::fromValue(values);
 }
 
 void GenericMapTypeStreamer::write(Bitstream& out, const QVariant& value) const {

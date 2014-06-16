@@ -230,6 +230,19 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         out << "    return array;\n";
         out << "}\n";
         
+        out << "template<> void JSONReader::putData(const QJsonValue& data, " << name << "& value) {\n";
+        out << "    QJsonArray array = data.toArray();\n";
+        out << "    QJsonArray::const_iterator it = array.constBegin();\n";
+        /* foreach (const QString& base, str.clazz.bases) {
+            out << "    foreach (const QJsonValue& element, getData(static_cast<const " << base << "&>(value)).toArray()) {\n";
+            out << "        array.append(element);\n";
+            out << "    }\n";
+        } */
+        foreach (const Field& field, str.fields) {
+            out << "    putData(*it++, value." << field.name << ");\n";
+        }
+        out << "}\n";
+        
         out << "bool operator==(const " << name << "& first, const " << name << "& second) {\n";
         if (str.clazz.bases.isEmpty() && str.fields.isEmpty()) {
             out << "    return true";   
