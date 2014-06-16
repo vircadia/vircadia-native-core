@@ -185,6 +185,17 @@ void SixenseManager::update(float deltaTime) {
 #endif  // HAVE_SIXENSE
 }
 
+//Constants for getCursorPixelRangeMultiplier()
+const float MIN_PIXEL_RANGE_MULT = 0.4f;
+const float MAX_PIXEL_RANGE_MULT = 2.0f;
+const float RANGE_MULT = (MAX_PIXEL_RANGE_MULT - MIN_PIXEL_RANGE_MULT) * 0.01;
+
+//Returns a multiplier to be applied to the cursor range for the controllers
+float SixenseManager::getCursorPixelRangeMult() const {
+    //scales (0,100) to (MINIMUM_PIXEL_RANGE_MULT, MAXIMUM_PIXEL_RANGE_MULT)
+    return Menu::getInstance()->getSixenseReticleMoveSpeed() * RANGE_MULT + MIN_PIXEL_RANGE_MULT;
+}
+
 #ifdef HAVE_SIXENSE
 
 // the calibration sequence is:
@@ -339,7 +350,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     Qt::MouseButton bumperButton;
     Qt::MouseButton triggerButton;
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseInvertInputButtons)) {
+    if (Menu::getInstance()->getInvertSixenseButtons()) {
         bumperButton = Qt::LeftButton;
         triggerButton = Qt::RightButton;
     } else {
@@ -347,14 +358,15 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         triggerButton = Qt::LeftButton;
     }
 
-    // Get the angles, scaled between 0-1
-    float xAngle = (atan2(direction.z, direction.x) + M_PI_2) + 0.5f;
-    float yAngle = 1.0f - ((atan2(direction.z, direction.y) + M_PI_2) + 0.5f);
+    // Get the angles, scaled between (-0.5,0.5)
+    float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+    float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
-    float cursorRange = widget->width();
+    // Get the pixel range over which the xAngle and yAngle are scaled
+    float cursorRange = widget->width() * getCursorPixelRangeMult();
 
-    pos.setX(cursorRange * xAngle);
-    pos.setY(cursorRange * yAngle);
+    pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
+    pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
 
     //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
     //we should unpress them.
