@@ -27,7 +27,7 @@ class OculusManager {
 public:
     static void connect();
     
-    static bool isConnected() { return _isConnected; }
+    static bool isConnected();
     
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
     

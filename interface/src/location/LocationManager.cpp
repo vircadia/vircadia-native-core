@@ -76,6 +76,7 @@ void LocationManager::goTo(QString destination) {
     // go to coordinate destination or to Username
     if (!goToDestination(destination)) {
         destination = QString(QUrl::toPercentEncoding(destination));
+
         JSONCallbackParameters callbackParams;
         callbackParams.jsonCallbackReceiver = this;
         callbackParams.jsonCallbackMethod = "goToAddressFromResponse";
