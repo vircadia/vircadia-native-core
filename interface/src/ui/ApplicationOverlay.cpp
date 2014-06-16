@@ -151,6 +151,28 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direc
     direction = glm::normalize(rot * glm::vec3(x, y, z));
 }
 
+// Calculates the click location on the screen by taking into account any
+// opened magnification windows.
+void ApplicationOverlay::getClickLocation(int &x, int &y) const {
+    int dx;
+    int dy;
+    
+    //Loop through all magnification windows
+    for (int i = 0; i < 3; i++) {
+        if (_magActive[i]) {
+            dx = x - _magX[i];
+            dy = y - _magY[i];
+            //Check to see if they clicked inside a mag window
+            if (abs(dx) <= MAGNIFY_WIDTH * MAGNIFY_MULT && abs(dy) <= MAGNIFY_HEIGHT * MAGNIFY_MULT) {
+                //Move the click to the actual UI location by inverting the magnification
+                x = dx / MAGNIFY_MULT + _magX[i];
+                y = dy / MAGNIFY_MULT + _magY[i];
+                return;
+            }
+        }
+    }
+}
+
 // Draws the FBO texture for Oculus rift. TODO: Draw a curved texture instead of plane.
 void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 

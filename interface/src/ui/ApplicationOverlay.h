@@ -24,13 +24,14 @@ class ApplicationOverlay {
 public:
 
     ApplicationOverlay();
-
     ~ApplicationOverlay();
 
     void renderOverlay(bool renderToTexture = false);
     void displayOverlayTexture(Camera& whichCamera);
     void displayOverlayTextureOculus(Camera& whichCamera);
     void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
+    void getClickLocation(int &x, int &y) const;
+
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();
   
