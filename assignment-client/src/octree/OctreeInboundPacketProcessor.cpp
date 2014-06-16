@@ -25,7 +25,8 @@ OctreeInboundPacketProcessor::OctreeInboundPacketProcessor(OctreeServer* myServe
     _totalProcessTime(0),
     _totalLockWaitTime(0),
     _totalElementsInPacket(0),
-    _totalPackets(0)
+    _totalPackets(0),
+    _lastNackTime(usecTimestampNow())
 {
 }
 
@@ -35,9 +36,51 @@ void OctreeInboundPacketProcessor::resetStats() {
     _totalLockWaitTime = 0;
     _totalElementsInPacket = 0;
     _totalPackets = 0;
+    _lastNackTime = usecTimestampNow();
 
     _singleSenderStats.clear();
 }
+
+bool OctreeInboundPacketProcessor::process() {
+
+    const quint64 TOO_LONG_SINCE_LAST_NACK = 1 * USECS_PER_SECOND;
+    quint64 now = usecTimestampNow();
+
+    if (_packets.size() == 0) {
+        // calculate time until next sendNackPackets()
+        quint64 nextNackTime = _lastNackTime + TOO_LONG_SINCE_LAST_NACK;
+        quint64 now = usecTimestampNow();
+        if (now >= nextNackTime) {
+            // send nacks if we're already past time to send it
+            _lastNackTime = now;
+            sendNackPackets();
+        }
+        else {
+            // otherwise, wait until the next nack time or until a packet arrives
+            quint64 waitTimeMsecs = (nextNackTime - now) / USECS_PER_MSEC + 1;
+            _waitingOnPacketsMutex.lock();
+            _hasPackets.wait(&_waitingOnPacketsMutex, waitTimeMsecs);
+            _waitingOnPacketsMutex.unlock();
+        }
+    }
+    while (_packets.size() > 0) {
+        lock(); // lock to make sure nothing changes on us
+        NetworkPacket& packet = _packets.front(); // get the oldest packet
+        NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us
+        _packets.erase(_packets.begin()); // remove the oldest packet
+        _nodePacketCounts[temporary.getNode()->getUUID()]--;
+        unlock(); // let others add to the packets
+        processPacket(temporary.getNode(), temporary.getByteArray()); // process our temporary copy
+
+        // if it's time to send nacks, send them.
+        if (usecTimestampNow() - _lastNackTime >= TOO_LONG_SINCE_LAST_NACK) {
+            _lastNackTime = now;
+            sendNackPackets();
+        }
+    }
+    return isStillRunning();  // keep running till they terminate us
+}
+
 
 void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
 
@@ -155,15 +198,21 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
     int packetsSent = 0;
 
-    // if there are packets from _node that are waiting to be processed,
-    // don't send a NACK since the missing packets may be among those waiting packets.
-
-    NodeToSenderStatsMap::const_iterator begin = _singleSenderStats.begin(), end = _singleSenderStats.end();
-    for (NodeToSenderStatsMap::const_iterator i = begin; i != end; i++) {
+    NodeToSenderStatsMapIterator i = _singleSenderStats.begin();
+    while (i != _singleSenderStats.end()) {
 
         QUuid nodeUUID = i.key();
         SingleSenderStats nodeStats = i.value();
 
+        // check if this node is still alive.  Remove its stats if it's dead.
+        if (!isAlive(nodeUUID)) {
+            printf("\t\t removing node %s\n", nodeUUID.toString().toLatin1().data());
+            i = _singleSenderStats.erase(i);
+            continue;
+        }
+
+        // if there are packets from _node that are waiting to be processed,
+        // don't send a NACK since the missing packets may be among those waiting packets.
         if (hasPacketsToProcessFrom(nodeUUID)) {
             continue;
         }
@@ -214,6 +263,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
             packetsSent++;
         }
+        i++;
     }
     return packetsSent;
 }

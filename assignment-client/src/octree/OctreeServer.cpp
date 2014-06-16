@@ -1060,6 +1060,9 @@ void OctreeServer::nodeAdded(SharedNodePointer node) {
 void OctreeServer::nodeKilled(SharedNodePointer node) {
     quint64 start  = usecTimestampNow();
 
+    // calling this here since nodeKilled slot in ReceivedPacketProcessor can't be triggered by signals yet!!
+    _octreeInboundPacketProcessor->nodeKilled(node);
+
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
