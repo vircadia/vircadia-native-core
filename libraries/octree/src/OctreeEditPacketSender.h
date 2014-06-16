@@ -12,9 +12,24 @@
 #ifndef hifi_OctreeEditPacketSender_h
 #define hifi_OctreeEditPacketSender_h
 
+#include <qqueue.h>
 #include <PacketSender.h>
 #include <PacketHeaders.h>
 #include "JurisdictionMap.h"
+#include "SentPacketHistory.h"
+
+class NackedPacketHistory {
+public:
+    NackedPacketHistory() : _sentPacketHistory(1000), _nackedSequenceNumbers()  { }
+public:
+    void packetSent(const QByteArray& packet);
+    bool hasNextNackedPacket() const;
+    const QByteArray* getNextNackedPacket();
+    void parseNackPacket(const QByteArray& packet);
+private:
+    SentPacketHistory _sentPacketHistory;
+    QQueue<unsigned short int> _nackedSequenceNumbers;
+};
 
 /// Used for construction of edit packets
 class EditPacketBuffer {
@@ -90,6 +105,9 @@ public:
     virtual char getMyNodeType() const = 0;
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { };
     
+public:
+    void parseNackPacket(const QByteArray& packet);
+
 protected:
     bool _shouldSend;
     void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, ssize_t length);
@@ -114,5 +132,8 @@ protected:
     
     unsigned short int _sequenceNumber;
     int _maxPacketSize;
+
+    // TODO: garbage-collect this
+    QHash<QUuid, NackedPacketHistory> _nackedPacketHistories;
 };
 #endif // hifi_OctreeEditPacketSender_h

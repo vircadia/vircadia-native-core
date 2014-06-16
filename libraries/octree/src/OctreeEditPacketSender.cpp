@@ -17,6 +17,43 @@
 #include <PacketHeaders.h>
 #include "OctreeEditPacketSender.h"
 
+void NackedPacketHistory::packetSent(const QByteArray& packet) {
+    // extract sequence number for the sent packet history
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    const char* dataAt = reinterpret_cast<const char*>(packet.data());
+    unsigned short int sequence = (*((unsigned short int*)(dataAt + numBytesPacketHeader)));
+
+    // add packet to history
+    _sentPacketHistory.packetSent(sequence, packet);
+}
+
+bool NackedPacketHistory::hasNextNackedPacket() const {
+    return !_nackedSequenceNumbers.isEmpty();
+}
+
+const QByteArray* NackedPacketHistory::getNextNackedPacket() {
+    if (!_nackedSequenceNumbers.isEmpty()) {
+        // could return null if packet is not in the history
+        return _sentPacketHistory.getPacket(_nackedSequenceNumbers.dequeue());
+    }
+    return NULL;
+}
+
+void NackedPacketHistory::parseNackPacket(const QByteArray& packet) {
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
+
+    // read number of sequence numbers
+    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
+    dataAt += sizeof(uint16_t);
+
+    // read sequence numbers
+    for (int i = 0; i < numSequenceNumbers; i++) {
+        unsigned short int sequenceNumber = (*(unsigned short int*)dataAt);
+        _nackedSequenceNumbers.enqueue(sequenceNumber);
+        dataAt += sizeof(unsigned short int);
+    }
+}
 
 EditPacketBuffer::EditPacketBuffer(PacketType type, unsigned char* buffer, ssize_t length, QUuid nodeUUID) :
     _nodeUUID(nodeUUID),
@@ -97,9 +134,9 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
         if (node->getType() == getMyNodeType() &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
             if (node->getActiveSocket()) {
-                queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(buffer), length));
-
-
+                QByteArray packet(reinterpret_cast<char*>(buffer), length);
+                queuePacketForSending(node, packet);
+                _nackedPacketHistories[nodeUUID].packetSent(packet);
 
                 // debugging output...
                 bool wantDebugging = false;
@@ -337,4 +374,10 @@ bool OctreeEditPacketSender::process() {
 
     // base class does most of the work.
     return PacketSender::process();
+}
+
+void OctreeEditPacketSender::parseNackPacket(const QByteArray& packet) {
+    // parse sending node from packet
+    QUuid sendingNodeUUID = uuidFromPacketHeader(packet);
+    _nackedPacketHistories[sendingNodeUUID].parseNackPacket(packet);
 }
