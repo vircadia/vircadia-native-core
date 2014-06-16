@@ -46,6 +46,8 @@ ApplicationOverlay::~ApplicationOverlay() {
 
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 
+const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
+
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
@@ -222,7 +224,6 @@ void ApplicationOverlay::renderPointers() {
     int mouseX = application->getMouseX();
     int mouseY = application->getMouseY();
 
-   
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {
         _crosshairTexture = Application::getInstance()->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/sixense-reticle.png"));
@@ -274,6 +275,7 @@ void ApplicationOverlay::renderControllerPointers() {
         float xAngle = (atan2(direction.z, direction.x) + M_PI_2) ;
         float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
+        // Get the pixel range over which the xAngle and yAngle are scaled
         float cursorRange = glWidget->width() * application->getSixenseManager()->getCursorPixelRangeMultiplier();
 
         int mouseX = glWidget->width() / 2.0f + cursorRange * xAngle;
@@ -303,7 +305,7 @@ void ApplicationOverlay::renderControllerPointers() {
 
         glBegin(GL_QUADS);
 
-        glColor3f(0.0f, 198.0f/255.0f, 244.0f/255.0f);
+        glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
 
         glTexCoord2d(0.0f, 0.0f); glVertex2i(mouseX, mouseY);
         glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + pointerWidth, mouseY);
@@ -361,7 +363,7 @@ void ApplicationOverlay::renderControllerPointersOculus() {
 
         glBegin(GL_QUADS);
 
-        glColor3f(0.0f, 198.0f / 255.0f, 244.0f / 255.0f);
+        glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
             
         glTexCoord2f(0.0f, 0.0f); glVertex3f(lX, tY, -tlZ);
         glTexCoord2f(1.0f, 0.0f); glVertex3f(rX, tY, -trZ);
