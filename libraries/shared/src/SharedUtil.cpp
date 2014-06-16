@@ -416,8 +416,9 @@ void printVoxelCode(unsigned char* voxelCode) {
 
 #ifdef _WIN32
     void usleep(int waitTime) {
+        const quint64 BUSY_LOOP_USECS = 2000;
         quint64 compTime = waitTime + usecTimestampNow();
-        quint64 compTimeSleep = compTime - 2000;
+        quint64 compTimeSleep = compTime - BUSY_LOOP_USECS;
         while (true) {
             if (usecTimestampNow() < compTimeSleep) {
                 QThread::msleep(1);
