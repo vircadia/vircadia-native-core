@@ -185,14 +185,15 @@ void SixenseManager::update(float deltaTime) {
 #endif  // HAVE_SIXENSE
 }
 
-const float MAXIMUM_PIXEL_RANGE_MULT = 2.0f;
-const float MINIMUM_PIXEL_RANGE_MULT = 0.4f;
-const float RANGE_MULT = (MAXIMUM_PIXEL_RANGE_MULT - MINIMUM_PIXEL_RANGE_MULT) * 0.01;
+//Constants for getCursorPixelRangeMultiplier()
+const float MIN_PIXEL_RANGE_MULT = 0.4f;
+const float MAX_PIXEL_RANGE_MULT = 2.0f;
+const float RANGE_MULT = (MAX_PIXEL_RANGE_MULT - MIN_PIXEL_RANGE_MULT) * 0.01;
 
 //Returns a multiplier to be applied to the cursor range for the controllers
-float SixenseManager::getCursorPixelRangeMultiplier() const {
+float SixenseManager::getCursorPixelRangeMult() const {
     //scales (0,100) to (MINIMUM_PIXEL_RANGE_MULT, MAXIMUM_PIXEL_RANGE_MULT)
-    return Menu::getInstance()->getSixenseReticleMoveSpeed() * RANGE_MULT + MINIMUM_PIXEL_RANGE_MULT;
+    return Menu::getInstance()->getSixenseReticleMoveSpeed() * RANGE_MULT + MIN_PIXEL_RANGE_MULT;
 }
 
 #ifdef HAVE_SIXENSE
@@ -362,7 +363,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
     // Get the pixel range over which the xAngle and yAngle are scaled
-    float cursorRange = widget->width() * getCursorPixelRangeMultiplier();
+    float cursorRange = widget->width() * getCursorPixelRangeMult();
 
     pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
     pos.setY(widget->height() / 2.0f + cursorRange * yAngle);

@@ -42,7 +42,7 @@ public:
     ~SixenseManager();
     
     void update(float deltaTime);
-    float getCursorPixelRangeMultiplier() const;
+    float getCursorPixelRangeMult() const;
     
 public slots:
     

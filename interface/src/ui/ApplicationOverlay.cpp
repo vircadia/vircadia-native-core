@@ -276,7 +276,7 @@ void ApplicationOverlay::renderControllerPointers() {
         float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
         // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = glWidget->width() * application->getSixenseManager()->getCursorPixelRangeMultiplier();
+        float cursorRange = glWidget->width() * application->getSixenseManager()->getCursorPixelRangeMult();
 
         int mouseX = glWidget->width() / 2.0f + cursorRange * xAngle;
         int mouseY = glWidget->height() / 2.0f + cursorRange * yAngle;
