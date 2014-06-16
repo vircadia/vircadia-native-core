@@ -74,7 +74,7 @@ bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<con
     tempCollisions.clear();
     foreach (const Shape* shapeA, shapesA) {
         foreach (const Shape* shapeB, shapesB) {
-            ShapeCollider::collideShapes(shapeA, shapeB, tempCollisions);
+            collideShapes(shapeA, shapeB, tempCollisions);
         }
     }
     if (tempCollisions.size() > 0) {
@@ -93,6 +93,44 @@ bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<con
         return true;
     }
     return false;
+}
+
+bool collideShapeWithShapes(const Shape* shapeA, const QVector<Shape*>& shapes, int startIndex, CollisionList& collisions) {
+    bool collided = false;
+    if (shapeA) {
+        int numShapes = shapes.size();
+        for (int i = startIndex; i < numShapes; ++i) {
+            const Shape* shapeB = shapes.at(i);
+            if (!shapeB) {
+                continue;
+            }
+            if (collideShapes(shapeA, shapeB, collisions)) {
+                collided = true;
+                if (collisions.isFull()) {
+                    break;
+                }
+            }
+        }
+    }
+    return collided;
+}
+
+bool collideShapesWithShapes(const QVector<Shape*>& shapesA, const QVector<Shape*>& shapesB, CollisionList& collisions) {
+    bool collided = false;
+    int numShapesA = shapesA.size();
+    for (int i = 0; i < numShapesA; ++i) {
+        Shape* shapeA = shapesA.at(i);
+        if (!shapeA) {
+            continue;
+        }
+        if (collideShapeWithShapes(shapeA, shapesB, 0, collisions)) {
+            collided = true;
+            if (collisions.isFull()) {
+                break;
+            }
+        }
+    }
+    return collided;
 }
 
 bool collideShapeWithAACube(const Shape* shapeA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
