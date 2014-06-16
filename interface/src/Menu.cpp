@@ -1002,7 +1002,9 @@ bool Menu::goToDestination(QString destination) {
 }
 
 void Menu::goTo(QString destination) {
-    LocationManager::getInstance().goTo(destination);
+    LocationManager* manager = &LocationManager::getInstance();
+    manager->goTo(destination);
+    connect(manager, &LocationManager::multipleDestinationsFound, getInstance(), &Menu::multipleDestinationsDecision);
 }
 
 void Menu::goTo() {
@@ -1091,9 +1093,9 @@ void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJson
     int userResponse = msgBox.exec();
 
     if (userResponse == QMessageBox::Ok) {
-        Application::getInstance()->getAvatar()->goToLocationFromResponse(userData);
+        Application::getInstance()->getAvatar()->goToLocationFromAddress(userData["address"].toObject());
     } else if (userResponse == QMessageBox::Open) {
-        Application::getInstance()->getAvatar()->goToLocationFromResponse(userData);
+        Application::getInstance()->getAvatar()->goToLocationFromAddress(placeData["address"].toObject());
     }
 
     LocationManager* manager = reinterpret_cast<LocationManager*>(sender());
