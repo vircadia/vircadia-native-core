@@ -145,6 +145,12 @@ void DatagramProcessor::processDatagrams() {
                     }
                     break;
                 }
+                case PacketTypeVoxelEditNack:
+                    application->_voxelEditSender.processNackPacket(incomingPacket);
+                case PacketTypeParticleEditNack:
+                    application->_particleEditSender.processNackPacket(incomingPacket);
+                case PacketTypeModelEditNack:
+                    application->_modelEditSender.processNackPacket(incomingPacket);
                 default:
                     nodeList->processNodeData(senderSockAddr, incomingPacket);
                     break;
