@@ -42,8 +42,9 @@ public:
 
     ~ListShape();
 
-    void setPosition(const glm::vec3& position);
-    glm::vec3 getPosition() const { return _position; }
+    void setCenter(const glm::vec3& center);
+//    void setPosition(const glm::vec3& position);
+//    glm::vec3 getPosition() const { return _position; }
     void setRotation(const glm::quat& rotation);
 
     const Shape* getSubShape(int index) const;

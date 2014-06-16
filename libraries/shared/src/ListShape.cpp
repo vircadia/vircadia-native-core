@@ -24,9 +24,9 @@ ListShape::~ListShape() {
     clear();
 }
 
-void ListShape::setPosition(const glm::vec3& position) {
+void ListShape::setCenter(const glm::vec3& center) {
     _subShapeTransformsAreDirty = true;
-    Shape::setCenter(position);
+    Shape::setCenter(center);
 }
 
 void ListShape::setRotation(const glm::quat& rotation) {
@@ -44,7 +44,7 @@ const Shape* ListShape::getSubShape(int index) const {
 void ListShape::updateSubTransforms() {
     if (_subShapeTransformsAreDirty) {
         for (int i = 0; i < _subShapeEntries.size(); ++i) {
-            _subShapeEntries[i].updateTransform(_position, _rotation);
+            _subShapeEntries[i].updateTransform(_center, _rotation);
         }
         _subShapeTransformsAreDirty = false;
     }

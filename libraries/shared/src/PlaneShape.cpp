@@ -18,7 +18,7 @@ PlaneShape::PlaneShape(const glm::vec4& coefficients) :
     Shape(Shape::PLANE_SHAPE) {
     
     glm::vec3 normal = glm::vec3(coefficients);
-    _position = -normal * coefficients.w;
+    _center = -normal * coefficients.w;
     
     float angle = acosf(glm::dot(normal, UNROTATED_NORMAL));
     if (angle > EPSILON) {
@@ -32,5 +32,5 @@ PlaneShape::PlaneShape(const glm::vec4& coefficients) :
 
 glm::vec4 PlaneShape::getCoefficients() const {
     glm::vec3 normal = _rotation * UNROTATED_NORMAL;
-    return glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, _position));
+    return glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, _center));
 }

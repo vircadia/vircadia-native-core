@@ -38,12 +38,12 @@ CapsuleShape::CapsuleShape(float radius, const glm::vec3& startPoint, const glm:
 
 /// \param[out] startPoint is the center of start cap
 void CapsuleShape::getStartPoint(glm::vec3& startPoint) const {
-    startPoint = _position - _rotation * glm::vec3(0.0f, _halfHeight, 0.0f);
+    startPoint = _center - _rotation * glm::vec3(0.0f, _halfHeight, 0.0f);
 }
 
 /// \param[out] endPoint is the center of the end cap
 void CapsuleShape::getEndPoint(glm::vec3& endPoint) const {
-    endPoint = _position + _rotation * glm::vec3(0.0f, _halfHeight, 0.0f);
+    endPoint = _center + _rotation * glm::vec3(0.0f, _halfHeight, 0.0f);
 }
 
 void CapsuleShape::computeNormalizedAxis(glm::vec3& axis) const {
@@ -69,7 +69,7 @@ void CapsuleShape::setRadiusAndHalfHeight(float radius, float halfHeight) {
 
 void CapsuleShape::setEndPoints(const glm::vec3& startPoint, const glm::vec3& endPoint) {
     glm::vec3 axis = endPoint - startPoint;
-    _position = 0.5f * (endPoint + startPoint);
+    _center = 0.5f * (endPoint + startPoint);
     float height = glm::length(axis);
     if (height > EPSILON) {
         _halfHeight = 0.5f * height;
