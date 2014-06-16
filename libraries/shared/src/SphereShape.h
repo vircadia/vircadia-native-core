@@ -26,6 +26,8 @@ public:
         _boundingRadius = radius;
     }
 
+    virtual ~SphereShape() {}
+
     float getRadius() const { return _boundingRadius; }
 
     void setRadius(float radius) { _boundingRadius = radius; }
