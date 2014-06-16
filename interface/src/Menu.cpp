@@ -1074,9 +1074,7 @@ bool Menu::goToURL(QString location) {
 }
 
 void Menu::goToUser(const QString& user) {
-    LocationManager* manager = &LocationManager::getInstance();
-    manager->goTo(user);
-    connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
+    LocationManager::getInstance().goTo(user);
 }
 
 /// Open a url, shortcutting any "hifi" scheme URLs to the local application.
@@ -1104,7 +1102,6 @@ void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJson
     }
 
     LocationManager* manager = reinterpret_cast<LocationManager*>(sender());
-    disconnect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
 }
 
 void Menu::muteEnvironment() {
