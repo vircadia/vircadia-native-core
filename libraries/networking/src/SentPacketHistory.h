@@ -1,6 +1,6 @@
 //
 //  SentPacketHistory.h
-//  assignement-client/src/octree
+//  libraries/networking/src
 //
 //  Created by Yixin Wang on 6/5/2014
 //
@@ -11,25 +11,24 @@
 #ifndef hifi_SentPacketHistory_h
 #define hifi_SentPacketHistory_h
 
+#include <stdint.h>
 #include <qbytearray.h>
 #include <qvector.h>
-
-#include "OctreePacketData.h"
 
 class SentPacketHistory {
 
 public:
     SentPacketHistory(int size);
 
-    void packetSent(OCTREE_PACKET_SEQUENCE sequenceNumber, const QByteArray& packet);
-    const QByteArray* getPacket(OCTREE_PACKET_SEQUENCE sequenceNumber) const;
+    void packetSent(uint16_t sequenceNumber, const QByteArray& packet);
+    const QByteArray* getPacket(uint16_t sequenceNumber) const;
 
 private:
     QVector<QByteArray> _sentPackets;    // circular buffer
     int _newestPacketAt;
     int _numExistingPackets;
 
-    OCTREE_PACKET_SEQUENCE _newestSequenceNumber;
+    uint16_t _newestSequenceNumber;
 };
 
 #endif

@@ -133,7 +133,7 @@ protected:
     unsigned short int _sequenceNumber;
     int _maxPacketSize;
 
-    // TODO: garbage-collect this
+    // TODO: garbage-collect this and _pendingEditPackets
     QHash<QUuid, NackedPacketHistory> _nackedPacketHistories;
 };
 #endif // hifi_OctreeEditPacketSender_h
