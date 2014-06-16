@@ -74,6 +74,9 @@ public:
     /// Delete all data.
     void clear();
 
+    // TODO: Andrew to implement this
+    void stepForward(float deltaTime) {}
+
     /// Enforce contraints.
     /// \return max distance of point movement
     float enforceConstraints();
@@ -86,6 +89,8 @@ public:
     /// \param translation translation into shapes' collision frame
     /// Moves and modifies elements of _shapes to agree with state of _points
     void updateShapes(const glm::quat& rotation, const glm::vec3& translation) const;
+
+    const QVector<Shape*>* getShapes() const { return _shapes; }
 
 protected:
     QVector<glm::vec3> _points;
