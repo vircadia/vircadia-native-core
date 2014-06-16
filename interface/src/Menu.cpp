@@ -165,6 +165,8 @@ Menu::Menu() :
                                   Qt::Key_At,
                                   this,
                                   SLOT(goTo()));
+    connect(&LocationManager::getInstance(), &LocationManager::multipleDestinationsFound,
+            this, &Menu::multipleDestinationsDecision);
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0, Application::getInstance(), SLOT(uploadHead()));
@@ -1072,9 +1074,7 @@ bool Menu::goToURL(QString location) {
 }
 
 void Menu::goToUser(const QString& user) {
-    LocationManager* manager = &LocationManager::getInstance();
-    manager->goTo(user);
-    connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
+    LocationManager::getInstance().goTo(user);
 }
 
 /// Open a url, shortcutting any "hifi" scheme URLs to the local application.
@@ -1096,13 +1096,12 @@ void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJson
     int userResponse = msgBox.exec();
 
     if (userResponse == QMessageBox::Ok) {
-        Application::getInstance()->getAvatar()->goToLocationFromResponse(userData);
+        Application::getInstance()->getAvatar()->goToLocationFromAddress(userData["address"].toObject());
     } else if (userResponse == QMessageBox::Open) {
-        Application::getInstance()->getAvatar()->goToLocationFromResponse(userData);
+        Application::getInstance()->getAvatar()->goToLocationFromAddress(placeData["address"].toObject());
     }
 
     LocationManager* manager = reinterpret_cast<LocationManager*>(sender());
-    disconnect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
 }
 
 void Menu::muteEnvironment() {
