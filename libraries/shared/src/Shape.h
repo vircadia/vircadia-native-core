@@ -32,14 +32,17 @@ public:
 
     int getType() const { return _type; }
     float getBoundingRadius() const { return _boundingRadius; }
-    const glm::vec3& getPosition() const { return _position; }
+//    const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getRotation() const { return _rotation; }
 
-    virtual void setPosition(const glm::vec3& position) { _position = position; }
+//    virtual void setPosition(const glm::vec3& position) { _position = position; }
     virtual void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
     void setEntity(PhysicalEntity* entity) { _owningEntity = entity; }
     PhysicalEntity* getEntity() const { return _owningEntity; }
+
+    virtual void setCenter(const glm::vec3& center) { _position = center; }
+    virtual glm::vec3 getCenter() const { return _position; }
 
 protected:
     // these ctors are protected (used by derived classes only)

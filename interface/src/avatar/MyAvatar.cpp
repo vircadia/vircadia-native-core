@@ -1245,7 +1245,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
         float capsuleHalfHeight = boundingShape.getHalfHeight();
         const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
         const float MIN_STEP_HEIGHT = 0.0f;
-        glm::vec3 footBase = boundingShape.getPosition() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
+        glm::vec3 footBase = boundingShape.getCenter() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
         float highestStep = 0.0f;
         float lowestStep = MAX_STEP_HEIGHT;
         glm::vec3 floorPoint;
@@ -1262,7 +1262,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
             if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
                 isTrapped = true;
                 if (_trapDuration > MAX_TRAP_PERIOD) {
-                    float distance = glm::dot(boundingShape.getPosition() - cubeCenter, _worldUpDirection);
+                    float distance = glm::dot(boundingShape.getCenter() - cubeCenter, _worldUpDirection);
                     if (distance < 0.0f) {
                         distance = fabsf(distance) + 0.5f * cubeSide;
                     }

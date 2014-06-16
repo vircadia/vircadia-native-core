@@ -924,7 +924,7 @@ void Model::computeBoundingShape(const FBXGeometry& geometry) {
         const FBXJoint& joint = geometry.joints[i];
         glm::vec3 jointToShapeOffset = uniformScale * (finalRotations[i] * joint.shapePosition);
         glm::vec3 localPosition = extractTranslation(transforms[i]) + jointToShapeOffset;
-        shape->setPosition(localPosition);
+        shape->setCenter(localPosition);
         shape->setRotation(finalRotations[i] * joint.shapeRotation);
         float distance = glm::length(localPosition) + shape->getBoundingRadius();
         if (distance > _boundingRadius) {
@@ -943,7 +943,7 @@ void Model::computeBoundingShape(const FBXGeometry& geometry) {
         }
         Extents shapeExtents;
         shapeExtents.reset();
-        glm::vec3 localPosition = shape->getPosition();
+        glm::vec3 localPosition = shape->getCenter();
         int type = shape->getType();
         if (type == Shape::CAPSULE_SHAPE) {
             // add the two furthest surface points of the capsule
@@ -998,11 +998,11 @@ void Model::resetShapePositions() {
     for (int i = 0; i < _jointShapes.size(); i++) {
         Shape* shape = _jointShapes[i];
         if (shape) {
-            shape->setPosition(_translation + _rotation * shape->getPosition());
+            shape->setCenter(_translation + _rotation * shape->getCenter());
             shape->setRotation(_rotation * shape->getRotation());
         }
     }
-    _boundingShape.setPosition(_translation + _rotation * _boundingShapeLocalOffset);
+    _boundingShape.setCenter(_translation + _rotation * _boundingShapeLocalOffset);
     _boundingShape.setRotation(_rotation);
 }
 
@@ -1020,7 +1020,7 @@ void Model::updateShapePositions() {
             glm::vec3 worldPosition = _translation + _rotation * (state.getPosition() + shapeOffset);
             Shape* shape = _jointShapes[i];
             if (shape) {
-                shape->setPosition(worldPosition);
+                shape->setCenter(worldPosition);
                 shape->setRotation(_rotation * stateRotation * joint.shapeRotation);
                 float distance = glm::distance(worldPosition, _translation) + shape->getBoundingRadius();
                 if (distance > _boundingRadius) {
@@ -1032,7 +1032,7 @@ void Model::updateShapePositions() {
             }
         }
         _shapesAreDirty = false;
-        _boundingShape.setPosition(rootPosition + _rotation * _boundingShapeLocalOffset);
+        _boundingShape.setCenter(rootPosition + _rotation * _boundingShapeLocalOffset);
         _boundingShape.setRotation(_rotation);
     }
 }
@@ -1436,7 +1436,7 @@ void Model::renderJointCollisionShapes(float alpha) {
         glPushMatrix();
         if (shape->getType() == Shape::SPHERE_SHAPE) {
             // shapes are stored in world-frame, so we have to transform into model frame
-            glm::vec3 position = shape->getPosition() - _translation;
+            glm::vec3 position = shape->getCenter() - _translation;
             glTranslatef(position.x, position.y, position.z);
             const glm::quat& rotation = shape->getRotation();
             glm::vec3 axis = glm::axis(rotation);

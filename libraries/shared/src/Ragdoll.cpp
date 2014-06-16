@@ -76,7 +76,7 @@ void DistanceConstraint::updateProxyShape(Shape* shape, const glm::quat& rotatio
         case Shape::SPHERE_SHAPE: {
             // sphere collides at endPoint
             SphereShape* sphere = static_cast<SphereShape*>(shape);
-            sphere->setPosition(translation + rotation * (*_points[1]));
+            sphere->setCenter(translation + rotation * (*_points[1]));
         }
         break;
         case Shape::CAPSULE_SHAPE: {

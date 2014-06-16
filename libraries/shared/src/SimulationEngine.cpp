@@ -75,7 +75,7 @@ void SimulationEngine::stepForward(float deltaTime, float minError, int maxItera
 
     int numDolls = _dolls.size();
     for (int i = 0; i < numDolls; ++i) {
-        // TODO: need to implement:
+        // TODO: Andrew need to implement:
         // (1) joints pull points (SpecialCapsuleShape would help solve this)
         // (2) points slam shapes (SpecialCapsuleShape would help solve this)
         // (3) shapes collide with pairwise collision bypass

@@ -14,7 +14,7 @@
 // ListShapeEntry
 
 void ListShapeEntry::updateTransform(const glm::vec3& rootPosition, const glm::quat& rootRotation) {
-    _shape->setPosition(rootPosition + rootRotation * _localPosition);
+    _shape->setCenter(rootPosition + rootRotation * _localPosition);
     _shape->setRotation(_localRotation * rootRotation);
 }
 
@@ -26,7 +26,7 @@ ListShape::~ListShape() {
 
 void ListShape::setPosition(const glm::vec3& position) {
     _subShapeTransformsAreDirty = true;
-    Shape::setPosition(position);
+    Shape::setCenter(position);
 }
 
 void ListShape::setRotation(const glm::quat& rotation) {
