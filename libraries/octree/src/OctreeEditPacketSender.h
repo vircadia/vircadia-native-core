@@ -93,7 +93,7 @@ public:
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { };
     
 public:
-    void parseNackPacket(const QByteArray& packet);
+    void processNackPacket(const QByteArray& packet);
 
 protected:
     bool _shouldSend;

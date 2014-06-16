@@ -343,7 +343,7 @@ bool OctreeEditPacketSender::process() {
     return PacketSender::process();
 }
 
-void OctreeEditPacketSender::parseNackPacket(const QByteArray& packet) {
+void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
     // parse sending node from packet, retrieve packet history for that node
     QUuid sendingNodeUUID = uuidFromPacketHeader(packet);
     
