@@ -18,19 +18,6 @@
 #include "JurisdictionMap.h"
 #include "SentPacketHistory.h"
 
-class NackedPacketHistory {
-public:
-    NackedPacketHistory() : _sentPacketHistory(1000), _nackedSequenceNumbers()  { }
-public:
-    void packetSent(const QByteArray& packet);
-    bool hasNextNackedPacket() const;
-    const QByteArray* getNextNackedPacket();
-    void parseNackPacket(const QByteArray& packet);
-private:
-    SentPacketHistory _sentPacketHistory;
-    QQueue<unsigned short int> _nackedSequenceNumbers;
-};
-
 /// Used for construction of edit packets
 class EditPacketBuffer {
 public:
@@ -110,7 +97,7 @@ public:
 
 protected:
     bool _shouldSend;
-    void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, ssize_t length);
+    void queuePacketToNode(const QUuid& nodeID, const unsigned char* buffer, ssize_t length);
     void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, ssize_t length);
     void queuePacketToNodes(unsigned char* buffer, ssize_t length);
     void initializePacket(EditPacketBuffer& packetBuffer, PacketType type);
@@ -134,6 +121,6 @@ protected:
     int _maxPacketSize;
 
     // TODO: garbage-collect this and _pendingEditPackets
-    QHash<QUuid, NackedPacketHistory> _nackedPacketHistories;
+    QHash<QUuid, SentPacketHistory> _sentPacketHistories;
 };
 #endif // hifi_OctreeEditPacketSender_h
