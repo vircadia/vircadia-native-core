@@ -272,7 +272,8 @@ void SkeletonModel::updateJointState(int index) {
 void SkeletonModel::updateShapePositions() {
     if (isActive() && _owningAvatar->isMyAvatar() && 
             Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-        updateShapes(_rotation, _translation);
+        // TODO: Andrew to move shape updates to SimulationEngine
+        //updateShapes(_rotation, _translation);
     } else {
         Model::updateShapePositions();
     }

@@ -32,7 +32,7 @@ public:
     /// \param maxIterations max number of iterations before giving up
     /// \param maxUsec max number of usec to spend enforcing constraints
     /// \return distance of largest movement
-    void enforceConstraints(float minError, int maxIterations, quint64 maxUsec);
+    void stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec);
 
     int getEnforementIterations() const { return _enforcementIterations; }
     float getEnforcementError() const { return _enforcementError; }

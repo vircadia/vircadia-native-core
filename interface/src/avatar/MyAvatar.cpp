@@ -82,6 +82,8 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
+    _skeletonModel.setEnableCollisionShapes(true);
+    _simulationEngine.addRagdoll(&_skeletonModel);
 }
 
 MyAvatar::~MyAvatar() {
@@ -190,6 +192,14 @@ void MyAvatar::simulate(float deltaTime) {
         head->simulate(deltaTime, true);
     }
 
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        PerformanceTimer perfTimer("MyAvatar::simulate/head Simulate");
+        const int minError = 0.005f;
+        const float maxIterations = 4;
+        const quint64 maxUsec = 500;
+        _simulationEngine.stepForward(deltaTime, minError, maxIterations, maxUsec);
+    }
+    /* TODO: Andrew to make this work again
     // now that we're done stepping the avatar forward in time, compute new collisions
     if (_collisionGroups != 0) {
         PerformanceTimer perfTimer("MyAvatar::simulate/_collisionGroups");
@@ -216,6 +226,7 @@ void MyAvatar::simulate(float deltaTime) {
             updateCollisionWithAvatars(deltaTime);
         }
     }
+    */
 
     // consider updating our billboard
     maybeUpdateBillboard();
