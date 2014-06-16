@@ -68,6 +68,8 @@ public:
     
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+
+    void setEnableCollisionShapes(bool enable);
     
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
@@ -186,8 +188,10 @@ protected:
     bool _snappedToCenter; /// are we currently snapped to center
     int _rootIndex;
     
-    bool _shapesAreDirty;
     QVector<JointState> _jointStates;
+
+    bool _shapesAreDirty;
+    bool _enableCollisionShapes; /// build collision shapes for joints
     QVector<Shape*> _jointShapes;
     
     float _boundingRadius;

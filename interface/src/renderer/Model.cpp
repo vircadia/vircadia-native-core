@@ -43,6 +43,7 @@ Model::Model(QObject* parent) :
     _snappedToCenter(false),
     _rootIndex(-1),
     _shapesAreDirty(true),
+    _enableCollisionShapes(false),
     _boundingRadius(0.0f),
     _boundingShape(),
     _boundingShapeLocalOffset(0.0f),
@@ -199,6 +200,17 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
         }
     }
     return jointStates;
+}
+
+void Model::setEnableCollisionShapes(bool enable) {
+    if (enable != _enableCollisionShapes) {
+        _enableCollisionShapes = enable;
+        if (_enableCollisionShapes) {
+            rebuildShapes();
+        } else {
+            clearShapes();
+        }
+    }
 }
 
 void Model::init() {
@@ -568,7 +580,7 @@ bool Model::updateGeometry() {
             model->setURL(attachment.url);
             _attachments.append(model);
         }
-        if (!_jointShapes.isEmpty()) {
+        if (_enableCollisionShapes) {
             rebuildShapes();
         }
         needFullUpdate = true;
