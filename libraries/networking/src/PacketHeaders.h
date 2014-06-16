@@ -66,7 +66,10 @@ enum PacketType {
     PacketTypeModelAddOrEdit,
     PacketTypeModelErase,
     PacketTypeModelAddResponse,
-    PacketTypeOctreeDataNack
+    PacketTypeOctreeDataNack, // 45
+    PacketTypeVoxelEditNack,
+    PacketTypeParticleEditNack,
+    PacketTypeModelEditNack,
 };
 
 typedef char PacketVersion;

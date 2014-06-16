@@ -35,7 +35,11 @@ public:
 
     /// Are there received packets waiting to be processed from a certain node
     bool hasPacketsToProcessFrom(const SharedNodePointer& sendingNode) const {
-        return _nodePacketCounts[sendingNode->getUUID()] > 0;
+        return hasPacketsToProcessFrom(sendingNode->getUUID());
+    }
+
+    bool hasPacketsToProcessFrom(const QUuid& nodeUUID) const {
+        return _nodePacketCounts[nodeUUID] > 0;
     }
 
     /// How many received packets waiting are to be processed

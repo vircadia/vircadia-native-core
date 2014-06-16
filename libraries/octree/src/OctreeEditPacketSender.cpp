@@ -308,7 +308,14 @@ void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, Pa
     unsigned short int* sequenceAt = (unsigned short int*)&packetBuffer._currentBuffer[packetBuffer._currentSize];
     *sequenceAt = _sequenceNumber;
     packetBuffer._currentSize += sizeof(unsigned short int); // nudge past sequence
+    if (randFloat() < 0.6f)
     _sequenceNumber++;
+    else
+    {
+        int x = randIntInRange(2, 4);
+        printf("\t\t seq number jumped from %d to %d\n", _sequenceNumber, _sequenceNumber + x);
+        _sequenceNumber += x;
+    }
 
     // pack in timestamp
     quint64 now = usecTimestampNow();

@@ -648,10 +648,10 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         int senderNumber = 0;
         NodeToSenderStatsMap& allSenderStats = _octreeInboundPacketProcessor->getSingleSenderStats();
-        for (NodeToSenderStatsMapIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
+        for (NodeToSenderStatsMapConstIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
             senderNumber++;
-            QUuid senderID = i->first;
-            SingleSenderStats& senderStats = i->second;
+            QUuid senderID = i.key();
+            const SingleSenderStats& senderStats = i.value();
 
             statsString += QString("\r\n             Stats for sender %1 uuid: %2\r\n")
                 .arg(senderNumber).arg(senderID.toString());

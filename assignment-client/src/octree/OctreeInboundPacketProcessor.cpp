@@ -39,7 +39,6 @@ void OctreeInboundPacketProcessor::resetStats() {
     _singleSenderStats.clear();
 }
 
-
 void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
 
     bool debugProcessPacket = _myServer->wantsVerboseDebug();
@@ -150,6 +149,76 @@ void OctreeInboundPacketProcessor::trackInboundPacket(const QUuid& nodeUUID, uns
     }
 }
 
+int OctreeInboundPacketProcessor::sendNackPackets() {
+
+    printf("\t\t sendNackPackets()\n");
+
+    int packetsSent = 0;
+
+    // if there are packets from _node that are waiting to be processed,
+    // don't send a NACK since the missing packets may be among those waiting packets.
+
+    NodeToSenderStatsMap::const_iterator begin = _singleSenderStats.begin(), end = _singleSenderStats.end();
+    for (NodeToSenderStatsMap::const_iterator i = begin; i != end; i++) {
+
+        QUuid nodeUUID = i.key();
+        SingleSenderStats nodeStats = i.value();
+
+        if (hasPacketsToProcessFrom(nodeUUID)) {
+            continue;
+        }
+
+        const SharedNodePointer& destinationNode = NodeList::getInstance()->getNodeHash().value(nodeUUID);
+        const QSet<unsigned short int>& missingSequenceNumbers = nodeStats.getMissingSequenceNumbers();
+
+        // check if there are any sequence numbers that need to be nacked
+        int numSequenceNumbersAvailable = missingSequenceNumbers.size();
+
+        // construct nack packet(s) for this node
+
+        QSet<unsigned short int>::const_iterator missingSequenceNumberIterator = missingSequenceNumbers.begin();
+        char packet[MAX_PACKET_SIZE];
+
+        while (numSequenceNumbersAvailable > 0) {
+
+            char* dataAt = packet;
+            int bytesRemaining = MAX_PACKET_SIZE;
+
+            // pack header
+            int numBytesPacketHeader = populatePacketHeader(packet, _myServer->getMyEditNackType());
+            dataAt += numBytesPacketHeader;
+            bytesRemaining -= numBytesPacketHeader;
+
+            // calculate and pack the number of sequence numbers to nack
+            int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(unsigned short int);
+            uint16_t numSequenceNumbers = std::min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
+            uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
+            *numSequenceNumbersAt = numSequenceNumbers;
+            dataAt += sizeof(uint16_t);
+
+            // pack sequence numbers to nack
+            printf("\t\t sending NACK with %d seq numbers:\n\t\t", numSequenceNumbers);
+            for (uint16_t i = 0; i < numSequenceNumbers; i++) {
+                unsigned short int* sequenceNumberAt = (unsigned short int*)dataAt;
+                *sequenceNumberAt = *missingSequenceNumberIterator;
+                dataAt += sizeof(unsigned short int);
+                printf("%d, ", *missingSequenceNumberIterator);
+
+                missingSequenceNumberIterator++;
+            }
+            numSequenceNumbersAvailable -= numSequenceNumbers;
+
+            // send it
+            qint64 bytesWritten = NodeList::getInstance()->writeDatagram(packet, dataAt - packet, destinationNode);
+            printf("\t\t wrote %lld bytes\n\n", bytesWritten);
+
+            packetsSent++;
+        }
+    }
+    return packetsSent;
+}
+
+
 SingleSenderStats::SingleSenderStats()
     : _totalTransitTime(0),
     _totalProcessTime(0),
@@ -165,17 +234,19 @@ SingleSenderStats::SingleSenderStats()
 void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
     int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
 
-    const int  MAX_REASONABLE_SEQUENCE_GAP = 1000;
+printf("\t\t tracked seq %d\n", incomingSequence);
+
+    const int UINT16_RANGE = 65536;
+
+    const int  MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
     const int MAX_MISSING_SEQUENCE_SIZE = 100;
 
     unsigned short int expectedSequence = _totalPackets == 0 ? incomingSequence : _incomingLastSequence + 1;
     
-    if (incomingSequence == expectedSequence) {             // on time
+    if (incomingSequence == expectedSequence) {         // on time
         _incomingLastSequence = incomingSequence;
     }
-    else {                                                  // out of order
-
-        const int UINT16_RANGE = 65536;
+    else {                                              // out of order
 
         int incoming = (int)incomingSequence;
         int expected = (int)expectedSequence;
@@ -202,6 +273,8 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
 
         if (incoming > expected) {                          // early
 
+            printf("\t\t\t packet is early! %d packets were skipped\n", incoming - expected);
+
             // add all sequence numbers that were skipped to the missing sequence numbers list
             for (int missingSequence = expected; missingSequence < incoming; missingSequence++) {
                 _missingSequenceNumbers.insert(missingSequence < 0 ? missingSequence + UINT16_RANGE : missingSequence);
@@ -210,6 +283,8 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
 
         } else {                                            // late
 
+            printf("\t\t\t packet is late!\n");
+
             // remove this from missing sequence number if it's in there
             _missingSequenceNumbers.remove(incomingSequence);
 
@@ -217,11 +292,27 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
         }
     }
 
-    // prune missing sequence list if it gets too big
+    // prune missing sequence list if it gets too big; sequence numbers that are older than MAX_REASONABLE_SEQUENCE_GAP
+    // will be removed.
     if (_missingSequenceNumbers.size() > MAX_MISSING_SEQUENCE_SIZE) {
-        foreach(unsigned short int missingSequence, _missingSequenceNumbers) {
-            if (missingSequence <= std::max(0, _incomingLastSequence - MAX_REASONABLE_SEQUENCE_GAP)) {
-                _missingSequenceNumbers.remove(missingSequence);
+        
+        // the acceptable range of older sequence numbers may contain a rollover point; this must be handled.
+        // some sequence number in this list may be larger than _incomingLastSequence, indicating that they were received
+        // before the most recent rollover.
+        int cutoff = (int)_incomingLastSequence - MAX_REASONABLE_SEQUENCE_GAP;
+        if (cutoff >= 0) {
+            foreach(unsigned short int missingSequence, _missingSequenceNumbers) {
+                unsigned short int nonRolloverCutoff = (unsigned short int)cutoff;
+                if (missingSequence > _incomingLastSequence || missingSequence <= nonRolloverCutoff) {
+                    _missingSequenceNumbers.remove(missingSequence);
+                }
+            }
+        } else {
+            unsigned short int rolloverCutoff = (unsigned short int)(cutoff + UINT16_RANGE);
+            foreach(unsigned short int missingSequence, _missingSequenceNumbers) {
+                if (missingSequence > _incomingLastSequence && missingSequence <= rolloverCutoff) {
+                    _missingSequenceNumbers.remove(missingSequence);
+                }
             }
         }
     }
