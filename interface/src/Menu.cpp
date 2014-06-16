@@ -165,6 +165,8 @@ Menu::Menu() :
                                   Qt::Key_At,
                                   this,
                                   SLOT(goTo()));
+    connect(&LocationManager::getInstance(), &LocationManager::multipleDestinationsFound,
+            this, &Menu::multipleDestinationsDecision);
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0, Application::getInstance(), SLOT(uploadHead()));
@@ -1002,9 +1004,7 @@ bool Menu::goToDestination(QString destination) {
 }
 
 void Menu::goTo(QString destination) {
-    LocationManager* manager = &LocationManager::getInstance();
-    manager->goTo(destination);
-    connect(manager, &LocationManager::multipleDestinationsFound, getInstance(), &Menu::multipleDestinationsDecision);
+    LocationManager::getInstance().goTo(destination);
 }
 
 void Menu::goTo() {
