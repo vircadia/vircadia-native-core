@@ -286,7 +286,7 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
 
 printf("\t\t tracked seq %d\n", incomingSequence);
 
-    const int UINT16_RANGE = 65536;
+    const int UINT16_RANGE = UINT16_MAX + 1;
 
     const int  MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
     const int MAX_MISSING_SEQUENCE_SIZE = 100;
@@ -305,7 +305,7 @@ printf("\t\t tracked seq %d\n", incomingSequence);
         int absGap = std::abs(incoming - expected);
         if (absGap >= UINT16_RANGE - MAX_REASONABLE_SEQUENCE_GAP) {
             // rollover likely occurred between incoming and expected.
-            // correct the larger of the two so that it's within [-65536, -1] while the other remains within [0, 65535]
+            // correct the larger of the two so that it's within [-UINT16_RANGE, -1] while the other remains within [0, UINT16_RANGE-1]
             if (incoming > expected) {
                 incoming -= UINT16_RANGE;
             } else {
