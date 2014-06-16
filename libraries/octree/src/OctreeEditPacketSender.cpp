@@ -99,6 +99,8 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
             if (node->getActiveSocket()) {
                 queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(buffer), length));
 
+
+
                 // debugging output...
                 bool wantDebugging = false;
                 if (wantDebugging) {
@@ -287,8 +289,8 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
     if (!serversExist()) {
         _releaseQueuedMessagesPending = true;
     } else {
-        for (std::map<QUuid, EditPacketBuffer>::iterator i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
-            releaseQueuedPacket(i->second);
+        for (QHash<QUuid, EditPacketBuffer>::iterator i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
+            releaseQueuedPacket(i.value());
         }
     }
 }
