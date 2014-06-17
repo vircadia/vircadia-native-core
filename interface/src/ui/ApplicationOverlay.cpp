@@ -36,6 +36,9 @@ ApplicationOverlay::ApplicationOverlay() :
     _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
     _crosshairTexture(0) {
 
+    _reticleActive[MOUSE] = false;
+    _reticleActive[LEFT_CONTROLLER] = false;
+    _reticleActive[RIGHT_CONTROLLER] = false;
     _magActive[MOUSE] = false;
     _magActive[LEFT_CONTROLLER] = false;
     _magActive[RIGHT_CONTROLLER] = false;
@@ -156,14 +159,16 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direc
 void ApplicationOverlay::getClickLocation(int &x, int &y) const {
     int dx;
     int dy;
-    
+    const float xRange = MAGNIFY_WIDTH * MAGNIFY_MULT / 2.0f;
+    const float yRange = MAGNIFY_WIDTH * MAGNIFY_MULT / 2.0f;
+
     //Loop through all magnification windows
     for (int i = 0; i < 3; i++) {
         if (_magActive[i]) {
             dx = x - _magX[i];
             dy = y - _magY[i];
             //Check to see if they clicked inside a mag window
-            if (abs(dx) <= MAGNIFY_WIDTH * MAGNIFY_MULT && abs(dy) <= MAGNIFY_HEIGHT * MAGNIFY_MULT) {
+            if (abs(dx) <= xRange && abs(dy) <= yRange) {
                 //Move the click to the actual UI location by inverting the magnification
                 x = dx / MAGNIFY_MULT + _magX[i];
                 y = dy / MAGNIFY_MULT + _magY[i];
@@ -274,6 +279,7 @@ void ApplicationOverlay::renderPointers() {
     } else if (application->getLastMouseMoveType() == CONTROLLER_MOVE_EVENT && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
+        _magActive[MOUSE] = false;
         renderControllerPointers();
     }
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -285,6 +291,10 @@ void ApplicationOverlay::renderControllerPointers() {
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
+
+    static unsigned int pressedTime[2] = { 0, 0 };
+    static bool isPressed[2] = { false, false };
+    static bool stateWhenPressed[2] = { false, false };
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
 
@@ -305,6 +315,24 @@ void ApplicationOverlay::renderControllerPointers() {
 
         int controllerButtons = palmData->getControllerButtons();
 
+        //Check for if we should toggle or drag the magnification window
+        if (controllerButtons & BUTTON_3) {
+            if (isPressed[index] == false) {
+                //We are now dragging the window
+                isPressed[index] = true;
+                //set the pressed time in ms
+                pressedTime[index] = SDL_GetTicks();
+                stateWhenPressed[index] = _magActive[index];
+            }
+        } else if (isPressed[index]) {
+            isPressed[index] = false;
+            //If the button has been pressed for less than 250 ms
+            //then disable it.
+            if (SDL_GetTicks() - pressedTime[index] < 250) {
+                _magActive[index] = !stateWhenPressed[index];
+            }
+        }
+
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
@@ -317,13 +345,6 @@ void ApplicationOverlay::renderControllerPointers() {
 
         int mouseX = glWidget->width() / 2.0f + cursorRange * xAngle;
         int mouseY = glWidget->height() / 2.0f + cursorRange * yAngle;
-
-        // If the 2 button is pressed, we disable the magnifier for this controller
-        if (controllerButtons & BUTTON_2) {
-            _magActive[index] = false;
-            _magX[index] = mouseX;
-            _magY[index] = mouseY;
-        }
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
@@ -340,7 +361,8 @@ void ApplicationOverlay::renderControllerPointers() {
             _mouseX[index] = mouseX;
             _mouseY[index] = mouseY;
 
-            if (controllerButtons & BUTTON_3) {
+            //When button 2 is pressed we drag the mag window
+            if (isPressed[index]) {
                 _magActive[index] = true;
                 _magX[index] = mouseX;
                 _magY[index] = mouseY;
@@ -437,7 +459,6 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
 
-
     const int widgetWidth = glWidget->width();
     const int widgetHeight = glWidget->height();
 
@@ -484,6 +505,22 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
     //Top Right
     dist = sqrt(rX * rX + tY * tY);
     float trZ = sqrt(1.0f - dist * dist);
+    glDisable(GL_TEXTURE_2D);
+    glLineWidth(1.0f);
+    //Outer Line
+    glBegin(GL_LINE_STRIP);
+    glColor3f(1.0f, 0.0f, 0.0f);
+
+    glVertex3f(lX, tY, -tlZ);
+    glVertex3f(rX, tY, -trZ);
+    glVertex3f(rX, bY, -brZ);
+    glVertex3f(lX, bY, -blZ);
+    glVertex3f(lX, tY, -tlZ);
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+
+    glEnd();
+    glEnable(GL_TEXTURE_2D);
 
     glBegin(GL_QUADS);
 
