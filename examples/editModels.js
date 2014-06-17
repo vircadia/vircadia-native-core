@@ -691,6 +691,10 @@ function rayPlaneIntersection(pickRay, point, normal) {
 }
 
 function mousePressEvent(event) {
+    if (altIsPressed) {
+        return;
+    }
+    
     mouseLastPosition = { x: event.x, y: event.y };
     modelSelected = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
@@ -790,6 +794,10 @@ var oldModifier = 0;
 var modifier = 0;
 var wasShifted = false;
 function mouseMoveEvent(event)  {
+    if (altIsPressed) {
+        return;
+    }
+    
     var pickRay = Camera.computePickRay(event.x, event.y);
     
     if (!modelSelected) {
@@ -894,6 +902,10 @@ function mouseMoveEvent(event)  {
 }
 
 function mouseReleaseEvent(event) {
+    if (altIsPressed) {
+        return;
+    }
+    
     modelSelected = false;
     
     glowedModelID.id = -1;
@@ -962,4 +974,16 @@ Menu.menuItemEvent.connect(function(menuItem){
     }
 });
 
+// handling of inspect.js concurrence
+altIsPressed = false;
+Controller.keyPressEvent.connect(function(event) {
+    if (event.text == "ALT") {
+        altIsPressed = true;
+    }
+});
+Controller.keyReleaseEvent.connect(function(event) {
+    if (event.text == "ALT") {
+        altIsPressed = false;
+    }
+});
 

@@ -306,7 +306,7 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
             } else {
                 // this is a 48 to 24 resampling but both source and destination are two channels
                 // squish two samples into one in each channel
-                for (int i = 0; i < numSourceSamples; i += 4) {
+                for (unsigned int i = 0; i < numSourceSamples; i += 4) {
                     destinationSamples[i / 2] = (sourceSamples[i] / 2) + (sourceSamples[i + 2] / 2);
                     destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] / 2) + (sourceSamples[i + 3] / 2);
                 }
@@ -1419,7 +1419,7 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 // proportional to the accelerator ratio. 
 
 #ifdef Q_OS_WIN
-const float Audio::CALLBACK_ACCELERATOR_RATIO = 0.4f;
+const float Audio::CALLBACK_ACCELERATOR_RATIO = 0.1f;
 #endif
 
 #ifdef Q_OS_MAC

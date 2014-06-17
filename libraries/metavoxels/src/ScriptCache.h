@@ -65,6 +65,12 @@ private:
     QScriptString _generatorString;
 };
 
+Q_DECLARE_METATYPE(QScriptValue)
+
+bool operator==(const QScriptValue& first, const QScriptValue& second);
+bool operator!=(const QScriptValue& first, const QScriptValue& second);
+bool operator<(const QScriptValue& first, const QScriptValue& second);
+
 /// A program loaded from the network.
 class NetworkProgram : public Resource {
     Q_OBJECT

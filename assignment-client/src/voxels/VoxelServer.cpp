@@ -40,7 +40,7 @@ bool VoxelServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
     return shouldSendEnvironments;
 }
 
-int VoxelServer::sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNodePointer& node) {
+int VoxelServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) {
 
     unsigned char* copyAt = _tempOutputBuffer;    
 
@@ -76,6 +76,7 @@ int VoxelServer::sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNodeP
 
     NodeList::getInstance()->writeDatagram((char*) _tempOutputBuffer, envPacketLength, SharedNodePointer(node));
     queryNode->packetSent(_tempOutputBuffer, envPacketLength);
+    packetsSent = 1;
 
     return envPacketLength;
 }
