@@ -34,6 +34,7 @@ var noMode = 0;
 var orbitMode = 1;
 var radialMode = 2;
 var panningMode = 3;
+var detachedMode = 4;
 
 var mode = noMode;
 
@@ -47,6 +48,9 @@ var vector = { x: 0, y: 0, z: 0 };
 var radius = 0.0;
 var azimuth = 0.0;
 var altitude = 0.0;
+
+var avatarPosition;
+var avatarOrientation;
 
 
 function handleRadialMode(dx, dy) {
@@ -108,7 +112,7 @@ function restoreCameraState() {
 }
 
 function handleModes() {
-    var newMode = noMode;
+    var newMode = (mode == noMode) ? noMode : detachedMode;
     if (alt) {
         if (control) {
             if (shift) {
@@ -121,6 +125,22 @@ function handleModes() {
         }
     }
     
+    // if entering detachMode
+    if (newMode == detachedMode && mode != detachedMode) {
+        avatarPosition = MyAvatar.position;
+        avatarOrientation = MyAvatar.orientation;
+    }
+    // if leaving detachMode
+    if (mode == detachedMode && newMode == detachedMode &&
+        (avatarPosition.x != MyAvatar.position.x ||
+         avatarPosition.y != MyAvatar.position.y ||
+         avatarPosition.z != MyAvatar.position.z ||
+         avatarOrientation.x != MyAvatar.orientation.x ||
+         avatarOrientation.y != MyAvatar.orientation.y ||
+         avatarOrientation.z != MyAvatar.orientation.z ||
+         avatarOrientation.w != MyAvatar.orientation.w)) {
+        newMode = noMode;
+    }
     // if leaving noMode
     if (mode == noMode && newMode != noMode) {
         saveCameraState();
@@ -252,6 +272,10 @@ function mouseMoveEvent(event) {
     }
 }
 
+function update() {
+    handleModes();
+}
+
 function scriptEnding() {
     if (mode != noMode) {
         restoreCameraState();
@@ -265,4 +289,5 @@ Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 
+Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
