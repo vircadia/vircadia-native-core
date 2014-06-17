@@ -393,3 +393,10 @@ void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
         }
     }
 }
+
+void OctreeEditPacketSender::nodeKilled(SharedNodePointer node) {
+    // TODO: add locks
+    QUuid nodeUUID = node->getUUID();
+    _pendingEditPackets.remove(nodeUUID);
+    _sentPacketHistories.remove(nodeUUID);
+}

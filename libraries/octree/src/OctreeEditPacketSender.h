@@ -91,7 +91,10 @@ public:
     // you must override these...
     virtual char getMyNodeType() const = 0;
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { };
-    
+
+public slots:
+    void nodeKilled(SharedNodePointer node);
+
 public:
     void processNackPacket(const QByteArray& packet);
 
@@ -120,9 +123,9 @@ protected:
     unsigned short int _sequenceNumber;
     int _maxPacketSize;
 
-    // TODO: garbage-collect this and _pendingEditPackets
-    QHash<QUuid, SentPacketHistory> _sentPacketHistories;
-
     QMutex _releaseQueuedPacketMutex;
+
+    // TODO: add locks for this and _pendingEditPackets
+    QHash<QUuid, SentPacketHistory> _sentPacketHistories;
 };
 #endif // hifi_OctreeEditPacketSender_h
