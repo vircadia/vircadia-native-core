@@ -70,7 +70,7 @@ ModelItem::ModelItem() {
     init(glm::vec3(0,0,0), 0, noColor, NEW_MODEL);
 }
 
-ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& properties) {
+void ModelItem::initFromModelItemID(const ModelItemID& modelItemID) {
     _id = modelItemID.id;
     _creatorTokenID = modelItemID.creatorTokenID;
 
@@ -96,10 +96,16 @@ ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& 
 
     _jointMappingCompleted = false;
     _lastAnimated = now;
-    
-    setProperties(properties);
 }
 
+ModelItem::ModelItem(const ModelItemID& modelItemID) {
+    initFromModelItemID(modelItemID);
+}
+
+ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& properties) {
+    initFromModelItemID(modelItemID);
+    setProperties(properties);
+}
 
 ModelItem::~ModelItem() {
 }

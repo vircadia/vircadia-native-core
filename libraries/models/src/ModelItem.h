@@ -193,6 +193,13 @@ inline bool operator<(const ModelItemID& a, const ModelItemID& b) {
     return (a.id == b.id) ? (a.creatorTokenID < b.creatorTokenID) : (a.id < b.id);
 }
 
+inline bool operator==(const ModelItemID& a, const ModelItemID& b) {
+    if (a.id == UNKNOWN_MODEL_ID && b.id == UNKNOWN_MODEL_ID) {
+        return a.creatorTokenID == b.creatorTokenID;
+    }
+    return a.id == b.id;
+}
+
 Q_DECLARE_METATYPE(ModelItemID);
 Q_DECLARE_METATYPE(QVector<ModelItemID>);
 QScriptValue ModelItemIDtoScriptValue(QScriptEngine* engine, const ModelItemID& properties);
@@ -205,14 +212,13 @@ class ModelItem  {
 
 public:
     ModelItem();
-
+    ModelItem(const ModelItemID& modelItemID);
     ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& properties);
     
     /// creates an NEW model from an model add or edit message data buffer
     static ModelItem fromEditPacket(const unsigned char* data, int length, int& processedBytes, ModelTree* tree, bool& valid);
 
     virtual ~ModelItem();
-    virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_MODEL);
 
     quint8 getType() const { return 0; } /// place holder for now
 
@@ -323,6 +329,9 @@ public:
     static void cleanupLoadedAnimations();
 
 protected:
+    void initFromModelItemID(const ModelItemID& modelItemID);
+    virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_MODEL);
+
     glm::vec3 _position;
     rgbColor _color;
     float _radius;
