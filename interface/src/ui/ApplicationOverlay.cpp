@@ -13,7 +13,6 @@
 
 #include <QOpenGLFramebufferObject>
 #include <PerfStat.h>
-#include <SDL_timer.h>
 
 #include "Application.h"
 #include "ApplicationOverlay.h"
@@ -116,6 +115,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
 
     glPopMatrix();
 
+
     glMatrixMode(GL_MODELVIEW);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -209,6 +209,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     if (_alpha == 0.0f) {
         return;
     }
+
 
     Application* application = Application::getInstance();
 
@@ -333,11 +334,11 @@ void ApplicationOverlay::renderControllerPointers() {
     MyAvatar* myAvatar = application->getAvatar();
 
     //Static variables used for storing controller state
-    static unsigned int pressedTime[2] = { 0, 0 };
-    static bool isPressed[2] = { false, false };
-    static bool stateWhenPressed[2] = { false, false };
-    static bool triggerPressed[2] = { false, false };
-    static bool bumperPressed[2] = { false, false };
+    static quint64 pressedTime[3] = { 0, 0, 0 };
+    static bool isPressed[3] = { false, false, false };
+    static bool stateWhenPressed[3] = { false, false, false };
+    static bool triggerPressed[3] = { false, false, false };
+    static bool bumperPressed[3] = { false, false, false };
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
 
@@ -363,15 +364,15 @@ void ApplicationOverlay::renderControllerPointers() {
             if (isPressed[index] == false) {
                 //We are now dragging the window
                 isPressed[index] = true;
-                //set the pressed time in ms
-                pressedTime[index] = SDL_GetTicks();
+                //set the pressed time in us
+                pressedTime[index] = usecTimestampNow();
                 stateWhenPressed[index] = _magActive[index];
             }
         } else if (isPressed[index]) {
-            isPressed[index] = false;
-            //If the button has been pressed for less than 250 ms
+            isPressed[index] = false; 
+            //If the button was only pressed for < 250 ms
             //then disable it.
-            if (SDL_GetTicks() - pressedTime[index] < 250) {
+            if (usecTimestampNow() - pressedTime[index] < 250000) {
                 _magActive[index] = !stateWhenPressed[index];
             }
         }
