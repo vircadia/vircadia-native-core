@@ -33,8 +33,8 @@ ApplicationOverlay::ApplicationOverlay() :
     _framebufferObject(NULL),
     _oculusAngle(65.0f * RADIANS_PER_DEGREE),
     _distance(0.5f),
-    _textureFov(PI / 2.5f),
-    _uiType(HEMISPHERE) {
+    _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
+    _crosshairTexture(0) {
 
 }
 
@@ -46,9 +46,13 @@ ApplicationOverlay::~ApplicationOverlay() {
 
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 
+const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
+
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
+
+    _textureFov = Menu::getInstance()->getOculusUIAngularSize() * RADIANS_PER_DEGREE;
 
     Application* application = Application::getInstance();
 
@@ -150,31 +154,9 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     Application* application = Application::getInstance();
 
-    QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
     const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
 
-  
-
-    // Get vertical FoV of the displayed overlay texture
-    const float halfVerticalAngle = _oculusAngle / 2.0f;
-    const float overlayAspectRatio = glWidget->width() / (float)glWidget->height();
-    const float halfOverlayHeight = _distance * tan(halfVerticalAngle);
-    const float overlayHeight = halfOverlayHeight * 2.0f;
-
-    // The more vertices, the better the curve
-    const int numHorizontalVertices = 20;
-    const int numVerticalVertices = 20;
-    // U texture coordinate width at each quad
-    const float quadTexWidth = 1.0f / (numHorizontalVertices - 1);
-    const float quadTexHeight = 1.0f / (numVerticalVertices - 1);
-
-    // Get horizontal angle and angle increment from vertical angle and aspect ratio
-    const float horizontalAngle = halfVerticalAngle * 2.0f * overlayAspectRatio;
-    const float angleIncrement = horizontalAngle / (numHorizontalVertices - 1);
-    const float halfHorizontalAngle = horizontalAngle / 2;
-
-    const float verticalAngleIncrement = _oculusAngle / (numVerticalVertices - 1);
 
     glActiveTexture(GL_TEXTURE0);
    
@@ -210,8 +192,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.01f);
 
-    float leftX, rightX, leftZ, rightZ, topZ, bottomZ;
-
     //Draw the magnifiers
     for (int i = 0; i < _numMagnifiers; i++) {
         renderMagnifier(_mouseX[i], _mouseY[i]);
@@ -220,41 +200,9 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glDepthMask(GL_FALSE);   
     glDisable(GL_ALPHA_TEST);
 
-    //TODO: Remove immediate mode in favor of VBO
-    if (_uiType == HEMISPHERE) {
-        renderTexturedHemisphere();
-    } else{
-        glBegin(GL_QUADS);
-        // Place the vertices in a semicircle curve around the camera
-        for (int i = 0; i < numHorizontalVertices - 1; i++) {
-            for (int j = 0; j < numVerticalVertices - 1; j++) {
-
-                // Calculate the X and Z coordinates from the angles and radius from camera
-                leftX = sin(angleIncrement * i - halfHorizontalAngle) * _distance;
-                rightX = sin(angleIncrement * (i + 1) - halfHorizontalAngle) * _distance;
-                leftZ = -cos(angleIncrement * i - halfHorizontalAngle) * _distance;
-                rightZ = -cos(angleIncrement * (i + 1) - halfHorizontalAngle) * _distance;
-                if (_uiType == 2) {
-                    topZ = -cos((verticalAngleIncrement * (j + 1) - halfVerticalAngle) * overlayAspectRatio) * _distance;
-                    bottomZ = -cos((verticalAngleIncrement * j - halfVerticalAngle) * overlayAspectRatio) * _distance;
-                } else {
-                    topZ = -99999;
-                    bottomZ = -99999;
-                }
-
-                glTexCoord2f(quadTexWidth * i, (j + 1) * quadTexHeight); 
-                glVertex3f(leftX, (j + 1) * quadTexHeight * overlayHeight - halfOverlayHeight, max(topZ, leftZ));
-                glTexCoord2f(quadTexWidth * (i + 1), (j + 1) * quadTexHeight); 
-                glVertex3f(rightX, (j + 1) * quadTexHeight * overlayHeight - halfOverlayHeight, max(topZ, rightZ));
-                glTexCoord2f(quadTexWidth * (i + 1), j * quadTexHeight); 
-                glVertex3f(rightX, j * quadTexHeight * overlayHeight - halfOverlayHeight, max(bottomZ, rightZ));
-                glTexCoord2f(quadTexWidth * i, j * quadTexHeight); 
-                glVertex3f(leftX, j * quadTexHeight * overlayHeight - halfOverlayHeight, max(bottomZ, leftZ));
-            }
-        }
-
-        glEnd();
-    }
+    renderTexturedHemisphere();
+   
+    renderControllerPointersOculus();
 
     glPopMatrix();
 
@@ -272,51 +220,37 @@ void ApplicationOverlay::renderPointers() {
     Application* application = Application::getInstance();
     // Render a crosshair over the mouse when in Oculus
     _numMagnifiers = 0;
-    int mouseX = application->getMouseX();
-    int mouseY = application->getMouseY();
+
+    //lazily load crosshair texture
+    if (_crosshairTexture == 0) {
+        _crosshairTexture = Application::getInstance()->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/sixense-reticle.png"));
+    }
+    glEnable(GL_TEXTURE_2D);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
+    
 
     if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
-        const float pointerWidth = 10;
-        const float pointerHeight = 10;
-        const float crossPad = 4;
-
+        //If we are in oculus, render reticle later
         _numMagnifiers = 1;
         _mouseX[0] = application->getMouseX();
         _mouseY[0] = application->getMouseY();
-
-        mouseX -= pointerWidth / 2.0f;
-        mouseY += pointerHeight / 2.0f;
-
-        glBegin(GL_QUADS);
-
-        glColor3f(1, 0, 0);
-
-        //Horizontal crosshair
-        glVertex2i(mouseX, mouseY - crossPad);
-        glVertex2i(mouseX + pointerWidth, mouseY - crossPad);
-        glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight + crossPad);
-        glVertex2i(mouseX, mouseY - pointerHeight + crossPad);
-
-        //Vertical crosshair
-        glVertex2i(mouseX + crossPad, mouseY);
-        glVertex2i(mouseX + pointerWidth - crossPad, mouseY);
-        glVertex2i(mouseX + pointerWidth - crossPad, mouseY - pointerHeight);
-        glVertex2i(mouseX + crossPad, mouseY - pointerHeight);
-
-        glEnd();
     } else if (application->getLastMouseMoveType() == CONTROLLER_MOVE_EVENT && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
-        renderControllerPointer();
+        renderControllerPointers();
     }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+
 }
 
-void ApplicationOverlay::renderControllerPointer() {
+void ApplicationOverlay::renderControllerPointers() {
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
-    int numberOfPalms = handData->getNumPalms();
 
     for (unsigned int palmIndex = 2; palmIndex < 4; palmIndex++) {
         const PalmData* palmData = NULL;
@@ -334,14 +268,15 @@ void ApplicationOverlay::renderControllerPointer() {
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
-        // Get the angles, scaled between 0-1
-        float xAngle = (atan2(direction.z, direction.x) + M_PI_2) + 0.5f;
-        float yAngle = 1.0f - ((atan2(direction.z, direction.y) + M_PI_2) + 0.5f);
+        // Get the angles, scaled between (-0.5,0.5)
+        float xAngle = (atan2(direction.z, direction.x) + M_PI_2) ;
+        float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
-        float cursorRange = glWidget->width();
+        // Get the pixel range over which the xAngle and yAngle are scaled
+        float cursorRange = glWidget->width() * application->getSixenseManager()->getCursorPixelRangeMult();
 
-        int mouseX = cursorRange * xAngle;
-        int mouseY = cursorRange * yAngle;
+        int mouseX = glWidget->width() / 2.0f + cursorRange * xAngle;
+        int mouseY = glWidget->height() / 2.0f + cursorRange * yAngle;
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
@@ -350,18 +285,16 @@ void ApplicationOverlay::renderControllerPointer() {
 
         float pointerWidth = 40;
         float pointerHeight = 40;
-        float crossPad = 16;
+     
         //if we have the oculus, we should make the cursor smaller since it will be
         //magnified
         if (OculusManager::isConnected()) {
-            pointerWidth /= 4;
-            pointerHeight /= 4;
-            crossPad /= 4;
 
             _mouseX[_numMagnifiers] = mouseX;
             _mouseY[_numMagnifiers] = mouseY;
             _numMagnifiers++;
-
+            //If oculus is enabled, we draw the crosshairs later
+            continue;
         }
 
         mouseX -= pointerWidth / 2.0f;
@@ -369,98 +302,41 @@ void ApplicationOverlay::renderControllerPointer() {
 
         glBegin(GL_QUADS);
 
-        glColor3f(0.0f, 0.0f, 1.0f);
+        glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
 
-        //Horizontal crosshair
-        glVertex2i(mouseX, mouseY - crossPad);
-        glVertex2i(mouseX + pointerWidth, mouseY - crossPad);
-        glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight + crossPad);
-        glVertex2i(mouseX, mouseY - pointerHeight + crossPad);
-
-        //Vertical crosshair
-        glVertex2i(mouseX + crossPad, mouseY);
-        glVertex2i(mouseX + pointerWidth - crossPad, mouseY);
-        glVertex2i(mouseX + pointerWidth - crossPad, mouseY - pointerHeight);
-        glVertex2i(mouseX + crossPad, mouseY - pointerHeight);
+        glTexCoord2d(0.0f, 0.0f); glVertex2i(mouseX, mouseY);
+        glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + pointerWidth, mouseY);
+        glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight);
+        glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - pointerHeight);
 
         glEnd();
     }
 }
 
-//Renders a small magnification of the currently bound texture at the coordinates
-void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
-{
+void ApplicationOverlay::renderControllerPointersOculus() {
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
-    MyAvatar* myAvatar = application->getAvatar();
-    const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
-
-    float leftX, rightX, leftZ, rightZ, topZ, bottomZ;
 
     const int widgetWidth = glWidget->width();
     const int widgetHeight = glWidget->height();
-    const float magnification = 4.0f;
+  
+    const float reticleSize = 50.0f;
 
-    // Get vertical FoV of the displayed overlay texture
-    const float halfVerticalAngle = _oculusAngle / 2.0f;
-    const float overlayAspectRatio = glWidget->width() / (float)glWidget->height();
-    const float halfOverlayHeight = _distance * tan(halfVerticalAngle);
+    glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
+    glDisable(GL_DEPTH_TEST);
+    
+    for (int i = 0; i < _numMagnifiers; i++) {
 
-    // Get horizontal angle and angle increment from vertical angle and aspect ratio
-    const float horizontalAngle = halfVerticalAngle * 2.0f * overlayAspectRatio;
-    const float halfHorizontalAngle = horizontalAngle / 2;
-
-
-    float magnifyWidth = 80.0f;
-    float magnifyHeight = 60.0f;
-
-    mouseX -= magnifyWidth / 2;
-    mouseY -= magnifyHeight / 2;
-
-    //clamp the magnification
-    if (mouseX < 0) {
-        magnifyWidth += mouseX;
-        mouseX = 0;
-    } else if (mouseX + magnifyWidth > widgetWidth) {
-        magnifyWidth = widgetWidth - mouseX;
-    }
-    if (mouseY < 0) {
-        magnifyHeight += mouseY;
-        mouseY = 0;
-    } else if (mouseY + magnifyHeight > widgetHeight) {
-        magnifyHeight = widgetHeight - mouseY;
-    }
-
-    const float halfMagnifyHeight = magnifyHeight / 2.0f;
-
-    float newWidth = magnifyWidth * magnification;
-    float newHeight = magnifyHeight * magnification;
-
-    // Magnification Texture Coordinates
-    float magnifyULeft = mouseX / (float)widgetWidth;
-    float magnifyURight = (mouseX + magnifyWidth) / (float)widgetWidth;
-    float magnifyVBottom = 1.0f - mouseY / (float)widgetHeight;
-    float magnifyVTop = 1.0f - (mouseY + magnifyHeight) / (float)widgetHeight;
-
-    // Coordinates of magnification overlay
-    float newMouseX = (mouseX + magnifyWidth / 2) - newWidth / 2.0f;
-    float newMouseY = (mouseY + magnifyHeight / 2) + newHeight / 2.0f;
-
-    // Get angle on the UI
-    float leftAngle = (newMouseX / (float)widgetWidth) * horizontalAngle - halfHorizontalAngle;
-    float rightAngle = ((newMouseX + newWidth) / (float)widgetWidth) * horizontalAngle - halfHorizontalAngle;
-
-    float bottomAngle = (newMouseY / (float)widgetHeight) * _oculusAngle - halfVerticalAngle;
-    float topAngle = ((newMouseY - newHeight) / (float)widgetHeight) * _oculusAngle - halfVerticalAngle;
-
-    // Get position on hemisphere using angle
-    if (_uiType == HEMISPHERE) {
-
+        float mouseX = (float)_mouseX[i];
+        float mouseY = (float)_mouseY[i];
+        mouseX -= reticleSize / 2;
+        mouseY += reticleSize / 2;
+      
         //Get new UV coordinates from our magnification window
-        float newULeft = newMouseX / widgetWidth;
-        float newURight = (newMouseX + newWidth) / widgetWidth;
-        float newVBottom = 1.0 - newMouseY / widgetHeight;
-        float newVTop = 1.0 - (newMouseY - newHeight) / widgetHeight;
+        float newULeft = mouseX / widgetWidth;
+        float newURight = (mouseX + reticleSize) / widgetWidth;
+        float newVBottom = 1.0 - mouseY / widgetHeight;
+        float newVTop = 1.0 - (mouseY - reticleSize) / widgetHeight;
 
         // Project our position onto the hemisphere using the UV coordinates
         float lX = sin((newULeft - 0.5f) * _textureFov);
@@ -484,40 +360,86 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
 
         glBegin(GL_QUADS);
 
-        glTexCoord2f(magnifyULeft, magnifyVBottom); glVertex3f(lX, tY, -tlZ);
-        glTexCoord2f(magnifyURight, magnifyVBottom); glVertex3f(rX, tY, -trZ);
-        glTexCoord2f(magnifyURight, magnifyVTop); glVertex3f(rX, bY, -brZ);
-        glTexCoord2f(magnifyULeft, magnifyVTop); glVertex3f(lX, bY, -blZ);
+        glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
+            
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(lX, tY, -tlZ);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(rX, tY, -trZ);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(rX, bY, -brZ);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(lX, bY, -blZ);
 
         glEnd();
-
-    } else {
-        leftX = sin(leftAngle) * _distance;
-        rightX = sin(rightAngle) * _distance;
-        leftZ = -cos(leftAngle) * _distance;
-        rightZ = -cos(rightAngle) * _distance;
-        if (_uiType == CURVED_SEMICIRCLE) {
-            topZ = -cos(topAngle * overlayAspectRatio) * _distance;
-            bottomZ = -cos(bottomAngle * overlayAspectRatio) * _distance;
-        } else {
-            // Dont want to use topZ or bottomZ for SEMICIRCLE
-            topZ = -99999;
-            bottomZ = -99999;
-        }
-
-        float bottomY = (1.0 - newMouseY / (float)widgetHeight) * halfOverlayHeight * 2.0f - halfOverlayHeight;
-        float topY = bottomY + (newHeight / widgetHeight) * halfOverlayHeight * 2;
-
-        //TODO: Remove immediate mode in favor of VBO
-        glBegin(GL_QUADS);
-
-        glTexCoord2f(magnifyULeft, magnifyVBottom); glVertex3f(leftX, topY, max(topZ, leftZ));
-        glTexCoord2f(magnifyURight, magnifyVBottom); glVertex3f(rightX, topY, max(topZ, rightZ));
-        glTexCoord2f(magnifyURight, magnifyVTop); glVertex3f(rightX, bottomY, max(bottomZ, rightZ));
-        glTexCoord2f(magnifyULeft, magnifyVTop); glVertex3f(leftX, bottomY, max(bottomZ, leftZ));
-
-        glEnd();
+        
     }
+    glEnable(GL_DEPTH_TEST);
+}
+
+//Renders a small magnification of the currently bound texture at the coordinates
+void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
+{
+    Application* application = Application::getInstance();
+    QGLWidget* glWidget = application->getGLWidget();
+
+
+    const int widgetWidth = glWidget->width();
+    const int widgetHeight = glWidget->height();
+    const float magnification = 4.0f;
+
+    float magnifyWidth = 80.0f;
+    float magnifyHeight = 60.0f;
+
+    mouseX -= magnifyWidth / 2;
+    mouseY -= magnifyHeight / 2;
+
+    float newWidth = magnifyWidth * magnification;
+    float newHeight = magnifyHeight * magnification;
+
+    // Magnification Texture Coordinates
+    float magnifyULeft = mouseX / (float)widgetWidth;
+    float magnifyURight = (mouseX + magnifyWidth) / (float)widgetWidth;
+    float magnifyVBottom = 1.0f - mouseY / (float)widgetHeight;
+    float magnifyVTop = 1.0f - (mouseY + magnifyHeight) / (float)widgetHeight;
+
+    // Coordinates of magnification overlay
+    float newMouseX = (mouseX + magnifyWidth / 2) - newWidth / 2.0f;
+    float newMouseY = (mouseY + magnifyHeight / 2) + newHeight / 2.0f;
+
+    // Get position on hemisphere using angle
+
+    //Get new UV coordinates from our magnification window
+    float newULeft = newMouseX / widgetWidth;
+    float newURight = (newMouseX + newWidth) / widgetWidth;
+    float newVBottom = 1.0 - newMouseY / widgetHeight;
+    float newVTop = 1.0 - (newMouseY - newHeight) / widgetHeight;
+
+    // Project our position onto the hemisphere using the UV coordinates
+    float lX = sin((newULeft - 0.5f) * _textureFov);
+    float rX = sin((newURight - 0.5f) * _textureFov);
+    float bY = sin((newVBottom - 0.5f) * _textureFov);
+    float tY = sin((newVTop - 0.5f) * _textureFov);
+
+    float dist;
+    //Bottom Left
+    dist = sqrt(lX * lX + bY * bY);
+    float blZ = sqrt(1.0f - dist * dist);
+    //Top Left
+    dist = sqrt(lX * lX + tY * tY);
+    float tlZ = sqrt(1.0f - dist * dist);
+    //Bottom Right
+    dist = sqrt(rX * rX + bY * bY);
+    float brZ = sqrt(1.0f - dist * dist);
+    //Top Right
+    dist = sqrt(rX * rX + tY * tY);
+    float trZ = sqrt(1.0f - dist * dist);
+
+    glBegin(GL_QUADS);
+
+    glTexCoord2f(magnifyULeft, magnifyVBottom); glVertex3f(lX, tY, -tlZ);
+    glTexCoord2f(magnifyURight, magnifyVBottom); glVertex3f(rX, tY, -trZ);
+    glTexCoord2f(magnifyURight, magnifyVTop); glVertex3f(rX, bY, -brZ);
+    glTexCoord2f(magnifyULeft, magnifyVTop); glVertex3f(lX, bY, -blZ);
+
+    glEnd();
+
 }
 
 void ApplicationOverlay::renderAudioMeter() {
@@ -696,8 +618,11 @@ void ApplicationOverlay::renderTexturedHemisphere() {
     static VerticesIndices vbo(0, 0);
     int vertices = slices * (stacks - 1) + 1;
     int indices = slices * 2 * 3 * (stacks - 2) + slices * 3;
-    //We only generate the VBO once
-    if (vbo.first == 0) {
+
+    static float oldTextureFOV = _textureFov;
+    //We only generate the VBO when the _textureFov changes
+    if (vbo.first == 0 || oldTextureFOV != _textureFov) {
+        oldTextureFOV = _textureFov;
         TextureVertex* vertexData = new TextureVertex[vertices];
         TextureVertex* vertex = vertexData;
         for (int i = 0; i < stacks - 1; i++) {
@@ -722,7 +647,9 @@ void ApplicationOverlay::renderTexturedHemisphere() {
         vertex->uv.y = 0.5f;
         vertex++;
 
-        glGenBuffers(1, &vbo.first);
+        if (vbo.first == 0){
+            glGenBuffers(1, &vbo.first);
+        }
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
         const int BYTES_PER_VERTEX = sizeof(TextureVertex);
         glBufferData(GL_ARRAY_BUFFER, vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);

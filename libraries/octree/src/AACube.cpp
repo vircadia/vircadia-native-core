@@ -169,6 +169,18 @@ static bool findIntersection(float origin, float direction, float corner, float 
     return false;
 }
 
+// finds the intersection between a ray and the inside facing plane on one axis
+static bool findInsideOutIntersection(float origin, float direction, float corner, float size, float& distance) {
+    if (direction > EPSILON) {
+        distance = -1.0f * (origin - (corner + size)) / direction;
+        return true;
+    } else if (direction < -EPSILON) {
+        distance = -1.0f * (origin - corner) / direction;
+        return true;
+    }
+    return false;
+}
+
 bool AACube::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const {
     // handle the trivial cases where the expanded box contains the start or end
     if (expandedContains(start, expansion) || expandedContains(end, expansion)) {
@@ -196,9 +208,35 @@ bool AACube::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& 
 bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const {
     // handle the trivial case where the box contains the origin
     if (contains(origin)) {
+    
+        // We still want to calculate the distance from the origin to the inside out plane
+        float axisDistance;
+        if ((findInsideOutIntersection(origin.x, direction.x, _corner.x, _scale, axisDistance) && axisDistance >= 0 &&
+                isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale) &&
+                isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale))) {
+            distance = axisDistance;
+            face = direction.x > 0 ? MIN_X_FACE : MAX_X_FACE;
+            return true;
+        }
+        if ((findInsideOutIntersection(origin.y, direction.y, _corner.y, _scale, axisDistance) && axisDistance >= 0 &&
+                isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale) &&
+                isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale))) {
+            distance = axisDistance;
+            face = direction.y > 0 ? MIN_Y_FACE : MAX_Y_FACE;
+            return true;
+        }
+        if ((findInsideOutIntersection(origin.z, direction.z, _corner.z, _scale, axisDistance) && axisDistance >= 0 &&
+                isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale) &&
+                isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale))) {
+            distance = axisDistance;
+            face = direction.z > 0 ? MIN_Z_FACE : MAX_Z_FACE; 
+            return true;
+        }
+        // This case is unexpected, but mimics the previous behavior for inside out intersections
         distance = 0;
         return true;
     }
+    
     // check each axis
     float axisDistance;
     if ((findIntersection(origin.x, direction.x, _corner.x, _scale, axisDistance) && axisDistance >= 0 &&

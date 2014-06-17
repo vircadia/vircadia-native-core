@@ -25,14 +25,14 @@ AudioMixerClientData::AudioMixerClientData() :
 }
 
 AudioMixerClientData::~AudioMixerClientData() {
-    for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
+    for (int i = 0; i < _ringBuffers.size(); i++) {
         // delete this attached PositionalAudioRingBuffer
         delete _ringBuffers[i];
     }
 }
 
 AvatarAudioRingBuffer* AudioMixerClientData::getAvatarAudioRingBuffer() const {
-    for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
+    for (int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Microphone) {
             return (AvatarAudioRingBuffer*) _ringBuffers[i];
         }
@@ -79,7 +79,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         InjectedAudioRingBuffer* matchingInjectedRingBuffer = NULL;
 
-        for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
+        for (int i = 0; i < _ringBuffers.size(); i++) {
             if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector
                 && ((InjectedAudioRingBuffer*) _ringBuffers[i])->getStreamIdentifier() == streamIdentifier) {
                 matchingInjectedRingBuffer = (InjectedAudioRingBuffer*) _ringBuffers[i];
@@ -99,7 +99,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 }
 
 void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples) {
-    for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
+    for (int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->shouldBeAddedToMix(jitterBufferLengthSamples)) {
             // this is a ring buffer that is ready to go
             // set its flag so we know to push its buffer when all is said and done
@@ -113,7 +113,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
 }
 
 void AudioMixerClientData::pushBuffersAfterFrameSend() {
-    for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
+    for (int i = 0; i < _ringBuffers.size(); i++) {
         // this was a used buffer, push the output pointer forwards
         PositionalAudioRingBuffer* audioBuffer = _ringBuffers[i];
 
