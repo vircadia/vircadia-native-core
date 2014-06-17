@@ -1836,14 +1836,9 @@ void JSONWriter::addTypeStreamer(const TypeStreamer* streamer) {
     if (!_typeStreamerNames.contains(streamer->getName())) {
         _typeStreamerNames.insert(streamer->getName());
         
-        // start with a placeholder; then remove/replace with actual metadata
-        int index = _typeStreamers.size();
-        _typeStreamers.append(QJsonValue());
         QJsonValue metadata = streamer->getJSONMetadata(*this);
-        if (metadata.isNull()) {
-            _typeStreamers.removeAt(index);
-        } else {
-            _typeStreamers.replace(index, metadata);
+        if (!metadata.isNull()) {
+            _typeStreamers.append(metadata);
         }
     }
 }
@@ -1851,11 +1846,7 @@ void JSONWriter::addTypeStreamer(const TypeStreamer* streamer) {
 void JSONWriter::addObjectStreamer(const ObjectStreamer* streamer) {
     if (!_objectStreamerNames.contains(streamer->getName())) {
         _objectStreamerNames.insert(streamer->getName());
-        
-        // start with a placeholder; then replace with actual metadata
-        int index = _objectStreamers.size();
-        _objectStreamers.append(QJsonValue());
-        _objectStreamers.replace(index, streamer->getJSONMetadata(*this));
+        _objectStreamers.append(streamer->getJSONMetadata(*this));
     }
 }
 
@@ -1863,14 +1854,10 @@ void JSONWriter::addSharedObject(const SharedObjectPointer& object) {
     if (!_sharedObjectIDs.contains(object->getID())) {
         _sharedObjectIDs.insert(object->getID());
         
-        // start with a placeholder; then replace with actual object
-        int index = _sharedObjects.size();
-        _sharedObjects.append(QJsonValue());
-        
         QJsonObject sharedObject;
         sharedObject.insert("id", object->getID());
         sharedObject.insert("data", getData(static_cast<const QObject*>(object.data())));
-        _sharedObjects.replace(index, sharedObject);
+        _sharedObjects.append(sharedObject);
     }
 }
 
@@ -1885,9 +1872,8 @@ QJsonDocument JSONWriter::getDocument() const {
 
 JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode genericsMode) {
     QJsonObject top = document.object();
-    QJsonArray types = top.value("types").toArray();
-    for (int i = types.size() - 1; i >= 0; i--) {
-        QJsonObject type = types.at(i).toObject();
+    foreach (const QJsonValue& element, top.value("types").toArray()) {
+        QJsonObject type = element.toObject();
         QString name = type.value("name").toString();
         QByteArray latinName = name.toLatin1();
         const TypeStreamer* baseStreamer = Bitstream::getTypeStreamers().value(QMetaType::type(latinName));
@@ -1966,12 +1952,12 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
             QJsonArray array = type.value("fields").toArray();
             const QVector<MetaField>& metaFields = baseStreamer->getMetaFields(); 
             bool matches = (array.size() == metaFields.size());
-            for (int j = 0; j < array.size(); j++) {
-                QJsonObject object = array.at(j).toObject();
+            for (int i = 0; i < array.size(); i++) {
+                QJsonObject object = array.at(i).toObject();
                 TypeStreamerPointer streamer = getTypeStreamer(object.value("type").toString());
                 int index = baseStreamer->getFieldIndex(object.value("name").toString().toLatin1());
                 fields.append(StreamerIndexPair(streamer, index));
-                matches &= (index == j && streamer == metaFields.at(j).getStreamer());
+                matches &= (index == i && streamer == metaFields.at(i).getStreamer());
             }
             if (matches) {
                 _typeStreamers.insert(name, baseStreamer->getSelf());
@@ -2006,10 +1992,9 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
             }
         }
     }
-    
-    QJsonArray classes = top.value("classes").toArray();
-    for (int i = classes.size() - 1; i >= 0; i--) {
-        QJsonObject clazz = classes.at(i).toObject();
+
+    foreach (const QJsonValue& element, top.value("classes").toArray()) {
+        QJsonObject clazz = element.toObject();
         QString name = clazz.value("name").toString();
         QByteArray latinName = name.toLatin1();
         const ObjectStreamer* baseStreamer = Bitstream::getObjectStreamers().value(
@@ -2035,8 +2020,8 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
         QVector<StreamerPropertyPair> properties;
         QJsonArray propertyArray = clazz.value("properties").toArray();
         bool matches = (baseProperties.size() == propertyArray.size());
-        for (int j = 0; j < propertyArray.size(); j++) {
-            QJsonObject object = propertyArray.at(j).toObject();
+        for (int i = 0; i < propertyArray.size(); i++) {
+            QJsonObject object = propertyArray.at(i).toObject();
             TypeStreamerPointer typeStreamer = getTypeStreamer(object.value("type").toString());
             QMetaProperty metaProperty = metaObject->property(metaObject->indexOfProperty(
                 object.value("name").toString().toLatin1()));
@@ -2053,9 +2038,8 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
         }
     }
     
-    QJsonArray objects = top.value("objects").toArray();
-    for (int i = objects.size() - 1; i >= 0; i--) {
-        QJsonObject object = objects.at(i).toObject();
+    foreach (const QJsonValue& element, top.value("objects").toArray()) {
+        QJsonObject object = element.toObject();
         int id = object.value("id").toInt();
         QObject* qObject;
         putData(object.value("data"), qObject);
