@@ -154,7 +154,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     Application* application = Application::getInstance();
 
-    QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
     const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
 
@@ -221,8 +220,6 @@ void ApplicationOverlay::renderPointers() {
     Application* application = Application::getInstance();
     // Render a crosshair over the mouse when in Oculus
     _numMagnifiers = 0;
-    int mouseX = application->getMouseX();
-    int mouseY = application->getMouseY();
 
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {

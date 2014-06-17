@@ -1104,8 +1104,6 @@ void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJson
     } else if (userResponse == QMessageBox::Open) {
         Application::getInstance()->getAvatar()->goToLocationFromAddress(placeData["address"].toObject());
     }
-
-    LocationManager* manager = reinterpret_cast<LocationManager*>(sender());
 }
 
 void Menu::muteEnvironment() {
