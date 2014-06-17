@@ -9,10 +9,6 @@
 # 
 
 macro(AUTO_MTC TARGET ROOT_DIR)
-  if (NOT TARGET mtc)
-    add_subdirectory("${ROOT_DIR}/tools/mtc" "${ROOT_DIR}/tools/mtc")
-  endif ()
-  
   set(AUTOMTC_SRC ${TARGET}_automtc.cpp)
   
   file(GLOB INCLUDE_FILES src/*.h)

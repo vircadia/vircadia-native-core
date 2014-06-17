@@ -255,6 +255,8 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     jsonWriter << endRead;
     QByteArray encodedJson = jsonWriter.getDocument().toJson();
     
+    qDebug() << encodedJson;
+    
     // and read from JSON
     JSONReader jsonReader(QJsonDocument::fromJson(encodedJson), Bitstream::ALL_GENERICS);
     jsonReader >> testObjectReadA;

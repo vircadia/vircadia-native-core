@@ -805,6 +805,8 @@ public:
     
     template<class T> JSONWriter& operator<<(const T& value) { _contents.append(getData(value)); return *this; }
     
+    void appendToContents(const QJsonValue& value) { _contents.append(value); }
+    
     void addSharedObject(const SharedObjectPointer& object);
     void addObjectStreamer(const ObjectStreamer* streamer);
     void addTypeStreamer(const TypeStreamer* streamer);
@@ -893,6 +895,8 @@ public:
     
     template<class T> JSONReader& operator>>(T& value) { putData(*_contentsIterator++, value); return *this; }
 
+    QJsonValue retrieveNextFromContents() { return *_contentsIterator++; }
+    
     TypeStreamerPointer getTypeStreamer(const QString& name) const;
     ObjectStreamerPointer getObjectStreamer(const QString& name) const { return _objectStreamers.value(name); }
     SharedObjectPointer getSharedObject(int id) const { return _sharedObjects.value(id); }
