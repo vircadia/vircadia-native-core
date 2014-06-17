@@ -261,7 +261,8 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
         }
 
         if (_magSizeMult[i] > 0.0f) {
-            renderMagnifier(_magX[i], _magY[i], _magSizeMult[i]);
+            //Render magnifier, but dont show border for mouse magnifier
+            renderMagnifier(_magX[i], _magY[i], _magSizeMult[i], i != MOUSE);
         }
     }
 
@@ -518,7 +519,7 @@ void ApplicationOverlay::renderControllerPointersOculus() {
 }
 
 //Renders a small magnification of the currently bound texture at the coordinates
-void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult) const
+void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const
 {
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
@@ -596,22 +597,23 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult)
         trZ = 0;
     }
     
-    glDisable(GL_TEXTURE_2D);
-    glLineWidth(1.0f);
-    //Outer Line
-    glBegin(GL_LINE_STRIP);
-    glColor4f(1.0f, 0.0f, 0.0f, _alpha);
+    if (showBorder) {
+        glDisable(GL_TEXTURE_2D);
+        glLineWidth(1.0f);
+        //Outer Line
+        glBegin(GL_LINE_STRIP);
+        glColor4f(1.0f, 0.0f, 0.0f, _alpha);
 
-    glVertex3f(lX, tY, -tlZ);
-    glVertex3f(rX, tY, -trZ);
-    glVertex3f(rX, bY, -brZ);
-    glVertex3f(lX, bY, -blZ);
-    glVertex3f(lX, tY, -tlZ);
+        glVertex3f(lX, tY, -tlZ);
+        glVertex3f(rX, tY, -trZ);
+        glVertex3f(rX, bY, -brZ);
+        glVertex3f(lX, bY, -blZ);
+        glVertex3f(lX, tY, -tlZ);
 
+        glEnd();
+        glEnable(GL_TEXTURE_2D);
+    }
     glColor4f(1.0f, 1.0f, 1.0f, _alpha);
-
-    glEnd();
-    glEnable(GL_TEXTURE_2D);
 
     glBegin(GL_QUADS);
 

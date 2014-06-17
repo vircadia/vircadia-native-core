@@ -50,7 +50,7 @@ private:
     void renderPointers();
     void renderControllerPointers();
     void renderControllerPointersOculus();
-    void renderMagnifier(int mouseX, int mouseY, float sizeMult) const;
+    void renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const;
     void renderAudioMeter();
     void renderStatsAndLogs();
     void renderTexturedHemisphere();
