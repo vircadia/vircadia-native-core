@@ -224,6 +224,10 @@ void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
             
             // this element has changed so mark it...
             markWithChangedTime();
+
+            // TODO: is this a good place to change the containing element map???
+            //_myTree->setContainingElement(model.getModelItemID(), this);
+
         } else {
             ++modelItr;
         }
@@ -372,6 +376,10 @@ bool ModelTreeElement::updateModel(const ModelItem& model) {
                 
                 thisModel.copyChangedProperties(model);
                 markWithChangedTime();
+                
+                // TODO: can this be optimized to only set the containing element in cases where it could have
+                // changed or has not been set?
+                _myTree->setContainingElement(model.getModelItemID(), this);
             } else {
                 if (wantDebug) {
                     qDebug(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
@@ -384,6 +392,17 @@ bool ModelTreeElement::updateModel(const ModelItem& model) {
             return true;
         }
     }
+    
+    // If we didn't find the model here, then let's check to see if we should add it...
+    if (bestFitModelBounds(model)) {
+        _modelItems->push_back(model);
+        markWithChangedTime();
+
+        // TODO: can this be optimized to only set the containing element in cases where it could have
+        // changed or has not been set?
+        _myTree->setContainingElement(model.getModelItemID(), this);
+    }
+    
     return false;
 }
 
@@ -403,6 +422,11 @@ bool ModelTreeElement::updateModel(const ModelItemID& modelID, const ModelItemPr
         if (found) {
             thisModel.setProperties(properties);
             markWithChangedTime(); // mark our element as changed..
+
+            // TODO: can this be optimized to only set the containing element in cases where it could have
+            // changed or has not been set?
+            _myTree->setContainingElement(modelID, this);
+
             const bool wantDebug = false;
             if (wantDebug) {
                 uint64_t now = usecTimestampNow();
@@ -499,11 +523,37 @@ const ModelItem* ModelTreeElement::getModelWithID(uint32_t id) const {
     return foundModel;
 }
 
+const ModelItem* ModelTreeElement::getModelWithModelItemID(const ModelItemID& id) const {
+    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num models per elemen is small?)
+    const ModelItem* foundModel = NULL;
+    uint16_t numberOfModels = _modelItems->size();
+    for (uint16_t i = 0; i < numberOfModels; i++) {
+        if ((*_modelItems)[i].getModelItemID() == id) {
+            foundModel = &(*_modelItems)[i];
+            break;
+        }
+    }
+    return foundModel;
+}
+
 bool ModelTreeElement::removeModelWithID(uint32_t id) {
     bool foundModel = false;
     uint16_t numberOfModels = _modelItems->size();
     for (uint16_t i = 0; i < numberOfModels; i++) {
         if ((*_modelItems)[i].getID() == id) {
+            foundModel = true;
+            _modelItems->removeAt(i);
+            break;
+        }
+    }
+    return foundModel;
+}
+
+bool ModelTreeElement::removeModelWithModelItemID(const ModelItemID& id) {
+    bool foundModel = false;
+    uint16_t numberOfModels = _modelItems->size();
+    for (uint16_t i = 0; i < numberOfModels; i++) {
+        if ((*_modelItems)[i].getModelItemID() == id) {
             foundModel = true;
             _modelItems->removeAt(i);
             break;
@@ -561,7 +611,12 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
                     // reread only the changed properties
                     bytesForThisModel = tempModel.readModelDataFromBuffer(dataAt, bytesLeftToRead, args); 
                 }
+                
+                // here!
+                qDebug() << "ModelTreeElement::readElementDataFromBuffer() calling _myTree->storeModel(tempModel)";
                 _myTree->storeModel(tempModel);
+                
+                
                 dataAt += bytesForThisModel;
                 bytesLeftToRead -= bytesForThisModel;
                 bytesRead += bytesForThisModel;
@@ -587,8 +642,14 @@ bool ModelTreeElement::collapseChildren() {
 }
 
 
+/*
 void ModelTreeElement::storeModel(const ModelItem& model) {
     _modelItems->push_back(model);
     markWithChangedTime();
-}
 
+    // TODO: can this be optimized to only set the containing element in cases where it could have
+    // changed or has not been set?
+    _myTree->setContainingElement(model.getModelItemID(), this);
+
+}
+*/

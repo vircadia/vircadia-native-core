@@ -49,6 +49,7 @@ public:
     virtual bool rootElementHasData() const { return true; }
     virtual void update();
 
+    void OLD__storeModel(const ModelItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
     void storeModel(const ModelItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
     void updateModel(const ModelItemID& modelID, const ModelItemProperties& properties);
     void addModel(const ModelItemID& modelID, const ModelItemProperties& properties);
@@ -85,6 +86,19 @@ public:
     const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) {
         return _fbxService ? _fbxService->getGeometryForModel(modelItem) : NULL;
     }
+    
+    ModelTreeElement* getContainingElement(const ModelItemID& modelItemID) const {
+        // TODO: do we need to make this thread safe? Or is it acceptable as is
+        if (_modelToElementMap.contains(modelItemID)) {
+            return _modelToElementMap.value(modelItemID);
+        }
+        return NULL;
+    }
+
+    void setContainingElement(const ModelItemID& modelItemID, ModelTreeElement* element) {
+        // TODO: do we need to make this thread safe? Or is it acceptable as is
+        _modelToElementMap[modelItemID] = element;
+    }
 
 private:
 
@@ -107,6 +121,8 @@ private:
     QReadWriteLock _recentlyDeletedModelsLock;
     QMultiMap<quint64, uint32_t> _recentlyDeletedModelItemIDs;
     ModelItemFBXService* _fbxService;
+
+    QMap<ModelItemID, ModelTreeElement*> _modelToElementMap;
 };
 
 #endif // hifi_ModelTree_h

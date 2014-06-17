@@ -138,8 +138,10 @@ public:
     void getModels(const AACube& box, QVector<ModelItem*>& foundModels);
 
     const ModelItem* getModelWithID(uint32_t id) const;
+    const ModelItem* getModelWithModelItemID(const ModelItemID& id) const;
 
     bool removeModelWithID(uint32_t id);
+    bool removeModelWithModelItemID(const ModelItemID& id);
 
     bool containsModelBounds(const ModelItem& model) const;
     bool bestFitModelBounds(const ModelItem& model) const;

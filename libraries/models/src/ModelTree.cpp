@@ -74,121 +74,190 @@ bool ModelTree::findAndDeleteOperation(OctreeElement* element, void* extraData) 
     return true;
 }
 
-class FindAndUpdateModelOperator : public RecurseOctreeOperator {
+class StoreModelOperator : public RecurseOctreeOperator {
 public:
-    FindAndUpdateModelOperator(const ModelItem& searchModel);
+    StoreModelOperator(ModelTree* tree, const ModelItem& searchModel);
     virtual bool PreRecursion(OctreeElement* element);
     virtual bool PostRecursion(OctreeElement* element);
-    bool wasFound() const { return _found; }
+    virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex);
 private:
-    const ModelItem& _searchModel;
-    bool _found;
+    ModelTree* _tree;
+    const ModelItem& _newModel;
+    const ModelItem* _oldModel;
+    ModelTreeElement* _containingElement;
+    bool _foundOld;
+    bool _foundNew;
+    quint64 _changeTime;
+
+    bool subTreeContainsOldModel(OctreeElement* element);
+    bool subTreeContainsNewModel(OctreeElement* element);
 };
 
-FindAndUpdateModelOperator::FindAndUpdateModelOperator(const ModelItem& searchModel) :
-    _searchModel(searchModel),
-    _found(false) {
-};
+StoreModelOperator::StoreModelOperator(ModelTree* tree, const ModelItem& searchModel) :
+    _tree(tree),
+    _newModel(searchModel),
+    _oldModel(NULL),
+    _containingElement(NULL),
+    _foundOld(false),
+    _foundNew(false),
+    _changeTime(usecTimestampNow())
+{
+    // check our tree, to determine if this model is known
+    _containingElement = _tree->getContainingElement(searchModel.getModelItemID());
+    
+    qDebug() << "StoreModelOperator::StoreModelOperator().... _containingElement=" << _containingElement;
 
-bool FindAndUpdateModelOperator::PreRecursion(OctreeElement* element) {
-    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
-    // Note: updateModel() will only operate on correctly found models
-    if (modelTreeElement->updateModel(_searchModel)) {
-        _found = true;
-        return false; // stop searching
+    if (_containingElement) {
+        _oldModel = _containingElement->getModelWithModelItemID(searchModel.getModelItemID());
+        assert(_oldModel);
+
+        // if we do know the old model, then check to see if the position and/or size has
+        // changed. If it hasn't changed, then we can be confident that the new properties
+        // won't change the element that the model will be stored in
+        if (_oldModel->getAACube() == _newModel.getAACube()) {
+            _foundOld = true;
+        }
+    } else {
+        // if the old model is not known, then we can consider if found, and
+        // we'll only be searching for the new location
+        _foundOld = true;
     }
-
-    return !_found; // if we haven't yet found it, keep looking
 }
 
-bool FindAndUpdateModelOperator::PostRecursion(OctreeElement* element) {
-    if (_found) {
+// does this model tree element contain the old model
+bool StoreModelOperator::subTreeContainsOldModel(OctreeElement* element) {
+    bool containsModel = false;
+
+    // If we don't have an old model, then we don't contain the model, otherwise
+    // check the bounds
+    if (_oldModel) {
+        AACube elementCube = element->getAACube();
+        AACube modelCube = _oldModel->getAACube();
+        containsModel = elementCube.contains(modelCube);
+    }
+    return containsModel;
+}
+
+bool StoreModelOperator::subTreeContainsNewModel(OctreeElement* element) {
+    AACube elementCube = element->getAACube();
+    AACube modelCube = _newModel.getAACube();
+    return elementCube.contains(modelCube);
+}
+
+
+bool StoreModelOperator::PreRecursion(OctreeElement* element) {
+    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+    
+    // In Pre-recursion, we're generally deciding whether or not we want to recurse this
+    // path of the tree. For this operation, we want to recurse the branch of the tree if
+    // and of the following are true:
+    //   * We have not yet found the old model, and this branch contains our old model
+    //   * We have not yet found the new model, and this branch contains our new model
+    //
+    // Note: it's often the case that the branch in question contains both the old model
+    // and the new model.
+    
+    bool keepSearching = false; // assume we don't need to search any more
+    
+    // If we haven't yet found the old model, and this subTreeContains our old
+    // model, then we need to keep searching.
+    if (!_foundOld && subTreeContainsOldModel(element)) {
+        
+        // If this is the element we're looking for, then ask it to remove the old model
+        // and we can stop searching.
+        if (modelTreeElement == _containingElement) {
+            qDebug() << "StoreModelOperator::PreRecursion().. calling modelTreeElement->removeModelWithModelItemID()...";
+            modelTreeElement->removeModelWithModelItemID(_newModel.getModelItemID());
+            _foundOld = true;
+        } else {
+            // if this isn't the element we're looking for, then keep searching
+            keepSearching = true;
+        }
+    }
+
+    // If we haven't yet found the new model,  and this subTreeContains our new
+    // model, then we need to keep searching.
+    if (!_foundNew && subTreeContainsNewModel(element)) {
+    
+        // Note: updateModel() will only operate on correctly found models and/or add them
+        // to the element if they SHOULD be stored there.
+        if (modelTreeElement->updateModel(_newModel)) {
+            _foundNew = true;
+            // NOTE: don't change the keepSearching here, if it came in here
+            // false then we stay false, if it came in here true, then it
+            // means we're still searching for our old model and this branch
+            // contains our old model. In which case we want to keep searching.
+            
+        } else {
+            keepSearching = true;
+        }
+    }
+    
+    return keepSearching; // if we haven't yet found it, keep looking
+}
+
+bool StoreModelOperator::PostRecursion(OctreeElement* element) {
+    // Post-recursion is the unwinding process. For this operation, while we
+    // unwind we want to mark the path as being dirty if we changed it below.
+    // We might have two paths, one for the old model and one for the new model.
+    bool keepSearching = !_foundOld || !_foundNew;
+
+    // As we unwind, if we're in either of these two paths, we mark our element
+    // as dirty.
+    if ((_foundOld && subTreeContainsOldModel(element)) ||
+            (_foundNew && subTreeContainsNewModel(element))) {
         element->markWithChangedTime();
     }
-    return !_found; // if we haven't yet found it, keep looking
+    return keepSearching; // if we haven't yet found it, keep looking
 }
 
-// TODO: improve this to not use multiple recursions
+OctreeElement* StoreModelOperator::PossiblyCreateChildAt(OctreeElement* element, int childIndex) { 
+    // If we're getting called, it's because there was no child element at this index while recursing.
+    // We only care if this happens while still searching for the new model location.
+    // Check to see if 
+    if (!_foundNew) {
+        int indexOfChildContainingNewModel = element->getMyChildContaining(_newModel.getAACube());
+        
+        if (childIndex == indexOfChildContainingNewModel) {
+            return element->addChildAtIndex(childIndex);
+        }
+    }
+    return NULL; 
+}
+
+
 void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& senderNode) {
     // First, look for the existing model in the tree..
-    FindAndUpdateModelOperator theOperator(model);
+    StoreModelOperator theOperator(this, model);
     recurseTreeWithOperator(&theOperator);
-    
-    // if we didn't find it in the tree, then store it...
-    if (!theOperator.wasFound()) {
-        AACube modelCube = model.getAACube();
-        ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementContaining(model.getAACube());
-        element->storeModel(model);
-        
-        // In the case where we stored it, we also need to mark the entire "path" down to the model as
-        // having changed. Otherwise viewers won't see this change. So we call this recursion now that
-        // we know it will be found, this find/update will correctly mark the tree as changed.
-        recurseTreeWithOperator(&theOperator);
-    }
-
     _isDirty = true;
-}
 
+    ModelTreeElement* containingElement = getContainingElement(model.getModelItemID());
+    qDebug() << "ModelTree::storeModel().... after store... containingElement=" << containingElement;
 
-class FindAndUpdateModelWithIDandPropertiesOperator : public RecurseOctreeOperator {
-public:
-    FindAndUpdateModelWithIDandPropertiesOperator(const ModelItemID& modelID, const ModelItemProperties& properties);
-    virtual bool PreRecursion(OctreeElement* element);
-    virtual bool PostRecursion(OctreeElement* element);
-    bool wasFound() const { return _found; }
-private:
-    const ModelItemID& _modelID;
-    const ModelItemProperties& _properties;
-    bool _found;
-};
-
-FindAndUpdateModelWithIDandPropertiesOperator::FindAndUpdateModelWithIDandPropertiesOperator(const ModelItemID& modelID, 
-    const ModelItemProperties& properties) :
-    _modelID(modelID),
-    _properties(properties),
-    _found(false) {
-};
-
-bool FindAndUpdateModelWithIDandPropertiesOperator::PreRecursion(OctreeElement* element) {
-    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
-
-    // Note: updateModel() will only operate on correctly found models
-    if (modelTreeElement->updateModel(_modelID, _properties)) {
-        _found = true;
-        return false; // stop searching
-    }
-    return !_found; // if we haven't yet found it, keep looking
-}
-
-bool FindAndUpdateModelWithIDandPropertiesOperator::PostRecursion(OctreeElement* element) {
-    if (_found) {
-        element->markWithChangedTime();
-    }
-    return !_found; // if we haven't yet found it, keep looking
 }
 
 void ModelTree::updateModel(const ModelItemID& modelID, const ModelItemProperties& properties) {
-    // Look for the existing model in the tree..
-    FindAndUpdateModelWithIDandPropertiesOperator theOperator(modelID, properties);
-    recurseTreeWithOperator(&theOperator);
-    if (theOperator.wasFound()) {
-        _isDirty = true;
+    ModelItem updateItem(modelID);
+    
+    // since the properties might not be complete, they may only contain some values,
+    // we need to first see if we already have the model in our tree, and make a copy of
+    // its existing properties first
+    ModelTreeElement* containingElement = getContainingElement(modelID);
+
+    if (containingElement) {
+        const ModelItem* oldModel = containingElement->getModelWithModelItemID(modelID);
+        if (oldModel) {
+            updateItem.setProperties(oldModel->getProperties());
+        }
     }
+    updateItem.setProperties(properties);
+    storeModel(updateItem);
 }
 
 void ModelTree::addModel(const ModelItemID& modelID, const ModelItemProperties& properties) {
-    // This only operates on locally created models
-    if (modelID.isKnownID) {
-        return; // not allowed
-    }
-    ModelItem model(modelID, properties);
-    glm::vec3 position = model.getPosition();
-    float size = std::max(MINIMUM_MODEL_ELEMENT_SIZE, model.getRadius());
-    
-    ModelTreeElement* element = static_cast<ModelTreeElement*>(getOrCreateChildElementAt(position.x, position.y, position.z, size));
-    element->storeModel(model);
-    
-    _isDirty = true;
+    ModelItem updateItem(modelID, properties);
+    storeModel(updateItem);
 }
 
 void ModelTree::deleteModel(const ModelItemID& modelID) {
