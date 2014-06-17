@@ -97,6 +97,9 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, const unsi
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
             if (node->getActiveSocket()) {
                 QByteArray packet(reinterpret_cast<const char*>(buffer), length);
+
+                bool send = randFloat() < 0.7f;
+                if (send)
                 queuePacketForSending(node, packet);
 
                 // extract sequence number and add packet to history
@@ -104,6 +107,10 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, const unsi
                 const char* dataAt = reinterpret_cast<const char*>(packet.data());
                 unsigned short int sequence = (*((unsigned short int*)(dataAt + numBytesPacketHeader)));
                 _sentPacketHistories[nodeUUID].packetSent(sequence, packet);
+
+                if (!send) {
+                    printf("\t\t dropped packet %d !!!\n", sequence);
+                }
 
                 // debugging output...
                 bool wantDebugging = false;
@@ -314,14 +321,7 @@ void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, Pa
     unsigned short int* sequenceAt = (unsigned short int*)&packetBuffer._currentBuffer[packetBuffer._currentSize];
     *sequenceAt = _sequenceNumber;
     packetBuffer._currentSize += sizeof(unsigned short int); // nudge past sequence
-    if (randFloat() < 0.6f)
     _sequenceNumber++;
-    else
-    {
-        int x = randIntInRange(2, 4);
-        printf("\t\t seq number jumped from %d to %d\n", _sequenceNumber, _sequenceNumber + x);
-        _sequenceNumber += x;
-    }
 
     // pack in timestamp
     quint64 now = usecTimestampNow();
@@ -368,7 +368,8 @@ void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
         // retrieve packet from history
         const QByteArray* packet = sentPacketHistory.getPacket(sequenceNumber);
         if (packet) {
-            queuePacketToNode(sendingNodeUUID, (const unsigned char*)packet->constData(), packet->length());
+            const SharedNodePointer& node = NodeList::getInstance()->getNodeHash().value(sendingNodeUUID);
+            queuePacketForSending(node, *packet);
         }
     }
 }

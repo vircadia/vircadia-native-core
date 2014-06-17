@@ -194,8 +194,6 @@ void OctreeInboundPacketProcessor::trackInboundPacket(const QUuid& nodeUUID, uns
 
 int OctreeInboundPacketProcessor::sendNackPackets() {
 
-    printf("\t\t sendNackPackets()\n");
-
     int packetsSent = 0;
 
     NodeToSenderStatsMapIterator i = _singleSenderStats.begin();
@@ -336,7 +334,9 @@ printf("\t\t tracked seq %d\n", incomingSequence);
             printf("\t\t\t packet is late!\n");
 
             // remove this from missing sequence number if it's in there
-            _missingSequenceNumbers.remove(incomingSequence);
+            if (_missingSequenceNumbers.remove(incomingSequence)) {
+                printf("\t\t\t\t packet %d recovered!!!\n", incomingSequence);
+            }
 
             // do not update _incomingLastSequence
         }
