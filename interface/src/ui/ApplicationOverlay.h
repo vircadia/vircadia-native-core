@@ -27,13 +27,14 @@ public:
     ~ApplicationOverlay();
 
     void renderOverlay(bool renderToTexture = false);
-    void displayOverlayTexture(Camera& whichCamera);
+    void displayOverlayTexture();
     void displayOverlayTextureOculus(Camera& whichCamera);
     void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
     void getClickLocation(int &x, int &y) const;
 
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();
+    float getAlpha() const { return _alpha; }
   
 private:
     // Interleaved vertex data
@@ -67,6 +68,9 @@ private:
     int _magX[3];
     int _magY[3];
     
+    float _alpha;
+    bool _active;
+
     GLuint _crosshairTexture;
 };
 

@@ -20,6 +20,8 @@
 
 #include "ui/Stats.h"
 
+const float FADE_SPEED = 0.02f;
+
 // Fast helper functions
 inline float max(float a, float b) {
     return (a > b) ? a : b;
@@ -34,7 +36,9 @@ ApplicationOverlay::ApplicationOverlay() :
     _oculusAngle(65.0f * RADIANS_PER_DEGREE),
     _distance(0.5f),
     _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
-    _crosshairTexture(0) {
+    _crosshairTexture(0),
+    _alpha(1.0f),
+    _active(true) {
 
     _reticleActive[MOUSE] = false;
     _reticleActive[LEFT_CONTROLLER] = false;
@@ -65,12 +69,27 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
 
+    //Handle fadeing and deactivation/activation of UI
+    printf("%f\n", _alpha);
+    if (_active) {
+        _alpha += FADE_SPEED;
+        if (_alpha > 1.0f) {
+            _alpha = 1.0f;
+        }
+    } else {
+        _alpha -= FADE_SPEED;
+        if (_alpha <= 0.0f) {
+            _alpha = 0.0f;
+        }
+    }
+
     if (renderToTexture) {
         getFramebufferObject()->bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 
     // Render 2D overlay
     glMatrixMode(GL_PROJECTION);
@@ -109,7 +128,11 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
 }
 
 // Draws the FBO texture for the screen
-void ApplicationOverlay::displayOverlayTexture(Camera& whichCamera) {
+void ApplicationOverlay::displayOverlayTexture() {
+
+    if (_alpha == 0.0f) {
+        return;
+    }
 
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
@@ -125,13 +148,16 @@ void ApplicationOverlay::displayOverlayTexture(Camera& whichCamera) {
     gluOrtho2D(0, glWidget->width(), glWidget->height(), 0);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
+    glEnable(GL_BLEND);
 
     glBegin(GL_QUADS);
+    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
     glTexCoord2f(0, 0); glVertex2i(0, glWidget->height());
     glTexCoord2f(1, 0); glVertex2i(glWidget->width(), glWidget->height());
     glTexCoord2f(1, 1); glVertex2i(glWidget->width(), 0);
     glTexCoord2f(0, 1); glVertex2i(0, 0);
     glEnd();
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
     glPopMatrix();
     glDisable(GL_TEXTURE_2D);
@@ -181,6 +207,10 @@ void ApplicationOverlay::getClickLocation(int &x, int &y) const {
 // Draws the FBO texture for Oculus rift. TODO: Draw a curved texture instead of plane.
 void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
+    if (_alpha == 0.0f) {
+        return;
+    }
+
     Application* application = Application::getInstance();
 
     QGLWidget* glWidget = application->getGLWidget();
@@ -214,8 +244,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glTranslatef(pos.x, pos.y, pos.z);
     glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
 
-    glColor3f(1.0f, 1.0f, 1.0f);
-
     glDepthMask(GL_TRUE);
     
     glEnable(GL_ALPHA_TEST);
@@ -232,6 +260,8 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glDepthMask(GL_FALSE);   
     glDisable(GL_ALPHA_TEST);
 
+    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
+
     renderTexturedHemisphere();
    
     renderControllerPointersOculus();
@@ -244,6 +274,8 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_LIGHTING);
+
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
 }
 
@@ -292,9 +324,12 @@ void ApplicationOverlay::renderControllerPointers() {
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
 
+    //Static variables used for storing controller state
     static unsigned int pressedTime[2] = { 0, 0 };
     static bool isPressed[2] = { false, false };
     static bool stateWhenPressed[2] = { false, false };
+    static bool triggerPressed[2] = { false, false };
+    static bool bumperPressed[2] = { false, false };
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
 
@@ -332,6 +367,29 @@ void ApplicationOverlay::renderControllerPointers() {
                 _magActive[index] = !stateWhenPressed[index];
             }
         }
+
+        //Check for UI active toggle
+        if (palmData->getTrigger() == 1.0f) {
+            if (!triggerPressed[index]) {
+                if (bumperPressed[index]) {
+                    _active = !_active;
+                }
+                triggerPressed[index] = true;
+            }
+        } else {
+            triggerPressed[index] = false;
+        }
+        if ((controllerButtons & BUTTON_FWD)) {
+            if (!bumperPressed[index]) {
+                if (triggerPressed[index]) {
+                    _active = !_active;
+                }
+                bumperPressed[index] = true;
+            }
+        } else {
+            bumperPressed[index] = false;
+        }
+
 
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
@@ -440,7 +498,7 @@ void ApplicationOverlay::renderControllerPointersOculus() {
 
         glBegin(GL_QUADS);
 
-        glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
+        glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
             
         glTexCoord2f(0.0f, 0.0f); glVertex3f(lX, tY, -tlZ);
         glTexCoord2f(1.0f, 0.0f); glVertex3f(rX, tY, -trZ);
@@ -509,7 +567,7 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
     glLineWidth(1.0f);
     //Outer Line
     glBegin(GL_LINE_STRIP);
-    glColor3f(1.0f, 0.0f, 0.0f);
+    glColor4f(1.0f, 0.0f, 0.0f, _alpha);
 
     glVertex3f(lX, tY, -tlZ);
     glVertex3f(rX, tY, -trZ);
@@ -517,7 +575,7 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
     glVertex3f(lX, bY, -blZ);
     glVertex3f(lX, tY, -tlZ);
 
-    glColor3f(1.0f, 1.0f, 1.0f);
+    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
 
     glEnd();
     glEnable(GL_TEXTURE_2D);
