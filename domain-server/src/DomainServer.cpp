@@ -659,7 +659,7 @@ void DomainServer::readAvailableDatagrams() {
                 wasNoisyTimerStarted = true;
             }
 
-            const quint64 NOISY_MESSAGE_INTERVAL_MSECS = 5 * 1000;
+            const qint64 NOISY_MESSAGE_INTERVAL_MSECS = 5 * 1000;
 
             if (requestAssignment.getType() != Assignment::AgentType
                 || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
