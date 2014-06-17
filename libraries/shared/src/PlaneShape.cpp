@@ -30,6 +30,10 @@ PlaneShape::PlaneShape(const glm::vec4& coefficients) :
     }
 }
 
+glm::vec3 PlaneShape::getNormal() const {
+    return _rotation * UNROTATED_NORMAL;
+}
+
 glm::vec4 PlaneShape::getCoefficients() const {
     glm::vec3 normal = _rotation * UNROTATED_NORMAL;
     return glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, _position));

@@ -18,6 +18,7 @@ class PlaneShape : public Shape {
 public:
     PlaneShape(const glm::vec4& coefficients = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
     
+    glm::vec3 getNormal() const;
     glm::vec4 getCoefficients() const;
 };
 
