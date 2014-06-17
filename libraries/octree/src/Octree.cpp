@@ -158,6 +158,13 @@ bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOpe
     if (operatorObject->PreRecursion(element)) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             OctreeElement* child = element->getChildAtIndex(i);
+            
+            // If there is now child at that location, the Operator may want to create a child at that location.
+            // So give the operator a chance to do so....
+            if (!child) {
+                child = operatorObject->PossiblyCreateChildAt(element, i);
+            }
+            
             if (child) {
                 if (!recurseElementWithOperator(child, operatorObject, recursionCount + 1)) {
                     break; // stop recursing if operator returns false...
@@ -586,7 +593,6 @@ OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, floa
 OctreeElement* Octree::getOrCreateChildElementContaining(const AACube& box) {
     return getRoot()->getOrCreateChildElementContaining(box);
 }
-
 
 // combines the ray cast arguments into a single object
 class RayArgs {

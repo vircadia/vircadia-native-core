@@ -41,6 +41,7 @@ class RecurseOctreeOperator {
 public:
     virtual bool PreRecursion(OctreeElement* element) = 0;
     virtual bool PostRecursion(OctreeElement* element) = 0;
+    virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex) { return NULL; }
 };
 
 // Callback function, for recuseTreeWithOperation

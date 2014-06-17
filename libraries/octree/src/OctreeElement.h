@@ -237,6 +237,7 @@ public:
 
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
     OctreeElement* getOrCreateChildElementContaining(const AACube& box);
+    int getMyChildContaining(const AACube& cube) const;
     int getMyChildContainingPoint(const glm::vec3& point) const;
 
 protected:
