@@ -33,8 +33,6 @@ inline float min(float a, float b) {
 
 ApplicationOverlay::ApplicationOverlay() : 
     _framebufferObject(NULL),
-    _oculusAngle(65.0f * RADIANS_PER_DEGREE),
-    _distance(0.5f),
     _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
     _crosshairTexture(0),
     _alpha(1.0f),
@@ -70,7 +68,6 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     MyAvatar* myAvatar = application->getAvatar();
 
     //Handle fadeing and deactivation/activation of UI
-    printf("%f\n", _alpha);
     if (_active) {
         _alpha += FADE_SPEED;
         if (_alpha > 1.0f) {
@@ -213,7 +210,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     Application* application = Application::getInstance();
 
-    QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
     const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
 
@@ -282,9 +278,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
     Application* application = Application::getInstance();
-    // Render a crosshair over the mouse when in Oculus
-    int mouseX = application->getMouseX();
-    int mouseY = application->getMouseY();
 
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {

@@ -57,8 +57,6 @@ private:
 
     QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;
-    float _oculusAngle;
-    float _distance;
     float _textureFov;
     // 0 = Mouse, 1 = Left Controller, 2 = Right Controller
     bool _reticleActive[3];
