@@ -34,7 +34,7 @@ OctreeEditPacketSender::OctreeEditPacketSender() :
     _maxPendingMessages(DEFAULT_MAX_PENDING_MESSAGES),
     _releaseQueuedMessagesPending(false),
     _serverJurisdictions(NULL),
-    _sequenceNumber(0),
+    _sequenceNumber(65500),
     _maxPacketSize(MAX_PACKET_SIZE) {
 }
 

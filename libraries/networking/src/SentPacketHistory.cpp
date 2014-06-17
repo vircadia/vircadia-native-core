@@ -9,21 +9,25 @@
 //
 
 #include "SentPacketHistory.h"
+#include <qdebug.h>
 
 SentPacketHistory::SentPacketHistory(int size)
     : _sentPackets(size),
     _newestPacketAt(0),
     _numExistingPackets(0),
-    _newestSequenceNumber(0)
+    _newestSequenceNumber(UINT16_MAX)
 {
 }
 
 void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& packet) {
 
-    if (sequenceNumber != 0 && sequenceNumber != _newestSequenceNumber + 1) {
-        printf("\t\tpacket history received unexpected seq number! prev: %hu  received: %hu **************** \n", _newestSequenceNumber, sequenceNumber);
+    // check if given seq number has the expected value.  if not, something's wrong with
+    // the code calling this function
+    uint16_t expectedSequenceNumber = _newestSequenceNumber + (uint16_t)1;
+    if (sequenceNumber != expectedSequenceNumber) {
+        qDebug() << "Unexpected sequence number passed to SentPacketHistory::packetSent()!"
+            << "Expected:" << expectedSequenceNumber << "Actual:" << sequenceNumber;
     }
-
 
     _newestSequenceNumber = sequenceNumber;
 
@@ -35,7 +39,6 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& pa
         _numExistingPackets++;
     }
 }
-
 
 const QByteArray* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
 

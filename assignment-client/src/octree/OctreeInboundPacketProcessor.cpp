@@ -289,7 +289,7 @@ printf("\t\t tracked seq %hu\n", incomingSequence);
     const int  MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
     const int MAX_MISSING_SEQUENCE_SIZE = 100;
 
-    unsigned short int expectedSequence = _totalPackets == 0 ? incomingSequence : _incomingLastSequence + 1;
+    unsigned short int expectedSequence = _totalPackets == 0 ? incomingSequence : _incomingLastSequence + (unsigned short int)1;
     
     if (incomingSequence == expectedSequence) {         // on time
         _incomingLastSequence = incomingSequence;
@@ -346,8 +346,8 @@ printf("\t\t tracked seq %hu\n", incomingSequence);
     // will be removed.
     if (_missingSequenceNumbers.size() > MAX_MISSING_SEQUENCE_SIZE) {
         
-        // the acceptable range of older sequence numbers may contain a rollover point; this must be handled.
-        // some sequence number in this list may be larger than _incomingLastSequence, indicating that they were received
+        // some older sequence numbers may be from before a rollover point; this must be handled.
+        // some sequence numbers in this list may be larger than _incomingLastSequence, indicating that they were received
         // before the most recent rollover.
         int cutoff = (int)_incomingLastSequence - MAX_REASONABLE_SEQUENCE_GAP;
         if (cutoff >= 0) {
