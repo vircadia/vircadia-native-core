@@ -123,11 +123,6 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         out << "QHash<QByteArray, int> " << name << "::createFieldIndices() {\n";
         out << "    QHash<QByteArray, int> indices;\n";
         out << "    int index = 1;\n";
-        foreach (const QString& base, str.clazz.bases) {
-            out << "    foreach (const MetaField& field, " << base << "::getMetaFields()) {\n";
-            out << "        indices.insert(field.getName(), index++);\n";
-            out << "    }\n";
-        }
         out << "    foreach (const MetaField& field, getMetaFields()) {\n";
         out << "        indices.insert(field.getName(), index++);\n";
         out << "    }\n";
@@ -231,15 +226,19 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         out << "}\n";
         
         out << "template<> void JSONReader::putData(const QJsonValue& data, " << name << "& value) {\n";
-        out << "    QJsonArray array = data.toArray();\n";
-        out << "    QJsonArray::const_iterator it = array.constBegin();\n";
-        /* foreach (const QString& base, str.clazz.bases) {
-            out << "    foreach (const QJsonValue& element, getData(static_cast<const " << base << "&>(value)).toArray()) {\n";
-            out << "        array.append(element);\n";
-            out << "    }\n";
-        } */
-        foreach (const Field& field, str.fields) {
-            out << "    putData(*it++, value." << field.name << ");\n";
+        if (!(str.clazz.bases.isEmpty() && str.fields.isEmpty())) {
+            out << "    QJsonArray array = data.toArray(), subarray;\n";
+            out << "    QJsonArray::const_iterator it = array.constBegin();\n";
+            foreach (const QString& base, str.clazz.bases) {
+                out << "    subarray = QJsonArray();\n";
+                out << "    for (int i = 0; i < " << base << "::getMetaFields().size(); i++) {\n";
+                out << "        subarray.append(*it++);\n";
+                out << "    }\n";
+                out << "    putData(subarray, static_cast<" << base << "&>(value));\n";
+            }
+            foreach (const Field& field, str.fields) {
+                out << "    putData(*it++, value." << field.name << ");\n";
+            }
         }
         out << "}\n";
         

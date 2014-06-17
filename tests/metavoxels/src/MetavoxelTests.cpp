@@ -252,8 +252,64 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     jsonWriter << testObjectReadA;
     jsonWriter << testObjectReadB;
     jsonWriter << messageRead;
-    qDebug() << jsonWriter.getDocument().toJson();
-    qDebug();
+    jsonWriter << endRead;
+    QByteArray encodedJson = jsonWriter.getDocument().toJson();
+    
+    // and read from JSON
+    JSONReader jsonReader(QJsonDocument::fromJson(encodedJson), Bitstream::ALL_GENERICS);
+    jsonReader >> testObjectReadA;
+    jsonReader >> testObjectReadB;
+    jsonReader >> messageRead;
+    jsonReader >> endRead;
+    
+    // reassign the ids
+    testObjectReadA->setID(testObjectWrittenA->getID());
+    testObjectReadA->setOriginID(testObjectWrittenA->getOriginID());
+    testObjectReadB->setID(testObjectWrittenB->getID());
+    testObjectReadB->setOriginID(testObjectWrittenB->getOriginID());
+    
+    // and back to binary
+    QByteArray secondCompareArray;
+    QDataStream secondCompareOutStream(&secondCompareArray, QIODevice::WriteOnly);
+    Bitstream secondCompareOut(secondCompareOutStream, Bitstream::FULL_METADATA);
+    secondCompareOut << testObjectReadA;
+    secondCompareOut << testObjectReadB;
+    secondCompareOut << messageRead;
+    secondCompareOut << endRead;
+    secondCompareOut.flush();
+    
+    if (compareArray != secondCompareArray) {
+        qDebug() << "Mismatch between written/JSON streams (generics).";
+        return true;
+    }
+    
+    // once more, with mapping!
+    JSONReader secondJSONReader(QJsonDocument::fromJson(encodedJson));
+    secondJSONReader >> testObjectReadA;
+    secondJSONReader >> testObjectReadB;
+    secondJSONReader >> messageRead;
+    secondJSONReader >> endRead;
+    
+    // reassign the ids
+    testObjectReadA->setID(testObjectWrittenA->getID());
+    testObjectReadA->setOriginID(testObjectWrittenA->getOriginID());
+    testObjectReadB->setID(testObjectWrittenB->getID());
+    testObjectReadB->setOriginID(testObjectWrittenB->getOriginID());
+    
+    // and back to binary
+    QByteArray thirdCompareArray;
+    QDataStream thirdCompareOutStream(&thirdCompareArray, QIODevice::WriteOnly);
+    Bitstream thirdCompareOut(thirdCompareOutStream, Bitstream::FULL_METADATA);
+    thirdCompareOut << testObjectReadA;
+    thirdCompareOut << testObjectReadB;
+    thirdCompareOut << messageRead;
+    thirdCompareOut << endRead;
+    thirdCompareOut.flush();
+    
+    if (compareArray != thirdCompareArray) {
+        qDebug() << "Mismatch between written/JSON streams (mapped).";
+        return true;
+    }
     
     return false;
 }

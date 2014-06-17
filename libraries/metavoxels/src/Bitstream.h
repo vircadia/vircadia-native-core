@@ -893,7 +893,7 @@ public:
     
     template<class T> JSONReader& operator>>(T& value) { putData(*_contentsIterator++, value); return *this; }
 
-    TypeStreamerPointer getTypeStreamer(const QString& name) const { return _typeStreamers.value(name); }
+    TypeStreamerPointer getTypeStreamer(const QString& name) const;
     ObjectStreamerPointer getObjectStreamer(const QString& name) const { return _objectStreamers.value(name); }
     SharedObjectPointer getSharedObject(int id) const { return _sharedObjects.value(id); }
 
@@ -1020,6 +1020,7 @@ public:
 private:
     
     friend class Bitstream;
+    friend class JSONReader;
     
     QByteArray _name;
     WeakObjectStreamerPointer _weakSelf;
@@ -1107,6 +1108,7 @@ public:
     virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
     virtual QJsonValue getJSONVariantData(JSONWriter& writer, const QVariant& value) const;
     virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual void putJSONVariantData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     
     virtual bool equal(const QVariant& first, const QVariant& second) const;
     
@@ -1237,11 +1239,13 @@ public:
     GenericTypeStreamer(const QByteArray& name);
 
     virtual const char* getName() const;
+    virtual void putJSONVariantData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
     virtual QVariant readVariant(Bitstream& in) const;
     
 protected:
     
     friend class Bitstream;
+    friend class JSONReader;
     
     QByteArray _name;
     WeakTypeStreamerPointer _weakSelf;
