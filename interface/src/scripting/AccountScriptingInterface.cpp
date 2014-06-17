@@ -15,7 +15,7 @@
 
 AccountScriptingInterface::AccountScriptingInterface() {
     AccountManager& accountManager = AccountManager::getInstance();
-    bool succ = connect(&accountManager, &AccountManager::balanceChanged, this,
+    connect(&accountManager, &AccountManager::balanceChanged, this,
             &AccountScriptingInterface::updateBalance);
     
 }
