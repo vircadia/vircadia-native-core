@@ -90,6 +90,7 @@ bool operator==(const QScriptValue& first, const QScriptValue& second) {
         return true;
         
     } else {
+        // if none of the above tests apply, first must be invalid
         return !second.isValid();
     }
 }
