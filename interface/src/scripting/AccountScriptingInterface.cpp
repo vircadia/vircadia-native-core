@@ -15,8 +15,9 @@
 
 AccountScriptingInterface::AccountScriptingInterface() {
     AccountManager& accountManager = AccountManager::getInstance();
-    connect(&accountManager, &AccountManager::balanceChanged, this,
+    bool succ = connect(&accountManager, &AccountManager::balanceChanged, this,
             &AccountScriptingInterface::updateBalance);
+    
 }
 
 AccountScriptingInterface* AccountScriptingInterface::getInstance() {
@@ -34,7 +35,7 @@ bool AccountScriptingInterface::isLoggedIn() {
     return accountManager.isLoggedIn();
 }
 
-void AccountScriptingInterface::updateBalance(qint64 newBalance) {
+void AccountScriptingInterface::updateBalance() {
     AccountManager& accountManager = AccountManager::getInstance();
     emit balanceChanged(accountManager.getAccountInfo().getBalanceInSatoshis());
 }

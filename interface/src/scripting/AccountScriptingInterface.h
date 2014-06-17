@@ -25,7 +25,7 @@ public slots:
     static AccountScriptingInterface* getInstance();
     float getBalance();
     bool isLoggedIn();
-    void updateBalance(qint64 newBalance);
+    void updateBalance();
 };
 
 #endif // hifi_AccountScriptingInterface_h
