@@ -411,11 +411,10 @@ void ApplicationOverlay::renderControllerPointers() {
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
+            _reticleActive[index] = false;
             continue;
         }
         _reticleActive[index] = true;
-        float pointerWidth = 40;
-        float pointerHeight = 40;
      
         //if we have the oculus, we should make the cursor smaller since it will be
         //magnified
@@ -435,17 +434,19 @@ void ApplicationOverlay::renderControllerPointers() {
             continue;
         }
 
-        mouseX -= pointerWidth / 2.0f;
-        mouseY += pointerHeight / 2.0f;
+        const float reticleSize = 40.0f;
+
+        mouseX -= reticleSize / 2.0f;
+        mouseY += reticleSize / 2.0f;
 
         glBegin(GL_QUADS);
 
         glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
 
         glTexCoord2d(0.0f, 0.0f); glVertex2i(mouseX, mouseY);
-        glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + pointerWidth, mouseY);
-        glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight);
-        glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - pointerHeight);
+        glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + reticleSize, mouseY);
+        glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + reticleSize, mouseY - reticleSize);
+        glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - reticleSize);
 
         glEnd();
     }
@@ -528,8 +529,8 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult)
     const float magnifyWidth = MAGNIFY_WIDTH * sizeMult;
     const float magnifyHeight = MAGNIFY_HEIGHT * sizeMult;
 
-    mouseX -= magnifyWidth;
-    mouseY -= magnifyHeight;
+    mouseX -= magnifyWidth / 2;
+    mouseY -= magnifyHeight / 2;
 
     float newWidth = magnifyWidth * MAGNIFY_MULT;
     float newHeight = magnifyHeight * MAGNIFY_MULT;
@@ -558,19 +559,43 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult)
     float bY = sin((newVBottom - 0.5f) * _textureFov);
     float tY = sin((newVTop - 0.5f) * _textureFov);
 
+    float blZ, tlZ, brZ, trZ;
+
     float dist;
+    float discriminant;
     //Bottom Left
     dist = sqrt(lX * lX + bY * bY);
-    float blZ = sqrt(1.0f - dist * dist);
+    discriminant = 1.0f - dist * dist;
+    if (discriminant > 0) {
+        blZ = sqrt(discriminant);
+    } else {
+        blZ = 0;
+    }
     //Top Left
     dist = sqrt(lX * lX + tY * tY);
-    float tlZ = sqrt(1.0f - dist * dist);
+    discriminant = 1.0f - dist * dist;
+    if (discriminant > 0) {
+        tlZ = sqrt(discriminant);
+    } else {
+        tlZ = 0;
+    }
     //Bottom Right
     dist = sqrt(rX * rX + bY * bY);
-    float brZ = sqrt(1.0f - dist * dist);
+    discriminant = 1.0f - dist * dist;
+    if (discriminant > 0) {
+        brZ = sqrt(discriminant);
+    } else {
+        brZ = 0;
+    }
     //Top Right
     dist = sqrt(rX * rX + tY * tY);
-    float trZ = sqrt(1.0f - dist * dist);
+    discriminant = 1.0f - dist * dist;
+    if (discriminant > 0) {
+        trZ = sqrt(discriminant);
+    } else {
+        trZ = 0;
+    }
+    
     glDisable(GL_TEXTURE_2D);
     glLineWidth(1.0f);
     //Outer Line
