@@ -54,5 +54,4 @@ void ReceivedPacketProcessor::nodeKilled(SharedNodePointer node) {
     lock();
     _nodePacketCounts.remove(node->getUUID());
     unlock();
-    printf("\n\t\t nodeKilled()!!!!! --------------------------\n\n");
 }

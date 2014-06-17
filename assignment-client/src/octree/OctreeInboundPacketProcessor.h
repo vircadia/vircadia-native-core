@@ -37,7 +37,6 @@ public:
     void trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
         int editsInPacket, quint64 processTime, quint64 lockWaitTime);
 
-        
     quint64 _totalTransitTime; 
     quint64 _totalProcessTime;
     quint64 _totalLockWaitTime;
@@ -95,7 +94,7 @@ private:
     quint64 _totalLockWaitTime;
     quint64 _totalElementsInPacket;
     quint64 _totalPackets;
-
+    
     NodeToSenderStatsMap _singleSenderStats;
 
     quint64 _lastNackTime;

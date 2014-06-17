@@ -204,7 +204,6 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
         // check if this node is still alive.  Remove its stats if it's dead.
         if (!isAlive(nodeUUID)) {
-            printf("\t\t removing node %s\n", nodeUUID.toString().toLatin1().data());
             i = _singleSenderStats.erase(i);
             continue;
         }
@@ -244,12 +243,10 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             dataAt += sizeof(uint16_t);
 
             // pack sequence numbers to nack
-            printf("\t\t sending NACK with %d seq numbers:\n\t\t", numSequenceNumbers);
             for (uint16_t i = 0; i < numSequenceNumbers; i++) {
                 unsigned short int* sequenceNumberAt = (unsigned short int*)dataAt;
                 *sequenceNumberAt = *missingSequenceNumberIterator;
                 dataAt += sizeof(unsigned short int);
-                printf("%d, ", *missingSequenceNumberIterator);
 
                 missingSequenceNumberIterator++;
             }
@@ -257,7 +254,6 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
             // send it
             qint64 bytesWritten = NodeList::getInstance()->writeDatagram(packet, dataAt - packet, destinationNode);
-            printf("\t\t wrote %lld bytes\n\n", bytesWritten);
 
             packetsSent++;
         }
@@ -281,8 +277,6 @@ SingleSenderStats::SingleSenderStats()
 
 void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
     int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
-
-printf("\t\t tracked seq %hu\n", incomingSequence);
 
     const int UINT16_RANGE = UINT16_MAX + 1;
 
@@ -321,8 +315,6 @@ printf("\t\t tracked seq %hu\n", incomingSequence);
 
         if (incoming > expected) {                          // early
 
-            printf("\t\t\t packet is early! %d packets were skipped\n", incoming - expected);
-
             // add all sequence numbers that were skipped to the missing sequence numbers list
             for (int missingSequence = expected; missingSequence < incoming; missingSequence++) {
                 _missingSequenceNumbers.insert(missingSequence < 0 ? missingSequence + UINT16_RANGE : missingSequence);
@@ -331,14 +323,10 @@ printf("\t\t tracked seq %hu\n", incomingSequence);
 
         } else {                                            // late
 
-            printf("\t\t\t packet is late!\n");
-
             // remove this from missing sequence number if it's in there
-            if (_missingSequenceNumbers.remove(incomingSequence)) {
-                printf("\t\t\t\t packet %d recovered!!!\n", incomingSequence);
-            }
+            _missingSequenceNumbers.remove(incomingSequence);
 
-            // do not update _incomingLastSequence
+            // do not update _incomingLastSequence; it shouldn't become smaller
         }
     }
 

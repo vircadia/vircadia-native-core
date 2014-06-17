@@ -34,7 +34,7 @@ OctreeEditPacketSender::OctreeEditPacketSender() :
     _maxPendingMessages(DEFAULT_MAX_PENDING_MESSAGES),
     _releaseQueuedMessagesPending(false),
     _serverJurisdictions(NULL),
-    _sequenceNumber(65500),
+    _sequenceNumber(0),
     _maxPacketSize(MAX_PACKET_SIZE) {
 }
 
@@ -98,35 +98,14 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, const unsi
             if (node->getActiveSocket()) {
                 QByteArray packet(reinterpret_cast<const char*>(buffer), length);
 
-                bool send = randFloat() < 0.7f;
-                if (send)
                 queuePacketForSending(node, packet);
 
                 // extract sequence number and add packet to history
                 int numBytesPacketHeader = numBytesForPacketHeader(packet);
                 const char* dataAt = reinterpret_cast<const char*>(packet.data()) + numBytesPacketHeader;
                 unsigned short int sequence = *((unsigned short int*)dataAt);
-/*
-// debug
-dataAt += sizeof(unsigned short int);
-
-// extract time stamp
-quint64 sentTime = *((quint64*)dataAt);
-dataAt += sizeof(quint64);
-
-PacketType type = packetTypeForPacket(packet);
-
-
-printf("adding packet to history. size: %d\n", packet.length());
-printf("type: %d, seq: %hu, time: %llu\n", (unsigned char)type, sequence, sentTime);
-printf("destination node: %s\n", nodeUUID.toString().toLatin1().data());
-fflush(stdout);
-*/  
+ 
                 _sentPacketHistories[nodeUUID].packetSent(sequence, packet);
-
-                if (!send) {
-                    printf("\t dropped packet %d !!! ---------------------------\n", sequence);
-                }
 
                 // debugging output...
                 bool wantDebugging = false;
