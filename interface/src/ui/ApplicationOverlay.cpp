@@ -13,6 +13,7 @@
 
 #include <QOpenGLFramebufferObject>
 #include <PerfStat.h>
+#include <SDL_timer.h>
 
 #include "Application.h"
 #include "ApplicationOverlay.h"
@@ -57,6 +58,7 @@ const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
+
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
     _textureFov = Menu::getInstance()->getOculusUIAngularSize() * RADIANS_PER_DEGREE;
