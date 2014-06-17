@@ -20,7 +20,10 @@
 
 #include "ui/Stats.h"
 
-const float FADE_SPEED = 0.02f;
+// Used to fade the UI
+const float FADE_SPEED = 0.08f;
+// Used to animate the magnification windows
+const float MAG_SPEED = 0.08f;
 
 // Fast helper functions
 inline float max(float a, float b) {
@@ -38,12 +41,9 @@ ApplicationOverlay::ApplicationOverlay() :
     _alpha(1.0f),
     _active(true) {
 
-    _reticleActive[MOUSE] = false;
-    _reticleActive[LEFT_CONTROLLER] = false;
-    _reticleActive[RIGHT_CONTROLLER] = false;
-    _magActive[MOUSE] = false;
-    _magActive[LEFT_CONTROLLER] = false;
-    _magActive[RIGHT_CONTROLLER] = false;
+    memset(_reticleActive, 0, sizeof(_reticleActive));
+    memset(_magActive, 0, sizeof(_reticleActive));
+    memset(_magSizeMult, 0, sizeof(_magSizeMult));
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
@@ -245,12 +245,24 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.01f);
 
-    //Draw the magnifiers
+    //Update and draw the magnifiers
     for (int i = 0; i < 3; i++) {
 
         if (_magActive[i]) {
-            renderMagnifier(_magX[i], _magY[i]);
-        } 
+            _magSizeMult[i] += MAG_SPEED;
+            if (_magSizeMult[i] > 1.0f) {
+                _magSizeMult[i] = 1.0f;
+            }
+        } else {
+            _magSizeMult[i] -= MAG_SPEED;
+            if (_magSizeMult[i] < 0.0f) {
+                _magSizeMult[i] = 0.0f;
+            }
+        }
+
+        if (_magSizeMult[i] > 0.0f) {
+            renderMagnifier(_magX[i], _magY[i], _magSizeMult[i]);
+        }
     }
 
     glDepthMask(GL_FALSE);   
@@ -505,7 +517,7 @@ void ApplicationOverlay::renderControllerPointersOculus() {
 }
 
 //Renders a small magnification of the currently bound texture at the coordinates
-void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
+void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult) const
 {
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
@@ -513,21 +525,24 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
     const int widgetWidth = glWidget->width();
     const int widgetHeight = glWidget->height();
 
-    mouseX -= MAGNIFY_WIDTH / 2;
-    mouseY -= MAGNIFY_HEIGHT / 2;
+    const float magnifyWidth = MAGNIFY_WIDTH * sizeMult;
+    const float magnifyHeight = MAGNIFY_HEIGHT * sizeMult;
 
-    float newWidth = MAGNIFY_WIDTH * MAGNIFY_MULT;
-    float newHeight = MAGNIFY_HEIGHT * MAGNIFY_MULT;
+    mouseX -= magnifyWidth;
+    mouseY -= magnifyHeight;
+
+    float newWidth = magnifyWidth * MAGNIFY_MULT;
+    float newHeight = magnifyHeight * MAGNIFY_MULT;
 
     // Magnification Texture Coordinates
     float magnifyULeft = mouseX / (float)widgetWidth;
-    float magnifyURight = (mouseX + MAGNIFY_WIDTH) / (float)widgetWidth;
+    float magnifyURight = (mouseX + magnifyWidth) / (float)widgetWidth;
     float magnifyVBottom = 1.0f - mouseY / (float)widgetHeight;
-    float magnifyVTop = 1.0f - (mouseY + MAGNIFY_HEIGHT) / (float)widgetHeight;
+    float magnifyVTop = 1.0f - (mouseY + magnifyHeight) / (float)widgetHeight;
 
     // Coordinates of magnification overlay
-    float newMouseX = (mouseX + MAGNIFY_WIDTH / 2) - newWidth / 2.0f;
-    float newMouseY = (mouseY + MAGNIFY_HEIGHT / 2) + newHeight / 2.0f;
+    float newMouseX = (mouseX + magnifyWidth / 2) - newWidth / 2.0f;
+    float newMouseY = (mouseY + magnifyHeight / 2) + newHeight / 2.0f;
 
     // Get position on hemisphere using angle
 
