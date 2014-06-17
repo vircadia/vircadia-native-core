@@ -66,4 +66,8 @@ private:
     glm::vec3 _scale;
 };
 
+inline bool operator==(const AABox& a, const AABox& b) {
+    return a.getCorner() == b.getCorner() && a.getDimensions() == b.getDimensions();
+}
+
 #endif // hifi_AABox_h

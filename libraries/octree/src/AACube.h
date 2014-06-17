@@ -61,4 +61,8 @@ private:
     float _scale;
 };
 
+inline bool operator==(const AACube& a, const AACube& b) {
+    return a.getCorner() == b.getCorner() && a.getScale() == b.getScale();
+}
+
 #endif // hifi_AACube_h
