@@ -772,7 +772,7 @@ bool findRayIntersectionWithShapes(const QVector<Shape*> shapes, const glm::vec3
         Shape* shape = shapes.at(i);
         if (shape) {
             float distance;
-            if (findRayIntersectionWithShape(shape, rayStart, rayDirection, distance)) {
+            if (shape->findRayIntersection(rayStart, rayDirection, distance)) {
                 if (distance < hitDistance) {
                     hitDistance = distance;
                 }
@@ -781,68 +781,6 @@ bool findRayIntersectionWithShapes(const QVector<Shape*> shapes, const glm::vec3
     }
     if (hitDistance < FLT_MAX) {
         minDistance = hitDistance;
-    }
-    return false;
-}
-
-bool findRayIntersectionWithShape(const Shape* shape, const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) {
-    // NOTE: rayDirection is assumed to be normalized
-    int typeA = shape->getType();
-    if (typeA == Shape::SPHERE_SHAPE) {
-        const SphereShape* sphere = static_cast<const SphereShape*>(shape);
-        glm::vec3 sphereCenter = sphere->getPosition();
-        float r2 = sphere->getRadius() * sphere->getRadius(); // r2 = radius^2
-
-        // compute closest approach (CA)
-        float a = glm::dot(sphere->getPosition() - rayStart, rayDirection); // a = distance from ray-start to CA
-        float b2 = glm::distance2(sphereCenter, rayStart + a * rayDirection); // b2 = squared distance from sphere-center to CA
-        if (b2 > r2) {
-            // ray does not hit sphere
-            return false;
-        }
-        float c = sqrtf(r2 - b2); // c = distance from CA to sphere surface along rayDirection
-        float d2 = glm::distance2(rayStart, sphereCenter); // d2 = squared distance from sphere-center to ray-start
-        if (a < 0.0f) {
-            // ray points away from sphere-center
-            if (d2 > r2) {
-                // ray starts outside sphere
-                return false;
-            }
-            // ray starts inside sphere
-            distance = c + a;
-        } else if (d2 > r2) {
-            // ray starts outside sphere
-            distance = a - c;
-        } else {
-            // ray starts inside sphere
-            distance = a + c;
-        }
-        return true;
-    } else if (typeA == Shape::CAPSULE_SHAPE) {
-        const CapsuleShape* capsule = static_cast<const CapsuleShape*>(shape);
-        float radius = capsule->getRadius();
-        glm::vec3 capsuleStart, capsuleEnd;
-        capsule->getStartPoint(capsuleStart);
-        capsule->getEndPoint(capsuleEnd);
-        // NOTE: findRayCapsuleIntersection returns 'true' with distance = 0 when rayStart is inside capsule.
-        // TODO: implement the raycast to return inside surface intersection for the internal rayStart.
-        return findRayCapsuleIntersection(rayStart, rayDirection, capsuleStart, capsuleEnd, radius, distance);
-    } else if (typeA == Shape::PLANE_SHAPE) {
-        const PlaneShape* plane = static_cast<const PlaneShape*>(shape);
-        glm::vec3 n = plane->getNormal();
-        glm::vec3 P = plane->getPosition();
-        float denominator = glm::dot(n, rayDirection);
-        if (fabsf(denominator) < EPSILON) {
-            // line is parallel to plane
-            return glm::dot(P - rayStart, n) < EPSILON;
-        } else {
-            float d = glm::dot(P - rayStart, n) / denominator;
-            if (d > 0.0f) {
-                // ray points toward plane
-                distance = d;
-                return true;
-            }
-        }
     }
     return false;
 }

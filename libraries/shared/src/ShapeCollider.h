@@ -157,13 +157,6 @@ namespace ShapeCollider {
     /// \return true if ray hits any shape in shapes
     bool findRayIntersectionWithShapes(const QVector<Shape*> shapes, const glm::vec3& startPoint, const glm::vec3& direction, float& minDistance);
 
-    /// \param shapeA pointer to shape (cannot be NULL)
-    /// \param startPoint beginning of ray
-    /// \param direction direction of ray
-    /// \param distance[out] distance to intersection of shape and ray
-    /// \return true if ray hits shapeA
-    bool findRayIntersectionWithShape(const Shape* shapeA, const glm::vec3& startPoint, const glm::vec3& direction, float& distance);
-
 }   // namespace ShapeCollider
 
 #endif // hifi_ShapeCollider_h

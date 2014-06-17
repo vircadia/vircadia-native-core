@@ -38,6 +38,8 @@ public:
     virtual void setPosition(const glm::vec3& position) { _position = position; }
     virtual void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
+    virtual bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const = 0;
+
 protected:
     // these ctors are protected (used by derived classes only)
     Shape(Type type) : _type(type), _boundingRadius(0.f), _position(0.f), _rotation() {}
