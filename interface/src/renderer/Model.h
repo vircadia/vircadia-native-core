@@ -16,7 +16,6 @@
 #include <QObject>
 #include <QUrl>
 
-#include <CapsuleShape.h>
 #include <PhysicalEntity.h>
 
 #include <AnimationCache.h>
@@ -132,33 +131,14 @@ public:
 
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
    
-    // virtual override from PhysicalEntity
+    // virtual overrides from PhysicalEntity
     virtual void buildShapes();
-
-    void resetShapePositions(); // DEBUG method
     virtual void updateShapePositions();
 
     void renderJointCollisionShapes(float alpha);
-    void renderBoundingCollisionShapes(float alpha);
     
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
-    
-    /// \param shapes list of pointers shapes to test against Model
-    /// \param collisions list to store collision results
-    /// \return true if at least one shape collided agains Model
-    bool findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions);
-
-    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, int skipIndex = -1);
-
-    bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
-    
-    float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
-
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
-
-    const CapsuleShape& getBoundingShape() const { return _boundingShape; }
 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
@@ -176,9 +156,6 @@ protected:
     
     QVector<JointState> _jointStates;
 
-    CapsuleShape _boundingShape;
-    glm::vec3 _boundingShapeLocalOffset;
-    
     class MeshState {
     public:
         QVector<glm::mat4> clusterMatrices;
@@ -221,8 +198,6 @@ protected:
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
-
-    void computeBoundingShape(const FBXGeometry& geometry);
 
 private:
     

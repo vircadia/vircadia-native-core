@@ -17,6 +17,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "CollisionInfo.h"
+
 class Shape;
 
 // PhysicalEntity is the base class for anything that owns one or more Shapes that collide in a 
@@ -26,12 +28,7 @@ class Shape;
 class PhysicalEntity {
 
 public:
-    enum EntityType {
-        ENTITY_UNKNOWN,
-        ENTITY_MODEL,
-    };
-
-    PhysicalEntity(EntityType type = ENTITY_UNKNOWN);
+    PhysicalEntity();
     virtual ~PhysicalEntity() {}
 
     void setTranslation(const glm::vec3& translation);
@@ -41,8 +38,6 @@ public:
     const glm::quat& getRotation() const { return _rotation; }
     float getBoundingRadius() const { return _boundingRadius; }
 
-    EntityType getEntityType() const { return _entityType; }
-
     void setShapeBackPointers();
 
     void setEnableShapes(bool enable);
@@ -50,8 +45,12 @@ public:
     virtual void buildShapes() = 0;
     virtual void clearShapes();
 
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    bool findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions);
+    bool findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius, CollisionList& collisions, int skipIndex);
+    bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
+
 protected:
-    EntityType _entityType;
     glm::vec3 _translation;
     glm::quat _rotation;
     float _boundingRadius;

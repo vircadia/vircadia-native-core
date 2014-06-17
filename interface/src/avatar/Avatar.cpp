@@ -230,7 +230,6 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
                 getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
             }
             if (renderBounding && shouldRenderHead(cameraPosition, renderMode)) {
-                getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
                 _skeletonModel.renderBoundingCollisionShapes(0.7f);
             }
 

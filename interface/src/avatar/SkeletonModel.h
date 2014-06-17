@@ -14,6 +14,7 @@
 
 #include "renderer/Model.h"
 
+#include <CapsuleShape.h>
 #include <Ragdoll.h>
 
 class Avatar;
@@ -30,7 +31,6 @@ public:
 
     void simulate(float deltaTime, bool fullUpdate = true);
     void simulateRagdoll(float deltaTime);
-    void updateShapePositions();
 
     /// \param jointIndex index of hand joint
     /// \param shapes[out] list in which is stored pointers to hand shapes
@@ -95,6 +95,17 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
+    void buildShapes();
+    void updateShapePositions();
+    void updateShapePositionsLegacy();
+
+    void computeBoundingShape(const FBXGeometry& geometry);
+    void renderBoundingCollisionShapes(float alpha);
+    float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
+    const CapsuleShape& getBoundingShape() const { return _boundingShape; }
+
+    void resetShapePositions(); // DEBUG method
+
     void renderRagdoll();
 protected:
 
@@ -121,6 +132,9 @@ private:
     void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
     
     Avatar* _owningAvatar;
+
+    CapsuleShape _boundingShape;
+    glm::vec3 _boundingShapeLocalOffset;
 };
 
 #endif // hifi_SkeletonModel_h
