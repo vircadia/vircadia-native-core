@@ -1,5 +1,5 @@
 //
-//  OctreeTests.h
+//  AABoxCubeTests.h
 //  tests/octree/src
 //
 //  Created by Brad Hefta-Gaub on 06/04/2014.
@@ -9,14 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_OctreeTests_h
-#define hifi_OctreeTests_h
+#ifndef hifi_AABoxCubeTests_h
+#define hifi_AABoxCubeTests_h
 
-namespace OctreeTests {
-
-    void propertyFlagsTests();
-
+namespace AABoxCubeTests {
+    void AABoxCubeTests();
     void runAllTests(); 
 }
 
-#endif // hifi_OctreeTests_h
+#endif // hifi_AABoxCubeTests_h

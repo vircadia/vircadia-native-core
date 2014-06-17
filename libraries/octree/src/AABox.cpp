@@ -225,21 +225,21 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
                 isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale.y) &&
                 isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale.z))) {
             distance = axisDistance;
-            face = direction.x > 0 ? MIN_X_FACE : MAX_X_FACE;
+            face = direction.x > 0 ? MAX_X_FACE : MIN_X_FACE;
             return true;
         }
         if ((findInsideOutIntersection(origin.y, direction.y, _corner.y, _scale.y, axisDistance) && axisDistance >= 0 &&
                 isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale.x) &&
                 isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale.z))) {
             distance = axisDistance;
-            face = direction.y > 0 ? MIN_Y_FACE : MAX_Y_FACE;
+            face = direction.y > 0 ? MAX_Y_FACE : MIN_Y_FACE;
             return true;
         }
         if ((findInsideOutIntersection(origin.z, direction.z, _corner.z, _scale.z, axisDistance) && axisDistance >= 0 &&
                 isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale.y) &&
                 isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale.x))) {
             distance = axisDistance;
-            face = direction.z > 0 ? MIN_Z_FACE : MAX_Z_FACE; 
+            face = direction.z > 0 ? MAX_Z_FACE : MIN_Z_FACE; 
             return true;
         }
         // This case is unexpected, but mimics the previous behavior for inside out intersections
