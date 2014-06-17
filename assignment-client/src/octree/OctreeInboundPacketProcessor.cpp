@@ -253,7 +253,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             numSequenceNumbersAvailable -= numSequenceNumbers;
 
             // send it
-            qint64 bytesWritten = NodeList::getInstance()->writeDatagram(packet, dataAt - packet, destinationNode);
+            qint64 bytesWritten = NodeList::getInstance()->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
 
             packetsSent++;
         }
