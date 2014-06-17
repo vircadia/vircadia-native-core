@@ -25,6 +25,8 @@ const float FADE_SPEED = 0.08f;
 // Used to animate the magnification windows
 const float MAG_SPEED = 0.08f;
 
+const quint64 MSECS_TO_USECS = 1000ULL;
+
 // Fast helper functions
 inline float max(float a, float b) {
     return (a > b) ? a : b;
@@ -334,7 +336,7 @@ void ApplicationOverlay::renderControllerPointers() {
     MyAvatar* myAvatar = application->getAvatar();
 
     //Static variables used for storing controller state
-    static quint64 pressedTime[3] = { 0, 0, 0 };
+    static quint64 pressedTime[3] = { 0ULL, 0ULL, 0ULL };
     static bool isPressed[3] = { false, false, false };
     static bool stateWhenPressed[3] = { false, false, false };
     static bool triggerPressed[3] = { false, false, false };
@@ -372,7 +374,9 @@ void ApplicationOverlay::renderControllerPointers() {
             isPressed[index] = false; 
             //If the button was only pressed for < 250 ms
             //then disable it.
-            if (usecTimestampNow() - pressedTime[index] < 250000) {
+
+            const int MAX_BUTTON_PRESS_TIME = 250 * MSECS_TO_USECS;
+            if (usecTimestampNow() - pressedTime[index] < MAX_BUTTON_PRESS_TIME) {
                 _magActive[index] = !stateWhenPressed[index];
             }
         }
