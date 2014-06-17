@@ -282,7 +282,7 @@ SingleSenderStats::SingleSenderStats()
 void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
     int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
 
-printf("\t\t tracked seq %d\n", incomingSequence);
+printf("\t\t tracked seq %hu\n", incomingSequence);
 
     const int UINT16_RANGE = UINT16_MAX + 1;
 

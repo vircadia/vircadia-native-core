@@ -21,7 +21,7 @@ SentPacketHistory::SentPacketHistory(int size)
 void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& packet) {
 
     if (sequenceNumber != 0 && sequenceNumber != _newestSequenceNumber + 1) {
-        printf("\t packet history received unexpected seq number! prev: %d  received: %d\n", _newestSequenceNumber, sequenceNumber);
+        printf("\t\tpacket history received unexpected seq number! prev: %hu  received: %hu **************** \n", _newestSequenceNumber, sequenceNumber);
     }
 
 

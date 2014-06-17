@@ -122,5 +122,7 @@ protected:
 
     // TODO: garbage-collect this and _pendingEditPackets
     QHash<QUuid, SentPacketHistory> _sentPacketHistories;
+
+    QMutex _releaseQueuedPacketMutex;
 };
 #endif // hifi_OctreeEditPacketSender_h
