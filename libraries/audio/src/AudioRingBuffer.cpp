@@ -10,6 +10,7 @@
 //
 
 #include <cstring>
+#include <functional>
 #include <math.h>
 
 #include <QtCore/QDebug>
