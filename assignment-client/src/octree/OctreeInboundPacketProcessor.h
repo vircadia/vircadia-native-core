@@ -77,9 +77,11 @@ protected:
 
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 
-    virtual bool process();
+    virtual unsigned long getMaxWait() const;
+    virtual void preProcess();
+    virtual void midProcess();
 
-public:
+private:
     int sendNackPackets();
 
 private:

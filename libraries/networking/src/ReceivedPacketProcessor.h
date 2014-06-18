@@ -63,6 +63,18 @@ protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
 
+    /// Determines the timeout of the wait when there are no packets to process. Default value means no timeout
+    virtual unsigned long getMaxWait() const { return ULONG_MAX; }
+
+    /// Override to do work before the packets processing loop. Default does nothing.
+    virtual void preProcess() { }
+
+    /// Override to do work inside the packet processing loop after a packet is processed. Default does nothing.
+    virtual void midProcess() { }
+
+    /// Override to do work after the packets processing loop.  Default does nothing.
+    virtual void postProcess() { }
+
     virtual void terminating();
 
 protected:

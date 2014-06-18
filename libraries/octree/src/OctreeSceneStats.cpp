@@ -843,7 +843,7 @@ const char* OctreeSceneStats::getItemValue(Item item) {
 
 void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     bool wasStatsPacket, int nodeClockSkewUsec) {
-    const bool wantExtraDebugging = true;
+    const bool wantExtraDebugging = false;
 
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
@@ -891,8 +891,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         if (wantExtraDebugging) {
             qDebug() << "last packet duplicate got:" << sequence << "_incomingLastSequence:" << _incomingLastSequence;
         }
-    }
-    else {
+    } else {
         if (sequence != expected) {
             if (wantExtraDebugging) {
                 qDebug() << "out of order... got:" << sequence << "expected:" << expected;
@@ -967,8 +966,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                 // only bump the last sequence if it was greater than our expected sequence, this will keep us from
                 // accidentally going backwards when an out of order (recovered) packet comes in
 
-            }
-            else {    // sequenceInt > expectedInt
+            } else {    // sequenceInt > expectedInt
 
                 // if no rollover between them: sequenceInt, expectedInt are both in range [0, UINT16_RANGE-1]
                 // if rollover between them: sequenceInt in [0, UINT16_RANGE-1], expectedInt in [-UINT16_RANGE, -1]
@@ -992,8 +990,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
 
                 _incomingLastSequence = sequence;
             }
-        }
-        else {    // sequence = expected
+        } else {    // sequence = expected
 
             _incomingLastSequence = sequence;
         }

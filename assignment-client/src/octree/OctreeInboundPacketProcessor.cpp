@@ -17,6 +17,7 @@
 #include "OctreeInboundPacketProcessor.h"
 
 static QUuid DEFAULT_NODE_ID_REF;
+const quint64 TOO_LONG_SINCE_LAST_NACK = 1 * USECS_PER_SECOND;
 
 OctreeInboundPacketProcessor::OctreeInboundPacketProcessor(OctreeServer* myServer) :
     _myServer(myServer),
@@ -41,46 +42,33 @@ void OctreeInboundPacketProcessor::resetStats() {
     _singleSenderStats.clear();
 }
 
-bool OctreeInboundPacketProcessor::process() {
-
-    const quint64 TOO_LONG_SINCE_LAST_NACK = 1 * USECS_PER_SECOND;
+unsigned long OctreeInboundPacketProcessor::getMaxWait() const {
+    // calculate time until next sendNackPackets()
+    quint64 nextNackTime = _lastNackTime + TOO_LONG_SINCE_LAST_NACK;
     quint64 now = usecTimestampNow();
-
-    if (_packets.size() == 0) {
-        // calculate time until next sendNackPackets()
-        quint64 nextNackTime = _lastNackTime + TOO_LONG_SINCE_LAST_NACK;
-        quint64 now = usecTimestampNow();
-        if (now >= nextNackTime) {
-            // send nacks if we're already past time to send it
-            _lastNackTime = now;
-            sendNackPackets();
-        }
-        else {
-            // otherwise, wait until the next nack time or until a packet arrives
-            quint64 waitTimeMsecs = (nextNackTime - now) / USECS_PER_MSEC + 1;
-            _waitingOnPacketsMutex.lock();
-            _hasPackets.wait(&_waitingOnPacketsMutex, waitTimeMsecs);
-            _waitingOnPacketsMutex.unlock();
-        }
+    if (now >= nextNackTime) {
+        return 0;
     }
-    while (_packets.size() > 0) {
-        lock(); // lock to make sure nothing changes on us
-        NetworkPacket& packet = _packets.front(); // get the oldest packet
-        NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us
-        _packets.erase(_packets.begin()); // remove the oldest packet
-        _nodePacketCounts[temporary.getNode()->getUUID()]--;
-        unlock(); // let others add to the packets
-        processPacket(temporary.getNode(), temporary.getByteArray()); // process our temporary copy
-
-        // if it's time to send nacks, send them.
-        if (usecTimestampNow() - _lastNackTime >= TOO_LONG_SINCE_LAST_NACK) {
-            _lastNackTime = now;
-            sendNackPackets();
-        }
-    }
-    return isStillRunning();  // keep running till they terminate us
+    return (nextNackTime - now) / USECS_PER_MSEC + 1;
 }
 
+void OctreeInboundPacketProcessor::preProcess() {
+    // check if it's time to send a nack. If yes, do so
+    quint64 now = usecTimestampNow();
+    if (now - _lastNackTime >= TOO_LONG_SINCE_LAST_NACK) {
+        _lastNackTime = now;
+        sendNackPackets();
+    }
+}
+
+void OctreeInboundPacketProcessor::midProcess() {
+    // check if it's time to send a nack. If yes, do so
+    quint64 now = usecTimestampNow();
+    if (now - _lastNackTime >= TOO_LONG_SINCE_LAST_NACK) {
+        _lastNackTime = now;
+        sendNackPackets();
+    }
+}
 
 void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
 
@@ -211,6 +199,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         // if there are packets from _node that are waiting to be processed,
         // don't send a NACK since the missing packets may be among those waiting packets.
         if (hasPacketsToProcessFrom(nodeUUID)) {
+            i++;
             continue;
         }
 
@@ -279,7 +268,6 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
     int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
 
     const int UINT16_RANGE = UINT16_MAX + 1;
-
     const int  MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
     const int MAX_MISSING_SEQUENCE_SIZE = 100;
 
@@ -287,9 +275,7 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
     
     if (incomingSequence == expectedSequence) {         // on time
         _incomingLastSequence = incomingSequence;
-    }
-    else {                                              // out of order
-
+    } else {                                              // out of order
         int incoming = (int)incomingSequence;
         int expected = (int)expectedSequence;
 
@@ -312,17 +298,13 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
         
         // now that rollover has been corrected for (if it occurred), incoming and expected can be
         // compared to each other directly, though one of them might be negative
-
         if (incoming > expected) {                          // early
-
             // add all sequence numbers that were skipped to the missing sequence numbers list
             for (int missingSequence = expected; missingSequence < incoming; missingSequence++) {
                 _missingSequenceNumbers.insert(missingSequence < 0 ? missingSequence + UINT16_RANGE : missingSequence);
             }
             _incomingLastSequence = incomingSequence;
-
         } else {                                            // late
-
             // remove this from missing sequence number if it's in there
             _missingSequenceNumbers.remove(incomingSequence);
 
@@ -333,7 +315,6 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
     // prune missing sequence list if it gets too big; sequence numbers that are older than MAX_REASONABLE_SEQUENCE_GAP
     // will be removed.
     if (_missingSequenceNumbers.size() > MAX_MISSING_SEQUENCE_SIZE) {
-        
         // some older sequence numbers may be from before a rollover point; this must be handled.
         // some sequence numbers in this list may be larger than _incomingLastSequence, indicating that they were received
         // before the most recent rollover.
