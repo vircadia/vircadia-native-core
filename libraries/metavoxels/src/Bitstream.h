@@ -773,6 +773,7 @@ class ObjectStreamer {
 public:
 
     ObjectStreamer(const QMetaObject* metaObject);
+    virtual ~ObjectStreamer();
 
     const QMetaObject* getMetaObject() const { return _metaObject; }
     const ObjectStreamerPointer& getSelf() const { return _self; }
