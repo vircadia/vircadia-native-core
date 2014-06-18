@@ -33,9 +33,19 @@ public:
     /// Are there received packets waiting to be processed
     bool hasPacketsToProcess() const { return _packets.size() > 0; }
 
-    /// Are there received packets waiting to be processed from a certain node
+    /// Is a specified node still alive?
+    bool isAlive(const QUuid& nodeUUID) const {
+        return _nodePacketCounts.contains(nodeUUID);
+    }
+
+    /// Are there received packets waiting to be processed from a specified node
     bool hasPacketsToProcessFrom(const SharedNodePointer& sendingNode) const {
-        return _nodePacketCounts[sendingNode->getUUID()] > 0;
+        return hasPacketsToProcessFrom(sendingNode->getUUID());
+    }
+
+    /// Are there received packets waiting to be processed from a specified node
+    bool hasPacketsToProcessFrom(const QUuid& nodeUUID) const {
+        return _nodePacketCounts[nodeUUID] > 0;
     }
 
     /// How many received packets waiting are to be processed
@@ -53,9 +63,21 @@ protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
 
+    /// Determines the timeout of the wait when there are no packets to process. Default value means no timeout
+    virtual unsigned long getMaxWait() const { return ULONG_MAX; }
+
+    /// Override to do work before the packets processing loop. Default does nothing.
+    virtual void preProcess() { }
+
+    /// Override to do work inside the packet processing loop after a packet is processed. Default does nothing.
+    virtual void midProcess() { }
+
+    /// Override to do work after the packets processing loop.  Default does nothing.
+    virtual void postProcess() { }
+
     virtual void terminating();
 
-private:
+protected:
 
     QVector<NetworkPacket> _packets;
     QHash<QUuid, int> _nodePacketCounts;

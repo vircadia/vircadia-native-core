@@ -35,9 +35,10 @@ bool ReceivedPacketProcessor::process() {
 
     if (_packets.size() == 0) {
         _waitingOnPacketsMutex.lock();
-        _hasPackets.wait(&_waitingOnPacketsMutex);
+        _hasPackets.wait(&_waitingOnPacketsMutex, getMaxWait());
         _waitingOnPacketsMutex.unlock();
     }
+    preProcess();
     while (_packets.size() > 0) {
         lock(); // lock to make sure nothing changes on us
         NetworkPacket& packet = _packets.front(); // get the oldest packet
@@ -46,7 +47,9 @@ bool ReceivedPacketProcessor::process() {
         _nodePacketCounts[temporary.getNode()->getUUID()]--;
         unlock(); // let others add to the packets
         processPacket(temporary.getNode(), temporary.getByteArray()); // process our temporary copy
+        midProcess();
     }
+    postProcess();
     return isStillRunning();  // keep running till they terminate us
 }
 

@@ -3270,9 +3270,15 @@ void Application::nodeAdded(SharedNodePointer node) {
 
 void Application::nodeKilled(SharedNodePointer node) {
 
-    // this is here because connecting NodeList::nodeKilled to OctreePacketProcessor::nodeKilled doesn't work:
-    // OctreePacketProcessor::nodeKilled is not called when NodeList::nodeKilled is emitted for some reason.
+    // These are here because connecting NodeList::nodeKilled to OctreePacketProcessor::nodeKilled doesn't work:
+    // OctreePacketProcessor::nodeKilled is not being called when NodeList::nodeKilled is emitted.
+    // This may have to do with GenericThread::threadRoutine() blocking the QThread event loop
+
     _octreeProcessor.nodeKilled(node);
+
+    _voxelEditSender.nodeKilled(node);
+    _particleEditSender.nodeKilled(node);
+    _modelEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
