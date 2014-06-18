@@ -39,6 +39,8 @@ public:
     void setRadiusAndHalfHeight(float radius, float height);
     void setEndPoints(const glm::vec3& startPoint, const glm::vec3& endPoint);
 
+    bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const;
+
 protected:
     void updateBoundingRadius() { _boundingRadius = _radius + _halfHeight; }
 

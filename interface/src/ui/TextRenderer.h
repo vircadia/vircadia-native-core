@@ -12,6 +12,7 @@
 #ifndef hifi_TextRenderer_h
 #define hifi_TextRenderer_h
 
+#include <QColor>
 #include <QFont>
 #include <QFontMetrics>
 #include <QHash>
@@ -41,7 +42,8 @@ public:
     enum EffectType { NO_EFFECT, SHADOW_EFFECT, OUTLINE_EFFECT };
 
     TextRenderer(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
-                 EffectType effect = NO_EFFECT, int effectThickness = 1);
+                 EffectType effect = NO_EFFECT, int effectThickness = 1,
+                 QColor color = QColor(255, 255, 255));
     ~TextRenderer();
 
     const QFontMetrics& metrics() const { return _metrics; }
@@ -85,6 +87,9 @@ private:
     
     // the list of all texture ids for which we're responsible
     QVector<GLuint> _allTextureIDs;
+    
+    // text color
+    QColor _color;
 };
 
 class Glyph {

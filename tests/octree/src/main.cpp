@@ -8,15 +8,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AABoxCubeTests.h"
 #include "OctreeTests.h"
 #include "SharedUtil.h"
 
 int main(int argc, const char* argv[]) {
     const char* VERBOSE = "--verbose";
     bool verbose = cmdOptionExists(argc, argv, VERBOSE);
-    
     qDebug() << "OctreeTests::runAllTests()";
-
     OctreeTests::runAllTests(verbose);
+    AABoxCubeTests::runAllTests();
     return 0;
 }

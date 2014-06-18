@@ -1419,7 +1419,7 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 // proportional to the accelerator ratio. 
 
 #ifdef Q_OS_WIN
-const float Audio::CALLBACK_ACCELERATOR_RATIO = 0.4f;
+const float Audio::CALLBACK_ACCELERATOR_RATIO = 0.1f;
 #endif
 
 #ifdef Q_OS_MAC

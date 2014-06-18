@@ -73,6 +73,7 @@
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
 
+#include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -150,6 +151,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mouseX(0),
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
+        _lastMouseMoveType(QEvent::MouseMove),
         _mouseHidden(false),
         _seenMouseMove(false),
         _touchAvgX(0.0f),
@@ -653,7 +655,14 @@ void Application::paintGL() {
 
         {
             PerformanceTimer perfTimer("paintGL/renderOverlay");
-            _applicationOverlay.renderOverlay();
+            //If alpha is 1, we can render directly to the screen.
+            if (_applicationOverlay.getAlpha() == 1.0f) {
+                _applicationOverlay.renderOverlay();
+            } else {
+                //Render to to texture so we can fade it
+                _applicationOverlay.renderOverlay(true);
+                _applicationOverlay.displayOverlayTexture();
+            }
         }
     }
 
@@ -1096,6 +1105,9 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         showMouse = false;
     }
 
+    // Used by application overlay to determine how to draw cursor(s)
+    _lastMouseMoveType = event->type();
+
     _controllerScriptingInterface.emitMouseMoveEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1375,6 +1387,9 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
     resizeGL(_glWidget->width(),_glWidget->height());
 }
 
+void Application::setEnableVRMode(bool enableVRMode) {
+    resizeGL(_glWidget->width(), _glWidget->height());
+}
 
 void Application::setRenderVoxels(bool voxelRender) {
     _voxelEditSender.setShouldSend(voxelRender);
@@ -3516,12 +3531,13 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     } else {
         // start the script on a new thread...
         scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
 
         if (!scriptEngine->hasScript()) {
             qDebug() << "Application::loadScript(), script failed to load...";
             return NULL;
         }
+
+        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
     }
 
@@ -3564,6 +3580,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
+    scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 

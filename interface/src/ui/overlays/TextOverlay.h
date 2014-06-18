@@ -29,6 +29,7 @@
 #include "Overlay2D.h"
 
 const int DEFAULT_MARGIN = 10;
+const int DEFAULT_FONTSIZE = 11;
 
 class TextOverlay : public Overlay2D {
     Q_OBJECT
@@ -47,6 +48,7 @@ public:
     void setText(const QString& text) { _text = text; }
     void setLeftMargin(int margin) { _leftMargin = margin; }
     void setTopMargin(int margin) { _topMargin = margin; }
+    void setFontSize(int fontSize) { _fontSize = fontSize; }
 
     virtual void setProperties(const QScriptValue& properties);
 
@@ -55,7 +57,7 @@ private:
     QString _text;
     int _leftMargin;
     int _topMargin;
-    
+    int _fontSize;
 };
 
  

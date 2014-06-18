@@ -1,6 +1,6 @@
 //
 //  OctreeTests.h
-//  tests/physics/src
+//  tests/octree/src
 //
 //  Created by Brad Hefta-Gaub on 06/04/2014.
 //  Copyright 2014 High Fidelity, Inc.
