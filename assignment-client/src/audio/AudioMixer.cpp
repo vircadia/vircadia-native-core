@@ -33,7 +33,10 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QJsonValue>
 #include <QtCore/QTimer>
 
 #include <Logging.h>
@@ -71,7 +74,9 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _performanceThrottlingRatio(0.0f),
     _numStatFrames(0),
     _sumListeners(0),
-    _sumMixes(0)
+    _sumMixes(0),
+    _sourceUnattenuatedZone(),
+    _listenerUnattenuatedZone()
 {
     
 }
@@ -412,6 +417,24 @@ void AudioMixer::run() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
+    
+    // check the payload to see if we have any unattenuated zones
+    const QString UNATTENUATED_ZONE_REGEX_STRING = "--unattenuated-zone ([\\d.,-]+)";
+    QRegExp unattenuatedZoneMatch(UNATTENUATED_ZONE_REGEX_STRING);
+    
+    if (unattenuatedZoneMatch.indexIn(_payload) != -1) {
+        QString unattenuatedZoneString = unattenuatedZoneMatch.cap(1);
+        QStringList zoneStringList = unattenuatedZoneString.split(',');
+        
+        glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
+        glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
+     
+        glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
+        glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
+        
+        _sourceUnattenuatedZone = AABox(sourceCorner, sourceDimensions);
+        _listenerUnattenuatedZone = AABox(listenerCorner, listenerDimensions);
+    }
 
     int nextFrame = 0;
     QElapsedTimer timer;

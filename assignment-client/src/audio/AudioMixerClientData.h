@@ -12,8 +12,7 @@
 #ifndef hifi_AudioMixerClientData_h
 #define hifi_AudioMixerClientData_h
 
-#include <vector>
-
+#include <AABox.h>
 #include <NodeData.h>
 #include <PositionalAudioRingBuffer.h>
 
@@ -28,10 +27,15 @@ public:
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
     
     int parseData(const QByteArray& packet);
-    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples);
+    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples,
+                                     AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
+    
+    AABox* getListenerUnattenuatedZone() const { return _listenerUnattenuatedZone; }
+    void setListenerUnattenuatedZone(AABox* listenerUnattenuatedZone) { _listenerUnattenuatedZone = listenerUnattenuatedZone; }
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;
+    AABox* _listenerUnattenuatedZone;
 };
 
 #endif // hifi_AudioMixerClientData_h
