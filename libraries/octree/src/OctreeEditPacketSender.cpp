@@ -97,14 +97,12 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, const unsi
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
             if (node->getActiveSocket()) {
                 QByteArray packet(reinterpret_cast<const char*>(buffer), length);
-
                 queuePacketForSending(node, packet);
 
                 // extract sequence number and add packet to history
                 int numBytesPacketHeader = numBytesForPacketHeader(packet);
                 const char* dataAt = reinterpret_cast<const char*>(packet.data()) + numBytesPacketHeader;
                 unsigned short int sequence = *((unsigned short int*)dataAt);
- 
                 _sentPacketHistories[nodeUUID].packetSent(sequence, packet);
 
                 // debugging output...
@@ -303,13 +301,11 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
 
 void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) {
     _releaseQueuedPacketMutex.lock();
-
     if (packetBuffer._currentSize > 0 && packetBuffer._currentType != PacketTypeUnknown) {
         queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
         packetBuffer._currentSize = 0;
         packetBuffer._currentType = PacketTypeUnknown;
     }
-
     _releaseQueuedPacketMutex.unlock();
 }
 
