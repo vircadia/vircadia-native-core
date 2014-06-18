@@ -19,8 +19,7 @@
 #include "AudioMixerClientData.h"
 
 AudioMixerClientData::AudioMixerClientData() :
-    _ringBuffers(),
-    _listenerUnattenuatedZone(NULL)
+    _ringBuffers()
 {
     
 }
@@ -112,9 +111,9 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
             _ringBuffers[i]->updateNextOutputTrailingLoudness();
             
             if (checkSourceZone && checkSourceZone->contains(_ringBuffers[i]->getPosition())) {
-                _listenerUnattenuatedZone = listenerZone;
+                _ringBuffers[i]->setListenerUnattenuatedZone(listenerZone);
             } else {
-                _listenerUnattenuatedZone = NULL;
+                _ringBuffers[i]->setListenerUnattenuatedZone(NULL);
             }
         }
     }

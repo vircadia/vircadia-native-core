@@ -28,12 +28,10 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _willBeAddedToMix(false),
     _shouldLoopbackForNode(false),
     _shouldOutputStarveDebug(true),
-    _isStereo(isStereo)
+    _isStereo(isStereo),
+    _listenerUnattenuatedZone(NULL)
 {
 
-}
-
-PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
 }
 
 int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {

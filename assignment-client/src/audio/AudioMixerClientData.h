@@ -30,12 +30,8 @@ public:
     void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples,
                                      AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
-    
-    AABox* getListenerUnattenuatedZone() const { return _listenerUnattenuatedZone; }
-    void setListenerUnattenuatedZone(AABox* listenerUnattenuatedZone) { _listenerUnattenuatedZone = listenerUnattenuatedZone; }
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;
-    AABox* _listenerUnattenuatedZone;
 };
 
 #endif // hifi_AudioMixerClientData_h

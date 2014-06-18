@@ -75,10 +75,15 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _numStatFrames(0),
     _sumListeners(0),
     _sumMixes(0),
-    _sourceUnattenuatedZone(),
-    _listenerUnattenuatedZone()
+    _sourceUnattenuatedZone(NULL),
+    _listenerUnattenuatedZone(NULL)
 {
     
+}
+
+AudioMixer::~AudioMixer() {
+    delete _sourceUnattenuatedZone;
+    delete _listenerUnattenuatedZone;
 }
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -432,8 +437,16 @@ void AudioMixer::run() {
         glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
         glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
         
-        _sourceUnattenuatedZone = AABox(sourceCorner, sourceDimensions);
-        _listenerUnattenuatedZone = AABox(listenerCorner, listenerDimensions);
+        _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
+        _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
+        
+        glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
+        glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
+        
+        qDebug() << "There is an unattenuated zone with source center at"
+            << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
+        qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
+            << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
     }
 
     int nextFrame = 0;
@@ -452,7 +465,9 @@ void AudioMixer::run() {
         
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
-                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
+                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES,
+                                                                                             _sourceUnattenuatedZone,
+                                                                                             _listenerUnattenuatedZone);
             }
         }
         
