@@ -1901,9 +1901,9 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
                 int highestValue = 0;
                 foreach (const QJsonValue& value, type.value("values").toArray()) {
                     QJsonObject object = value.toObject();
-                    int value = object.value("value").toInt();
-                    highestValue = qMax(value, highestValue);
-                    values.append(NameIntPair(object.value("key").toString().toLatin1(), value));
+                    int intValue = object.value("value").toInt();
+                    highestValue = qMax(intValue, highestValue);
+                    values.append(NameIntPair(object.value("key").toString().toLatin1(), intValue));
                 }
                 streamer = TypeStreamerPointer(new GenericEnumTypeStreamer(latinName,
                     values, getBitsForHighestValue(highestValue), QByteArray()));
@@ -1944,13 +1944,13 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
             bool matches = (array.size() == metaEnum.keyCount());
             foreach (const QJsonValue& value, array) {
                 QJsonObject object = value.toObject();
-                int value = object.value("value").toInt();
-                highestValue = qMax(value, highestValue);
+                int intValue = object.value("value").toInt();
+                highestValue = qMax(intValue, highestValue);
                 int mapping = metaEnum.keyToValue(object.value("key").toString().toLatin1());
                 if (mapping != -1) {
-                    mappings.insert(value, mapping);
+                    mappings.insert(intValue, mapping);
                 }
-                matches &= (value == mapping);
+                matches &= (intValue == mapping);
             }
             // if everything matches our built-in enum, we can use that, which will be faster
             if (matches) {
