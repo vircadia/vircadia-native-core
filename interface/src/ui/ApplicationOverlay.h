@@ -43,8 +43,6 @@ private:
         glm::vec2 uv;
     };
 
-    enum MousePointerDevice { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER };
-
     typedef QPair<GLuint, GLuint> VerticesIndices;
 
     void renderPointers();
@@ -59,13 +57,14 @@ private:
     float _trailingAudioLoudness;
     float _textureFov;
     // 0 = Mouse, 1 = Left Controller, 2 = Right Controller
-    bool _reticleActive[3];
-    int _mouseX[3];
-    int _mouseY[3];
-    bool _magActive[3];
-    int _magX[3];
-    int _magY[3];
-    float _magSizeMult[3];
+    enum MagnifyDevices { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_MAGNIFIERS = RIGHT_CONTROLLER + 1 };
+    bool _reticleActive[NUMBER_OF_MAGNIFIERS];
+    int _mouseX[NUMBER_OF_MAGNIFIERS];
+    int _mouseY[NUMBER_OF_MAGNIFIERS];
+    bool _magActive[NUMBER_OF_MAGNIFIERS];
+    int _magX[NUMBER_OF_MAGNIFIERS];
+    int _magY[NUMBER_OF_MAGNIFIERS];
+    float _magSizeMult[NUMBER_OF_MAGNIFIERS];
     
     float _alpha;
     bool _active;

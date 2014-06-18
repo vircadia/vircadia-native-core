@@ -190,7 +190,7 @@ void ApplicationOverlay::getClickLocation(int &x, int &y) const {
     const float yRange = MAGNIFY_WIDTH * MAGNIFY_MULT / 2.0f;
 
     //Loop through all magnification windows
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
         if (_magActive[i]) {
             dx = x - _magX[i];
             dy = y - _magY[i];
@@ -211,7 +211,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     if (_alpha == 0.0f) {
         return;
     }
-
 
     Application* application = Application::getInstance();
 
@@ -251,7 +250,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glAlphaFunc(GL_GREATER, 0.01f);
 
     //Update and draw the magnifiers
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
 
         if (_magActive[i]) {
             _magSizeMult[i] += MAG_SPEED;
@@ -336,11 +335,11 @@ void ApplicationOverlay::renderControllerPointers() {
     MyAvatar* myAvatar = application->getAvatar();
 
     //Static variables used for storing controller state
-    static quint64 pressedTime[3] = { 0ULL, 0ULL, 0ULL };
-    static bool isPressed[3] = { false, false, false };
-    static bool stateWhenPressed[3] = { false, false, false };
-    static bool triggerPressed[3] = { false, false, false };
-    static bool bumperPressed[3] = { false, false, false };
+    static quint64 pressedTime[NUMBER_OF_MAGNIFIERS] = { 0ULL, 0ULL, 0ULL };
+    static bool isPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
+    static bool stateWhenPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
+    static bool triggerPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
+    static bool bumperPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
 
@@ -472,7 +471,7 @@ void ApplicationOverlay::renderControllerPointersOculus() {
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     glDisable(GL_DEPTH_TEST);
     
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
 
         //Dont render the reticle if its inactive
         if (!_reticleActive[i]) {
