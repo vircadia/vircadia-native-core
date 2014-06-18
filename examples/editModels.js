@@ -34,6 +34,8 @@ var LASER_COLOR = { red: 255, green: 0, blue: 0 };
 var LASER_LENGTH_FACTOR = 500
 ;
 
+var MAX_ANGULAR_SIZE = 45;
+
 var LEFT = 0;
 var RIGHT = 1;
 
@@ -276,6 +278,11 @@ function controller(wichSide) {
         var d = Vec3.length(Vec3.subtract(P, X));
         
         if (0 < x && x < LASER_LENGTH_FACTOR) {
+            if (2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14 > MAX_ANGULAR_SIZE) {
+                print("Angular size too big: " + 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14);
+                return { valid: false };
+            }
+            
             return { valid: true, x: x, y: y, z: z };
         }
         return { valid: false };
@@ -526,9 +533,13 @@ function controller(wichSide) {
             if (isLocked(newProperties)) {
                 print("Model locked " + newProperties.id);
             } else {
+                var check = this.checkModel(newProperties);
+                if (!check.valid) {
+                    return;
+                }
+                
                 this.grab(newModel, newProperties);
                 
-                var check = this.checkModel(newProperties);
                 this.x = check.x;
                 this.y = check.y;
                 this.z = check.z;
@@ -815,12 +826,16 @@ function mousePressEvent(event) {
             var d = Vec3.length(Vec3.subtract(P, X));
             
             if (0 < x && x < LASER_LENGTH_FACTOR) {
-                modelSelected = true;
-                selectedModelID = foundModel;
-                selectedModelProperties = properties;
-                
-                orientation = MyAvatar.orientation;
-                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+                if (2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14 < MAX_ANGULAR_SIZE) {
+                    modelSelected = true;
+                    selectedModelID = foundModel;
+                    selectedModelProperties = properties;
+                    
+                    orientation = MyAvatar.orientation;
+                    intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+                } else {
+                    print("Angular size too big: " + 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14);
+                }
             }
         }
     }
