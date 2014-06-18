@@ -32,16 +32,24 @@ public:
                 { return _totalElementsInPacket == 0 ? 0 : _totalProcessTime / _totalElementsInPacket; }
     quint64 getAverageLockWaitTimePerElement() const 
                 { return _totalElementsInPacket == 0 ? 0 : _totalLockWaitTime / _totalElementsInPacket; }
-        
+    const QSet<unsigned short int>& getMissingSequenceNumbers() const { return _missingSequenceNumbers; }
+
+    void trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
+        int editsInPacket, quint64 processTime, quint64 lockWaitTime);
+
     quint64 _totalTransitTime; 
     quint64 _totalProcessTime;
     quint64 _totalLockWaitTime;
     quint64 _totalElementsInPacket;
     quint64 _totalPackets;
+
+    unsigned short int _incomingLastSequence;
+    QSet<unsigned short int> _missingSequenceNumbers;
 };
 
-typedef std::map<QUuid, SingleSenderStats> NodeToSenderStatsMap;
-typedef std::map<QUuid, SingleSenderStats>::iterator NodeToSenderStatsMapIterator;
+typedef QHash<QUuid, SingleSenderStats> NodeToSenderStatsMap;
+typedef QHash<QUuid, SingleSenderStats>::iterator NodeToSenderStatsMapIterator;
+typedef QHash<QUuid, SingleSenderStats>::const_iterator NodeToSenderStatsMapConstIterator;
 
 
 /// Handles processing of incoming network packets for the voxel-server. As with other ReceivedPacketProcessor classes 
@@ -66,10 +74,18 @@ public:
     NodeToSenderStatsMap& getSingleSenderStats() { return _singleSenderStats; }
 
 protected:
+
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 
+    virtual unsigned long getMaxWait() const;
+    virtual void preProcess();
+    virtual void midProcess();
+
 private:
-    void trackInboundPackets(const QUuid& nodeUUID, int sequence, quint64 transitTime, 
+    int sendNackPackets();
+
+private:
+    void trackInboundPacket(const QUuid& nodeUUID, unsigned short int sequence, quint64 transitTime, 
             int voxelsInPacket, quint64 processTime, quint64 lockWaitTime);
 
     OctreeServer* _myServer;
@@ -82,5 +98,7 @@ private:
     quint64 _totalPackets;
     
     NodeToSenderStatsMap _singleSenderStats;
+
+    quint64 _lastNackTime;
 };
 #endif // hifi_OctreeInboundPacketProcessor_h

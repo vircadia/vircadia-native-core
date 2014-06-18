@@ -717,8 +717,8 @@ function rayPlaneIntersection(pickRay, point, normal) {
 function Tooltip() {
     this.x = 285;
     this.y = 115;
-    this.width = 110;
-    this.height = 115 ;
+    this.width = 500;
+    this.height = 145 ;
     this.margin = 5;
     this.decimals = 3;
     
@@ -746,6 +746,9 @@ function Tooltip() {
         text += "yaw:  " + angles.y.toFixed(this.decimals) + "\n"
         text += "roll:    " + angles.z.toFixed(this.decimals) + "\n"
         text += "Scale: " + 2 * properties.radius.toFixed(this.decimals) + "\n"
+        text += "ID: " + properties.id + "\n"
+        text += "model url: " + properties.modelURL + "\n"
+        text += "animation url: " + properties.animationURL + "\n"
         
         Overlays.editOverlay(this.textOverlay, { text: text });
     }
@@ -971,17 +974,27 @@ function mouseMoveEvent(event)  {
             
             var pixelPerDegrees = windowDimensions.y / (1 * 360); // the entire height of the window allow you to make 2 full rotations
             
-            var STEP = 15;
-            var delta = Math.floor((event.x - mouseLastPosition.x) / pixelPerDegrees);
+            //compute delta in pixel
+            var cameraForward = Quat.getFront(Camera.getOrientation());
+            var rotationAxis = (!zIsPressed && xIsPressed) ? { x: 1, y: 0, z: 0 } :
+                               (!zIsPressed && !xIsPressed) ? { x: 0, y: 1, z: 0 } :
+                                                              { x: 0, y: 0, z: 1 };
+            rotationAxis = Vec3.multiplyQbyV(selectedModelProperties.modelRotation, rotationAxis);
+            var orthogonalAxis = Vec3.cross(cameraForward, rotationAxis);
+            var mouseDelta = { x: event.x - mouseLastPosition
+                .x, y: mouseLastPosition.y - event.y, z: 0 };
+            var transformedMouseDelta = Vec3.multiplyQbyV(Camera.getOrientation(), mouseDelta);
+            var delta = Math.floor(Vec3.dot(transformedMouseDelta, Vec3.normalize(orthogonalAxis)) / pixelPerDegrees);
             
+            var STEP = 15;
             if (!event.isShifted) {
-                delta = Math.floor(delta / STEP) * STEP;
+                delta = Math.round(delta / STEP) * STEP;
             }
                 
             var rotation = Quat.fromVec3Degrees({
-                                                x: (!zIsPressed && xIsPressed) ? delta : 0,   // z is pressed
-                                                y: (!zIsPressed && !xIsPressed) ? delta : 0,   // x is pressed
-                                                z: (zIsPressed && !xIsPressed) ? delta : 0   // neither is pressed
+                                                x: (!zIsPressed && xIsPressed) ? delta : 0,   // x is pressed
+                                                y: (!zIsPressed && !xIsPressed) ? delta : 0,   // neither is pressed
+                                                z: (zIsPressed && !xIsPressed) ? delta : 0   // z is pressed
                                                 });
             rotation = Quat.multiply(selectedModelProperties.oldRotation, rotation);
             
@@ -1019,9 +1032,11 @@ var modelMenuAddedDelete = false;
 function setupModelMenus() {
     print("setupModelMenus()");
     // add our menuitems
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Edit Properties...", 
+        shortcutKeyEvent: { text: "`" }, afterItem: "Models" });
     if (!Menu.menuItemExists("Edit","Delete")) {
         print("no delete... adding ours");
-        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
         Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", 
             shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
         modelMenuAddedDelete = true;
@@ -1031,9 +1046,10 @@ function setupModelMenus() {
 }
 
 function cleanupModelMenus() {
+    Menu.removeSeparator("Edit", "Models");
+    Menu.removeMenuItem("Edit", "Edit Properties...");
     if (modelMenuAddedDelete) {
         // delete our menuitems
-        Menu.removeSeparator("Edit", "Models");
         Menu.removeMenuItem("Edit", "Delete");
     }
 }
@@ -1054,7 +1070,8 @@ Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 
 setupModelMenus();
-Menu.menuItemEvent.connect(function(menuItem){
+
+function handeMenuEvent(menuItem){
     print("menuItemEvent() in JS... menuItem=" + menuItem);
     if (menuItem == "Delete") {
         if (leftController.grabbing) {
@@ -1072,8 +1089,36 @@ Menu.menuItemEvent.connect(function(menuItem){
         } else {
             print("  Delete Model.... not holding...");
         }
+    } else if (menuItem == "Edit Properties...") {
+        var editModelID = -1;
+        if (leftController.grabbing) {
+            print("  Edit Properties.... leftController.modelID="+ leftController.modelID);
+            editModelID = leftController.modelID;
+        } else if (rightController.grabbing) {
+            print("  Edit Properties.... rightController.modelID="+ rightController.modelID);
+            editModelID = rightController.modelID;
+        } else if (modelSelected) {
+            print("  Edit Properties.... selectedModelID="+ selectedModelID);
+            editModelID = selectedModelID;
+        } else {
+            print("  Edit Properties.... not holding...");
+        }
+        if (editModelID != -1) {
+            print("  Edit Properties.... about to edit properties...");
+            var propertyName = Window.prompt("Which property would you like to change?", "modelURL");
+            var properties = Models.getModelProperties(editModelID);
+            var oldValue = properties[propertyName];
+            var newValue = Window.prompt("New value for: " + propertyName, oldValue);
+            if (newValue != "") {
+                properties[propertyName] = newValue;
+                Models.editModel(editModelID, properties);
+            }
+        }
+        tooltip.show(false);
     }
-});
+}
+Menu.menuItemEvent.connect(handeMenuEvent);
+
 
 
 // handling of inspect.js concurrence
@@ -1106,5 +1151,12 @@ Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "x" || event.text == "X") {
         xIsPressed = false;
         somethingChanged = true;
+    }
+    // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
+    if (event.text == "`") {
+        handeMenuEvent("Edit Properties...");
+    }
+    if (event.text == "BACKSPACE") {
+        handeMenuEvent("Delete");
     }
 });

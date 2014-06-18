@@ -83,7 +83,7 @@ static TestSharedObjectA::TestFlags getRandomTestFlags() {
     return flags;
 }
 
-static QScriptValue createRandomScriptValue(bool complex = false) {
+static QScriptValue createRandomScriptValue(bool complex = false, bool ensureHashOrder = false) {
     scriptObjectsCreated++;
     switch (randIntInRange(0, complex ? 5 : 3)) {
         case 0:
@@ -108,31 +108,37 @@ static QScriptValue createRandomScriptValue(bool complex = false) {
         }
         default: {
             QScriptValue value = ScriptCache::getInstance()->getEngine()->newObject();
-            if (randomBoolean()) {
+            if (ensureHashOrder) {
+                // we can't depend on the iteration order, so if we need it to be the same (as when comparing bytes), we
+                // can only have one property
                 value.setProperty("foo", createRandomScriptValue());
-            }
-            if (randomBoolean()) {
-                value.setProperty("bar", createRandomScriptValue());
-            }
-            if (randomBoolean()) {
-                value.setProperty("baz", createRandomScriptValue());
-            }
-            if (randomBoolean()) {
-                value.setProperty("bong", createRandomScriptValue());
+            } else {
+                if (randomBoolean()) {
+                    value.setProperty("foo", createRandomScriptValue());
+                }
+                if (randomBoolean()) {
+                    value.setProperty("bar", createRandomScriptValue());
+                }
+                if (randomBoolean()) {
+                    value.setProperty("baz", createRandomScriptValue());
+                }
+                if (randomBoolean()) {
+                    value.setProperty("bong", createRandomScriptValue());
+                }
             }
             return value;
         }
     }
 }
 
-static TestMessageC createRandomMessageC() {
+static TestMessageC createRandomMessageC(bool ensureHashOrder = false) {
     TestMessageC message;
     message.foo = randomBoolean();
     message.bar = rand();
     message.baz = randFloat();
     message.bong.foo = createRandomBytes();
     message.bong.baz = getRandomTestEnum();
-    message.bizzle = createRandomScriptValue(true);
+    message.bizzle = createRandomScriptValue(true, ensureHashOrder);
     return message;
 }
 
@@ -146,7 +152,7 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     SharedObjectPointer testObjectWrittenB = new TestSharedObjectB(randFloat(), createRandomBytes(),
         TestSharedObjectB::THIRD_TEST_ENUM, TestSharedObjectB::SECOND_TEST_FLAG);
     out << testObjectWrittenB;
-    TestMessageC messageWritten = createRandomMessageC();
+    TestMessageC messageWritten = createRandomMessageC(true);
     out << QVariant::fromValue(messageWritten);
     QByteArray endWritten = "end";
     out << endWritten;
@@ -240,6 +246,74 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     
     if (array != compareArray) {
         qDebug() << "Mismatch between written/generic written streams.";
+        return true;
+    }
+    
+    if (metadataType != Bitstream::FULL_METADATA) {
+        return false;
+    }
+    
+    // now write to JSON
+    JSONWriter jsonWriter;
+    jsonWriter << testObjectReadA;
+    jsonWriter << testObjectReadB;
+    jsonWriter << messageRead;
+    jsonWriter << endRead;
+    QByteArray encodedJson = jsonWriter.getDocument().toJson();
+    
+    // and read from JSON
+    JSONReader jsonReader(QJsonDocument::fromJson(encodedJson), Bitstream::ALL_GENERICS);
+    jsonReader >> testObjectReadA;
+    jsonReader >> testObjectReadB;
+    jsonReader >> messageRead;
+    jsonReader >> endRead;
+    
+    // reassign the ids
+    testObjectReadA->setID(testObjectWrittenA->getID());
+    testObjectReadA->setOriginID(testObjectWrittenA->getOriginID());
+    testObjectReadB->setID(testObjectWrittenB->getID());
+    testObjectReadB->setOriginID(testObjectWrittenB->getOriginID());
+    
+    // and back to binary
+    QByteArray secondCompareArray;
+    QDataStream secondCompareOutStream(&secondCompareArray, QIODevice::WriteOnly);
+    Bitstream secondCompareOut(secondCompareOutStream, Bitstream::FULL_METADATA);
+    secondCompareOut << testObjectReadA;
+    secondCompareOut << testObjectReadB;
+    secondCompareOut << messageRead;
+    secondCompareOut << endRead;
+    secondCompareOut.flush();
+    
+    if (compareArray != secondCompareArray) {
+        qDebug() << "Mismatch between written/JSON streams (generics).";
+        return true;
+    }
+    
+    // once more, with mapping!
+    JSONReader secondJSONReader(QJsonDocument::fromJson(encodedJson));
+    secondJSONReader >> testObjectReadA;
+    secondJSONReader >> testObjectReadB;
+    secondJSONReader >> messageRead;
+    secondJSONReader >> endRead;
+    
+    // reassign the ids
+    testObjectReadA->setID(testObjectWrittenA->getID());
+    testObjectReadA->setOriginID(testObjectWrittenA->getOriginID());
+    testObjectReadB->setID(testObjectWrittenB->getID());
+    testObjectReadB->setOriginID(testObjectWrittenB->getOriginID());
+    
+    // and back to binary
+    QByteArray thirdCompareArray;
+    QDataStream thirdCompareOutStream(&thirdCompareArray, QIODevice::WriteOnly);
+    Bitstream thirdCompareOut(thirdCompareOutStream, Bitstream::FULL_METADATA);
+    thirdCompareOut << testObjectReadA;
+    thirdCompareOut << testObjectReadB;
+    thirdCompareOut << messageRead;
+    thirdCompareOut << endRead;
+    thirdCompareOut.flush();
+    
+    if (compareArray != thirdCompareArray) {
+        qDebug() << "Mismatch between written/JSON streams (mapped).";
         return true;
     }
     

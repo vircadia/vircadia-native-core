@@ -22,6 +22,17 @@ ModelTreeRenderer::ModelTreeRenderer() :
 }
 
 ModelTreeRenderer::~ModelTreeRenderer() {
+    clearModelsCache();
+}
+
+void ModelTreeRenderer::clear() {
+    OctreeRenderer::clear();
+    clearModelsCache();
+}
+
+void ModelTreeRenderer::clearModelsCache() {
+    qDebug() << "ModelTreeRenderer::clearModelsCache()...";
+    
     // delete the models in _knownModelsItemModels
     foreach(Model* model, _knownModelsItemModels) {
         delete model;
@@ -71,24 +82,39 @@ Model* ModelTreeRenderer::getModel(const ModelItem& modelItem) {
     if (modelItem.isKnownID()) {
         if (_knownModelsItemModels.find(modelItem.getID()) != _knownModelsItemModels.end()) {
             model = _knownModelsItemModels[modelItem.getID()];
-        } else {
-        
+            if (QUrl(modelItem.getModelURL()) != model->getURL()) {
+                delete model; // delete the old model...
+                model = NULL;
+                _knownModelsItemModels.remove(modelItem.getID());
+            }
+        }
+
+        // if we don't have a model...        
+        if (!model) {
             // Make sure we only create new models on the thread that owns the ModelTreeRenderer
             if (QThread::currentThread() != thread()) {
                 QMetaObject::invokeMethod(this, "getModel", Qt::BlockingQueuedConnection,
                     Q_RETURN_ARG(Model*, model), Q_ARG(const ModelItem&, modelItem));
                 return model;
             }
-    
+
             model = new Model();
             model->init();
             model->setURL(QUrl(modelItem.getModelURL()));
             _knownModelsItemModels[modelItem.getID()] = model;
         }
+        
     } else {
         if (_unknownModelsItemModels.find(modelItem.getCreatorTokenID()) != _unknownModelsItemModels.end()) {
             model = _unknownModelsItemModels[modelItem.getCreatorTokenID()];
-        } else {
+            if (QUrl(modelItem.getModelURL()) != model->getURL()) {
+                delete model; // delete the old model...
+                model = NULL;
+                _unknownModelsItemModels.remove(modelItem.getID());
+            }
+        }
+
+        if (!model) {
             // Make sure we only create new models on the thread that owns the ModelTreeRenderer
             if (QThread::currentThread() != thread()) {
                 QMetaObject::invokeMethod(this, "getModel", Qt::BlockingQueuedConnection,
