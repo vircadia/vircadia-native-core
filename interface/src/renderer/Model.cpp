@@ -1102,7 +1102,7 @@ void Model::renderJointCollisionShapes(float alpha) {
         glPushMatrix();
         if (shape->getType() == Shape::SPHERE_SHAPE) {
             // shapes are stored in world-frame, so we have to transform into model frame
-            glm::vec3 position = shape->getCenter() - _translation;
+            glm::vec3 position = shape->getTranslation() - _translation;
             glTranslatef(position.x, position.y, position.z);
             const glm::quat& rotation = shape->getRotation();
             glm::vec3 axis = glm::axis(rotation);

@@ -23,8 +23,8 @@ public:
 
     VerletSphereShape(float radius, glm::vec3* centerPoint);
 
-    void setCenter(const glm::vec3& center);
-    glm::vec3 getCenter();
+    void setTranslation(const glm::vec3& position);
+    glm::vec3 getTranslation();
 
 protected:
     // NOTE: VerletSphereShape does NOT own its _point

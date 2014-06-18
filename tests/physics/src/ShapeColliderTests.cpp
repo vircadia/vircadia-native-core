@@ -123,8 +123,8 @@ void ShapeColliderTests::sphereTouchesSphere() {
         }
     
         // contactPoint is on surface of sphereA
-        glm::vec3 AtoB = sphereB.getCenter() - sphereA.getCenter();
-        glm::vec3 expectedContactPoint = sphereA.getCenter() + radiusA * glm::normalize(AtoB);
+        glm::vec3 AtoB = sphereB.getTranslation() - sphereA.getTranslation();
+        glm::vec3 expectedContactPoint = sphereA.getTranslation() + radiusA * glm::normalize(AtoB);
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -153,8 +153,8 @@ void ShapeColliderTests::sphereTouchesSphere() {
         }
     
         // contactPoint is on surface of sphereA
-        glm::vec3 BtoA = sphereA.getCenter() - sphereB.getCenter();
-        glm::vec3 expectedContactPoint = sphereB.getCenter() + radiusB * glm::normalize(BtoA);
+        glm::vec3 BtoA = sphereA.getTranslation() - sphereB.getTranslation();
+        glm::vec3 expectedContactPoint = sphereB.getTranslation() + radiusB * glm::normalize(BtoA);
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -182,7 +182,7 @@ void ShapeColliderTests::sphereMissesCapsule() {
     glm::quat rotation = glm::angleAxis(angle, axis);
     glm::vec3 translation(15.1f, -27.1f, -38.6f);
     capsuleB.setRotation(rotation);
-    capsuleB.setCenter(translation);
+    capsuleB.setTranslation(translation);
 
     CollisionList collisions(16);
 
@@ -193,7 +193,7 @@ void ShapeColliderTests::sphereMissesCapsule() {
     for (int i = 0; i < numberOfSteps; ++i) {
         // translate sphereA into world-frame
         glm::vec3 localPosition = localStartPosition + ((float)i * delta) * yAxis;
-        sphereA.setCenter(rotation * localPosition + translation);
+        sphereA.setTranslation(rotation * localPosition + translation);
 
         // sphereA agains capsuleB
         if (ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
@@ -236,7 +236,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
     int numCollisions = 0;
 
     {   // sphereA collides with capsuleB's cylindrical wall
-        sphereA.setCenter(radialOffset * xAxis);
+        sphereA.setTranslation(radialOffset * xAxis);
 
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
@@ -258,7 +258,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         }
     
         // contactPoint is on surface of sphereA
-        glm::vec3 expectedContactPoint = sphereA.getCenter() - radiusA * xAxis;
+        glm::vec3 expectedContactPoint = sphereA.getTranslation() - radiusA * xAxis;
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -287,8 +287,8 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         }
     
         // contactPoint is on surface of capsuleB
-        glm::vec3 BtoA = sphereA.getCenter() - capsuleB.getCenter();
-        glm::vec3 closestApproach = capsuleB.getCenter() + glm::dot(BtoA, yAxis) * yAxis;
+        glm::vec3 BtoA = sphereA.getTranslation() - capsuleB.getTranslation();
+        glm::vec3 closestApproach = capsuleB.getTranslation() + glm::dot(BtoA, yAxis) * yAxis;
         expectedContactPoint = closestApproach + radiusB * glm::normalize(BtoA - closestApproach);
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
@@ -299,7 +299,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
     }
     {   // sphereA hits end cap at axis
         glm::vec3 axialOffset = (halfHeightB + alpha * radiusA + beta * radiusB) * yAxis;
-        sphereA.setCenter(axialOffset * yAxis);
+        sphereA.setTranslation(axialOffset * yAxis);
         
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
@@ -321,7 +321,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         }
     
         // contactPoint is on surface of sphereA
-        glm::vec3 expectedContactPoint = sphereA.getCenter() - radiusA * yAxis;
+        glm::vec3 expectedContactPoint = sphereA.getTranslation() - radiusA * yAxis;
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -362,7 +362,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
     }
     {   // sphereA hits start cap at axis
         glm::vec3 axialOffset = - (halfHeightB + alpha * radiusA + beta * radiusB) * yAxis;
-        sphereA.setCenter(axialOffset * yAxis);
+        sphereA.setTranslation(axialOffset * yAxis);
         
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
@@ -384,7 +384,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         }
     
         // contactPoint is on surface of sphereA
-        glm::vec3 expectedContactPoint = sphereA.getCenter() + radiusA * yAxis;
+        glm::vec3 expectedContactPoint = sphereA.getTranslation() + radiusA * yAxis;
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -446,7 +446,7 @@ void ShapeColliderTests::capsuleMissesCapsule() {
     CollisionList collisions(16);
 
     // side by side
-    capsuleB.setCenter((1.01f * totalRadius) * xAxis);
+    capsuleB.setTranslation((1.01f * totalRadius) * xAxis);
     if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
@@ -461,7 +461,7 @@ void ShapeColliderTests::capsuleMissesCapsule() {
     }
 
     // end to end
-    capsuleB.setCenter((1.01f * totalHalfLength) * xAxis);
+    capsuleB.setTranslation((1.01f * totalHalfLength) * xAxis);
     if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
@@ -478,7 +478,7 @@ void ShapeColliderTests::capsuleMissesCapsule() {
     // rotate B and move it to the side
     glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
     capsuleB.setRotation(rotation);
-    capsuleB.setCenter((1.01f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
+    capsuleB.setTranslation((1.01f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
     if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
@@ -516,7 +516,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
     int numCollisions = 0;
 
     { // side by side
-        capsuleB.setCenter((0.99f * totalRadius) * xAxis);
+        capsuleB.setTranslation((0.99f * totalRadius) * xAxis);
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
@@ -536,7 +536,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
     }
 
     { // end to end
-        capsuleB.setCenter((0.99f * totalHalfLength) * yAxis);
+        capsuleB.setTranslation((0.99f * totalHalfLength) * yAxis);
 
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
@@ -559,7 +559,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
     { // rotate B and move it to the side
         glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
         capsuleB.setRotation(rotation);
-        capsuleB.setCenter((0.99f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
+        capsuleB.setTranslation((0.99f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
 
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
@@ -584,7 +584,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
         capsuleB.setRotation(rotation);
         glm::vec3 positionB = ((totalRadius + capsuleB.getHalfHeight()) - overlap) * xAxis;
-        capsuleB.setCenter(positionB);
+        capsuleB.setTranslation(positionB);
 
         // capsuleA vs capsuleB
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
@@ -605,7 +605,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
                 << " actual = " << collision->_penetration;
         }
     
-        glm::vec3 expectedContactPoint = capsuleA.getCenter() + radiusA * xAxis;
+        glm::vec3 expectedContactPoint = capsuleA.getTranslation() + radiusA * xAxis;
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -633,7 +633,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
                 << std::endl;
         }
     
-        expectedContactPoint = capsuleB.getCenter() - (radiusB + halfHeightB) * xAxis;
+        expectedContactPoint = capsuleB.getTranslation() - (radiusB + halfHeightB) * xAxis;
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -649,7 +649,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
         capsuleB.setRotation(rotation);
         glm::vec3 positionB = (totalRadius - overlap) * zAxis + shift * yAxis;
-        capsuleB.setCenter(positionB);
+        capsuleB.setTranslation(positionB);
 
         // capsuleA vs capsuleB
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
@@ -671,7 +671,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
                 << std::endl;
         }
     
-        glm::vec3 expectedContactPoint = capsuleA.getCenter() + radiusA * zAxis + shift * yAxis;
+        glm::vec3 expectedContactPoint = capsuleA.getTranslation() + radiusA * zAxis + shift * yAxis;
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -708,7 +708,7 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
             float overlap = 0.25f;
             float sphereOffset = 0.5f * cubeSide + sphereRadius - overlap;
             sphereCenter = cubeCenter + sphereOffset * axis;
-            sphere.setCenter(sphereCenter);
+            sphere.setTranslation(sphereCenter);
     
             if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  axis = " << axis << std::endl;
@@ -741,7 +741,7 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
             float overlap = 1.25f * sphereRadius;
             float sphereOffset = 0.5f * cubeSide + sphereRadius - overlap;
             sphereCenter = cubeCenter + sphereOffset * axis;
-            sphere.setCenter(sphereCenter);
+            sphere.setTranslation(sphereCenter);
     
             if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube." 
@@ -815,7 +815,7 @@ void ShapeColliderTests::sphereTouchesAACubeEdges() {
         float overlap = 0.25f;
     
         sphereCenter = cubeCenter + (lengthAxis * 0.5f * cubeSide + sphereRadius - overlap) * axis;
-        sphere.setCenter(sphereCenter);
+        sphere.setTranslation(sphereCenter);
     
         if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  axis = " << axis << std::endl;
@@ -857,42 +857,42 @@ void ShapeColliderTests::sphereMissesAACube() {
 
     // top
     sphereCenter = cubeCenter + sphereOffset * yAxis;
-    sphere.setCenter(sphereCenter);
+    sphere.setTranslation(sphereCenter);
     if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
     
     // bottom
     sphereCenter = cubeCenter - sphereOffset * yAxis;
-    sphere.setCenter(sphereCenter);
+    sphere.setTranslation(sphereCenter);
     if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
 
     // left
     sphereCenter = cubeCenter + sphereOffset * xAxis;
-    sphere.setCenter(sphereCenter);
+    sphere.setTranslation(sphereCenter);
     if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
 
     // right
     sphereCenter = cubeCenter - sphereOffset * xAxis;
-    sphere.setCenter(sphereCenter);
+    sphere.setTranslation(sphereCenter);
     if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
 
     // forward
     sphereCenter = cubeCenter + sphereOffset * zAxis;
-    sphere.setCenter(sphereCenter);
+    sphere.setTranslation(sphereCenter);
     if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
 
     // back
     sphereCenter = cubeCenter - sphereOffset * zAxis;
-    sphere.setCenter(sphereCenter);
+    sphere.setTranslation(sphereCenter);
     if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
@@ -955,7 +955,7 @@ void ShapeColliderTests::rayHitsSphere() {
         rayDirection = rotation * unrotatedRayDirection;
 
         sphere.setRadius(radius);
-        sphere.setCenter(rotation * translation);
+        sphere.setTranslation(rotation * translation);
     
         float distance = FLT_MAX;
         if (!sphere.findRayIntersection(rayStart, rayDirection, distance)) {
@@ -994,7 +994,7 @@ void ShapeColliderTests::rayBarelyHitsSphere() {
 
     rayStart = rotation * (rayStart + translation);
     rayDirection = rotation * rayDirection;
-    sphere.setCenter(rotation * translation);
+    sphere.setTranslation(rotation * translation);
 
     // ...and test again
     distance = FLT_MAX;
@@ -1032,7 +1032,7 @@ void ShapeColliderTests::rayBarelyMissesSphere() {
 
     rayStart = rotation * (rayStart + translation);
     rayDirection = rotation * rayDirection;
-    sphere.setCenter(rotation * translation);
+    sphere.setTranslation(rotation * translation);
 
     // ...and test again
     distance = FLT_MAX;
@@ -1186,7 +1186,7 @@ void ShapeColliderTests::rayHitsPlane() {
     float planeDistanceFromOrigin = 3.579;
     glm::vec3 planePosition(0.0f, planeDistanceFromOrigin, 0.0f);
     PlaneShape plane;
-    plane.setCenter(planePosition);
+    plane.setTranslation(planePosition);
 
     // make a simple ray
     float startDistance = 1.234f;
@@ -1209,7 +1209,7 @@ void ShapeColliderTests::rayHitsPlane() {
     glm::vec3 axis = glm::normalize( glm::vec3(-7.0f, 2.8f, 9.3f) );
     glm::quat rotation = glm::angleAxis(angle, axis);
 
-    plane.setCenter(rotation * planePosition);
+    plane.setTranslation(rotation * planePosition);
     plane.setRotation(rotation);
     rayStart = rotation * rayStart;
     rayDirection = rotation * rayDirection;
@@ -1231,7 +1231,7 @@ void ShapeColliderTests::rayMissesPlane() {
     float planeDistanceFromOrigin = 3.579;
     glm::vec3 planePosition(0.0f, planeDistanceFromOrigin, 0.0f);
     PlaneShape plane;
-    plane.setCenter(planePosition);
+    plane.setTranslation(planePosition);
 
     { // parallel rays should miss
         float startDistance = 1.234f;
@@ -1251,7 +1251,7 @@ void ShapeColliderTests::rayMissesPlane() {
         glm::vec3 axis = glm::normalize( glm::vec3(-7.0f, 2.8f, 9.3f) );
         glm::quat rotation = glm::angleAxis(angle, axis);
     
-        plane.setCenter(rotation * planePosition);
+        plane.setTranslation(rotation * planePosition);
         plane.setRotation(rotation);
         rayStart = rotation * rayStart;
         rayDirection = rotation * rayDirection;
@@ -1283,7 +1283,7 @@ void ShapeColliderTests::rayMissesPlane() {
         glm::vec3 axis = glm::normalize( glm::vec3(-7.0f, 2.8f, 9.3f) );
         glm::quat rotation = glm::angleAxis(angle, axis);
     
-        plane.setCenter(rotation * planePosition);
+        plane.setTranslation(rotation * planePosition);
         plane.setRotation(rotation);
         rayStart = rotation * rayStart;
         rayDirection = rotation * rayDirection;

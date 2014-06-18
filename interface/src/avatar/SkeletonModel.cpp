@@ -596,7 +596,7 @@ void SkeletonModel::updateShapePositionsLegacy() {
             glm::vec3 worldPosition = _translation + _rotation * (state.getPosition() + shapeOffset);
             Shape* shape = _shapes[i];
             if (shape) {
-                shape->setCenter(worldPosition);
+                shape->setTranslation(worldPosition);
                 shape->setRotation(_rotation * stateRotation * joint.shapeRotation);
                 float distance = glm::distance(worldPosition, _translation) + shape->getBoundingRadius();
                 if (distance > _boundingRadius) {
@@ -608,7 +608,7 @@ void SkeletonModel::updateShapePositionsLegacy() {
             }
         }
         _shapesAreDirty = false;
-        _boundingShape.setCenter(rootPosition + _rotation * _boundingShapeLocalOffset);
+        _boundingShape.setTranslation(rootPosition + _rotation * _boundingShapeLocalOffset);
         _boundingShape.setRotation(_rotation);
     }
 }
@@ -665,7 +665,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         const FBXJoint& joint = geometry.joints[i];
         glm::vec3 jointToShapeOffset = uniformScale * (finalRotations[i] * joint.shapePosition);
         glm::vec3 localPosition = extractTranslation(transforms[i]) + jointToShapeOffset;
-        shape->setCenter(localPosition);
+        shape->setTranslation(localPosition);
         shape->setRotation(finalRotations[i] * joint.shapeRotation);
         float distance = glm::length(localPosition) + shape->getBoundingRadius();
         if (distance > _boundingRadius) {
@@ -684,7 +684,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         }
         Extents shapeExtents;
         shapeExtents.reset();
-        glm::vec3 localPosition = shape->getCenter();
+        glm::vec3 localPosition = shape->getTranslation();
         int type = shape->getType();
         if (type == Shape::CAPSULE_SHAPE) {
             // add the two furthest surface points of the capsule
@@ -739,11 +739,11 @@ void SkeletonModel::resetShapePositions() {
     for (int i = 0; i < _shapes.size(); i++) {
         Shape* shape = _shapes[i];
         if (shape) {
-            shape->setCenter(_translation + _rotation * shape->getCenter());
+            shape->setTranslation(_translation + _rotation * shape->getTranslation());
             shape->setRotation(_rotation * shape->getRotation());
         }
     }
-    _boundingShape.setCenter(_translation + _rotation * _boundingShapeLocalOffset);
+    _boundingShape.setTranslation(_translation + _rotation * _boundingShapeLocalOffset);
     _boundingShape.setRotation(_rotation);
 }
 

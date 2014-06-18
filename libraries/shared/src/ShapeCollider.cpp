@@ -157,7 +157,7 @@ bool collideShapeWithAACube(const Shape* shapeA, const glm::vec3& cubeCenter, fl
 }
 
 bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, CollisionList& collisions) {
-    glm::vec3 BA = sphereB->getCenter() - sphereA->getCenter();
+    glm::vec3 BA = sphereB->getTranslation() - sphereA->getTranslation();
     float distanceSquared = glm::dot(BA, BA);
     float totalRadius = sphereA->getRadius() + sphereB->getRadius();
     if (distanceSquared < totalRadius * totalRadius) {
@@ -175,7 +175,7 @@ bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, Collis
         if (collision) {
             collision->_penetration = BA * (totalRadius - distance);
             // contactPoint is on surface of A
-            collision->_contactPoint = sphereA->getCenter() + sphereA->getRadius() * BA;
+            collision->_contactPoint = sphereA->getTranslation() + sphereA->getRadius() * BA;
             collision->_shapeA = sphereA;
             collision->_shapeB = sphereB;
             return true;
@@ -186,7 +186,7 @@ bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, Collis
 
 bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, CollisionList& collisions) {
     // find sphereA's closest approach to axis of capsuleB
-    glm::vec3 BA = capsuleB->getCenter() - sphereA->getCenter();
+    glm::vec3 BA = capsuleB->getTranslation() - sphereA->getTranslation();
     glm::vec3 capsuleAxis; 
     capsuleB->computeNormalizedAxis(capsuleAxis);
     float axialDistance = - glm::dot(BA, capsuleAxis);
@@ -221,7 +221,7 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
             // penetration points from A into B
             collision->_penetration = (totalRadius - radialDistance) * radialAxis; // points from A into B
             // contactPoint is on surface of sphereA
-            collision->_contactPoint = sphereA->getCenter() + sphereA->getRadius() * radialAxis;
+            collision->_contactPoint = sphereA->getTranslation() + sphereA->getRadius() * radialAxis;
             collision->_shapeA = sphereA;
             collision->_shapeB = capsuleB;
         } else {
@@ -244,7 +244,7 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
             float sign = (axialDistance > 0.0f) ? -1.0f : 1.0f;
             collision->_penetration = (sign * (totalRadius + capsuleB->getHalfHeight() - absAxialDistance)) * capsuleAxis;
             // contactPoint is on surface of sphereA
-            collision->_contactPoint = sphereA->getCenter() + (sign * sphereA->getRadius()) * capsuleAxis;
+            collision->_contactPoint = sphereA->getTranslation() + (sign * sphereA->getRadius()) * capsuleAxis;
             collision->_shapeA = sphereA;
             collision->_shapeB = capsuleB;
         }
@@ -255,13 +255,13 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
 
 bool spherePlane(const SphereShape* sphereA, const PlaneShape* planeB, CollisionList& collisions) {
     glm::vec3 penetration;
-    if (findSpherePlanePenetration(sphereA->getCenter(), sphereA->getRadius(), planeB->getCoefficients(), penetration)) {
+    if (findSpherePlanePenetration(sphereA->getTranslation(), sphereA->getRadius(), planeB->getCoefficients(), penetration)) {
         CollisionInfo* collision = collisions.getNewCollision();
         if (!collision) {
             return false; // collision list is full
         }
         collision->_penetration = penetration;
-        collision->_contactPoint = sphereA->getCenter() + sphereA->getRadius() * glm::normalize(penetration);
+        collision->_contactPoint = sphereA->getTranslation() + sphereA->getRadius() * glm::normalize(penetration);
         collision->_shapeA = sphereA;
         collision->_shapeB = planeB;
         return true;
@@ -271,7 +271,7 @@ bool spherePlane(const SphereShape* sphereA, const PlaneShape* planeB, Collision
 
 bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, CollisionList& collisions) {
     // find sphereB's closest approach to axis of capsuleA
-    glm::vec3 AB = capsuleA->getCenter() - sphereB->getCenter();
+    glm::vec3 AB = capsuleA->getTranslation() - sphereB->getTranslation();
     glm::vec3 capsuleAxis;
     capsuleA->computeNormalizedAxis(capsuleAxis);
     float axialDistance = - glm::dot(AB, capsuleAxis);
@@ -287,14 +287,14 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
         }
 
         // closestApproach = point on capsuleA's axis that is closest to sphereB's center
-        glm::vec3 closestApproach = capsuleA->getCenter() + axialDistance * capsuleAxis;
+        glm::vec3 closestApproach = capsuleA->getTranslation() + axialDistance * capsuleAxis;
 
         if (absAxialDistance > capsuleA->getHalfHeight()) {
             // sphere hits capsule on a cap 
             // --> recompute radialAxis and closestApproach
             float sign = (axialDistance > 0.0f) ? 1.0f : -1.0f;
-            closestApproach = capsuleA->getCenter() + (sign * capsuleA->getHalfHeight()) * capsuleAxis;
-            radialAxis = closestApproach - sphereB->getCenter();
+            closestApproach = capsuleA->getTranslation() + (sign * capsuleA->getHalfHeight()) * capsuleAxis;
+            radialAxis = closestApproach - sphereB->getTranslation();
             radialDistance2 = glm::length2(radialAxis);
             if (radialDistance2 > totalRadius2) {
                 return false;
@@ -349,8 +349,8 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
     capsuleA->computeNormalizedAxis(axisA);
     glm::vec3 axisB;
     capsuleB->computeNormalizedAxis(axisB);
-    glm::vec3 centerA = capsuleA->getCenter();
-    glm::vec3 centerB = capsuleB->getCenter();
+    glm::vec3 centerA = capsuleA->getTranslation();
+    glm::vec3 centerB = capsuleB->getTranslation();
 
     // NOTE: The formula for closest approach between two lines is:
     // d = [(B - A) . (a - (a.b)b)] / (1 - (a.b)^2)
@@ -505,13 +505,13 @@ bool capsulePlane(const CapsuleShape* capsuleA, const PlaneShape* planeB, Collis
 
 bool planeSphere(const PlaneShape* planeA, const SphereShape* sphereB, CollisionList& collisions) {
     glm::vec3 penetration;
-    if (findSpherePlanePenetration(sphereB->getCenter(), sphereB->getRadius(), planeA->getCoefficients(), penetration)) {
+    if (findSpherePlanePenetration(sphereB->getTranslation(), sphereB->getRadius(), planeA->getCoefficients(), penetration)) {
         CollisionInfo* collision = collisions.getNewCollision();
         if (!collision) {
             return false; // collision list is full
         }
         collision->_penetration = -penetration;
-        collision->_contactPoint = sphereB->getCenter() +
+        collision->_contactPoint = sphereB->getTranslation() +
             (sphereB->getRadius() / glm::length(penetration) - 1.0f) * penetration;
         collision->_shapeA = planeA;
         collision->_shapeB = sphereB;
@@ -803,21 +803,21 @@ bool sphereAACube_StarkAngles(const glm::vec3& sphereCenter, float sphereRadius,
 */
 
 bool sphereAACube(const SphereShape* sphereA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
-    return sphereAACube(sphereA->getCenter(), sphereA->getRadius(), cubeCenter, cubeSide, collisions);
+    return sphereAACube(sphereA->getTranslation(), sphereA->getRadius(), cubeCenter, cubeSide, collisions);
 }
 
 bool capsuleAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
     // find nerest approach of capsule line segment to cube
     glm::vec3 capsuleAxis;
     capsuleA->computeNormalizedAxis(capsuleAxis);
-    float offset = glm::dot(cubeCenter - capsuleA->getCenter(), capsuleAxis);
+    float offset = glm::dot(cubeCenter - capsuleA->getTranslation(), capsuleAxis);
     float halfHeight = capsuleA->getHalfHeight();
     if (offset > halfHeight) {
         offset = halfHeight;
     } else if (offset < -halfHeight) {
         offset = -halfHeight;
     }
-    glm::vec3 nearestApproach = capsuleA->getCenter() + offset * capsuleAxis;
+    glm::vec3 nearestApproach = capsuleA->getTranslation() + offset * capsuleAxis;
     // collide nearest approach like a sphere at that point
     return sphereAACube(nearestApproach, capsuleA->getRadius(), cubeCenter, cubeSide, collisions);
 }

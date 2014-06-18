@@ -22,11 +22,11 @@ VerletSphereShape::VerletSphereShape(float radius, glm::vec3* centerPoint) : Sph
 }
 
 // virtual from Shape class
-void VerletSphereShape::setCenter(const glm::vec3& center) {
-    *_point = center;
+void VerletSphereShape::setTranslation(const glm::vec3& position) {
+    *_point = position;
 }
 
 // virtual from Shape class
-glm::vec3 VerletSphereShape::getCenter() {
+glm::vec3 VerletSphereShape::getTranslation() {
     return *_point;
 }

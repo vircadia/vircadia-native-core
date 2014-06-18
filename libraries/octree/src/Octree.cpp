@@ -757,7 +757,7 @@ bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
     // coarse check against bounds
     AACube cube = element->getAACube();
     cube.scale(TREE_SCALE);
-    if (!cube.expandedContains(args->shape->getCenter(), args->shape->getBoundingRadius())) {
+    if (!cube.expandedContains(args->shape->getTranslation(), args->shape->getBoundingRadius())) {
         return false;
     }
     if (!element->isLeaf()) {
