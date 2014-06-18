@@ -51,7 +51,11 @@ public:
 
     virtual const FBXGeometry* getGeometryForModel(const ModelItem& modelItem);
 
+    /// clears the tree
+    virtual void clear();
+
 protected:
+    void clearModelsCache();
     Model* getModel(const ModelItem& modelItem);
     QMap<uint32_t, Model*> _knownModelsItemModels;
     QMap<uint32_t, Model*> _unknownModelsItemModels;
