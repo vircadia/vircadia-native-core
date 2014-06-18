@@ -274,9 +274,9 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
 
     unsigned short int expectedSequence = _totalPackets == 0 ? incomingSequence : _incomingLastSequence + (unsigned short int)1;
     
-    if (incomingSequence == expectedSequence) {         // on time
+    if (incomingSequence == expectedSequence) { // on time
         _incomingLastSequence = incomingSequence;
-    } else {                                              // out of order
+    } else { // out of order
         int incoming = (int)incomingSequence;
         int expected = (int)expectedSequence;
 
@@ -299,13 +299,13 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
         
         // now that rollover has been corrected for (if it occurred), incoming and expected can be
         // compared to each other directly, though one of them might be negative
-        if (incoming > expected) {                          // early
+        if (incoming > expected) { // early
             // add all sequence numbers that were skipped to the missing sequence numbers list
             for (int missingSequence = expected; missingSequence < incoming; missingSequence++) {
                 _missingSequenceNumbers.insert(missingSequence < 0 ? missingSequence + UINT16_RANGE : missingSequence);
             }
             _incomingLastSequence = incomingSequence;
-        } else {                                            // late
+        } else { // late
             // remove this from missing sequence number if it's in there
             _missingSequenceNumbers.remove(incomingSequence);
 
