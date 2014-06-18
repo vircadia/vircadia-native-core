@@ -83,7 +83,7 @@ static TestSharedObjectA::TestFlags getRandomTestFlags() {
     return flags;
 }
 
-static QScriptValue createRandomScriptValue(bool complex = false) {
+static QScriptValue createRandomScriptValue(bool complex = false, bool ensureHashOrder = false) {
     scriptObjectsCreated++;
     switch (randIntInRange(0, complex ? 5 : 3)) {
         case 0:
@@ -108,31 +108,37 @@ static QScriptValue createRandomScriptValue(bool complex = false) {
         }
         default: {
             QScriptValue value = ScriptCache::getInstance()->getEngine()->newObject();
-            if (randomBoolean()) {
+            if (ensureHashOrder) {
+                // we can't depend on the iteration order, so if we need it to be the same (as when comparing bytes), we
+                // can only have one property
                 value.setProperty("foo", createRandomScriptValue());
-            }
-            if (randomBoolean()) {
-                value.setProperty("bar", createRandomScriptValue());
-            }
-            if (randomBoolean()) {
-                value.setProperty("baz", createRandomScriptValue());
-            }
-            if (randomBoolean()) {
-                value.setProperty("bong", createRandomScriptValue());
+            } else {
+                if (randomBoolean()) {
+                    value.setProperty("foo", createRandomScriptValue());
+                }
+                if (randomBoolean()) {
+                    value.setProperty("bar", createRandomScriptValue());
+                }
+                if (randomBoolean()) {
+                    value.setProperty("baz", createRandomScriptValue());
+                }
+                if (randomBoolean()) {
+                    value.setProperty("bong", createRandomScriptValue());
+                }
             }
             return value;
         }
     }
 }
 
-static TestMessageC createRandomMessageC() {
+static TestMessageC createRandomMessageC(bool ensureHashOrder = false) {
     TestMessageC message;
     message.foo = randomBoolean();
     message.bar = rand();
     message.baz = randFloat();
     message.bong.foo = createRandomBytes();
     message.bong.baz = getRandomTestEnum();
-    message.bizzle = createRandomScriptValue(true);
+    message.bizzle = createRandomScriptValue(true, ensureHashOrder);
     return message;
 }
 
@@ -146,7 +152,7 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     SharedObjectPointer testObjectWrittenB = new TestSharedObjectB(randFloat(), createRandomBytes(),
         TestSharedObjectB::THIRD_TEST_ENUM, TestSharedObjectB::SECOND_TEST_FLAG);
     out << testObjectWrittenB;
-    TestMessageC messageWritten = createRandomMessageC();
+    TestMessageC messageWritten = createRandomMessageC(true);
     out << QVariant::fromValue(messageWritten);
     QByteArray endWritten = "end";
     out << endWritten;
