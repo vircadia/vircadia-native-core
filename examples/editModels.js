@@ -974,17 +974,27 @@ function mouseMoveEvent(event)  {
             
             var pixelPerDegrees = windowDimensions.y / (1 * 360); // the entire height of the window allow you to make 2 full rotations
             
-            var STEP = 15;
-            var delta = Math.floor((event.x - mouseLastPosition.x) / pixelPerDegrees);
+            //compute delta in pixel
+            var cameraForward = Quat.getFront(Camera.getOrientation());
+            var rotationAxis = (!zIsPressed && xIsPressed) ? { x: 1, y: 0, z: 0 } :
+                               (!zIsPressed && !xIsPressed) ? { x: 0, y: 1, z: 0 } :
+                                                              { x: 0, y: 0, z: 1 };
+            rotationAxis = Vec3.multiplyQbyV(selectedModelProperties.modelRotation, rotationAxis);
+            var orthogonalAxis = Vec3.cross(cameraForward, rotationAxis);
+            var mouseDelta = { x: event.x - mouseLastPosition
+                .x, y: mouseLastPosition.y - event.y, z: 0 };
+            var transformedMouseDelta = Vec3.multiplyQbyV(Camera.getOrientation(), mouseDelta);
+            var delta = Math.floor(Vec3.dot(transformedMouseDelta, Vec3.normalize(orthogonalAxis)) / pixelPerDegrees);
             
+            var STEP = 15;
             if (!event.isShifted) {
-                delta = Math.floor(delta / STEP) * STEP;
+                delta = Math.round(delta / STEP) * STEP;
             }
                 
             var rotation = Quat.fromVec3Degrees({
-                                                x: (!zIsPressed && xIsPressed) ? delta : 0,   // z is pressed
-                                                y: (!zIsPressed && !xIsPressed) ? delta : 0,   // x is pressed
-                                                z: (zIsPressed && !xIsPressed) ? delta : 0   // neither is pressed
+                                                x: (!zIsPressed && xIsPressed) ? delta : 0,   // x is pressed
+                                                y: (!zIsPressed && !xIsPressed) ? delta : 0,   // neither is pressed
+                                                z: (zIsPressed && !xIsPressed) ? delta : 0   // z is pressed
                                                 });
             rotation = Quat.multiply(selectedModelProperties.oldRotation, rotation);
             
