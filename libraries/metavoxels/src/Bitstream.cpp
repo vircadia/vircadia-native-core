@@ -1879,6 +1879,7 @@ QJsonDocument JSONWriter::getDocument() const {
 }
 
 JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode genericsMode) {
+    // create and map the type streamers in order
     QJsonObject top = document.object();
     foreach (const QJsonValue& element, top.value("types").toArray()) {
         QJsonObject type = element.toObject();
@@ -1889,10 +1890,11 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
             baseStreamer = Bitstream::getEnumStreamersByName().value(latinName);
         }
         if (!baseStreamer && genericsMode == Bitstream::NO_GENERICS) {
-            continue;
+            continue; // no built-in type and no generics allowed; we give up
         }
         QString category = type.value("category").toString();
         if (!baseStreamer || genericsMode == Bitstream::ALL_GENERICS) {
+            // create a generic streamer
             TypeStreamerPointer streamer;
             if (category == "ENUM") {
                 QVector<NameIntPair> values;
@@ -1933,6 +1935,7 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
             static_cast<GenericTypeStreamer*>(streamer.data())->_weakSelf = streamer;
             continue;
         }
+        // create a mapped streamer, determining along the way whether it matches our base
         if (category == "ENUM") {
             QHash<int, int> mappings;
             int highestValue = 0;
@@ -1949,6 +1952,7 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
                 }
                 matches &= (value == mapping);
             }
+            // if everything matches our built-in enum, we can use that, which will be faster
             if (matches) {
                 _typeStreamers.insert(name, baseStreamer->getSelf());
             } else {
@@ -1967,6 +1971,7 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
                 fields.append(StreamerIndexPair(streamer, index));
                 matches &= (index == i && streamer == metaFields.at(i).getStreamer());
             }
+            // if everything matches our built-in streamable, we can use that, which will be faster
             if (matches) {
                 _typeStreamers.insert(name, baseStreamer->getSelf());
             } else {
@@ -2001,6 +2006,7 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
         }
     }
 
+    // create and map the object streamers in order
     foreach (const QJsonValue& element, top.value("classes").toArray()) {
         QJsonObject clazz = element.toObject();
         QString name = clazz.value("name").toString();
@@ -2008,9 +2014,10 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
         const ObjectStreamer* baseStreamer = Bitstream::getObjectStreamers().value(
             Bitstream::getMetaObjects().value(latinName));
         if (!baseStreamer && genericsMode == Bitstream::NO_GENERICS) {
-            continue;
+            continue; // no built-in class and no generics allowed; we give up
         }
         if (!baseStreamer || genericsMode == Bitstream::ALL_GENERICS) {
+            // create a generic streamer
             QVector<StreamerNamePair> properties;
             foreach (const QJsonValue& property, clazz.value("properties").toArray()) {
                 QJsonObject object = property.toObject();
@@ -2023,6 +2030,7 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
             static_cast<GenericObjectStreamer*>(streamer.data())->_weakSelf = streamer;
             continue;
         }
+        // create a mapped streamer, determining along the way whether it matches our base
         const QMetaObject* metaObject = baseStreamer->getMetaObject();
         const QVector<StreamerPropertyPair>& baseProperties = baseStreamer->getProperties();
         QVector<StreamerPropertyPair> properties;
@@ -2039,6 +2047,7 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
             matches &= (typeStreamer == baseProperty.first &&
                 metaProperty.propertyIndex() == baseProperty.second.propertyIndex());
         }
+        // if everything matches our built-in type, we can use that directly, which will be faster
         if (matches) {
             _objectStreamers.insert(name, baseStreamer->getSelf());
         } else {
@@ -2046,6 +2055,7 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
         }
     }
     
+    // create and map the objects in order
     foreach (const QJsonValue& element, top.value("objects").toArray()) {
         QJsonObject object = element.toObject();
         int id = object.value("id").toInt();
@@ -2056,6 +2066,7 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
         }
     }
     
+    // prepare the contents for extraction
     _contents = top.value("contents").toArray();
     _contentsIterator = _contents.constBegin();
 }
