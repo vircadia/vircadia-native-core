@@ -1099,7 +1099,7 @@ function handeMenuEvent(menuItem){
             var properties = Models.getModelProperties(editModelID);
             var oldValue = properties[propertyName];
             var newValue = Window.prompt("New value for: " + propertyName, oldValue);
-            if (newValue != NULL) {
+            if (newValue != "") {
                 properties[propertyName] = newValue;
                 Models.editModel(editModelID, properties);
             }
