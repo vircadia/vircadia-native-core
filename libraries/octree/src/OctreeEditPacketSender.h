@@ -12,9 +12,11 @@
 #ifndef hifi_OctreeEditPacketSender_h
 #define hifi_OctreeEditPacketSender_h
 
+#include <qqueue.h>
 #include <PacketSender.h>
 #include <PacketHeaders.h>
 #include "JurisdictionMap.h"
+#include "SentPacketHistory.h"
 
 /// Used for construction of edit packets
 class EditPacketBuffer {
@@ -89,10 +91,16 @@ public:
     // you must override these...
     virtual char getMyNodeType() const = 0;
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { };
-    
+
+public slots:
+    void nodeKilled(SharedNodePointer node);
+
+public:
+    void processNackPacket(const QByteArray& packet);
+
 protected:
     bool _shouldSend;
-    void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, ssize_t length);
+    void queuePacketToNode(const QUuid& nodeID, const unsigned char* buffer, ssize_t length);
     void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, ssize_t length);
     void queuePacketToNodes(unsigned char* buffer, ssize_t length);
     void initializePacket(EditPacketBuffer& packetBuffer, PacketType type);
@@ -101,7 +109,7 @@ protected:
     void processPreServerExistsPackets();
 
     // These are packets which are destined from know servers but haven't been released because they're still too small
-    std::map<QUuid, EditPacketBuffer> _pendingEditPackets;
+    QHash<QUuid, EditPacketBuffer> _pendingEditPackets;
     
     // These are packets that are waiting to be processed because we don't yet know if there are servers
     int _maxPendingMessages;
@@ -114,5 +122,10 @@ protected:
     
     unsigned short int _sequenceNumber;
     int _maxPacketSize;
+
+    QMutex _releaseQueuedPacketMutex;
+
+    // TODO: add locks for this and _pendingEditPackets
+    QHash<QUuid, SentPacketHistory> _sentPacketHistories;
 };
 #endif // hifi_OctreeEditPacketSender_h

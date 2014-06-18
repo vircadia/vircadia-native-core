@@ -42,6 +42,7 @@ public:
     virtual const char* getMyServerName() const { return VOXEL_SERVER_NAME; }
     virtual const char* getMyLoggingServerTargetName() const { return VOXEL_SERVER_LOGGING_TARGET_NAME; }
     virtual const char* getMyDefaultPersistFilename() const { return LOCAL_VOXELS_PERSIST_FILE; }
+    virtual PacketType getMyEditNackType() const { return PacketTypeVoxelEditNack; }
 
     // subclass may implement these method
     virtual void beforeRun();
