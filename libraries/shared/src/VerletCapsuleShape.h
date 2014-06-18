@@ -15,11 +15,23 @@
 #include "CapsuleShape.h"
 
 
-// The VerletCapsuleShape is similar to a regular CapsuleShape, except it keeps pointers 
-// to its endpoints which are owned by some other data structure.  This allows it to 
-// participate in a verlet integration engine.
+// The VerletCapsuleShape is similar to a regular CapsuleShape, except it keeps a pointer
+// to its endpoints which are owned by some other data structure (a verlet simulation system).  
+// This makes it easier for the points to be moved around by constraints in the system
+// as well as collisions with the shape, however it has some drawbacks:
 //
-// Although the true_halfHeight of the VerletCapsuleShape is considered a constant 
+// (1) The Shape::_translation and ::_rotation data members are not used (wasted)
+//
+// (2) A VerletShape doesn't own the points that it uses, so you must be careful not to
+//     leave dangling pointers around.
+//
+// (3) Some const methods of VerletCapsuleShape are much more expensive than you might think.
+//     For example getHalfHeight() and setHalfHeight() methods must do extra computation.  In
+//     particular setRotation() is significantly more expensive than for the CapsuleShape.
+//     Not too expensive to use when setting up shapes, but you woudln't want to use it deep
+//     down in a hot simulation loop, such as when processing collision results.  Best to
+//     just let the verlet simulation do its thing and not try to constantly force a rotation.
+
 class VerletCapsuleShape : public CapsuleShape {
 public:
     VerletCapsuleShape(glm::vec3* startPoint, glm::vec3* endPoint);

@@ -17,8 +17,13 @@
 // The VerletSphereShape is similar to a regular SphereShape, except it keeps a pointer
 // to its center which is owned by some other data structure (a verlet simulation system).  
 // This makes it easier for the points to be moved around by constraints in the system
-// as well as collisions with the shape.
+// as well as collisions with the shape, however it has some drawbacks:
 //
+// (1) The Shape::_translation data member is not used (wasted)
+//
+// (2) A VerletShape doesn't own the points that it uses, so you must be careful not to
+//     leave dangling pointers around.
+
 class VerletSphereShape : public SphereShape {
 public:
     VerletSphereShape(glm::vec3* centerPoint);
