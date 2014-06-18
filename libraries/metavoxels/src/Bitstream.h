@@ -199,12 +199,20 @@ template<class K, class P, class V> inline RepeatedValueStreamer<K, P, V>&
     return *this;
 }
 
-/// A stream for bit-aligned data.
+/// A stream for bit-aligned data.  Through a combination of code generation, reflection, macros, and templates, provides a
+/// serialization mechanism that may be used for both networking and persistent storage.  For unreliable networking, the
+/// class provides a mapping system that resends mappings for ids until they are acknowledged (and thus persisted).  For
+/// version-resilient persistence, the class provides a metadata system that maps stored types to local types (or to
+/// generic containers), allowing one to add and remove fields to classes without breaking compatibility with previously
+/// stored data.
 class Bitstream : public QObject {
     Q_OBJECT
 
 public:
 
+    /// Stores a set of mappings from values to ids written.  Typically, one would store these mappings along with the send
+    /// record of the packet that contained them, persisting the mappings if/when the packet is acknowledged by the remote
+    /// party.
     class WriteMappings {
     public:
         QHash<const ObjectStreamer*, int> objectStreamerOffsets;
@@ -214,6 +222,9 @@ public:
         QHash<SharedObjectPointer, int> sharedObjectOffsets;
     };
 
+    /// Stores a set of mappings from ids to values read.  Typically, one would store these mappings along with the receive
+    /// record of the packet that contained them, persisting the mappings if/when the remote party indicates that it
+    /// has received the local party's acknowledgement of the packet.
     class ReadMappings {
     public:
         QHash<int, ObjectStreamerPointer> objectStreamerValues;
@@ -223,11 +234,14 @@ public:
         QHash<int, SharedObjectPointer> sharedObjectValues;
     };
 
-    /// Registers a metaobject under its name so that instances of it can be streamed.
+    /// Registers a metaobject under its name so that instances of it can be streamed.  Consider using the REGISTER_META_OBJECT
+    /// at the top level of the source file associated with the class rather than calling this function directly.
     /// \return zero; the function only returns a value so that it can be used in static initialization
     static int registerMetaObject(const char* className, const QMetaObject* metaObject);
 
-    /// Registers a streamer for the specified Qt-registered type.
+    /// Registers a streamer for the specified Qt-registered type.  Consider using one of the registration macros (such as
+    /// REGISTER_SIMPLE_TYPE_STREAMER) at the top level of the associated source file rather than calling this function
+    /// directly. 
     /// \return zero; the function only returns a value so that it can be used in static initialization
     static int registerTypeStreamer(int type, TypeStreamer* streamer);
 
@@ -237,7 +251,9 @@ public:
     /// Returns the meta-object registered under the supplied class name, if any.
     static const QMetaObject* getMetaObject(const QByteArray& className);
 
-    /// Returns the list of registered subclasses for the supplied meta-object.
+    /// Returns the list of registered subclasses for the supplied meta-object.  When registered, metaobjects register
+    /// themselves as subclasses of all of their parents, mostly in order to allow editors to provide lists of available
+    /// subclasses.
     static QList<const QMetaObject*> getMetaObjectSubClasses(const QMetaObject* metaObject);
 
     enum MetadataType { NO_METADATA, HASH_METADATA, FULL_METADATA };
@@ -254,7 +270,8 @@ public:
     Bitstream(QDataStream& underlying, MetadataType metadataType = NO_METADATA,
         GenericsMode = NO_GENERICS, QObject* parent = NULL);
 
-    /// Substitutes the supplied metaobject for the given class name's default mapping.
+    /// Substitutes the supplied metaobject for the given class name's default mapping.  This is mostly useful for testing the
+    /// process of mapping between different types, but may in the future be used for permanently renaming classes.
     void addMetaObjectSubstitution(const QByteArray& className, const QMetaObject* metaObject);
     
     /// Substitutes the supplied type for the given type name's default mapping.
@@ -773,7 +790,9 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
     return *this;
 }
 
-/// Tracks state when writing to JSON.
+/// Provides a means of writing Bitstream-able data to JSON rather than the usual binary format in a manner that allows it to
+/// be manipulated and re-read, converted to binary, etc.  To use, create a JSONWriter, stream values in using the << operator,
+/// and call getDocument to obtain the JSON data.
 class JSONWriter {
 public:
     
@@ -862,10 +881,14 @@ template<class K, class V> inline QJsonValue JSONWriter::getData(const QHash<K, 
     return array;
 }
 
-/// Tracks state when reading from JSON.
+/// Reads a document written by JSONWriter.  To use, create a JSONReader and stream values out using the >> operator.
 class JSONReader {
 public:
     
+    /// Creates a reader to read from the supplied document.
+    /// \param genericsMode the generics mode to use: NO_GENERICS to map all types in the document to built-in types,
+    /// FALLBACK_GENERICS to use generic containers where no matching built-in type is found, or ALL_GENERICS to
+    /// read all types to generic containers
     JSONReader(const QJsonDocument& document, Bitstream::GenericsMode genericsMode = Bitstream::NO_GENERICS);
     
     void putData(const QJsonValue& data, bool& value);
@@ -1049,10 +1072,12 @@ private:
 
 Q_DECLARE_METATYPE(const QMetaObject*)
 
-/// Macro for registering streamable meta-objects.
+/// Macro for registering streamable meta-objects.  Typically, one would use this macro at the top level of the source file
+/// associated with the class.
 #define REGISTER_META_OBJECT(x) static int x##Registration = Bitstream::registerMetaObject(#x, &x::staticMetaObject);
 
-/// Contains a value along with a pointer to its streamer.
+/// Contains a value along with a pointer to its streamer.  This is stored in QVariants when using fallback generics and
+/// no mapping to a built-in type can be found, or when using all generics and the value is any non-simple type.
 class GenericValue {
 public:
     
@@ -1071,7 +1096,8 @@ private:
 
 Q_DECLARE_METATYPE(GenericValue)
 
-/// Contains a list of property values along with a pointer to their metadata.
+/// Contains a list of property values along with a pointer to their metadata.  This is stored when using fallback generics
+/// and no mapping to a built-in class can be found, or for all QObjects when using all generics.
 class GenericSharedObject : public SharedObject {
     Q_OBJECT
     
@@ -1495,16 +1521,19 @@ public:
     virtual void writeVariant(Bitstream& out, const QVariant& value) const;
 };
 
-/// Macro for registering simple type streamers.
+/// Macro for registering simple type streamers.  Typically, one would use this at the top level of the source file
+/// associated with the type.
 #define REGISTER_SIMPLE_TYPE_STREAMER(X) static int X##Streamer = \
     Bitstream::registerTypeStreamer(qMetaTypeId<X>(), new SimpleTypeStreamer<X>());
 
-/// Macro for registering collection type streamers.
+/// Macro for registering collection type (QList, QVector, QSet, QMap) streamers.  Typically, one would use this at the top
+/// level of the source file associated with the type.
 #define REGISTER_COLLECTION_TYPE_STREAMER(X) static int x##Streamer = \
     Bitstream::registerTypeStreamer(qMetaTypeId<X>(), new CollectionTypeStreamer<X>());
 
-/// Declares the metatype and the streaming operators.  The last lines
-/// ensure that the generated file will be included in the link phase. 
+/// Declares the metatype and the streaming operators.  Typically, one would use this immediately after the definition of a
+/// type flagged as STREAMABLE in its header file.  The last lines ensure that the generated file will be included in the link
+/// phase.
 #ifdef _WIN32
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
@@ -1542,6 +1571,9 @@ public:
     _Pragma(STRINGIFY(unused(_TypePtr##X)))
 #endif
 
+/// Declares an enum metatype.  This is used when one desires to use an enum defined in a QObject outside of that class's
+/// direct properties.  Typically, one would use this immediately after the definition of the QObject containing the enum
+/// in its header file.
 #define DECLARE_ENUM_METATYPE(S, N) Q_DECLARE_METATYPE(S::N) \
     Bitstream& operator<<(Bitstream& out, const S::N& obj); \
     Bitstream& operator>>(Bitstream& in, S::N& obj); \
@@ -1550,6 +1582,8 @@ public:
     template<> inline QJsonValue JSONWriter::getData(const S::N& value) { return (int)value; } \
     template<> inline void JSONReader::putData(const QJsonValue& data, S::N& value) { value = (S::N)data.toInt(); }
 
+/// Implements an enum metatype.  This performs the implementation of the previous macro, and would normally be used at the
+/// top level of the source file associated with the QObject containing the enum.
 #define IMPLEMENT_ENUM_METATYPE(S, N) \
     static int S##N##MetaTypeId = registerEnumMetaType<S::N>(&S::staticMetaObject, #N); \
     Bitstream& operator<<(Bitstream& out, const S::N& obj) { \
@@ -1562,7 +1596,9 @@ public:
         return in.read(&obj, bits); \
     }
     
-/// Registers a simple type and its streamer.
+/// Registers a simple type and its streamer.  This would typically be used at the top level of the source file associated with
+/// the type, and combines the registration of the type with the Qt metatype system with the registration of a simple type
+/// streamer.
 /// \return the metatype id
 template<class T> int registerSimpleMetaType() {
     int type = qRegisterMetaType<T>();
@@ -1570,7 +1606,8 @@ template<class T> int registerSimpleMetaType() {
     return type;
 }
 
-/// Registers an enum type and its streamer.
+/// Registers an enum type and its streamer.  Rather than using this directly, consider using the IMPLEMENT_ENUM_METATYPE
+/// macro.
 /// \return the metatype id
 template<class T> int registerEnumMetaType(const QMetaObject* metaObject, const char* name) {
     int type = qRegisterMetaType<T>();
@@ -1578,7 +1615,8 @@ template<class T> int registerEnumMetaType(const QMetaObject* metaObject, const 
     return type;
 }
 
-/// Registers a streamable type and its streamer.
+/// Registers a streamable type and its streamer.  Rather than using this directly, consider using the
+/// DECLARE_STREAMABLE_METATYPE macro and the mtc code generation tool.
 /// \return the metatype id
 template<class T> int registerStreamableMetaType() {
     int type = qRegisterMetaType<T>();
@@ -1586,7 +1624,9 @@ template<class T> int registerStreamableMetaType() {
     return type;
 }
 
-/// Registers a collection type and its streamer.
+/// Registers a collection type and its streamer.  This would typically be used at the top level of the source file associated
+/// with the type, and combines the registration of the type with the Qt metatype system with the registration of a collection
+/// type streamer.
 /// \return the metatype id
 template<class T> int registerCollectionMetaType() {
     int type = qRegisterMetaType<T>();
@@ -1594,7 +1634,9 @@ template<class T> int registerCollectionMetaType() {
     return type;
 }
 
-/// Flags a class as streamable (use as you would Q_OBJECT).
+/// Flags a class as streamable.  Use as you would Q_OBJECT: as the first line of a class definition, before any members or
+/// access qualifiers.  Typically, one would follow the definition with DECLARE_STREAMABLE_METATYPE.  The mtc tool looks for
+/// this macro in order to generate streaming (etc.) code for types.
 #define STREAMABLE public: \
     static const int Type; \
     static const QVector<MetaField>& getMetaFields(); \
@@ -1604,7 +1646,8 @@ template<class T> int registerCollectionMetaType() {
     private: \
     static QHash<QByteArray, int> createFieldIndices();
 
-/// Flags a field or base class as streaming.
+/// Flags a (public) field within or base class of a streamable type as streaming.  Use before all base classes or fields that
+/// you want to stream.
 #define STREAM
 
 #endif // hifi_Bitstream_h
