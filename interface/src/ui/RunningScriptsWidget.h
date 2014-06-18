@@ -14,6 +14,7 @@
 #define hifi_RunningScriptsWidget_h
 
 #include <QFileSystemModel>
+#include <QSignalMapper>
 #include <QSortFilterProxyModel>
 
 #include "ScriptsModel.h"
@@ -40,7 +41,6 @@ protected:
     virtual bool eventFilter(QObject* sender, QEvent* event);
 
     virtual void keyPressEvent(QKeyEvent* event);
-    virtual void paintEvent(QPaintEvent* event);
     virtual void showEvent(QShowEvent* event);
 
 public slots:
@@ -48,8 +48,6 @@ public slots:
     void setBoundary(const QRect& rect);
 
 private slots:
-    void stopScript(int row, int column);
-    void loadScript(int row, int column);
     void allScriptsStopped();
     void updateFileFilter(const QString& filter);
     void loadScriptFromList(const QModelIndex& index);
@@ -58,15 +56,13 @@ private slots:
 
 private:
     Ui::RunningScriptsWidget* ui;
+    QSignalMapper _signalMapper;
     QSortFilterProxyModel _proxyModel;
     ScriptsModel _scriptsModel;
-    ScriptsTableWidget* _runningScriptsTable;
     ScriptsTableWidget* _recentlyLoadedScriptsTable;
     QStringList _recentlyLoadedScripts;
     QString _lastStoppedScript;
     QRect _boundary;
-
-    void createRecentlyLoadedScriptsTable();
 };
 
 #endif // hifi_RunningScriptsWidget_h
