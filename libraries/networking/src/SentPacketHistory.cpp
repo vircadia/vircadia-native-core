@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
 #include "SentPacketHistory.h"
 #include <qdebug.h>
 
@@ -15,7 +16,7 @@ SentPacketHistory::SentPacketHistory(int size)
     : _sentPackets(size),
     _newestPacketAt(0),
     _numExistingPackets(0),
-    _newestSequenceNumber(UINT16_MAX)
+    _newestSequenceNumber(std::numeric_limits<uint16_t>::max())
 {
 }
 
@@ -42,7 +43,7 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& pa
 
 const QByteArray* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
 
-    const int UINT16_RANGE = UINT16_MAX + 1;
+    const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
 
     // if sequenceNumber > _newestSequenceNumber, assume sequenceNumber is from before the most recent rollover
     // correct the diff so that it correctly represents how far back in the history sequenceNumber is
