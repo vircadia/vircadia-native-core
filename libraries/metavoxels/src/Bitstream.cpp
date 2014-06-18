@@ -1621,6 +1621,10 @@ const QHash<ScopeNamePair, const TypeStreamer*>& Bitstream::getEnumStreamers() {
     return enumStreamers;
 }
 
+static QByteArray getEnumName(const char* scope, const char* name) {
+    return QByteArray(scope) + "::" + name;
+}
+
 QHash<ScopeNamePair, const TypeStreamer*> Bitstream::createEnumStreamers() {
     QHash<ScopeNamePair, const TypeStreamer*> enumStreamers;
     foreach (const QMetaObject* metaObject, getMetaObjects()) {
@@ -1628,7 +1632,11 @@ QHash<ScopeNamePair, const TypeStreamer*> Bitstream::createEnumStreamers() {
             QMetaEnum metaEnum = metaObject->enumerator(i);
             const TypeStreamer*& streamer = enumStreamers[ScopeNamePair(metaEnum.scope(), metaEnum.name())];
             if (!streamer) {
-                streamer = new EnumTypeStreamer(metaEnum);
+                // look for a streamer registered by name
+                streamer = getTypeStreamers().value(QMetaType::type(getEnumName(metaEnum.scope(), metaEnum.name())));
+                if (!streamer) {
+                    streamer = new EnumTypeStreamer(metaEnum);
+                }
             }
         }
     }
@@ -2705,7 +2713,7 @@ QDebug& operator<<(QDebug& debug, const QMetaObject* metaObject) {
 EnumTypeStreamer::EnumTypeStreamer(const QMetaObject* metaObject, const char* name) :
     _metaObject(metaObject),
     _enumName(name),
-    _name(QByteArray(metaObject->className()) + "::" + name),
+    _name(getEnumName(metaObject->className(), name)),
     _bits(-1) {
     
     _type = QMetaType::Int;
@@ -2713,7 +2721,7 @@ EnumTypeStreamer::EnumTypeStreamer(const QMetaObject* metaObject, const char* na
 }
 
 EnumTypeStreamer::EnumTypeStreamer(const QMetaEnum& metaEnum) :
-    _name(QByteArray(metaEnum.scope()) + "::" + metaEnum.name()),
+    _name(getEnumName(metaEnum.scope(), metaEnum.name())),
     _metaEnum(metaEnum),
     _bits(-1) {
     
