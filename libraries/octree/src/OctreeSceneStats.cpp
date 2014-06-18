@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
 #include <QString>
 #include <QStringList>
 
@@ -877,7 +878,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         return; // ignore any packets that are unreasonable
     }
 
-    const int UINT16_RANGE = UINT16_MAX + 1;
+    const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
 
     // determine our expected sequence number... handle rollover appropriately
     OCTREE_PACKET_SEQUENCE expected = _incomingPacket > 0 ? _incomingLastSequence + (quint16)1 : sequence;

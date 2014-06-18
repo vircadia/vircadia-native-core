@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 
@@ -267,7 +268,7 @@ SingleSenderStats::SingleSenderStats()
 void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
     int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
 
-    const int UINT16_RANGE = UINT16_MAX + 1;
+    const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
     const int  MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
     const int MAX_MISSING_SEQUENCE_SIZE = 100;
 
