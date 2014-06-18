@@ -24,7 +24,6 @@
 namespace ShapeCollider {
 
 bool collideShapes(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
-    // ATM we only have two shape types so we just check every case.
     // TODO: make a fast lookup for correct method
     int typeA = shapeA->getType();
     int typeB = shapeB->getType();

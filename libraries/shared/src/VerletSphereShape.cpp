@@ -27,6 +27,6 @@ void VerletSphereShape::setTranslation(const glm::vec3& position) {
 }
 
 // virtual from Shape class
-glm::vec3 VerletSphereShape::getTranslation() {
+const glm::vec3& VerletSphereShape::getTranslation() const {
     return *_point;
 }

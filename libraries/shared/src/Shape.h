@@ -31,18 +31,17 @@ public:
     virtual ~Shape() {}
 
     int getType() const { return _type; }
-    float getBoundingRadius() const { return _boundingRadius; }
-//    const glm::vec3& getPosition() const { return _position; }
-    const glm::quat& getRotation() const { return _rotation; }
-
-//    virtual void setPosition(const glm::vec3& position) { _translation = position; }
-    virtual void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
     void setEntity(PhysicalEntity* entity) { _owningEntity = entity; }
     PhysicalEntity* getEntity() const { return _owningEntity; }
 
-    virtual void setTranslation(const glm::vec3& center) { _translation = center; }
-    virtual glm::vec3 getTranslation() const { return _translation; }
+    float getBoundingRadius() const { return _boundingRadius; }
+
+    virtual const glm::quat& getRotation() const { return _rotation; }
+    virtual void setRotation(const glm::quat& rotation) { _rotation = rotation; }
+
+    virtual void setTranslation(const glm::vec3& translation) { _translation = translation; }
+    virtual const glm::vec3& getTranslation() const { return _translation; }
 
     virtual bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const = 0;
 

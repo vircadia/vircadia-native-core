@@ -15,16 +15,19 @@
 #include "SphereShape.h"
 
 // The VerletSphereShape is similar to a regular SphereShape, except it keeps a pointer
-// to its center which is owned by some other data structure.  This allows it to 
-// participate in a verlet integration engine.
+// to its center which is owned by some other data structure (a verlet simulation system).  
+// This makes it easier for the points to be moved around by constraints in the system
+// as well as collisions with the shape.
+//
 class VerletSphereShape : public SphereShape {
 public:
     VerletSphereShape(glm::vec3* centerPoint);
 
     VerletSphereShape(float radius, glm::vec3* centerPoint);
 
+    // virtual overrides from Shape
     void setTranslation(const glm::vec3& position);
-    glm::vec3 getTranslation();
+    const glm::vec3& getTranslation() const;
 
 protected:
     // NOTE: VerletSphereShape does NOT own its _point

@@ -18,9 +18,6 @@
 #include "SharedUtil.h" 
 
 
-// default axis of CapsuleShape is Y-axis
-const glm::vec3 localAxis(0.0f, 1.0f, 0.0f);
-
 CapsuleShape::CapsuleShape() : Shape(Shape::CAPSULE_SHAPE), _radius(0.0f), _halfHeight(0.0f) {}
 
 CapsuleShape::CapsuleShape(float radius, float halfHeight) : Shape(Shape::CAPSULE_SHAPE),
@@ -50,7 +47,7 @@ void CapsuleShape::getEndPoint(glm::vec3& endPoint) const {
 
 void CapsuleShape::computeNormalizedAxis(glm::vec3& axis) const {
     // default axis of a capsule is along the yAxis
-    axis = _rotation * glm::vec3(0.0f, 1.0f, 0.0f);
+    axis = _rotation * DEFAULT_CAPSULE_AXIS;
 }
 
 void CapsuleShape::setRadius(float radius) {
@@ -76,12 +73,7 @@ void CapsuleShape::setEndPoints(const glm::vec3& startPoint, const glm::vec3& en
     if (height > EPSILON) {
         _halfHeight = 0.5f * height;
         axis /= height;
-        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-        float angle = glm::angle(axis, yAxis);
-        if (angle > EPSILON) {
-            axis = glm::normalize(glm::cross(yAxis, axis));
-            _rotation = glm::angleAxis(angle, axis);
-        }
+        computeNewRotation(axis);
     }
     updateBoundingRadius();
 }
@@ -93,4 +85,14 @@ bool CapsuleShape::findRayIntersection(const glm::vec3& rayStart, const glm::vec
         // NOTE: findRayCapsuleIntersection returns 'true' with distance = 0 when rayStart is inside capsule.
         // TODO: implement the raycast to return inside surface intersection for the internal rayStart.
         return findRayCapsuleIntersection(rayStart, rayDirection, capsuleStart, capsuleEnd, _radius, distance);
+}
+
+// static
+glm::quat CapsuleShape::computeNewRotation(const glm::vec3& newAxis) {
+    float angle = glm::angle(newAxis, DEFAULT_CAPSULE_AXIS);
+    if (angle > EPSILON) {
+        glm::vec3 rotationAxis = glm::normalize(glm::cross(DEFAULT_CAPSULE_AXIS, newAxis));
+        return glm::angleAxis(angle, rotationAxis);
+    }
+    return glm::quat();
 }

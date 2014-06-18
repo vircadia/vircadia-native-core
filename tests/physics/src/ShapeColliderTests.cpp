@@ -441,7 +441,7 @@ void ShapeColliderTests::capsuleMissesCapsule() {
     float totalHalfLength = totalRadius + halfHeightA + halfHeightB;
 
     CapsuleShape capsuleA(radiusA, halfHeightA);
-    CapsuleShape capsuleB(radiusA, halfHeightA);
+    CapsuleShape capsuleB(radiusB, halfHeightB);
 
     CollisionList collisions(16);
 

@@ -15,6 +15,8 @@
 #include "Shape.h"
 
 // default axis of CapsuleShape is Y-axis
+const glm::vec3 DEFAULT_CAPSULE_AXIS(0.0f, 1.0f, 0.0f);
+
 
 class CapsuleShape : public Shape {
 public:
@@ -26,7 +28,7 @@ public:
     virtual ~CapsuleShape() {}
 
     float getRadius() const { return _radius; }
-    float getHalfHeight() const { return _halfHeight; }
+    virtual float getHalfHeight() const { return _halfHeight; }
 
     /// \param[out] startPoint is the center of start cap
     virtual void getStartPoint(glm::vec3& startPoint) const;
@@ -47,6 +49,7 @@ public:
 
 protected:
     virtual void updateBoundingRadius() { _boundingRadius = _radius + getHalfHeight(); }
+    static glm::quat computeNewRotation(const glm::vec3& newAxis);
 
     float _radius;
     float _halfHeight;

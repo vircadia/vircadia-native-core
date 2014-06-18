@@ -28,6 +28,45 @@ VerletCapsuleShape::VerletCapsuleShape(float radius, glm::vec3* startPoint, glm:
     updateBoundingRadius();
 }
 
+const glm::quat& VerletCapsuleShape::getRotation() const {
+    // NOTE: The "rotation" of this shape must be computed on the fly, 
+    // which makes this method MUCH more more expensive than you might expect.
+    glm::vec3 axis;
+    computeNormalizedAxis(axis);
+    VerletCapsuleShape* thisCapsule = const_cast<VerletCapsuleShape*>(this);
+    thisCapsule->_rotation = computeNewRotation(axis);
+    return _rotation;
+}
+
+void VerletCapsuleShape::setRotation(const glm::quat& rotation) {
+    // NOTE: this method will update the verlet points, which is probably not 
+    // what you want to do.  Only call this method if you know what you're doing.
+
+    // update points such that they have the same center but a different axis
+    glm::vec3 center = getTranslation();
+    float halfHeight = getHalfHeight();
+    glm::vec3 axis = rotation * DEFAULT_CAPSULE_AXIS;
+    *_startPoint = center - halfHeight * axis;
+    *_endPoint = center + halfHeight * axis;
+}
+
+void VerletCapsuleShape::setTranslation(const glm::vec3& position) {
+    // NOTE: this method will update the verlet points, which is probably not 
+    // what you want to do.  Only call this method if you know what you're doing.
+
+    // update the points such that their center is at position
+    glm::vec3 movement = position - getTranslation();
+    *_startPoint += movement;
+    *_endPoint += movement;
+}
+
+const glm::vec3& VerletCapsuleShape::getTranslation() const {
+    // the "translation" of this shape must be computed on the fly
+    VerletCapsuleShape* thisCapsule = const_cast<VerletCapsuleShape*>(this);
+    thisCapsule->_translation = 0.5f * ((*_startPoint) + (*_endPoint));
+    return _translation;
+}
+
 // virtual
 float VerletCapsuleShape::getHalfHeight() const {
     return 0.5f * glm::distance(*_startPoint, *_endPoint);
@@ -57,15 +96,20 @@ void VerletCapsuleShape::computeNormalizedAxis(glm::vec3& axis) const {
 }
 
 // virtual 
-void VerletCapsuleShape::setHalfHeight(float height) {
-    // don't call this method because this is a verlet shape
-    assert(false);
+void VerletCapsuleShape::setHalfHeight(float halfHeight) {
+    // push points along axis so they are 2*halfHeight apart
+    glm::vec3 center = getTranslation();
+    glm::vec3 axis;
+    computeNormalizedAxis(axis);
+    *_startPoint = center - halfHeight * axis;
+    *_endPoint = center + halfHeight * axis;
+    _boundingRadius = _radius + halfHeight;
 }
 
 // virtual 
-void VerletCapsuleShape::setRadiusAndHalfHeight(float radius, float height) {
-    // don't call this method because this is a verlet shape
-    assert(false);
+void VerletCapsuleShape::setRadiusAndHalfHeight(float radius, float halfHeight) {
+    _radius = radius;
+    setHalfHeight(halfHeight);
 }
 
 // virtual
