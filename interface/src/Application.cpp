@@ -3523,12 +3523,13 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     } else {
         // start the script on a new thread...
         scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
 
         if (!scriptEngine->hasScript()) {
             qDebug() << "Application::loadScript(), script failed to load...";
             return NULL;
         }
+
+        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
     }
 

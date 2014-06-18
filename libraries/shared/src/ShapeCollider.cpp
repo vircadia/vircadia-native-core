@@ -765,5 +765,24 @@ bool capsuleAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, fl
     return sphereAACube(nearestApproach, capsuleA->getRadius(), cubeCenter, cubeSide, collisions);
 }
 
+bool findRayIntersectionWithShapes(const QVector<Shape*> shapes, const glm::vec3& rayStart, const glm::vec3& rayDirection, float& minDistance) {
+    float hitDistance = FLT_MAX;
+    int numShapes = shapes.size();
+    for (int i = 0; i < numShapes; ++i) {
+        Shape* shape = shapes.at(i);
+        if (shape) {
+            float distance;
+            if (shape->findRayIntersection(rayStart, rayDirection, distance)) {
+                if (distance < hitDistance) {
+                    hitDistance = distance;
+                }
+            }
+        }
+    }
+    if (hitDistance < FLT_MAX) {
+        minDistance = hitDistance;
+    }
+    return false;
+}
 
 }   // namespace ShapeCollider
