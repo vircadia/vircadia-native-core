@@ -173,7 +173,7 @@ public:
     quint32 getIncomingPossibleDuplicate() const { return _incomingPossibleDuplicate; }
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
     
-    const QSet<OCTREE_PACKET_SEQUENCE>& getMissingSequenceNumbers() const;
+    const QSet<OCTREE_PACKET_SEQUENCE>& getMissingSequenceNumbers() const { return _missingSequenceNumbers; }
 
 private:
 

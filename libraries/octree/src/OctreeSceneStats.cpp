@@ -1032,7 +1032,3 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         _incomingWastedBytes += (MAX_PACKET_SIZE - packet.size());
     }
 }
-
-const QSet<OCTREE_PACKET_SEQUENCE>& OctreeSceneStats::getMissingSequenceNumbers() const {
-    return _missingSequenceNumbers;
-}
