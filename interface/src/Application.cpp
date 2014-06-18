@@ -655,7 +655,14 @@ void Application::paintGL() {
 
         {
             PerformanceTimer perfTimer("paintGL/renderOverlay");
-            _applicationOverlay.renderOverlay();
+            //If alpha is 1, we can render directly to the screen.
+            if (_applicationOverlay.getAlpha() == 1.0f) {
+                _applicationOverlay.renderOverlay();
+            } else {
+                //Render to to texture so we can fade it
+                _applicationOverlay.renderOverlay(true);
+                _applicationOverlay.displayOverlayTexture();
+            }
         }
     }
 

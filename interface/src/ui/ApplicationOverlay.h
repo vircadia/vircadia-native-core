@@ -15,6 +15,10 @@
 class Overlays;
 class QOpenGLFramebufferObject;
 
+const float MAGNIFY_WIDTH = 160.0f;
+const float MAGNIFY_HEIGHT = 80.0f;
+const float MAGNIFY_MULT = 4.0f;
+
 // Handles the drawing of the overlays to the screen
 class ApplicationOverlay {
 public:
@@ -23,12 +27,14 @@ public:
     ~ApplicationOverlay();
 
     void renderOverlay(bool renderToTexture = false);
-    void displayOverlayTexture(Camera& whichCamera);
+    void displayOverlayTexture();
     void displayOverlayTextureOculus(Camera& whichCamera);
     void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
+    void getClickLocation(int &x, int &y) const;
 
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();
+    float getAlpha() const { return _alpha; }
   
 private:
     // Interleaved vertex data
@@ -42,20 +48,27 @@ private:
     void renderPointers();
     void renderControllerPointers();
     void renderControllerPointersOculus();
-    void renderMagnifier(int mouseX, int mouseY);
+    void renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const;
     void renderAudioMeter();
     void renderStatsAndLogs();
     void renderTexturedHemisphere();
 
     QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;
-    float _oculusAngle;
-    float _distance;
     float _textureFov;
-    int _mouseX[2];
-    int _mouseY[2];
-    int _numMagnifiers;
     
+    enum MagnifyDevices { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_MAGNIFIERS = RIGHT_CONTROLLER + 1 };
+    bool _reticleActive[NUMBER_OF_MAGNIFIERS];
+    int _mouseX[NUMBER_OF_MAGNIFIERS];
+    int _mouseY[NUMBER_OF_MAGNIFIERS];
+    bool _magActive[NUMBER_OF_MAGNIFIERS];
+    int _magX[NUMBER_OF_MAGNIFIERS];
+    int _magY[NUMBER_OF_MAGNIFIERS];
+    float _magSizeMult[NUMBER_OF_MAGNIFIERS];
+    
+    float _alpha;
+    bool _active;
+
     GLuint _crosshairTexture;
 };
 
