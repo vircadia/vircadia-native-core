@@ -73,6 +73,7 @@
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
 
+#include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -3572,6 +3573,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
+    scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 
