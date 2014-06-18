@@ -9,8 +9,10 @@
 //
 
 #include "OctreeTests.h"
+#include "AABoxCubeTests.h"
 
 int main(int argc, char** argv) {
     OctreeTests::runAllTests();
+    AABoxCubeTests::runAllTests();
     return 0;
 }

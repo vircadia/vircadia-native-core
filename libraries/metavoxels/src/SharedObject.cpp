@@ -30,6 +30,11 @@ SharedObject::SharedObject() :
     _weakHash.insert(_id, this);
 }
 
+void SharedObject::setID(int id) {
+    _weakHash.remove(_id);
+    _weakHash.insert(_id = id, this);
+}
+
 void SharedObject::incrementReferenceCount() {
     _referenceCount.ref();
 }

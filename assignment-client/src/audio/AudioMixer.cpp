@@ -335,7 +335,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
-            for (unsigned int i = 0; i < otherNodeClientData->getRingBuffers().size(); i++) {
+            for (int i = 0; i < otherNodeClientData->getRingBuffers().size(); i++) {
                 PositionalAudioRingBuffer* otherNodeBuffer = otherNodeClientData->getRingBuffers()[i];
 
                 if ((*otherNode != *node

@@ -147,7 +147,12 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
             QEventLoop loop;
             QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
             loop.exec();
-            _scriptContents = reply->readAll();
+            if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
+                _scriptContents = reply->readAll();
+            } else {
+                qDebug() << "ERROR Loading file:" << url.toString();
+                emit errorMessage("ERROR Loading file:" + url.toString());
+            }
         }
     }
 }

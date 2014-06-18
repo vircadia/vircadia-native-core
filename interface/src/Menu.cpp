@@ -45,6 +45,7 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
+#include "devices/OculusManager.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -83,6 +84,7 @@ Menu::Menu() :
     _audioJitterBufferSamples(0),
     _bandwidthDialog(NULL),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
@@ -91,6 +93,9 @@ Menu::Menu() :
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
+    _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
+    _sixenseReticleMoveSpeed(DEFAULT_SIXENSE_RETICLE_MOVE_SPEED),
+    _invertSixenseButtons(DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS),
     _automaticAvatarLOD(true),
     _avatarLODDecreaseFPS(DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS),
     _avatarLODIncreaseFPS(ADJUST_LOD_UP_FPS),
@@ -103,8 +108,10 @@ Menu::Menu() :
     _fastFPSAverage(ONE_SECOND_OF_FRAMES),
     _loginAction(NULL),
     _preferencesDialog(NULL),
-    _snapshotsLocation(),
-    _scriptsLocation() {
+    _scriptsLocation(),
+    _loginDialog(NULL),
+    _snapshotsLocation()
+{
     Application *appInstance = Application::getInstance();
 
     QMenu* fileMenu = addMenu("File");
@@ -126,7 +133,7 @@ Menu::Menu() :
     toggleLoginMenuItem();
 
     // connect to the appropriate slots of the AccountManager so that we can change the Login/Logout menu item
-    connect(&accountManager, &AccountManager::accessTokenChanged, this, &Menu::toggleLoginMenuItem);
+    connect(&accountManager, &AccountManager::profileChanged, this, &Menu::toggleLoginMenuItem);
     connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
@@ -164,6 +171,8 @@ Menu::Menu() :
                                   Qt::Key_At,
                                   this,
                                   SLOT(goTo()));
+    connect(&LocationManager::getInstance(), &LocationManager::multipleDestinationsFound,
+            this, &Menu::multipleDestinationsDecision);
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0, Application::getInstance(), SLOT(uploadHead()));
@@ -253,6 +262,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
                                             appInstance, SLOT(cameraMenuChanged()));
 
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
+                                           false,
+                                           appInstance,
+                                           SLOT(setEnableVRMode(bool)));
+
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0,
                                            false,
                                            appInstance,
@@ -320,7 +334,7 @@ Menu::Menu() :
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, "None", 0, true));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
-    
+
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
@@ -379,6 +393,9 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(oculusOptionsMenu, MenuOption::AllowOculusCameraModeChange, 0, false);
     addCheckableActionToQMenuAndActionHash(oculusOptionsMenu, MenuOption::DisplayOculusOverlays, 0, true);
 
+    QMenu* sixenseOptionsMenu = developerMenu->addMenu("Sixense Options");
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
+
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(handOptionsMenu,
@@ -397,7 +414,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisableNackPackets, 0, false);
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
-    
+
     QMenu* timingMenu = developerMenu->addMenu("Timing and Statistics Tools");
     QMenu* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayTimingDetails, 0, true);
@@ -452,7 +469,7 @@ Menu::Menu() :
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleToneInjection()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope, 
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScope()));
@@ -915,9 +932,11 @@ void sendFakeEnterEvent() {
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::loginForCurrentDomain() {
-    LoginDialog* loginDialog = new LoginDialog(Application::getInstance()->getWindow());
-    loginDialog->show();
-    loginDialog->resizeAndPosition(false);
+    if (!_loginDialog) {
+        _loginDialog = new LoginDialog(Application::getInstance()->getWindow());
+        _loginDialog->show();
+        _loginDialog->resizeAndPosition(false);
+    }
 }
 
 void Menu::editPreferences() {
@@ -1062,9 +1081,7 @@ bool Menu::goToURL(QString location) {
 }
 
 void Menu::goToUser(const QString& user) {
-    LocationManager* manager = &LocationManager::getInstance();
-    manager->goTo(user);
-    connect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
+    LocationManager::getInstance().goTo(user);
 }
 
 /// Open a url, shortcutting any "hifi" scheme URLs to the local application.
@@ -1086,13 +1103,10 @@ void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJson
     int userResponse = msgBox.exec();
 
     if (userResponse == QMessageBox::Ok) {
-        Application::getInstance()->getAvatar()->goToLocationFromResponse(userData);
+        Application::getInstance()->getAvatar()->goToLocationFromAddress(userData["address"].toObject());
     } else if (userResponse == QMessageBox::Open) {
-        Application::getInstance()->getAvatar()->goToLocationFromResponse(userData);
+        Application::getInstance()->getAvatar()->goToLocationFromAddress(placeData["address"].toObject());
     }
-
-    LocationManager* manager = reinterpret_cast<LocationManager*>(sender());
-    disconnect(manager, &LocationManager::multipleDestinationsFound, this, &Menu::multipleDestinationsDecision);
 }
 
 void Menu::muteEnvironment() {

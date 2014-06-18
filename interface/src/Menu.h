@@ -27,6 +27,7 @@
 #include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
 #include "ui/JSConsole.h"
+#include "ui/LoginDialog.h"
 #include "ui/ScriptEditorWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
@@ -89,6 +90,12 @@ public:
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
     void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; }
+    float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
+    void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; }
+    float getSixenseReticleMoveSpeed() const { return _sixenseReticleMoveSpeed; }
+    void setSixenseReticleMoveSpeed(float sixenseReticleMoveSpeed) { _sixenseReticleMoveSpeed = sixenseReticleMoveSpeed; }
+    bool getInvertSixenseButtons() const { return _invertSixenseButtons; }
+    void setInvertSixenseButtons(bool invertSixenseButtons) { _invertSixenseButtons = invertSixenseButtons; }
 
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
@@ -260,6 +267,9 @@ private:
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
     float _voxelSizeScale;
+    float _oculusUIAngularSize;
+    float _sixenseReticleMoveSpeed;
+    bool _invertSixenseButtons;
     bool _automaticAvatarLOD;
     float _avatarLODDecreaseFPS;
     float _avatarLODIncreaseFPS;
@@ -276,6 +286,7 @@ private:
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AnimationsDialog> _animationsDialog;
+    QPointer<LoginDialog> _loginDialog;
     QAction* _chatAction;
     QString _snapshotsLocation;
     QString _scriptsLocation;
@@ -341,6 +352,7 @@ namespace MenuOption {
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString EnableVRMode = "Enable VR Mode";
     const QString ExpandMiscAvatarTiming = "Expand Misc MyAvatar Timing";
     const QString ExpandAvatarUpdateTiming = "Expand MyAvatar update Timing";
     const QString ExpandAvatarSimulateTiming = "Expand MyAvatar simulate Timing";
@@ -404,6 +416,7 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString SimpleShadows = "Simple";
+    const QString SixenseMouseInput = "Enable Sixense Mouse Input";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowBordersModelNodes = "Show Model Nodes";
     const QString ShowBordersParticleNodes = "Show Particle Nodes";

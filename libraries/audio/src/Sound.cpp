@@ -258,7 +258,7 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
         // Now pull out the data
         quint32 outputAudioByteArraySize = qFromLittleEndian<quint32>(dataHeader.descriptor.size);
         outputAudioByteArray.resize(outputAudioByteArraySize);
-        if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != outputAudioByteArraySize) {
+        if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
             qDebug() << "Error reading WAV file";
         }
 
