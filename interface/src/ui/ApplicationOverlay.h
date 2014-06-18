@@ -56,7 +56,7 @@ private:
     QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;
     float _textureFov;
-    // 0 = Mouse, 1 = Left Controller, 2 = Right Controller
+    
     enum MagnifyDevices { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_MAGNIFIERS = RIGHT_CONTROLLER + 1 };
     bool _reticleActive[NUMBER_OF_MAGNIFIERS];
     int _mouseX[NUMBER_OF_MAGNIFIERS];
