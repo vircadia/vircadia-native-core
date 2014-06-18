@@ -93,9 +93,9 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     int numSamplesDelay = 0;
     float weakChannelAmplitudeRatio = 1.0f;
     
-    bool shouldAttenuate = false;
+    bool shouldAttenuate = (bufferToAdd != listeningNodeBuffer);
     
-    if (bufferToAdd != listeningNodeBuffer) {
+    if (shouldAttenuate) {
         // if the two buffer pointers do not match then these are different buffers
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
         
@@ -113,8 +113,9 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         
         ++_sumMixes;
         
-        
-        shouldAttenuate = !bufferToAdd->getListenerUnattenuatedZone()->contains(listeningNodeBuffer->getPosition());
+        if (bufferToAdd->getListenerUnattenuatedZone()) {
+            shouldAttenuate = !bufferToAdd->getListenerUnattenuatedZone()->contains(listeningNodeBuffer->getPosition());
+        }
         
         if (shouldAttenuate) {
             glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
@@ -335,16 +336,19 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             }
             
             _clientSamples[s] = glm::clamp(_clientSamples[s]
-                                           + (int) (nextOutputStart[s] * attenuationCoefficient),
+                                           + (int) (nextOutputStart[(s / stereoDivider)] * attenuationCoefficient),
                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
             _clientSamples[s + 1] = glm::clamp(_clientSamples[s + 1]
-                                               + (int) (nextOutputStart[s + (1 / stereoDivider)] * attenuationCoefficient),
+                                               + (int) (nextOutputStart[(s / stereoDivider) + (1 / stereoDivider)]
+                                                        * attenuationCoefficient),
                                                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
             _clientSamples[s + 2] = glm::clamp(_clientSamples[s + 2]
-                                               + (int) (nextOutputStart[s + (2 / stereoDivider)] * attenuationCoefficient),
+                                               + (int) (nextOutputStart[(s / stereoDivider) + (2 / stereoDivider)]
+                                                        * attenuationCoefficient),
                                                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
             _clientSamples[s + 3] = glm::clamp(_clientSamples[s + 3]
-                                               + (int) (nextOutputStart[s + (3 / stereoDivider)] * attenuationCoefficient),
+                                               + (int) (nextOutputStart[(s / stereoDivider) + (3 / stereoDivider)]
+                                                        * attenuationCoefficient),
                                                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
     }
