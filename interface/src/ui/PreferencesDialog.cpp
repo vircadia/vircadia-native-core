@@ -137,6 +137,13 @@ void PreferencesDialog::loadPreferences() {
     ui.maxVoxelsSpin->setValue(menuInstance->getMaxVoxels());
     
     ui.maxVoxelsPPSSpin->setValue(menuInstance->getMaxVoxelPacketsPerSecond());
+
+    ui.oculusUIAngularSizeSpin->setValue(menuInstance->getOculusUIAngularSize());
+
+    ui.sixenseReticleMoveSpeedSpin->setValue(menuInstance->getSixenseReticleMoveSpeed());
+
+    ui.invertSixenseButtonsCheckBox->setChecked(menuInstance->getInvertSixenseButtons());
+
 }
 
 void PreferencesDialog::savePreferences() {
@@ -188,6 +195,12 @@ void PreferencesDialog::savePreferences() {
     Menu::getInstance()->setFaceshiftEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
                                                      (float)ui.faceshiftEyeDeflectionSider->maximum());
     Menu::getInstance()->setMaxVoxelPacketsPerSecond(ui.maxVoxelsPPSSpin->value());
+
+    Menu::getInstance()->setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
+
+    Menu::getInstance()->setSixenseReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
+
+    Menu::getInstance()->setInvertSixenseButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
     Menu::getInstance()->setAudioJitterBufferSamples(ui.audioJitterSpin->value());
     Application::getInstance()->getAudio()->setJitterBufferSamples(ui.audioJitterSpin->value());

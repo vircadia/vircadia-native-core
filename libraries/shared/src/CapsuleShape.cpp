@@ -13,6 +13,8 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include "CapsuleShape.h"
+
+#include "GeometryUtil.h"
 #include "SharedUtil.h" 
 
 
@@ -84,3 +86,11 @@ void CapsuleShape::setEndPoints(const glm::vec3& startPoint, const glm::vec3& en
     updateBoundingRadius();
 }
 
+bool CapsuleShape::findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const {
+        glm::vec3 capsuleStart, capsuleEnd;
+        getStartPoint(capsuleStart);
+        getEndPoint(capsuleEnd);
+        // NOTE: findRayCapsuleIntersection returns 'true' with distance = 0 when rayStart is inside capsule.
+        // TODO: implement the raycast to return inside surface intersection for the internal rayStart.
+        return findRayCapsuleIntersection(rayStart, rayDirection, capsuleStart, capsuleEnd, _radius, distance);
+}

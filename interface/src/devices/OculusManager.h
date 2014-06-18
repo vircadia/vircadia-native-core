@@ -20,6 +20,8 @@
 
 #include "renderer/ProgramObject.h"
 
+const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
+
 class Camera;
 
 /// Handles interaction with the Oculus Rift.
@@ -27,7 +29,7 @@ class OculusManager {
 public:
     static void connect();
     
-    static bool isConnected() { return _isConnected; }
+    static bool isConnected();
     
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
     

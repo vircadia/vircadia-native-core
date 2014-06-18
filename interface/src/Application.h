@@ -88,7 +88,7 @@
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
 #include "voxels/VoxelImporter.h"
-#include "voxels/VoxelPacketProcessor.h"
+#include "voxels/OctreePacketProcessor.h"
 #include "voxels/VoxelSystem.h"
 
 
@@ -129,7 +129,7 @@ static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 class Application : public QApplication {
     Q_OBJECT
 
-    friend class VoxelPacketProcessor;
+    friend class OctreePacketProcessor;
     friend class VoxelEditPacketSender;
     friend class DatagramProcessor;
 
@@ -192,7 +192,7 @@ public:
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
-    const VoxelPacketProcessor& getVoxelPacketProcessor() const { return _voxelProcessor; }
+    const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     ModelTreeRenderer* getModels() { return &_models; }
@@ -206,6 +206,7 @@ public:
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     int getMouseX() const { return _mouseX; }
     int getMouseY() const { return _mouseY; }
+    unsigned int getLastMouseMoveType() const { return _lastMouseMoveType; }
     Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
@@ -345,6 +346,7 @@ private slots:
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
+    void setEnableVRMode(bool enableVRMode);
     void cameraMenuChanged();
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
@@ -505,6 +507,7 @@ private:
     int _mouseDragStartedX;
     int _mouseDragStartedY;
     quint64 _lastMouseMove;
+    unsigned int _lastMouseMoveType;
     bool _mouseHidden;
     bool _seenMouseMove;
 
@@ -521,6 +524,7 @@ private:
 
     QSet<int> _keysPressed;
 
+
     GeometryCache _geometryCache;
     AnimationCache _animationCache;
     TextureCache _textureCache;
@@ -533,7 +537,7 @@ private:
     Audio _audio;
 
     bool _enableProcessVoxelsThread;
-    VoxelPacketProcessor _voxelProcessor;
+    OctreePacketProcessor _octreeProcessor;
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;

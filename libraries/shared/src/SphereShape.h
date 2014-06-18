@@ -31,6 +31,8 @@ public:
     float getRadius() const { return _boundingRadius; }
 
     void setRadius(float radius) { _boundingRadius = radius; }
+
+    bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const;
 };
 
 #endif // hifi_SphereShape_h

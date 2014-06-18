@@ -37,7 +37,7 @@ public:
     // subclass may implement these method
     virtual void beforeRun();
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node);
-    virtual int sendSpecialPacket(OctreeQueryNode* queryNode, const SharedNodePointer& node);
+    virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent);
 
     virtual void particleCreated(const Particle& newParticle, const SharedNodePointer& senderNode);
 

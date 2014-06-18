@@ -39,6 +39,14 @@ SixenseManager::SixenseManager() {
 
     sixenseInit();
 #endif
+    _triggerPressed[0] = false;
+    _bumperPressed[0] = false;
+    _oldX[0] = -1;
+    _oldY[0] = -1;
+    _triggerPressed[1] = false;
+    _bumperPressed[1] = false;
+    _oldX[1] = -1;
+    _oldY[1] = -1;
 }
 
 SixenseManager::~SixenseManager() {
@@ -107,6 +115,12 @@ void SixenseManager::update(float deltaTime) {
         palm->setTrigger(data->trigger);
         palm->setJoystick(data->joystick_x, data->joystick_y);
 
+
+        // Emulate the mouse so we can use scripts
+        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+            emulateMouse(palm, numActiveControllers - 1);
+        }
+
         // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
         glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
         position *= METERS_PER_MILLIMETER;
@@ -169,6 +183,17 @@ void SixenseManager::update(float deltaTime) {
         }
     }
 #endif  // HAVE_SIXENSE
+}
+
+//Constants for getCursorPixelRangeMultiplier()
+const float MIN_PIXEL_RANGE_MULT = 0.4f;
+const float MAX_PIXEL_RANGE_MULT = 2.0f;
+const float RANGE_MULT = (MAX_PIXEL_RANGE_MULT - MIN_PIXEL_RANGE_MULT) * 0.01;
+
+//Returns a multiplier to be applied to the cursor range for the controllers
+float SixenseManager::getCursorPixelRangeMult() const {
+    //scales (0,100) to (MINIMUM_PIXEL_RANGE_MULT, MAXIMUM_PIXEL_RANGE_MULT)
+    return Menu::getInstance()->getSixenseReticleMoveSpeed() * RANGE_MULT + MIN_PIXEL_RANGE_MULT;
 }
 
 #ifdef HAVE_SIXENSE
@@ -313,5 +338,109 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
         }
     }
 }
+
+//Injecting mouse movements and clicks
+void SixenseManager::emulateMouse(PalmData* palm, int index) {
+    MyAvatar* avatar = Application::getInstance()->getAvatar();
+    QGLWidget* widget = Application::getInstance()->getGLWidget();
+    QPoint pos;
+    // Get directon relative to avatar orientation
+    glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
+
+    Qt::MouseButton bumperButton;
+    Qt::MouseButton triggerButton;
+
+    if (Menu::getInstance()->getInvertSixenseButtons()) {
+        bumperButton = Qt::LeftButton;
+        triggerButton = Qt::RightButton;
+    } else {
+        bumperButton = Qt::RightButton;
+        triggerButton = Qt::LeftButton;
+    }
+
+    // Get the angles, scaled between (-0.5,0.5)
+    float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+    float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
+
+    // Get the pixel range over which the xAngle and yAngle are scaled
+    float cursorRange = widget->width() * getCursorPixelRangeMult();
+
+    pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
+    pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
+
+    //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
+    //we should unpress them.
+    if (pos.x() < 0 || pos.x() > widget->width() || pos.y() < 0 || pos.y() > widget->height()) {
+        if (_bumperPressed[index]) {
+            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
+
+            Application::getInstance()->mouseReleaseEvent(&mouseEvent);
+
+            _bumperPressed[index] = false;
+        }
+        if (_triggerPressed[index]) {
+            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
+
+            Application::getInstance()->mouseReleaseEvent(&mouseEvent);
+
+            _triggerPressed[index] = false;
+        }
+        return;
+    }
+
+    //If position has changed, emit a mouse move to the application
+    if (pos.x() != _oldX[index] || pos.y() != _oldY[index]) {
+        QMouseEvent mouseEvent(static_cast<QEvent::Type>(CONTROLLER_MOVE_EVENT), pos, Qt::NoButton, Qt::NoButton, 0);
+
+        //Only send the mouse event if the opposite left button isnt held down.
+        //This is specifically for edit voxels
+        if (triggerButton == Qt::LeftButton) {
+            if (!_triggerPressed[(int)(!index)]) {
+                Application::getInstance()->mouseMoveEvent(&mouseEvent);
+            }
+        } else {
+            if (!_bumperPressed[(int)(!index)]) {
+                Application::getInstance()->mouseMoveEvent(&mouseEvent);
+            }
+        } 
+    }
+    _oldX[index] = pos.x();
+    _oldY[index] = pos.y();
+    
+    //Check for bumper press ( Right Click )
+    if (palm->getControllerButtons() & BUTTON_FWD) {
+        if (!_bumperPressed[index]) {
+            _bumperPressed[index] = true;
+        
+            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, bumperButton, bumperButton, 0);
+
+            Application::getInstance()->mousePressEvent(&mouseEvent);
+        }
+    } else if (_bumperPressed[index]) {
+        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
+
+        Application::getInstance()->mouseReleaseEvent(&mouseEvent);
+
+        _bumperPressed[index] = false;
+    }
+
+    //Check for trigger press ( Left Click )
+    if (palm->getTrigger() == 1.0f) {
+        if (!_triggerPressed[index]) {
+            _triggerPressed[index] = true;
+
+            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, triggerButton, triggerButton, 0);
+
+            Application::getInstance()->mousePressEvent(&mouseEvent);
+        }
+    } else if (_triggerPressed[index]) {
+        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
+
+        Application::getInstance()->mouseReleaseEvent(&mouseEvent);
+
+        _triggerPressed[index] = false;
+    }
+}
+
 #endif  // HAVE_SIXENSE
 

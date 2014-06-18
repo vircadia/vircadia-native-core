@@ -21,20 +21,7 @@ DataServerAccountInfo::DataServerAccountInfo() :
     _balance(0),
     _hasBalance(false)
 {
-    
-}
 
-DataServerAccountInfo::DataServerAccountInfo(const QJsonObject& jsonObject) :
-    _accessToken(jsonObject),
-    _username(),
-    _xmppPassword(),
-    _balance(0),
-    _hasBalance(false)
-{
-    QJsonObject userJSONObject = jsonObject["user"].toObject();
-    setUsername(userJSONObject["username"].toString());
-    setXMPPPassword(userJSONObject["xmpp_password"].toString());
-    setDiscourseApiKey(userJSONObject["discourse_api_key"].toString());
 }
 
 DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) {
@@ -54,7 +41,7 @@ DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountI
 
 void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     using std::swap;
-    
+
     swap(_accessToken, otherInfo._accessToken);
     swap(_username, otherInfo._username);
     swap(_xmppPassword, otherInfo._xmppPassword);
@@ -63,10 +50,14 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_hasBalance, otherInfo._hasBalance);
 }
 
+void DataServerAccountInfo::setAccessTokenFromJSON(const QJsonObject& jsonObject) {
+    _accessToken = OAuthAccessToken(jsonObject);
+}
+
 void DataServerAccountInfo::setUsername(const QString& username) {
     if (_username != username) {
         _username = username;
-        
+
         qDebug() << "Username changed to" << username;
     }
 }
@@ -87,16 +78,27 @@ void DataServerAccountInfo::setBalance(qint64 balance) {
     if (!_hasBalance || _balance != balance) {
         _balance = balance;
         _hasBalance = true;
-        
+
         emit balanceChanged(_balance);
     }
 }
 
 void DataServerAccountInfo::setBalanceFromJSON(const QJsonObject& jsonObject) {
     if (jsonObject["status"].toString() == "success") {
-        qint64 balanceInSatoshis = jsonObject["data"].toObject()["wallet"].toObject()["balance"].toInt();
+        qint64 balanceInSatoshis = jsonObject["data"].toObject()["wallet"].toObject()["balance"].toDouble();
         setBalance(balanceInSatoshis);
     }
+}
+
+bool DataServerAccountInfo::hasProfile() const {
+    return _username.length() > 0;
+}
+
+void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject) {
+    QJsonObject user = jsonObject["data"].toObject()["user"].toObject();
+    setUsername(user["username"].toString());
+    setXMPPPassword(user["xmpp_password"].toString());
+    setDiscourseApiKey(user["discourse_api_key"].toString());
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {

@@ -30,7 +30,28 @@ PlaneShape::PlaneShape(const glm::vec4& coefficients) :
     }
 }
 
+glm::vec3 PlaneShape::getNormal() const {
+    return _rotation * UNROTATED_NORMAL;
+}
+
 glm::vec4 PlaneShape::getCoefficients() const {
     glm::vec3 normal = _rotation * UNROTATED_NORMAL;
     return glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, _center));
+}
+
+bool PlaneShape::findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const {
+    glm::vec3 n = getNormal();
+    float denominator = glm::dot(n, rayDirection);
+    if (fabsf(denominator) < EPSILON) {
+        // line is parallel to plane
+        return glm::dot(_center - rayStart, n) < EPSILON;
+    } else {
+        float d = glm::dot(_center - rayStart, n) / denominator;
+        if (d > 0.0f) {
+            // ray points toward plane
+            distance = d;
+            return true;
+        }
+    }
+    return false;
 }

@@ -44,6 +44,8 @@ public:
     virtual void setCenter(const glm::vec3& center) { _center = center; }
     virtual glm::vec3 getCenter() const { return _center; }
 
+    virtual bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const = 0;
+
 protected:
     // these ctors are protected (used by derived classes only)
     Shape(Type type) : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _center(0.f), _rotation() {}

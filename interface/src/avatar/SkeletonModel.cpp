@@ -465,7 +465,7 @@ bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
     return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
-bool SkeletonModel::getNeckParentRotation(glm::quat& neckParentRotation) const {
+bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const {
     if (!isActive()) {
         return false;
     }
@@ -473,7 +473,13 @@ bool SkeletonModel::getNeckParentRotation(glm::quat& neckParentRotation) const {
     if (geometry.neckJointIndex == -1) {
         return false;
     }
-    return getJointRotationInWorldFrame(geometry.joints.at(geometry.neckJointIndex).parentIndex, neckParentRotation);
+    int parentIndex = geometry.joints.at(geometry.neckJointIndex).parentIndex;
+    glm::quat worldFrameRotation;
+    if (getJointRotationInWorldFrame(parentIndex, worldFrameRotation)) {
+        neckParentRotation = worldFrameRotation * _jointStates[parentIndex].getFBXJoint().inverseDefaultRotation;
+        return true;
+    }
+    return false;
 }
 
 bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
