@@ -184,7 +184,8 @@ void OctreeInboundPacketProcessor::trackInboundPacket(const QUuid& nodeUUID, uns
 int OctreeInboundPacketProcessor::sendNackPackets() {
 
     int packetsSent = 0;
-
+    char packet[MAX_PACKET_SIZE];
+    
     NodeToSenderStatsMapIterator i = _singleSenderStats.begin();
     while (i != _singleSenderStats.end()) {
 
@@ -206,15 +207,10 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
         const SharedNodePointer& destinationNode = NodeList::getInstance()->getNodeHash().value(nodeUUID);
         const QSet<unsigned short int>& missingSequenceNumbers = nodeStats.getMissingSequenceNumbers();
-
-        // check if there are any sequence numbers that need to be nacked
-        int numSequenceNumbersAvailable = missingSequenceNumbers.size();
-
+        
         // construct nack packet(s) for this node
-
-        QSet<unsigned short int>::const_iterator missingSequenceNumberIterator = missingSequenceNumbers.begin();
-        char packet[MAX_PACKET_SIZE];
-
+        int numSequenceNumbersAvailable = missingSequenceNumbers.size();
+        QSet<unsigned short int>::const_iterator missingSequenceNumberIterator = missingSequenceNumbers.constBegin();
         while (numSequenceNumbersAvailable > 0) {
 
             char* dataAt = packet;
@@ -243,8 +239,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             numSequenceNumbersAvailable -= numSequenceNumbers;
 
             // send it
-            qint64 bytesWritten = NodeList::getInstance()->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
-
+            NodeList::getInstance()->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
             packetsSent++;
         }
         i++;

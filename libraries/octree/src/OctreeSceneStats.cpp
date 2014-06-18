@@ -47,7 +47,6 @@ OctreeSceneStats::OctreeSceneStats() :
     _incomingReallyLate(0),
     _incomingPossibleDuplicate(0),
     _missingSequenceNumbers(),
-    _sequenceNumbersToNack(),
     _incomingFlightTimeAverage(samples),
     _jurisdictionRoot(NULL)
 {
@@ -160,7 +159,6 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
     _incomingPossibleDuplicate = other._incomingPossibleDuplicate;
     
     _missingSequenceNumbers = other._missingSequenceNumbers;
-    _sequenceNumbersToNack = other._sequenceNumbersToNack;
 }
 
 
@@ -946,7 +944,6 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                         qDebug() << "found it in _missingSequenceNumbers";
                     }
                     _missingSequenceNumbers.remove(sequence);
-                    _sequenceNumbersToNack.remove(sequence);
                     _incomingLikelyLost--;
                     _incomingRecovered++;
                 }
@@ -986,7 +983,6 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                 for (int missingSequenceInt = expectedInt; missingSequenceInt < sequenceInt; missingSequenceInt++) {
                     OCTREE_PACKET_SEQUENCE missingSequence = missingSequenceInt >= 0 ? missingSequenceInt : missingSequenceInt + UINT16_RANGE;
                     _missingSequenceNumbers << missingSequence;
-                    _sequenceNumbersToNack << missingSequence;
                 }
 
                 _incomingLastSequence = sequence;
@@ -1025,7 +1021,6 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                     qDebug() << "pruning really old missing sequence:" << missingItem;
                 }
                 _missingSequenceNumbers.remove(missingItem);
-                _sequenceNumbersToNack.remove(missingItem);
             }
         }
     }
@@ -1038,13 +1033,6 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     }
 }
 
-int OctreeSceneStats::getNumSequenceNumbersToNack() const {
-    return _sequenceNumbersToNack.size();
-}
-
-uint16_t OctreeSceneStats::getNextSequenceNumberToNack() {
-    QSet<uint16_t>::Iterator it = _sequenceNumbersToNack.begin();
-    uint16_t sequenceNumber = *it;
-    _sequenceNumbersToNack.remove(sequenceNumber);
-    return sequenceNumber;
+const QSet<OCTREE_PACKET_SEQUENCE>& OctreeSceneStats::getMissingSequenceNumbers() const {
+    return _missingSequenceNumbers;
 }
