@@ -73,6 +73,7 @@
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
 
+#include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -654,7 +655,14 @@ void Application::paintGL() {
 
         {
             PerformanceTimer perfTimer("paintGL/renderOverlay");
-            _applicationOverlay.renderOverlay();
+            //If alpha is 1, we can render directly to the screen.
+            if (_applicationOverlay.getAlpha() == 1.0f) {
+                _applicationOverlay.renderOverlay();
+            } else {
+                //Render to to texture so we can fade it
+                _applicationOverlay.renderOverlay(true);
+                _applicationOverlay.displayOverlayTexture();
+            }
         }
     }
 
@@ -3572,6 +3580,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
+    scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 

@@ -38,6 +38,7 @@ public:
     void setDiscourseApiKey(const QString& discourseApiKey);
 
     qint64 getBalance() const { return _balance; }
+    float getBalanceInSatoshis() const { return _balance / SATOSHIS_PER_CREDIT; }
     void setBalance(qint64 balance);
     bool hasBalance() const { return _hasBalance; }
     void setHasBalance(bool hasBalance) { _hasBalance = hasBalance; }
