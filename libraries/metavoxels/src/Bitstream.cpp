@@ -2231,6 +2231,9 @@ ObjectStreamer::ObjectStreamer(const QMetaObject* metaObject) :
     _metaObject(metaObject) {
 }
 
+ObjectStreamer::~ObjectStreamer() {
+}
+
 const QVector<StreamerPropertyPair>& ObjectStreamer::getProperties() const {
     static QVector<StreamerPropertyPair> emptyProperties;
     return emptyProperties;
