@@ -851,7 +851,6 @@ void OctreeServer::readPendingDatagrams() {
                 // If we got a nack packet, then we're talking to an agent, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
-                    nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
                     OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
                     if (nodeData) {
                         nodeData->parseNackPacket(receivedPacket);

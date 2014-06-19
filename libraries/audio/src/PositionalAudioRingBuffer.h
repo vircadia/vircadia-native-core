@@ -12,8 +12,9 @@
 #ifndef hifi_PositionalAudioRingBuffer_h
 #define hifi_PositionalAudioRingBuffer_h
 
-#include <vector>
 #include <glm/gtx/quaternion.hpp>
+
+#include <AABox.h>
 
 #include "AudioRingBuffer.h"
 
@@ -25,7 +26,6 @@ public:
     };
     
     PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false);
-    ~PositionalAudioRingBuffer();
     
     int parseData(const QByteArray& packet);
     int parsePositionalData(const QByteArray& positionalByteArray);
@@ -47,6 +47,9 @@ public:
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
     
+    AABox* getListenerUnattenuatedZone() const { return _listenerUnattenuatedZone; }
+    void setListenerUnattenuatedZone(AABox* listenerUnattenuatedZone) { _listenerUnattenuatedZone = listenerUnattenuatedZone; }
+    
 protected:
     // disallow copying of PositionalAudioRingBuffer objects
     PositionalAudioRingBuffer(const PositionalAudioRingBuffer&);
@@ -61,6 +64,7 @@ protected:
     bool _isStereo;
     
     float _nextOutputTrailingLoudness;
+    AABox* _listenerUnattenuatedZone;
 };
 
 #endif // hifi_PositionalAudioRingBuffer_h
