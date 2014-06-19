@@ -1104,7 +1104,7 @@ private:
 Q_DECLARE_METATYPE(const QMetaObject*)
 
 /// Macro for registering streamable meta-objects.  Typically, one would use this macro at the top level of the source file
-/// associated with the class.
+/// associated with the class.  The class should have a no-argument constructor flagged with Q_INVOKABLE.
 #define REGISTER_META_OBJECT(x) static int x##Registration = Bitstream::registerMetaObject(#x, &x::staticMetaObject);
 
 /// Contains a value along with a pointer to its streamer.  This is stored in QVariants when using fallback generics and
@@ -1563,8 +1563,8 @@ public:
     Bitstream::registerTypeStreamer(qMetaTypeId<X>(), new CollectionTypeStreamer<X>());
 
 /// Declares the metatype and the streaming operators.  Typically, one would use this immediately after the definition of a
-/// type flagged as STREAMABLE in its header file.  The last lines ensure that the generated file will be included in the link
-/// phase.
+/// type flagged as STREAMABLE in its header file.  The type should have a no-argument constructor.  The last lines of this
+/// macro ensure that the generated file will be included in the link phase.
 #ifdef _WIN32
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \

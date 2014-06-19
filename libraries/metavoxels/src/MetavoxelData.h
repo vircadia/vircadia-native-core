@@ -54,7 +54,8 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelLOD)
 
-/// The base metavoxel representation shared between server and client.
+/// The base metavoxel representation shared between server and client.  Contains a size (for all dimensions) and a set of
+/// octrees for different attributes.  
 class MetavoxelData {
 public:
 
@@ -64,11 +65,14 @@ public:
 
     MetavoxelData& operator=(const MetavoxelData& other);
 
+    /// Sets the size in all dimensions.
     void setSize(float size) { _size = size; }
     float getSize() const { return _size; }
 
+    /// Returns the minimum extent of the octrees (which are centered about the origin).
     glm::vec3 getMinimum() const { return glm::vec3(_size, _size, _size) * -0.5f; }
 
+    /// Returns the bounds of the octrees.
     Box getBounds() const;
 
     /// Applies the specified visitor to the contained voxels.
@@ -107,6 +111,11 @@ public:
     void writeDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
         Bitstream& out, const MetavoxelLOD& lod) const;
 
+    void readIncrementalDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
+        Bitstream& in, const MetavoxelLOD& lod);
+    void writeIncrementalDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
+        Bitstream& out, const MetavoxelLOD& lod) const;
+        
     MetavoxelNode* getRoot(const AttributePointer& attribute) const { return _roots.value(attribute); }
     MetavoxelNode* createRoot(const AttributePointer& attribute);
 

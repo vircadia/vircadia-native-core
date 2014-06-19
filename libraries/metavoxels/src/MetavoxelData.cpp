@@ -602,6 +602,14 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, const MetavoxelLO
     }
 }
 
+void MetavoxelData::readIncrementalDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
+    Bitstream& in, const MetavoxelLOD& lod) {
+}
+
+void MetavoxelData::writeIncrementalDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
+    Bitstream& out, const MetavoxelLOD& lod) const {
+}
+
 MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
     MetavoxelNode*& root = _roots[attribute];
     if (root) {
