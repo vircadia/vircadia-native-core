@@ -26,7 +26,8 @@ int MAX_COLLISIONS_PER_SIMULATION = 256;
 const int NUM_SHAPE_BITS = 6;
 const int SHAPE_INDEX_MASK = (1 << (NUM_SHAPE_BITS + 1)) - 1;
 
-PhysicsSimulation::PhysicsSimulation() : _collisionList(MAX_COLLISIONS_PER_SIMULATION) {
+PhysicsSimulation::PhysicsSimulation() : _collisionList(MAX_COLLISIONS_PER_SIMULATION), 
+        _numIterations(0), _numCollisions(0), _constraintError(0.0f), _stepTime(0) {
 }
 
 PhysicsSimulation::~PhysicsSimulation() {
@@ -120,70 +121,72 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
     }
 }
 
+// TODO: Andrew need to implement:
+// DONE (1) joints pull points (SpecialCapsuleShape would help solve this)
+// DONE (2) points slam shapes (SpecialCapsuleShape would help solve this)
+// DONE (3) detect collisions
+// DONE (4) collisions move points (SpecialCapsuleShape would help solve this)
+// DONE (5) enforce constraints
+// (6) make sure MyAvatar creates shapes, adds to simulation with ragdoll support
+// (7) support for pairwise collision bypass
+// (8) process collisions
+// (9) add and enforce angular contraints for joints
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
-    /* TODO: Andrew to make this work
     int iterations = 0;
-    float delta = 0.0f;
     quint64 now = usecTimestampNow();
     quint64 startTime = now;
     quint64 expiry = now + maxUsec;
 
+    // move dolls
     int numDolls = _dolls.size();
     for (int i = 0; i < numDolls; ++i) {
-        // TODO: Andrew need to implement:
-        // (1) joints pull points (SpecialCapsuleShape would help solve this)
-        // (2) points slam shapes (SpecialCapsuleShape would help solve this)
-        // (3) shapes collide with pairwise collision bypass
-        // (4) collisions move points (SpecialCapsuleShape would help solve this)
-        // (5) enforce constraints
-        // (6) add and enforce angular contraints for joints
-        //_dolls.at(i)->stepForward(deltaTime);
+        _dolls.at(i)->stepRagdollForward(deltaTime);
     }
-
     
     // collide
     _collisionList.clear();
     // TODO: keep track of QSet<PhysicsEntity*> collidedEntities;
-    for (int i = 0; i < numDolls; ++i) {
-        const QVector<Shape*>* shapesA = _dolls.at(i)->getShapes();
-        if (!shapesA) {
-            continue;
-        }
-        int numShapesA = shapesA->size();
+    int numEntities = _entities.size();
+    for (int i = 0; i < numEntities; ++i) {
+        const QVector<Shape*> shapes = _entities.at(i)->getShapes();
+        int numShapes = shapes.size();
         // collide with self
-        for (int j = 0; j < numShapesA; ++j) {
-            const Shape* shapeA = shapesA->at(j);
-            if (!shapeA) {
+        for (int j = 0; j < numShapes; ++j) {
+            const Shape* shape = shapes.at(j);
+            if (!shape) {
                 continue;
             }
             // TODO: check for pairwise collision bypass here
-            ShapeCollider::collideShapeWithShapes(shapeA, *shapesA, j+1, _collisionList);
+            for (int k = j+1; k < numShapes; ++k) {
+                const Shape* otherShape = shapes.at(k);
+                ShapeCollider::collideShapes(shape, otherShape, _collisionList);
+            }
         }
 
         // collide with others
-        for (int j = i+1; j < numDolls; ++j) {
-            const QVector<Shape*>* shapesB = _dolls.at(j)->getShapes();
-            if (!shapesB) {
-                continue;
-            }
-            ShapeCollider::collideShapesWithShapes(*shapesA, *shapesB, _collisionList);
+        for (int j = i+1; j < numEntities; ++j) {
+            const QVector<Shape*> otherShapes = _entities.at(j)->getShapes();
+            ShapeCollider::collideShapesWithShapes(shapes, otherShapes, _collisionList);
         }
     }
+
+    // TODO: process collisions
+    _numCollisions = _collisionList.size();
 
     // enforce constraints
     float error = 0.0f;
     do {
         error = 0.0f;
         for (int i = 0; i < numDolls; ++i) {
-            error = glm::max(error, _dolls[i]->enforceConstraints());
+            error = glm::max(error, _dolls[i]->enforceRagdollConstraints());
         }
         ++iterations;
         now = usecTimestampNow();
-    } while (iterations < maxIterations && delta > minError && now < expiry);
-    _enforcementIterations = iterations;
-    _enforcementError = delta;
-    _enforcementTime = now - startTime;
-    */
+    } while (iterations < maxIterations && error > minError && now < expiry);
+
+    _numIterations = iterations;
+    _constraintError = error;
+    _stepTime = now - startTime;
 }
 
 int PhysicsSimulation::computeCollisions() {

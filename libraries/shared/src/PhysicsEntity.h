@@ -45,6 +45,7 @@ public:
 
     virtual void buildShapes() = 0;
     virtual void clearShapes();
+    const QVector<Shape*> getShapes() const { return _shapes; }
 
     PhysicsSimulation* getSimulation() const { return _simulation; }
 
@@ -54,15 +55,16 @@ public:
     bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
 
 protected:
-    // PhysicsSimulation is a friend so that it can set the protected _simulation backpointer
-    friend PhysicsSimulation; 
-
     glm::vec3 _translation;
     glm::quat _rotation;
     float _boundingRadius;
     bool _shapesAreDirty;
     bool _enableShapes;
     QVector<Shape*> _shapes;
+
+private:
+    // PhysicsSimulation is a friend so that it can set the protected _simulation backpointer
+    friend PhysicsSimulation; 
     PhysicsSimulation* _simulation;
 };
 

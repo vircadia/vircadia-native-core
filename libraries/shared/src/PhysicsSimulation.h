@@ -41,10 +41,6 @@ public:
     /// \return distance of largest movement
     void stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec);
 
-    int getEnforementIterations() const { return _enforcementIterations; }
-    float getEnforcementError() const { return _enforcementError; }
-    quint64 getEnforcementTime() const { return _enforcementTime; }
-
     /// \return number of collisions
     int computeCollisions();
 
@@ -55,10 +51,11 @@ private:
     QVector<PhysicsEntity*> _entities;
     QVector<Ragdoll*> _dolls;
 
-    // some stats for performance queries
-    int _enforcementIterations;
-    float _enforcementError;
-    quint64 _enforcementTime;
+    // some stats
+    int _numIterations;
+    int _numCollisions;
+    float _constraintError;
+    quint64 _stepTime;
 };
 
 #endif // hifi_PhysicsSimulation
