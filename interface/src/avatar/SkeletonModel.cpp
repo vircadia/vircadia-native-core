@@ -516,15 +516,37 @@ void SkeletonModel::renderRagdoll() {
 // virtual
 void SkeletonModel::initRagdollPoints() {
     assert(_ragdollPoints.size() == 0);
-    int numJoints = _jointStates.size();
+    assert(_ragdollConstraints.size() == 0);
 
     // one point for each joint
-    _ragdollPoints.fill(VerletPoint());
+    int numJoints = _jointStates.size();
+    _ragdollPoints.fill(VerletPoint(), numJoints);
     for (int i = 0; i < numJoints; ++i) {
         const JointState& state = _jointStates.at(i);
         glm::vec3 position = state.getPosition();
         _ragdollPoints[i]._position = position;
         _ragdollPoints[i]._lastPosition = position;
+    }
+}
+
+void SkeletonModel::buildRagdollConstraints() {
+    // NOTE: the length of DistanceConstraints is computed and locked in at this time
+    // so make sure the ragdoll positions are in a normal configuration before here.
+    const int numPoints = _ragdollPoints.size();
+    const int numJoints = _jointStates.size();
+    assert(numPoints == numJoints);
+
+    for (int i = 0; i < numPoints; ++i) {
+        const JointState& state = _jointStates.at(i);
+        const FBXJoint& joint = state.getFBXJoint();
+        int parentIndex = joint.parentIndex;
+        if (parentIndex == -1) {
+            FixedConstraint* anchor = new FixedConstraint(&(_ragdollPoints[i]._position), glm::vec3(0.0f));
+            _ragdollConstraints.push_back(anchor);
+        } else { 
+            DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[i]), &(_ragdollPoints[parentIndex]));
+            _ragdollConstraints.push_back(bone);
+        }
     }
 }
 
@@ -570,10 +592,12 @@ void SkeletonModel::buildShapes() {
     }
 
     // This method moves the shapes to their default positions in Model frame
-    // which is where we compute the bounding shape's parameters.
     computeBoundingShape(geometry);
 
-    // move shapes to joint positions
+    // while the shapes are in their default position we create the constraints
+    buildRagdollConstraints();
+
+    // move shapes back to current joint positions
     moveShapesTowardJoints(1.0f);
 }
 
@@ -631,7 +655,11 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     QVector<glm::mat4> transforms;
     transforms.fill(glm::mat4(), numJoints);
 
+    // compute the default transforms and slam the ragdoll positions accordingly
+    // (which puts the shapes where we want them)
     transforms[0] = glm::scale(_scale);
+    _ragdollPoints[0]._position = glm::vec3(0.0f);
+    _ragdollPoints[0]._lastPosition = glm::vec3(0.0f);
     for (int i = 1; i < numJoints; i++) {
         const FBXJoint& joint = geometry.joints.at(i);
         int parentIndex = joint.parentIndex;
@@ -645,7 +673,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
     }
 
-    // compute bounding box
+    // compute bounding box that encloses all shapes
     Extents totalExtents;
     totalExtents.reset();
     totalExtents.addPoint(glm::vec3(0.0f));
@@ -654,7 +682,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         if (!shape) {
             continue;
         }
-        // TODO: skip hand and arm joints when computing bounding dimensions
+        // TODO: skip hand and arm shapes for bounding box calculation
         Extents shapeExtents;
         shapeExtents.reset();
         glm::vec3 localPosition = shape->getTranslation();

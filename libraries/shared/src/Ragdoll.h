@@ -68,13 +68,8 @@ public:
     Ragdoll();
     virtual ~Ragdoll();
 
-    /// Delete all data.
-    void clearRagdollConstraintsAndPoints();
-
-    virtual void initRagdollPoints() = 0;
     virtual void stepRagdollForward(float deltaTime) = 0;
 
-    /// Enforce contraints.
     /// \return max distance of point movement
     float enforceRagdollConstraints();
 
@@ -83,6 +78,10 @@ public:
     QVector<VerletPoint>& getRagdollPoints() { return _ragdollPoints; }
 
 protected:
+    void clearRagdollConstraintsAndPoints();
+    virtual void initRagdollPoints() = 0;
+    virtual void buildRagdollConstraints() = 0;
+
     QVector<VerletPoint> _ragdollPoints;
     QVector<Constraint*> _ragdollConstraints;
 };

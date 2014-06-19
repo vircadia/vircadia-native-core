@@ -80,31 +80,6 @@ Ragdoll::~Ragdoll() {
     clearRagdollConstraintsAndPoints();
 }
     
-/*
-void Ragdoll::useShapesAndCopyPoints(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points) {
-    clear();
-    _verletShapes = shapes;
-    const int numPoints = points.size();
-    assert(numPoints == parentIndices.size());
-    _ragdollPoints.reserve(numPoints);
-    for (int i = 0; i < numPoints; ++i) {
-        glm::vec3 position = points[i];
-        _ragdollPoints.push_back(position);
-
-        int parentIndex = parentIndices[i];
-        assert(parentIndex < i && parentIndex >= -1);
-        if (parentIndex == -1) {
-            FixedConstraint* anchor = new FixedConstraint(&(_ragdollPoints[i]), glm::vec3(0.0f));
-            _ragdollConstraints.push_back(anchor);
-        } else {
-            DistanceConstraint* stick = new DistanceConstraint(&(_ragdollPoints[i]), &(_ragdollPoints[parentIndex]));
-            _ragdollConstraints.push_back(stick);
-        }
-    }
-}
-*/
-
-/// Delete all data.
 void Ragdoll::clearRagdollConstraintsAndPoints() {
     int numConstraints = _ragdollConstraints.size();
     for (int i = 0; i < numConstraints; ++i) {

@@ -95,10 +95,9 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
-    virtual void initRagdollPoints();
+    // virtual overrride from Ragdoll
     virtual void stepRagdollForward(float deltaTime);
 
-    void buildShapes();
     void moveShapesTowardJoints(float fraction);
     //void updateShapePositionsLegacy(); // TODO: Andrew to remove this when done with ragdoll work
 
@@ -111,6 +110,12 @@ public:
 
     void renderRagdoll();
 protected:
+
+    // virtual overrrides from Ragdoll
+    void initRagdollPoints();
+    void buildRagdollConstraints();
+
+    void buildShapes();
 
     /// \param jointIndex index of joint in model
     /// \param position position of joint in model-frame
