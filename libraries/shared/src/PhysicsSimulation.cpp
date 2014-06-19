@@ -31,6 +31,11 @@ PhysicsSimulation::PhysicsSimulation() : _collisionList(MAX_COLLISIONS_PER_SIMUL
 }
 
 PhysicsSimulation::~PhysicsSimulation() {
+    int numEntities = _entities.size();
+    for (int i = 0; i < numEntities; ++i) {
+        _entities[i]->_simulation = NULL;
+    }
+    _entities.clear();
     _dolls.clear();
 }
 
