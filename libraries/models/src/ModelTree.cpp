@@ -492,52 +492,12 @@ void ModelTree::findModels(const AACube& cube, QVector<ModelItem*> foundModels) 
     foundModels.swap(args._foundModels);
 }
 
-class FindByIDArgs {
-public:
-    uint32_t id;
-    bool found;
-    const ModelItem* foundModel;
-};
-
-
-bool ModelTree::findByIDOperation(OctreeElement* element, void* extraData) {
-//qDebug() << "ModelTree::findByIDOperation()....";
-
-    FindByIDArgs* args = static_cast<FindByIDArgs*>(extraData);
-    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
-
-    // if already found, stop looking
-    if (args->found) {
-        return false;
-    }
-
-    // as the tree element if it has this model
-    const ModelItem* foundModel = modelTreeElement->getModelWithID(args->id);
-    if (foundModel) {
-        args->foundModel = foundModel;
-        args->found = true;
-        return false;
-    }
-
-    // keep looking
-    return true;
+const ModelItem* ModelTree::findModelByID(uint32_t id, bool alreadyLocked) const {
+    ModelItemID modelID(id);
+    return findModelByModelItemID(modelID);
 }
 
-
-const ModelItem* ModelTree::findModelByID(uint32_t id, bool alreadyLocked) {
-    FindByIDArgs args = { id, false, NULL };
-
-    if (!alreadyLocked) {
-        lockForRead();
-    }
-    recurseTreeWithOperation(findByIDOperation, &args);
-    if (!alreadyLocked) {
-        unlock();
-    }
-    return args.foundModel;
-}
-
-const ModelItem* ModelTree::findModelByModelItemID(const ModelItemID& modelID) {
+const ModelItem* ModelTree::findModelByModelItemID(const ModelItemID& modelID) const {
     const ModelItem* foundModel = NULL;
     ModelTreeElement* containingElement = getContainingElement(modelID);
     if (containingElement) {

@@ -55,8 +55,8 @@ public:
     void addModel(const ModelItemID& modelID, const ModelItemProperties& properties);
     void deleteModel(const ModelItemID& modelID);
     const ModelItem* findClosestModel(glm::vec3 position, float targetRadius);
-    const ModelItem* findModelByID(uint32_t id, bool alreadyLocked = false);
-    const ModelItem* findModelByModelItemID(const ModelItemID& modelID);
+    const ModelItem* findModelByID(uint32_t id, bool alreadyLocked = false) const;
+    const ModelItem* findModelByModelItemID(const ModelItemID& modelID) const;
 
     /// finds all models that touch a sphere
     /// \param center the center of the sphere
