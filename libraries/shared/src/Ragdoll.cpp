@@ -40,10 +40,10 @@ void FixedConstraint::setAnchor(const glm::vec3& anchor) {
 // ----------------------------------------------------------------------------
 // DistanceConstraint
 // ----------------------------------------------------------------------------
-DistanceConstraint::DistanceConstraint(glm::vec3* startPoint, glm::vec3* endPoint) : _distance(-1.0f) {
+DistanceConstraint::DistanceConstraint(VerletPoint* startPoint, VerletPoint* endPoint) : _distance(-1.0f) {
     _points[0] = startPoint;
     _points[1] = endPoint;
-    _distance = glm::distance(*(_points[0]), *(_points[1]));
+    _distance = glm::distance(_points[0]->_position, _points[1]->_position);
 }
 
 DistanceConstraint::DistanceConstraint(const DistanceConstraint& other) {
@@ -57,37 +57,16 @@ void DistanceConstraint::setDistance(float distance) {
 }
 
 float DistanceConstraint::enforce() {
-    float newDistance = glm::distance(*(_points[0]), *(_points[1]));
+    // TODO: use a fast distance approximation
+    float newDistance = glm::distance(_points[0]->_position, _points[1]->_position);
     glm::vec3 direction(0.0f, 1.0f, 0.0f);
     if (newDistance > EPSILON) {
-        direction = (*(_points[0]) - *(_points[1])) / newDistance;
+        direction = (_points[0]->_position - _points[1]->_position) / newDistance;
     }
-    glm::vec3 center = 0.5f * (*(_points[0]) + *(_points[1]));
-    *(_points[0]) = center + (0.5f * _distance) * direction;
-    *(_points[1]) = center - (0.5f * _distance) * direction;
+    glm::vec3 center = 0.5f * (_points[0]->_position + _points[1]->_position);
+    _points[0]->_position = center + (0.5f * _distance) * direction;
+    _points[1]->_position = center - (0.5f * _distance) * direction;
     return glm::abs(newDistance - _distance);
-}
-
-void DistanceConstraint::updateProxyShape(Shape* shape, const glm::quat& rotation, const glm::vec3& translation) const {
-    if (!shape) {
-        return;
-    }
-    switch (shape->getType()) {
-        case Shape::SPHERE_SHAPE: {
-            // sphere collides at endPoint
-            SphereShape* sphere = static_cast<SphereShape*>(shape);
-            sphere->setTranslation(translation + rotation * (*_points[1]));
-        }
-        break;
-        case Shape::CAPSULE_SHAPE: {
-            // capsule collides from startPoint to endPoint
-            CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
-            capsule->setEndPoints(translation + rotation * (*_points[0]), translation + rotation * (*_points[1]));
-        }
-        break;
-        default:
-        break;
-    }
 }
 
 // ----------------------------------------------------------------------------

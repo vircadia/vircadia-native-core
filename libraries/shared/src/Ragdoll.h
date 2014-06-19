@@ -19,6 +19,14 @@
 
 class Shape;
 
+class VerletPoint {
+public:
+    VerletPoint() : _position(0.0f), _lastPosition(0.0f), _mass(0.0f) {}
+    glm::vec3 _position;
+    glm::vec3 _lastPosition;
+    float _mass;
+};
+
 class Constraint {
 public:
     Constraint() {}
@@ -27,12 +35,6 @@ public:
     /// Enforce contraint by moving relevant points.
     /// \return max distance of point movement
     virtual float enforce() = 0;
-
-    /// \param shape pointer to shape that will be this Constraint's collision proxy
-    /// \param rotation rotation into shape's collision frame
-    /// \param translation translation into shape's collision frame
-    /// Moves the shape such that it will collide at this constraint's position
-    virtual void updateProxyShape(Shape* shape, const glm::quat& rotation, const glm::vec3& translation) const {}
 
 protected:
     int _type;
@@ -51,14 +53,13 @@ private:
 
 class DistanceConstraint : public Constraint {
 public:
-    DistanceConstraint(glm::vec3* startPoint, glm::vec3* endPoint);
+    DistanceConstraint(VerletPoint* startPoint, VerletPoint* endPoint);
     DistanceConstraint(const DistanceConstraint& other);
     float enforce();
     void setDistance(float distance);
-    void updateProxyShape(Shape* shape, const glm::quat& rotation, const glm::vec3& translation) const;
 private:
     float _distance;
-    glm::vec3* _points[2];
+    VerletPoint* _points[2];
 };
 
 class Ragdoll {
@@ -78,11 +79,11 @@ public:
     float enforceRagdollConstraints();
 
     // both const and non-const getPoints()
-    const QVector<glm::vec3>& getRagdollPoints() const { return _ragdollPoints; }
-    QVector<glm::vec3>& getRagdollPoints() { return _ragdollPoints; }
+    const QVector<VerletPoint>& getRagdollPoints() const { return _ragdollPoints; }
+    QVector<VerletPoint>& getRagdollPoints() { return _ragdollPoints; }
 
 protected:
-    QVector<glm::vec3> _ragdollPoints;
+    QVector<VerletPoint> _ragdollPoints;
     QVector<Constraint*> _ragdollConstraints;
 };
 

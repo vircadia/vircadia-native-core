@@ -100,9 +100,9 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void SkeletonModel::simulateRagdoll(float deltaTime) {
-    // move _ragdollPoints toward joints
     const int numStates = _jointStates.size();
     assert(numStates == _ragdollPoints.size());
+
     float fraction = 0.1f; // fraction = 0.1f left intentionally low for demo purposes
     moveShapesTowardJoints(fraction);
 
@@ -500,7 +500,7 @@ void SkeletonModel::renderRagdoll() {
     for (int i = 0; i < numPoints; ++i) {
         glPushMatrix();
         // draw each point as a yellow hexagon with black border
-        glm::vec3 position = _rotation * _ragdollPoints[i];
+        glm::vec3 position = _rotation * _ragdollPoints[i]._position;
         glTranslatef(position.x, position.y, position.z);
         glColor4f(0.0f, 0.0f, 0.0f, alpha);
         glutSolidSphere(radius2, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
@@ -516,12 +516,15 @@ void SkeletonModel::renderRagdoll() {
 // virtual
 void SkeletonModel::initRagdollPoints() {
     assert(_ragdollPoints.size() == 0);
-    // one point for each joint
     int numJoints = _jointStates.size();
-    _ragdollPoints.reserve(numJoints);
+
+    // one point for each joint
+    _ragdollPoints.fill(VerletPoint());
     for (int i = 0; i < numJoints; ++i) {
         const JointState& state = _jointStates.at(i);
-        _ragdollPoints.push_back(state.getPosition());
+        glm::vec3 position = state.getPosition();
+        _ragdollPoints[i]._position = position;
+        _ragdollPoints[i]._lastPosition = position;
     }
 }
 
@@ -555,12 +558,12 @@ void SkeletonModel::buildShapes() {
         }
         Shape* shape = NULL;
         if (type == Shape::SPHERE_SHAPE) {
-            shape = new VerletSphereShape(radius, &(_ragdollPoints[i]));
+            shape = new VerletSphereShape(radius, &(_ragdollPoints[i]._position));
             shape->setEntity(this);
         } else if (type == Shape::CAPSULE_SHAPE) {
             int parentIndex = joint.parentIndex;
             assert(parentIndex != -1);
-            shape = new VerletCapsuleShape(radius, &(_ragdollPoints[parentIndex]), &(_ragdollPoints[i]));
+            shape = new VerletCapsuleShape(radius, &(_ragdollPoints[parentIndex]._position), &(_ragdollPoints[i]._position));
             shape->setEntity(this);
         } 
         _shapes.push_back(shape);
@@ -580,7 +583,8 @@ void SkeletonModel::moveShapesTowardJoints(float fraction) {
         float oneMinusFraction = 1.0f - fraction; 
         int numJoints = _jointStates.size();
         for (int i = 0; i < numJoints; ++i) {
-            _ragdollPoints[i] = oneMinusFraction * _ragdollPoints[i] + fraction * _jointStates.at(i).getPosition();
+            _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
+            _ragdollPoints[i]._position = oneMinusFraction * _ragdollPoints[i]._position + fraction * _jointStates.at(i).getPosition();
         }
     }
 }
@@ -637,7 +641,8 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
             * joint.preTransform * glm::mat4_cast(modifiedRotation) * joint.postTransform;
         // setting the ragdollPoints here slams the VerletShapes into their default positions
-        _ragdollPoints[i] = extractTranslation(transforms[i]);
+        _ragdollPoints[i]._position = extractTranslation(transforms[i]);
+        _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
     }
 
     // compute bounding box
