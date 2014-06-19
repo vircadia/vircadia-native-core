@@ -31,6 +31,8 @@ InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier) 
 const uchar MAX_INJECTOR_VOLUME = 255;
 
 int InjectedAudioRingBuffer::parseData(const QByteArray& packet) {
+    _timeGapHistory.frameReceived();
+
     // setup a data stream to read from this packet
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));

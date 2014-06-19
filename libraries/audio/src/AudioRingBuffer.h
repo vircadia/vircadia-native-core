@@ -21,6 +21,30 @@
 
 #include "NodeData.h"
 
+// this means that every 500 samples, the max for the past 10*500 samples will be calculated
+const int TIME_GAP_NUM_SAMPLES_IN_INTERVAL = 500;
+const int TIME_GAP_NUM_INTERVALS_IN_WINDOW = 10;
+
+class InterframeTimeGapHistory {
+public:
+    InterframeTimeGapHistory();
+
+    void frameReceived();
+    bool isNewWindowMaxGapAvailable() const { return _newWindowMaxGapAvailable; }
+    quint64 getPastWindowMaxGap();
+
+private:
+    quint64 _lastFrameReceivedTime;
+
+    int _numSamplesInCurrentInterval;
+    quint64 _currentIntervalMaxGap;
+    quint64 _intervalMaxGaps[TIME_GAP_NUM_INTERVALS_IN_WINDOW];
+    int _newestIntervalMaxGapAt;
+    quint64 _windowMaxGap;
+    bool _newWindowMaxGapAvailable;
+};
+
+
 const int SAMPLE_RATE = 24000;
 
 const int NETWORK_BUFFER_LENGTH_BYTES_STEREO = 1024;
@@ -74,6 +98,8 @@ public:
     bool hasStarted() const { return _hasStarted; }
     
     void addSilentFrame(int numSilentSamples);
+
+    InterframeTimeGapHistory& getInterframeTimeGapHistory() { return _timeGapHistory; }
 protected:
     // disallow copying of AudioRingBuffer objects
     AudioRingBuffer(const AudioRingBuffer&);
@@ -89,6 +115,8 @@ protected:
     bool _isStarved;
     bool _hasStarted;
     bool _randomAccessMode; /// will this ringbuffer be used for random access? if so, do some special processing
+
+    InterframeTimeGapHistory _timeGapHistory;
 };
 
 #endif // hifi_AudioRingBuffer_h

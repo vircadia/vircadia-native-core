@@ -12,12 +12,69 @@
 #include <cstring>
 #include <functional>
 #include <math.h>
+#include "SharedUtil.h"
 
 #include <QtCore/QDebug>
 
 #include "PacketHeaders.h"
 
 #include "AudioRingBuffer.h"
+
+InterframeTimeGapHistory::InterframeTimeGapHistory()
+    : _lastFrameReceivedTime(0),
+    _numSamplesInCurrentInterval(0),
+    _currentIntervalMaxGap(0),
+    _newestIntervalMaxGapAt(0),
+    _windowMaxGap(0),
+    _newWindowMaxGapAvailable(false)
+{
+    memset(_intervalMaxGaps, 0, TIME_GAP_NUM_INTERVALS_IN_WINDOW*sizeof(quint64));
+}
+
+void InterframeTimeGapHistory::frameReceived() {
+    quint64 now = usecTimestampNow();
+
+    // make sure this isn't the first time frameReceived() is called, meaning there's actually a gap to calculate.
+    if (_lastFrameReceivedTime != 0) {
+        quint64 gap = now - _lastFrameReceivedTime;
+
+        // update the current interval max
+        if (gap > _currentIntervalMaxGap) {
+            _currentIntervalMaxGap = gap;
+        }
+        _numSamplesInCurrentInterval++;
+
+        // if the current interval of samples is now full, record it in our interval maxes
+        if (_numSamplesInCurrentInterval == TIME_GAP_NUM_SAMPLES_IN_INTERVAL) {
+
+            // find location to insert this interval's max (increment index cyclically)
+            _newestIntervalMaxGapAt = _newestIntervalMaxGapAt == TIME_GAP_NUM_INTERVALS_IN_WINDOW - 1 ? 0 : _newestIntervalMaxGapAt + 1;
+
+            // record the current interval's max gap as the newest
+            _intervalMaxGaps[_newestIntervalMaxGapAt] = _currentIntervalMaxGap;
+
+            // update the window max gap, which is the max out of all the past intervals' max gaps
+            _windowMaxGap = 0;
+            for (int i = 0; i < TIME_GAP_NUM_INTERVALS_IN_WINDOW; i++) {
+                if (_intervalMaxGaps[i] > _windowMaxGap) {
+                    _windowMaxGap = _intervalMaxGaps[i];
+                }
+            }
+            _newWindowMaxGapAvailable = true;
+
+            // reset the current interval
+            _numSamplesInCurrentInterval = 0;
+            _currentIntervalMaxGap = 0;
+        }
+    }
+    _lastFrameReceivedTime = now;
+}
+
+quint64 InterframeTimeGapHistory::getPastWindowMaxGap() {
+    _newWindowMaxGapAvailable = false;
+    return _windowMaxGap;
+}
+
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
     NodeData(),
