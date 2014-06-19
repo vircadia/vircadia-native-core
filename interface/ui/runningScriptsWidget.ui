@@ -25,18 +25,18 @@ QWidget {
    <property name="geometry">
     <rect>
      <x>37</x>
-     <y>29</y>
+     <y>20</y>
      <width>251</width>
-     <height>20</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="styleSheet">
     <string notr="true">color: #0e7077;
-font-size: 20pt;
+font-size: 20px;
 background: transparent;</string>
    </property>
    <property name="text">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18px;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="margin">
     <number>0</number>
@@ -56,7 +56,7 @@ background: transparent;</string>
    </property>
    <property name="styleSheet">
     <string notr="true">color: #0e7077;
-font: bold 14pt;
+font: bold 14px;
 background: transparent;</string>
    </property>
    <property name="text">
@@ -82,7 +82,7 @@ background: transparent;</string>
     <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: bold 14pt;
+font: bold 14px;
 padding-top: 3px;</string>
    </property>
    <property name="text">
@@ -105,7 +105,7 @@ padding-top: 3px;</string>
     <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: bold 14pt;
+font: bold 14px;
 padding-top: 3px;</string>
    </property>
    <property name="text">
@@ -123,7 +123,7 @@ padding-top: 3px;</string>
    </property>
    <property name="styleSheet">
     <string notr="true">color: #0e7077;
-font: bold 14pt;</string>
+font: bold 14px;</string>
    </property>
    <property name="text">
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Recently loaded&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -140,7 +140,7 @@ font: bold 14pt;</string>
    </property>
    <property name="styleSheet">
     <string notr="true">color: #95a5a6;
-font-size: 14pt;</string>
+font-size: 14px;</string>
    </property>
    <property name="text">
     <string>(click a script to load and run it)</string>
@@ -184,7 +184,7 @@ font-size: 14pt;</string>
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">font: 14pt;</string>
+    <string notr="true">font: 14px;</string>
    </property>
    <property name="text">
     <string>There are no scripts currently running.</string>
@@ -204,7 +204,7 @@ font-size: 14pt;</string>
    </property>
    <property name="styleSheet">
     <string notr="true">background: transparent;
-font-size: 14pt;</string>
+font-size: 14px;</string>
    </property>
   </widget>
   <widget class="QWidget" name="runningScriptsTableWidget" native="true">
@@ -218,7 +218,7 @@ font-size: 14pt;</string>
    </property>
    <property name="styleSheet">
     <string notr="true">background: transparent;
-font-size: 14pt;</string>
+font-size: 14px;</string>
    </property>
   </widget>
   <widget class="QPushButton" name="loadScriptButton">
@@ -237,7 +237,7 @@ font-size: 14pt;</string>
     <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: bold 14pt;
+font: bold 14px;
 padding-top: 3px;</string>
    </property>
    <property name="text">
