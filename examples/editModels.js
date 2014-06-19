@@ -328,7 +328,8 @@ function controller(wichSide) {
                                                           origin: this.palmPosition,
                                                           direction: this.front
                                                           });
-            if (intersection.accurate && intersection.modelID.isKnownID) {
+            var angularSize = 2 * Math.atan(intersection.modelProperties.radius / Vec3.distance(Camera.getPosition(), intersection.modelProperties.position)) * 180 / 3.14;
+            if (intersection.accurate && intersection.modelID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
                 this.glowedIntersectingModel = intersection.modelID;
                 Models.editModel(this.glowedIntersectingModel, { glowLevel: 0.25 });
             }
@@ -887,7 +888,8 @@ function mouseMoveEvent(event)  {
                 glowedModelID.isKnownID = false;
             }
             
-            if (modelIntersection.modelID.isKnownID) {
+            var angularSize = 2 * Math.atan(modelIntersection.modelProperties.radius / Vec3.distance(Camera.getPosition(), modelIntersection.modelProperties.position)) * 180 / 3.14;
+            if (modelIntersection.modelID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
                 Models.editModel(modelIntersection.modelID, { glowLevel: 0.25 });
                 glowedModelID = modelIntersection.modelID;
             }
