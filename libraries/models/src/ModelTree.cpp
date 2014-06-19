@@ -182,6 +182,7 @@ bool StoreModelOperator::PreRecursion(OctreeElement* element) {
         // Note: updateModel() will only operate on correctly found models and/or add them
         // to the element if they SHOULD be stored there.
         if (modelTreeElement->updateModel(_newModel)) {
+            qDebug() << "model was updated!";
             _foundNew = true;
             // NOTE: don't change the keepSearching here, if it came in here
             // false then we stay false, if it came in here true, then it
@@ -227,8 +228,11 @@ OctreeElement* StoreModelOperator::PossiblyCreateChildAt(OctreeElement* element,
 
 
 void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& senderNode) {
+    // NOTE: callers must lock the tree before using this method
+
     // First, look for the existing model in the tree..
     StoreModelOperator theOperator(this, model);
+
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
 
@@ -498,7 +502,9 @@ int ModelTree::processEditPacketData(PacketType packetType, const unsigned char*
             bool isValid;
             ModelItem newModel = ModelItem::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
             if (isValid) {
+                lockForWrite();
                 storeModel(newModel, senderNode);
+                unlock();
                 if (newModel.isNewlyCreated()) {
                     notifyNewlyCreatedModel(newModel, senderNode);
                 }

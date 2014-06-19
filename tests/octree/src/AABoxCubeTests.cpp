@@ -16,7 +16,7 @@
 
 #include "AABoxCubeTests.h"
 
-void AABoxCubeTests::AABoxCubeTests() {
+void AABoxCubeTests::AABoxCubeTests(bool verbose) {
     qDebug() << "******************************************************************************************";
     qDebug() << "AABoxCubeTests::AABoxCubeTests()";
 
@@ -95,6 +95,6 @@ void AABoxCubeTests::AABoxCubeTests() {
     qDebug() << "******************************************************************************************";
 }
 
-void AABoxCubeTests::runAllTests() {
-    AABoxCubeTests();
+void AABoxCubeTests::runAllTests(bool verbose) {
+    AABoxCubeTests(verbose);
 }

@@ -9,6 +9,7 @@
 //
 
 #include "AABoxCubeTests.h"
+#include "ModelTests.h"
 #include "OctreeTests.h"
 #include "SharedUtil.h"
 
@@ -17,6 +18,7 @@ int main(int argc, const char* argv[]) {
     bool verbose = cmdOptionExists(argc, argv, VERBOSE);
     qDebug() << "OctreeTests::runAllTests()";
     OctreeTests::runAllTests(verbose);
-    AABoxCubeTests::runAllTests();
+    AABoxCubeTests::runAllTests(verbose);
+    ModelTests::runAllTests(verbose);
     return 0;
 }

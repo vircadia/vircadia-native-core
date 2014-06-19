@@ -148,9 +148,6 @@ public:
 
 protected:
     virtual void init(unsigned char * octalCode);
-
-    void storeModel(const ModelItem& model);
-
     ModelTree* _myTree;
     QList<ModelItem>* _modelItems;
 };

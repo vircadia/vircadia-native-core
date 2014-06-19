@@ -363,6 +363,9 @@ bool ModelTreeElement::updateModel(const ModelItem& model) {
     for (uint16_t i = 0; i < numberOfModels; i++) {
         ModelItem& thisModel = (*_modelItems)[i];
         if (thisModel.getID() == model.getID()) {
+            if (wantDebug) {
+                qDebug() << "found model with id";
+            }
             int difference = thisModel.getLastUpdated() - model.getLastUpdated();
             bool changedOnServer = thisModel.getLastEdited() <= model.getLastEdited();
             bool localOlder = thisModel.getLastUpdated() < model.getLastUpdated();
@@ -401,6 +404,7 @@ bool ModelTreeElement::updateModel(const ModelItem& model) {
         // TODO: can this be optimized to only set the containing element in cases where it could have
         // changed or has not been set?
         _myTree->setContainingElement(model.getModelItemID(), this);
+        return true;
     }
     
     return false;
@@ -640,16 +644,3 @@ bool ModelTreeElement::collapseChildren() {
     // nothing to do here yet...
     return false;
 }
-
-
-/*
-void ModelTreeElement::storeModel(const ModelItem& model) {
-    _modelItems->push_back(model);
-    markWithChangedTime();
-
-    // TODO: can this be optimized to only set the containing element in cases where it could have
-    // changed or has not been set?
-    _myTree->setContainingElement(model.getModelItemID(), this);
-
-}
-*/
