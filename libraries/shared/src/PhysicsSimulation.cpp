@@ -128,30 +128,36 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
         }
     }
 }
-
 // TODO: Andrew need to implement:
 // DONE (1) joints pull points (SpecialCapsuleShape would help solve this)
 // DONE (2) points slam shapes (SpecialCapsuleShape would help solve this)
 // DONE (3) detect collisions
 // DONE (4) collisions move points (SpecialCapsuleShape would help solve this)
 // DONE (5) enforce constraints
-// (6) make sure MyAvatar creates shapes, adds to simulation with ragdoll support
+// DONE (6) make sure MyAvatar creates shapes, adds to simulation with ragdoll support
 // (7) support for pairwise collision bypass
 // (8) process collisions
 // (9) add and enforce angular contraints for joints
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
-    int iterations = 0;
-    quint64 now = usecTimestampNow();
-    quint64 startTime = now;
-    quint64 expiry = now + maxUsec;
+    quint64 startTime = usecTimestampNow();
+    quint64 expiry = startTime + maxUsec;
 
-    // move dolls
+    moveRagdolls(deltaTime);
+    computeCollisions();
+    processCollisions();
+    enforceConstraints(minError, maxIterations, expiry - usecTimestampNow());
+
+    _stepTime = usecTimestampNow()- startTime;
+}
+
+void PhysicsSimulation::moveRagdolls(float deltaTime) {
     int numDolls = _dolls.size();
     for (int i = 0; i < numDolls; ++i) {
         _dolls.at(i)->stepRagdollForward(deltaTime);
     }
-    
-    // collide
+}
+
+void PhysicsSimulation::computeCollisions() {
     _collisionList.clear();
     // TODO: keep track of QSet<PhysicsEntity*> collidedEntities;
     int numEntities = _entities.size();
@@ -179,12 +185,19 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
             ShapeCollider::collideShapesWithShapes(shapes, otherShapes, _collisionList);
         }
     }
-
-    // TODO: process collisions
     _numCollisions = _collisionList.size();
+}
 
-    // enforce constraints
+void PhysicsSimulation::processCollisions() {
+    // TODO: Andrew to implement this
+}
+
+void PhysicsSimulation::enforceConstraints(float minError, int maxIterations, quint64 maxUsec) {
+    quint64 now = usecTimestampNow();
+    quint64 expiry = now + maxUsec;
+    int iterations = 0;
     float error = 0.0f;
+    int numDolls = _dolls.size();
     do {
         error = 0.0f;
         for (int i = 0; i < numDolls; ++i) {
@@ -193,16 +206,7 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
         ++iterations;
         now = usecTimestampNow();
     } while (iterations < maxIterations && error > minError && now < expiry);
-
     _numIterations = iterations;
     _constraintError = error;
-    _stepTime = now - startTime;
-}
-
-int PhysicsSimulation::computeCollisions() {
-    return 0.0f;
-}
-
-void PhysicsSimulation::processCollisions() {
 }
 

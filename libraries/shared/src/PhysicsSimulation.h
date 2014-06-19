@@ -41,10 +41,10 @@ public:
     /// \return distance of largest movement
     void stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec);
 
-    /// \return number of collisions
-    int computeCollisions();
-
+    void moveRagdolls(float deltaTime);
+    void computeCollisions();
     void processCollisions();
+    void enforceConstraints(float minError, int maxIterations, quint64 maxUsec);
 
 private:
     CollisionList _collisionList;

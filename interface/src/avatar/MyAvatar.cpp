@@ -200,7 +200,7 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("MyAvatar::simulate/head Simulate");
         const int minError = 0.005f;
         const float maxIterations = 4;
-        const quint64 maxUsec = 500;
+        const quint64 maxUsec = 1000;
         _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
     }
 
