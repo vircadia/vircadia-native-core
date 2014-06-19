@@ -22,6 +22,7 @@ ModelTreeElement::ModelTreeElement(unsigned char* octalCode) : OctreeElement(), 
 };
 
 ModelTreeElement::~ModelTreeElement() {
+    //qDebug() << "ModelTreeElement::~ModelTreeElement() this=" << this;
     _voxelMemoryUsage -= sizeof(ModelTreeElement);
     delete _modelItems;
     _modelItems = NULL;
@@ -226,6 +227,7 @@ void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
             markWithChangedTime();
 
             // TODO: is this a good place to change the containing element map???
+            qDebug() << "ModelTreeElement::update()... calling _myTree->setContainingElement(model.getModelItemID(), NULL); ********";
             _myTree->setContainingElement(model.getModelItemID(), NULL);
 
         } else {
@@ -526,6 +528,7 @@ bool ModelTreeElement::removeModelWithID(uint32_t id) {
         if ((*_modelItems)[i].getID() == id) {
             foundModel = true;
             _modelItems->removeAt(i);
+            
             break;
         }
     }

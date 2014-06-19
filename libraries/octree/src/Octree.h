@@ -222,7 +222,7 @@ public:
 
     OctreeElement* getRoot() { return _rootElement; }
 
-    void eraseAllOctreeElements();
+    virtual void eraseAllOctreeElements();
 
     void processRemoveOctreeElementsBitstream(const unsigned char* bitstream, int bufferSizeBytes);
     void readBitstreamToTree(const unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);

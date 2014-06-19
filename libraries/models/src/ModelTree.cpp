@@ -21,6 +21,11 @@ ModelTreeElement* ModelTree::createNewElement(unsigned char * octalCode) {
     return newElement;
 }
 
+void ModelTree::eraseAllOctreeElements() {
+    _modelToElementMap.clear();
+    Octree::eraseAllOctreeElements();
+}
+
 bool ModelTree::handlesEditPacketType(PacketType packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
@@ -171,6 +176,13 @@ bool StoreModelOperator::PreRecursion(OctreeElement* element) {
             // correct element.
             if (!_containingElement->bestFitModelBounds(_newModel)) {
                 modelTreeElement->removeModelWithModelItemID(_newModel.getModelItemID());
+                
+                // If we haven't yet found the new location, then we need to 
+                // make sure to remove our model to element map, because for
+                // now we're not in that map
+                if (!_foundNew) {
+                    _tree->setContainingElement(_newModel.getModelItemID(), NULL);
+                }
             }
             _foundOld = true;
         } else {
@@ -494,6 +506,15 @@ void ModelTree::findModels(const AACube& cube, QVector<ModelItem*> foundModels) 
 
 const ModelItem* ModelTree::findModelByID(uint32_t id, bool alreadyLocked) const {
     ModelItemID modelID(id);
+
+    bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "ModelTree::findModelByID()...";
+        qDebug() << "    id=" << id;
+        qDebug() << "    modelID=" << modelID;
+        qDebug() << "_modelToElementMap=" << _modelToElementMap;
+    }
+
     return findModelByModelItemID(modelID);
 }
 
@@ -793,7 +814,11 @@ ModelTreeElement* ModelTree::getContainingElement(const ModelItemID& modelItemID
 
 void ModelTree::setContainingElement(const ModelItemID& modelItemID, ModelTreeElement* element) {
     // TODO: do we need to make this thread safe? Or is it acceptable as is
-    _modelToElementMap[modelItemID] = element;
+    if (element) {
+        _modelToElementMap[modelItemID] = element;
+    } else {
+        _modelToElementMap.remove(modelItemID);
+    }
 
     //qDebug() << "setContainingElement() modelItemID=" << modelItemID << "element=" << element;
     //qDebug() << "AFTER _modelToElementMap=" << _modelToElementMap;

@@ -771,6 +771,11 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
 }
 
 ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& processedBytes, ModelTree* tree, bool& valid) {
+    bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "ModelItem ModelItem::fromEditPacket() length=" << length;
+    }
+
     ModelItem newModelItem; // id and _lastUpdated will get set here...
     const unsigned char* dataAt = data;
     processedBytes = 0;
@@ -778,6 +783,10 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
     // the first part of the data is our octcode...
     int octets = numberOfThreeBitSectionsInCode(data);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
+
+    if (wantDebug) {
+        qDebug() << "ModelItem ModelItem::fromEditPacket() lengthOfOctcode=" << lengthOfOctcode;
+    }
 
     // we don't actually do anything with this octcode...
     dataAt += lengthOfOctcode;
@@ -788,6 +797,10 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
     memcpy(&editID, dataAt, sizeof(editID));
     dataAt += sizeof(editID);
     processedBytes += sizeof(editID);
+
+    if (wantDebug) {
+        qDebug() << "ModelItem ModelItem::fromEditPacket() editID=" << editID;
+    }
 
     bool isNewModelItem = (editID == NEW_MODEL);
 
@@ -811,7 +824,7 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
             newModelItem = *existingModelItem;
         } else {
             // the user attempted to edit a modelItem that doesn't exist
-            qDebug() << "user attempted to edit a modelItem that doesn't exist...";
+            qDebug() << "user attempted to edit a modelItem that doesn't exist... editID=" << editID;
             valid = false;
             return newModelItem;
         }
