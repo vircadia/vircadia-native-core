@@ -16,6 +16,7 @@
 #include <QVariantList>
 
 #include <DatagramSequencer.h>
+#include <MetavoxelData.h>
 #include <ScriptCache.h>
 
 class SequencedTestMessage;
@@ -39,7 +40,9 @@ class Endpoint : public QObject {
 
 public:
     
-    Endpoint(const QByteArray& datagramHeader);
+    enum Mode { BASIC_PEER_MODE, METAVOXEL_SERVER_MODE, METAVOXEL_CLIENT_MODE };
+    
+    Endpoint(const QByteArray& datagramHeader, Mode mode = BASIC_PEER_MODE);
 
     void setOther(Endpoint* other) { _other = other; }
 
@@ -60,17 +63,25 @@ private slots:
 
 private:
     
+    void handleMessage(const QVariant& message, Bitstream& in);
+    
     class SendRecord {
     public:
         int packetNumber;
         SharedObjectPointer localState;
+        MetavoxelData data;
+        MetavoxelLOD lod;
     };
     
     class ReceiveRecord {
     public:
         int packetNumber;
         SharedObjectPointer remoteState;
+        MetavoxelData data;
+        MetavoxelLOD lod;
     };
+    
+    Mode _mode;
     
     DatagramSequencer* _sequencer;
     QList<SendRecord> _sendRecords;
@@ -78,6 +89,9 @@ private:
     
     SharedObjectPointer _localState;
     SharedObjectPointer _remoteState;
+    
+    MetavoxelData _data;
+    MetavoxelLOD _lod;
     
     Endpoint* _other;
     QList<QPair<QByteArray, int> > _delayedDatagrams;

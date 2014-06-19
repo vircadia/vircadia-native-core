@@ -604,10 +604,79 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, const MetavoxelLO
 
 void MetavoxelData::readIncrementalDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
     Bitstream& in, const MetavoxelLOD& lod) {
+    
+    // shallow copy the reference
+    *this = reference;
+
+    // if nothing changed, return
+    bool changed;
+    in >> changed;
+    if (!changed) {
+        return;
+    }
+    
+    // expand if the size has changed
+    bool sizeChanged;
+    in >> sizeChanged;
+    if (sizeChanged) {
+        float size;
+        in >> size;
+        while (_size < size) {
+            expand();
+        }
+    }
+    
+    // read the nodes removed
+    forever {
+        AttributePointer attribute;
+        in >> attribute;
+        if (!attribute) {
+            break;
+        }
+        _roots.take(attribute)->decrementReferenceCount(attribute);
+    }
 }
 
 void MetavoxelData::writeIncrementalDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
     Bitstream& out, const MetavoxelLOD& lod) const {
+    
+    // first things first: there might be no change whatsoever
+    glm::vec3 minimum = getMinimum();
+    bool becameSubdivided = lod.becameSubdivided(minimum, _size, referenceLOD);
+    if (_size == reference._size && _roots == reference._roots && !becameSubdivided) {
+        out << false;
+        return;
+    }
+    out << true;
+    
+    // compare the size; if changed (rare), we must compare to the expanded reference
+    const MetavoxelData* expandedReference = &reference;
+    if (_size == reference._size) {
+        out << false;
+    } else {
+        out << true;
+        out << _size;
+        
+        MetavoxelData* expanded = new MetavoxelData(reference);
+        while (expanded->_size < _size) {
+            expanded->expand();
+        }
+        expandedReference = expanded;
+    }
+    
+    // write the nodes removed
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = expandedReference->_roots.constBegin();
+            it != expandedReference->_roots.constEnd(); it++) {
+        if (!_roots.contains(it.key())) {
+            out << it.key();
+        }
+    }
+    out << AttributePointer();
+    
+    // delete the expanded reference if we had to expand
+    if (expandedReference != &reference) {
+        delete expandedReference;
+    }
 }
 
 MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
