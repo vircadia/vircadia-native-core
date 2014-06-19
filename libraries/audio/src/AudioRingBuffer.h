@@ -22,8 +22,8 @@
 #include "NodeData.h"
 
 // this means that every 500 samples, the max for the past 10*500 samples will be calculated
-const int TIME_GAP_NUM_SAMPLES_IN_INTERVAL = 500;
-const int TIME_GAP_NUM_INTERVALS_IN_WINDOW = 10;
+const int TIME_GAP_NUM_SAMPLES_IN_INTERVAL = 6;
+const int TIME_GAP_NUM_INTERVALS_IN_WINDOW = 4;
 
 class InterframeTimeGapHistory {
 public:

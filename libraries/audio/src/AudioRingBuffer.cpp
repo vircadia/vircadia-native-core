@@ -38,6 +38,8 @@ void InterframeTimeGapHistory::frameReceived() {
     if (_lastFrameReceivedTime != 0) {
         quint64 gap = now - _lastFrameReceivedTime;
 
+printf("new gap: %llu\n", gap);
+
         // update the current interval max
         if (gap > _currentIntervalMaxGap) {
             _currentIntervalMaxGap = gap;
@@ -46,6 +48,8 @@ void InterframeTimeGapHistory::frameReceived() {
 
         // if the current interval of samples is now full, record it in our interval maxes
         if (_numSamplesInCurrentInterval == TIME_GAP_NUM_SAMPLES_IN_INTERVAL) {
+
+printf("\t interval full: max interval gap: %llu\n", _currentIntervalMaxGap);
 
             // find location to insert this interval's max (increment index cyclically)
             _newestIntervalMaxGapAt = _newestIntervalMaxGapAt == TIME_GAP_NUM_INTERVALS_IN_WINDOW - 1 ? 0 : _newestIntervalMaxGapAt + 1;
@@ -61,6 +65,8 @@ void InterframeTimeGapHistory::frameReceived() {
                 }
             }
             _newWindowMaxGapAvailable = true;
+
+printf("\t\t new window max gap: %llu\n", _windowMaxGap);
 
             // reset the current interval
             _numSamplesInCurrentInterval = 0;
