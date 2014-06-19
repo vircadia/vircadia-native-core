@@ -167,7 +167,9 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
             // TODO: check for pairwise collision bypass here
             for (int k = j+1; k < numShapes; ++k) {
                 const Shape* otherShape = shapes.at(k);
-                ShapeCollider::collideShapes(shape, otherShape, _collisionList);
+                if (otherShape) {
+                    ShapeCollider::collideShapes(shape, otherShape, _collisionList);
+                }
             }
         }
 

@@ -175,7 +175,7 @@ private:
     float _oculusYawOffset;
 
     QList<AnimationHandlePointer> _animationHandles;
-    PhysicsSimulation _simulationEngine;
+    PhysicsSimulation _physicsSimulation;
 
 	// private methods
     float computeDistanceToFloor(const glm::vec3& startPoint);

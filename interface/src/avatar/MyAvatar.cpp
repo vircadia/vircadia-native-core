@@ -77,16 +77,20 @@ MyAvatar::MyAvatar() :
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
-    _simulationEngine()
+    _physicsSimulation()
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
     _skeletonModel.setEnableShapes(true);
-    _simulationEngine.addRagdoll(&_skeletonModel);
+    // The skeleton is both a PhysicsEntity and Ragdoll, so we add it to the simulation once for each type.
+    _physicsSimulation.addEntity(&_skeletonModel);
+    _physicsSimulation.addRagdoll(&_skeletonModel);
 }
 
 MyAvatar::~MyAvatar() {
+    _physicsSimulation.removeEntity(&_skeletonModel);
+    _physicsSimulation.removeRagdoll(&_skeletonModel);
     _lookAtTargetAvatar.clear();
 }
 
@@ -192,13 +196,14 @@ void MyAvatar::simulate(float deltaTime) {
         head->simulate(deltaTime, true);
     }
 
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
         PerformanceTimer perfTimer("MyAvatar::simulate/head Simulate");
         const int minError = 0.005f;
         const float maxIterations = 4;
         const quint64 maxUsec = 500;
-        _simulationEngine.stepForward(deltaTime, minError, maxIterations, maxUsec);
+        _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
     }
+
     /* TODO: Andrew to make this work again
     // now that we're done stepping the avatar forward in time, compute new collisions
     if (_collisionGroups != 0) {
