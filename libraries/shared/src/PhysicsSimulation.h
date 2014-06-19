@@ -1,5 +1,5 @@
 //
-//  SimulationEngine.h
+//  PhysicsSimulation.h
 //  interface/src/avatar
 //
 //  Created by Andrew Meadows 2014.06.06
@@ -9,26 +9,26 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_SimulationEngine_h
-#define hifi_SimulationEngine_h
+#ifndef hifi_PhysicsSimulation
+#define hifi_PhysicsSimulation
 
 #include <QVector>
 
 #include "CollisionInfo.h"
 
-class PhysicalEntity;
+class PhysicsEntity;
 class Ragdoll;
 
-class SimulationEngine {
+class PhysicsSimulation {
 public:
 
-    SimulationEngine();
-    ~SimulationEngine();
+    PhysicsSimulation();
+    ~PhysicsSimulation();
 
     /// \return true if entity was added to or is already in the list
-    bool addEntity(PhysicalEntity* entity);
+    bool addEntity(PhysicsEntity* entity);
 
-    void removeEntity(PhysicalEntity* entity);
+    void removeEntity(PhysicsEntity* entity);
 
     /// \return true if doll was added to or is already in the list
     bool addRagdoll(Ragdoll* doll);
@@ -52,7 +52,7 @@ public:
 
 private:
     CollisionList _collisionList;
-    QVector<PhysicalEntity*> _entities;
+    QVector<PhysicsEntity*> _entities;
     QVector<Ragdoll*> _dolls;
 
     // some stats for performance queries
@@ -61,4 +61,4 @@ private:
     quint64 _enforcementTime;
 };
 
-#endif // hifi_SimulationEngine_h
+#endif // hifi_PhysicsSimulation

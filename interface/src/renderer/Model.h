@@ -16,7 +16,7 @@
 #include <QObject>
 #include <QUrl>
 
-#include <PhysicalEntity.h>
+#include <PhysicsEntity.h>
 
 #include <AnimationCache.h>
 
@@ -33,7 +33,7 @@ typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject, public PhysicalEntity {
+class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
     
 public:
@@ -131,7 +131,7 @@ public:
 
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
    
-    // virtual overrides from PhysicalEntity
+    // virtual overrides from PhysicsEntity
     virtual void buildShapes();
     virtual void updateShapePositions();
 

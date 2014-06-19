@@ -18,7 +18,7 @@
 
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
-#include <PhysicalEntity.h>
+#include <PhysicsEntity.h>
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 
@@ -561,7 +561,7 @@ void Model::setJointStates(QVector<JointState> states) {
     _jointStates = states;
 
     // compute an approximate bounding radius for broadphase collision queries
-    // against SimulationEngine boundaries
+    // against PhysicsSimulation boundaries
     int numJoints = _jointStates.size();
     float radius = 0.0f;
     for (int i = 0; i < numJoints; ++i) {
@@ -785,7 +785,7 @@ AnimationHandlePointer Model::createAnimationHandle() {
     return handle;
 }
 
-// virtual override from PhysicalEntity
+// virtual override from PhysicsEntity
 void Model::buildShapes() {
     // TODO: figure out how to load/build collision shapes for general models
 }

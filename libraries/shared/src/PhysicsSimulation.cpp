@@ -1,5 +1,5 @@
 //
-//  SimulationEngine.cpp
+//  PhysicsSimulation.cpp
 //  interface/src/avatar
 //
 //  Created by Andrew Meadows 2014.06.06
@@ -11,29 +11,29 @@
 
 #include <glm/glm.hpp>
 
-#include "SimulationEngine.h"
+#include "PhysicsSimulation.h"
 
-#include "PhysicalEntity.h"
+#include "PhysicsEntity.h"
 #include "Ragdoll.h"
 #include "SharedUtil.h"
 #include "ShapeCollider.h"
 
-int MAX_DOLLS_PER_ENGINE = 16;
-int MAX_ENTITIES_PER_ENGINE = 64;
-int MAX_COLLISIONS_PER_ENGINE = 256;
+int MAX_DOLLS_PER_SIMULATION = 16;
+int MAX_ENTITIES_PER_SIMULATION = 64;
+int MAX_COLLISIONS_PER_SIMULATION = 256;
 
 
 const int NUM_SHAPE_BITS = 6;
 const int SHAPE_INDEX_MASK = (1 << (NUM_SHAPE_BITS + 1)) - 1;
 
-SimulationEngine::SimulationEngine() : _collisionList(MAX_COLLISIONS_PER_ENGINE) {
+PhysicsSimulation::PhysicsSimulation() : _collisionList(MAX_COLLISIONS_PER_SIMULATION) {
 }
 
-SimulationEngine::~SimulationEngine() {
+PhysicsSimulation::~PhysicsSimulation() {
     _dolls.clear();
 }
 
-bool SimulationEngine::addEntity(PhysicalEntity* entity) {
+bool PhysicsSimulation::addEntity(PhysicsEntity* entity) {
     if (!entity) {
         return false;
     }
@@ -50,7 +50,7 @@ bool SimulationEngine::addEntity(PhysicalEntity* entity) {
         return false;
     }
     int numEntities = _entities.size();
-    if (numEntities > MAX_ENTITIES_PER_ENGINE) {
+    if (numEntities > MAX_ENTITIES_PER_SIMULATION) {
         // list is full
         return false;
     }
@@ -60,7 +60,7 @@ bool SimulationEngine::addEntity(PhysicalEntity* entity) {
     return true;
 }
 
-void SimulationEngine::removeEntity(PhysicalEntity* entity) {
+void PhysicsSimulation::removeEntity(PhysicsEntity* entity) {
     if (!entity || !entity->_simulation || !(entity->_simulation == this)) {
         return;
     }
@@ -72,7 +72,7 @@ void SimulationEngine::removeEntity(PhysicalEntity* entity) {
                 _entities.pop_back();
             } else {
                 // swap the last for this one
-                PhysicalEntity* lastEntity = _entities[numEntities - 1];
+                PhysicsEntity* lastEntity = _entities[numEntities - 1];
                 _entities.pop_back();
                 _entities[i] = lastEntity;
             }
@@ -82,12 +82,12 @@ void SimulationEngine::removeEntity(PhysicalEntity* entity) {
     }
 }
 
-bool SimulationEngine::addRagdoll(Ragdoll* doll) {
+bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
     if (!doll) {
         return false;
     }
     int numDolls = _dolls.size();
-    if (numDolls > MAX_DOLLS_PER_ENGINE) {
+    if (numDolls > MAX_DOLLS_PER_SIMULATION) {
         // list is full
         return false;
     }
@@ -102,7 +102,7 @@ bool SimulationEngine::addRagdoll(Ragdoll* doll) {
     return true;
 }
 
-void SimulationEngine::removeRagdoll(Ragdoll* doll) {
+void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
     int numDolls = _dolls.size();
     for (int i = 0; i < numDolls; ++i) {
         if (doll == _dolls[i]) {
@@ -120,7 +120,7 @@ void SimulationEngine::removeRagdoll(Ragdoll* doll) {
     }
 }
 
-void SimulationEngine::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
+void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
     /* TODO: Andrew to make this work
     int iterations = 0;
     float delta = 0.0f;
@@ -143,7 +143,7 @@ void SimulationEngine::stepForward(float deltaTime, float minError, int maxItera
     
     // collide
     _collisionList.clear();
-    // TODO: keep track of QSet<PhysicalEntity*> collidedEntities;
+    // TODO: keep track of QSet<PhysicsEntity*> collidedEntities;
     for (int i = 0; i < numDolls; ++i) {
         const QVector<Shape*>* shapesA = _dolls.at(i)->getShapes();
         if (!shapesA) {
@@ -186,10 +186,10 @@ void SimulationEngine::stepForward(float deltaTime, float minError, int maxItera
     */
 }
 
-int SimulationEngine::computeCollisions() {
+int PhysicsSimulation::computeCollisions() {
     return 0.0f;
 }
 
-void SimulationEngine::processCollisions() {
+void PhysicsSimulation::processCollisions() {
 }
 

@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-class PhysicalEntity;
+class PhysicsEntity;
 
 class Shape {
 public:
@@ -32,8 +32,8 @@ public:
 
     int getType() const { return _type; }
 
-    void setEntity(PhysicalEntity* entity) { _owningEntity = entity; }
-    PhysicalEntity* getEntity() const { return _owningEntity; }
+    void setEntity(PhysicsEntity* entity) { _owningEntity = entity; }
+    PhysicsEntity* getEntity() const { return _owningEntity; }
 
     float getBoundingRadius() const { return _boundingRadius; }
 
@@ -58,7 +58,7 @@ protected:
     void setBoundingRadius(float radius) { _boundingRadius = radius; }
 
     int _type;
-    PhysicalEntity* _owningEntity;
+    PhysicsEntity* _owningEntity;
     float _boundingRadius;
     glm::vec3 _translation;
     glm::quat _rotation;

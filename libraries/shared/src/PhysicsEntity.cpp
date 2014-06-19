@@ -1,5 +1,5 @@
 //
-//  PhysicalEntity.cpp
+//  PhysicsEntity.cpp
 //  libraries/shared/src
 //
 //  Created by Andrew Meadows 2014.06.11
@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PhysicalEntity.h"
+#include "PhysicsEntity.h"
 #include "Shape.h"
 #include "ShapeCollider.h"
 
-PhysicalEntity::PhysicalEntity() : 
+PhysicsEntity::PhysicsEntity() : 
     _translation(0.0f), 
     _rotation(), 
     _boundingRadius(0.0f), 
@@ -22,26 +22,26 @@ PhysicalEntity::PhysicalEntity() :
     _simulation(NULL) {
 }
 
-PhysicalEntity::~PhysicalEntity() {
+PhysicsEntity::~PhysicsEntity() {
     // entity should be removed from the simulation before it is deleted
     assert(_simulation == NULL);
 }
 
-void PhysicalEntity::setTranslation(const glm::vec3& translation) {
+void PhysicsEntity::setTranslation(const glm::vec3& translation) {
     if (_translation != translation) {
         _shapesAreDirty = !_shapes.isEmpty();
         _translation = translation;
     }
 }
 
-void PhysicalEntity::setRotation(const glm::quat& rotation) {
+void PhysicsEntity::setRotation(const glm::quat& rotation) {
     if (_rotation != rotation) {
         _shapesAreDirty = !_shapes.isEmpty();
         _rotation = rotation;
     }
 }   
 
-void PhysicalEntity::setShapeBackPointers() {
+void PhysicsEntity::setShapeBackPointers() {
     for (int i = 0; i < _shapes.size(); i++) {
         Shape* shape = _shapes[i];
         if (shape) {
@@ -50,7 +50,7 @@ void PhysicalEntity::setShapeBackPointers() {
     }
 }
 
-void PhysicalEntity::setEnableShapes(bool enable) {
+void PhysicsEntity::setEnableShapes(bool enable) {
     if (enable != _enableShapes) {
         clearShapes();
         _enableShapes = enable;
@@ -60,14 +60,14 @@ void PhysicalEntity::setEnableShapes(bool enable) {
     }
 }   
 
-void PhysicalEntity::clearShapes() {
+void PhysicsEntity::clearShapes() {
     for (int i = 0; i < _shapes.size(); ++i) {
         delete _shapes[i];
     }
     _shapes.clear();
 }
 
-bool PhysicalEntity::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+bool PhysicsEntity::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     /* TODO: Andrew to make this work
     int numShapes = _shapes.size();
     float minDistance = FLT_MAX;
@@ -88,7 +88,7 @@ bool PhysicalEntity::findRayIntersection(const glm::vec3& origin, const glm::vec
     return false;
 }
 
-bool PhysicalEntity::findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions) {
+bool PhysicsEntity::findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions) {
     bool collided = false;
     int numTheirShapes = shapes.size();
     for (int i = 0; i < numTheirShapes; ++i) {
@@ -107,7 +107,7 @@ bool PhysicalEntity::findCollisions(const QVector<const Shape*> shapes, Collisio
     return collided;
 }
 
-bool PhysicalEntity::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius,
+bool PhysicsEntity::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius,
     CollisionList& collisions, int skipIndex) {
     bool collided = false;
     // TODO: Andrew to implement this or make it unecessary
@@ -144,7 +144,7 @@ bool PhysicalEntity::findSphereCollisions(const glm::vec3& sphereCenter, float s
     return collided;
 }
 
-bool PhysicalEntity::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
+bool PhysicsEntity::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
     bool collided = false;
     PlaneShape planeShape(plane);
     for (int i = 0; i < _shapes.size(); i++) {

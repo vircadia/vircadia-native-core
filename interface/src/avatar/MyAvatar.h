@@ -14,7 +14,7 @@
 
 #include <QSettings>
 
-#include <SimulationEngine.h>
+#include <PhysicsSimulation.h>
 
 #include "Avatar.h"
 
@@ -175,7 +175,7 @@ private:
     float _oculusYawOffset;
 
     QList<AnimationHandlePointer> _animationHandles;
-    SimulationEngine _simulationEngine;
+    PhysicsSimulation _simulationEngine;
 
 	// private methods
     float computeDistanceToFloor(const glm::vec3& startPoint);
