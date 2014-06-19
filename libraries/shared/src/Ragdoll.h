@@ -57,6 +57,7 @@ public:
     DistanceConstraint(const DistanceConstraint& other);
     float enforce();
     void setDistance(float distance);
+    float getDistance() const { return _distance; }
 private:
     float _distance;
     VerletPoint* _points[2];

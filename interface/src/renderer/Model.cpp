@@ -174,6 +174,7 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1) {
             _rootIndex = i;
+            // NOTE: in practice geometry.offset has a non-unity scale (rather than a translation)
             glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
             state.computeTransform(parentTransform);
         } else {

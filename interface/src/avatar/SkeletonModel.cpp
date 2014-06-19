@@ -657,9 +657,9 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
 
     // compute the default transforms and slam the ragdoll positions accordingly
     // (which puts the shapes where we want them)
-    transforms[0] = glm::scale(_scale);
-    _ragdollPoints[0]._position = glm::vec3(0.0f);
-    _ragdollPoints[0]._lastPosition = glm::vec3(0.0f);
+    transforms[0] = _jointStates[0].getTransform();
+    _ragdollPoints[0]._position = extractTranslation(transforms[0]);
+    _ragdollPoints[0]._lastPosition = _ragdollPoints[0]._position;
     for (int i = 1; i < numJoints; i++) {
         const FBXJoint& joint = geometry.joints.at(i);
         int parentIndex = joint.parentIndex;
