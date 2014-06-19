@@ -10,6 +10,8 @@
 //
 
 #include "PhysicsEntity.h"
+
+#include "PhysicsSimulation.h"
 #include "Shape.h"
 #include "ShapeCollider.h"
 
@@ -23,8 +25,10 @@ PhysicsEntity::PhysicsEntity() :
 }
 
 PhysicsEntity::~PhysicsEntity() {
-    // entity should be removed from the simulation before it is deleted
-    assert(_simulation == NULL);
+    if (_simulation) {
+        _simulation->removeEntity(this);
+        _simulation = NULL;
+    }
 }
 
 void PhysicsEntity::setTranslation(const glm::vec3& translation) {

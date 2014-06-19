@@ -31,11 +31,14 @@ PhysicsSimulation::PhysicsSimulation() : _collisionList(MAX_COLLISIONS_PER_SIMUL
 }
 
 PhysicsSimulation::~PhysicsSimulation() {
+    // entities have a backpointer to this simulator that must be cleaned up
     int numEntities = _entities.size();
     for (int i = 0; i < numEntities; ++i) {
         _entities[i]->_simulation = NULL;
     }
     _entities.clear();
+
+    // but Ragdolls do not
     _dolls.clear();
 }
 
