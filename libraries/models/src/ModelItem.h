@@ -93,7 +93,7 @@ public:
     QScriptValue copyToScriptValue(QScriptEngine* engine) const;
     void copyFromScriptValue(const QScriptValue& object);
 
-    void copyToModelItem(ModelItem& modelItem) const;
+    void copyToModelItem(ModelItem& modelItem, bool forceCopy = false) const;
     void copyFromModelItem(const ModelItem& modelItem);
 
     const glm::vec3& getPosition() const { return _position; }
@@ -132,6 +132,8 @@ public:
     
     glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
     glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
+
+    void debugDump() const;
 
 private:
     glm::vec3 _position;
@@ -198,6 +200,11 @@ inline bool operator==(const ModelItemID& a, const ModelItemID& b) {
         return a.creatorTokenID == b.creatorTokenID;
     }
     return a.id == b.id;
+}
+
+inline QDebug operator<<(QDebug debug, const ModelItemID& id) {
+    debug << "[ id:" << id.id << ", creatorTokenID:" << id.creatorTokenID << "]";
+    return debug;
 }
 
 Q_DECLARE_METATYPE(ModelItemID);
@@ -291,7 +298,7 @@ public:
     void setAnimationFPS(float value) { _animationFPS = value; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
     
-    void setProperties(const ModelItemProperties& properties);
+    void setProperties(const ModelItemProperties& properties, bool forceCopy = false);
 
     OctreeElement::AppendState appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                                 ModelTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;

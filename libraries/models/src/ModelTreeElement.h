@@ -121,7 +121,6 @@ public:
     void setTree(ModelTree* tree) { _myTree = tree; }
 
     bool updateModel(const ModelItem& model);
-    bool updateModel(const ModelItemID& modelID, const ModelItemProperties& properties);
     void updateModelItemID(FindAndUpdateModelItemIDArgs* args);
 
     const ModelItem* getClosestModel(glm::vec3 position) const;

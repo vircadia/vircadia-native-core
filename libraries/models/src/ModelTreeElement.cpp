@@ -226,7 +226,7 @@ void ModelTreeElement::update(ModelTreeUpdateArgs& args) {
             markWithChangedTime();
 
             // TODO: is this a good place to change the containing element map???
-            //_myTree->setContainingElement(model.getModelItemID(), this);
+            _myTree->setContainingElement(model.getModelItemID(), NULL);
 
         } else {
             ++modelItr;
@@ -380,8 +380,7 @@ bool ModelTreeElement::updateModel(const ModelItem& model) {
                 thisModel.copyChangedProperties(model);
                 markWithChangedTime();
                 
-                // TODO: can this be optimized to only set the containing element in cases where it could have
-                // changed or has not been set?
+                // seems like we shouldn't need this
                 _myTree->setContainingElement(model.getModelItemID(), this);
             } else {
                 if (wantDebug) {
@@ -400,9 +399,7 @@ bool ModelTreeElement::updateModel(const ModelItem& model) {
     if (bestFitModelBounds(model)) {
         _modelItems->push_back(model);
         markWithChangedTime();
-
-        // TODO: can this be optimized to only set the containing element in cases where it could have
-        // changed or has not been set?
+        // Since we're adding this item to this element, we need to let the tree know about it
         _myTree->setContainingElement(model.getModelItemID(), this);
         return true;
     }
@@ -410,42 +407,8 @@ bool ModelTreeElement::updateModel(const ModelItem& model) {
     return false;
 }
 
-bool ModelTreeElement::updateModel(const ModelItemID& modelID, const ModelItemProperties& properties) {
-    uint16_t numberOfModels = _modelItems->size();
-    for (uint16_t i = 0; i < numberOfModels; i++) {
-        // note: unlike storeModel() which is called from inbound packets, this is only called by local editors
-        // and therefore we can be confident that this change is higher priority and should be honored
-        ModelItem& thisModel = (*_modelItems)[i];
-        
-        bool found = false;
-        if (modelID.isKnownID) {
-            found = thisModel.getID() == modelID.id;
-        } else {
-            found = thisModel.getCreatorTokenID() == modelID.creatorTokenID;
-        }
-        if (found) {
-            thisModel.setProperties(properties);
-            markWithChangedTime(); // mark our element as changed..
-
-            // TODO: can this be optimized to only set the containing element in cases where it could have
-            // changed or has not been set?
-            _myTree->setContainingElement(modelID, this);
-
-            const bool wantDebug = false;
-            if (wantDebug) {
-                uint64_t now = usecTimestampNow();
-                int elapsed = now - thisModel.getLastEdited();
-
-                qDebug() << "ModelTreeElement::updateModel() AFTER update... edited AGO=" << elapsed <<
-                        "now=" << now << " thisModel.getLastEdited()=" << thisModel.getLastEdited();
-            }                
-            return true;
-        }
-    }
-    return false;
-}
-
 void ModelTreeElement::updateModelItemID(FindAndUpdateModelItemIDArgs* args) {
+    bool wantDebug = false;
     uint16_t numberOfModels = _modelItems->size();
     for (uint16_t i = 0; i < numberOfModels; i++) {
         ModelItem& thisModel = (*_modelItems)[i];
@@ -453,14 +416,30 @@ void ModelTreeElement::updateModelItemID(FindAndUpdateModelItemIDArgs* args) {
         if (!args->creatorTokenFound) {
             // first, we're looking for matching creatorTokenIDs, if we find that, then we fix it to know the actual ID
             if (thisModel.getCreatorTokenID() == args->creatorTokenID) {
+                if (wantDebug) {
+                    qDebug() << "ModelTreeElement::updateModelItemID()... found the model... updating it's ID... "
+                        << "creatorTokenID=" << args->creatorTokenID
+                        << "modelID=" << args->modelID;
+                }
+
                 thisModel.setID(args->modelID);
                 args->creatorTokenFound = true;
+                
+                // TODO: We probably need to fix up the tree's map of ids to models!
             }
         }
         
         // if we're in an isViewing tree, we also need to look for an kill any viewed models
         if (!args->viewedModelFound && args->isViewing) {
             if (thisModel.getCreatorTokenID() == UNKNOWN_MODEL_TOKEN && thisModel.getID() == args->modelID) {
+
+                if (wantDebug) {
+                    qDebug() << "ModelTreeElement::updateModelItemID()... VIEWED MODEL FOUND??? "
+                        << "args->creatorTokenID=" << args->creatorTokenID
+                        << "thisModel.getCreatorTokenID()=" << thisModel.getCreatorTokenID()
+                        << "args->modelID=" << args->modelID;
+                }
+
                 _modelItems->removeAt(i); // remove the model at this index
                 numberOfModels--; // this means we have 1 fewer model in this list
                 i--; // and we actually want to back up i as well.
@@ -603,24 +582,17 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
                             << modelItemID.id << "creatorTokenID=" << modelItemID.creatorTokenID;
                 }                
                 
-                // TODO: We need to optimize this... some things we need to do.
-                //   1) findModelByID() currently recurses the entire tree to find the model, that sucks and needs
-                //      to be fixed to use a hash for faster ID lookup
-                //   2) it's also inefficient to call readModelDataFromBuffer() twice. It would be better to just
+                // TODO: We should optimize this... some things we need to do.
+                //   1) it's also inefficient to call readModelDataFromBuffer() twice. It would be better to just
                 //      pull out the model item ID, then look it up, then read the rest of the data in the buffer
-                const ModelItem* existingModelItem = _myTree->findModelByID(modelItemID.id, true);
+                const ModelItem* existingModelItem = _myTree->findModelByModelItemID(modelItemID);
                 if (existingModelItem) {
                     // copy original properties...
                     tempModel.copyChangedProperties(*existingModelItem); 
                     // reread only the changed properties
                     bytesForThisModel = tempModel.readModelDataFromBuffer(dataAt, bytesLeftToRead, args); 
                 }
-                
-                // here!
-                qDebug() << "ModelTreeElement::readElementDataFromBuffer() calling _myTree->storeModel(tempModel)";
                 _myTree->storeModel(tempModel);
-                
-                
                 dataAt += bytesForThisModel;
                 bytesLeftToRead -= bytesForThisModel;
                 bytesRead += bytesForThisModel;

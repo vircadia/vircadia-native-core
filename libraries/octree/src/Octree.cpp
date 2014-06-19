@@ -159,7 +159,7 @@ bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOpe
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             OctreeElement* child = element->getChildAtIndex(i);
             
-            // If there is now child at that location, the Operator may want to create a child at that location.
+            // If there is no child at that location, the Operator may want to create a child at that location.
             // So give the operator a chance to do so....
             if (!child) {
                 child = operatorObject->PossiblyCreateChildAt(element, i);
@@ -278,6 +278,8 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
     int childIndex = 0;
     bytesRead += args.includeExistsBits ? sizeof(childrenInTreeMask) + sizeof(childMask) : sizeof(childMask);
 
+    //qDebug() << "Octree::readElementData()... childrenInTreeMask=" << childrenInTreeMask;
+
     while (bytesLeftToRead - bytesRead > 0 && childIndex < NUMBER_OF_CHILDREN) {
         // check the exists mask to see if we have a child to traverse into
 
@@ -303,6 +305,7 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
             // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
             // subtree/element, because it shouldn't actually exist in the tree.
             if (!oneAtBit(childrenInTreeMask, i) && destinationElement->getChildAtIndex(i)) {
+                //qDebug() << "Octree::readElementData()... pruning our tree for child i=" << i;
                 destinationElement->safeDeepDeleteChildAtIndex(i);
                 _isDirty = true; // by definition!
             }

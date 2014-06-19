@@ -56,6 +56,7 @@ public:
     void deleteModel(const ModelItemID& modelID);
     const ModelItem* findClosestModel(glm::vec3 position, float targetRadius);
     const ModelItem* findModelByID(uint32_t id, bool alreadyLocked = false);
+    const ModelItem* findModelByModelItemID(const ModelItemID& modelID);
 
     /// finds all models that touch a sphere
     /// \param center the center of the sphere
@@ -87,18 +88,8 @@ public:
         return _fbxService ? _fbxService->getGeometryForModel(modelItem) : NULL;
     }
     
-    ModelTreeElement* getContainingElement(const ModelItemID& modelItemID) const {
-        // TODO: do we need to make this thread safe? Or is it acceptable as is
-        if (_modelToElementMap.contains(modelItemID)) {
-            return _modelToElementMap.value(modelItemID);
-        }
-        return NULL;
-    }
-
-    void setContainingElement(const ModelItemID& modelItemID, ModelTreeElement* element) {
-        // TODO: do we need to make this thread safe? Or is it acceptable as is
-        _modelToElementMap[modelItemID] = element;
-    }
+    ModelTreeElement* getContainingElement(const ModelItemID& modelItemID) const;
+    void setContainingElement(const ModelItemID& modelItemID, ModelTreeElement* element);
 
 private:
 

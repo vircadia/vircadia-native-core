@@ -1110,6 +1110,17 @@ function handeMenuEvent(menuItem){
             var oldValue = properties[propertyName];
             var newValue = Window.prompt("New value for: " + propertyName, oldValue);
             if (newValue != "") {
+                if (propertyName == "color") {
+                    if (newValue == "red") {
+                        newValue = { red: 255, green: 0, blue: 0 };
+                    } else if (newValue == "green") {
+                        newValue = { red: 0, green: 255, blue: 0 };
+                    } else if (newValue == "blue") {
+                        newValue = { red: 0, green: 0, blue: 255 };
+                    } else {
+                        newValue = { red: 0, green: 0, blue: 0 };
+                    }
+                }
                 properties[propertyName] = newValue;
                 Models.editModel(editModelID, properties);
             }

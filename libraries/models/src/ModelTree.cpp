@@ -104,17 +104,16 @@ StoreModelOperator::StoreModelOperator(ModelTree* tree, const ModelItem& searchM
 {
     // check our tree, to determine if this model is known
     _containingElement = _tree->getContainingElement(searchModel.getModelItemID());
-    
-    qDebug() << "StoreModelOperator::StoreModelOperator().... _containingElement=" << _containingElement;
-
     if (_containingElement) {
         _oldModel = _containingElement->getModelWithModelItemID(searchModel.getModelItemID());
-        assert(_oldModel);
-
-        // if we do know the old model, then check to see if the position and/or size has
-        // changed. If it hasn't changed, then we can be confident that the new properties
-        // won't change the element that the model will be stored in
-        if (_oldModel->getAACube() == _newModel.getAACube()) {
+        if (!_oldModel) {
+            //assert(_oldModel);
+            qDebug() << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldModel!";
+        }
+        
+        // If this containing element would be the best fit for our new model, then just do the new
+        // portion of the store pass, since the change path will be the same for both parts of the update
+        if (_containingElement->bestFitModelBounds(_newModel)) {
             _foundOld = true;
         }
     } else {
@@ -166,8 +165,13 @@ bool StoreModelOperator::PreRecursion(OctreeElement* element) {
         // If this is the element we're looking for, then ask it to remove the old model
         // and we can stop searching.
         if (modelTreeElement == _containingElement) {
-            qDebug() << "StoreModelOperator::PreRecursion().. calling modelTreeElement->removeModelWithModelItemID()...";
-            modelTreeElement->removeModelWithModelItemID(_newModel.getModelItemID());
+        
+            // If the containgElement IS NOT the best fit for the new model properties
+            // then we need to remove it, and the updateModel below will store it in the
+            // correct element.
+            if (!_containingElement->bestFitModelBounds(_newModel)) {
+                modelTreeElement->removeModelWithModelItemID(_newModel.getModelItemID());
+            }
             _foundOld = true;
         } else {
             // if this isn't the element we're looking for, then keep searching
@@ -182,7 +186,7 @@ bool StoreModelOperator::PreRecursion(OctreeElement* element) {
         // Note: updateModel() will only operate on correctly found models and/or add them
         // to the element if they SHOULD be stored there.
         if (modelTreeElement->updateModel(_newModel)) {
-            qDebug() << "model was updated!";
+            //qDebug() << "StoreModelOperator::PreRecursion()... model was updated!";
             _foundNew = true;
             // NOTE: don't change the keepSearching here, if it came in here
             // false then we stay false, if it came in here true, then it
@@ -236,26 +240,62 @@ void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& send
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
 
-    ModelTreeElement* containingElement = getContainingElement(model.getModelItemID());
-    qDebug() << "ModelTree::storeModel().... after store... containingElement=" << containingElement;
+    bool wantDebug = false;
+    if (wantDebug) {
+        ModelTreeElement* containingElement = getContainingElement(model.getModelItemID());
+        qDebug() << "ModelTree::storeModel().... after store... containingElement=" << containingElement;
+    }
 
 }
 
 void ModelTree::updateModel(const ModelItemID& modelID, const ModelItemProperties& properties) {
     ModelItem updateItem(modelID);
+
+    bool wantDebug = false;
+    if (wantDebug) {    
+        qDebug() << "ModelTree::updateModel(modelID, properties) line:" << __LINE__ << "updateItem:";
+        updateItem.debugDump();
+    }
     
     // since the properties might not be complete, they may only contain some values,
     // we need to first see if we already have the model in our tree, and make a copy of
     // its existing properties first
     ModelTreeElement* containingElement = getContainingElement(modelID);
 
+    if (wantDebug) {    
+        qDebug() << "ModelTree::updateModel(modelID, properties) containingElement=" << containingElement;
+    }
+
     if (containingElement) {
         const ModelItem* oldModel = containingElement->getModelWithModelItemID(modelID);
         if (oldModel) {
-            updateItem.setProperties(oldModel->getProperties());
+            ModelItemProperties oldProps = oldModel->getProperties();
+            if (wantDebug) {    
+                qDebug() << "ModelTree::updateModel(modelID, properties) ********** COPY PROPERTIES FROM oldModel=" << oldModel << "*******************";
+                qDebug() << "ModelTree::updateModel(modelID, properties) oldModel=" << oldModel;
+                oldProps.debugDump();
+                qDebug() << "ModelTree::updateModel(modelID, properties) line:" << __LINE__ << "about to call updateItem.setProperties(oldProps);";
+            }
+            updateItem.setProperties(oldProps, true); // force copy
+
+            if (wantDebug) {    
+                qDebug() << "ModelTree::updateModel(modelID, properties) line:" << __LINE__ << "updateItem:";
+                updateItem.debugDump();
+            }
+
+        } else {
+            if (wantDebug) {    
+                qDebug() << "ModelTree::updateModel(modelID, properties) WAIT WHAT!!! COULDN'T FIND oldModel=" << oldModel;
+            }
         }
     }
     updateItem.setProperties(properties);
+
+    if (wantDebug) {    
+        qDebug() << "ModelTree::updateModel(modelID, properties) line:" << __LINE__ << "updateItem:";
+        updateItem.debugDump();
+    }
+
     storeModel(updateItem);
 }
 
@@ -295,6 +335,9 @@ bool ModelTree::findAndUpdateModelItemIDOperation(OctreeElement* element, void* 
 }
 
 void ModelTree::handleAddModelResponse(const QByteArray& packet) {
+
+    qDebug() << "ModelTree::handleAddModelResponse()..."; 
+
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
@@ -307,6 +350,9 @@ void ModelTree::handleAddModelResponse(const QByteArray& packet) {
     memcpy(&modelID, dataAt, sizeof(modelID));
     dataAt += sizeof(modelID);
 
+    qDebug() << "    creatorTokenID=" << creatorTokenID;
+    qDebug() << "    modelID=" << modelID;
+
     // update models in our tree
     bool assumeModelFound = !getIsViewing(); // if we're not a viewing tree, then we don't have to find the actual model
     FindAndUpdateModelItemIDArgs args = { 
@@ -317,7 +363,7 @@ void ModelTree::handleAddModelResponse(const QByteArray& packet) {
         getIsViewing() 
     };
     
-    const bool wantDebug = false;
+    const bool wantDebug = true;
     if (wantDebug) {
         qDebug() << "looking for creatorTokenID=" << creatorTokenID << " modelID=" << modelID 
                 << " getIsViewing()=" << getIsViewing();
@@ -491,6 +537,15 @@ const ModelItem* ModelTree::findModelByID(uint32_t id, bool alreadyLocked) {
     return args.foundModel;
 }
 
+const ModelItem* ModelTree::findModelByModelItemID(const ModelItemID& modelID) {
+    const ModelItem* foundModel = NULL;
+    ModelTreeElement* containingElement = getContainingElement(modelID);
+    if (containingElement) {
+        foundModel = containingElement->getModelWithModelItemID(modelID);
+    }
+    return foundModel;
+}
+
 
 int ModelTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode) {
@@ -502,9 +557,7 @@ int ModelTree::processEditPacketData(PacketType packetType, const unsigned char*
             bool isValid;
             ModelItem newModel = ModelItem::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
             if (isValid) {
-                lockForWrite();
                 storeModel(newModel, senderNode);
-                unlock();
                 if (newModel.isNewlyCreated()) {
                     notifyNewlyCreatedModel(newModel, senderNode);
                 }
@@ -766,3 +819,23 @@ void ModelTree::processEraseMessage(const QByteArray& dataByteArray, const Share
         recurseTreeWithOperation(findAndDeleteOperation, &args);
     }
 }
+
+
+ModelTreeElement* ModelTree::getContainingElement(const ModelItemID& modelItemID) const {
+    //qDebug() << "_modelToElementMap=" << _modelToElementMap;
+
+    // TODO: do we need to make this thread safe? Or is it acceptable as is
+    if (_modelToElementMap.contains(modelItemID)) {
+        return _modelToElementMap.value(modelItemID);
+    }
+    return NULL;
+}
+
+void ModelTree::setContainingElement(const ModelItemID& modelItemID, ModelTreeElement* element) {
+    // TODO: do we need to make this thread safe? Or is it acceptable as is
+    _modelToElementMap[modelItemID] = element;
+
+    //qDebug() << "setContainingElement() modelItemID=" << modelItemID << "element=" << element;
+    //qDebug() << "AFTER _modelToElementMap=" << _modelToElementMap;
+}
+

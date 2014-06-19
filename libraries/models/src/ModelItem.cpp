@@ -104,7 +104,7 @@ ModelItem::ModelItem(const ModelItemID& modelItemID) {
 
 ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& properties) {
     initFromModelItemID(modelItemID);
-    setProperties(properties);
+    setProperties(properties, true); // force copy
 }
 
 ModelItem::~ModelItem() {
@@ -649,6 +649,8 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
         memcpy(&_id, dataAt, sizeof(_id));
         dataAt += sizeof(_id);
         bytesRead += sizeof(_id);
+        _creatorTokenID = UNKNOWN_MODEL_TOKEN; // if we know the id, then we don't care about the creator token
+        _newlyCreated = false;
 
         // type - TODO: updated to using ByteCountCoding
         quint8 type;
@@ -800,7 +802,6 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
 
         newModelItem.setCreatorTokenID(creatorTokenID);
         newModelItem._newlyCreated = true;
-
     } else {
         // look up the existing modelItem
         const ModelItem* existingModelItem = tree->findModelByID(editID, true);
@@ -834,8 +835,14 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         memcpy(&packetContainsBits, dataAt, sizeof(packetContainsBits));
         dataAt += sizeof(packetContainsBits);
         processedBytes += sizeof(packetContainsBits);
-    }
 
+        // only applies to editing of existing models
+        if (!packetContainsBits) {
+            //qDebug() << "edit packet didn't contain any information ignore it...";
+            valid = false;
+            return newModelItem;
+        }
+    }
 
     // radius
     if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_RADIUS) == MODEL_PACKET_CONTAINS_RADIUS)) {
@@ -1258,8 +1265,8 @@ ModelItemProperties ModelItem::getProperties() const {
     return properties;
 }
 
-void ModelItem::setProperties(const ModelItemProperties& properties) {
-    properties.copyToModelItem(*this);
+void ModelItem::setProperties(const ModelItemProperties& properties, bool forceCopy) {
+    properties.copyToModelItem(*this, forceCopy);
 }
 
 ModelItemProperties::ModelItemProperties() :
@@ -1292,6 +1299,16 @@ ModelItemProperties::ModelItemProperties() :
     _glowLevelChanged(false),
     _defaultSettings(true)
 {
+}
+
+void ModelItemProperties::debugDump() const {
+    qDebug() << "ModelItemProperties...";
+    qDebug() << "   _id=" << _id;
+    qDebug() << "   _idSet=" << _idSet;
+    qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
+    qDebug() << "   _radius=" << _radius;
+    qDebug() << "   _modelURL=" << _modelURL;
+    qDebug() << "   _animationURL=" << _animationURL;
 }
 
 
@@ -1513,59 +1530,59 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
     _lastEdited = usecTimestampNow();
 }
 
-void ModelItemProperties::copyToModelItem(ModelItem& modelItem) const {
+void ModelItemProperties::copyToModelItem(ModelItem& modelItem, bool forceCopy) const {
     bool somethingChanged = false;
-    if (_positionChanged) {
+    if (_positionChanged || forceCopy) {
         modelItem.setPosition(_position / (float) TREE_SCALE);
         somethingChanged = true;
     }
 
-    if (_colorChanged) {
+    if (_colorChanged || forceCopy) {
         modelItem.setColor(_color);
         somethingChanged = true;
     }
 
-    if (_radiusChanged) {
+    if (_radiusChanged || forceCopy) {
         modelItem.setRadius(_radius / (float) TREE_SCALE);
         somethingChanged = true;
     }
 
-    if (_shouldDieChanged) {
+    if (_shouldDieChanged || forceCopy) {
         modelItem.setShouldDie(_shouldDie);
         somethingChanged = true;
     }
 
-    if (_modelURLChanged) {
+    if (_modelURLChanged || forceCopy) {
         modelItem.setModelURL(_modelURL);
         somethingChanged = true;
     }
 
-    if (_modelRotationChanged) {
+    if (_modelRotationChanged || forceCopy) {
         modelItem.setModelRotation(_modelRotation);
         somethingChanged = true;
     }
 
-    if (_animationURLChanged) {
+    if (_animationURLChanged || forceCopy) {
         modelItem.setAnimationURL(_animationURL);
         somethingChanged = true;
     }
 
-    if (_animationIsPlayingChanged) {
+    if (_animationIsPlayingChanged || forceCopy) {
         modelItem.setAnimationIsPlaying(_animationIsPlaying);
         somethingChanged = true;
     }
 
-    if (_animationFrameIndexChanged) {
+    if (_animationFrameIndexChanged || forceCopy) {
         modelItem.setAnimationFrameIndex(_animationFrameIndex);
         somethingChanged = true;
     }
     
-    if (_animationFPSChanged) {
+    if (_animationFPSChanged || forceCopy) {
         modelItem.setAnimationFPS(_animationFPS);
         somethingChanged = true;
     }
     
-    if (_glowLevelChanged) {
+    if (_glowLevelChanged || forceCopy) {
         modelItem.setGlowLevel(_glowLevel);
         somethingChanged = true;
     }
