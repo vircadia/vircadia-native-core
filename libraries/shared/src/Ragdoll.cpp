@@ -94,66 +94,55 @@ void DistanceConstraint::updateProxyShape(Shape* shape, const glm::quat& rotatio
 // Ragdoll
 // ----------------------------------------------------------------------------
 
-Ragdoll::Ragdoll() : _verletShapes(NULL) {
+Ragdoll::Ragdoll() {
 }
 
 Ragdoll::~Ragdoll() {
-    clear();
+    clearRagdollConstraintsAndPoints();
 }
     
-void Ragdoll::initShapesAndPoints(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points) {
+/*
+void Ragdoll::useShapesAndCopyPoints(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points) {
     clear();
     _verletShapes = shapes;
     const int numPoints = points.size();
     assert(numPoints == parentIndices.size());
-    _points.reserve(numPoints);
+    _ragdollPoints.reserve(numPoints);
     for (int i = 0; i < numPoints; ++i) {
         glm::vec3 position = points[i];
-        _points.push_back(position);
+        _ragdollPoints.push_back(position);
 
         int parentIndex = parentIndices[i];
         assert(parentIndex < i && parentIndex >= -1);
         if (parentIndex == -1) {
-            FixedConstraint* anchor = new FixedConstraint(&(_points[i]), glm::vec3(0.0f));
-            _constraints.push_back(anchor);
+            FixedConstraint* anchor = new FixedConstraint(&(_ragdollPoints[i]), glm::vec3(0.0f));
+            _ragdollConstraints.push_back(anchor);
         } else {
-            DistanceConstraint* stick = new DistanceConstraint(&(_points[i]), &(_points[parentIndex]));
-            _constraints.push_back(stick);
+            DistanceConstraint* stick = new DistanceConstraint(&(_ragdollPoints[i]), &(_ragdollPoints[parentIndex]));
+            _ragdollConstraints.push_back(stick);
         }
     }
 }
+*/
 
 /// Delete all data.
-void Ragdoll::clear() {
-    int numConstraints = _constraints.size();
+void Ragdoll::clearRagdollConstraintsAndPoints() {
+    int numConstraints = _ragdollConstraints.size();
     for (int i = 0; i < numConstraints; ++i) {
-        delete _constraints[i];
+        delete _ragdollConstraints[i];
     }
-    _constraints.clear();
-    _points.clear();
-    _verletShapes = NULL;
+    _ragdollConstraints.clear();
+    _ragdollPoints.clear();
 }
 
-float Ragdoll::enforceConstraints() {
+float Ragdoll::enforceRagdollConstraints() {
     float maxDistance = 0.0f;
-    const int numConstraints = _constraints.size();
+    const int numConstraints = _ragdollConstraints.size();
     for (int i = 0; i < numConstraints; ++i) {
-        DistanceConstraint* c = static_cast<DistanceConstraint*>(_constraints[i]);
-        //maxDistance = glm::max(maxDistance, _constraints[i]->enforce());
+        DistanceConstraint* c = static_cast<DistanceConstraint*>(_ragdollConstraints[i]);
+        //maxDistance = glm::max(maxDistance, _ragdollConstraints[i]->enforce());
         maxDistance = glm::max(maxDistance, c->enforce());
     }
     return maxDistance;
 }
 
-void Ragdoll::updateShapes(const glm::quat& rotation, const glm::vec3& translation) const {
-    if (!_verletShapes) {
-        return;
-    }
-    int numShapes = _verletShapes->size();
-    int numConstraints = _constraints.size();
-
-    // NOTE: we assume a one-to-one relationship between shapes and constraints
-    for (int i = 0; i < numShapes && i < numConstraints; ++i) {
-        _constraints[i]->updateProxyShape((*_verletShapes)[i], rotation, translation);
-    }
-}

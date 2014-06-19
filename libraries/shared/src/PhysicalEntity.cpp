@@ -92,7 +92,7 @@ bool PhysicalEntity::findCollisions(const QVector<const Shape*> shapes, Collisio
         }
         int numOurShapes = _shapes.size();
         for (int j = 0; j < numOurShapes; ++j) {
-            const Shape* ourShape = _shapes[j];
+            const Shape* ourShape = _shapes.at(j);
             if (ourShape && ShapeCollider::collideShapes(theirShape, ourShape, collisions)) {
                 collided = true;
             }
@@ -142,7 +142,7 @@ bool PhysicalEntity::findPlaneCollisions(const glm::vec4& plane, CollisionList& 
     bool collided = false;
     PlaneShape planeShape(plane);
     for (int i = 0; i < _shapes.size(); i++) {
-        if (_shapes[i] && ShapeCollider::collideShapes(&planeShape, _shapes[i], collisions)) {
+        if (_shapes.at(i) && ShapeCollider::collideShapes(&planeShape, _shapes.at(i), collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
             collision->_data = (void*)(this);
             collision->_intData = i;

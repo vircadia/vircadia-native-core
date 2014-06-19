@@ -136,7 +136,6 @@ public:
 
     /// \return bounding radius of avatar
     virtual float getBoundingRadius() const;
-    void updateShapePositions();
 
     quint32 getCollisionGroups() const { return _collisionGroups; }
     virtual void setCollisionGroups(quint32 collisionGroups) { _collisionGroups = (collisionGroups & VALID_COLLISION_GROUPS); }

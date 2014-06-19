@@ -210,7 +210,6 @@ void MyAvatar::simulate(float deltaTime) {
             radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.0f));
             radius *= COLLISION_RADIUS_SCALAR;
         }
-        updateShapePositions();
         if (_collisionGroups & COLLISION_GROUP_ENVIRONMENT) {
             PerformanceTimer perfTimer("MyAvatar::simulate/updateCollisionWithEnvironment");
             updateCollisionWithEnvironment(deltaTime, radius);
@@ -1447,7 +1446,6 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
             // don't collide with ourselves
             continue;
         }
-        avatar->updateShapePositions();
         float distance = glm::length(_position - avatar->getPosition());        
         if (_distanceToNearestAvatar > distance) {
             _distanceToNearestAvatar = distance;

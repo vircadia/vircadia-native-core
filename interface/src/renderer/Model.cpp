@@ -551,9 +551,6 @@ bool Model::updateGeometry() {
             model->setURL(attachment.url);
             _attachments.append(model);
         }
-        if (_enableShapes) {
-            buildShapes();
-        }
         needFullUpdate = true;
     }
     return needFullUpdate;

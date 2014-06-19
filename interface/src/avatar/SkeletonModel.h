@@ -95,9 +95,12 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
+    virtual void initRagdollPoints();
+    virtual void stepRagdollForward(float deltaTime);
+
     void buildShapes();
-    void updateShapePositions();
-    void updateShapePositionsLegacy();
+    void moveShapesTowardJoints(float fraction);
+    //void updateShapePositionsLegacy(); // TODO: Andrew to remove this when done with ragdoll work
 
     void computeBoundingShape(const FBXGeometry& geometry);
     void renderBoundingCollisionShapes(float alpha);

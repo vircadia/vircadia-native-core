@@ -66,38 +66,24 @@ public:
 
     Ragdoll();
     virtual ~Ragdoll();
-    
-    /// Create points and constraints based on topology of collection of joints
-    /// \param joints list of connected joint states
-    void initShapesAndPoints(QVector<Shape*>* shapes, const QVector<int>& parentIndices, const QVector<glm::vec3>& points);
 
     /// Delete all data.
-    void clear();
+    void clearRagdollConstraintsAndPoints();
 
-    // TODO: Andrew to implement this
-    void stepForward(float deltaTime) {}
+    virtual void initRagdollPoints() = 0;
+    virtual void stepRagdollForward(float deltaTime) = 0;
 
     /// Enforce contraints.
     /// \return max distance of point movement
-    float enforceConstraints();
+    float enforceRagdollConstraints();
 
     // both const and non-const getPoints()
-    const QVector<glm::vec3>& getPoints() const { return _points; }
-    QVector<glm::vec3>& getPoints() { return _points; }
-
-    /// \param rotation rotation into shapes' collision frame
-    /// \param translation translation into shapes' collision frame
-    /// Moves and modifies elements of _verletShapes to agree with state of _points
-    void updateShapes(const glm::quat& rotation, const glm::vec3& translation) const;
-
-    const QVector<Shape*>* getShapes() const { return _verletShapes; }
+    const QVector<glm::vec3>& getRagdollPoints() const { return _ragdollPoints; }
+    QVector<glm::vec3>& getRagdollPoints() { return _ragdollPoints; }
 
 protected:
-    QVector<glm::vec3> _points;
-    QVector<Constraint*> _constraints;
-
-    // the Ragdoll does NOT own the data in _verletShapes.
-    QVector<Shape*>* _verletShapes;
+    QVector<glm::vec3> _ragdollPoints;
+    QVector<Constraint*> _ragdollConstraints;
 };
 
 #endif // hifi_Ragdoll_h

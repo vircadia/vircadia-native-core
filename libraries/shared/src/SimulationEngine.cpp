@@ -67,6 +67,7 @@ void SimulationEngine::removeRagdoll(Ragdoll* doll) {
 }
 
 void SimulationEngine::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
+    /* TODO: Andrew to make this work
     int iterations = 0;
     float delta = 0.0f;
     quint64 now = usecTimestampNow();
@@ -82,7 +83,7 @@ void SimulationEngine::stepForward(float deltaTime, float minError, int maxItera
         // (4) collisions move points (SpecialCapsuleShape would help solve this)
         // (5) enforce constraints
         // (6) add and enforce angular contraints for joints
-        _dolls.at(i)->stepForward(deltaTime);
+        //_dolls.at(i)->stepForward(deltaTime);
     }
 
     
@@ -128,6 +129,7 @@ void SimulationEngine::stepForward(float deltaTime, float minError, int maxItera
     _enforcementIterations = iterations;
     _enforcementError = delta;
     _enforcementTime = now - startTime;
+    */
 }
 
 int SimulationEngine::computeCollisions() {

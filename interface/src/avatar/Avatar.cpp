@@ -218,9 +218,6 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
             bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
             bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
-            if (renderSkeleton || renderHead || renderBounding) {
-                updateShapePositions();
-            }
 
             if (renderSkeleton) {
                 _skeletonModel.renderJointCollisionShapes(0.7f);
@@ -588,18 +585,6 @@ bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penet
 bool Avatar::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
     return _skeletonModel.findPlaneCollisions(plane, collisions) ||
         getHead()->getFaceModel().findPlaneCollisions(plane, collisions);
-}
-
-void Avatar::updateShapePositions() {
-    _skeletonModel.updateShapePositions();
-    Model& headModel = getHead()->getFaceModel();
-    headModel.updateShapePositions();
-    /* KEEP FOR DEBUG: use this in rather than code above to see shapes 
-     * in their default positions where the bounding shape is computed.
-    _skeletonModel.resetShapePositions();
-    Model& headModel = getHead()->getFaceModel();
-    headModel.resetShapePositions();
-    */
 }
 
 bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
