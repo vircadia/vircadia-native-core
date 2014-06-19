@@ -251,7 +251,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
-                                           Qt::CTRL | Qt::META | Qt::Key_F,
+                                           Qt::CTRL | Qt::Key_F,
                                            false,
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
