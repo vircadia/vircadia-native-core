@@ -57,7 +57,7 @@ protected:
 
     bool isStillRunning() const { return !_stopThread; }
 
-private:
+protected:
     QMutex _mutex;
 
     bool _stopThread;

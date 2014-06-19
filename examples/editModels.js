@@ -5,6 +5,19 @@
 //  Created by Clément Brisset on 4/24/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
+//  This script allows you to edit models either with the razor hydras or with your mouse
+//
+//  If using the hydras :
+//  grab grab models with the triggers, you can then move the models around or scale them with both hands.
+//  You can switch mode using the bumpers so that you can move models roud more easily.
+//
+//  If using the mouse :
+//  - left click lets you move the model in the plane facing you.
+//    If pressing shift, it will move on the horizontale plane it's in.
+//  - right click lets you rotate the model. z and x give you access to more axix of rotation while shift allows for finer control.
+//  - left + right click lets you scale the model.
+//  - you can press r while holding the model to reset its rotation
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -20,6 +33,8 @@ var LASER_WIDTH = 4;
 var LASER_COLOR = { red: 255, green: 0, blue: 0 };
 var LASER_LENGTH_FACTOR = 500
 ;
+
+var MAX_ANGULAR_SIZE = 45;
 
 var LEFT = 0;
 var RIGHT = 1;
@@ -263,6 +278,11 @@ function controller(wichSide) {
         var d = Vec3.length(Vec3.subtract(P, X));
         
         if (0 < x && x < LASER_LENGTH_FACTOR) {
+            if (2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14 > MAX_ANGULAR_SIZE) {
+                print("Angular size too big: " + 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14);
+                return { valid: false };
+            }
+            
             return { valid: true, x: x, y: y, z: z };
         }
         return { valid: false };
@@ -513,9 +533,13 @@ function controller(wichSide) {
             if (isLocked(newProperties)) {
                 print("Model locked " + newProperties.id);
             } else {
+                var check = this.checkModel(newProperties);
+                if (!check.valid) {
+                    return;
+                }
+                
                 this.grab(newModel, newProperties);
                 
-                var check = this.checkModel(newProperties);
                 this.x = check.x;
                 this.y = check.y;
                 this.z = check.z;
@@ -653,16 +677,18 @@ function initToolBar() {
 }
 
 function moveOverlays() {
+    var newViewPort = Controller.getViewportDimensions();
+    
     if (typeof(toolBar) === 'undefined') {
         initToolBar();
         
-    } else if (windowDimensions.x == Controller.getViewportDimensions().x &&
-               windowDimensions.y == Controller.getViewportDimensions().y) {
+    } else if (windowDimensions.x == newViewPort.x &&
+               windowDimensions.y == newViewPort.y) {
         return;
     }
     
     
-    windowDimensions = Controller.getViewportDimensions();
+    windowDimensions = newViewPort;
     var toolsX = windowDimensions.x - 8 - toolBar.width;
     var toolsY = (windowDimensions.y - toolBar.height) / 2;
     
@@ -680,8 +706,6 @@ var intersection;
 
 
 var SCALE_FACTOR = 200.0;
-var TRANSLATION_FACTOR = 100.0;
-var ROTATION_FACTOR = 100.0;
 
 function rayPlaneIntersection(pickRay, point, normal) {
     var d = -Vec3.dot(point, normal);
@@ -690,8 +714,53 @@ function rayPlaneIntersection(pickRay, point, normal) {
     return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
 }
 
+function Tooltip() {
+    this.x = 285;
+    this.y = 115;
+    this.width = 500;
+    this.height = 145 ;
+    this.margin = 5;
+    this.decimals = 3;
+    
+    this.textOverlay = Overlays.addOverlay("text", {
+                                           x: this.x,
+                                           y: this.y,
+                                           width: this.width,
+                                           height: this.height,
+                                           margin: this.margin,
+                                           text: "",
+                                           color: { red: 128, green: 128, blue: 128 },
+                                           alpha: 0.2,
+                                           visible: false
+                                           });
+    this.show = function(doShow) {
+        Overlays.editOverlay(this.textOverlay, { visible: doShow });
+    }
+    this.updateText = function(properties) {
+        var angles = Quat.safeEulerAngles(properties.modelRotation);
+        var text = "Model Properties:\n"
+        text += "x: " + properties.position.x.toFixed(this.decimals) + "\n"
+        text += "y: " + properties.position.y.toFixed(this.decimals) + "\n"
+        text += "z: " + properties.position.z.toFixed(this.decimals) + "\n"
+        text += "pitch: " + angles.x.toFixed(this.decimals) + "\n"
+        text += "yaw:  " + angles.y.toFixed(this.decimals) + "\n"
+        text += "roll:    " + angles.z.toFixed(this.decimals) + "\n"
+        text += "Scale: " + 2 * properties.radius.toFixed(this.decimals) + "\n"
+        text += "ID: " + properties.id + "\n"
+        text += "model url: " + properties.modelURL + "\n"
+        text += "animation url: " + properties.animationURL + "\n"
+        
+        Overlays.editOverlay(this.textOverlay, { text: text });
+    }
+    
+    this.cleanup = function() {
+        Overlays.deleteOverlay(this.textOverlay);
+    }
+}
+var tooltip = new Tooltip();
+
 function mousePressEvent(event) {
-    if (altIsPressed) {
+    if (event.isAlt) {
         return;
     }
     
@@ -760,12 +829,16 @@ function mousePressEvent(event) {
             var d = Vec3.length(Vec3.subtract(P, X));
             
             if (0 < x && x < LASER_LENGTH_FACTOR) {
-                modelSelected = true;
-                selectedModelID = foundModel;
-                selectedModelProperties = properties;
-                
-                orientation = MyAvatar.orientation;
-                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+                if (2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14 < MAX_ANGULAR_SIZE) {
+                    modelSelected = true;
+                    selectedModelID = foundModel;
+                    selectedModelProperties = properties;
+                    
+                    orientation = MyAvatar.orientation;
+                    intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+                } else {
+                    print("Angular size too big: " + 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14);
+                }
             }
         }
     }
@@ -786,6 +859,8 @@ function mousePressEvent(event) {
         selectedModelProperties.glowLevel = 0.0;
         
         print("Clicked on " + selectedModelID.id + " " +  modelSelected);
+        tooltip.updateText(selectedModelProperties);
+        tooltip.show(true);
     }
 }
 
@@ -794,7 +869,7 @@ var oldModifier = 0;
 var modifier = 0;
 var wasShifted = false;
 function mouseMoveEvent(event)  {
-    if (altIsPressed) {
+    if (event.isAlt) {
         return;
     }
     
@@ -886,24 +961,62 @@ function mouseMoveEvent(event)  {
             break;
         case 3:
             // Let's rotate
-            var rotation = Quat.fromVec3Degrees({ x: event.y - mouseLastPosition.y, y: event.x - mouseLastPosition.x, z: 0 });
-            if (event.isShifted) {
-                rotation = Quat.fromVec3Degrees({ x: event.y - mouseLastPosition.y, y: 0, z: mouseLastPosition.x - event.x });
+            if (somethingChanged) {
+                selectedModelProperties.oldRotation.x = selectedModelProperties.modelRotation.x;
+                selectedModelProperties.oldRotation.y = selectedModelProperties.modelRotation.y;
+                selectedModelProperties.oldRotation.z = selectedModelProperties.modelRotation.z;
+                selectedModelProperties.oldRotation.w = selectedModelProperties.modelRotation.w;
+                mouseLastPosition.x = event.x;
+                mouseLastPosition.y = event.y;
+                somethingChanged = false;
             }
             
-            var newRotation = Quat.multiply(orientation, rotation);
-            newRotation = Quat.multiply(newRotation, Quat.inverse(orientation));
             
-            selectedModelProperties.modelRotation = Quat.multiply(newRotation, selectedModelProperties.oldRotation);
+            var pixelPerDegrees = windowDimensions.y / (1 * 360); // the entire height of the window allow you to make 2 full rotations
+            
+            //compute delta in pixel
+            var cameraForward = Quat.getFront(Camera.getOrientation());
+            var rotationAxis = (!zIsPressed && xIsPressed) ? { x: 1, y: 0, z: 0 } :
+                               (!zIsPressed && !xIsPressed) ? { x: 0, y: 1, z: 0 } :
+                                                              { x: 0, y: 0, z: 1 };
+            rotationAxis = Vec3.multiplyQbyV(selectedModelProperties.modelRotation, rotationAxis);
+            var orthogonalAxis = Vec3.cross(cameraForward, rotationAxis);
+            var mouseDelta = { x: event.x - mouseLastPosition
+                .x, y: mouseLastPosition.y - event.y, z: 0 };
+            var transformedMouseDelta = Vec3.multiplyQbyV(Camera.getOrientation(), mouseDelta);
+            var delta = Math.floor(Vec3.dot(transformedMouseDelta, Vec3.normalize(orthogonalAxis)) / pixelPerDegrees);
+            
+            var STEP = 15;
+            if (!event.isShifted) {
+                delta = Math.round(delta / STEP) * STEP;
+            }
+                
+            var rotation = Quat.fromVec3Degrees({
+                                                x: (!zIsPressed && xIsPressed) ? delta : 0,   // x is pressed
+                                                y: (!zIsPressed && !xIsPressed) ? delta : 0,   // neither is pressed
+                                                z: (zIsPressed && !xIsPressed) ? delta : 0   // z is pressed
+                                                });
+            rotation = Quat.multiply(selectedModelProperties.oldRotation, rotation);
+            
+            selectedModelProperties.modelRotation.x = rotation.x;
+            selectedModelProperties.modelRotation.y = rotation.y;
+            selectedModelProperties.modelRotation.z = rotation.z;
+            selectedModelProperties.modelRotation.w = rotation.w;
             break;
     }
     
     Models.editModel(selectedModelID, selectedModelProperties);
+    tooltip.updateText(selectedModelProperties);
 }
 
+
 function mouseReleaseEvent(event) {
-    if (altIsPressed) {
+    if (event.isAlt) {
         return;
+    }
+    
+    if (modelSelected) {
+        tooltip.show(false);
     }
     
     modelSelected = false;
@@ -919,9 +1032,11 @@ var modelMenuAddedDelete = false;
 function setupModelMenus() {
     print("setupModelMenus()");
     // add our menuitems
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Edit Properties...", 
+        shortcutKeyEvent: { text: "`" }, afterItem: "Models" });
     if (!Menu.menuItemExists("Edit","Delete")) {
         print("no delete... adding ours");
-        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
         Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", 
             shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
         modelMenuAddedDelete = true;
@@ -931,9 +1046,10 @@ function setupModelMenus() {
 }
 
 function cleanupModelMenus() {
+    Menu.removeSeparator("Edit", "Models");
+    Menu.removeMenuItem("Edit", "Edit Properties...");
     if (modelMenuAddedDelete) {
         // delete our menuitems
-        Menu.removeSeparator("Edit", "Models");
         Menu.removeMenuItem("Edit", "Delete");
     }
 }
@@ -943,6 +1059,7 @@ function scriptEnding() {
     rightController.cleanup();
     toolBar.cleanup();
     cleanupModelMenus();
+    tooltip.cleanup();
 }
 Script.scriptEnding.connect(scriptEnding);
 
@@ -953,7 +1070,8 @@ Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 
 setupModelMenus();
-Menu.menuItemEvent.connect(function(menuItem){
+
+function handeMenuEvent(menuItem){
     print("menuItemEvent() in JS... menuItem=" + menuItem);
     if (menuItem == "Delete") {
         if (leftController.grabbing) {
@@ -971,19 +1089,74 @@ Menu.menuItemEvent.connect(function(menuItem){
         } else {
             print("  Delete Model.... not holding...");
         }
+    } else if (menuItem == "Edit Properties...") {
+        var editModelID = -1;
+        if (leftController.grabbing) {
+            print("  Edit Properties.... leftController.modelID="+ leftController.modelID);
+            editModelID = leftController.modelID;
+        } else if (rightController.grabbing) {
+            print("  Edit Properties.... rightController.modelID="+ rightController.modelID);
+            editModelID = rightController.modelID;
+        } else if (modelSelected) {
+            print("  Edit Properties.... selectedModelID="+ selectedModelID);
+            editModelID = selectedModelID;
+        } else {
+            print("  Edit Properties.... not holding...");
+        }
+        if (editModelID != -1) {
+            print("  Edit Properties.... about to edit properties...");
+            var propertyName = Window.prompt("Which property would you like to change?", "modelURL");
+            var properties = Models.getModelProperties(editModelID);
+            var oldValue = properties[propertyName];
+            var newValue = Window.prompt("New value for: " + propertyName, oldValue);
+            if (newValue != "") {
+                properties[propertyName] = newValue;
+                Models.editModel(editModelID, properties);
+            }
+        }
+        tooltip.show(false);
     }
-});
+}
+Menu.menuItemEvent.connect(handeMenuEvent);
+
+
 
 // handling of inspect.js concurrence
-altIsPressed = false;
+var zIsPressed = false;
+var xIsPressed = false;
+var somethingChanged = false;
 Controller.keyPressEvent.connect(function(event) {
-    if (event.text == "ALT") {
-        altIsPressed = true;
+    if ((event.text == "z" || event.text == "Z") && !zIsPressed) {
+        zIsPressed = true;
+        somethingChanged = true;
+    }
+    if ((event.text == "x" || event.text == "X") && !xIsPressed) {
+        xIsPressed = true;
+        somethingChanged = true;
+    }
+                                 
+    // resets model orientation when holding with mouse
+    if (event.text == "r" && modelSelected) {
+        selectedModelProperties.modelRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 0 });
+        Models.editModel(selectedModelID, selectedModelProperties);
+        tooltip.updateText(selectedModelProperties);
+        somethingChanged = true;
     }
 });
 Controller.keyReleaseEvent.connect(function(event) {
-    if (event.text == "ALT") {
-        altIsPressed = false;
+    if (event.text == "z" || event.text == "Z") {
+        zIsPressed = false;
+        somethingChanged = true;
+    }
+    if (event.text == "x" || event.text == "X") {
+        xIsPressed = false;
+        somethingChanged = true;
+    }
+    // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
+    if (event.text == "`") {
+        handeMenuEvent("Edit Properties...");
+    }
+    if (event.text == "BACKSPACE") {
+        handeMenuEvent("Delete");
     }
 });
-

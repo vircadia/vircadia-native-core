@@ -73,6 +73,7 @@
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
 
+#include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -654,7 +655,14 @@ void Application::paintGL() {
 
         {
             PerformanceTimer perfTimer("paintGL/renderOverlay");
-            _applicationOverlay.renderOverlay();
+            //If alpha is 1, we can render directly to the screen.
+            if (_applicationOverlay.getAlpha() == 1.0f) {
+                _applicationOverlay.renderOverlay();
+            } else {
+                //Render to to texture so we can fade it
+                _applicationOverlay.renderOverlay(true);
+                _applicationOverlay.displayOverlayTexture();
+            }
         }
     }
 
@@ -2115,19 +2123,19 @@ void Application::updateMyAvatar(float deltaTime) {
         const quint64 TOO_LONG_SINCE_LAST_NACK = 1 * USECS_PER_SECOND;
         if (sinceLastNack > TOO_LONG_SINCE_LAST_NACK) {
             _lastNackTime = now;
-            sendNack();
+            sendNackPackets();
         }
     }
 }
 
-void Application::sendNack() {
+int Application::sendNackPackets() {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
-        return;
+        return 0;
     }
 
+    int packetsSent = 0;
     char packet[MAX_PACKET_SIZE];
-    NodeList* nodeList = NodeList::getInstance();
 
     // iterates thru all nodes in NodeList
     foreach(const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
@@ -2138,14 +2146,14 @@ void Application::sendNack() {
             || node->getType() == NodeType::ModelServer)
             ) {
 
-            // if there are octree packets from this node that are waiting to be processed,
-            // don't send a NACK since the missing packets may be among those waiting packets.
-            if (_octreeProcessor.hasPacketsToProcessFrom(node)) {
-                continue;
-            }
-
             QUuid nodeUUID = node->getUUID();
 
+            // if there are octree packets from this node that are waiting to be processed,
+            // don't send a NACK since the missing packets may be among those waiting packets.
+            if (_octreeProcessor.hasPacketsToProcessFrom(nodeUUID)) {
+                continue;
+            }
+            
             _octreeSceneStatsLock.lockForRead();
 
             // retreive octree scene stats of this node
@@ -2155,40 +2163,48 @@ void Application::sendNack() {
             }
             OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
 
-            // check if there are any sequence numbers that need to be nacked
-            int numSequenceNumbersAvailable = stats.getNumSequenceNumbersToNack();
-            if (numSequenceNumbersAvailable == 0) {
-                _octreeSceneStatsLock.unlock();
-                continue;
-            }
+            // make copy of missing sequence numbers from stats
+            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = stats.getMissingSequenceNumbers();
 
-            char* dataAt = packet;
-            int bytesRemaining = MAX_PACKET_SIZE;
-
-            // pack header
-            int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
-            dataAt += numBytesPacketHeader;
-            bytesRemaining -= numBytesPacketHeader;
-            int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
-
-            // calculate and pack the number of sequence numbers
-            uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
-            uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
-            *numSequenceNumbersAt = numSequenceNumbers;
-            dataAt += sizeof(uint16_t);
-
-            // pack sequence numbers
-            for (int i = 0; i < numSequenceNumbers; i++) {
-                OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
-                *sequenceNumberAt = stats.getNextSequenceNumberToNack();
-                dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-            }
-            
             _octreeSceneStatsLock.unlock();
 
-            nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
+            // construct nack packet(s) for this node
+            int numSequenceNumbersAvailable = missingSequenceNumbers.size();
+            QSet<OCTREE_PACKET_SEQUENCE>::const_iterator missingSequenceNumbersIterator = missingSequenceNumbers.constBegin();
+            while (numSequenceNumbersAvailable > 0) {
+
+                char* dataAt = packet;
+                int bytesRemaining = MAX_PACKET_SIZE;
+
+                // pack header
+                int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
+                dataAt += numBytesPacketHeader;
+                bytesRemaining -= numBytesPacketHeader;
+
+                // calculate and pack the number of sequence numbers
+                int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
+                uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
+                uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
+                *numSequenceNumbersAt = numSequenceNumbers;
+                dataAt += sizeof(uint16_t);
+
+                // pack sequence numbers
+                for (int i = 0; i < numSequenceNumbers; i++) {
+                    OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
+                    *sequenceNumberAt = *missingSequenceNumbersIterator;
+                    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+
+                    missingSequenceNumbersIterator++;
+                }
+                numSequenceNumbersAvailable -= numSequenceNumbers;
+
+                // send it
+                NodeList::getInstance()->writeUnverifiedDatagram(packet, dataAt - packet, node);
+                packetsSent++;
+            }
         }
     }
+    return packetsSent;
 }
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
@@ -3262,9 +3278,15 @@ void Application::nodeAdded(SharedNodePointer node) {
 
 void Application::nodeKilled(SharedNodePointer node) {
 
-    // this is here because connecting NodeList::nodeKilled to OctreePacketProcessor::nodeKilled doesn't work:
-    // OctreePacketProcessor::nodeKilled is not called when NodeList::nodeKilled is emitted for some reason.
+    // These are here because connecting NodeList::nodeKilled to OctreePacketProcessor::nodeKilled doesn't work:
+    // OctreePacketProcessor::nodeKilled is not being called when NodeList::nodeKilled is emitted.
+    // This may have to do with GenericThread::threadRoutine() blocking the QThread event loop
+
     _octreeProcessor.nodeKilled(node);
+
+    _voxelEditSender.nodeKilled(node);
+    _particleEditSender.nodeKilled(node);
+    _modelEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
@@ -3572,6 +3594,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
+    scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 

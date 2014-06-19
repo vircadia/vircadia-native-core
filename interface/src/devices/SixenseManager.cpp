@@ -341,8 +341,9 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
 
 //Injecting mouse movements and clicks
 void SixenseManager::emulateMouse(PalmData* palm, int index) {
-    MyAvatar* avatar = Application::getInstance()->getAvatar();
-    QGLWidget* widget = Application::getInstance()->getGLWidget();
+    Application* application = Application::getInstance();
+    MyAvatar* avatar = application->getAvatar();
+    QGLWidget* widget = application->getGLWidget();
     QPoint pos;
     // Get directon relative to avatar orientation
     glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
@@ -374,14 +375,14 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         if (_bumperPressed[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 
-            Application::getInstance()->mouseReleaseEvent(&mouseEvent);
+            application->mouseReleaseEvent(&mouseEvent);
 
             _bumperPressed[index] = false;
         }
         if (_triggerPressed[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
 
-            Application::getInstance()->mouseReleaseEvent(&mouseEvent);
+            application->mouseReleaseEvent(&mouseEvent);
 
             _triggerPressed[index] = false;
         }
@@ -396,17 +397,28 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         //This is specifically for edit voxels
         if (triggerButton == Qt::LeftButton) {
             if (!_triggerPressed[(int)(!index)]) {
-                Application::getInstance()->mouseMoveEvent(&mouseEvent);
+                application->mouseMoveEvent(&mouseEvent);
             }
         } else {
             if (!_bumperPressed[(int)(!index)]) {
-                Application::getInstance()->mouseMoveEvent(&mouseEvent);
+                application->mouseMoveEvent(&mouseEvent);
             }
         } 
     }
     _oldX[index] = pos.x();
     _oldY[index] = pos.y();
     
+
+    //We need separate coordinates for clicks, since we need to check if
+    //a magnification window was clicked on
+    int clickX = pos.x();
+    int clickY = pos.y();
+    //Checks for magnification window click
+    application->getApplicationOverlay().getClickLocation(clickX, clickY);
+    //Set pos to the new click location, which may be the same if no magnification window is open
+    pos.setX(clickX);
+    pos.setY(clickY);
+
     //Check for bumper press ( Right Click )
     if (palm->getControllerButtons() & BUTTON_FWD) {
         if (!_bumperPressed[index]) {
@@ -414,12 +426,12 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         
             QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, bumperButton, bumperButton, 0);
 
-            Application::getInstance()->mousePressEvent(&mouseEvent);
+            application->mousePressEvent(&mouseEvent);
         }
     } else if (_bumperPressed[index]) {
         QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 
-        Application::getInstance()->mouseReleaseEvent(&mouseEvent);
+        application->mouseReleaseEvent(&mouseEvent);
 
         _bumperPressed[index] = false;
     }
@@ -431,12 +443,12 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
             QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, triggerButton, triggerButton, 0);
 
-            Application::getInstance()->mousePressEvent(&mouseEvent);
+            application->mousePressEvent(&mouseEvent);
         }
     } else if (_triggerPressed[index]) {
         QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
 
-        Application::getInstance()->mouseReleaseEvent(&mouseEvent);
+        application->mouseReleaseEvent(&mouseEvent);
 
         _triggerPressed[index] = false;
     }

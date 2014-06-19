@@ -20,6 +20,13 @@
 
 #include "ui/Stats.h"
 
+// Used to fade the UI
+const float FADE_SPEED = 0.08f;
+// Used to animate the magnification windows
+const float MAG_SPEED = 0.08f;
+
+const quint64 MSECS_TO_USECS = 1000ULL;
+
 // Fast helper functions
 inline float max(float a, float b) {
     return (a > b) ? a : b;
@@ -31,11 +38,14 @@ inline float min(float a, float b) {
 
 ApplicationOverlay::ApplicationOverlay() : 
     _framebufferObject(NULL),
-    _oculusAngle(65.0f * RADIANS_PER_DEGREE),
-    _distance(0.5f),
     _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
-    _crosshairTexture(0) {
+    _crosshairTexture(0),
+    _alpha(1.0f),
+    _active(true) {
 
+    memset(_reticleActive, 0, sizeof(_reticleActive));
+    memset(_magActive, 0, sizeof(_reticleActive));
+    memset(_magSizeMult, 0, sizeof(_magSizeMult));
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
@@ -45,11 +55,11 @@ ApplicationOverlay::~ApplicationOverlay() {
 }
 
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
-
 const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
+
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
     _textureFov = Menu::getInstance()->getOculusUIAngularSize() * RADIANS_PER_DEGREE;
@@ -60,12 +70,26 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
 
+    //Handle fadeing and deactivation/activation of UI
+    if (_active) {
+        _alpha += FADE_SPEED;
+        if (_alpha > 1.0f) {
+            _alpha = 1.0f;
+        }
+    } else {
+        _alpha -= FADE_SPEED;
+        if (_alpha <= 0.0f) {
+            _alpha = 0.0f;
+        }
+    }
+
     if (renderToTexture) {
         getFramebufferObject()->bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 
     // Render 2D overlay
     glMatrixMode(GL_PROJECTION);
@@ -93,6 +117,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
 
     glPopMatrix();
 
+
     glMatrixMode(GL_MODELVIEW);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -104,7 +129,11 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
 }
 
 // Draws the FBO texture for the screen
-void ApplicationOverlay::displayOverlayTexture(Camera& whichCamera) {
+void ApplicationOverlay::displayOverlayTexture() {
+
+    if (_alpha == 0.0f) {
+        return;
+    }
 
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
@@ -120,13 +149,16 @@ void ApplicationOverlay::displayOverlayTexture(Camera& whichCamera) {
     gluOrtho2D(0, glWidget->width(), glWidget->height(), 0);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
+    glEnable(GL_BLEND);
 
     glBegin(GL_QUADS);
+    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
     glTexCoord2f(0, 0); glVertex2i(0, glWidget->height());
     glTexCoord2f(1, 0); glVertex2i(glWidget->width(), glWidget->height());
     glTexCoord2f(1, 1); glVertex2i(glWidget->width(), 0);
     glTexCoord2f(0, 1); glVertex2i(0, 0);
     glEnd();
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
     glPopMatrix();
     glDisable(GL_TEXTURE_2D);
@@ -149,14 +181,41 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direc
     direction = glm::normalize(rot * glm::vec3(x, y, z));
 }
 
+// Calculates the click location on the screen by taking into account any
+// opened magnification windows.
+void ApplicationOverlay::getClickLocation(int &x, int &y) const {
+    int dx;
+    int dy;
+    const float xRange = MAGNIFY_WIDTH * MAGNIFY_MULT / 2.0f;
+    const float yRange = MAGNIFY_WIDTH * MAGNIFY_MULT / 2.0f;
+
+    //Loop through all magnification windows
+    for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
+        if (_magActive[i]) {
+            dx = x - _magX[i];
+            dy = y - _magY[i];
+            //Check to see if they clicked inside a mag window
+            if (abs(dx) <= xRange && abs(dy) <= yRange) {
+                //Move the click to the actual UI location by inverting the magnification
+                x = dx / MAGNIFY_MULT + _magX[i];
+                y = dy / MAGNIFY_MULT + _magY[i];
+                return;
+            }
+        }
+    }
+}
+
 // Draws the FBO texture for Oculus rift. TODO: Draw a curved texture instead of plane.
 void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
+
+    if (_alpha == 0.0f) {
+        return;
+    }
 
     Application* application = Application::getInstance();
 
     MyAvatar* myAvatar = application->getAvatar();
     const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
-
 
     glActiveTexture(GL_TEXTURE0);
    
@@ -185,20 +244,36 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glTranslatef(pos.x, pos.y, pos.z);
     glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
 
-    glColor3f(1.0f, 1.0f, 1.0f);
-
     glDepthMask(GL_TRUE);
     
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.01f);
 
-    //Draw the magnifiers
-    for (int i = 0; i < _numMagnifiers; i++) {
-        renderMagnifier(_mouseX[i], _mouseY[i]);
+    //Update and draw the magnifiers
+    for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
+
+        if (_magActive[i]) {
+            _magSizeMult[i] += MAG_SPEED;
+            if (_magSizeMult[i] > 1.0f) {
+                _magSizeMult[i] = 1.0f;
+            }
+        } else {
+            _magSizeMult[i] -= MAG_SPEED;
+            if (_magSizeMult[i] < 0.0f) {
+                _magSizeMult[i] = 0.0f;
+            }
+        }
+
+        if (_magSizeMult[i] > 0.0f) {
+            //Render magnifier, but dont show border for mouse magnifier
+            renderMagnifier(_magX[i], _magY[i], _magSizeMult[i], i != MOUSE);
+        }
     }
 
     glDepthMask(GL_FALSE);   
     glDisable(GL_ALPHA_TEST);
+
+    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
 
     renderTexturedHemisphere();
    
@@ -213,13 +288,13 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_LIGHTING);
 
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
 }
 
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
     Application* application = Application::getInstance();
-    // Render a crosshair over the mouse when in Oculus
-    _numMagnifiers = 0;
 
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {
@@ -233,11 +308,20 @@ void ApplicationOverlay::renderPointers() {
 
     if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
         //If we are in oculus, render reticle later
-        _numMagnifiers = 1;
-        _mouseX[0] = application->getMouseX();
-        _mouseY[0] = application->getMouseY();
+        _reticleActive[MOUSE] = true;
+        _magActive[MOUSE] = true;
+        _mouseX[MOUSE] = application->getMouseX();
+        _mouseY[MOUSE] = application->getMouseY();
+        _magX[MOUSE] = _mouseX[MOUSE];
+        _magY[MOUSE] = _mouseY[MOUSE];
+
+        _reticleActive[LEFT_CONTROLLER] = false;
+        _reticleActive[RIGHT_CONTROLLER] = false;
+        
     } else if (application->getLastMouseMoveType() == CONTROLLER_MOVE_EVENT && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
+        _reticleActive[MOUSE] = false;
+        _magActive[MOUSE] = false;
         renderControllerPointers();
     }
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -250,9 +334,18 @@ void ApplicationOverlay::renderControllerPointers() {
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
 
+    //Static variables used for storing controller state
+    static quint64 pressedTime[NUMBER_OF_MAGNIFIERS] = { 0ULL, 0ULL, 0ULL };
+    static bool isPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
+    static bool stateWhenPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
+    static bool triggerPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
+    static bool bumperPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
+
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
 
     for (unsigned int palmIndex = 2; palmIndex < 4; palmIndex++) {
+        const int index = palmIndex - 1;
+
         const PalmData* palmData = NULL;
 
         if (palmIndex >= handData->getPalms().size()) {
@@ -264,6 +357,51 @@ void ApplicationOverlay::renderControllerPointers() {
         } else {
             continue;
         }
+
+        int controllerButtons = palmData->getControllerButtons();
+
+        //Check for if we should toggle or drag the magnification window
+        if (controllerButtons & BUTTON_3) {
+            if (isPressed[index] == false) {
+                //We are now dragging the window
+                isPressed[index] = true;
+                //set the pressed time in us
+                pressedTime[index] = usecTimestampNow();
+                stateWhenPressed[index] = _magActive[index];
+            }
+        } else if (isPressed[index]) {
+            isPressed[index] = false; 
+            //If the button was only pressed for < 250 ms
+            //then disable it.
+
+            const int MAX_BUTTON_PRESS_TIME = 250 * MSECS_TO_USECS;
+            if (usecTimestampNow() - pressedTime[index] < MAX_BUTTON_PRESS_TIME) {
+                _magActive[index] = !stateWhenPressed[index];
+            }
+        }
+
+        //Check for UI active toggle
+        if (palmData->getTrigger() == 1.0f) {
+            if (!triggerPressed[index]) {
+                if (bumperPressed[index]) {
+                    _active = !_active;
+                }
+                triggerPressed[index] = true;
+            }
+        } else {
+            triggerPressed[index] = false;
+        }
+        if ((controllerButtons & BUTTON_FWD)) {
+            if (!bumperPressed[index]) {
+                if (triggerPressed[index]) {
+                    _active = !_active;
+                }
+                bumperPressed[index] = true;
+            }
+        } else {
+            bumperPressed[index] = false;
+        }
+
 
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
@@ -280,34 +418,42 @@ void ApplicationOverlay::renderControllerPointers() {
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
+            _reticleActive[index] = false;
             continue;
         }
-
-        float pointerWidth = 40;
-        float pointerHeight = 40;
+        _reticleActive[index] = true;
      
         //if we have the oculus, we should make the cursor smaller since it will be
         //magnified
         if (OculusManager::isConnected()) {
+          
+            _mouseX[index] = mouseX;
+            _mouseY[index] = mouseY;
 
-            _mouseX[_numMagnifiers] = mouseX;
-            _mouseY[_numMagnifiers] = mouseY;
-            _numMagnifiers++;
-            //If oculus is enabled, we draw the crosshairs later
+            //When button 2 is pressed we drag the mag window
+            if (isPressed[index]) {
+                _magActive[index] = true;
+                _magX[index] = mouseX;
+                _magY[index] = mouseY;
+            }
+
+            // If oculus is enabled, we draw the crosshairs later
             continue;
         }
 
-        mouseX -= pointerWidth / 2.0f;
-        mouseY += pointerHeight / 2.0f;
+        const float reticleSize = 40.0f;
+
+        mouseX -= reticleSize / 2.0f;
+        mouseY += reticleSize / 2.0f;
 
         glBegin(GL_QUADS);
 
         glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
 
         glTexCoord2d(0.0f, 0.0f); glVertex2i(mouseX, mouseY);
-        glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + pointerWidth, mouseY);
-        glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + pointerWidth, mouseY - pointerHeight);
-        glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - pointerHeight);
+        glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + reticleSize, mouseY);
+        glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + reticleSize, mouseY - reticleSize);
+        glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - reticleSize);
 
         glEnd();
     }
@@ -325,7 +471,12 @@ void ApplicationOverlay::renderControllerPointersOculus() {
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     glDisable(GL_DEPTH_TEST);
     
-    for (int i = 0; i < _numMagnifiers; i++) {
+    for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
+
+        //Dont render the reticle if its inactive
+        if (!_reticleActive[i]) {
+            continue;
+        }
 
         float mouseX = (float)_mouseX[i];
         float mouseY = (float)_mouseY[i];
@@ -360,7 +511,7 @@ void ApplicationOverlay::renderControllerPointersOculus() {
 
         glBegin(GL_QUADS);
 
-        glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
+        glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
             
         glTexCoord2f(0.0f, 0.0f); glVertex3f(lX, tY, -tlZ);
         glTexCoord2f(1.0f, 0.0f); glVertex3f(rX, tY, -trZ);
@@ -374,24 +525,22 @@ void ApplicationOverlay::renderControllerPointersOculus() {
 }
 
 //Renders a small magnification of the currently bound texture at the coordinates
-void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
+void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const
 {
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
 
-
     const int widgetWidth = glWidget->width();
     const int widgetHeight = glWidget->height();
-    const float magnification = 4.0f;
 
-    float magnifyWidth = 80.0f;
-    float magnifyHeight = 60.0f;
+    const float magnifyWidth = MAGNIFY_WIDTH * sizeMult;
+    const float magnifyHeight = MAGNIFY_HEIGHT * sizeMult;
 
     mouseX -= magnifyWidth / 2;
     mouseY -= magnifyHeight / 2;
 
-    float newWidth = magnifyWidth * magnification;
-    float newHeight = magnifyHeight * magnification;
+    float newWidth = magnifyWidth * MAGNIFY_MULT;
+    float newHeight = magnifyHeight * MAGNIFY_MULT;
 
     // Magnification Texture Coordinates
     float magnifyULeft = mouseX / (float)widgetWidth;
@@ -417,19 +566,60 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY)
     float bY = sin((newVBottom - 0.5f) * _textureFov);
     float tY = sin((newVTop - 0.5f) * _textureFov);
 
+    float blZ, tlZ, brZ, trZ;
+
     float dist;
+    float discriminant;
     //Bottom Left
     dist = sqrt(lX * lX + bY * bY);
-    float blZ = sqrt(1.0f - dist * dist);
+    discriminant = 1.0f - dist * dist;
+    if (discriminant > 0) {
+        blZ = sqrt(discriminant);
+    } else {
+        blZ = 0;
+    }
     //Top Left
     dist = sqrt(lX * lX + tY * tY);
-    float tlZ = sqrt(1.0f - dist * dist);
+    discriminant = 1.0f - dist * dist;
+    if (discriminant > 0) {
+        tlZ = sqrt(discriminant);
+    } else {
+        tlZ = 0;
+    }
     //Bottom Right
     dist = sqrt(rX * rX + bY * bY);
-    float brZ = sqrt(1.0f - dist * dist);
+    discriminant = 1.0f - dist * dist;
+    if (discriminant > 0) {
+        brZ = sqrt(discriminant);
+    } else {
+        brZ = 0;
+    }
     //Top Right
     dist = sqrt(rX * rX + tY * tY);
-    float trZ = sqrt(1.0f - dist * dist);
+    discriminant = 1.0f - dist * dist;
+    if (discriminant > 0) {
+        trZ = sqrt(discriminant);
+    } else {
+        trZ = 0;
+    }
+    
+    if (showBorder) {
+        glDisable(GL_TEXTURE_2D);
+        glLineWidth(1.0f);
+        //Outer Line
+        glBegin(GL_LINE_STRIP);
+        glColor4f(1.0f, 0.0f, 0.0f, _alpha);
+
+        glVertex3f(lX, tY, -tlZ);
+        glVertex3f(rX, tY, -trZ);
+        glVertex3f(rX, bY, -brZ);
+        glVertex3f(lX, bY, -blZ);
+        glVertex3f(lX, tY, -tlZ);
+
+        glEnd();
+        glEnable(GL_TEXTURE_2D);
+    }
+    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
 
     glBegin(GL_QUADS);
 

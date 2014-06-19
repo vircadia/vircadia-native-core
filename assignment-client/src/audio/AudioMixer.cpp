@@ -33,7 +33,10 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QJsonValue>
 #include <QtCore/QTimer>
 
 #include <Logging.h>
@@ -71,9 +74,16 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _performanceThrottlingRatio(0.0f),
     _numStatFrames(0),
     _sumListeners(0),
-    _sumMixes(0)
+    _sumMixes(0),
+    _sourceUnattenuatedZone(NULL),
+    _listenerUnattenuatedZone(NULL)
 {
     
+}
+
+AudioMixer::~AudioMixer() {
+    delete _sourceUnattenuatedZone;
+    delete _listenerUnattenuatedZone;
 }
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -83,7 +93,9 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     int numSamplesDelay = 0;
     float weakChannelAmplitudeRatio = 1.0f;
     
-    if (bufferToAdd != listeningNodeBuffer) {
+    bool shouldAttenuate = (bufferToAdd != listeningNodeBuffer);
+    
+    if (shouldAttenuate) {
         // if the two buffer pointers do not match then these are different buffers
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
         
@@ -101,82 +113,88 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         
         ++_sumMixes;
         
-        glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
-        
-        float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
-        float radius = 0.0f;
-
-        if (bufferToAdd->getType() == PositionalAudioRingBuffer::Injector) {
-            InjectedAudioRingBuffer* injectedBuffer = (InjectedAudioRingBuffer*) bufferToAdd;
-            radius = injectedBuffer->getRadius();
-            attenuationCoefficient *= injectedBuffer->getAttenuationRatio();
+        if (bufferToAdd->getListenerUnattenuatedZone()) {
+            shouldAttenuate = !bufferToAdd->getListenerUnattenuatedZone()->contains(listeningNodeBuffer->getPosition());
         }
-
-        if (radius == 0 || (distanceSquareToSource > radius * radius)) {
-            // this is either not a spherical source, or the listener is outside the sphere
-
-            if (radius > 0) {
-                // this is a spherical source - the distance used for the coefficient
-                // needs to be the closest point on the boundary to the source
-
-                // ovveride the distance to the node with the distance to the point on the
-                // boundary of the sphere
-                distanceSquareToSource -= (radius * radius);
-
-            } else {
-                // calculate the angle delivery for off-axis attenuation
-                glm::vec3 rotatedListenerPosition = glm::inverse(bufferToAdd->getOrientation()) * relativePosition;
-
-                float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                   glm::normalize(rotatedListenerPosition));
-
-                const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-                const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-
-                float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
-
-                // multiply the current attenuation coefficient by the calculated off axis coefficient
-                attenuationCoefficient *= offAxisCoefficient;
+        
+        if (shouldAttenuate) {
+            glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
+            
+            float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
+            float radius = 0.0f;
+            
+            if (bufferToAdd->getType() == PositionalAudioRingBuffer::Injector) {
+                InjectedAudioRingBuffer* injectedBuffer = (InjectedAudioRingBuffer*) bufferToAdd;
+                radius = injectedBuffer->getRadius();
+                attenuationCoefficient *= injectedBuffer->getAttenuationRatio();
             }
-
-            glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
-
-            const float DISTANCE_SCALE = 2.5f;
-            const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
-            const float DISTANCE_LOG_BASE = 2.5f;
-            const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
-
-            // calculate the distance coefficient using the distance to this node
-            float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
-                                             DISTANCE_SCALE_LOG +
-                                             (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
-            distanceCoefficient = std::min(1.0f, distanceCoefficient);
-
-            // multiply the current attenuation coefficient by the distance coefficient
-            attenuationCoefficient *= distanceCoefficient;
-
-            // project the rotated source position vector onto the XZ plane
-            rotatedSourcePosition.y = 0.0f;
-
-            // produce an oriented angle about the y-axis
-            bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                              glm::normalize(rotatedSourcePosition),
-                                                              glm::vec3(0.0f, 1.0f, 0.0f));
-
-            const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-
-            // figure out the number of samples of delay and the ratio of the amplitude
-            // in the weak channel for audio spatialization
-            float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-            numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
-            weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+            
+            if (radius == 0 || (distanceSquareToSource > radius * radius)) {
+                // this is either not a spherical source, or the listener is outside the sphere
+                
+                if (radius > 0) {
+                    // this is a spherical source - the distance used for the coefficient
+                    // needs to be the closest point on the boundary to the source
+                    
+                    // ovveride the distance to the node with the distance to the point on the
+                    // boundary of the sphere
+                    distanceSquareToSource -= (radius * radius);
+                    
+                } else {
+                    // calculate the angle delivery for off-axis attenuation
+                    glm::vec3 rotatedListenerPosition = glm::inverse(bufferToAdd->getOrientation()) * relativePosition;
+                    
+                    float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                       glm::normalize(rotatedListenerPosition));
+                    
+                    const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
+                    const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
+                    
+                    float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
+                    
+                    // multiply the current attenuation coefficient by the calculated off axis coefficient
+                    attenuationCoefficient *= offAxisCoefficient;
+                }
+                
+                glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
+                
+                const float DISTANCE_SCALE = 2.5f;
+                const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
+                const float DISTANCE_LOG_BASE = 2.5f;
+                const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
+                
+                // calculate the distance coefficient using the distance to this node
+                float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
+                                                 DISTANCE_SCALE_LOG +
+                                                 (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
+                distanceCoefficient = std::min(1.0f, distanceCoefficient);
+                
+                // multiply the current attenuation coefficient by the distance coefficient
+                attenuationCoefficient *= distanceCoefficient;
+                
+                // project the rotated source position vector onto the XZ plane
+                rotatedSourcePosition.y = 0.0f;
+                
+                // produce an oriented angle about the y-axis
+                bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                                  glm::normalize(rotatedSourcePosition),
+                                                                  glm::vec3(0.0f, 1.0f, 0.0f));
+                
+                const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+                
+                // figure out the number of samples of delay and the ratio of the amplitude
+                // in the weak channel for audio spatialization
+                float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
+                numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
+                weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+            }
         }
     }
     
     const int16_t* nextOutputStart = bufferToAdd->getNextOutput();
     
-    if (!bufferToAdd->isStereo()) {
+    if (!bufferToAdd->isStereo() && shouldAttenuate) {
         // this is a mono buffer, which means it gets full attenuation and spatialization
         
         // if the bearing relative angle to source is > 0 then the delayed channel is the right one
@@ -285,7 +303,8 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             } else if (i + 1 < numSamplesDelay) {
                 // MMX add two delayed samples
                 __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
-                                                   _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset], 0, 0);
+                                                   _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
+                                                   0, 0);
                 __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
                                                 delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio, 0, 0);
                 
@@ -307,16 +326,29 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             }
         }
     } else {
-        // stereo buffer - do attenuation but no sample delay for spatialization        
+        // this is a stereo buffer or an unattenuated buffer, don't perform spatialization
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
-            // use MMX to clamp four additions at a time
-            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int) (nextOutputStart[s] * attenuationCoefficient),
-                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _clientSamples[s + 1] = glm::clamp(_clientSamples[s + 1] + (int) (nextOutputStart[s + 1] * attenuationCoefficient),
+            
+            int stereoDivider = bufferToAdd->isStereo() ? 1 : 2;
+            
+            if (!shouldAttenuate) {
+                attenuationCoefficient = 1.0f;
+            }
+            
+            _clientSamples[s] = glm::clamp(_clientSamples[s]
+                                           + (int) (nextOutputStart[(s / stereoDivider)] * attenuationCoefficient),
+                                           MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + 1] = glm::clamp(_clientSamples[s + 1]
+                                               + (int) (nextOutputStart[(s / stereoDivider) + (1 / stereoDivider)]
+                                                        * attenuationCoefficient),
                                                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _clientSamples[s + 2] = glm::clamp(_clientSamples[s + 2] + (int) (nextOutputStart[s + 2] * attenuationCoefficient),
+            _clientSamples[s + 2] = glm::clamp(_clientSamples[s + 2]
+                                               + (int) (nextOutputStart[(s / stereoDivider) + (2 / stereoDivider)]
+                                                        * attenuationCoefficient),
                                                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _clientSamples[s + 3] = glm::clamp(_clientSamples[s + 3] + (int) (nextOutputStart[s + 3] * attenuationCoefficient),
+            _clientSamples[s + 3] = glm::clamp(_clientSamples[s + 3]
+                                               + (int) (nextOutputStart[(s / stereoDivider) + (3 / stereoDivider)]
+                                                        * attenuationCoefficient),
                                                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
     }
@@ -412,6 +444,32 @@ void AudioMixer::run() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
+    
+    // check the payload to see if we have any unattenuated zones
+    const QString UNATTENUATED_ZONE_REGEX_STRING = "--unattenuated-zone ([\\d.,-]+)";
+    QRegExp unattenuatedZoneMatch(UNATTENUATED_ZONE_REGEX_STRING);
+    
+    if (unattenuatedZoneMatch.indexIn(_payload) != -1) {
+        QString unattenuatedZoneString = unattenuatedZoneMatch.cap(1);
+        QStringList zoneStringList = unattenuatedZoneString.split(',');
+        
+        glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
+        glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
+     
+        glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
+        glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
+        
+        _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
+        _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
+        
+        glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
+        glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
+        
+        qDebug() << "There is an unattenuated zone with source center at"
+            << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
+        qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
+            << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
+    }
 
     int nextFrame = 0;
     QElapsedTimer timer;
@@ -429,7 +487,9 @@ void AudioMixer::run() {
         
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
-                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
+                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES,
+                                                                                             _sourceUnattenuatedZone,
+                                                                                             _listenerUnattenuatedZone);
             }
         }
         

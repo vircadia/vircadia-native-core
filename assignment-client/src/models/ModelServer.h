@@ -33,6 +33,7 @@ public:
     virtual const char* getMyServerName() const { return MODEL_SERVER_NAME; }
     virtual const char* getMyLoggingServerTargetName() const { return MODEL_SERVER_LOGGING_TARGET_NAME; }
     virtual const char* getMyDefaultPersistFilename() const { return LOCAL_MODELS_PERSIST_FILE; }
+    virtual PacketType getMyEditNackType() const { return PacketTypeModelEditNack; }
 
     // subclass may implement these method
     virtual void beforeRun();
