@@ -34,6 +34,7 @@ var LASER_COLOR = { red: 255, green: 0, blue: 0 };
 var LASER_LENGTH_FACTOR = 500
 ;
 
+var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
 
 var LEFT = 0;
@@ -277,8 +278,9 @@ function controller(wichSide) {
         var X = Vec3.sum(A, Vec3.multiply(B, x));
         var d = Vec3.length(Vec3.subtract(P, X));
         
-        if (0 < x && x < LASER_LENGTH_FACTOR) {
-            if (2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14 > MAX_ANGULAR_SIZE) {
+        var angularSize = 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+        if (0 < x && angularSize > MIN_ANGULAR_SIZE) {
+            if (angularSize > MAX_ANGULAR_SIZE) {
                 print("Angular size too big: " + 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14);
                 return { valid: false };
             }
@@ -828,8 +830,9 @@ function mousePressEvent(event) {
             var X = Vec3.sum(A, Vec3.multiply(B, x));
             var d = Vec3.length(Vec3.subtract(P, X));
             
-            if (0 < x && x < LASER_LENGTH_FACTOR) {
-                if (2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14 < MAX_ANGULAR_SIZE) {
+            var angularSize = 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+            if (0 < x && angularSize > MIN_ANGULAR_SIZE) {
+                if (angularSize < MAX_ANGULAR_SIZE) {
                     modelSelected = true;
                     selectedModelID = foundModel;
                     selectedModelProperties = properties;
