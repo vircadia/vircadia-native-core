@@ -15,7 +15,9 @@
 #include <QVector>
 
 #include "CollisionInfo.h"
-#include "Ragdoll.h"
+
+class PhysicalEntity;
+class Ragdoll;
 
 class SimulationEngine {
 public:
@@ -23,7 +25,12 @@ public:
     SimulationEngine();
     ~SimulationEngine();
 
-    /// \return true if doll was added to, or already in the list
+    /// \return true if entity was added to or is already in the list
+    bool addEntity(PhysicalEntity* entity);
+
+    void removeEntity(PhysicalEntity* entity);
+
+    /// \return true if doll was added to or is already in the list
     bool addRagdoll(Ragdoll* doll);
 
     void removeRagdoll(Ragdoll* doll);
@@ -45,6 +52,7 @@ public:
 
 private:
     CollisionList _collisionList;
+    QVector<PhysicalEntity*> _entities;
     QVector<Ragdoll*> _dolls;
 
     // some stats for performance queries

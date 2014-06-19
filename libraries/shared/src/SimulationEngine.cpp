@@ -11,12 +11,17 @@
 
 #include <glm/glm.hpp>
 
-#include "SharedUtil.h"
-#include "ShapeCollider.h"
 #include "SimulationEngine.h"
 
-int MAX_DOLLS_PER_ENGINE = 32;
+#include "PhysicalEntity.h"
+#include "Ragdoll.h"
+#include "SharedUtil.h"
+#include "ShapeCollider.h"
+
+int MAX_DOLLS_PER_ENGINE = 16;
+int MAX_ENTITIES_PER_ENGINE = 64;
 int MAX_COLLISIONS_PER_ENGINE = 256;
+
 
 const int NUM_SHAPE_BITS = 6;
 const int SHAPE_INDEX_MASK = (1 << (NUM_SHAPE_BITS + 1)) - 1;
@@ -26,6 +31,55 @@ SimulationEngine::SimulationEngine() : _collisionList(MAX_COLLISIONS_PER_ENGINE)
 
 SimulationEngine::~SimulationEngine() {
     _dolls.clear();
+}
+
+bool SimulationEngine::addEntity(PhysicalEntity* entity) {
+    if (!entity) {
+        return false;
+    }
+    if (entity->_simulation == this) {
+        int numEntities = _entities.size();
+        for (int i = 0; i < numEntities; ++i) {
+            if (entity == _entities.at(i)) {
+                // already in list
+                assert(entity->_simulation == this);
+                return true;
+            }
+        }
+        // belongs to some other simulation
+        return false;
+    }
+    int numEntities = _entities.size();
+    if (numEntities > MAX_ENTITIES_PER_ENGINE) {
+        // list is full
+        return false;
+    }
+    // add to list
+    entity->_simulation = this;
+    _entities.push_back(entity);
+    return true;
+}
+
+void SimulationEngine::removeEntity(PhysicalEntity* entity) {
+    if (!entity || !entity->_simulation || !(entity->_simulation == this)) {
+        return;
+    }
+    int numEntities = _entities.size();
+    for (int i = 0; i < numEntities; ++i) {
+        if (entity == _entities.at(i)) {
+            if (i == numEntities - 1) {
+                // remove it
+                _entities.pop_back();
+            } else {
+                // swap the last for this one
+                PhysicalEntity* lastEntity = _entities[numEntities - 1];
+                _entities.pop_back();
+                _entities[i] = lastEntity;
+            }
+            entity->_simulation = NULL;
+            break;
+        }
+    }
 }
 
 bool SimulationEngine::addRagdoll(Ragdoll* doll) {

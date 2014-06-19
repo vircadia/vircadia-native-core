@@ -18,7 +18,13 @@ PhysicalEntity::PhysicalEntity() :
     _rotation(), 
     _boundingRadius(0.0f), 
     _shapesAreDirty(true),
-    _enableShapes(false) {
+    _enableShapes(false),
+    _simulation(NULL) {
+}
+
+PhysicalEntity::~PhysicalEntity() {
+    // entity should be removed from the simulation before it is deleted
+    assert(_simulation == NULL);
 }
 
 void PhysicalEntity::setTranslation(const glm::vec3& translation) {
