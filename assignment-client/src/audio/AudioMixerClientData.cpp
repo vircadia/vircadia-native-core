@@ -120,9 +120,10 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
 }
 
 void AudioMixerClientData::pushBuffersAfterFrameSend() {
-    for (int i = 0; i < _ringBuffers.size(); i++) {
+    QList<PositionalAudioRingBuffer*>::iterator i = _ringBuffers.begin();
+    while (i != _ringBuffers.end()) {
         // this was a used buffer, push the output pointer forwards
-        PositionalAudioRingBuffer* audioBuffer = _ringBuffers[i];
+        PositionalAudioRingBuffer* audioBuffer = *i;
 
         if (audioBuffer->willBeAddedToMix()) {
             audioBuffer->shiftReadPosition(audioBuffer->isStereo()
@@ -133,7 +134,9 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
                    && audioBuffer->hasStarted() && audioBuffer->isStarved()) {
             // this is an empty audio buffer that has starved, safe to delete
             delete audioBuffer;
-            _ringBuffers.erase(_ringBuffers.begin() + i);
+            i = _ringBuffers.erase(i);
+            continue;
         }
+        i++;
     }
 }

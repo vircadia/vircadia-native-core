@@ -25,6 +25,7 @@
 const int TIME_GAP_NUM_SAMPLES_IN_INTERVAL = 500;
 const int TIME_GAP_NUM_INTERVALS_IN_WINDOW = 10;
 
+// class used to track time between incoming frames for the purpose of varying the jitter buffer length
 class InterframeTimeGapHistory {
 public:
     InterframeTimeGapHistory();
