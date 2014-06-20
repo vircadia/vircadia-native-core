@@ -558,11 +558,6 @@ int ModelTree::processEditPacketData(PacketType packetType, const unsigned char*
             }
         } break;
 
-        // TODO: wire in support here for server to get PacketTypeModelErase messages
-        // instead of using PacketTypeModelAddOrEdit messages to delete models
-        case PacketTypeModelErase:
-            processedBytes = 0;
-            break;
         default:
             processedBytes = 0;
             break;
