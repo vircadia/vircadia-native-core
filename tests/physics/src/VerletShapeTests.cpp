@@ -17,6 +17,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <CollisionInfo.h>
+#include <Ragdoll.h>    // for VerletPoint
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <VerletCapsuleShape.h>
@@ -33,16 +34,16 @@ static const glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
 void VerletShapeTests::setSpherePosition() {
     float radius = 1.0f;
     glm::vec3 offset(1.23f, 4.56f, 7.89f);
-    glm::vec3 point;
+    VerletPoint point;
     VerletSphereShape sphere(radius, &point);
 
-    point = glm::vec3(0.f);
+    point._position = glm::vec3(0.f);
     float d = glm::distance(glm::vec3(0.0f), sphere.getTranslation());
     if (d != 0.0f) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should be at origin" << std::endl;
     }
 
-    point = offset;
+    point._position = offset;
     d = glm::distance(glm::vec3(0.0f), sphere.getTranslation());
     if (d != glm::length(offset)) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should be at offset" << std::endl;
@@ -60,15 +61,15 @@ void VerletShapeTests::sphereMissesSphere() {
     float offsetDistance = alpha * radiusA + beta * radiusB;
 
     // create points for the sphere centers
-    glm::vec3 points[2];
+    VerletPoint points[2];
 
     // give pointers to the spheres
     VerletSphereShape sphereA(radiusA, (points + 0));
     VerletSphereShape sphereB(radiusB, (points + 1));
 
     // set the positions of the spheres by slamming the points directly
-    points[0] = origin;
-    points[1] = offsetDistance * offsetDirection;
+    points[0]._position = origin;
+    points[1]._position = offsetDistance * offsetDirection;
 
     CollisionList collisions(16);
 
@@ -118,15 +119,15 @@ void VerletShapeTests::sphereTouchesSphere() {
     glm::vec3 expectedPenetration = expectedPenetrationDistance * offsetDirection;
 
     // create two points for the sphere centers
-    glm::vec3 points[2];
+    VerletPoint points[2];
 
     // give pointers to the spheres
     VerletSphereShape sphereA(radiusA, points+0);
     VerletSphereShape sphereB(radiusB, points+1);
 
     // set the positions of the spheres by slamming the points directly
-    points[0] = origin;
-    points[1] = offsetDistance * offsetDirection;
+    points[0]._position = origin;
+    points[1]._position = offsetDistance * offsetDirection;
 
     CollisionList collisions(16);
     int numCollisions = 0;
@@ -213,9 +214,9 @@ void VerletShapeTests::sphereMissesCapsule() {
     float radialOffset = 1.2f * radiusA + 1.3f * radiusB;
     
     // create points for the sphere + capsule
-    glm::vec3 points[3];
+    VerletPoint points[3];
     for (int i = 0; i < 3; ++i) {
-        points[i] = glm::vec3(0.0f);
+        points[i]._position = glm::vec3(0.0f);
     }
 
     // give the points to the shapes
@@ -277,9 +278,9 @@ void VerletShapeTests::sphereTouchesCapsule() {
     float radialOffset = alpha * radiusA + beta * radiusB;
     
     // create points for the sphere + capsule
-    glm::vec3 points[3];
+    VerletPoint points[3];
     for (int i = 0; i < 3; ++i) {
-        points[i] = glm::vec3(0.0f);
+        points[i]._position = glm::vec3(0.0f);
     }
 
     // give the points to the shapes
@@ -496,9 +497,9 @@ void VerletShapeTests::capsuleMissesCapsule() {
     float totalHalfLength = totalRadius + halfHeightA + halfHeightB;
 
     // create points for the shapes
-    glm::vec3 points[4];
+    VerletPoint points[4];
     for (int i = 0; i < 4; ++i) {
-        points[i] = glm::vec3(0.0f);
+        points[i]._position = glm::vec3(0.0f);
     }
 
     // give the points to the shapes
@@ -574,9 +575,9 @@ void VerletShapeTests::capsuleTouchesCapsule() {
     float totalHalfLength = totalRadius + halfHeightA + halfHeightB;
 
     // create points for the shapes
-    glm::vec3 points[4];
+    VerletPoint points[4];
     for (int i = 0; i < 4; ++i) {
-        points[i] = glm::vec3(0.0f);
+        points[i]._position = glm::vec3(0.0f);
     }
 
     // give the points to the shapes

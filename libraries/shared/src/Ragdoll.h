@@ -19,20 +19,29 @@
 
 class Shape;
 
+// TODO: Andrew to move VerletPoint class to its own file
 class VerletPoint {
 public:
-    VerletPoint() : _position(0.0f), _lastPosition(0.0f), _mass(0.0f), _accumulatedPush(0.0f), _numPushes(0) {}
+    VerletPoint() : _position(0.0f), _lastPosition(0.0f), _mass(1.0f), _accumulatedDelta(0.0f), _numDeltas(0) {}
 
-    void accumulatePush(const glm::vec3& delta);
-    void applyAccumulatedPush();
+    void accumulateDelta(const glm::vec3& delta);
+    void applyAccumulatedDelta();
+
+    glm::vec3 getAccumulatedDelta() const { 
+        glm::vec3 foo(0.0f); 
+        if (_numDeltas > 0) { 
+            foo = _accumulatedDelta / (float)_numDeltas; 
+        } 
+        return foo; 
+    }
 
     glm::vec3 _position;
     glm::vec3 _lastPosition;
     float _mass;
 
-protected:
-    glm::vec3 _accumulatedPush;
-    int _numPushes;
+private:
+    glm::vec3 _accumulatedDelta;
+    int _numDeltas;
 };
 
 class Constraint {

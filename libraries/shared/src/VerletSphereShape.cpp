@@ -11,22 +11,40 @@
 
 #include "VerletSphereShape.h"
 
-VerletSphereShape::VerletSphereShape(glm::vec3* centerPoint) : SphereShape() { 
+#include "Ragdoll.h"    // for VerletPoint
+
+VerletSphereShape::VerletSphereShape(VerletPoint* centerPoint) : SphereShape() { 
     assert(centerPoint);
     _point = centerPoint;
 }
 
-VerletSphereShape::VerletSphereShape(float radius, glm::vec3* centerPoint) : SphereShape(radius) {
+VerletSphereShape::VerletSphereShape(float radius, VerletPoint* centerPoint) : SphereShape(radius) {
     assert(centerPoint);
     _point = centerPoint;
 }
 
 // virtual from Shape class
 void VerletSphereShape::setTranslation(const glm::vec3& position) {
-    *_point = position;
+    _point->_position = position;
+    _point->_lastPosition = position;
 }
 
 // virtual from Shape class
 const glm::vec3& VerletSphereShape::getTranslation() const {
-    return *_point;
+    return _point->_position;
+}
+
+// virtual
+float VerletSphereShape::computeEffectiveMass(const glm::vec3& penetration, const glm::vec3& contactPoint) {
+    return _point->_mass;
+}
+
+// virtual
+void VerletSphereShape::accumulateDelta(float relativeMassFactor, const glm::vec3& penetration) {
+    _point->accumulateDelta(relativeMassFactor * penetration);
+}
+
+// virtual
+void VerletSphereShape::applyAccumulatedDelta() {
+    _point->applyAccumulatedDelta();
 }

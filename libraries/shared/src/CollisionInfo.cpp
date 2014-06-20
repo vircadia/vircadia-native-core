@@ -12,6 +12,7 @@
 #include "CollisionInfo.h"
 
 #include "Shape.h"
+#include "SharedUtil.h"
 
 CollisionInfo::CollisionInfo() :
         _data(NULL),
@@ -42,10 +43,16 @@ void CollisionInfo::apply() {
         Shape* shapeB = const_cast<Shape*>(_shapeB);
         massB = shapeB->computeEffectiveMass(-_penetration, _contactPoint - _penetration);
         totalMass = massA + massB;
-        shapeB->accumulateDelta(massA / totalMass, -_penetration);
+        if (totalMass < EPSILON) {
+            massA = massB = 1.0f;
+            totalMass = 2.0f;
+        }
+        // remember that _penetration points from A into B
+        shapeB->accumulateDelta(massA / totalMass, _penetration);
     }   
     // NOTE: Shape::accumulateDelta() uses the coefficients from previous call to Shape::computeEffectiveMass()
-    shapeA->accumulateDelta(massB / totalMass, _penetration);
+    // remember that _penetration points from A into B
+    shapeA->accumulateDelta(massB / totalMass, -_penetration);
 }
 
 CollisionInfo* CollisionList::getNewCollision() {

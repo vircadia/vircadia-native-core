@@ -128,7 +128,7 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
         }
     }
 }
-// TODO: Andrew need to implement:
+// TODO: Andrew to implement:
 // DONE (1) joints pull points (SpecialCapsuleShape would help solve this)
 // DONE (2) points slam shapes (SpecialCapsuleShape would help solve this)
 // DONE (3) detect collisions
@@ -136,9 +136,16 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
 // DONE (5) enforce constraints
 // DONE (6) make sure MyAvatar creates shapes, adds to simulation with ragdoll support
 // DONE (7) support for pairwise collision bypass
-// (8) process collisions
-// (9) add and enforce angular contraints for joints
+// DONE (8) process collisions
+// DONE (8a) stubbery
+// DONE (8b) shapes actually accumulate movement
+// DONE (9) verify that avatar shapes self collide
+// (10) slave rendered SkeletonModel to physical shapes
+// (10a) give SkeletonModel duplicate JointState data
+// (10b) figure out how to slave dupe JointStates to physical shapes
+// (11) add and enforce angular contraints for joints
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
+    static int adebug = 0; ++adebug;
     quint64 startTime = usecTimestampNow();
     quint64 expiry = startTime + maxUsec;
 
@@ -148,6 +155,9 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
     enforceConstraints(minError, maxIterations, expiry - usecTimestampNow());
 
     _stepTime = usecTimestampNow()- startTime;
+    if (0 == (adebug % 200)) {
+        std::cout << " adebug nC = " << _numCollisions << "  i = " << _numIterations << "  e = " << _constraintError << "  t = " << _stepTime << std::endl;  // adebug
+    }
 }
 
 void PhysicsSimulation::moveRagdolls(float deltaTime) {

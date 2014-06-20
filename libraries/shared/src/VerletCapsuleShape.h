@@ -32,16 +32,21 @@
 //     down in a hot simulation loop, such as when processing collision results.  Best to
 //     just let the verlet simulation do its thing and not try to constantly force a rotation.
 
+class VerletPoint;
+
 class VerletCapsuleShape : public CapsuleShape {
 public:
-    VerletCapsuleShape(glm::vec3* startPoint, glm::vec3* endPoint);
-    VerletCapsuleShape(float radius, glm::vec3* startPoint, glm::vec3* endPoint);
+    VerletCapsuleShape(VerletPoint* startPoint, VerletPoint* endPoint);
+    VerletCapsuleShape(float radius, VerletPoint* startPoint, VerletPoint* endPoint);
 
     // virtual overrides from Shape
     const glm::quat& getRotation() const;
     void setRotation(const glm::quat& rotation);
     void setTranslation(const glm::vec3& position);
     const glm::vec3& getTranslation() const;
+    float computeEffectiveMass(const glm::vec3& penetration, const glm::vec3& contactPoint);
+    void accumulateDelta(float relativeMassFactor, const glm::vec3& penetration);
+    void applyAccumulatedDelta();
 
     //float getRadius() const { return _radius; }
     virtual float getHalfHeight() const;
@@ -64,8 +69,15 @@ public:
 
 protected:
     // NOTE: VerletCapsuleShape does NOT own the data in its points.
-    glm::vec3* _startPoint;
-    glm::vec3* _endPoint;
+    VerletPoint* _startPoint;
+    VerletPoint* _endPoint;
+
+    // The LagrangeCoef's are numerical weights for distributing collision movement
+    // between the relevant VerletPoints associated with this shape.  They are functions
+    // of the movement parameters and are computed (and cached) in computeEffectiveMass() 
+    // and then used in the subsequent accumulateDelta().
+    float _startLagrangeCoef;
+    float _endLagrangeCoef;
 };
 
 #endif // hifi_VerletCapsuleShape_h

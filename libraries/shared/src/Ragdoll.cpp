@@ -19,15 +19,17 @@
 // ----------------------------------------------------------------------------
 // VerletPoint
 // ----------------------------------------------------------------------------
-void VerletPoint::accumulatePush(const glm::vec3& delta) {
-    _accumulatedPush += delta;
-    ++_numPushes;
+void VerletPoint::accumulateDelta(const glm::vec3& delta) {
+    _accumulatedDelta += delta;
+    ++_numDeltas;
 }
 
-void VerletPoint::applyAccumulatedPush() {
-    _lastPosition = _position;
-    _position += _accumulatedPush / (float)_numPushes;
-    _numPushes = 0;
+void VerletPoint::applyAccumulatedDelta() {
+    if (_numDeltas > 0) { 
+        _position += _accumulatedDelta / (float)_numDeltas;
+        _accumulatedDelta = glm::vec3(0.0f);
+        _numDeltas = 0;
+    }
 }
 
 // ----------------------------------------------------------------------------

@@ -24,19 +24,24 @@
 // (2) A VerletShape doesn't own the points that it uses, so you must be careful not to
 //     leave dangling pointers around.
 
+class VerletPoint;
+
 class VerletSphereShape : public SphereShape {
 public:
-    VerletSphereShape(glm::vec3* centerPoint);
+    VerletSphereShape(VerletPoint* point);
 
-    VerletSphereShape(float radius, glm::vec3* centerPoint);
+    VerletSphereShape(float radius, VerletPoint* centerPoint);
 
     // virtual overrides from Shape
     void setTranslation(const glm::vec3& position);
     const glm::vec3& getTranslation() const;
+    float computeEffectiveMass(const glm::vec3& penetration, const glm::vec3& contactPoint);
+    void accumulateDelta(float relativeMassFactor, const glm::vec3& penetration);
+    void applyAccumulatedDelta();
 
 protected:
     // NOTE: VerletSphereShape does NOT own its _point
-    glm::vec3* _point;
+    VerletPoint* _point;
 };
 
 #endif // hifi_VerletSphereShape_h

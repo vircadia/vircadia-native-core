@@ -580,12 +580,12 @@ void SkeletonModel::buildShapes() {
         }
         Shape* shape = NULL;
         if (type == Shape::SPHERE_SHAPE) {
-            shape = new VerletSphereShape(radius, &(_ragdollPoints[i]._position));
+            shape = new VerletSphereShape(radius, &(_ragdollPoints[i]));
             shape->setEntity(this);
         } else if (type == Shape::CAPSULE_SHAPE) {
             int parentIndex = joint.parentIndex;
             assert(parentIndex != -1);
-            shape = new VerletCapsuleShape(radius, &(_ragdollPoints[parentIndex]._position), &(_ragdollPoints[i]._position));
+            shape = new VerletCapsuleShape(radius, &(_ragdollPoints[parentIndex]), &(_ragdollPoints[i]));
             shape->setEntity(this);
         } 
         _shapes.push_back(shape);
