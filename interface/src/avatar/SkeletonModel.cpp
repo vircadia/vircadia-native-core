@@ -594,10 +594,11 @@ void SkeletonModel::buildShapes() {
     // This method moves the shapes to their default positions in Model frame
     computeBoundingShape(geometry);
 
-    // while the shapes are in their default position we create the constraints
+    // while the shapes are in their default position...
+    disableSelfCollisions();
     buildRagdollConstraints();
 
-    // move shapes back to current joint positions
+    // ... then move shapes back to current joint positions
     moveShapesTowardJoints(1.0f);
 }
 
@@ -612,39 +613,6 @@ void SkeletonModel::moveShapesTowardJoints(float fraction) {
         }
     }
 }
-
-/* TODO: Andrew to remove this when done with ragdoll work.
-void SkeletonModel::updateShapePositionsLegacy() {
-    if (_shapesAreDirty && _shapes.size() == _jointStates.size()) {
-        glm::vec3 rootPosition(0.0f);
-        _boundingRadius = 0.0f;
-        float uniformScale = extractUniformScale(_scale);
-        for (int i = 0; i < _jointStates.size(); i++) {
-            const JointState& state = _jointStates[i];
-            const FBXJoint& joint = state.getFBXJoint();
-            // shape position and rotation need to be in world-frame
-            glm::quat stateRotation = state.getRotation();
-            glm::vec3 shapeOffset = uniformScale * (stateRotation * joint.shapePosition);
-            glm::vec3 worldPosition = _translation + _rotation * (state.getPosition() + shapeOffset);
-            Shape* shape = _shapes[i];
-            if (shape) {
-                shape->setTranslation(worldPosition);
-                shape->setRotation(_rotation * stateRotation * joint.shapeRotation);
-                float distance = glm::distance(worldPosition, _translation) + shape->getBoundingRadius();
-                if (distance > _boundingRadius) {
-                    _boundingRadius = distance;
-                }
-            }
-            if (joint.parentIndex == -1) {
-                rootPosition = worldPosition;
-            }
-        }
-        _shapesAreDirty = false;
-        _boundingShape.setTranslation(rootPosition + _rotation * _boundingShapeLocalOffset);
-        _boundingShape.setRotation(_rotation);
-    }
-}
-*/
 
 void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     // compute default joint transforms

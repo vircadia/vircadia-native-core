@@ -13,6 +13,7 @@
 #define hifi_PhysicsEntity_h
 
 #include <QVector>
+#include <QSet>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -54,6 +55,11 @@ public:
     bool findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius, CollisionList& collisions, int skipIndex);
     bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
 
+    void disableCollisions(int shapeIndexA, int shapeIndexB);
+    bool collisionsAreEnabled(int shapeIndexA, int shapeIndexB) const;
+
+    void disableSelfCollisions();
+
 protected:
     glm::vec3 _translation;
     glm::quat _rotation;
@@ -61,6 +67,7 @@ protected:
     bool _shapesAreDirty;
     bool _enableShapes;
     QVector<Shape*> _shapes;
+    QSet<int> _disabledCollisions;
 
 private:
     // PhysicsSimulation is a friend so that it can set the protected _simulation backpointer

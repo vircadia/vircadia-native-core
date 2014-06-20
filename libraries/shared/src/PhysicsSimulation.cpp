@@ -135,7 +135,7 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
 // DONE (4) collisions move points (SpecialCapsuleShape would help solve this)
 // DONE (5) enforce constraints
 // DONE (6) make sure MyAvatar creates shapes, adds to simulation with ragdoll support
-// (7) support for pairwise collision bypass
+// DONE (7) support for pairwise collision bypass
 // (8) process collisions
 // (9) add and enforce angular contraints for joints
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
@@ -162,7 +162,8 @@ void PhysicsSimulation::computeCollisions() {
     // TODO: keep track of QSet<PhysicsEntity*> collidedEntities;
     int numEntities = _entities.size();
     for (int i = 0; i < numEntities; ++i) {
-        const QVector<Shape*> shapes = _entities.at(i)->getShapes();
+        PhysicsEntity* entity = _entities.at(i);
+        const QVector<Shape*> shapes = entity->getShapes();
         int numShapes = shapes.size();
         // collide with self
         for (int j = 0; j < numShapes; ++j) {
@@ -170,10 +171,9 @@ void PhysicsSimulation::computeCollisions() {
             if (!shape) {
                 continue;
             }
-            // TODO: check for pairwise collision bypass here
             for (int k = j+1; k < numShapes; ++k) {
                 const Shape* otherShape = shapes.at(k);
-                if (otherShape) {
+                if (otherShape && entity->collisionsAreEnabled(j, k)) {
                     ShapeCollider::collideShapes(shape, otherShape, _collisionList);
                 }
             }
