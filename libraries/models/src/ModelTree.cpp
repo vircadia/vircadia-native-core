@@ -42,6 +42,7 @@ public:
     QList<uint32_t> _idsToDelete;
 };
 
+// TODO: this operations needs to correctly set the markAsChanged for each of the octree elments
 bool ModelTree::findAndDeleteOperation(OctreeElement* element, void* extraData) {
     //qDebug() << "findAndDeleteOperation()";
 
@@ -320,6 +321,10 @@ void ModelTree::deleteModel(const ModelItemID& modelID) {
     if (modelID.isKnownID) {
         FindAndDeleteModelsArgs args;
         args._idsToDelete.push_back(modelID.id);
+
+        // NOTE: We need to do this with recursion, because we need to mark the
+        // path to get to the models as dirty, so that sending to any viewers
+        // will work correctly
         recurseTreeWithOperation(findAndDeleteOperation, &args);
     }
 }
@@ -385,6 +390,7 @@ void ModelTree::handleAddModelResponse(const QByteArray& packet) {
                 << " getIsViewing()=" << getIsViewing();
     }
     lockForWrite();
+    // TODO: Switch this to use list of known model IDs....
     recurseTreeWithOperation(findAndUpdateModelItemIDOperation, &args);
     unlock();
 }
@@ -439,6 +445,7 @@ bool ModelTree::findNearPointOperation(OctreeElement* element, void* extraData) 
 const ModelItem* ModelTree::findClosestModel(glm::vec3 position, float targetRadius) {
     FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
     lockForRead();
+    // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findNearPointOperation, &args);
     unlock();
     return args.closestModel;
@@ -472,6 +479,7 @@ bool ModelTree::findInSphereOperation(OctreeElement* element, void* extraData) {
 void ModelTree::findModels(const glm::vec3& center, float radius, QVector<const ModelItem*>& foundModels) {
     FindAllNearPointArgs args = { center, radius };
     lockForRead();
+    // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInSphereOperation, &args);
     unlock();
     // swap the two lists of model pointers instead of copy
@@ -502,6 +510,7 @@ bool ModelTree::findInCubeOperation(OctreeElement* element, void* extraData) {
 void ModelTree::findModels(const AACube& cube, QVector<ModelItem*> foundModels) {
     FindModelsInCubeArgs args(cube);
     lockForRead();
+    // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInCubeOperation, &args);
     unlock();
     // swap the two lists of model pointers instead of copy
@@ -610,6 +619,7 @@ void ModelTree::update() {
     lockForWrite();
     _isDirty = true;
 
+    // TODO: could we manage this by iterating the known models map/hash? Would that be faster?
     ModelTreeUpdateArgs args;
     recurseTreeWithOperation(updateOperation, &args);
 
@@ -766,7 +776,6 @@ void ModelTree::forgetModelsDeletedBefore(quint64 sinceTime) {
 
 
 void ModelTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
     size_t packetLength = dataByteArray.size();
@@ -796,11 +805,13 @@ void ModelTree::processEraseMessage(const QByteArray& dataByteArray, const Share
             memcpy(&modelID, dataAt, sizeof(modelID));
             dataAt += sizeof(modelID);
             processedBytes += sizeof(modelID);
-
             args._idsToDelete.push_back(modelID);
         }
 
         // calling recurse to actually delete the models
+        // NOTE: We need to do this with recursion, because we need to mark the
+        // path to get to the models as dirty, so that sending to any viewers
+        // will work correctly
         recurseTreeWithOperation(findAndDeleteOperation, &args);
     }
 }
