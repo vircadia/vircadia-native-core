@@ -21,10 +21,18 @@ class Shape;
 
 class VerletPoint {
 public:
-    VerletPoint() : _position(0.0f), _lastPosition(0.0f), _mass(0.0f) {}
+    VerletPoint() : _position(0.0f), _lastPosition(0.0f), _mass(0.0f), _accumulatedPush(0.0f), _numPushes(0) {}
+
+    void accumulatePush(const glm::vec3& delta);
+    void applyAccumulatedPush();
+
     glm::vec3 _position;
     glm::vec3 _lastPosition;
     float _mass;
+
+protected:
+    glm::vec3 _accumulatedPush;
+    int _numPushes;
 };
 
 class Constraint {

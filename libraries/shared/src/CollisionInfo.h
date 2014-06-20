@@ -32,37 +32,17 @@ const quint32 VALID_COLLISION_GROUPS = 0x0f;
 
 class CollisionInfo {
 public:
-    CollisionInfo() 
-        : _data(NULL),
-        _intData(0),
-        _shapeA(NULL),
-        _shapeB(NULL),
-        _damping(0.f),
-        _elasticity(1.f),
-        _contactPoint(0.f), 
-        _penetration(0.f), 
-        _addedVelocity(0.f) {
-    }
-
-    CollisionInfo(qint32 type)
-        : _data(NULL),
-        _intData(0),
-        _shapeA(NULL),
-        _shapeB(NULL),
-        _damping(0.f),
-        _elasticity(1.f),
-        _contactPoint(0.f), 
-        _penetration(0.f), 
-        _addedVelocity(0.f) {
-    }
-
+    CollisionInfo();
     ~CollisionInfo() {}
 
-    // the value of the *Data fields depend on the type 
+    // TODO: Andrew to get rid of these data members
     void* _data;
     int _intData;       
     float _floatData;
     glm::vec3 _vecData;
+
+    /// accumulates position changes for the shapes in this collision to resolve penetration
+    void apply();
 
     Shape* getShapeA() const { return const_cast<Shape*>(_shapeA); }
     Shape* getShapeB() const { return const_cast<Shape*>(_shapeB); }

@@ -189,7 +189,25 @@ void PhysicsSimulation::computeCollisions() {
 }
 
 void PhysicsSimulation::processCollisions() {
-    // TODO: Andrew to implement this
+    // walk all collisions, accumulate movement on shapes, and build a list of affected shapes
+    QSet<Shape*> shapes;
+    int numCollisions = _collisionList.size();
+    for (int i = 0; i < numCollisions; ++i) {
+        CollisionInfo* collision = _collisionList.getCollision(i);
+        collision->apply();
+        // there is always a shapeA
+        shapes.insert(collision->getShapeA());
+        // but need to check for valid shapeB
+        if (collision->_shapeB) {
+            shapes.insert(collision->getShapeB());
+        }
+    }
+    // walk all affected shapes and apply accumulated movement
+    QSet<Shape*>::const_iterator shapeItr = shapes.constBegin();
+    while (shapeItr != shapes.constEnd()) {
+        (*shapeItr)->applyAccumulatedDelta();
+        ++shapeItr;
+    }
 }
 
 void PhysicsSimulation::enforceConstraints(float minError, int maxIterations, quint64 maxUsec) {

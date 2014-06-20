@@ -17,6 +17,20 @@
 #include "SphereShape.h"
 
 // ----------------------------------------------------------------------------
+// VerletPoint
+// ----------------------------------------------------------------------------
+void VerletPoint::accumulatePush(const glm::vec3& delta) {
+    _accumulatedPush += delta;
+    ++_numPushes;
+}
+
+void VerletPoint::applyAccumulatedPush() {
+    _lastPosition = _position;
+    _position += _accumulatedPush / (float)_numPushes;
+    _numPushes = 0;
+}
+
+// ----------------------------------------------------------------------------
 // FixedConstraint
 // ----------------------------------------------------------------------------
 FixedConstraint::FixedConstraint(glm::vec3* point, const glm::vec3& anchor) : _point(point), _anchor(anchor) {

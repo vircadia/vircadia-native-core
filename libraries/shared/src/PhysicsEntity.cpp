@@ -149,6 +149,7 @@ bool PhysicsEntity::findSphereCollisions(const glm::vec3& sphereCenter, float sp
 }
 
 bool PhysicsEntity::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
+    // TODO: Andrew to reimplement this or make it unecessary
     bool collided = false;
     PlaneShape planeShape(plane);
     for (int i = 0; i < _shapes.size(); i++) {

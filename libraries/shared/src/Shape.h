@@ -19,6 +19,8 @@ class PhysicsEntity;
 
 class Shape {
 public:
+    static const float MAX_MASS = 1.0e18f; // something less than sqrt(FLT_MAX)
+
     enum Type{
         UNKNOWN_SHAPE = 0,
         SPHERE_SHAPE,
@@ -27,7 +29,7 @@ public:
         LIST_SHAPE
     };
 
-    Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.f), _translation(0.f), _rotation() { }
+    Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.f), _translation(0.f), _rotation(), _mass(MAX_MASS) { }
     virtual ~Shape() {}
 
     int getType() const { return _type; }
@@ -43,7 +45,23 @@ public:
     virtual void setTranslation(const glm::vec3& translation) { _translation = translation; }
     virtual const glm::vec3& getTranslation() const { return _translation; }
 
+    virtual void setMass(float mass) { _mass = mass; }
+    virtual float getMass() const { return _mass; }
+
     virtual bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const = 0;
+
+    /// \param penetration of collision
+    /// \param contactPoint of collision
+    /// \return the effective mass for the collision
+    /// For most shapes has side effects: computes and caches the partial Lagrangian coefficients which will be
+    /// used in the next accumulateDelta() call.
+    virtual float computeEffectiveMass(const glm::vec3& penetration, const glm::vec3& contactPoint) { return _mass; }
+
+    /// \param relativeMassFactor the final ingredient for partial Lagrangian coefficients from computeEffectiveMass()
+    /// \param penetration the delta movement
+    virtual void accumulateDelta(float relativeMassFactor, const glm::vec3& penetration) {}
+
+    virtual void applyAccumulatedDelta() {}
 
 protected:
     // these ctors are protected (used by derived classes only)
@@ -62,6 +80,7 @@ protected:
     float _boundingRadius;
     glm::vec3 _translation;
     glm::quat _rotation;
+    float _mass;
 };
 
 #endif // hifi_Shape_h

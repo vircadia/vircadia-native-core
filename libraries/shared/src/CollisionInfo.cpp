@@ -11,11 +11,41 @@
 
 #include "CollisionInfo.h"
 
+#include "Shape.h"
+
+CollisionInfo::CollisionInfo() :
+        _data(NULL),
+        _intData(0),
+        _shapeA(NULL),
+        _shapeB(NULL),
+        _damping(0.f),
+        _elasticity(1.f),
+        _contactPoint(0.f), 
+        _penetration(0.f), 
+        _addedVelocity(0.f) {
+}
 
 CollisionList::CollisionList(int maxSize) :
     _maxSize(maxSize),
     _size(0) {
     _collisions.resize(_maxSize);
+}
+
+void CollisionInfo::apply() {
+    assert(_shapeA);
+    // NOTE: Shape::computeEffectiveMass() has side effects: computes and caches partial Lagrangian coefficients
+    Shape* shapeA = const_cast<Shape*>(_shapeA);
+    float massA = shapeA->computeEffectiveMass(_penetration, _contactPoint);
+    float massB = Shape::MAX_MASS;
+    float totalMass = massA + massB;
+    if (_shapeB) {
+        Shape* shapeB = const_cast<Shape*>(_shapeB);
+        massB = shapeB->computeEffectiveMass(-_penetration, _contactPoint - _penetration);
+        totalMass = massA + massB;
+        shapeB->accumulateDelta(massA / totalMass, -_penetration);
+    }   
+    // NOTE: Shape::accumulateDelta() uses the coefficients from previous call to Shape::computeEffectiveMass()
+    shapeA->accumulateDelta(massB / totalMass, _penetration);
 }
 
 CollisionInfo* CollisionList::getNewCollision() {
