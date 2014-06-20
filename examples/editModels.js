@@ -1119,8 +1119,8 @@ function handeMenuEvent(menuItem){
                 Models.editModel(editModelID, properties);
             }
         }
-        tooltip.show(false);
     }
+    tooltip.show(false);
 }
 Menu.menuItemEvent.connect(handeMenuEvent);
 
