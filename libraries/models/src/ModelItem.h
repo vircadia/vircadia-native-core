@@ -202,6 +202,16 @@ inline bool operator==(const ModelItemID& a, const ModelItemID& b) {
     return a.id == b.id;
 }
 
+inline uint qHash(const ModelItemID& a, uint seed) {
+    qint64 temp;
+    if (a.id == UNKNOWN_MODEL_ID) {
+        temp = -a.creatorTokenID;
+    } else {
+        temp = a.id;
+    }
+    return qHash(temp, seed);
+}
+
 inline QDebug operator<<(QDebug debug, const ModelItemID& id) {
     debug << "[ id:" << id.id << ", creatorTokenID:" << id.creatorTokenID << "]";
     return debug;

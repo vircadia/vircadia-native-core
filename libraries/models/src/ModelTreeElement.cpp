@@ -426,8 +426,6 @@ void ModelTreeElement::updateModelItemID(FindAndUpdateModelItemIDArgs* args) {
 
                 thisModel.setID(args->modelID);
                 args->creatorTokenFound = true;
-                
-                // TODO: We probably need to fix up the tree's map of ids to models!
             }
         }
         

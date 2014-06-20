@@ -66,18 +66,6 @@ void ModelServer::modelCreated(const ModelItem& newModel, const SharedNodePointe
     copyAt += sizeof(modelID);
     packetLength += sizeof(modelID);
     
-    // This would be a good place to fix our modelID to element map
-    ModelTree* tree = static_cast<ModelTree*>(_tree);
-    
-    // find and clear the map element with the creatorToken
-    ModelItemID creatorTokenModelItemID(modelID, creatorTokenID, true);
-    ModelTreeElement* element = tree->getContainingElement(creatorTokenModelItemID);
-    tree->setContainingElement(creatorTokenModelItemID, NULL);
-    
-    // find and clear the map element with the creatorToken
-    ModelItemID justModelID(modelID);
-    tree->setContainingElement(justModelID, element);
-
     NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, senderNode);
 }
 

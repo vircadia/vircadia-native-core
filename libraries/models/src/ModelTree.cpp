@@ -347,8 +347,11 @@ bool ModelTree::findAndUpdateModelItemIDOperation(OctreeElement* element, void* 
 }
 
 void ModelTree::handleAddModelResponse(const QByteArray& packet) {
+    const bool wantDebug = false;
 
-    qDebug() << "ModelTree::handleAddModelResponse()..."; 
+    if (wantDebug) {
+        qDebug() << "ModelTree::handleAddModelResponse()..."; 
+    }
 
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     
@@ -362,8 +365,10 @@ void ModelTree::handleAddModelResponse(const QByteArray& packet) {
     memcpy(&modelID, dataAt, sizeof(modelID));
     dataAt += sizeof(modelID);
 
-    qDebug() << "    creatorTokenID=" << creatorTokenID;
-    qDebug() << "    modelID=" << modelID;
+    if (wantDebug) {
+        qDebug() << "    creatorTokenID=" << creatorTokenID;
+        qDebug() << "    modelID=" << modelID;
+    }
 
     // update models in our tree
     bool assumeModelFound = !getIsViewing(); // if we're not a viewing tree, then we don't have to find the actual model
@@ -375,7 +380,6 @@ void ModelTree::handleAddModelResponse(const QByteArray& packet) {
         getIsViewing() 
     };
     
-    const bool wantDebug = true;
     if (wantDebug) {
         qDebug() << "looking for creatorTokenID=" << creatorTokenID << " modelID=" << modelID 
                 << " getIsViewing()=" << getIsViewing();
@@ -824,3 +828,10 @@ void ModelTree::setContainingElement(const ModelItemID& modelItemID, ModelTreeEl
     //qDebug() << "AFTER _modelToElementMap=" << _modelToElementMap;
 }
 
+void ModelTree::debugDumpMap() {
+    QHashIterator<ModelItemID, ModelTreeElement*> i(_modelToElementMap);
+    while (i.hasNext()) {
+        i.next();
+        qDebug() << i.key() << ": " << i.value();
+    }
+}

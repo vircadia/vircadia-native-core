@@ -91,6 +91,7 @@ public:
     
     ModelTreeElement* getContainingElement(const ModelItemID& modelItemID) const;
     void setContainingElement(const ModelItemID& modelItemID, ModelTreeElement* element);
+    void debugDumpMap();
 
 private:
 
@@ -114,7 +115,7 @@ private:
     QMultiMap<quint64, uint32_t> _recentlyDeletedModelItemIDs;
     ModelItemFBXService* _fbxService;
 
-    QMap<ModelItemID, ModelTreeElement*> _modelToElementMap;
+    QHash<ModelItemID, ModelTreeElement*> _modelToElementMap;
 };
 
 #endif // hifi_ModelTree_h

@@ -815,6 +815,7 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
 
         newModelItem.setCreatorTokenID(creatorTokenID);
         newModelItem._newlyCreated = true;
+        valid = true;
     } else {
         // look up the existing modelItem
         const ModelItem* existingModelItem = tree->findModelByID(editID, true);
@@ -822,20 +823,21 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         // copy existing properties before over-writing with new properties
         if (existingModelItem) {
             newModelItem = *existingModelItem;
+            valid = true;
         } else {
             // the user attempted to edit a modelItem that doesn't exist
             qDebug() << "user attempted to edit a modelItem that doesn't exist... editID=" << editID;
+            tree->debugDumpMap();
             valid = false;
-            return newModelItem;
+            
+            // NOTE: Even though we know item is not valid, we still need to parse the rest
+            // of the edit packet so that we don't end up out of sync on our bitstream
+            // fall through....
         }
         newModelItem._id = editID;
         newModelItem._newlyCreated = false;
     }
     
-    // if we got this far, then our result will be valid
-    valid = true;
-    
-
     // lastEdited
     memcpy(&newModelItem._lastEdited, dataAt, sizeof(newModelItem._lastEdited));
     dataAt += sizeof(newModelItem._lastEdited);
