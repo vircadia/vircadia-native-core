@@ -461,8 +461,8 @@ void Audio::handleAudioInput() {
         int16_t* inputAudioSamples = new int16_t[inputSamplesRequired];
         _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
         
-        int numNetworkBytes = _isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
-        int numNetworkSamples = _isStereoInput ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+        const int numNetworkBytes = _isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+        const int numNetworkSamples = _isStereoInput ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
 
         // zero out the monoAudioSamples array and the locally injected audio
         memset(networkAudioSamples, 0, numNetworkBytes);
@@ -622,6 +622,7 @@ void Audio::handleAudioInput() {
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
         if (audioMixer && audioMixer->getActiveSocket()) {
+
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
             glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientationInWorldFrame();
@@ -634,12 +635,11 @@ void Audio::handleAudioInput() {
                 packetType = PacketTypeSilentAudioFrame;
                 
                 // we need to indicate how many silent samples this is to the audio mixer
-                audioDataPacket[0] = _isStereoInput
-                    ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
-                    : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                networkAudioSamples[0] = numNetworkSamples;
                 numAudioBytes = sizeof(int16_t);
             } else {
-                numAudioBytes = _isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+                numAudioBytes = numNetworkBytes;
+                //_isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
                 
                 if (Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)) {
                     packetType = PacketTypeMicrophoneAudioWithEcho;

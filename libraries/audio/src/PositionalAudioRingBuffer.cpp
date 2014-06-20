@@ -33,6 +33,10 @@ InterframeTimeGapHistory::InterframeTimeGapHistory()
 }
 
 void InterframeTimeGapHistory::frameReceived() {
+
+    static QQueue<quint64> gaps;
+    static quint64 gapsSum = 0;
+
     quint64 now = usecTimestampNow();
 
     // make sure this isn't the first time frameReceived() is called, meaning there's actually a gap to calculate.
@@ -87,9 +91,9 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _shouldOutputStarveDebug(true),
     _isStereo(isStereo),
     _listenerUnattenuatedZone(NULL),
-    _desiredJitterBufferNumSamples(getNumSamplesPerFrame())
+    _desiredJitterBufferFrames(1),
+    _currentJitterBufferFrames(0)
 {
-
 }
 
 int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
@@ -114,10 +118,15 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         if (numSilentSamples > 0) {
             addSilentFrame(numSilentSamples);
         }
+        printf("\nparsed silent packet of %d samples\n", numSilentSamples);
     } else {
         // there is audio data to read
-        readBytes += writeData(packet.data() + readBytes, packet.size() - readBytes);
+        int dataBytes = writeData(packet.data() + readBytes, packet.size() - readBytes);
+        readBytes += dataBytes;
+
+        printf("\nparsed packet of %d data bytes\n", dataBytes);
     }
+    printf("%d samples available\n", samplesAvailable());
     
     return readBytes;
 }
@@ -166,40 +175,58 @@ void PositionalAudioRingBuffer::updateNextOutputTrailingLoudness() {
 
 bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
 
-    int samplesPerFrame = getNumSamplesPerFrame();
+    int samplesPerFrame = getSamplesPerFrame();
+    int currentJitterBufferSamples = 3 * samplesPerFrame; //_currentJitterBufferFrames * samplesPerFrame;
+    
+//printf("\nsamples available: %d  frames available: %d\n", samplesAvailable(), samplesAvailable() / samplesPerFrame);
+    if (!isNotStarvedOrHasMinimumSamples(samplesPerFrame + currentJitterBufferSamples)) {
 
-    if (!isNotStarvedOrHasMinimumSamples(samplesPerFrame + _desiredJitterBufferNumSamples)) {
+//printf("\nMIXING DELAYED! waiting for jitter buffer to fill after being starved\n");
+//printf("samples available: %d  frames available: %d\n", samplesAvailable(), samplesAvailable() / samplesPerFrame);
+        // if the buffer was starved and hasn't filled back up all the way, don't mix yet
         if (_shouldOutputStarveDebug) {
             _shouldOutputStarveDebug = false;
         }
-        
-        return false;
+
+        return  false;
+
     } else if (samplesAvailable() < samplesPerFrame) {
+
+//printf("\nMIXING DELAYED! jitter buffer is starved!!!\n");
+//printf("samples available: %d  frames available: %d\n", samplesAvailable(), samplesAvailable() / samplesPerFrame);
+        // if the buffer doesn't have a full frame of samples for mixing, it is starved
         _isStarved = true;
         
         // reset our _shouldOutputStarveDebug to true so the next is printed
         _shouldOutputStarveDebug = true;
+
+        // if buffer was starved, we've effectively increased the jitter buffer by one frame
+        // by "holding back" this ring buffer's contents until the next client frame is prepared.
+        _currentJitterBufferFrames++;
+//printf("jbuffer size increased: new size: %d\n", _currentJitterBufferFrames);
         
         return false;
-    } else {
-        // good buffer, add this to the mix
-        _isStarved = false;
 
-        // since we've read data from ring buffer at least once - we've started
-        _hasStarted = true;
-
-        return true;
     }
+//printf("WILL MIX\n");
 
-    return false;
+    // good buffer, add this to the mix
+    _isStarved = false;
+
+    // since we've read data from ring buffer at least once - we've started
+    _hasStarted = true;
+
+    return true;
 }
 
-void PositionalAudioRingBuffer::updateDesiredJitterBufferNumSamples() {
+void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
 
     const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
 
     if (_interframeTimeGapHistory.hasNewWindowMaxGapAvailable()) {
-        int desiredJitterBufferNumFrames = (int)((float)_interframeTimeGapHistory.getWindowMaxGap() / USECS_PER_FRAME + 0.5f);
-        _desiredJitterBufferNumSamples = desiredJitterBufferNumFrames * getNumSamplesPerFrame();
+        _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapHistory.getWindowMaxGap() / USECS_PER_FRAME);
+        if (_desiredJitterBufferFrames < 1) {
+            _desiredJitterBufferFrames = 1;
+        }
     }
 }

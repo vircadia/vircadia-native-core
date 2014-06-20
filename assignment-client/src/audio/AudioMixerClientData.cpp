@@ -119,15 +119,14 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(AABox* checkSourceZone, A
 }
 
 void AudioMixerClientData::pushBuffersAfterFrameSend() {
+
     QList<PositionalAudioRingBuffer*>::iterator i = _ringBuffers.begin();
     while (i != _ringBuffers.end()) {
         // this was a used buffer, push the output pointer forwards
         PositionalAudioRingBuffer* audioBuffer = *i;
 
         if (audioBuffer->willBeAddedToMix()) {
-            audioBuffer->shiftReadPosition(audioBuffer->isStereo()
-                                           ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-
+            audioBuffer->shiftReadPosition(audioBuffer->getSamplesPerFrame());
             audioBuffer->setWillBeAddedToMix(false);
         } else if (audioBuffer->getType() == PositionalAudioRingBuffer::Injector
                    && audioBuffer->hasStarted() && audioBuffer->isStarved()) {

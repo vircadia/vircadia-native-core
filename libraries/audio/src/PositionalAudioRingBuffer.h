@@ -29,6 +29,7 @@ public:
 
     void frameReceived();
     bool hasNewWindowMaxGapAvailable() const { return _newWindowMaxGapAvailable; }
+    quint64 peekWindowMaxGap() const { return _windowMaxGap; }
     quint64 getWindowMaxGap();
 
 private:
@@ -75,14 +76,14 @@ public:
     AABox* getListenerUnattenuatedZone() const { return _listenerUnattenuatedZone; }
     void setListenerUnattenuatedZone(AABox* listenerUnattenuatedZone) { _listenerUnattenuatedZone = listenerUnattenuatedZone; }
     
-    int getNumSamplesPerFrame() const { return _isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL; }
+    int getSamplesPerFrame() const { return _isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
 
 protected:
     // disallow copying of PositionalAudioRingBuffer objects
     PositionalAudioRingBuffer(const PositionalAudioRingBuffer&);
     PositionalAudioRingBuffer& operator= (const PositionalAudioRingBuffer&);
 
-    void updateDesiredJitterBufferNumSamples();
+    void updateDesiredJitterBufferFrames();
     
     PositionalAudioRingBuffer::Type _type;
     glm::vec3 _position;
@@ -96,7 +97,10 @@ protected:
     AABox* _listenerUnattenuatedZone;
 
     InterframeTimeGapHistory _interframeTimeGapHistory;
-    int _desiredJitterBufferNumSamples;
+    int _desiredJitterBufferFrames;
+    int _currentJitterBufferFrames;
+
+quint64 _lastMixTime;
 };
 
 #endif // hifi_PositionalAudioRingBuffer_h
