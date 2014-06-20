@@ -1153,8 +1153,23 @@ int MetavoxelVisitor::encodeOrder(const glm::vec3& direction) {
         indexDistances.at(6).index, indexDistances.at(7).index);
 }
 
+const int ORDER_ELEMENT_BITS = 3;
+const int ORDER_ELEMENT_MASK = (1 << ORDER_ELEMENT_BITS) - 1;
+
 int MetavoxelVisitor::encodeRandomOrder() {
-    return DEFAULT_ORDER;
+    // see http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_.22inside-out.22_algorithm
+    int order;
+    int randomValues = rand();
+    for (int i = 0, iShift = 0; i < MetavoxelNode::CHILD_COUNT; i++, iShift += ORDER_ELEMENT_BITS) {
+        int j = (randomValues >> iShift) % (i + 1);
+        int jShift = j * ORDER_ELEMENT_BITS;
+        if (j != i) {
+            int jValue = (order >> jShift) & ORDER_ELEMENT_MASK;
+            order = (order & ~(ORDER_ELEMENT_MASK << iShift)) | (jValue << iShift);
+        }
+        order = (order & ~(ORDER_ELEMENT_MASK << jShift)) | (i << jShift);
+    }
+    return order;
 }
 
 const int MetavoxelVisitor::DEFAULT_ORDER = encodeOrder(0, 1, 2, 3, 4, 5, 6, 7);
@@ -1350,8 +1365,6 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             QVector<OwnedAttributeValue>(visitation.outputNodes.size()) } };
     for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
         // the encoded order tells us the child indices for each iteration
-        const int ORDER_ELEMENT_BITS = 3;
-        const int ORDER_ELEMENT_MASK = (1 << ORDER_ELEMENT_BITS) - 1;
         int index = encodedOrder & ORDER_ELEMENT_MASK;
         encodedOrder >>= ORDER_ELEMENT_BITS;
         for (int j = 0; j < visitation.inputNodes.size(); j++) {
@@ -1392,7 +1405,7 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
                 }
             }
             MetavoxelNode* node = visitation.outputNodes.at(j);
-            MetavoxelNode* child = node->getChild(i);
+            MetavoxelNode* child = node->getChild(index);
             if (child) {
                 child->decrementReferenceCount(value.getAttribute());
             } else {

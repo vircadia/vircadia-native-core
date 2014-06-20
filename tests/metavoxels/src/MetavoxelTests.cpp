@@ -598,17 +598,17 @@ public:
 
 private:
     
-    bool _finished;
+    int _mutationsRemaining;
 };
 
 MutateVisitor::MutateVisitor() :
     MetavoxelVisitor(QVector<AttributePointer>(),
         QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute()),
-    _finished(false) {
+    _mutationsRemaining(randIntInRange(2, 4)) {
 }
 
 int MutateVisitor::visit(MetavoxelInfo& info) {
-    if (_finished) {
+    if (_mutationsRemaining <= 0) {
         return STOP_RECURSION;
     }
     if (info.size > MAXIMUM_LEAF_SIZE || (info.size > MINIMUM_LEAF_SIZE && randomBoolean())) {
@@ -616,7 +616,7 @@ int MutateVisitor::visit(MetavoxelInfo& info) {
     }
     info.outputValues[0] = OwnedAttributeValue(_outputs.at(0), encodeInline<QRgb>(qRgb(randIntInRange(0, 255),
         randIntInRange(0, 255), randIntInRange(0, 255))));
-    _finished = true;
+    _mutationsRemaining--;
     return STOP_RECURSION;
 }
 
