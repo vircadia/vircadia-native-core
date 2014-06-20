@@ -1196,7 +1196,7 @@ function menuItemEvent(menuItem) {
             print("deleting...");
             if (isImporting) {
                 cancelImport();
-            } else {
+            } else if (voxelToolSelected) {
                 Clipboard.deleteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
             }
         }
