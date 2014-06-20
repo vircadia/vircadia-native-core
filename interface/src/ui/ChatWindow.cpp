@@ -31,7 +31,7 @@
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
 const float OPACITY_ACTIVE = 1.0;
-const float OPACITY_INACTIVE = 0.6;
+const float OPACITY_INACTIVE = 0.8;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?)|(?:hifi))://\\S+)");
 const QRegularExpression regexHifiLinks("([#@]\\S+)");
