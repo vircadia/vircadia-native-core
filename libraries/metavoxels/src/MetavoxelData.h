@@ -126,6 +126,10 @@ public:
     MetavoxelNode* getRoot(const AttributePointer& attribute) const { return _roots.value(attribute); }
     MetavoxelNode* createRoot(const AttributePointer& attribute);
 
+    /// Performs a deep comparison between this data and the specified other (as opposed to the == operator, which does a
+    /// shallow comparison).
+    bool deepEquals(const MetavoxelData& other, const MetavoxelLOD& lod = MetavoxelLOD()) const;
+
     bool operator==(const MetavoxelData& other) const;
     bool operator!=(const MetavoxelData& other) const;
 
@@ -214,6 +218,10 @@ public:
 
     void clearChildren(const AttributePointer& attribute);
     
+    /// Performs a deep comparison between this and the specified other node.
+    bool deepEquals(const AttributePointer& attribute, const MetavoxelNode& other,
+        const glm::vec3& minimum, float size, const MetavoxelLOD& lod) const;
+    
 private:
     Q_DISABLE_COPY(MetavoxelNode)
     
@@ -249,6 +257,9 @@ public:
     
     /// Encodes a visitation order sequence that visits each child as sorted along the specified direction.
     static int encodeOrder(const glm::vec3& direction);
+    
+    /// Returns a random visitation order sequence.
+    static int encodeRandomOrder();
     
     /// The default visitation order.
     static const int DEFAULT_ORDER;

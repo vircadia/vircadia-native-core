@@ -687,6 +687,23 @@ MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
     return root = new MetavoxelNode(attribute);
 }
 
+bool MetavoxelData::deepEquals(const MetavoxelData& other, const MetavoxelLOD& lod) const {
+    if (_size != other._size) {
+        return false;
+    }
+    if (_roots.size() != other._roots.size()) {
+        return false;
+    }
+    glm::vec3 minimum = getMinimum();
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        MetavoxelNode* otherNode = other._roots.value(it.key());
+        if (!(otherNode && it.value()->deepEquals(it.key(), *otherNode, minimum, _size, lod))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool MetavoxelData::operator==(const MetavoxelData& other) const {
     return _size == other._size && _roots == other._roots;
 }
@@ -1083,6 +1100,31 @@ void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
     }
 }
 
+bool MetavoxelNode::deepEquals(const AttributePointer& attribute, const MetavoxelNode& other,
+        const glm::vec3& minimum, float size, const MetavoxelLOD& lod) const {
+    if (!attribute->equal(_attributeValue, other._attributeValue)) {
+        return false;
+    }
+    if (!lod.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier())) {
+        return true;
+    }
+    bool leaf = isLeaf(), otherLeaf = other.isLeaf();
+    if (leaf && otherLeaf) {
+        return true;
+    }
+    if (leaf || otherLeaf) {
+        return false;
+    }
+    float nextSize = size * 0.5f;
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        glm::vec3 nextMinimum = getNextMinimum(minimum, nextSize, i);
+        if (!_children[i]->deepEquals(attribute, *(other._children[i]), nextMinimum, nextSize, lod)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int MetavoxelVisitor::encodeOrder(int first, int second, int third, int fourth,
         int fifth, int sixth, int seventh, int eighth) {
     return first | (second << 3) | (third << 6) | (fourth << 9) |
@@ -1109,6 +1151,10 @@ int MetavoxelVisitor::encodeOrder(const glm::vec3& direction) {
     return encodeOrder(indexDistances.at(0).index, indexDistances.at(1).index, indexDistances.at(2).index,
         indexDistances.at(3).index, indexDistances.at(4).index, indexDistances.at(5).index,
         indexDistances.at(6).index, indexDistances.at(7).index);
+}
+
+int MetavoxelVisitor::encodeRandomOrder() {
+    return DEFAULT_ORDER;
 }
 
 const int MetavoxelVisitor::DEFAULT_ORDER = encodeOrder(0, 1, 2, 3, 4, 5, 6, 7);
