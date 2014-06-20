@@ -30,6 +30,9 @@
 
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
+const float OPACITY_ACTIVE = 1.0;
+const float OPACITY_INACTIVE = 0.6;
+
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?)|(?:hifi))://\\S+)");
 const QRegularExpression regexHifiLinks("([#@]\\S+)");
 const QString mentionSoundsPath("/mention-sounds/");
@@ -108,7 +111,7 @@ ChatWindow::~ChatWindow() {
 
 void ChatWindow::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Escape) {
-        hide();
+        Application::getInstance()->getWindow()->activateWindow();
     } else {
         FramelessDialog::keyPressEvent(event);
     }
@@ -382,4 +385,13 @@ bool ChatWindow::isNearBottom() {
 void ChatWindow::scrollToBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
     verticalScrollBar->setValue(verticalScrollBar->maximum());
+}
+
+bool ChatWindow::event(QEvent* event) {
+    if (event->type() == QEvent::WindowActivate) {
+        setWindowOpacity(OPACITY_ACTIVE);
+    } else if (event->type() == QEvent::WindowDeactivate) {
+        setWindowOpacity(OPACITY_INACTIVE);
+    }
+    return FramelessDialog::event(event);
 }
