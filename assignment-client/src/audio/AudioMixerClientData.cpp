@@ -98,10 +98,9 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples,
-                                                       AABox* checkSourceZone, AABox* listenerZone) {
+void AudioMixerClientData::checkBuffersBeforeFrameSend(AABox* checkSourceZone, AABox* listenerZone) {
     for (int i = 0; i < _ringBuffers.size(); i++) {
-        if (_ringBuffers[i]->shouldBeAddedToMix(jitterBufferLengthSamples)) {
+        if (_ringBuffers[i]->shouldBeAddedToMix()) {
             // this is a ring buffer that is ready to go
             // set its flag so we know to push its buffer when all is said and done
             _ringBuffers[i]->setWillBeAddedToMix(true);
