@@ -140,7 +140,7 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
                 } else {
                     // we need to drop all frames to get the jitter buffer close as possible to its desired length
                     _currentJitterBufferFrames -= numSilentFrames;
-                    printf("dropped silent packet! jbuffer size is now %d ###############", _currentJitterBufferFrames);
+                    printf("dropped silent packet! jbuffer size is now %d ###############\n", _currentJitterBufferFrames);
                 }
             } else {
                 addSilentFrame(numSilentSamples);
@@ -203,7 +203,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     int desiredJitterBufferSamples = _desiredJitterBufferFrames * samplesPerFrame;
     
 //printf("\nsamples available: %d  frames available: %d\n", samplesAvailable(), samplesAvailable() / samplesPerFrame);
-    if (!isNotStarvedOrHasMinimumSamples(samplesPerFrame + _desiredJitterBufferFrames)) {
+    if (!isNotStarvedOrHasMinimumSamples(samplesPerFrame + desiredJitterBufferSamples)) {
 
 printf("\nMIXING DELAYED! waiting for jitter buffer to fill after being starved\n");
 printf("samples available: %d  frames available: %d\n", samplesAvailable(), samplesAvailable() / samplesPerFrame);
@@ -241,8 +241,8 @@ printf("samples available: %d  frames available: %d\n", samplesAvailable(), samp
     if (_isStarved) {
 
         // if this buffer has just finished replenishing after being starved, the number of frames in it now
-        // is the length of the jitter buffer
-        _currentJitterBufferFrames = samplesAvailable() / samplesPerFrame;
+        // minus one (since a frame will be read immediately after this) is the length of the jitter buffer
+        _currentJitterBufferFrames = samplesAvailable() / samplesPerFrame - 1;
         printf("jitter buffer length is now %d; desired: %d --------\n", _currentJitterBufferFrames, _desiredJitterBufferFrames);
 
         _isStarved = false;
