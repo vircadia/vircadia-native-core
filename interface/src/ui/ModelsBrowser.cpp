@@ -89,7 +89,9 @@ ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
     _view.setEditTriggers(QAbstractItemView::NoEditTriggers);
     _view.setRootIsDecorated(false);
     _view.setModel(_handler->getModel());
+    _view.blockSignals(true);
 
+    // Initialize the search bar
     _searchBar = new QLineEdit;
     _searchBar->setDisabled(true);
     connect(_handler, SIGNAL(doneDownloading()), SLOT(enableSearchBar()));
@@ -135,6 +137,7 @@ void ModelsBrowser::resizeView() {
 }
 
 void ModelsBrowser::enableSearchBar() {
+    _view.blockSignals(false);
     _searchBar->setEnabled(true);
 }
 
