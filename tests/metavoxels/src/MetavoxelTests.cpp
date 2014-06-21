@@ -437,8 +437,8 @@ int RandomVisitor::visit(MetavoxelInfo& info) {
     if (info.size > MAXIMUM_LEAF_SIZE || (info.size > MINIMUM_LEAF_SIZE && randomBoolean())) {
         return DEFAULT_ORDER;
     }
-    info.outputValues[0] = OwnedAttributeValue(_outputs.at(0), encodeInline<QRgb>(qRgb(randIntInRange(0, 255),
-        randIntInRange(0, 255), randIntInRange(0, 255))));
+    info.outputValues[0] = OwnedAttributeValue(_outputs.at(0), encodeInline<QRgb>(qRgb(randomColorValue(),
+        randomColorValue(), randomColorValue())));
     leafCount++;
     return STOP_RECURSION;
 }
