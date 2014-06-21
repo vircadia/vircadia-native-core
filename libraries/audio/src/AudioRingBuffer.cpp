@@ -158,7 +158,7 @@ const int16_t& AudioRingBuffer::operator[] (const int index) const {
 
 void AudioRingBuffer::shiftReadPosition(unsigned int numSamples) {
     _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, numSamples);
-    printf("\n mixed.  %d samples remaining\n", samplesAvailable());
+//printf("\nmixed.  %d samples remaining\n", samplesAvailable());
 }
 
 unsigned int AudioRingBuffer::samplesAvailable() const {
