@@ -47,6 +47,8 @@ static int sharedObjectsDestroyed = 0;
 static int objectMutationsPerformed = 0;
 static int scriptObjectsCreated = 0;
 static int scriptMutationsPerformed = 0;
+static int metavoxelMutationsPerformed = 0;
+static int spannerMutationsPerformed = 0;
 
 static QByteArray createRandomBytes(int minimumSize, int maximumSize) {
     QByteArray bytes(randIntInRange(minimumSize, maximumSize), 0);
@@ -395,6 +397,8 @@ bool MetavoxelTests::run() {
         qDebug() << "Sent" << datagramsSent << "datagrams with" << bytesSent << "bytes, received" <<
             datagramsReceived << "with" << bytesReceived << "bytes";
         qDebug() << "Max" << maxDatagramsPerPacket << "datagrams," << maxBytesPerPacket << "bytes per packet";
+        qDebug() << "Performed" << metavoxelMutationsPerformed << "metavoxel mutations," << spannerMutationsPerformed <<
+            "spanner mutations";
     }
     
     qDebug() << "All tests passed!";
@@ -472,6 +476,12 @@ Endpoint::Endpoint(const QByteArray& datagramHeader, Mode mode) :
         RandomVisitor visitor;
         _data.guide(visitor);
         qDebug() << "Created" << visitor.leafCount << "base leaves";
+        
+        _data.insert(AttributeRegistry::getInstance()->getSpannersAttribute(), new Sphere());
+        
+        _sphere = new Sphere();
+        static_cast<Transformable*>(_sphere.data())->setScale(0.01f);
+        _data.insert(AttributeRegistry::getInstance()->getSpannersAttribute(), _sphere);
         return;
     }
     // create the object that represents out delta-encoded state
@@ -614,9 +624,10 @@ int MutateVisitor::visit(MetavoxelInfo& info) {
     if (info.size > MAXIMUM_LEAF_SIZE || (info.size > MINIMUM_LEAF_SIZE && randomBoolean())) {
         return encodeRandomOrder();
     }
-    info.outputValues[0] = OwnedAttributeValue(_outputs.at(0), encodeInline<QRgb>(qRgb(randIntInRange(0, 255),
-        randIntInRange(0, 255), randIntInRange(0, 255))));
+    info.outputValues[0] = OwnedAttributeValue(_outputs.at(0), encodeInline<QRgb>(qRgb(randomColorValue(),
+        randomColorValue(), randomColorValue())));
     _mutationsRemaining--;
+    metavoxelMutationsPerformed++;
     return STOP_RECURSION;
 }
 
@@ -650,6 +661,21 @@ bool Endpoint::simulate(int iterationNumber) {
         // make a random change
         MutateVisitor visitor;
         _data.guide(visitor);
+        
+        // perhaps mutate the spanner
+        if (randomBoolean()) {
+            SharedObjectPointer oldSphere = _sphere;
+            _sphere = _sphere->clone(true);
+            Sphere* newSphere = static_cast<Sphere*>(_sphere.data());
+            if (randomBoolean()) {
+                newSphere->setColor(QColor(randomColorValue(), randomColorValue(), randomColorValue()));
+            } else {
+                newSphere->setTranslation(newSphere->getTranslation() + glm::vec3(randFloatInRange(-0.01f, 0.01f),
+                    randFloatInRange(-0.01f, 0.01f), randFloatInRange(-0.01f, 0.01f)));
+            }
+            _data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), oldSphere, _sphere);
+            spannerMutationsPerformed++;
+        }
         
         // wait until we have a valid lod before sending
         if (!_lod.isValid()) {
@@ -772,7 +798,8 @@ void Endpoint::readMessage(Bitstream& in) {
         foreach (const SendRecord& sendRecord, _other->_sendRecords) {
             if (sendRecord.packetNumber == packetNumber) {
                 if (!sendRecord.data.deepEquals(_data, _sendRecords.first().lod)) {
-                    throw QString("Sent/received metavoxel data mismatch.");
+                    qDebug() << "Sent/received metavoxel data mismatch.";
+                    exit(true);
                 }
                 break;
             }
@@ -807,17 +834,20 @@ void Endpoint::readMessage(Bitstream& in) {
             it != _other->_unreliableMessagesSent.end(); it++) {
         if (it->sequenceNumber == message.sequenceNumber) {
             if (!messagesEqual(it->submessage, message.submessage)) {
-                throw QString("Sent/received unreliable message mismatch.");
+                qDebug() << "Sent/received unreliable message mismatch.";
+                exit(true);
             }
             if (!it->state->equals(message.state)) {
-                throw QString("Delta-encoded object mismatch.");
+                qDebug() << "Delta-encoded object mismatch.";
+                exit(true);
             }
             _other->_unreliableMessagesSent.erase(_other->_unreliableMessagesSent.begin(), it + 1);
             unreliableMessagesReceived++;
             return;
         }
     }
-    throw QString("Received unsent/already sent unreliable message.");
+    qDebug() << "Received unsent/already sent unreliable message.";
+    exit(true);
 }
 
 void Endpoint::handleReliableMessage(const QVariant& message) {

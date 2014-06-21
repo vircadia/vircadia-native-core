@@ -278,6 +278,9 @@ public:
     /// Returns the streamer registered for the supplied type, if any.
     static const TypeStreamer* getTypeStreamer(int type);
 
+    /// Returns the streamer registered for the supplied object, if any.
+    static const ObjectStreamer* getObjectStreamer(const QMetaObject* metaObject);
+
     /// Returns the meta-object registered under the supplied class name, if any.
     static const QMetaObject* getMetaObject(const QByteArray& className);
 
@@ -1022,6 +1025,7 @@ public:
     virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const = 0;
     virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const = 0;
     
+    virtual bool equal(const QObject* first, const QObject* second) const = 0;
     virtual void write(Bitstream& out, const QObject* object) const = 0;
     virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const = 0;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const = 0;
@@ -1047,6 +1051,7 @@ public:
     virtual QJsonObject getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const;
     virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const;
+    virtual bool equal(const QObject* first, const QObject* second) const;
     virtual void write(Bitstream& out, const QObject* object) const;
     virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
@@ -1070,6 +1075,7 @@ public:
     virtual QJsonObject getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const;
     virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const;
+    virtual bool equal(const QObject* first, const QObject* second) const;
     virtual void write(Bitstream& out, const QObject* object) const;
     virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const;

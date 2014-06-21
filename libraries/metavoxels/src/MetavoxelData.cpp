@@ -697,7 +697,7 @@ bool MetavoxelData::deepEquals(const MetavoxelData& other, const MetavoxelLOD& l
     glm::vec3 minimum = getMinimum();
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         MetavoxelNode* otherNode = other._roots.value(it.key());
-        if (!(otherNode && it.value()->deepEquals(it.key(), *otherNode, minimum, _size, lod))) {
+        if (!(otherNode && it.key()->metavoxelRootsEqual(*it.value(), *otherNode, minimum, _size, lod))) {
             return false;
         }
     }
@@ -1102,7 +1102,7 @@ void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
 
 bool MetavoxelNode::deepEquals(const AttributePointer& attribute, const MetavoxelNode& other,
         const glm::vec3& minimum, float size, const MetavoxelLOD& lod) const {
-    if (!attribute->equal(_attributeValue, other._attributeValue)) {
+    if (!attribute->deepEqual(_attributeValue, other._attributeValue)) {
         return false;
     }
     if (!lod.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier())) {
@@ -1123,6 +1123,19 @@ bool MetavoxelNode::deepEquals(const AttributePointer& attribute, const Metavoxe
         }
     }
     return true;
+}
+
+void MetavoxelNode::getSpanners(const AttributePointer& attribute, const glm::vec3& minimum,
+        float size, const MetavoxelLOD& lod, SharedObjectSet& results) const {
+    results.unite(decodeInline<SharedObjectSet>(_attributeValue));
+    if (isLeaf() || !lod.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier())) {
+        return;
+    }
+    float nextSize = size * 0.5f;
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        glm::vec3 nextMinimum = getNextMinimum(minimum, nextSize, i);
+        _children[i]->getSpanners(attribute, nextMinimum, nextSize, lod, results);
+    }
 }
 
 int MetavoxelVisitor::encodeOrder(int first, int second, int third, int fourth,

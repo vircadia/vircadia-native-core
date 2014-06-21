@@ -93,6 +93,8 @@ private:
     MetavoxelData _data;
     MetavoxelLOD _lod;
     
+    SharedObjectPointer _sphere;
+    
     Endpoint* _other;
     QList<QPair<QByteArray, int> > _delayedDatagrams;
     float _highPriorityMessagesToSend;

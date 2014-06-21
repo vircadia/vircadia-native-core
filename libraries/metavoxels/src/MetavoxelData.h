@@ -221,6 +221,10 @@ public:
     /// Performs a deep comparison between this and the specified other node.
     bool deepEquals(const AttributePointer& attribute, const MetavoxelNode& other,
         const glm::vec3& minimum, float size, const MetavoxelLOD& lod) const;
+
+    /// Retrieves all spanners satisfying the LOD constraint, placing them in the provided set.
+    void getSpanners(const AttributePointer& attribute, const glm::vec3& minimum,
+        float size, const MetavoxelLOD& lod, SharedObjectSet& results) const;
     
 private:
     Q_DISABLE_COPY(MetavoxelNode)
