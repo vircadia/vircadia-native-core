@@ -240,7 +240,7 @@ printf("samples available: %d  frames available: %d\n", samplesAvailable(), samp
 
     if (_isStarved) {
 
-        // if this buffer was just finished replenishing after being starved, the number of frames in it now
+        // if this buffer has just finished replenishing after being starved, the number of frames in it now
         // is the length of the jitter buffer
         _currentJitterBufferFrames = samplesAvailable() / samplesPerFrame;
         printf("jitter buffer length is now %d; desired: %d --------\n", _currentJitterBufferFrames, _desiredJitterBufferFrames);
