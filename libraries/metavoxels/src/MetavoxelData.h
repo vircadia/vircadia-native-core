@@ -118,11 +118,6 @@ public:
     void writeDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
         Bitstream& out, const MetavoxelLOD& lod) const;
 
-    void readIncrementalDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
-        Bitstream& in, const MetavoxelLOD& lod);
-    void writeIncrementalDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
-        Bitstream& out, const MetavoxelLOD& lod) const;
-        
     MetavoxelNode* getRoot(const AttributePointer& attribute) const { return _roots.value(attribute); }
     MetavoxelNode* createRoot(const AttributePointer& attribute);
 
