@@ -146,11 +146,7 @@ void ModelsBrowser::browse() {
     QGridLayout* layout = new QGridLayout(&dialog);
     dialog.setLayout(layout);
     
-    /*if (!_searchBar) {
-        _searchBar = new QLineEdit(&dialog);
-    }*/
     layout->addWidget(_searchBar, 0, 0);
-    
     layout->addWidget(&_view, 1, 0);
     dialog.connect(&_view, SIGNAL(doubleClicked(const QModelIndex&)), SLOT(accept()));
     connect(_searchBar, SIGNAL(textChanged(const QString&)), SLOT(applyFilter(const QString&)));
