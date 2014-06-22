@@ -278,6 +278,9 @@ public:
     /// Returns the streamer registered for the supplied type, if any.
     static const TypeStreamer* getTypeStreamer(int type);
 
+    /// Returns the streamer registered for the supplied object, if any.
+    static const ObjectStreamer* getObjectStreamer(const QMetaObject* metaObject);
+
     /// Returns the meta-object registered under the supplied class name, if any.
     static const QMetaObject* getMetaObject(const QByteArray& className);
 
@@ -1022,6 +1025,7 @@ public:
     virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const = 0;
     virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const = 0;
     
+    virtual bool equal(const QObject* first, const QObject* second) const = 0;
     virtual void write(Bitstream& out, const QObject* object) const = 0;
     virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const = 0;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const = 0;
@@ -1047,6 +1051,7 @@ public:
     virtual QJsonObject getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const;
     virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const;
+    virtual bool equal(const QObject* first, const QObject* second) const;
     virtual void write(Bitstream& out, const QObject* object) const;
     virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
@@ -1070,6 +1075,7 @@ public:
     virtual QJsonObject getJSONMetadata(JSONWriter& writer) const;
     virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const;
     virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const;
+    virtual bool equal(const QObject* first, const QObject* second) const;
     virtual void write(Bitstream& out, const QObject* object) const;
     virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
     virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
@@ -1104,7 +1110,7 @@ private:
 Q_DECLARE_METATYPE(const QMetaObject*)
 
 /// Macro for registering streamable meta-objects.  Typically, one would use this macro at the top level of the source file
-/// associated with the class.
+/// associated with the class.  The class should have a no-argument constructor flagged with Q_INVOKABLE.
 #define REGISTER_META_OBJECT(x) static int x##Registration = Bitstream::registerMetaObject(#x, &x::staticMetaObject);
 
 /// Contains a value along with a pointer to its streamer.  This is stored in QVariants when using fallback generics and
@@ -1563,8 +1569,8 @@ public:
     Bitstream::registerTypeStreamer(qMetaTypeId<X>(), new CollectionTypeStreamer<X>());
 
 /// Declares the metatype and the streaming operators.  Typically, one would use this immediately after the definition of a
-/// type flagged as STREAMABLE in its header file.  The last lines ensure that the generated file will be included in the link
-/// phase.
+/// type flagged as STREAMABLE in its header file.  The type should have a no-argument constructor.  The last lines of this
+/// macro ensure that the generated file will be included in the link phase.
 #ifdef _WIN32
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
