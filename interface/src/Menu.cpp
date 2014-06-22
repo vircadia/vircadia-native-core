@@ -1293,6 +1293,7 @@ void Menu::showChat() {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
         }
+        _chatWindow->activateWindow();
     } else {
         Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
     }
