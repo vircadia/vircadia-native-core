@@ -445,7 +445,7 @@ void AudioMixer::sendStatsPacket() {
         clientNumber++;
         AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            QString property = "jitterStats." + QString::number(clientNumber);
+            QString property = "jitterStats." + node->getUUID().toString();
             QString value = clientData->getJitterBufferStats();
             statsObject2[qPrintable(property)] = value;
             somethingToSend = true;
@@ -457,6 +457,7 @@ void AudioMixer::sendStatsPacket() {
             nodeList->sendStatsToDomainServer(statsObject2);
             sizeOfStats = 0;
             statsObject2 = QJsonObject(); // clear it
+            somethingToSend = false;
         }
     }
 
