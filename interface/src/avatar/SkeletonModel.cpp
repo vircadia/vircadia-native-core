@@ -541,7 +541,7 @@ void SkeletonModel::buildRagdollConstraints() {
 
 // virtual 
 void SkeletonModel::stepRagdollForward(float deltaTime) {
-    const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.1f;
+    const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.03f;
     float fraction = glm::clamp(deltaTime / RAGDOLL_FOLLOWS_JOINTS_TIMESCALE, 0.0f, 1.0f);
     moveShapesTowardJoints(fraction);
 }
