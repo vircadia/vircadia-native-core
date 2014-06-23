@@ -354,7 +354,7 @@ void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
     // read number of sequence numbers
     uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
     dataAt += sizeof(uint16_t);
-
+    
     // read sequence numbers and queue packets for resend
     for (int i = 0; i < numSequenceNumbers; i++) {
         unsigned short int sequenceNumber = (*(unsigned short int*)dataAt);

@@ -98,10 +98,9 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples,
-                                                       AABox* checkSourceZone, AABox* listenerZone) {
+void AudioMixerClientData::checkBuffersBeforeFrameSend(AABox* checkSourceZone, AABox* listenerZone) {
     for (int i = 0; i < _ringBuffers.size(); i++) {
-        if (_ringBuffers[i]->shouldBeAddedToMix(jitterBufferLengthSamples)) {
+        if (_ringBuffers[i]->shouldBeAddedToMix()) {
             // this is a ring buffer that is ready to go
             // set its flag so we know to push its buffer when all is said and done
             _ringBuffers[i]->setWillBeAddedToMix(true);
@@ -120,20 +119,22 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
 }
 
 void AudioMixerClientData::pushBuffersAfterFrameSend() {
-    for (int i = 0; i < _ringBuffers.size(); i++) {
+
+    QList<PositionalAudioRingBuffer*>::iterator i = _ringBuffers.begin();
+    while (i != _ringBuffers.end()) {
         // this was a used buffer, push the output pointer forwards
-        PositionalAudioRingBuffer* audioBuffer = _ringBuffers[i];
+        PositionalAudioRingBuffer* audioBuffer = *i;
 
         if (audioBuffer->willBeAddedToMix()) {
-            audioBuffer->shiftReadPosition(audioBuffer->isStereo()
-                                           ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-
+            audioBuffer->shiftReadPosition(audioBuffer->getSamplesPerFrame());
             audioBuffer->setWillBeAddedToMix(false);
         } else if (audioBuffer->getType() == PositionalAudioRingBuffer::Injector
                    && audioBuffer->hasStarted() && audioBuffer->isStarved()) {
             // this is an empty audio buffer that has starved, safe to delete
             delete audioBuffer;
-            _ringBuffers.erase(_ringBuffers.begin() + i);
+            i = _ringBuffers.erase(i);
+            continue;
         }
+        i++;
     }
 }
