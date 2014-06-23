@@ -31,6 +31,13 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
 void SkeletonModel::setJointStates(QVector<JointState> states) {
     Model::setJointStates(states);
 
+    // the SkeletonModel override of updateJointState() will clear the translation part
+    // of its root joint and we need that done before we try to build shapes hence we
+    // recompute all joint transforms at this time.
+    for (int i = 0; i < _jointStates.size(); i++) {
+        updateJointState(i);
+    }
+
     clearShapes();
     clearRagdollConstraintsAndPoints();
     if (_enableShapes) {
@@ -95,26 +102,12 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
         applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
     }
-    
-    simulateRagdoll(deltaTime);
-}
-
-void SkeletonModel::simulateRagdoll(float deltaTime) {
-    const int numStates = _jointStates.size();
-    assert(numStates == _ragdollPoints.size());
-
-    float fraction = 0.1f; // fraction = 0.1f left intentionally low for demo purposes
-    moveShapesTowardJoints(fraction);
-
-    // enforce the constraints
-    float MIN_CONSTRAINT_ERROR = 0.005f; // 5mm
-    int MAX_ITERATIONS = 4;
-    int iterations = 0;
-    float delta = 0.0f;
-    do {
-        delta = enforceRagdollConstraints();
-        ++iterations;
-    } while (delta > MIN_CONSTRAINT_ERROR && iterations < MAX_ITERATIONS);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {    
+        const int numStates = _jointStates.size();
+        assert(numStates == _ragdollPoints.size());
+        float fraction = 0.1f; // fraction = 0.1f left intentionally low for demo purposes
+        moveShapesTowardJoints(fraction);
+    }
 }
 
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
@@ -541,7 +534,7 @@ void SkeletonModel::buildRagdollConstraints() {
         const FBXJoint& joint = state.getFBXJoint();
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1) {
-            FixedConstraint* anchor = new FixedConstraint(&(_ragdollPoints[i]._position), glm::vec3(0.0f));
+            FixedConstraint* anchor = new FixedConstraint(&(_ragdollPoints[i]), glm::vec3(0.0f));
             _ragdollConstraints.push_back(anchor);
         } else { 
             DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[i]), &(_ragdollPoints[parentIndex]));
@@ -553,6 +546,10 @@ void SkeletonModel::buildRagdollConstraints() {
 // virtual 
 void SkeletonModel::stepRagdollForward(float deltaTime) {
 }
+
+float DENSITY_OF_WATER = 1000.0f; // kg/m^3
+float MIN_JOINT_MASS = 1.0f;
+float VERY_BIG_MASS = 1.0e6f;
 
 // virtual
 void SkeletonModel::buildShapes() {
@@ -570,7 +567,8 @@ void SkeletonModel::buildShapes() {
     float uniformScale = extractUniformScale(_scale);
     const int numStates = _jointStates.size();
     for (int i = 0; i < numStates; i++) {
-        const FBXJoint& joint = geometry.joints[i];
+        JointState& state = _jointStates[i];
+        const FBXJoint& joint = state.getFBXJoint();
         float radius = uniformScale * joint.boneRadius;
         float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
         Shape::Type type = joint.shapeType;
@@ -579,27 +577,40 @@ void SkeletonModel::buildShapes() {
             type = Shape::SPHERE_SHAPE;
         }
         Shape* shape = NULL;
+        int parentIndex = joint.parentIndex;
         if (type == Shape::SPHERE_SHAPE) {
             shape = new VerletSphereShape(radius, &(_ragdollPoints[i]));
             shape->setEntity(this);
+            _ragdollPoints[i]._mass = glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
         } else if (type == Shape::CAPSULE_SHAPE) {
-            int parentIndex = joint.parentIndex;
             assert(parentIndex != -1);
             shape = new VerletCapsuleShape(radius, &(_ragdollPoints[parentIndex]), &(_ragdollPoints[i]));
             shape->setEntity(this);
+            _ragdollPoints[i]._mass = glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
         } 
+        if (parentIndex != -1) {
+            // always disable collisions between joint and its parent
+            disableCollisions(i, parentIndex);
+        } else {
+            // give the base joint a very large mass since it doesn't actually move
+            // in the local-frame simulation (it defines the origin)
+            _ragdollPoints[i]._mass = VERY_BIG_MASS;
+        }
         _shapes.push_back(shape);
     }
 
-    // This method moves the shapes to their default positions in Model frame
+    // This method moves the shapes to their default positions in Model frame.
     computeBoundingShape(geometry);
 
-    // while the shapes are in their default position...
-    disableSelfCollisions();
+    // While the shapes are in their default position we disable collisions between
+    // joints that are currently colliding.
+    disableCurrentSelfCollisions();
+
     buildRagdollConstraints();
 
     // ... then move shapes back to current joint positions
     moveShapesTowardJoints(1.0f);
+    enforceRagdollConstraints();
 }
 
 void SkeletonModel::moveShapesTowardJoints(float fraction) {

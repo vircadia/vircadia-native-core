@@ -35,18 +35,21 @@ void VerletPoint::applyAccumulatedDelta() {
 // ----------------------------------------------------------------------------
 // FixedConstraint
 // ----------------------------------------------------------------------------
-FixedConstraint::FixedConstraint(glm::vec3* point, const glm::vec3& anchor) : _point(point), _anchor(anchor) {
+FixedConstraint::FixedConstraint(VerletPoint* point, const glm::vec3& anchor) : _point(point), _anchor(anchor) {
 }
 
 float FixedConstraint::enforce() {
     assert(_point != NULL);
-    float distance = glm::distance(_anchor, *_point);
-    *_point = _anchor;
+    // TODO: use fast approximate sqrt here
+    float distance = glm::distance(_anchor, _point->_position);
+    _point->_position = _anchor;
     return distance;
 }
 
-void FixedConstraint::setPoint(glm::vec3* point) {
+void FixedConstraint::setPoint(VerletPoint* point) {
+    assert(point);
     _point = point;
+    _point->_mass = Shape::MAX_MASS;
 }
 
 void FixedConstraint::setAnchor(const glm::vec3& anchor) {

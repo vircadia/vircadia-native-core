@@ -146,7 +146,6 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
 // (10b) figure out how to slave dupe JointStates to physical shapes
 // (11) add and enforce angular contraints for joints
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
-    static int adebug = 0; ++adebug;
     quint64 startTime = usecTimestampNow();
     quint64 expiry = startTime + maxUsec;
 
@@ -156,9 +155,6 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
     enforceConstraints(minError, maxIterations, expiry - usecTimestampNow());
 
     _stepTime = usecTimestampNow()- startTime;
-    if (0 == (adebug % 200)) {
-        std::cout << " adebug nC = " << _numCollisions << "  i = " << _numIterations << "  e = " << _constraintError << "  t = " << _stepTime << std::endl;  // adebug
-    }
 }
 
 void PhysicsSimulation::moveRagdolls(float deltaTime) {

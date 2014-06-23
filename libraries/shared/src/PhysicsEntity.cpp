@@ -164,8 +164,8 @@ bool PhysicsEntity::findPlaneCollisions(const glm::vec4& plane, CollisionList& c
 }
 
 // -----------------------------------------------------------
-// TODO: enforce this maximum when shapes are built.  The gotcha here is that
-// the Model class (derived from PhysicsEntity) expects numShapes == numJoints, 
+// TODO: enforce this maximum when shapes are actually built.  The gotcha here is 
+// that the Model class (derived from PhysicsEntity) expects numShapes == numJoints, 
 // so we have to modify that code to be safe.
 const int MAX_SHAPES_PER_ENTITY = 256;
 
@@ -211,7 +211,7 @@ bool PhysicsEntity::collisionsAreEnabled(int shapeIndexA, int shapeIndexB) const
     return false;
 }
 
-void PhysicsEntity::disableSelfCollisions() {
+void PhysicsEntity::disableCurrentSelfCollisions() {
     CollisionList collisions(10);
     int numShapes = _shapes.size();
     for (int i = 0; i < numShapes; ++i) {
@@ -220,6 +220,9 @@ void PhysicsEntity::disableSelfCollisions() {
             continue;
         }
         for (int j = i+1; j < numShapes; ++j) {
+            if (!collisionsAreEnabled(i, j)) {
+                continue;
+            }
             const Shape* otherShape = _shapes.at(j);
             if (otherShape && ShapeCollider::collideShapes(shape, otherShape, collisions)) {
                 disableCollisions(i, j);

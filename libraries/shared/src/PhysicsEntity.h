@@ -58,7 +58,7 @@ public:
     void disableCollisions(int shapeIndexA, int shapeIndexB);
     bool collisionsAreEnabled(int shapeIndexA, int shapeIndexB) const;
 
-    void disableSelfCollisions();
+    void disableCurrentSelfCollisions();
 
 protected:
     glm::vec3 _translation;

@@ -59,12 +59,12 @@ protected:
 
 class FixedConstraint : public Constraint {
 public:
-    FixedConstraint(glm::vec3* point, const glm::vec3& anchor);
+    FixedConstraint(VerletPoint* point, const glm::vec3& anchor);
     float enforce();
-    void setPoint(glm::vec3* point);
+    void setPoint(VerletPoint* point);
     void setAnchor(const glm::vec3& anchor);
 private:
-    glm::vec3* _point;
+    VerletPoint* _point;
     glm::vec3 _anchor;
 };
 
