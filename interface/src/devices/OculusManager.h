@@ -55,11 +55,8 @@ private:
     static bool _isConnected;
     
 #ifdef HAVE_LIBOVR
-    static OVR::Ptr<OVR::DeviceManager> _deviceManager;
-    static OVR::Ptr<OVR::HMDDevice> _hmdDevice;
-    static OVR::Ptr<OVR::SensorDevice> _sensorDevice;
-    static OVR::SensorFusion* _sensorFusion;
-    static OVR::Util::Render::StereoConfig _stereoConfig;
+    static ovrHmd _ovrHmd;
+    static ovrHmdDesc _ovrHmdDesc;
 #endif
 };
 

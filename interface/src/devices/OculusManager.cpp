@@ -31,31 +31,25 @@ bool OculusManager::_isConnected = false;
 using namespace OVR;
 using namespace OVR::Util::Render;
 
-Ptr<DeviceManager> OculusManager::_deviceManager;
-Ptr<HMDDevice> OculusManager::_hmdDevice;
-Ptr<SensorDevice> OculusManager::_sensorDevice;
-SensorFusion* OculusManager::_sensorFusion;
-StereoConfig OculusManager::_stereoConfig;
+ovrHmd OculusManager::_ovrHmd;
+ovrHmdDesc OculusManager::_ovrHmdDesc;
+
 #endif
 
 void OculusManager::connect() {
 #ifdef HAVE_LIBOVR
-    System::Init();
-    _deviceManager = *DeviceManager::Create();
-    _hmdDevice = *_deviceManager->EnumerateDevices<HMDDevice>().CreateDevice();
+    ovr_Initialize();
 
-    if (_hmdDevice) {
+    _ovrHmd = ovrHmd_Create(0);
+    if (_ovrHmd) {
         _isConnected = true;
-        
-        _sensorDevice = *_hmdDevice->GetSensor();
-        _sensorFusion = new SensorFusion;
-        _sensorFusion->AttachToSensor(_sensorDevice);
-        _sensorFusion->SetPredictionEnabled(true);
+      
+        ovrHmd_GetDesc(_ovrHmd, &_ovrHmdDesc);
 
-        HMDInfo info;
-        _hmdDevice->GetDeviceInfo(&info);
-        _stereoConfig.SetHMDInfo(info);
-        
+        ovrHmd_StartSensor(_ovrHmd, ovrSensorCap_Orientation | ovrSensorCap_YawCorrection |
+                           ovrSensorCap_Position | ovrHmdCap_LowPersistence,
+                           ovrSensorCap_Orientation);
+
         _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/oculus.frag");
         _program.link();
         
@@ -66,8 +60,7 @@ void OculusManager::connect() {
         _scaleInLocation = _program.uniformLocation("scaleIn");
         _hmdWarpParamLocation = _program.uniformLocation("hmdWarpParam");        
     } else {
-        _deviceManager.Clear();
-        System::Destroy();
+        ovr_Shutdown();
     }
 #endif
 }
