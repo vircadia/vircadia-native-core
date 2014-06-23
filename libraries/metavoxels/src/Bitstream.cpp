@@ -110,6 +110,10 @@ const TypeStreamer* Bitstream::getTypeStreamer(int type) {
     return getTypeStreamers().value(type);
 }
 
+const ObjectStreamer* Bitstream::getObjectStreamer(const QMetaObject* metaObject) {
+    return getObjectStreamers().value(metaObject);
+}
+
 const QMetaObject* Bitstream::getMetaObject(const QByteArray& className) {
     return getMetaObjects().value(className);
 }
@@ -2316,6 +2320,15 @@ QObject* MappedObjectStreamer::putJSONData(JSONReader& reader, const QJsonObject
     return object;
 }
 
+bool MappedObjectStreamer::equal(const QObject* first, const QObject* second) const {
+    foreach (const StreamerPropertyPair& property, _properties) {
+        if (!property.first->equal(property.second.read(first), property.second.read(second))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void MappedObjectStreamer::write(Bitstream& out, const QObject* object) const {
     foreach (const StreamerPropertyPair& property, _properties) {
         property.first->write(out, property.second.read(object));
@@ -2431,6 +2444,17 @@ QObject* GenericObjectStreamer::putJSONData(JSONReader& reader, const QJsonObjec
     }
     object->setValues(values);
     return object;
+}
+
+bool GenericObjectStreamer::equal(const QObject* first, const QObject* second) const {
+    const QVariantList& firstValues = static_cast<const GenericSharedObject*>(first)->getValues();
+    const QVariantList& secondValues = static_cast<const GenericSharedObject*>(second)->getValues();
+    for (int i = 0; i < _properties.size(); i++) {
+        if (!_properties.at(i).first->equal(firstValues.at(i), secondValues.at(i))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void GenericObjectStreamer::write(Bitstream& out, const QObject* object) const {
