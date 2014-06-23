@@ -44,7 +44,6 @@ public:
     void moveRagdolls(float deltaTime);
     void computeCollisions();
     void processCollisions();
-    void enforceConstraints(float minError, int maxIterations, quint64 maxUsec);
 
 private:
     CollisionList _collisionList;

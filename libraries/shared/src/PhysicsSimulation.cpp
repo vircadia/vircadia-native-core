@@ -10,6 +10,7 @@
 //
 
 #include <glm/glm.hpp>
+#include <iostream>
 
 #include "PhysicsSimulation.h"
 
@@ -145,15 +146,41 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
 // (10b) figure out how to slave dupe JointStates to physical shapes
 // (11) add and enforce angular contraints for joints
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
-    quint64 startTime = usecTimestampNow();
+    quint64 now = usecTimestampNow();
+    quint64 startTime = now;
     quint64 expiry = startTime + maxUsec;
 
     moveRagdolls(deltaTime);
-    computeCollisions();
-    processCollisions();
-    enforceConstraints(minError, maxIterations, expiry - usecTimestampNow());
 
+    int numDolls = _dolls.size();
+    _numCollisions = 0;
+    int iterations = 0;
+    float error = 0.0f;
+    do {
+        computeCollisions();
+        processCollisions();
+
+        // enforce constraints
+        error = 0.0f;
+        for (int i = 0; i < numDolls; ++i) {
+            error = glm::max(error, _dolls[i]->enforceRagdollConstraints());
+        }
+        ++iterations;
+
+        now = usecTimestampNow();
+    } while (_numCollisions != 0 && (iterations < maxIterations) && (error > minError) && (now < expiry));
+
+    _numIterations = iterations;
+    _constraintError = error;
     _stepTime = usecTimestampNow()- startTime;
+
+#ifdef ANDREW_DEBUG
+    // temporary debug info for watching simulation performance
+    static int adebug = 0; ++adebug;
+    if (0 == (adebug % 100)) {
+        std::cout << "adebug Ni = " << _numIterations << "  E = " << error  << "  t = " << _stepTime << std::endl;  // adebug
+    }
+#endif // ANDREW_DEBUG
 }
 
 void PhysicsSimulation::moveRagdolls(float deltaTime) {
@@ -215,22 +242,3 @@ void PhysicsSimulation::processCollisions() {
         ++shapeItr;
     }
 }
-
-void PhysicsSimulation::enforceConstraints(float minError, int maxIterations, quint64 maxUsec) {
-    quint64 now = usecTimestampNow();
-    quint64 expiry = now + maxUsec;
-    int iterations = 0;
-    float error = 0.0f;
-    int numDolls = _dolls.size();
-    do {
-        error = 0.0f;
-        for (int i = 0; i < numDolls; ++i) {
-            error = glm::max(error, _dolls[i]->enforceRagdollConstraints());
-        }
-        ++iterations;
-        now = usecTimestampNow();
-    } while (iterations < maxIterations && error > minError && now < expiry);
-    _numIterations = iterations;
-    _constraintError = error;
-}
-
