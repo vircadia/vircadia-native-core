@@ -10,7 +10,6 @@
 //
 
 #include <glm/glm.hpp>
-#include <iostream> // adebug
 
 #include "PhysicsSimulation.h"
 
