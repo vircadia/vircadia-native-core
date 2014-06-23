@@ -40,7 +40,7 @@ class Endpoint : public QObject {
 
 public:
     
-    enum Mode { BASIC_PEER_MODE, METAVOXEL_SERVER_MODE, METAVOXEL_CLIENT_MODE };
+    enum Mode { BASIC_PEER_MODE, CONGESTION_MODE, METAVOXEL_SERVER_MODE, METAVOXEL_CLIENT_MODE };
     
     Endpoint(const QByteArray& datagramHeader, Mode mode = BASIC_PEER_MODE);
 

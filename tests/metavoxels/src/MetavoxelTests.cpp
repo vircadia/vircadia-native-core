@@ -335,7 +335,7 @@ bool MetavoxelTests::run() {
     QByteArray datagramHeader("testheader");
     const int SIMULATION_ITERATIONS = 10000;
     if (test == 0 || test == 1) {
-        qDebug() << "Running transmission tests...";
+        qDebug() << "Running transmission test...";
         qDebug();
     
         // create two endpoints with the same header
@@ -365,7 +365,37 @@ bool MetavoxelTests::run() {
     }
     
     if (test == 0 || test == 2) {
-        qDebug() << "Running serialization tests...";
+        qDebug() << "Running congestion control test...";
+        qDebug();
+        
+        // clear the stats
+        streamedBytesSent = streamedBytesReceived = datagramsSent = bytesSent = 0;
+        datagramsReceived = bytesReceived = maxDatagramsPerPacket = maxBytesPerPacket = 0;
+        
+        // create two endpoints with the same header
+        Endpoint alice(datagramHeader, Endpoint::CONGESTION_MODE), bob(datagramHeader, Endpoint::CONGESTION_MODE);
+        
+        alice.setOther(&bob);
+        bob.setOther(&alice);
+        
+        // perform a large number of simulation iterations
+        for (int i = 0; i < SIMULATION_ITERATIONS; i++) {
+            if (alice.simulate(i) || bob.simulate(i)) {
+                return true;
+            }
+        }
+        
+        qDebug() << "Sent" << streamedBytesSent << "streamed bytes, received" << streamedBytesReceived;
+        qDebug() << "Sent" << datagramsSent << "datagrams with" << bytesSent << "bytes, received" <<
+            datagramsReceived << "with" << bytesReceived << "bytes";
+        qDebug() << "Max" << maxDatagramsPerPacket << "datagrams," << maxBytesPerPacket << "bytes per packet";
+        qDebug() << "Average" << (bytesReceived / datagramsReceived) << "bytes per datagram";
+        qDebug() << "Speed:" << (bytesReceived / SIMULATION_ITERATIONS) << "bytes per iteration";
+        qDebug() << "Efficiency:" << ((float)streamedBytesReceived / bytesReceived);
+    }
+    
+    if (test == 0 || test == 3) {
+        qDebug() << "Running serialization test...";
         qDebug();
         
         if (testSerialization(Bitstream::HASH_METADATA) || testSerialization(Bitstream::FULL_METADATA)) {
@@ -373,8 +403,8 @@ bool MetavoxelTests::run() {
         }
     }
     
-    if (test == 0 || test == 3) {
-        qDebug() << "Running metavoxel data tests...";
+    if (test == 0 || test == 4) {
+        qDebug() << "Running metavoxel data test...";
         qDebug();
     
         // clear the stats
@@ -498,9 +528,15 @@ Endpoint::Endpoint(const QByteArray& datagramHeader, Mode mode) :
     ReliableChannel* output = _sequencer->getReliableOutputChannel(1);
     output->setPriority(0.25f);
     output->setMessagesEnabled(false);
-    const int MIN_STREAM_BYTES = 100000;
-    const int MAX_STREAM_BYTES = 200000;
-    QByteArray bytes = createRandomBytes(MIN_STREAM_BYTES, MAX_STREAM_BYTES);
+    QByteArray bytes;
+    if (mode == CONGESTION_MODE) {
+        const int HUGE_STREAM_BYTES = 50 * 1024 * 1024;
+        bytes = createRandomBytes(HUGE_STREAM_BYTES, HUGE_STREAM_BYTES);
+    } else {
+        const int MIN_STREAM_BYTES = 100000;
+        const int MAX_STREAM_BYTES = 200000;
+        bytes = createRandomBytes(MIN_STREAM_BYTES, MAX_STREAM_BYTES);
+    }
     _dataStreamed.append(bytes);
     output->getBuffer().write(bytes);
     streamedBytesSent += bytes.size();    
@@ -646,7 +682,16 @@ bool Endpoint::simulate(int iterationNumber) {
 
     int oldDatagramsSent = datagramsSent;
     int oldBytesSent = bytesSent;
-    if (_mode == METAVOXEL_CLIENT_MODE) {
+    if (_mode == CONGESTION_MODE) {
+        Bitstream& out = _sequencer->startPacket();
+        out << QVariant();
+        _sequencer->endPacket();    
+        
+        // record the send
+        SendRecord record = { _sequencer->getOutgoingPacketNumber() };
+        _sendRecords.append(record);
+        
+    } else if (_mode == METAVOXEL_CLIENT_MODE) {
         Bitstream& out = _sequencer->startPacket();
     
         ClientStateMessage state = { _lod };
@@ -748,13 +793,14 @@ void Endpoint::sendDatagram(const QByteArray& datagram) {
     
     // some datagrams are dropped
     const float DROP_PROBABILITY = 0.1f;
-    if (randFloat() < DROP_PROBABILITY) {
+    float probabilityMultiplier = (_mode == CONGESTION_MODE) ? 0.01f : 1.0f;
+    if (randFloat() < DROP_PROBABILITY * probabilityMultiplier) {
         return;
     }
     
     // some are received out of order
     const float REORDER_PROBABILITY = 0.1f;
-    if (randFloat() < REORDER_PROBABILITY) {
+    if (randFloat() < REORDER_PROBABILITY * probabilityMultiplier) {
         const int MIN_DELAY = 1;
         const int MAX_DELAY = 5;
         // have to copy the datagram; the one we're passed is a reference to a shared buffer
@@ -763,7 +809,7 @@ void Endpoint::sendDatagram(const QByteArray& datagram) {
         
         // and some are duplicated
         const float DUPLICATE_PROBABILITY = 0.01f;
-        if (randFloat() > DUPLICATE_PROBABILITY) {
+        if (randFloat() > DUPLICATE_PROBABILITY * probabilityMultiplier) {
             return;
         }
     }
@@ -788,6 +834,15 @@ void Endpoint::handleHighPriorityMessage(const QVariant& message) {
 }
 
 void Endpoint::readMessage(Bitstream& in) {
+    if (_mode == CONGESTION_MODE) {
+        QVariant message;
+        in >> message;
+        
+        // record the receipt
+        ReceiveRecord record = { _sequencer->getIncomingPacketNumber() };
+        _receiveRecords.append(record);
+        return;
+    }
     if (_mode == METAVOXEL_CLIENT_MODE) {
         QVariant message;
         in >> message;
