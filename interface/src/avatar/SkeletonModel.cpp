@@ -523,8 +523,7 @@ void SkeletonModel::buildRagdollConstraints() {
     // NOTE: the length of DistanceConstraints is computed and locked in at this time
     // so make sure the ragdoll positions are in a normal configuration before here.
     const int numPoints = _ragdollPoints.size();
-    const int numJoints = _jointStates.size();
-    assert(numPoints == numJoints);
+    assert(numPoints == _jointStates.size());
 
     for (int i = 0; i < numPoints; ++i) {
         const JointState& state = _jointStates.at(i);
@@ -615,9 +614,9 @@ void SkeletonModel::buildShapes() {
 
 void SkeletonModel::moveShapesTowardJoints(float fraction) {
     const int numStates = _jointStates.size();
-    assert(numStates == _ragdollPoints.size());
+    assert(_jointStates.size() == _ragdollPoints.size());
     assert(fraction >= 0.0f && fraction <= 1.0f);
-    if (_ragdollPoints.size() == _jointStates.size()) {
+    if (_ragdollPoints.size() == numStates) {
         float oneMinusFraction = 1.0f - fraction; 
         int numJoints = _jointStates.size();
         for (int i = 0; i < numJoints; ++i) {
