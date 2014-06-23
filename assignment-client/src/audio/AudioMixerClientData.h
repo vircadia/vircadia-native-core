@@ -29,6 +29,9 @@ public:
     int parseData(const QByteArray& packet);
     void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
+
+    QString getJitterBufferStats() const;
+
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;
 };

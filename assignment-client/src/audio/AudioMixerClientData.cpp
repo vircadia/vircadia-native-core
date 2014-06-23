@@ -138,3 +138,26 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
         i++;
     }
 }
+
+QString AudioMixerClientData::getJitterBufferStats() const {
+    QString result;
+    AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
+    if (avatarRingBuffer) {
+        int desiredJitterBuffer = avatarRingBuffer->getDesiredJitterBufferFrames();
+        int currentJitterBuffer = avatarRingBuffer->getCurrentJitterBufferFrames();
+        result += "mic.desired:" + QString::number(desiredJitterBuffer) + " current:" + QString::number(currentJitterBuffer);
+    } else {
+        result = "mic unknown";
+    }
+
+    for (int i = 0; i < _ringBuffers.size(); i++) {
+        if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
+            int desiredJitterBuffer = _ringBuffers[i]->getDesiredJitterBufferFrames();
+            int currentJitterBuffer = _ringBuffers[i]->getCurrentJitterBufferFrames();
+            result += "| injected["+QString::number(i)+"].desired:" 
+                    + QString::number(desiredJitterBuffer) + " current:" + QString::number(currentJitterBuffer);
+        }
+    }
+
+    return result;
+}
