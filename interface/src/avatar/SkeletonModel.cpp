@@ -102,12 +102,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
         applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
     }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {    
-        const int numStates = _jointStates.size();
-        assert(numStates == _ragdollPoints.size());
-        float fraction = 0.1f; // fraction = 0.1f left intentionally low for demo purposes
-        moveShapesTowardJoints(fraction);
-    }
 
     _boundingShape.setTranslation(_translation + _rotation * _boundingShapeLocalOffset);
     _boundingShape.setRotation(_rotation);
@@ -548,6 +542,9 @@ void SkeletonModel::buildRagdollConstraints() {
 
 // virtual 
 void SkeletonModel::stepRagdollForward(float deltaTime) {
+    const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.1f;
+    float fraction = glm::clamp(deltaTime / RAGDOLL_FOLLOWS_JOINTS_TIMESCALE, 0.0f, 1.0f);
+    moveShapesTowardJoints(fraction);
 }
 
 float DENSITY_OF_WATER = 1000.0f; // kg/m^3
@@ -617,6 +614,8 @@ void SkeletonModel::buildShapes() {
 }
 
 void SkeletonModel::moveShapesTowardJoints(float fraction) {
+    const int numStates = _jointStates.size();
+    assert(numStates == _ragdollPoints.size());
     assert(fraction >= 0.0f && fraction <= 1.0f);
     if (_ragdollPoints.size() == _jointStates.size()) {
         float oneMinusFraction = 1.0f - fraction; 
