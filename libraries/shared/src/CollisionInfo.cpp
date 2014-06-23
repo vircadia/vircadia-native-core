@@ -37,7 +37,7 @@ void CollisionInfo::apply() {
     // NOTE: Shape::computeEffectiveMass() has side effects: computes and caches partial Lagrangian coefficients
     Shape* shapeA = const_cast<Shape*>(_shapeA);
     float massA = shapeA->computeEffectiveMass(_penetration, _contactPoint);
-    float massB = Shape::MAX_MASS;
+    float massB = MAX_SHAPE_MASS;
     float totalMass = massA + massB;
     if (_shapeB) {
         Shape* shapeB = const_cast<Shape*>(_shapeB);

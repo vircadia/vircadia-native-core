@@ -17,9 +17,10 @@
 
 class PhysicsEntity;
 
+const float MAX_SHAPE_MASS = 1.0e18f; // something less than sqrt(FLT_MAX)
+
 class Shape {
 public:
-    static const float MAX_MASS = 1.0e18f; // something less than sqrt(FLT_MAX)
 
     enum Type{
         UNKNOWN_SHAPE = 0,
@@ -29,7 +30,7 @@ public:
         LIST_SHAPE
     };
 
-    Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.f), _translation(0.f), _rotation(), _mass(MAX_MASS) { }
+    Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.f), _translation(0.f), _rotation(), _mass(MAX_SHAPE_MASS) { }
     virtual ~Shape() {}
 
     int getType() const { return _type; }

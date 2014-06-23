@@ -49,7 +49,7 @@ float FixedConstraint::enforce() {
 void FixedConstraint::setPoint(VerletPoint* point) {
     assert(point);
     _point = point;
-    _point->_mass = Shape::MAX_MASS;
+    _point->_mass = MAX_SHAPE_MASS;
 }
 
 void FixedConstraint::setAnchor(const glm::vec3& anchor) {
