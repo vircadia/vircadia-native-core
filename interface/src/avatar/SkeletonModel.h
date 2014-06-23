@@ -98,7 +98,6 @@ public:
     virtual void stepRagdollForward(float deltaTime);
 
     void moveShapesTowardJoints(float fraction);
-    //void updateShapePositionsLegacy(); // TODO: Andrew to remove this when done with ragdoll work
 
     void computeBoundingShape(const FBXGeometry& geometry);
     void renderBoundingCollisionShapes(float alpha);
