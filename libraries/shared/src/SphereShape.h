@@ -14,6 +14,8 @@
 
 #include "Shape.h"
 
+#include "SharedUtil.h"
+
 class SphereShape : public Shape {
 public:
     SphereShape() : Shape(Shape::SPHERE_SHAPE) {}
@@ -33,6 +35,8 @@ public:
     void setRadius(float radius) { _boundingRadius = radius; }
 
     bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const;
+
+    float getVolume() const { return 1.3333333333f * PI * _boundingRadius * _boundingRadius * _boundingRadius; }
 };
 
 #endif // hifi_SphereShape_h

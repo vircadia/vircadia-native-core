@@ -63,6 +63,9 @@ public:
 
     virtual void applyAccumulatedDelta() {}
 
+    /// \return volume of shape in cubic meters
+    virtual float getVolume() const { return 1.0; }
+
 protected:
     // these ctors are protected (used by derived classes only)
     Shape(Type type) : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _translation(0.f), _rotation() {}
