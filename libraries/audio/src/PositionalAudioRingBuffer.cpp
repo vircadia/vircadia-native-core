@@ -151,8 +151,6 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         int dataBytes = writeData(packet.data() + readBytes, packet.size() - readBytes);
         readBytes += dataBytes;
     }
-//printf("parsed packet. %d samples available\n", samplesAvailable());
-    
     return readBytes;
 }
 

@@ -90,6 +90,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             // we don't have a matching injected audio ring buffer, so add it
             matchingInjectedRingBuffer = new InjectedAudioRingBuffer(streamIdentifier);
             _ringBuffers.push_back(matchingInjectedRingBuffer);
+printf("created InjectedRingBuffer %p\n", (void*)matchingInjectedRingBuffer);
         }
 
         matchingInjectedRingBuffer->parseData(packet);
@@ -132,6 +133,7 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
                    && audioBuffer->hasStarted() && audioBuffer->isStarved()) {
             // this is an empty audio buffer that has starved, safe to delete
             delete audioBuffer;
+printf("deleted injector %p\n", (void*)audioBuffer);
             i = _ringBuffers.erase(i);
             continue;
         }

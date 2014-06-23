@@ -125,16 +125,19 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
     std::less<int16_t*> less;
     std::less_equal<int16_t*> lessEqual;
 
+    // TODO: why is less(_endOfLastWrite, _nextOutput) a condition here?
     if (_hasStarted
+        /*
         && (less(_endOfLastWrite, _nextOutput)
-            && lessEqual(_nextOutput, shiftedPositionAccomodatingWrap(_endOfLastWrite, samplesToCopy)))) {
+        && lessEqual(_nextOutput, shiftedPositionAccomodatingWrap(_endOfLastWrite, samplesToCopy)))*/
+        && samplesToCopy > _sampleCapacity - samplesAvailable()) {
         // this read will cross the next output, so call us starved and reset the buffer
         qDebug() << "Filled the ring buffer. Resetting.";
         _endOfLastWrite = _buffer;
         _nextOutput = _buffer;
         _isStarved = true;
     }
-
+    
     if (_endOfLastWrite + samplesToCopy <= _buffer + _sampleCapacity) {
         memcpy(_endOfLastWrite, data, samplesToCopy * sizeof(int16_t));
     } else {
@@ -145,6 +148,7 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
 
     _endOfLastWrite = shiftedPositionAccomodatingWrap(_endOfLastWrite, samplesToCopy);
 
+printf("%p: writeData. %d samples available\n", (void*)this, samplesAvailable());
     return samplesToCopy * sizeof(int16_t);
 }
 
@@ -158,7 +162,7 @@ const int16_t& AudioRingBuffer::operator[] (const int index) const {
 
 void AudioRingBuffer::shiftReadPosition(unsigned int numSamples) {
     _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, numSamples);
-//printf("\nmixed.  %d samples remaining\n", samplesAvailable());
+printf("%p: mixed.  %d samples remaining\n", (void*)this, samplesAvailable());
 }
 
 unsigned int AudioRingBuffer::samplesAvailable() const {
