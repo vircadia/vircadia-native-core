@@ -576,9 +576,8 @@ bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
 }
 
 bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions) {
-    int skeletonSkipIndex = -1;
-    return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions, skeletonSkipIndex);
-    // Temporarily disabling collisions against the head because most of its collision proxies are bad.
+    return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
+    // TODO: Andrew to fix: Temporarily disabling collisions against the head
     //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
 }
 

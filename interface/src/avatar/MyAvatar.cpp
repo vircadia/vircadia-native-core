@@ -161,7 +161,6 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("MyAvatar::simulate/hand Collision,simulate");
         // update avatar skeleton and simulate hand and head
-        getHand()->collideAgainstOurself(); 
         getHand()->simulate(deltaTime, true);
     }
 

@@ -52,7 +52,7 @@ public:
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
     bool findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions);
-    bool findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius, CollisionList& collisions, int skipIndex);
+    bool findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius, CollisionList& collisions);
     bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
 
     void disableCollisions(int shapeIndexA, int shapeIndexB);

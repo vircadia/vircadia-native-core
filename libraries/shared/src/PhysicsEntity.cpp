@@ -72,13 +72,12 @@ void PhysicsEntity::clearShapes() {
 }
 
 bool PhysicsEntity::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
-    /* TODO: Andrew to make this work
     int numShapes = _shapes.size();
     float minDistance = FLT_MAX;
     for (int j = 0; j < numShapes; ++j) {
         const Shape* shape = _shapes[j];
         float thisDistance = FLT_MAX;
-        if (shape && ShapeCollider::findRayIntersection(ourShape, origin, direction, thisDistance)) {
+        if (shape && shape->findRayIntersection(origin, direction, thisDistance)) {
             if (thisDistance < minDistance) {
                 minDistance = thisDistance;
             }
@@ -88,7 +87,6 @@ bool PhysicsEntity::findRayIntersection(const glm::vec3& origin, const glm::vec3
         distance = minDistance;
         return true;
     }
-    */
     return false;
 }
 
@@ -111,30 +109,13 @@ bool PhysicsEntity::findCollisions(const QVector<const Shape*> shapes, Collision
     return collided;
 }
 
-bool PhysicsEntity::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius,
-    CollisionList& collisions, int skipIndex) {
+bool PhysicsEntity::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius, CollisionList& collisions) {
     bool collided = false;
-    // TODO: Andrew to implement this or make it unecessary
-    /*
     SphereShape sphere(sphereRadius, sphereCenter);
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _shapes.size(); i++) {
         Shape* shape = _shapes[i];
         if (!shape) {
             continue;
-        }
-        const FBXJoint& joint = geometry.joints[i];
-        if (joint.parentIndex != -1) {
-            if (skipIndex != -1) {
-                int ancestorIndex = joint.parentIndex;
-                do {
-                    if (ancestorIndex == skipIndex) {
-                        goto outerContinue;
-                    }
-                    ancestorIndex = geometry.joints[ancestorIndex].parentIndex;
-                    
-                } while (ancestorIndex != -1);
-            }
         }
         if (ShapeCollider::collideShapes(&sphere, shape, collisions)) {
             CollisionInfo* collision = collisions.getLastCollision();
@@ -142,9 +123,7 @@ bool PhysicsEntity::findSphereCollisions(const glm::vec3& sphereCenter, float sp
             collision->_intData = i;
             collided = true;
         }
-        outerContinue: ;
     }
-    */
     return collided;
 }
 
