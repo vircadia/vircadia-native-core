@@ -29,7 +29,7 @@ InterframeTimeGapStats::InterframeTimeGapStats()
     _windowMaxGap(0),
     _newWindowMaxGapAvailable(false)
 {
-    memset(_intervalMaxGaps, 0, TIME_GAP_NUM_INTERVALS_IN_WINDOW*sizeof(quint64));
+    memset(_intervalMaxGaps, 0, TIME_GAP_NUM_INTERVALS_IN_WINDOW * sizeof(quint64));
 }
 
 void InterframeTimeGapStats::frameReceived() {
