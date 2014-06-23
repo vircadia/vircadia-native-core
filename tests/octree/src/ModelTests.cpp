@@ -40,6 +40,7 @@ void ModelTests::modelTreeTests(bool verbose) {
     ModelTree tree;
     uint32_t id = 1;
     ModelItemID modelID(id);
+    modelID.isKnownID = false; // this is a temporary workaround to allow local tree models to be added with known IDs
     ModelItemProperties properties;
     float oneMeter = 1.0f;
     float halfMeter = oneMeter / 2.0f;
@@ -89,6 +90,8 @@ void ModelTests::modelTreeTests(bool verbose) {
             qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName);
         }
     }
+
+    modelID.isKnownID = true; // this is a temporary workaround to allow local tree models to be added with known IDs
 
     {
         testsTaken++;
@@ -168,6 +171,69 @@ void ModelTests::modelTreeTests(bool verbose) {
             testsFailed++;
             qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName);
         }
+    }
+
+    {
+        testsTaken++;
+        QString testName = "Performance - findClosestModel() 1,000,000 times";
+        if (verbose) {
+            qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
+        }
+
+        float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
+        const int TEST_ITERATIONS = 1000000;
+        quint64 start = usecTimestampNow();
+        const ModelItem* foundModelByRadius = NULL;
+        for (int i = 0; i < TEST_ITERATIONS; i++) {        
+            foundModelByRadius = tree.findClosestModel(positionAtCenterInTreeUnits, targetRadius);
+        }
+        quint64 end = usecTimestampNow();
+        
+        if (verbose) {
+            qDebug() << "foundModelByRadius=" << foundModelByRadius;
+        }
+
+        bool passed = foundModelByRadius;
+        if (passed) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName);
+        }
+        float USECS_PER_MSECS = 1000.0f;
+        float elapsedInMSecs = (float)(end - start) / USECS_PER_MSECS;
+        qDebug() << "TIME - Test" << testsTaken <<":" << qPrintable(testName) << "elapsed=" << elapsedInMSecs << "msecs";
+    }
+
+    {
+        testsTaken++;
+        QString testName = "Performance - findModelByID() 1,000,000 times";
+        if (verbose) {
+            qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
+        }
+
+        const int TEST_ITERATIONS = 1000000;
+        quint64 start = usecTimestampNow();
+        const ModelItem* foundModelByID = NULL;
+        for (int i = 0; i < TEST_ITERATIONS; i++) {        
+            foundModelByID = tree.findModelByID(id);
+        }
+        quint64 end = usecTimestampNow();
+        
+        if (verbose) {
+            qDebug() << "foundModelByID=" << foundModelByID;
+        }
+
+        bool passed = foundModelByID;
+        if (passed) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName);
+        }
+        float USECS_PER_MSECS = 1000.0f;
+        float elapsedInMSecs = (float)(end - start) / USECS_PER_MSECS;
+        qDebug() << "TIME - Test" << testsTaken <<":" << qPrintable(testName) << "elapsed=" << elapsedInMSecs << "msecs";
     }
 
     qDebug() << "   tests passed:" << testsPassed << "out of" << testsTaken;

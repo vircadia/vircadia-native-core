@@ -13,10 +13,8 @@
 #define hifi_ModelTests_h
 
 namespace ModelTests {
-
-    void modelTreeTests(bool verbose);
-
-    void runAllTests(bool verbose); 
+    void modelTreeTests(bool verbose = false);
+    void runAllTests(bool verbose = false);
 }
 
 #endif // hifi_ModelTests_h
