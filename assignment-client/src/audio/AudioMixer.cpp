@@ -425,7 +425,20 @@ void AudioMixer::sendStatsPacket() {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
 
-    // add stats for each listerner    
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
+    _sumListeners = 0;
+    _sumMixes = 0;
+    _numStatFrames = 0;
+
+
+    // NOTE: These stats can be too large to fit in an MTU, so we break it up into multiple packts...
+    QJsonObject statsObject2;
+
+    // add stats for each listerner
+    bool somethingToSend = false;
+    int sizeOfStats = 0;
+    int TOO_BIG_FOR_MTU = 1200; // some extra space for JSONification
+    
     NodeList* nodeList = NodeList::getInstance();
     int clientNumber = 0;
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
@@ -433,16 +446,23 @@ void AudioMixer::sendStatsPacket() {
         AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
             QString property = "jitterStats." + QString::number(clientNumber);
-            statsObject[qPrintable(property)] = clientData->getJitterBufferStats();
+            QString value = clientData->getJitterBufferStats();
+            statsObject2[qPrintable(property)] = value;
+            somethingToSend = true;
+            sizeOfStats += property.size() + value.size();
+        }
+        
+        // if we're too large, send the packet
+        if (sizeOfStats > TOO_BIG_FOR_MTU) {
+            nodeList->sendStatsToDomainServer(statsObject2);
+            sizeOfStats = 0;
+            statsObject2 = QJsonObject(); // clear it
         }
     }
-    
-    
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
-    
-    _sumListeners = 0;
-    _sumMixes = 0;
-    _numStatFrames = 0;
+
+    if (somethingToSend) {
+        nodeList->sendStatsToDomainServer(statsObject2);
+    }
 }
 
 void AudioMixer::run() {
