@@ -1098,9 +1098,10 @@ void Model::renderJointCollisionShapes(float alpha) {
         }
 
         glPushMatrix();
+        // NOTE: the shapes are in the avatar local-frame
         if (shape->getType() == Shape::SPHERE_SHAPE) {
             // shapes are stored in world-frame, so we have to transform into model frame
-            glm::vec3 position = shape->getTranslation() - _translation;
+            glm::vec3 position = _rotation * shape->getTranslation();
             glTranslatef(position.x, position.y, position.z);
             const glm::quat& rotation = shape->getRotation();
             glm::vec3 axis = glm::axis(rotation);
@@ -1115,7 +1116,7 @@ void Model::renderJointCollisionShapes(float alpha) {
             // draw a blue sphere at the capsule endpoint
             glm::vec3 endPoint;
             capsule->getEndPoint(endPoint);
-            endPoint = endPoint - _translation;
+            endPoint = _rotation * endPoint;
             glTranslatef(endPoint.x, endPoint.y, endPoint.z);
             glColor4f(0.6f, 0.6f, 0.8f, alpha);
             glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
@@ -1123,7 +1124,7 @@ void Model::renderJointCollisionShapes(float alpha) {
             // draw a yellow sphere at the capsule startpoint
             glm::vec3 startPoint;
             capsule->getStartPoint(startPoint);
-            startPoint = startPoint - _translation;
+            startPoint = _rotation * startPoint;
             glm::vec3 axis = endPoint - startPoint;
             glTranslatef(-axis.x, -axis.y, -axis.z);
             glColor4f(0.8f, 0.8f, 0.6f, alpha);
