@@ -54,9 +54,6 @@
 
 #include "AudioMixer.h"
 
-const short JITTER_BUFFER_MSECS = 12;
-const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
-
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
@@ -487,8 +484,7 @@ void AudioMixer::run() {
         
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
-                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES,
-                                                                                             _sourceUnattenuatedZone,
+                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(_sourceUnattenuatedZone,
                                                                                              _listenerUnattenuatedZone);
             }
         }
