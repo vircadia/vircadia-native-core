@@ -424,6 +424,19 @@ void AudioMixer::sendStatsPacket() {
     } else {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
+
+    // add stats for each listerner    
+    NodeList* nodeList = NodeList::getInstance();
+    int clientNumber = 0;
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        clientNumber++;
+        AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        if (clientData) {
+            QString property = "jitterStats." + QString::number(clientNumber);
+            statsObject[qPrintable(property)] = clientData->getJitterBufferStats();
+        }
+    }
+    
     
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
     
