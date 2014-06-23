@@ -119,6 +119,9 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         
         readBytes += sizeof(int16_t);
         
+        // NOTE: fixes a bug in old clients that would send garbage for their number of silentSamples
+        numSilentSamples = getSamplesPerFrame();
+        
         if (numSilentSamples > 0) {
             if (_currentJitterBufferFrames > _desiredJitterBufferFrames) {
                 // our current jitter buffer size exceeds its desired value, so ignore some silent
