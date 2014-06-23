@@ -204,7 +204,6 @@ void MyAvatar::simulate(float deltaTime) {
         _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
     }
 
-    /* TODO: Andrew to make this work again
     // now that we're done stepping the avatar forward in time, compute new collisions
     if (_collisionGroups != 0) {
         PerformanceTimer perfTimer("MyAvatar::simulate/_collisionGroups");
@@ -225,12 +224,13 @@ void MyAvatar::simulate(float deltaTime) {
         } else {
             _trapDuration = 0.0f;
         }
+    /* TODO: Andrew to make this work
         if (_collisionGroups & COLLISION_GROUP_AVATARS) {
             PerformanceTimer perfTimer("MyAvatar::simulate/updateCollisionWithAvatars");
             updateCollisionWithAvatars(deltaTime);
         }
-    }
     */
+    }
 
     // consider updating our billboard
     maybeUpdateBillboard();
