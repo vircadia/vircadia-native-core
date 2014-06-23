@@ -213,6 +213,45 @@ void ModelTests::modelTreeTests(bool verbose) {
         qDebug() << "TIME - Test" << testsTaken <<":" << qPrintable(testName) << "elapsed=" << elapsedInMSecs << "msecs";
     }
 
+    {
+        testsTaken++;
+        QString testName = "Performance - add model to tree 10,000 times";
+        if (verbose) {
+            qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
+        }
+
+        const int TEST_ITERATIONS = 10000;
+        quint64 start = usecTimestampNow();
+        for (int i = 0; i < TEST_ITERATIONS; i++) {        
+            uint32_t id = i + 2; // make sure it doesn't collide with previous model ids
+            ModelItemID modelID(id);
+            modelID.isKnownID = false; // this is a temporary workaround to allow local tree models to be added with known IDs
+
+            float randomX = randFloatInRange(0.0f ,(float)TREE_SCALE);
+            float randomY = randFloatInRange(0.0f ,(float)TREE_SCALE);
+            float randomZ = randFloatInRange(0.0f ,(float)TREE_SCALE);
+            glm::vec3 randomPositionInMeters(randomX,randomY,randomZ);
+
+            properties.setPosition(randomPositionInMeters);
+            properties.setRadius(halfMeter);
+            properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
+
+            tree.addModel(modelID, properties);
+        }
+        quint64 end = usecTimestampNow();
+        
+        bool passed = true;
+        if (passed) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName);
+        }
+        float USECS_PER_MSECS = 1000.0f;
+        float elapsedInMSecs = (float)(end - start) / USECS_PER_MSECS;
+        qDebug() << "TIME - Test" << testsTaken <<":" << qPrintable(testName) << "elapsed=" << elapsedInMSecs << "msecs";
+    }
+
     qDebug() << "   tests passed:" << testsPassed << "out of" << testsTaken;
     if (verbose) {
         qDebug() << "******************************************************************************************";
