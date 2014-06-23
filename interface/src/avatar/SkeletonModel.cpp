@@ -108,6 +108,9 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         float fraction = 0.1f; // fraction = 0.1f left intentionally low for demo purposes
         moveShapesTowardJoints(fraction);
     }
+
+    _boundingShape.setTranslation(_translation + _rotation * _boundingShapeLocalOffset);
+    _boundingShape.setRotation(_rotation);
 }
 
 void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
