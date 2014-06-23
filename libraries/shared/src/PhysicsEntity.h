@@ -71,7 +71,7 @@ protected:
 
 private:
     // PhysicsSimulation is a friend so that it can set the protected _simulation backpointer
-    friend PhysicsSimulation; 
+    friend class PhysicsSimulation; 
     PhysicsSimulation* _simulation;
 };
 
