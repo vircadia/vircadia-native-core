@@ -249,12 +249,21 @@ Menu::Menu() :
 
     QMenu* viewMenu = addMenu("View");
 
+#ifdef Q_OS_MAC
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::META | Qt::Key_F,
                                            false,
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
+#else
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::Fullscreen,
+                                           Qt::CTRL | Qt::Key_F,
+                                           false,
+                                           appInstance,
+                                           SLOT(setFullscreen(bool)));
+#endif
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
                                             appInstance,SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
