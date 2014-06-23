@@ -43,7 +43,6 @@ private:
     bool _newWindowMaxGapAvailable;
 };
 
-
 class PositionalAudioRingBuffer : public AudioRingBuffer {
 public:
     enum Type {
@@ -99,8 +98,6 @@ protected:
     InterframeTimeGapHistory _interframeTimeGapHistory;
     int _desiredJitterBufferFrames;
     int _currentJitterBufferFrames;
-
-quint64 _lastMixTime;
 };
 
 #endif // hifi_PositionalAudioRingBuffer_h

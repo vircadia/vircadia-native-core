@@ -622,7 +622,6 @@ void Audio::handleAudioInput() {
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
         if (audioMixer && audioMixer->getActiveSocket()) {
-
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
             glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientationInWorldFrame();
@@ -639,7 +638,6 @@ void Audio::handleAudioInput() {
                 numAudioBytes = sizeof(int16_t);
             } else {
                 numAudioBytes = numNetworkBytes;
-                //_isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
                 
                 if (Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)) {
                     packetType = PacketTypeMicrophoneAudioWithEcho;

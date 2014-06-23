@@ -74,14 +74,13 @@ public:
     bool hasStarted() const { return _hasStarted; }
     
     void addSilentFrame(int numSilentSamples);
-    
 protected:
     // disallow copying of AudioRingBuffer objects
     AudioRingBuffer(const AudioRingBuffer&);
     AudioRingBuffer& operator= (const AudioRingBuffer&);
     
     int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
-
+    
     int _sampleCapacity;
     int _numFrameSamples;
     int16_t* _nextOutput;
