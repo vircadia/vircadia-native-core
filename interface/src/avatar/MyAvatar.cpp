@@ -195,12 +195,16 @@ void MyAvatar::simulate(float deltaTime) {
         head->simulate(deltaTime, true);
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-        PerformanceTimer perfTimer("MyAvatar::simulate/head Simulate");
-        const int minError = 0.005f;
-        const float maxIterations = 8;
-        const quint64 maxUsec = 2000;
-        _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
+    {
+        PerformanceTimer perfTimer("MyAvatar::simulate/ragdoll");
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+            const int minError = 0.01f;
+            const float maxIterations = 10;
+            const quint64 maxUsec = 2000;
+            _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
+        } else {
+            _skeletonModel.moveShapesTowardJoints(1.0f);
+        }
     }
 
     // now that we're done stepping the avatar forward in time, compute new collisions
