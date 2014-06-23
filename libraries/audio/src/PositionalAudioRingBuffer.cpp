@@ -21,7 +21,7 @@
 #include "PositionalAudioRingBuffer.h"
 #include "SharedUtil.h"
 
-InterframeTimeGapHistory::InterframeTimeGapHistory()
+InterframeTimeGapStats::InterframeTimeGapStats()
     : _lastFrameReceivedTime(0),
     _numSamplesInCurrentInterval(0),
     _currentIntervalMaxGap(0),
@@ -32,7 +32,7 @@ InterframeTimeGapHistory::InterframeTimeGapHistory()
     memset(_intervalMaxGaps, 0, TIME_GAP_NUM_INTERVALS_IN_WINDOW*sizeof(quint64));
 }
 
-void InterframeTimeGapHistory::frameReceived() {
+void InterframeTimeGapStats::frameReceived() {
     quint64 now = usecTimestampNow();
 
     // make sure this isn't the first time frameReceived() is called so can actually calculate a gap.
@@ -79,7 +79,7 @@ void InterframeTimeGapHistory::frameReceived() {
     _lastFrameReceivedTime = now;
 }
 
-quint64 InterframeTimeGapHistory::getWindowMaxGap() {
+quint64 InterframeTimeGapStats::getWindowMaxGap() {
     _newWindowMaxGapAvailable = false;
     return _windowMaxGap;
 }
@@ -234,8 +234,8 @@ void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
 
     const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
 
-    if (_interframeTimeGapHistory.hasNewWindowMaxGapAvailable()) {
-        _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapHistory.getWindowMaxGap() / USECS_PER_FRAME);
+    if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) {
+        _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
         if (_desiredJitterBufferFrames < 1) {
             _desiredJitterBufferFrames = 1;
         }

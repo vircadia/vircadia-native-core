@@ -23,9 +23,9 @@ const int TIME_GAP_NUM_SAMPLES_IN_INTERVAL = 500;
 const int TIME_GAP_NUM_INTERVALS_IN_WINDOW = 10;
 
 // class used to track time between incoming frames for the purpose of varying the jitter buffer length
-class InterframeTimeGapHistory {
+class InterframeTimeGapStats {
 public:
-    InterframeTimeGapHistory();
+    InterframeTimeGapStats();
 
     void frameReceived();
     bool hasNewWindowMaxGapAvailable() const { return _newWindowMaxGapAvailable; }
@@ -95,7 +95,7 @@ protected:
     float _nextOutputTrailingLoudness;
     AABox* _listenerUnattenuatedZone;
 
-    InterframeTimeGapHistory _interframeTimeGapHistory;
+    InterframeTimeGapStats _interframeTimeGapStats;
     int _desiredJitterBufferFrames;
     int _currentJitterBufferFrames;
 };

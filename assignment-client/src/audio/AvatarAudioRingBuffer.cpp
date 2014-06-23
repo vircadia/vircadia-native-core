@@ -19,7 +19,7 @@ AvatarAudioRingBuffer::AvatarAudioRingBuffer(bool isStereo) :
 }
 
 int AvatarAudioRingBuffer::parseData(const QByteArray& packet) {
-    _interframeTimeGapHistory.frameReceived();
+    _interframeTimeGapStats.frameReceived();
     updateDesiredJitterBufferFrames();
 
     _shouldLoopbackForNode = (packetTypeForPacket(packet) == PacketTypeMicrophoneAudioWithEcho);
