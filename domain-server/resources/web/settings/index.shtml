@@ -1,0 +1,13 @@
+<!--#include virtual="header.html"-->
+<script id="template" type="text/x-handlebars-template">
+  {{#each groups}}
+    <h1>{{@key}}</h1>
+  {{/each}}
+</script>
+<div id="settings">
+  
+</div>
+<!--#include virtual="footer.html"-->
+<script src='/js/settings.js'></script>
+<script src='/js/handlebars-v1.3.0.min.js'></script>
+<!--#include virtual="page-end.html"-->

@@ -1162,7 +1162,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
     }
 
-    // didn't process the request, let the HTTPManager try and handle
+    // didn't process the request, let our HTTPManager handle
     return false;
 }
 
