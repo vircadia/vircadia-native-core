@@ -84,10 +84,18 @@ bool SharedObject::equals(const SharedObject* other, bool sharedAncestry) const 
     if (metaObject != other->metaObject() && !sharedAncestry) {
         return false;
     }
-    for (int i = 0; i < metaObject->propertyCount(); i++) {
-        QMetaProperty property = metaObject->property(i);
-        if (property.isStored() && property.read(this) != property.read(other)) {
+    // use the streamer, if we have one
+    const ObjectStreamer* streamer = Bitstream::getObjectStreamer(metaObject);
+    if (streamer) {
+        if (!streamer->equal(this, other)) {
             return false;
+        }
+    } else {
+        for (int i = 0; i < metaObject->propertyCount(); i++) {
+            QMetaProperty property = metaObject->property(i);
+            if (property.isStored() && property.read(this) != property.read(other)) {
+                return false;
+            }
         }
     }
     QList<QByteArray> dynamicPropertyNames = this->dynamicPropertyNames();
