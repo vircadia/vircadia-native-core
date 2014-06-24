@@ -1,9 +1,13 @@
 {
   "groups": {
-    "Audio": {
-      "unattenuated-zone": {
-        "label": "Unattenuated Zone",
-        "desc": "Define two axis-aligned boxes for an unattenuated zone of audio (source x, source y, source z, size x, size y, size z, listener x, listener y, listener z)"
+    "audio": {
+      "label": "Audio",
+      "settings": {
+        "unattenuated-zone": {
+          "label": "Unattenuated Zone",
+          "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
+          "placeholder": "0,0,0,20,20,20,50,50,50,10,10,10"
+        }
       }
     }
   }

@@ -1,12 +1,30 @@
 <!--#include virtual="header.html"-->
+<div id="settings-lead" class="table-lead"><h3>Settings</h3><div class="lead-line"></div></div>
+<div style="clear: both;"></div>
 <script id="template" type="text/x-handlebars-template">
+  <form class="form-horizontal" role="form">
   {{#each groups}}
-    <h1>{{@key}}</h1>
+    {{setKey @key}}
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">{{label}}</h3>
+      </div>
+      <div class="panel-body">
+        {{#each settings}}
+          <div class="form-group">
+            <label for="{{../key}}[{{@key}}]" class="col-sm-2 control-label">{{label}}</label>
+            <div class="col-sm-10"><input type="text" class="form-control" id="{{../key}}[{{@key}}]" placeholder="{{placeholder}}"></div>
+            <p class="help-block col-sm-offset-2 col-sm-10">{{help}}</p>
+          </div>
+        {{/each}}
+      </div>
+    </div>
   {{/each}}
+  <button type="submit" class="btn btn-default">Save</button>
+  </form>
 </script>
-<div id="settings">
-  
-</div>
+
+<div id="settings"></div>
 <!--#include virtual="footer.html"-->
 <script src='/js/settings.js'></script>
 <script src='/js/handlebars-v1.3.0.min.js'></script>
