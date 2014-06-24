@@ -234,11 +234,12 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
 }
 
 void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
-
-    const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
-
     if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) {
     
+        _desiredJitterBufferFrames = 1; // HACK to see if this fixes the audio silence
+        /*
+         const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
+         
         _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
         if (_desiredJitterBufferFrames < 1) {
             _desiredJitterBufferFrames = 1;
@@ -247,5 +248,6 @@ void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
         if (_desiredJitterBufferFrames > maxDesired) {
             _desiredJitterBufferFrames = maxDesired;
         }
+        */
     }
 }
