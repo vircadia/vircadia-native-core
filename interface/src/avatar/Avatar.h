@@ -32,7 +32,7 @@ static const float RESCALING_TOLERANCE = .02f;
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 
-const int HAIR_STRANDS = 100;    //  Number of strands of hair
+const int HAIR_STRANDS = 200;    //  Number of strands of hair
 const int HAIR_LINKS = 10;      //  Number of links in a hair strand
 const int HAIR_MAX_CONSTRAINTS = 2;
 
