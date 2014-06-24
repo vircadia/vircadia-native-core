@@ -130,6 +130,8 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         row->layout()->addWidget(name);
         row->layout()->addWidget(closeButton);
 
+        row->setToolTip(url.toString());
+
         QFrame* line = new QFrame(row);
         line->setFrameShape(QFrame::HLine);
         line->setStyleSheet("color: #E1E1E1; margin-left: 6px; margin-right: 6px;");
