@@ -238,32 +238,63 @@ void ModelTests::modelTreeTests(bool verbose) {
 
     {
         testsTaken++;
-        QString testName = "Performance - add model to tree 10,000 times";
+        const int TEST_ITERATIONS = 10000;
+        QString testName = "Performance - add model to tree " + QString::number(TEST_ITERATIONS) + " times";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
 
-        const int TEST_ITERATIONS = 10000;
+        int iterationsPassed = 0;
         quint64 start = usecTimestampNow();
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
             uint32_t id = i + 2; // make sure it doesn't collide with previous model ids
             ModelItemID modelID(id);
             modelID.isKnownID = false; // this is a temporary workaround to allow local tree models to be added with known IDs
 
-            float randomX = randFloatInRange(0.0f ,(float)TREE_SCALE);
-            float randomY = randFloatInRange(0.0f ,(float)TREE_SCALE);
-            float randomZ = randFloatInRange(0.0f ,(float)TREE_SCALE);
+            float randomX = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
+            float randomY = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
+            float randomZ = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
             glm::vec3 randomPositionInMeters(randomX,randomY,randomZ);
+            glm::vec3 randomPositionInTreeUnits = randomPositionInMeters / (float)TREE_SCALE;
 
             properties.setPosition(randomPositionInMeters);
             properties.setRadius(halfMeter);
             properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
 
             tree.addModel(modelID, properties);
+
+
+            float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
+            const ModelItem* foundModelByRadius = tree.findClosestModel(randomPositionInTreeUnits, targetRadius);
+            const ModelItem* foundModelByID = tree.findModelByID(id);
+            ModelTreeElement* containingElement = tree.getContainingElement(modelID);
+            AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
+        
+            if (verbose) {
+                qDebug() << "foundModelByRadius=" << foundModelByRadius;
+                qDebug() << "foundModelByID=" << foundModelByID;
+                qDebug() << "containingElement=" << containingElement;
+                qDebug() << "containingElement.box=" 
+                    << elementCube.getCorner().x * TREE_SCALE << "," 
+                    << elementCube.getCorner().y * TREE_SCALE << ","
+                    << elementCube.getCorner().z * TREE_SCALE << ":" 
+                    << elementCube.getScale() * TREE_SCALE;
+                //containingElement->printDebugDetails("containingElement");
+            }
+
+            bool passed = foundModelByRadius && foundModelByID && (foundModelByRadius == foundModelByID);
+            if (passed) {
+                iterationsPassed++;
+            } else {
+                qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
+                    << "foundModelByRadius=" << foundModelByRadius << "foundModelByID=" << foundModelByID
+                    << "x/y/z=" << randomX << "," << randomY << "," << randomZ;
+            }
+
         }
         quint64 end = usecTimestampNow();
         
-        bool passed = true;
+        bool passed = iterationsPassed == TEST_ITERATIONS;
         if (passed) {
             testsPassed++;
         } else {
