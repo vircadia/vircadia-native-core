@@ -78,6 +78,9 @@ public:
     int getSamplesPerFrame() const { return _isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
     int getCurrentJitterBufferFrames() const { return _currentJitterBufferFrames; }
 
+    int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
+    int getCurrentJitterBufferFrames() const { return _currentJitterBufferFrames; }
+
 protected:
     // disallow copying of PositionalAudioRingBuffer objects
     PositionalAudioRingBuffer(const PositionalAudioRingBuffer&);

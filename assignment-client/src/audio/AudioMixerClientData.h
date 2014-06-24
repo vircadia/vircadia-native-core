@@ -42,6 +42,8 @@ public:
     void pushBuffersAfterFrameSend();
 
     void calculateJitterBuffersStats(AudioMixerJitterBuffersStats& stats) const;
+    QString getJitterBufferStats() const;
+
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;
 };

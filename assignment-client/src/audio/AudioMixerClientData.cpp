@@ -144,9 +144,9 @@ void AudioMixerClientData::calculateJitterBuffersStats(AudioMixerJitterBuffersSt
     int avatarJitterBufferFrames = 0;
     int maxJitterBufferFrames = 0;
     int sumJitterBufferFrames = 0;
-    
+
     for (int i = 0; i < _ringBuffers.size(); i++) {
-        
+
         int bufferJitterFrames = _ringBuffers[i]->getCurrentJitterBufferFrames();
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Microphone) {
             avatarJitterBufferFrames = bufferJitterFrames;
@@ -162,4 +162,35 @@ void AudioMixerClientData::calculateJitterBuffersStats(AudioMixerJitterBuffersSt
     stats.avatarJitterBufferFrames = avatarJitterBufferFrames;
     stats.maxJitterBufferFrames = maxJitterBufferFrames;
     stats.avgJitterBufferFrames = (float)sumJitterBufferFrames / (float)_ringBuffers.size();
+}
+
+QString AudioMixerClientData::getJitterBufferStats() const {
+    QString result;
+    AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
+    if (avatarRingBuffer) {
+        int desiredJitterBuffer = avatarRingBuffer->getDesiredJitterBufferFrames();
+        int currentJitterBuffer = avatarRingBuffer->getCurrentJitterBufferFrames();
+        int samplesAvailable = avatarRingBuffer->samplesAvailable();
+        int framesAvailable = (samplesAvailable / avatarRingBuffer->getSamplesPerFrame());
+        result += "mic.desired:" + QString::number(desiredJitterBuffer) 
+                    + " current:" + QString::number(currentJitterBuffer)
+                    + " available:" + QString::number(framesAvailable)
+                    + " samples:" + QString::number(samplesAvailable);
+    } else {
+        result = "mic unknown";
+    }
+
+    for (int i = 0; i < _ringBuffers.size(); i++) {
+        if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
+            int desiredJitterBuffer = _ringBuffers[i]->getDesiredJitterBufferFrames();
+            int currentJitterBuffer = _ringBuffers[i]->getCurrentJitterBufferFrames();
+            int samplesAvailable = _ringBuffers[i]->samplesAvailable();
+            int framesAvailable = (samplesAvailable / _ringBuffers[i]->getSamplesPerFrame());
+            result += "| injected["+QString::number(i)+"].desired:" + QString::number(desiredJitterBuffer) 
+                    + " current:" + QString::number(currentJitterBuffer)
+                    + " available:" + QString::number(framesAvailable)
+                    + " samples:" + QString::number(samplesAvailable);
+        }
+    }
+    return result;
 }
