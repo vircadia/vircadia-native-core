@@ -76,14 +76,21 @@ MyAvatar::MyAvatar() :
     _lastFloorContactPoint(0.0f),
     _lookAtTargetAvatar(),
     _shouldRender(true),
-    _billboardValid(false)
+    _billboardValid(false),
+    _physicsSimulation()
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
+    _skeletonModel.setEnableShapes(true);
+    // The skeleton is both a PhysicsEntity and Ragdoll, so we add it to the simulation once for each type.
+    _physicsSimulation.addEntity(&_skeletonModel);
+    _physicsSimulation.addRagdoll(&_skeletonModel);
 }
 
 MyAvatar::~MyAvatar() {
+    _physicsSimulation.removeEntity(&_skeletonModel);
+    _physicsSimulation.removeRagdoll(&_skeletonModel);
     _lookAtTargetAvatar.clear();
 }
 
@@ -154,7 +161,6 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("MyAvatar::simulate/hand Collision,simulate");
         // update avatar skeleton and simulate hand and head
-        getHand()->collideAgainstOurself(); 
         getHand()->simulate(deltaTime, true);
     }
 
@@ -191,6 +197,18 @@ void MyAvatar::simulate(float deltaTime) {
     
     simulateHair(deltaTime);
 
+    {
+        PerformanceTimer perfTimer("MyAvatar::simulate/ragdoll");
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+            const int minError = 0.01f;
+            const float maxIterations = 10;
+            const quint64 maxUsec = 2000;
+            _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
+        } else {
+            _skeletonModel.moveShapesTowardJoints(1.0f);
+        }
+    }
+
     // now that we're done stepping the avatar forward in time, compute new collisions
     if (_collisionGroups != 0) {
         PerformanceTimer perfTimer("MyAvatar::simulate/_collisionGroups");
@@ -201,7 +219,6 @@ void MyAvatar::simulate(float deltaTime) {
             radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.0f));
             radius *= COLLISION_RADIUS_SCALAR;
         }
-        updateShapePositions();
         if (_collisionGroups & COLLISION_GROUP_ENVIRONMENT) {
             PerformanceTimer perfTimer("MyAvatar::simulate/updateCollisionWithEnvironment");
             updateCollisionWithEnvironment(deltaTime, radius);
@@ -212,10 +229,12 @@ void MyAvatar::simulate(float deltaTime) {
         } else {
             _trapDuration = 0.0f;
         }
+    /* TODO: Andrew to make this work
         if (_collisionGroups & COLLISION_GROUP_AVATARS) {
             PerformanceTimer perfTimer("MyAvatar::simulate/updateCollisionWithAvatars");
             updateCollisionWithAvatars(deltaTime);
         }
+    */
     }
 
     // consider updating our billboard
@@ -1237,7 +1256,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
         float capsuleHalfHeight = boundingShape.getHalfHeight();
         const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
         const float MIN_STEP_HEIGHT = 0.0f;
-        glm::vec3 footBase = boundingShape.getPosition() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
+        glm::vec3 footBase = boundingShape.getTranslation() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
         float highestStep = 0.0f;
         float lowestStep = MAX_STEP_HEIGHT;
         glm::vec3 floorPoint;
@@ -1254,7 +1273,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
             if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
                 isTrapped = true;
                 if (_trapDuration > MAX_TRAP_PERIOD) {
-                    float distance = glm::dot(boundingShape.getPosition() - cubeCenter, _worldUpDirection);
+                    float distance = glm::dot(boundingShape.getTranslation() - cubeCenter, _worldUpDirection);
                     if (distance < 0.0f) {
                         distance = fabsf(distance) + 0.5f * cubeSide;
                     }
@@ -1439,7 +1458,6 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
             // don't collide with ourselves
             continue;
         }
-        avatar->updateShapePositions();
         float distance = glm::length(_position - avatar->getPosition());        
         if (_distanceToNearestAvatar > distance) {
             _distanceToNearestAvatar = distance;
@@ -1465,17 +1483,10 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 }
             }
 
-            // collide our hands against them
-            // TODO: make this work when we can figure out when the other avatar won't yeild
-            // (for example, we're colliding against their chest or leg)
-            //getHand()->collideAgainstAvatar(avatar, true);
-
             // collide their hands against us
             avatar->getHand()->collideAgainstAvatar(this, false);
         }
     }
-    // TODO: uncomment this when we handle collisions that won't affect other avatar
-    //getHand()->resolvePenetrations();
 }
 
 class SortedAvatar {

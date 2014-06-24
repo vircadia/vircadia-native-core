@@ -237,9 +237,6 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
             bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
             bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
-            if (renderSkeleton || renderHead || renderBounding) {
-                updateShapePositions();
-            }
 
             if (renderSkeleton) {
                 _skeletonModel.renderJointCollisionShapes(0.7f);
@@ -249,7 +246,6 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
                 getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
             }
             if (renderBounding && shouldRenderHead(cameraPosition, renderMode)) {
-                getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
                 _skeletonModel.renderBoundingCollisionShapes(0.7f);
             }
 
@@ -796,28 +792,15 @@ bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     return false;
 }
 
-bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, int skeletonSkipIndex) {
-    return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions, skeletonSkipIndex);
-    // Temporarily disabling collisions against the head because most of its collision proxies are bad.
+bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions) {
+    return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
+    // TODO: Andrew to fix: Temporarily disabling collisions against the head
     //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
 }
 
 bool Avatar::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
     return _skeletonModel.findPlaneCollisions(plane, collisions) ||
         getHead()->getFaceModel().findPlaneCollisions(plane, collisions);
-}
-
-void Avatar::updateShapePositions() {
-    _skeletonModel.updateShapePositions();
-    Model& headModel = getHead()->getFaceModel();
-    headModel.updateShapePositions();
-    /* KEEP FOR DEBUG: use this in rather than code above to see shapes 
-     * in their default positions where the bounding shape is computed.
-    _skeletonModel.resetShapePositions();
-    Model& headModel = getHead()->getFaceModel();
-    headModel.resetShapePositions();
-    */
 }
 
 bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
@@ -827,69 +810,6 @@ bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& 
     Model& headModel = getHead()->getFaceModel();
     //collided = headModel.findCollisions(shapes, collisions) || collided;
     bool collided = headModel.findCollisions(shapes, collisions);
-    return collided;
-}
-
-bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
-    if (_collisionGroups & COLLISION_GROUP_PARTICLES) {
-        return false;
-    }
-    bool collided = false;
-    // first do the hand collisions
-    const HandData* handData = getHandData();
-    if (handData) {
-        for (int i = 0; i < NUM_HANDS; i++) {
-            const PalmData* palm = handData->getPalm(i);
-            if (palm && palm->hasPaddle()) {
-                // create a disk collision proxy where the hand is
-                int jointIndex = -1;
-                glm::vec3 handPosition;
-                if (i == 0) {
-                    _skeletonModel.getLeftHandPosition(handPosition);
-                    jointIndex = _skeletonModel.getLeftHandJointIndex();
-                }
-                else {
-                    _skeletonModel.getRightHandPosition(handPosition);
-                    jointIndex = _skeletonModel.getRightHandJointIndex();
-                }
-
-                glm::vec3 fingerAxis = palm->getFingerDirection();
-                glm::vec3 diskCenter = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
-                glm::vec3 diskNormal = palm->getNormal();
-                const float DISK_THICKNESS = 0.08f;
-
-                // collide against the disk
-                glm::vec3 penetration;
-                if (findSphereDiskPenetration(particleCenter, particleRadius, 
-                            diskCenter, HAND_PADDLE_RADIUS, DISK_THICKNESS, diskNormal,
-                            penetration)) {
-                    CollisionInfo* collision = collisions.getNewCollision();
-                    if (collision) {
-                        collision->_type = COLLISION_TYPE_PADDLE_HAND;
-                        collision->_intData = jointIndex;
-                        collision->_penetration = penetration;
-                        collision->_addedVelocity = palm->getVelocity();
-                        collided = true;
-                    } else {
-                        // collisions are full, so we might as well bail now
-                        return collided;
-                    }
-                }
-            }
-        }
-    }
-    // then collide against the models
-    int preNumCollisions = collisions.size();
-    if (_skeletonModel.findSphereCollisions(particleCenter, particleRadius, collisions)) {
-        // the Model doesn't have velocity info, so we have to set it for each new collision
-        int postNumCollisions = collisions.size();
-        for (int i = preNumCollisions; i < postNumCollisions; ++i) {
-            CollisionInfo* collision = collisions.getCollision(i);
-            collision->_penetration /= (float)(TREE_SCALE);
-            collision->_addedVelocity = getVelocity();
-        }
-        collided = true;
-    }
     return collided;
 }
 
@@ -1124,25 +1044,6 @@ float Avatar::getHeadHeight() const {
     }
     const float DEFAULT_HEAD_HEIGHT = 0.1f;
     return DEFAULT_HEAD_HEIGHT;
-}
-
-bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
-    if (!collision._data || collision._type != COLLISION_TYPE_MODEL) {
-        return false;
-    }
-    Model* model = static_cast<Model*>(collision._data);
-    int jointIndex = collision._intData;
-
-    if (model == &(_skeletonModel) && jointIndex != -1) {
-        // collision response of skeleton is temporarily disabled
-        return false;
-        //return _skeletonModel.collisionHitsMoveableJoint(collision);
-    }
-    if (model == &(getHead()->getFaceModel())) {
-        // ATM we always handle COLLISION_TYPE_MODEL against the face.
-        return true;
-    }
-    return false;
 }
 
 float Avatar::getBoundingRadius() const {

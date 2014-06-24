@@ -8,9 +8,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelTests.h"
 #include "OctreeTests.h"
+#include "AABoxCubeTests.h"
 
 int main(int argc, char** argv) {
     OctreeTests::runAllTests();
+    AABoxCubeTests::runAllTests();
+    ModelTests::runAllTests(true);
     return 0;
 }

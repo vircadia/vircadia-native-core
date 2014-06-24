@@ -249,12 +249,21 @@ Menu::Menu() :
 
     QMenu* viewMenu = addMenu("View");
 
+#ifdef Q_OS_MAC
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::META | Qt::Key_F,
                                            false,
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
+#else
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::Fullscreen,
+                                           Qt::CTRL | Qt::Key_F,
+                                           false,
+                                           appInstance,
+                                           SLOT(setFullscreen(bool)));
+#endif
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
                                             appInstance,SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
@@ -366,7 +375,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderSkeletonCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderHeadCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderBoundingCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollideAsRagDoll);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollideAsRagdoll);
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
@@ -1104,8 +1113,6 @@ void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJson
     } else if (userResponse == QMessageBox::Open) {
         Application::getInstance()->getAvatar()->goToLocationFromAddress(placeData["address"].toObject());
     }
-
-    LocationManager* manager = reinterpret_cast<LocationManager*>(sender());
 }
 
 void Menu::muteEnvironment() {
@@ -1295,6 +1302,7 @@ void Menu::showChat() {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
         }
+        _chatWindow->activateWindow();
     } else {
         Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
     }

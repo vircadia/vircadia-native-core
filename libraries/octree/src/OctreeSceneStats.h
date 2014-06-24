@@ -172,9 +172,8 @@ public:
     quint32 getIncomingReallyLate() const { return _incomingReallyLate; }
     quint32 getIncomingPossibleDuplicate() const { return _incomingPossibleDuplicate; }
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
-
-    int getNumSequenceNumbersToNack() const;
-    OCTREE_PACKET_SEQUENCE getNextSequenceNumberToNack();
+    
+    const QSet<OCTREE_PACKET_SEQUENCE>& getMissingSequenceNumbers() const { return _missingSequenceNumbers; }
 
 private:
 
@@ -277,7 +276,6 @@ private:
     quint32 _incomingReallyLate; /// out of order and later than MAX_MISSING_SEQUENCE_OLD_AGE late
     quint32 _incomingPossibleDuplicate; /// out of order possibly a duplicate
     QSet<OCTREE_PACKET_SEQUENCE> _missingSequenceNumbers;
-    QSet<OCTREE_PACKET_SEQUENCE> _sequenceNumbersToNack;
     SimpleMovingAverage _incomingFlightTimeAverage;
     
     // features related items

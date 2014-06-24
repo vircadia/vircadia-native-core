@@ -13,6 +13,9 @@
 #define hifi_Bitstream_h
 
 #include <QHash>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMetaProperty>
 #include <QMetaType>
 #include <QPointer>
@@ -35,19 +38,26 @@ class QUrl;
 class Attribute;
 class AttributeValue;
 class Bitstream;
-class FieldReader;
+class GenericValue;
+class JSONWriter;
 class ObjectReader;
+class ObjectStreamer;
 class OwnedAttributeValue;
-class PropertyReader;
-class PropertyWriter;
-class TypeReader;
 class TypeStreamer;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
 typedef QPair<QByteArray, QByteArray> ScopeNamePair;
-typedef QVector<PropertyReader> PropertyReaderVector;
-typedef QVector<PropertyWriter> PropertyWriterVector;
+typedef QPair<QByteArray, int> NameIntPair;
+typedef QSharedPointer<ObjectStreamer> ObjectStreamerPointer;
+typedef QWeakPointer<ObjectStreamer> WeakObjectStreamerPointer;
+typedef QSharedPointer<TypeStreamer> TypeStreamerPointer;
+typedef QWeakPointer<TypeStreamer> WeakTypeStreamerPointer;
+
+typedef QPair<QVariant, QVariant> QVariantPair;
+typedef QList<QVariantPair> QVariantPairList;
+
+Q_DECLARE_METATYPE(QVariantPairList)
 
 /// Streams integer identifiers that conform to the following pattern: each ID encountered in the stream is either one that
 /// has been sent (received) before, or is one more than the highest previously encountered ID (starting at zero).  This allows
@@ -189,53 +199,112 @@ template<class K, class P, class V> inline RepeatedValueStreamer<K, P, V>&
     return *this;
 }
 
-/// A stream for bit-aligned data.
+/// A stream for bit-aligned data.  Through a combination of code generation, reflection, macros, and templates, provides a
+/// serialization mechanism that may be used for both networking and persistent storage.  For unreliable networking, the
+/// class provides a mapping system that resends mappings for ids until they are acknowledged (and thus persisted).  For
+/// version-resilient persistence, the class provides a metadata system that maps stored types to local types (or to
+/// generic containers), allowing one to add and remove fields to classes without breaking compatibility with previously
+/// stored data.
+///
+/// The basic usage requires one to create a Bitstream that wraps an underlying QDataStream, specifying the metadata type
+/// desired and (for readers) the generics mode.  Then, one uses the << or >> operators to write or read values to/from
+/// the stream (a stream instance may be used for reading or writing, but not both).  For write streams, the flush
+/// function should be called on completion to write any partial data.
+///
+/// Polymorphic types are supported via the QVariant and QObject*/SharedObjectPointer types.  When you write a QVariant or
+/// QObject, the type or class name (at minimum) is written to the stream.  When you read a QVariant or QObject, the default
+/// behavior is to look for a corresponding registered type with the written name.  With hash metadata, Bitstream can verify
+/// that the local type matches the stream type, throwing the streamed version away if not.  With full metadata, Bitstream can
+/// create a mapping from the streamed type to the local type that applies the intersection of the two types' fields.
+///
+/// To register types for streaming, select from the provided templates and macros.  To register a QObject (or SharedObject)
+/// subclass, use REGISTER_META_OBJECT in the class's source file.  To register a streamable class for use in QVariant, use
+/// the STREAMABLE/STREAM/DECLARE_STREAMABLE_METATYPE macros and use the mtc tool to generate the associated implementation
+/// code.  To register a QObject enum for use outside the QObject's direct properties, use the
+/// DECLARE_ENUM_METATYPE/IMPLEMENT_ENUM_METATYPE macro pair.  To register a collection type (QList, QVector, QSet, QMap) of
+/// streamable types, use the registerCollectionMetaType template function.
+///
+/// Delta-streaming is supported through the writeDelta/readDelta functions (analogous to <</>>), which accept a reference
+/// value and stream only the information necessary to turn the reference into the target value.  This assumes that the
+/// reference value provided when reading is identical to the one used when writing.
+///
+/// Special delta handling is provided for objects tracked by SharedObjectPointers.  SharedObjects have IDs (representing their
+/// unique identity on one system) as well as origin IDs (representing their identity as preserved over the course of
+/// mutation).  Once a shared object with a given ID is written (and its mapping persisted), that object's state will not be
+/// written again; only its ID will be sent.  However, if an object with a new ID but the same origin ID is written, that
+/// object's state will be encoded as a delta between the previous object and the new one.  So, to transmit delta-encoded
+/// objects, one should treat each local SharedObject instance as immutable, replacing it when mutated with a cloned instance
+/// generated by calling SharedObject::clone(true) and applying the desired changes.
 class Bitstream : public QObject {
     Q_OBJECT
 
 public:
 
+    /// Stores a set of mappings from values to ids written.  Typically, one would store these mappings along with the send
+    /// record of the packet that contained them, persisting the mappings if/when the packet is acknowledged by the remote
+    /// party.
     class WriteMappings {
     public:
-        QHash<const QMetaObject*, int> metaObjectOffsets;
+        QHash<const ObjectStreamer*, int> objectStreamerOffsets;
         QHash<const TypeStreamer*, int> typeStreamerOffsets;
         QHash<AttributePointer, int> attributeOffsets;
         QHash<QScriptString, int> scriptStringOffsets;
         QHash<SharedObjectPointer, int> sharedObjectOffsets;
     };
 
+    /// Stores a set of mappings from ids to values read.  Typically, one would store these mappings along with the receive
+    /// record of the packet that contained them, persisting the mappings if/when the remote party indicates that it
+    /// has received the local party's acknowledgement of the packet.
     class ReadMappings {
     public:
-        QHash<int, ObjectReader> metaObjectValues;
-        QHash<int, TypeReader> typeStreamerValues;
+        QHash<int, ObjectStreamerPointer> objectStreamerValues;
+        QHash<int, TypeStreamerPointer> typeStreamerValues;
         QHash<int, AttributePointer> attributeValues;
         QHash<int, QScriptString> scriptStringValues;
         QHash<int, SharedObjectPointer> sharedObjectValues;
     };
 
-    /// Registers a metaobject under its name so that instances of it can be streamed.
+    /// Registers a metaobject under its name so that instances of it can be streamed.  Consider using the REGISTER_META_OBJECT
+    /// at the top level of the source file associated with the class rather than calling this function directly.
     /// \return zero; the function only returns a value so that it can be used in static initialization
     static int registerMetaObject(const char* className, const QMetaObject* metaObject);
 
-    /// Registers a streamer for the specified Qt-registered type.
+    /// Registers a streamer for the specified Qt-registered type.  Consider using one of the registration macros (such as
+    /// REGISTER_SIMPLE_TYPE_STREAMER) at the top level of the associated source file rather than calling this function
+    /// directly. 
     /// \return zero; the function only returns a value so that it can be used in static initialization
     static int registerTypeStreamer(int type, TypeStreamer* streamer);
 
     /// Returns the streamer registered for the supplied type, if any.
     static const TypeStreamer* getTypeStreamer(int type);
 
+    /// Returns the streamer registered for the supplied object, if any.
+    static const ObjectStreamer* getObjectStreamer(const QMetaObject* metaObject);
+
     /// Returns the meta-object registered under the supplied class name, if any.
     static const QMetaObject* getMetaObject(const QByteArray& className);
 
-    /// Returns the list of registered subclasses for the supplied meta-object.
+    /// Returns the list of registered subclasses for the supplied meta-object.  When registered, metaobjects register
+    /// themselves as subclasses of all of their parents, mostly in order to allow editors to provide lists of available
+    /// subclasses.
     static QList<const QMetaObject*> getMetaObjectSubClasses(const QMetaObject* metaObject);
 
     enum MetadataType { NO_METADATA, HASH_METADATA, FULL_METADATA };
 
-    /// Creates a new bitstream.  Note: the stream may be used for reading or writing, but not both.
-    Bitstream(QDataStream& underlying, MetadataType metadataType = NO_METADATA, QObject* parent = NULL);
+    enum GenericsMode { NO_GENERICS, FALLBACK_GENERICS, ALL_GENERICS }; 
 
-    /// Substitutes the supplied metaobject for the given class name's default mapping.
+    /// Creates a new bitstream.  Note: the stream may be used for reading or writing, but not both.
+    /// \param metadataType the metadata type, which determines the amount of version-resiliency: with no metadata, all types
+    /// must match exactly; with hash metadata, any types which do not match exactly will be ignored; with full metadata,
+    /// fields (and enum values, etc.) will be remapped by name
+    /// \param genericsMode the generics mode, which determines which types will be replaced by generic equivalents: with
+    /// no generics, no generics will be created; with fallback generics, generics will be created for any unknown types; with
+    /// all generics, generics will be created for all non-simple types
+    Bitstream(QDataStream& underlying, MetadataType metadataType = NO_METADATA,
+        GenericsMode = NO_GENERICS, QObject* parent = NULL);
+
+    /// Substitutes the supplied metaobject for the given class name's default mapping.  This is mostly useful for testing the
+    /// process of mapping between different types, but may in the future be used for permanently renaming classes.
     void addMetaObjectSubstitution(const QByteArray& className, const QMetaObject* metaObject);
     
     /// Substitutes the supplied type for the given type name's default mapping.
@@ -364,6 +433,9 @@ public:
     Bitstream& operator<<(const AttributeValue& attributeValue);
     Bitstream& operator>>(OwnedAttributeValue& attributeValue);
     
+    Bitstream& operator<<(const GenericValue& value);
+    Bitstream& operator>>(GenericValue& value);
+    
     template<class T> Bitstream& operator<<(const QList<T>& list);
     template<class T> Bitstream& operator>>(QList<T>& list);
     
@@ -381,11 +453,14 @@ public:
     
     Bitstream& operator<<(const QMetaObject* metaObject);
     Bitstream& operator>>(const QMetaObject*& metaObject);
-    Bitstream& operator>>(ObjectReader& objectReader);
+    
+    Bitstream& operator<<(const ObjectStreamer* streamer);
+    Bitstream& operator>>(const ObjectStreamer*& streamer);
+    Bitstream& operator>>(ObjectStreamerPointer& streamer);
     
     Bitstream& operator<<(const TypeStreamer* streamer);
     Bitstream& operator>>(const TypeStreamer*& streamer);
-    Bitstream& operator>>(TypeReader& reader);
+    Bitstream& operator>>(TypeStreamerPointer& streamer);
     
     Bitstream& operator<<(const AttributePointer& attribute);
     Bitstream& operator>>(AttributePointer& attribute);
@@ -399,11 +474,11 @@ public:
     Bitstream& operator<<(const SharedObjectPointer& object);
     Bitstream& operator>>(SharedObjectPointer& object);
     
-    Bitstream& operator<(const QMetaObject* metaObject);
-    Bitstream& operator>(ObjectReader& objectReader);
+    Bitstream& operator<(const ObjectStreamer* streamer);
+    Bitstream& operator>(ObjectStreamerPointer& streamer);
     
     Bitstream& operator<(const TypeStreamer* streamer);
-    Bitstream& operator>(TypeReader& reader);
+    Bitstream& operator>(TypeStreamerPointer& streamer);
     
     Bitstream& operator<(const AttributePointer& attribute);
     Bitstream& operator>(AttributePointer& attribute);
@@ -424,14 +499,21 @@ private slots:
 
 private:
     
+    friend class JSONReader;
+    friend class JSONWriter;
+    
+    ObjectStreamerPointer readGenericObjectStreamer(const QByteArray& name);
+    TypeStreamerPointer readGenericTypeStreamer(const QByteArray& name, int category);
+    
     QDataStream& _underlying;
     quint8 _byte;
     int _position;
 
     MetadataType _metadataType;
+    GenericsMode _genericsMode;
 
-    RepeatedValueStreamer<const QMetaObject*, const QMetaObject*, ObjectReader> _metaObjectStreamer;
-    RepeatedValueStreamer<const TypeStreamer*, const TypeStreamer*, TypeReader> _typeStreamerStreamer;
+    RepeatedValueStreamer<const ObjectStreamer*, const ObjectStreamer*, ObjectStreamerPointer> _objectStreamerStreamer;
+    RepeatedValueStreamer<const TypeStreamer*, const TypeStreamer*, TypeStreamerPointer> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
     RepeatedValueStreamer<SharedObjectPointer, SharedObject*> _sharedObjectStreamer;
@@ -446,6 +528,9 @@ private:
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
+         
+    static const QHash<const QMetaObject*, const ObjectStreamer*>& getObjectStreamers();
+    static QHash<const QMetaObject*, const ObjectStreamer*> createObjectStreamers();
     
     static const QHash<ScopeNamePair, const TypeStreamer*>& getEnumStreamers();
     static QHash<ScopeNamePair, const TypeStreamer*> createEnumStreamers();
@@ -453,11 +538,8 @@ private:
     static const QHash<QByteArray, const TypeStreamer*>& getEnumStreamersByName();
     static QHash<QByteArray, const TypeStreamer*> createEnumStreamersByName();
     
-    static const QHash<const QMetaObject*, PropertyReaderVector>& getPropertyReaders();
-    static QHash<const QMetaObject*, PropertyReaderVector> createPropertyReaders();
-    
-    static const QHash<const QMetaObject*, PropertyWriterVector>& getPropertyWriters();
-    static QHash<const QMetaObject*, PropertyWriterVector> createPropertyWriters();
+    static const TypeStreamer* getInvalidTypeStreamer();
+    static const TypeStreamer* createInvalidTypeStreamer();
 };
 
 template<class T> inline void Bitstream::writeDelta(const T& value, const T& reference) {
@@ -741,133 +823,273 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
     return *this;
 }
 
-typedef QSharedPointer<TypeReader> TypeReaderPointer;
-
-/// Contains the information required to read a type from the stream.
-class TypeReader {
+/// Provides a means of writing Bitstream-able data to JSON rather than the usual binary format in a manner that allows it to
+/// be manipulated and re-read, converted to binary, etc.  To use, create a JSONWriter, stream values in using the << operator,
+/// and call getDocument to obtain the JSON data.
+class JSONWriter {
 public:
-
-    enum Type { SIMPLE_TYPE, ENUM_TYPE, STREAMABLE_TYPE, LIST_TYPE, SET_TYPE, MAP_TYPE };
     
-    TypeReader(const QByteArray& typeName = QByteArray(), const TypeStreamer* streamer = NULL);
+    QJsonValue getData(bool value);
+    QJsonValue getData(int value);
+    QJsonValue getData(uint value);
+    QJsonValue getData(float value);
+    QJsonValue getData(const QByteArray& value);
+    QJsonValue getData(const QColor& value);
+    QJsonValue getData(const QScriptValue& value);
+    QJsonValue getData(const QString& value);
+    QJsonValue getData(const QUrl& value);
+    QJsonValue getData(const QDateTime& value);
+    QJsonValue getData(const QRegExp& value);
+    QJsonValue getData(const glm::vec3& value);
+    QJsonValue getData(const glm::quat& value);
+    QJsonValue getData(const QMetaObject* value);
+    QJsonValue getData(const QVariant& value);
+    QJsonValue getData(const SharedObjectPointer& value);
+    QJsonValue getData(const QObject* value);
+    QJsonValue getData(const GenericValue& value);
     
-    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, int bits, const QHash<int, int>& mappings);
+    template<class T> QJsonValue getData(const T& value) { return QJsonValue(); }
     
-    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, const QVector<FieldReader>& fields);
-
-    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer, Type type,
-        const TypeReaderPointer& valueReader);
+    template<class T> QJsonValue getData(const QList<T>& list);
+    template<class T> QJsonValue getData(const QVector<T>& list);
+    template<class T> QJsonValue getData(const QSet<T>& set);
+    template<class K, class V> QJsonValue getData(const QHash<K, V>& hash);
     
-    TypeReader(const QByteArray& typeName, const TypeStreamer* streamer,
-        const TypeReaderPointer& keyReader, const TypeReaderPointer& valueReader);
-        
-    const QByteArray& getTypeName() const { return _typeName; }
-    const TypeStreamer* getStreamer() const { return _streamer; }
-
-    QVariant read(Bitstream& in) const;
-    void readDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
-    void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
-
-    bool matchesExactly(const TypeStreamer* streamer) const;
-
-    bool operator==(const TypeReader& other) const { return _typeName == other._typeName; }
-    bool operator!=(const TypeReader& other) const { return _typeName != other._typeName; }
+    template<class T> JSONWriter& operator<<(const T& value) { _contents.append(getData(value)); return *this; }
+    
+    void appendToContents(const QJsonValue& value) { _contents.append(value); }
+    
+    void addSharedObject(const SharedObjectPointer& object);
+    void addObjectStreamer(const ObjectStreamer* streamer);
+    void addTypeStreamer(const TypeStreamer* streamer);
+    
+    QJsonDocument getDocument() const;
     
 private:
+
+    QJsonArray _contents;
+
+    QSet<int> _sharedObjectIDs;
+    QJsonArray _sharedObjects;
     
-    QByteArray _typeName;
-    const TypeStreamer* _streamer;
-    bool _exactMatch;
-    Type _type;
-    int _bits;
-    QHash<int, int> _mappings;
-    TypeReaderPointer _keyReader;
-    TypeReaderPointer _valueReader;
-    QVector<FieldReader> _fields;
+    QSet<QByteArray> _objectStreamerNames;
+    QJsonArray _objectStreamers;
+    
+    QSet<QByteArray> _typeStreamerNames;
+    QJsonArray _typeStreamers;
 };
 
-uint qHash(const TypeReader& typeReader, uint seed = 0);
+template<class T> inline QJsonValue JSONWriter::getData(const QList<T>& list) {
+    QJsonArray array;
+    foreach (const T& value, list) {
+        array.append(getData(value));
+    }
+    return array;
+}
 
-QDebug& operator<<(QDebug& debug, const TypeReader& typeReader);
+template<class T> inline QJsonValue JSONWriter::getData(const QVector<T>& vector) {
+    QJsonArray array;
+    foreach (const T& value, vector) {
+        array.append(getData(value));
+    }
+    return array;
+}
 
-/// Contains the information required to read a metatype field from the stream and apply it.
-class FieldReader {
+template<class T> inline QJsonValue JSONWriter::getData(const QSet<T>& set) {
+    QJsonArray array;
+    foreach (const T& value, set) {
+        array.append(getData(value));
+    }
+    return array;
+}
+
+template<class K, class V> inline QJsonValue JSONWriter::getData(const QHash<K, V>& hash) {
+    QJsonArray array;
+    for (typename QHash<K, V>::const_iterator it = hash.constBegin(); it != hash.constEnd(); it++) {
+        QJsonArray pair;
+        pair.append(getData(it.key()));
+        pair.append(getData(it.value()));
+        array.append(pair);
+    }
+    return array;
+}
+
+/// Reads a document written by JSONWriter.  To use, create a JSONReader and stream values out using the >> operator.
+class JSONReader {
 public:
     
-    FieldReader(const TypeReader& reader = TypeReader(), int index = -1);
-
-    const TypeReader& getReader() const { return _reader; }
-    int getIndex() const { return _index; }
-
-    void read(Bitstream& in, const TypeStreamer* streamer, QVariant& object) const;
-    void readDelta(Bitstream& in, const TypeStreamer* streamer, QVariant& object, const QVariant& reference) const;
+    /// Creates a reader to read from the supplied document.
+    /// \param genericsMode the generics mode to use: NO_GENERICS to map all types in the document to built-in types,
+    /// FALLBACK_GENERICS to use generic containers where no matching built-in type is found, or ALL_GENERICS to
+    /// read all types to generic containers
+    JSONReader(const QJsonDocument& document, Bitstream::GenericsMode genericsMode = Bitstream::NO_GENERICS);
     
+    void putData(const QJsonValue& data, bool& value);
+    void putData(const QJsonValue& data, int& value);
+    void putData(const QJsonValue& data, uint& value);
+    void putData(const QJsonValue& data, float& value);
+    void putData(const QJsonValue& data, QByteArray& value);
+    void putData(const QJsonValue& data, QColor& value);
+    void putData(const QJsonValue& data, QScriptValue& value);
+    void putData(const QJsonValue& data, QString& value);
+    void putData(const QJsonValue& data, QUrl& value);
+    void putData(const QJsonValue& data, QDateTime& value);
+    void putData(const QJsonValue& data, QRegExp& value);
+    void putData(const QJsonValue& data, glm::vec3& value);
+    void putData(const QJsonValue& data, glm::quat& value);
+    void putData(const QJsonValue& data, const QMetaObject*& value);
+    void putData(const QJsonValue& data, QVariant& value);
+    void putData(const QJsonValue& data, SharedObjectPointer& value);
+    void putData(const QJsonValue& data, QObject*& value);
+    
+    template<class T> void putData(const QJsonValue& data, T& value) { value = T(); }
+    
+    template<class T> void putData(const QJsonValue& data, QList<T>& list);
+    template<class T> void putData(const QJsonValue& data, QVector<T>& list);
+    template<class T> void putData(const QJsonValue& data, QSet<T>& set);
+    template<class K, class V> void putData(const QJsonValue& data, QHash<K, V>& hash);
+    
+    template<class T> JSONReader& operator>>(T& value) { putData(*_contentsIterator++, value); return *this; }
+
+    QJsonValue retrieveNextFromContents() { return *_contentsIterator++; }
+    
+    TypeStreamerPointer getTypeStreamer(const QString& name) const;
+    ObjectStreamerPointer getObjectStreamer(const QString& name) const { return _objectStreamers.value(name); }
+    SharedObjectPointer getSharedObject(int id) const { return _sharedObjects.value(id); }
+
 private:
     
-    TypeReader _reader;
-    int _index;
+    QJsonArray _contents;
+    QJsonArray::const_iterator _contentsIterator;
+    
+    QHash<QString, TypeStreamerPointer> _typeStreamers;
+    QHash<QString, ObjectStreamerPointer> _objectStreamers;
+    QHash<int, SharedObjectPointer> _sharedObjects;
 };
 
-/// Contains the information required to read an object from the stream.
-class ObjectReader {
+template<class T> inline void JSONReader::putData(const QJsonValue& data, QList<T>& list) {
+    list.clear();
+    foreach (const QJsonValue& element, data.toArray()) {
+        T value;
+        putData(element, value);
+        list.append(value);
+    }
+}
+
+template<class T> inline void JSONReader::putData(const QJsonValue& data, QVector<T>& list) {
+    list.clear();
+    foreach (const QJsonValue& element, data.toArray()) {
+        T value;
+        putData(element, value);
+        list.append(value);
+    }
+}
+
+template<class T> inline void JSONReader::putData(const QJsonValue& data, QSet<T>& set) {
+    set.clear();
+    foreach (const QJsonValue& element, data.toArray()) {
+        T value;
+        putData(element, value);
+        set.insert(value);
+    }
+}
+
+template<class K, class V> inline void JSONReader::putData(const QJsonValue& data, QHash<K, V>& hash) {
+    hash.clear();
+    foreach (const QJsonValue& element, data.toArray()) {
+        QJsonArray pair = element.toArray();
+        K key;
+        putData(pair.at(0), key);
+        V value;
+        putData(pair.at(1), value);
+        hash.insert(key, value);
+    }
+}
+    
+typedef QPair<TypeStreamerPointer, QMetaProperty> StreamerPropertyPair;
+
+/// Contains the information required to stream an object.
+class ObjectStreamer {
 public:
 
-    ObjectReader(const QByteArray& className = QByteArray(), const QMetaObject* metaObject = NULL,
-        const QVector<PropertyReader>& properties = QVector<PropertyReader>());
+    ObjectStreamer(const QMetaObject* metaObject);
+    virtual ~ObjectStreamer();
 
-    const QByteArray& getClassName() const { return _className; }
     const QMetaObject* getMetaObject() const { return _metaObject; }
+    const ObjectStreamerPointer& getSelf() const { return _self; }
+    
+    virtual const char* getName() const = 0;
+    virtual const QVector<StreamerPropertyPair>& getProperties() const;
+    virtual void writeMetadata(Bitstream& out, bool full) const = 0;
+    virtual QJsonObject getJSONMetadata(JSONWriter& writer) const = 0;
+    virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const = 0;
+    virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const = 0;
+    
+    virtual bool equal(const QObject* first, const QObject* second) const = 0;
+    virtual void write(Bitstream& out, const QObject* object) const = 0;
+    virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const = 0;
+    virtual QObject* read(Bitstream& in, QObject* object = NULL) const = 0;
+    virtual QObject* readRawDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const = 0;
+    
+protected:
+    
+    friend class Bitstream;
 
-    QObject* read(Bitstream& in, QObject* object = NULL) const;
-    QObject* readDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
-
-    bool operator==(const ObjectReader& other) const { return _className == other._className; }
-    bool operator!=(const ObjectReader& other) const { return _className != other._className; }
-
-private:
-
-    QByteArray _className;
     const QMetaObject* _metaObject;
-    QVector<PropertyReader> _properties;
+    ObjectStreamerPointer _self; ///< set/used for built-in classes (never deleted), to obtain shared pointers
 };
 
-uint qHash(const ObjectReader& objectReader, uint seed = 0);
-
-QDebug& operator<<(QDebug& debug, const ObjectReader& objectReader);
-
-/// Contains the information required to read an object property from the stream and apply it.
-class PropertyReader {
+/// A streamer that maps to a local class.
+class MappedObjectStreamer : public ObjectStreamer {
 public:
 
-    PropertyReader(const TypeReader& reader = TypeReader(), const QMetaProperty& property = QMetaProperty());
+    MappedObjectStreamer(const QMetaObject* metaObject, const QVector<StreamerPropertyPair>& properties);
 
-    const TypeReader& getReader() const { return _reader; }
-
-    void read(Bitstream& in, QObject* object) const;
-    void readDelta(Bitstream& in, QObject* object, const QObject* reference) const;
-
-private:
-
-    TypeReader _reader;
-    QMetaProperty _property;
-};
-
-/// Contains the information required to obtain an object property and write it to the stream.
-class PropertyWriter {
-public:
-
-    PropertyWriter(const QMetaProperty& property = QMetaProperty(), const TypeStreamer* streamer = NULL);
-
-    const QMetaProperty& getProperty() const { return _property; }
-    const TypeStreamer* getStreamer() const { return _streamer; }
-
-    void write(Bitstream& out, const QObject* object) const;
-    void writeDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
-
+    virtual const char* getName() const;
+    virtual const QVector<StreamerPropertyPair>& getProperties() const;
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual QJsonObject getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const;
+    virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const;
+    virtual bool equal(const QObject* first, const QObject* second) const;
+    virtual void write(Bitstream& out, const QObject* object) const;
+    virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
+    virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
+    virtual QObject* readRawDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
+    
 private:
     
-    QMetaProperty _property;
-    const TypeStreamer* _streamer;
+    QVector<StreamerPropertyPair> _properties;
+};
+
+typedef QPair<TypeStreamerPointer, QByteArray> StreamerNamePair;
+
+/// A streamer for generic objects.
+class GenericObjectStreamer : public ObjectStreamer {
+public:
+
+    GenericObjectStreamer(const QByteArray& name, const QVector<StreamerNamePair>& properties, const QByteArray& hash);
+
+    virtual const char* getName() const;
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual QJsonObject getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonObject getJSONData(JSONWriter& writer, const QObject* object) const;
+    virtual QObject* putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const;
+    virtual bool equal(const QObject* first, const QObject* second) const;
+    virtual void write(Bitstream& out, const QObject* object) const;
+    virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
+    virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
+    virtual QObject* readRawDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
+    
+private:
+    
+    friend class Bitstream;
+    friend class JSONReader;
+    
+    QByteArray _name;
+    WeakObjectStreamerPointer _weakSelf; ///< promoted to strong references in GenericSharedObject when reading
+    QVector<StreamerNamePair> _properties;
+    QByteArray _hash;
 };
 
 /// Describes a metatype field.
@@ -887,30 +1109,87 @@ private:
 
 Q_DECLARE_METATYPE(const QMetaObject*)
 
-/// Macro for registering streamable meta-objects.
+/// Macro for registering streamable meta-objects.  Typically, one would use this macro at the top level of the source file
+/// associated with the class.  The class should have a no-argument constructor flagged with Q_INVOKABLE.
 #define REGISTER_META_OBJECT(x) static int x##Registration = Bitstream::registerMetaObject(#x, &x::staticMetaObject);
+
+/// Contains a value along with a pointer to its streamer.  This is stored in QVariants when using fallback generics and
+/// no mapping to a built-in type can be found, or when using all generics and the value is any non-simple type.
+class GenericValue {
+public:
+    
+    GenericValue(const TypeStreamerPointer& streamer = TypeStreamerPointer(), const QVariant& value = QVariant());
+    
+    const TypeStreamerPointer& getStreamer() const { return _streamer; }
+    const QVariant& getValue() const { return _value; }
+    
+    bool operator==(const GenericValue& other) const;
+    
+private:
+    
+    TypeStreamerPointer _streamer;
+    QVariant _value;
+};
+
+Q_DECLARE_METATYPE(GenericValue)
+
+/// Contains a list of property values along with a pointer to their metadata.  This is stored when using fallback generics
+/// and no mapping to a built-in class can be found, or for all QObjects when using all generics.
+class GenericSharedObject : public SharedObject {
+    Q_OBJECT
+    
+public:
+
+    GenericSharedObject(const ObjectStreamerPointer& streamer);
+
+    const ObjectStreamerPointer& getStreamer() const { return _streamer; }
+
+    void setValues(const QVariantList& values) { _values = values; }
+    const QVariantList& getValues() const { return _values; }
+
+private:
+    
+    ObjectStreamerPointer _streamer;
+    QVariantList _values;
+};
 
 /// Interface for objects that can write values to and read values from bitstreams.
 class TypeStreamer {
 public:
     
+    enum Category { SIMPLE_CATEGORY, ENUM_CATEGORY, STREAMABLE_CATEGORY, LIST_CATEGORY, SET_CATEGORY, MAP_CATEGORY };
+    
     virtual ~TypeStreamer();
     
-    void setType(int type) { _type = type; }
     int getType() const { return _type; }
+    
+    const TypeStreamerPointer& getSelf() const { return _self; }
     
     virtual const char* getName() const;
     
-    virtual bool equal(const QVariant& first, const QVariant& second) const = 0;
+    virtual const TypeStreamer* getStreamerToWrite(const QVariant& value) const;
     
-    virtual void write(Bitstream& out, const QVariant& value) const = 0;
-    virtual QVariant read(Bitstream& in) const = 0;
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    
+    virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual QJsonValue getJSONVariantData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual void putJSONVariantData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    
+    virtual bool equal(const QVariant& first, const QVariant& second) const;
+    
+    virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
 
-    virtual void writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const = 0;
-    virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const = 0;
+    virtual void writeVariant(Bitstream& out, const QVariant& value) const;
+    virtual QVariant readVariant(Bitstream& in) const;
 
-    virtual void writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const = 0;
-    virtual void readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const = 0;
+    virtual void writeDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const;
+    virtual void readDelta(Bitstream& in, QVariant& value, const QVariant& reference) const;
+
+    virtual void writeRawDelta(Bitstream& out, const QVariant& value, const QVariant& reference) const;
+    virtual void readRawDelta(Bitstream& in, QVariant& value, const QVariant& reference) const;
     
     virtual void setEnumValue(QVariant& object, int value, const QHash<int, int>& mappings) const;
     
@@ -919,7 +1198,7 @@ public:
     virtual void setField(QVariant& object, int index, const QVariant& value) const;
     virtual QVariant getField(const QVariant& object, int index) const;
     
-    virtual TypeReader::Type getReaderType() const;
+    virtual Category getCategory() const;
 
     virtual int getBits() const;
     virtual QMetaEnum getMetaEnum() const;
@@ -937,9 +1216,12 @@ public:
     virtual QVariant getValue(const QVariant& object, int index) const;
     virtual void setValue(QVariant& object, int index, const QVariant& value) const;
 
-private:
+protected:
+    
+    friend class Bitstream;
     
     int _type;
+    TypeStreamerPointer _self; ///< set/used for built-in types (never deleted), to obtain shared pointers
 };
 
 QDebug& operator<<(QDebug& debug, const TypeStreamer* typeStreamer);
@@ -950,6 +1232,10 @@ QDebug& operator<<(QDebug& debug, const QMetaObject* metaObject);
 template<class T> class SimpleTypeStreamer : public TypeStreamer {
 public:
     
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const {
+        return writer.getData(value.value<T>()); }
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+        T rawValue; reader.putData(data, rawValue); value = QVariant::fromValue(rawValue); }
     virtual bool equal(const QVariant& first, const QVariant& second) const { return first.value<T>() == second.value<T>(); }
     virtual void write(Bitstream& out, const QVariant& value) const { out << value.value<T>(); }
     virtual QVariant read(Bitstream& in) const { T value; in >> value; return QVariant::fromValue(value); }
@@ -971,7 +1257,11 @@ public:
     EnumTypeStreamer(const QMetaEnum& metaEnum);
 
     virtual const char* getName() const;
-    virtual TypeReader::Type getReaderType() const;
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual Category getCategory() const;
     virtual int getBits() const;
     virtual QMetaEnum getMetaEnum() const;
     virtual bool equal(const QVariant& first, const QVariant& second) const;
@@ -992,17 +1282,112 @@ private:
     int _bits;
 };
 
+/// A streamer class for enums that maps to a local type.
+class MappedEnumTypeStreamer : public TypeStreamer {
+public:
+
+    MappedEnumTypeStreamer(const TypeStreamer* baseStreamer, int bits, const QHash<int, int>& mappings);
+    
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
+    virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+    
+private:
+    
+    const TypeStreamer* _baseStreamer;
+    int _bits;
+    QHash<int, int> _mappings;
+};
+
+/// Base class for generic type streamers, which contain all the metadata required to write out a type.
+class GenericTypeStreamer : public TypeStreamer {
+public:
+
+    GenericTypeStreamer(const QByteArray& name);
+
+    virtual const char* getName() const;
+    virtual void putJSONVariantData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual QVariant readVariant(Bitstream& in) const;
+    
+protected:
+    
+    friend class Bitstream;
+    friend class JSONReader;
+    
+    QByteArray _name;
+    WeakTypeStreamerPointer _weakSelf; ///< promoted to strong references in GenericValue when reading
+};
+
+/// A streamer for generic enums.
+class GenericEnumTypeStreamer : public GenericTypeStreamer {
+public:
+
+    GenericEnumTypeStreamer(const QByteArray& name, const QVector<NameIntPair>& values, int bits, const QByteArray& hash);
+
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
+    virtual Category getCategory() const;
+    
+private:
+    
+    QVector<NameIntPair> _values;
+    int _bits;
+    QByteArray _hash;
+};
+
 /// A streamer for types compiled by mtc.
 template<class T> class StreamableTypeStreamer : public SimpleTypeStreamer<T> {
 public:
     
-    virtual TypeReader::Type getReaderType() const { return TypeReader::STREAMABLE_TYPE; }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::STREAMABLE_CATEGORY; }
     virtual const QVector<MetaField>& getMetaFields() const { return T::getMetaFields(); }
     virtual int getFieldIndex(const QByteArray& name) const { return T::getFieldIndex(name); }
     virtual void setField(QVariant& object, int index, const QVariant& value) const {
         static_cast<T*>(object.data())->setField(index, value); }
     virtual QVariant getField(const QVariant& object, int index) const {
         return static_cast<const T*>(object.constData())->getField(index); }
+};
+
+typedef QPair<TypeStreamerPointer, int> StreamerIndexPair;
+
+/// A streamer class for streamables that maps to a local type.
+class MappedStreamableTypeStreamer : public TypeStreamer {
+public:
+
+    MappedStreamableTypeStreamer(const TypeStreamer* baseStreamer, const QVector<StreamerIndexPair>& fields);
+    
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
+    virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+    
+private:
+    
+    const TypeStreamer* _baseStreamer;
+    QVector<StreamerIndexPair> _fields;
+};
+
+/// A streamer for generic enums.
+class GenericStreamableTypeStreamer : public GenericTypeStreamer {
+public:
+
+    GenericStreamableTypeStreamer(const QByteArray& name, const QVector<StreamerNamePair>& fields, const QByteArray& hash);
+
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
+    virtual Category getCategory() const;
+    
+private:
+    
+    QVector<StreamerNamePair> _fields;
+    QByteArray _hash;
 };
 
 /// Base template for collection streamers.
@@ -1013,7 +1398,8 @@ template<class T> class CollectionTypeStreamer : public SimpleTypeStreamer<T> {
 template<class T> class CollectionTypeStreamer<QList<T> > : public SimpleTypeStreamer<QList<T> > {
 public:
     
-    virtual TypeReader::Type getReaderType() const { return TypeReader::LIST_TYPE; }
+    virtual void writeMetadata(Bitstream& out, bool full) const { out << getValueStreamer(); }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::LIST_CATEGORY; }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
     virtual void insert(QVariant& object, const QVariant& value) const {
         static_cast<QList<T>*>(object.data())->append(value.value<T>()); }
@@ -1029,7 +1415,8 @@ public:
 template<class T> class CollectionTypeStreamer<QVector<T> > : public SimpleTypeStreamer<QVector<T> > {
 public:
     
-    virtual TypeReader::Type getReaderType() const { return TypeReader::LIST_TYPE; }
+    virtual void writeMetadata(Bitstream& out, bool full) const { out << getValueStreamer(); }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::LIST_CATEGORY; }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
     virtual void insert(QVariant& object, const QVariant& value) const {
         static_cast<QVector<T>*>(object.data())->append(value.value<T>()); }
@@ -1041,11 +1428,47 @@ public:
         static_cast<QVector<T>*>(object.data())->replace(index, value.value<T>()); }
 };
 
+/// A streamer for lists that maps to a local type.
+class MappedListTypeStreamer : public TypeStreamer {
+public:
+    
+    MappedListTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer);
+    
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
+    virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+    
+protected:
+    
+    const TypeStreamer* _baseStreamer;
+    TypeStreamerPointer _valueStreamer;
+};
+
+/// A streamer for generic lists.
+class GenericListTypeStreamer : public GenericTypeStreamer {
+public:
+
+    GenericListTypeStreamer(const QByteArray& name, const TypeStreamerPointer& valueStreamer);
+    
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
+    virtual Category getCategory() const;
+    
+protected:
+    
+    TypeStreamerPointer _valueStreamer;
+};
+
 /// A streamer for set types.
 template<class T> class CollectionTypeStreamer<QSet<T> > : public SimpleTypeStreamer<QSet<T> > {
 public:
     
-    virtual TypeReader::Type getReaderType() const { return TypeReader::SET_TYPE; }
+    virtual void writeMetadata(Bitstream& out, bool full) const { out << getValueStreamer(); }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::SET_CATEGORY; }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<T>()); }
     virtual void insert(QVariant& object, const QVariant& value) const {
         static_cast<QSet<T>*>(object.data())->insert(value.value<T>()); }
@@ -1053,11 +1476,31 @@ public:
         return static_cast<QSet<T>*>(object.data())->remove(key.value<T>()); }
 };
 
+/// A streamer for sets that maps to a local type.
+class MappedSetTypeStreamer : public MappedListTypeStreamer {
+public:
+    
+    MappedSetTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer);
+    
+    virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+};
+
+/// A streamer for generic sets.
+class GenericSetTypeStreamer : public GenericListTypeStreamer {
+public:
+
+    GenericSetTypeStreamer(const QByteArray& name, const TypeStreamerPointer& valueStreamer);
+    
+    virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual Category getCategory() const;
+};
+
 /// A streamer for hash types.
 template<class K, class V> class CollectionTypeStreamer<QHash<K, V> > : public SimpleTypeStreamer<QHash<K, V> > {
 public:
     
-    virtual TypeReader::Type getReaderType() const { return TypeReader::MAP_TYPE; }
+    virtual void writeMetadata(Bitstream& out, bool full) const { out << getKeyStreamer() << getValueStreamer(); }
+    virtual TypeStreamer::Category getCategory() const { return TypeStreamer::MAP_CATEGORY; }
     virtual const TypeStreamer* getKeyStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<K>()); }
     virtual const TypeStreamer* getValueStreamer() const { return Bitstream::getTypeStreamer(qMetaTypeId<V>()); }
     virtual void insert(QVariant& object, const QVariant& key, const QVariant& value) const {
@@ -1068,22 +1511,74 @@ public:
         return QVariant::fromValue(static_cast<const QHash<K, V>*>(object.constData())->value(key.value<K>())); }
 };
 
-/// Macro for registering simple type streamers.
+/// A streamer for maps that maps to a local type.
+class MappedMapTypeStreamer : public TypeStreamer {
+public:
+    
+    MappedMapTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& keyStreamer,
+        const TypeStreamerPointer& valueStreamer);
+    
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
+    virtual void readRawDelta(Bitstream& in, QVariant& object, const QVariant& reference) const;
+    
+private:
+    
+    const TypeStreamer* _baseStreamer;
+    TypeStreamerPointer _keyStreamer;
+    TypeStreamerPointer _valueStreamer;
+};
+
+/// A streamer for generic maps.
+class GenericMapTypeStreamer : public GenericTypeStreamer {
+public:
+
+    GenericMapTypeStreamer(const QByteArray& name, const TypeStreamerPointer& keyStreamer,
+        const TypeStreamerPointer& valueStreamer);
+    
+    virtual void writeMetadata(Bitstream& out, bool full) const;
+    virtual QJsonValue getJSONMetadata(JSONWriter& writer) const;
+    virtual QJsonValue getJSONData(JSONWriter& writer, const QVariant& value) const;
+    virtual void putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const;
+    virtual void write(Bitstream& out, const QVariant& value) const;
+    virtual QVariant read(Bitstream& in) const;
+    virtual Category getCategory() const;
+    
+private:
+
+    TypeStreamerPointer _keyStreamer;
+    TypeStreamerPointer _valueStreamer;
+};
+
+/// A streamer class for generic values.
+class GenericValueStreamer : public SimpleTypeStreamer<GenericValue> {
+public:
+    
+    QJsonValue getJSONVariantData(JSONWriter& writer, const QVariant& value) const;
+    virtual void writeVariant(Bitstream& out, const QVariant& value) const;
+};
+
+/// Macro for registering simple type streamers.  Typically, one would use this at the top level of the source file
+/// associated with the type.
 #define REGISTER_SIMPLE_TYPE_STREAMER(X) static int X##Streamer = \
     Bitstream::registerTypeStreamer(qMetaTypeId<X>(), new SimpleTypeStreamer<X>());
 
-/// Macro for registering collection type streamers.
+/// Macro for registering collection type (QList, QVector, QSet, QMap) streamers.  Typically, one would use this at the top
+/// level of the source file associated with the type.
 #define REGISTER_COLLECTION_TYPE_STREAMER(X) static int x##Streamer = \
     Bitstream::registerTypeStreamer(qMetaTypeId<X>(), new CollectionTypeStreamer<X>());
 
-/// Declares the metatype and the streaming operators.  The last lines
-/// ensure that the generated file will be included in the link phase. 
+/// Declares the metatype and the streaming operators.  Typically, one would use this immediately after the definition of a
+/// type flagged as STREAMABLE in its header file.  The type should have a no-argument constructor.  The last lines of this
+/// macro ensure that the generated file will be included in the link phase.
 #ifdef _WIN32
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
     Bitstream& operator>>(Bitstream& in, X& obj); \
     template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
     template<> void Bitstream::readRawDelta(X& value, const X& reference); \
+    template<> QJsonValue JSONWriter::getData(const X& value); \
+    template<> void JSONReader::putData(const QJsonValue& data, X& value); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type;
@@ -1093,6 +1588,8 @@ public:
     Bitstream& operator>>(Bitstream& in, X& obj); \
     template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
     template<> void Bitstream::readRawDelta(X& value, const X& reference); \
+    template<> QJsonValue JSONWriter::getData(const X& value); \
+    template<> void JSONReader::putData(const QJsonValue& data, X& value); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     __attribute__((unused)) static const int* _TypePtr##X = &X::Type;
@@ -1103,18 +1600,27 @@ public:
     Bitstream& operator>>(Bitstream& in, X& obj); \
     template<> void Bitstream::writeRawDelta(const X& value, const X& reference); \
     template<> void Bitstream::readRawDelta(X& value, const X& reference); \
+    template<> QJsonValue JSONWriter::getData(const X& value); \
+    template<> void JSONReader::putData(const QJsonValue& data, X& value); \
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type; \
     _Pragma(STRINGIFY(unused(_TypePtr##X)))
 #endif
 
+/// Declares an enum metatype.  This is used when one desires to use an enum defined in a QObject outside of that class's
+/// direct properties.  Typically, one would use this immediately after the definition of the QObject containing the enum
+/// in its header file.
 #define DECLARE_ENUM_METATYPE(S, N) Q_DECLARE_METATYPE(S::N) \
     Bitstream& operator<<(Bitstream& out, const S::N& obj); \
     Bitstream& operator>>(Bitstream& in, S::N& obj); \
     template<> inline void Bitstream::writeRawDelta(const S::N& value, const S::N& reference) { *this << value; } \
-    template<> inline void Bitstream::readRawDelta(S::N& value, const S::N& reference) { *this >> value; }
+    template<> inline void Bitstream::readRawDelta(S::N& value, const S::N& reference) { *this >> value; } \
+    template<> inline QJsonValue JSONWriter::getData(const S::N& value) { return (int)value; } \
+    template<> inline void JSONReader::putData(const QJsonValue& data, S::N& value) { value = (S::N)data.toInt(); }
 
+/// Implements an enum metatype.  This performs the implementation of the previous macro, and would normally be used at the
+/// top level of the source file associated with the QObject containing the enum.
 #define IMPLEMENT_ENUM_METATYPE(S, N) \
     static int S##N##MetaTypeId = registerEnumMetaType<S::N>(&S::staticMetaObject, #N); \
     Bitstream& operator<<(Bitstream& out, const S::N& obj) { \
@@ -1127,7 +1633,9 @@ public:
         return in.read(&obj, bits); \
     }
     
-/// Registers a simple type and its streamer.
+/// Registers a simple type and its streamer.  This would typically be used at the top level of the source file associated with
+/// the type, and combines the registration of the type with the Qt metatype system with the registration of a simple type
+/// streamer.
 /// \return the metatype id
 template<class T> int registerSimpleMetaType() {
     int type = qRegisterMetaType<T>();
@@ -1135,7 +1643,8 @@ template<class T> int registerSimpleMetaType() {
     return type;
 }
 
-/// Registers an enum type and its streamer.
+/// Registers an enum type and its streamer.  Rather than using this directly, consider using the IMPLEMENT_ENUM_METATYPE
+/// macro.
 /// \return the metatype id
 template<class T> int registerEnumMetaType(const QMetaObject* metaObject, const char* name) {
     int type = qRegisterMetaType<T>();
@@ -1143,7 +1652,8 @@ template<class T> int registerEnumMetaType(const QMetaObject* metaObject, const 
     return type;
 }
 
-/// Registers a streamable type and its streamer.
+/// Registers a streamable type and its streamer.  Rather than using this directly, consider using the
+/// DECLARE_STREAMABLE_METATYPE macro and the mtc code generation tool.
 /// \return the metatype id
 template<class T> int registerStreamableMetaType() {
     int type = qRegisterMetaType<T>();
@@ -1151,7 +1661,9 @@ template<class T> int registerStreamableMetaType() {
     return type;
 }
 
-/// Registers a collection type and its streamer.
+/// Registers a collection type and its streamer.  This would typically be used at the top level of the source file associated
+/// with the type, and combines the registration of the type with the Qt metatype system with the registration of a collection
+/// type streamer.
 /// \return the metatype id
 template<class T> int registerCollectionMetaType() {
     int type = qRegisterMetaType<T>();
@@ -1159,7 +1671,9 @@ template<class T> int registerCollectionMetaType() {
     return type;
 }
 
-/// Flags a class as streamable (use as you would Q_OBJECT).
+/// Flags a class as streamable.  Use as you would Q_OBJECT: as the first line of a class definition, before any members or
+/// access qualifiers.  Typically, one would follow the definition with DECLARE_STREAMABLE_METATYPE.  The mtc tool looks for
+/// this macro in order to generate streaming (etc.) code for types.
 #define STREAMABLE public: \
     static const int Type; \
     static const QVector<MetaField>& getMetaFields(); \
@@ -1169,7 +1683,8 @@ template<class T> int registerCollectionMetaType() {
     private: \
     static QHash<QByteArray, int> createFieldIndices();
 
-/// Flags a field or base class as streaming.
+/// Flags a (public) field within or base class of a streamable type as streaming.  Use before all base classes or fields that
+/// you want to stream.
 #define STREAM
 
 #endif // hifi_Bitstream_h

@@ -85,7 +85,7 @@ void DataServerAccountInfo::setBalance(qint64 balance) {
 
 void DataServerAccountInfo::setBalanceFromJSON(const QJsonObject& jsonObject) {
     if (jsonObject["status"].toString() == "success") {
-        qint64 balanceInSatoshis = jsonObject["data"].toObject()["wallet"].toObject()["balance"].toInt();
+        qint64 balanceInSatoshis = jsonObject["data"].toObject()["wallet"].toObject()["balance"].toDouble();
         setBalance(balanceInSatoshis);
     }
 }

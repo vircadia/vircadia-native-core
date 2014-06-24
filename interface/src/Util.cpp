@@ -21,6 +21,8 @@
 
 #include <SharedUtil.h>
 
+#include <QThread>
+
 #include "InterfaceConfig.h"
 #include "ui/TextRenderer.h"
 #include "VoxelConstants.h"
@@ -410,8 +412,44 @@ void runTimingTests() {
     
     float NSEC_TO_USEC = 1.0f / 1000.0f;
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("QElapsedTimer::nsecElapsed() usecs: %f", elapsedUsecs / (float) numTests);
+    qDebug("QElapsedTimer::nsecElapsed() usecs: %f", elapsedUsecs);
     
+    // Test sleep functions for accuracy
+    startTime.start();
+    QThread::msleep(1);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("QThread::msleep(1) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    QThread::sleep(1);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("QThread::sleep(1) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    usleep(1);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("usleep(1) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    usleep(10);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("usleep(10) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    usleep(100);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("usleep(100) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    usleep(1000);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("usleep(1000) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    usleep(15000);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("usleep(15000) ms: %f", elapsedUsecs / 1000.0f);
+
     // Random number generation
     startTime.start();
     for (int i = 0; i < numTests; i++) {

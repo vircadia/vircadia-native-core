@@ -218,9 +218,14 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
             pPropertyStore->Release();
             pPropertyStore = NULL;
-            //QAudio devices seems to only take the 31 first characters of the Friendly Device Name.
-            const DWORD QT_WIN_MAX_AUDIO_DEVICENAME_LEN = 31;
-            deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal).left(QT_WIN_MAX_AUDIO_DEVICENAME_LEN);
+            deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
+            const DWORD WINDOWS7_MAJOR_VERSION = 6;
+            const DWORD WINDOWS7_MINOR_VERSION = 1;
+            if (osvi.dwMajorVersion <= WINDOWS7_MAJOR_VERSION && osvi.dwMinorVersion <= WINDOWS7_MINOR_VERSION) {
+                // Windows 7 provides only the 31 first characters of the device name.
+                const DWORD QT_WIN7_MAX_AUDIO_DEVICENAME_LEN = 31;
+                deviceName = deviceName.left(QT_WIN7_MAX_AUDIO_DEVICENAME_LEN);
+            }
             qDebug() << (mode == QAudio::AudioOutput ? "output" : "input") << " device:" << deviceName;
             PropVariantClear(&pv);
         }
@@ -461,8 +466,8 @@ void Audio::handleAudioInput() {
         int16_t* inputAudioSamples = new int16_t[inputSamplesRequired];
         _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
         
-        int numNetworkBytes = _isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
-        int numNetworkSamples = _isStereoInput ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+        const int numNetworkBytes = _isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+        const int numNetworkSamples = _isStereoInput ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
 
         // zero out the monoAudioSamples array and the locally injected audio
         memset(networkAudioSamples, 0, numNetworkBytes);
@@ -634,12 +639,10 @@ void Audio::handleAudioInput() {
                 packetType = PacketTypeSilentAudioFrame;
                 
                 // we need to indicate how many silent samples this is to the audio mixer
-                audioDataPacket[0] = _isStereoInput
-                    ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
-                    : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                networkAudioSamples[0] = numNetworkSamples;
                 numAudioBytes = sizeof(int16_t);
             } else {
-                numAudioBytes = _isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+                numAudioBytes = numNetworkBytes;
                 
                 if (Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)) {
                     packetType = PacketTypeMicrophoneAudioWithEcho;
@@ -1419,7 +1422,7 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 // proportional to the accelerator ratio. 
 
 #ifdef Q_OS_WIN
-const float Audio::CALLBACK_ACCELERATOR_RATIO = 0.4f;
+const float Audio::CALLBACK_ACCELERATOR_RATIO = 0.1f;
 #endif
 
 #ifdef Q_OS_MAC

@@ -12,8 +12,8 @@
 #ifndef hifi_AudioMixer_h
 #define hifi_AudioMixer_h
 
+#include <AABox.h>
 #include <AudioRingBuffer.h>
-
 #include <ThreadedAssignment.h>
 
 class PositionalAudioRingBuffer;
@@ -26,6 +26,7 @@ class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AudioMixer(const QByteArray& packet);
+    ~AudioMixer();
 public slots:
     /// threaded run of assignment
     void run();
@@ -33,6 +34,9 @@ public slots:
     void readPendingDatagrams();
     
     void sendStatsPacket();
+
+    static bool getUseDynamicJitterBuffers() { return _useDynamicJitterBuffers; }
+
 private:
     /// adds one buffer to the mix for a listening node
     void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -51,6 +55,9 @@ private:
     int _numStatFrames;
     int _sumListeners;
     int _sumMixes;
+    AABox* _sourceUnattenuatedZone;
+    AABox* _listenerUnattenuatedZone;
+    static bool _useDynamicJitterBuffers;
 };
 
 #endif // hifi_AudioMixer_h

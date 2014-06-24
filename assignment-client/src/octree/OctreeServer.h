@@ -68,6 +68,7 @@ public:
     virtual const char* getMyServerName() const = 0;
     virtual const char* getMyLoggingServerTargetName() const = 0;
     virtual const char* getMyDefaultPersistFilename() const = 0;
+    virtual PacketType getMyEditNackType() const = 0;
 
     // subclass may implement these method
     virtual void beforeRun() { };

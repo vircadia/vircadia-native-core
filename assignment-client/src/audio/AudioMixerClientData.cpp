@@ -16,6 +16,7 @@
 
 #include "InjectedAudioRingBuffer.h"
 
+#include "AudioMixer.h"
 #include "AudioMixerClientData.h"
 
 AudioMixerClientData::AudioMixerClientData() :
@@ -25,14 +26,14 @@ AudioMixerClientData::AudioMixerClientData() :
 }
 
 AudioMixerClientData::~AudioMixerClientData() {
-    for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
+    for (int i = 0; i < _ringBuffers.size(); i++) {
         // delete this attached PositionalAudioRingBuffer
         delete _ringBuffers[i];
     }
 }
 
 AvatarAudioRingBuffer* AudioMixerClientData::getAvatarAudioRingBuffer() const {
-    for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
+    for (int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Microphone) {
             return (AvatarAudioRingBuffer*) _ringBuffers[i];
         }
@@ -65,7 +66,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         if (!avatarRingBuffer) {
             // we don't have an AvatarAudioRingBuffer yet, so add it
-            avatarRingBuffer = new AvatarAudioRingBuffer(isStereo);
+            avatarRingBuffer = new AvatarAudioRingBuffer(isStereo, AudioMixer::getUseDynamicJitterBuffers());
             _ringBuffers.push_back(avatarRingBuffer);
         }
 
@@ -79,7 +80,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         InjectedAudioRingBuffer* matchingInjectedRingBuffer = NULL;
 
-        for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
+        for (int i = 0; i < _ringBuffers.size(); i++) {
             if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector
                 && ((InjectedAudioRingBuffer*) _ringBuffers[i])->getStreamIdentifier() == streamIdentifier) {
                 matchingInjectedRingBuffer = (InjectedAudioRingBuffer*) _ringBuffers[i];
@@ -88,7 +89,8 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         if (!matchingInjectedRingBuffer) {
             // we don't have a matching injected audio ring buffer, so add it
-            matchingInjectedRingBuffer = new InjectedAudioRingBuffer(streamIdentifier);
+            matchingInjectedRingBuffer = new InjectedAudioRingBuffer(streamIdentifier, 
+                                                    AudioMixer::getUseDynamicJitterBuffers());
             _ringBuffers.push_back(matchingInjectedRingBuffer);
         }
 
@@ -98,9 +100,9 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples) {
-    for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
-        if (_ringBuffers[i]->shouldBeAddedToMix(jitterBufferLengthSamples)) {
+void AudioMixerClientData::checkBuffersBeforeFrameSend(AABox* checkSourceZone, AABox* listenerZone) {
+    for (int i = 0; i < _ringBuffers.size(); i++) {
+        if (_ringBuffers[i]->shouldBeAddedToMix()) {
             // this is a ring buffer that is ready to go
             // set its flag so we know to push its buffer when all is said and done
             _ringBuffers[i]->setWillBeAddedToMix(true);
@@ -108,25 +110,73 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
             // calculate the average loudness for the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
             // that would be mixed in
             _ringBuffers[i]->updateNextOutputTrailingLoudness();
+            
+            if (checkSourceZone && checkSourceZone->contains(_ringBuffers[i]->getPosition())) {
+                _ringBuffers[i]->setListenerUnattenuatedZone(listenerZone);
+            } else {
+                _ringBuffers[i]->setListenerUnattenuatedZone(NULL);
+            }
         }
     }
 }
 
 void AudioMixerClientData::pushBuffersAfterFrameSend() {
-    for (unsigned int i = 0; i < _ringBuffers.size(); i++) {
+
+    QList<PositionalAudioRingBuffer*>::iterator i = _ringBuffers.begin();
+    while (i != _ringBuffers.end()) {
         // this was a used buffer, push the output pointer forwards
-        PositionalAudioRingBuffer* audioBuffer = _ringBuffers[i];
+        PositionalAudioRingBuffer* audioBuffer = *i;
 
         if (audioBuffer->willBeAddedToMix()) {
-            audioBuffer->shiftReadPosition(audioBuffer->isStereo()
-                                           ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-
+            audioBuffer->shiftReadPosition(audioBuffer->getSamplesPerFrame());
             audioBuffer->setWillBeAddedToMix(false);
         } else if (audioBuffer->getType() == PositionalAudioRingBuffer::Injector
                    && audioBuffer->hasStarted() && audioBuffer->isStarved()) {
             // this is an empty audio buffer that has starved, safe to delete
             delete audioBuffer;
-            _ringBuffers.erase(_ringBuffers.begin() + i);
+            i = _ringBuffers.erase(i);
+            continue;
+        }
+        i++;
+    }
+}
+
+QString AudioMixerClientData::getJitterBufferStats() const {
+    QString result;
+    AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
+    if (avatarRingBuffer) {
+        int desiredJitterBuffer = avatarRingBuffer->getDesiredJitterBufferFrames();
+        int calculatedJitterBuffer = avatarRingBuffer->getCalculatedDesiredJitterBufferFrames();
+        int currentJitterBuffer = avatarRingBuffer->getCurrentJitterBufferFrames();
+        int resetCount = avatarRingBuffer->getResetCount();
+        int samplesAvailable = avatarRingBuffer->samplesAvailable();
+        int framesAvailable = (samplesAvailable / avatarRingBuffer->getSamplesPerFrame());
+        result += "mic.desired:" + QString::number(desiredJitterBuffer) 
+                    + " calculated:" + QString::number(calculatedJitterBuffer)
+                    + " current:" + QString::number(currentJitterBuffer)
+                    + " available:" + QString::number(framesAvailable)
+                    + " samples:" + QString::number(samplesAvailable)
+                    + " resets:" + QString::number(resetCount);
+    } else {
+        result = "mic unknown";
+    }
+
+    for (int i = 0; i < _ringBuffers.size(); i++) {
+        if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
+            int desiredJitterBuffer = _ringBuffers[i]->getDesiredJitterBufferFrames();
+            int calculatedJitterBuffer = _ringBuffers[i]->getCalculatedDesiredJitterBufferFrames();
+            int currentJitterBuffer = _ringBuffers[i]->getCurrentJitterBufferFrames();
+            int resetCount = _ringBuffers[i]->getResetCount();
+            int samplesAvailable = _ringBuffers[i]->samplesAvailable();
+            int framesAvailable = (samplesAvailable / _ringBuffers[i]->getSamplesPerFrame());
+            result += "| injected["+QString::number(i)+"].desired:" + QString::number(desiredJitterBuffer) 
+                    + " calculated:" + QString::number(calculatedJitterBuffer)
+                    + " current:" + QString::number(currentJitterBuffer)
+                    + " available:" + QString::number(framesAvailable)
+                    + " samples:" + QString::number(samplesAvailable)
+                    + " resets:" + QString::number(resetCount);
         }
     }
+
+    return result;
 }

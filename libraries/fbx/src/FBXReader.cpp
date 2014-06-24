@@ -1717,7 +1717,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 glm::vec3 boneEnd = extractTranslation(transformJointToMesh);
                 glm::vec3 boneBegin = boneEnd;
                 glm::vec3 boneDirection;
-                float boneLength;
+                float boneLength = 0.0f;
                 if (joint.parentIndex != -1) {
                     boneBegin = extractTranslation(inverseModelTransform * geometry.joints[joint.parentIndex].bindTransform);
                     boneDirection = boneEnd - boneBegin;
@@ -1779,7 +1779,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             glm::vec3 boneBegin = boneEnd;
 
             glm::vec3 boneDirection;
-            float boneLength;
+            float boneLength = 0.0f;
             if (joint.parentIndex != -1) {
                 boneBegin = extractTranslation(inverseModelTransform * geometry.joints[joint.parentIndex].bindTransform);
                 boneDirection = boneEnd - boneBegin;
