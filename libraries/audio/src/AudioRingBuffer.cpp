@@ -187,7 +187,7 @@ unsigned int AudioRingBuffer::samplesAvailable() const {
     }
 }
 
-void AudioRingBuffer::addSilentFrame(int numSilentSamples) {
+int AudioRingBuffer::addSilentFrame(int numSilentSamples) {
 
     int samplesRoomFor = _sampleCapacity - samplesAvailable();
     if (numSilentSamples > samplesRoomFor) {
@@ -201,14 +201,14 @@ printf("_nextOutput at index %d\n", _nextOutput - _buffer);
     // push the _endOfLastWrite to the correct spot
     if (_endOfLastWrite + numSilentSamples <= _buffer + _arrayLength) {
         memset(_endOfLastWrite, 0, numSilentSamples * sizeof(int16_t));
-        _endOfLastWrite += numSilentSamples;
     } else {
         int numSamplesToEnd = (_buffer + _arrayLength) - _endOfLastWrite;
         memset(_endOfLastWrite, 0, numSamplesToEnd * sizeof(int16_t));
         memset(_buffer, 0, (numSilentSamples - numSamplesToEnd) * sizeof(int16_t));
-        
-        _endOfLastWrite = _buffer + (numSilentSamples - numSamplesToEnd);
     }
+    _endOfLastWrite = shiftedPositionAccomodatingWrap(_endOfLastWrite, numSilentSamples);
+
+    return numSilentSamples * sizeof(int16_t);
 }
 
 bool AudioRingBuffer::isNotStarvedOrHasMinimumSamples(unsigned int numRequiredSamples) const {
