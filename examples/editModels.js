@@ -34,6 +34,7 @@ var LASER_COLOR = { red: 255, green: 0, blue: 0 };
 var LASER_LENGTH_FACTOR = 500
 ;
 
+var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
 
 var LEFT = 0;
@@ -277,8 +278,9 @@ function controller(wichSide) {
         var X = Vec3.sum(A, Vec3.multiply(B, x));
         var d = Vec3.length(Vec3.subtract(P, X));
         
-        if (0 < x && x < LASER_LENGTH_FACTOR) {
-            if (2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14 > MAX_ANGULAR_SIZE) {
+        var angularSize = 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+        if (0 < x && angularSize > MIN_ANGULAR_SIZE) {
+            if (angularSize > MAX_ANGULAR_SIZE) {
                 print("Angular size too big: " + 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14);
                 return { valid: false };
             }
@@ -326,7 +328,8 @@ function controller(wichSide) {
                                                           origin: this.palmPosition,
                                                           direction: this.front
                                                           });
-            if (intersection.accurate && intersection.modelID.isKnownID) {
+            var angularSize = 2 * Math.atan(intersection.modelProperties.radius / Vec3.distance(Camera.getPosition(), intersection.modelProperties.position)) * 180 / 3.14;
+            if (intersection.accurate && intersection.modelID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
                 this.glowedIntersectingModel = intersection.modelID;
                 Models.editModel(this.glowedIntersectingModel, { glowLevel: 0.25 });
             }
@@ -828,8 +831,9 @@ function mousePressEvent(event) {
             var X = Vec3.sum(A, Vec3.multiply(B, x));
             var d = Vec3.length(Vec3.subtract(P, X));
             
-            if (0 < x && x < LASER_LENGTH_FACTOR) {
-                if (2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14 < MAX_ANGULAR_SIZE) {
+            var angularSize = 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+            if (0 < x && angularSize > MIN_ANGULAR_SIZE) {
+                if (angularSize < MAX_ANGULAR_SIZE) {
                     modelSelected = true;
                     selectedModelID = foundModel;
                     selectedModelProperties = properties;
@@ -884,7 +888,8 @@ function mouseMoveEvent(event)  {
                 glowedModelID.isKnownID = false;
             }
             
-            if (modelIntersection.modelID.isKnownID) {
+            var angularSize = 2 * Math.atan(modelIntersection.modelProperties.radius / Vec3.distance(Camera.getPosition(), modelIntersection.modelProperties.position)) * 180 / 3.14;
+            if (modelIntersection.modelID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
                 Models.editModel(modelIntersection.modelID, { glowLevel: 0.25 });
                 glowedModelID = modelIntersection.modelID;
             }
@@ -1125,8 +1130,8 @@ function handeMenuEvent(menuItem){
                 Models.editModel(editModelID, properties);
             }
         }
-        tooltip.show(false);
     }
+    tooltip.show(false);
 }
 Menu.menuItemEvent.connect(handeMenuEvent);
 

@@ -14,7 +14,7 @@
 // ListShapeEntry
 
 void ListShapeEntry::updateTransform(const glm::vec3& rootPosition, const glm::quat& rootRotation) {
-    _shape->setPosition(rootPosition + rootRotation * _localPosition);
+    _shape->setTranslation(rootPosition + rootRotation * _localPosition);
     _shape->setRotation(_localRotation * rootRotation);
 }
 
@@ -24,9 +24,9 @@ ListShape::~ListShape() {
     clear();
 }
 
-void ListShape::setPosition(const glm::vec3& position) {
+void ListShape::setTranslation(const glm::vec3& position) {
     _subShapeTransformsAreDirty = true;
-    Shape::setPosition(position);
+    Shape::setTranslation(position);
 }
 
 void ListShape::setRotation(const glm::quat& rotation) {
@@ -44,7 +44,7 @@ const Shape* ListShape::getSubShape(int index) const {
 void ListShape::updateSubTransforms() {
     if (_subShapeTransformsAreDirty) {
         for (int i = 0; i < _subShapeEntries.size(); ++i) {
-            _subShapeEntries[i].updateTransform(_position, _rotation);
+            _subShapeEntries[i].updateTransform(_translation, _rotation);
         }
         _subShapeTransformsAreDirty = false;
     }

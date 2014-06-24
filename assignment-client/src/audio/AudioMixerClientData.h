@@ -27,9 +27,11 @@ public:
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
     
     int parseData(const QByteArray& packet);
-    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples,
-                                     AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
+    void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
+
+    QString getJitterBufferStats() const;
+
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;
 };

@@ -3189,7 +3189,7 @@ void Application::updateWindowTitle(){
         float creditBalance = accountManager.getAccountInfo().getBalance() / SATOSHIS_PER_CREDIT;
 
         QString creditBalanceString;
-        creditBalanceString.sprintf("%.8f", creditBalance);
+        creditBalanceString.sprintf("%.8f", floor(creditBalance + 0.5));
 
         title += " - ₵" + creditBalanceString;
     }
