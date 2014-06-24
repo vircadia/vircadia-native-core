@@ -232,7 +232,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
 
 void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
 
-    const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
+    static const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
 
     if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) {
         _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);

@@ -286,7 +286,7 @@ void Stats::display(
             pingVoxel = totalPingVoxel/voxelServerCount;
         }
 
-        lines = _expanded ? 4 : 3;
+        lines = _expanded ? 6 : 5;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
 
@@ -302,7 +302,6 @@ void Stats::display(
                  
         char audioPing[30];
         sprintf(audioPing, "Audio ping: %d", pingAudio);
-       
                  
         char avatarPing[30];
         sprintf(avatarPing, "Avatar ping: %d", pingAvatar);
@@ -324,9 +323,26 @@ void Stats::display(
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
         }
 
+        static const float MSECS_PER_FRAME = (float)NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * (float)MSECS_PER_SECOND / (float)SAMPLE_RATE;
+
+        const AudioMixerJitterBuffersStats& audioMixerJitterBufferStats =
+            Application::getInstance()->getAudio()->getAudioMixerJitterBuffersStats();
+
+        char* audioMixerJitterBuffersStatsLabel = "AudioMixer j-buffers msecs:";
+        char audioMixerJitterBuffersStats[30];
+        sprintf(audioMixerJitterBuffersStats, "mic/max/avg: %.1f / %.1f / %.1f", audioMixerJitterBufferStats.avatarJitterBufferFrames * MSECS_PER_FRAME,
+            audioMixerJitterBufferStats.maxJitterBufferFrames * MSECS_PER_FRAME, audioMixerJitterBufferStats.avgJitterBufferFrames * MSECS_PER_FRAME);
+
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStatsLabel, color);
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStats, color);
+
+
         verticalOffset = 0;
         horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + 2;
     }
+
 
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();

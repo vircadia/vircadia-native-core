@@ -16,6 +16,7 @@
 #include <QtCore/QDebug>
 
 #include "PacketHeaders.h"
+#include "../../../assignment-client/src/audio/AudioMixerClientData.h"
 
 #include "AudioRingBuffer.h"
 
@@ -63,8 +64,11 @@ void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
 }
 
 int AudioRingBuffer::parseData(const QByteArray& packet) {
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    return writeData(packet.data() + numBytesPacketHeader, packet.size() - numBytesPacketHeader);
+    int numBytesBeforeAudioData = numBytesForPacketHeader(packet);
+    if (packetTypeForPacket(packet) == PacketTypeMixedAudio) {
+        numBytesBeforeAudioData += sizeof(AudioMixerJitterBuffersStats);
+    }
+    return writeData(packet.data() + numBytesBeforeAudioData, packet.size() - numBytesBeforeAudioData);
 }
 
 qint64 AudioRingBuffer::readSamples(int16_t* destination, qint64 maxSamples) {

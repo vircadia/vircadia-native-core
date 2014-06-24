@@ -102,7 +102,8 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _samplesPerScope(NETWORK_SAMPLES_PER_FRAME * _framesPerScope),
     _scopeInput(0),
     _scopeOutputLeft(0),
-    _scopeOutputRight(0)
+    _scopeOutputRight(0),
+    _audioMixerJitterBufferStats()
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -800,7 +801,16 @@ void Audio::toggleStereoInput() {
     }
 }
 
+void Audio::parseAudioMixerJitterBuffersStats(const QByteArray& audioByteArray) {
+
+    int numBytesPacketHeader = numBytesForPacketHeader(audioByteArray);
+    const char* dataAt = reinterpret_cast<const char*>(audioByteArray.data() + numBytesPacketHeader);
+
+    memcpy(&_audioMixerJitterBufferStats, dataAt, sizeof(AudioMixerJitterBuffersStats));
+}
+
 void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
+    parseAudioMixerJitterBuffersStats(audioByteArray);
     _ringBuffer.parseData(audioByteArray);
     
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())

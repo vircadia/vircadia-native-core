@@ -15,6 +15,7 @@
 #include <UUID.h>
 
 #include "InjectedAudioRingBuffer.h"
+#include "SharedUtil.h"
 
 #include "AudioMixerClientData.h"
 
@@ -137,4 +138,28 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
         }
         i++;
     }
+}
+
+void AudioMixerClientData::calculateJitterBuffersStats(AudioMixerJitterBuffersStats& stats) const {
+    int avatarJitterBufferFrames = 0;
+    int maxJitterBufferFrames = 0;
+    int sumJitterBufferFrames = 0;
+    
+    for (int i = 0; i < _ringBuffers.size(); i++) {
+        
+        int bufferJitterFrames = _ringBuffers[i]->getCurrentJitterBufferFrames();
+        if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Microphone) {
+            avatarJitterBufferFrames = bufferJitterFrames;
+        }
+
+        if (bufferJitterFrames > maxJitterBufferFrames) {
+            maxJitterBufferFrames = bufferJitterFrames;
+        }
+
+        sumJitterBufferFrames += bufferJitterFrames;
+    }
+
+    stats.avatarJitterBufferFrames = avatarJitterBufferFrames;
+    stats.maxJitterBufferFrames = maxJitterBufferFrames;
+    stats.avgJitterBufferFrames = (float)sumJitterBufferFrames / (float)_ringBuffers.size();
 }

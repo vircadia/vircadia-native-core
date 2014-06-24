@@ -14,9 +14,20 @@
 
 #include <AABox.h>
 #include <NodeData.h>
-#include <PositionalAudioRingBuffer.h>
 
+#include "PositionalAudioRingBuffer.h"
 #include "AvatarAudioRingBuffer.h"
+
+class AudioMixerJitterBuffersStats {
+public:
+    AudioMixerJitterBuffersStats()
+        : avatarJitterBufferFrames(0), maxJitterBufferFrames(0), avgJitterBufferFrames(0)
+    {}
+
+    int avatarJitterBufferFrames;
+    int maxJitterBufferFrames;
+    float avgJitterBufferFrames;
+};
 
 class AudioMixerClientData : public NodeData {
 public:
@@ -29,6 +40,8 @@ public:
     int parseData(const QByteArray& packet);
     void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
+
+    void calculateJitterBuffersStats(AudioMixerJitterBuffersStats& stats) const;
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;
 };

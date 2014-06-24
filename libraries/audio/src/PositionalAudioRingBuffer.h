@@ -76,6 +76,7 @@ public:
     void setListenerUnattenuatedZone(AABox* listenerUnattenuatedZone) { _listenerUnattenuatedZone = listenerUnattenuatedZone; }
     
     int getSamplesPerFrame() const { return _isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
+    int getCurrentJitterBufferFrames() const { return _currentJitterBufferFrames; }
 
 protected:
     // disallow copying of PositionalAudioRingBuffer objects

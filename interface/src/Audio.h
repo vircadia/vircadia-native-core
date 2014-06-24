@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "InterfaceConfig.h"
+#include "../../assignment-client/src/audio/AudioMixerClientData.h"
 
 #include <QAudio>
 #include <QAudioInput>
@@ -101,6 +102,8 @@ public slots:
 
     float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
+
+    const AudioMixerJitterBuffersStats& getAudioMixerJitterBuffersStats() const { return _audioMixerJitterBufferStats; }
 
 signals:
     bool muteToggled();
@@ -216,6 +219,8 @@ private:
     void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
     void renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray);
 
+    void parseAudioMixerJitterBuffersStats(const QByteArray& audioByteArray);
+
     // Audio scope data
     static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
     static const unsigned int DEFAULT_FRAMES_PER_SCOPE = 5;
@@ -233,6 +238,7 @@ private:
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
 
+    AudioMixerJitterBuffersStats _audioMixerJitterBufferStats;
 };
 
 

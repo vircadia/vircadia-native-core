@@ -472,7 +472,7 @@ void AudioMixer::run() {
     QElapsedTimer timer;
     timer.start();
     
-    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
+    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO + sizeof(AudioMixerJitterBuffersStats)
                                      + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
     
     int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
@@ -546,10 +546,19 @@ void AudioMixer::run() {
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
                 
+                // pack header
                 int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
+                char* dataAt = clientMixBuffer + numBytesPacketHeader;
 
-                memcpy(clientMixBuffer + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                nodeList->writeDatagram(clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
+                // calculate and pack the jitter buffer size stats for this node
+                AudioMixerJitterBuffersStats jitterBuffersStats;
+                ((AudioMixerClientData*)node->getLinkedData())->calculateJitterBuffersStats(jitterBuffersStats);
+                memcpy(dataAt, &jitterBuffersStats, sizeof(AudioMixerJitterBuffersStats));
+                dataAt += sizeof(AudioMixerJitterBuffersStats);
+                
+                // pack mixed audio
+                memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
                 
                 ++_sumListeners;
             }
