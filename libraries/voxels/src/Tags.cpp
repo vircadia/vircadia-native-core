@@ -177,7 +177,9 @@ int retrieveData(std::string filename, std::stringstream &ss) {
     int type = file.peek();
     if (type == 0x0A) {
         ss.flush();
-        ss << file;
+        std::copy(std::istreambuf_iterator<char>(file),
+            std::istreambuf_iterator<char>(),
+            std::ostreambuf_iterator<char>(ss));
         return 0;
     }
 

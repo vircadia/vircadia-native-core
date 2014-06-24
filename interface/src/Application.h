@@ -413,7 +413,7 @@ private:
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
 
-    void sendNack();
+    int sendNackPackets();
 
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features

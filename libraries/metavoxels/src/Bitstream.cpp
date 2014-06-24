@@ -33,6 +33,7 @@ REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
 REGISTER_SIMPLE_TYPE_STREAMER(QColor)
 REGISTER_SIMPLE_TYPE_STREAMER(QScriptValue)
 REGISTER_SIMPLE_TYPE_STREAMER(QString)
+REGISTER_SIMPLE_TYPE_STREAMER(QVariant)
 REGISTER_SIMPLE_TYPE_STREAMER(QUrl)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantHash)
@@ -107,6 +108,10 @@ int Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
 
 const TypeStreamer* Bitstream::getTypeStreamer(int type) {
     return getTypeStreamers().value(type);
+}
+
+const ObjectStreamer* Bitstream::getObjectStreamer(const QMetaObject* metaObject) {
+    return getObjectStreamers().value(metaObject);
 }
 
 const QMetaObject* Bitstream::getMetaObject(const QByteArray& className) {
@@ -1178,7 +1183,9 @@ Bitstream& Bitstream::operator>(ObjectStreamerPointer& streamer) {
         }
         for (int i = 0; i < localProperties.size(); i++) {
             const StreamerPropertyPair& property = properties.at(i);
-            if (localProperties.at(i).first != property.first || property.second.propertyIndex() != i) {
+            const StreamerPropertyPair& localProperty = localProperties.at(i);
+            if (property.first != localProperty.first ||
+                    property.second.propertyIndex() != localProperty.second.propertyIndex()) {
                 streamer = ObjectStreamerPointer(new MappedObjectStreamer(metaObject, properties));
                 return *this;
             }
@@ -1618,6 +1625,10 @@ const QHash<ScopeNamePair, const TypeStreamer*>& Bitstream::getEnumStreamers() {
     return enumStreamers;
 }
 
+static QByteArray getEnumName(const char* scope, const char* name) {
+    return QByteArray(scope) + "::" + name;
+}
+
 QHash<ScopeNamePair, const TypeStreamer*> Bitstream::createEnumStreamers() {
     QHash<ScopeNamePair, const TypeStreamer*> enumStreamers;
     foreach (const QMetaObject* metaObject, getMetaObjects()) {
@@ -1625,7 +1636,11 @@ QHash<ScopeNamePair, const TypeStreamer*> Bitstream::createEnumStreamers() {
             QMetaEnum metaEnum = metaObject->enumerator(i);
             const TypeStreamer*& streamer = enumStreamers[ScopeNamePair(metaEnum.scope(), metaEnum.name())];
             if (!streamer) {
-                streamer = new EnumTypeStreamer(metaEnum);
+                // look for a streamer registered by name
+                streamer = getTypeStreamers().value(QMetaType::type(getEnumName(metaEnum.scope(), metaEnum.name())));
+                if (!streamer) {
+                    streamer = new EnumTypeStreamer(metaEnum);
+                }
             }
         }
     }
@@ -1657,8 +1672,570 @@ const TypeStreamer* Bitstream::createInvalidTypeStreamer() {
     return streamer;
 }
 
+QJsonValue JSONWriter::getData(bool value) {
+    return value;
+}
+
+QJsonValue JSONWriter::getData(int value) {
+    return value;
+}
+
+QJsonValue JSONWriter::getData(uint value) {
+    return (int)value;
+}
+
+QJsonValue JSONWriter::getData(float value) {
+    return (double)value;
+}
+
+QJsonValue JSONWriter::getData(const QByteArray& value) {
+    return QString(value.toPercentEncoding());
+}
+
+QJsonValue JSONWriter::getData(const QColor& value) {
+    return value.name();
+}
+
+QJsonValue JSONWriter::getData(const QScriptValue& value) {
+    QJsonObject object;
+    if (value.isUndefined()) {
+        object.insert("type", QString("UNDEFINED"));
+        
+    } else if (value.isNull()) {
+        object.insert("type", QString("NULL"));
+    
+    } else if (value.isBool()) {
+        object.insert("type", QString("BOOL"));
+        object.insert("value", value.toBool());
+        
+    } else if (value.isNumber()) {
+        object.insert("type", QString("NUMBER"));
+        object.insert("value", value.toNumber());
+    
+    } else if (value.isString()) {
+        object.insert("type", QString("STRING"));
+        object.insert("value", value.toString());
+    
+    } else if (value.isVariant()) {
+        object.insert("type", QString("VARIANT"));
+        object.insert("value", getData(value.toVariant()));
+    
+    } else if (value.isQObject()) {
+        object.insert("type", QString("QOBJECT"));
+        object.insert("value", getData(value.toQObject()));
+    
+    } else if (value.isQMetaObject()) {
+        object.insert("type", QString("QMETAOBJECT"));
+        object.insert("value", getData(value.toQMetaObject()));
+        
+    } else if (value.isDate()) {
+        object.insert("type", QString("DATE"));
+        object.insert("value", getData(value.toDateTime()));
+        
+    } else if (value.isRegExp()) {
+        object.insert("type", QString("REGEXP"));
+        object.insert("value", getData(value.toRegExp()));
+    
+    } else if (value.isArray()) {
+        object.insert("type", QString("ARRAY"));
+        QJsonArray array;
+        int length = value.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+        for (int i = 0; i < length; i++) {
+            array.append(getData(value.property(i)));
+        }
+        object.insert("value", array);
+        
+    } else if (value.isObject()) {
+        object.insert("type", QString("OBJECT"));
+        QJsonObject valueObject;
+        for (QScriptValueIterator it(value); it.hasNext(); ) {
+            it.next();
+            valueObject.insert(it.name(), getData(it.value()));
+        }
+        object.insert("value", valueObject);
+        
+    } else {
+        object.insert("type", QString("INVALID"));
+    }
+    return object;
+}
+
+QJsonValue JSONWriter::getData(const QString& value) {
+    return value;
+}
+
+QJsonValue JSONWriter::getData(const QUrl& value) {
+    return value.toString();
+}
+
+QJsonValue JSONWriter::getData(const QDateTime& value) {
+    return (qsreal)value.toMSecsSinceEpoch();
+}
+
+QJsonValue JSONWriter::getData(const QRegExp& value) {
+    QJsonObject object;
+    object.insert("pattern", value.pattern());
+    object.insert("caseSensitivity", (int)value.caseSensitivity());
+    object.insert("patternSyntax", (int)value.patternSyntax());
+    object.insert("minimal", value.isMinimal());
+    return object;
+}
+
+QJsonValue JSONWriter::getData(const glm::vec3& value) {
+    QJsonArray array;
+    array.append(value.x);
+    array.append(value.y);
+    array.append(value.z);
+    return array;
+}
+
+QJsonValue JSONWriter::getData(const glm::quat& value) {
+    QJsonArray array;
+    array.append(value.x);
+    array.append(value.y);
+    array.append(value.z);
+    array.append(value.w);
+    return array;
+}
+
+QJsonValue JSONWriter::getData(const QMetaObject* metaObject) {
+    if (!metaObject) {
+        return QJsonValue();
+    }
+    const ObjectStreamer* streamer = Bitstream::getObjectStreamers().value(metaObject);
+    addObjectStreamer(streamer);
+    return QString(streamer->getName());
+}
+
+QJsonValue JSONWriter::getData(const QVariant& value) {
+    if (!value.isValid()) {
+        return QJsonValue();
+    }
+    const TypeStreamer* streamer = Bitstream::getTypeStreamers().value(value.userType());
+    if (streamer) {
+        return streamer->getJSONVariantData(*this, value);
+    } else {
+        qWarning() << "Non-streamable type:" << value.typeName();
+        return QJsonValue();
+    }
+}
+
+QJsonValue JSONWriter::getData(const SharedObjectPointer& object) {
+    if (object) {
+        addSharedObject(object);
+        return object->getID();
+    } else {
+        return 0;
+    }
+}
+
+QJsonValue JSONWriter::getData(const QObject* object) {
+    if (!object) {
+        return QJsonValue();
+    }
+    const QMetaObject* metaObject = object->metaObject();
+    const ObjectStreamer* streamer = (metaObject == &GenericSharedObject::staticMetaObject) ?
+        static_cast<const GenericSharedObject*>(object)->getStreamer().data() :
+            Bitstream::getObjectStreamers().value(metaObject);
+    return streamer->getJSONData(*this, object);
+}
+
+QJsonValue JSONWriter::getData(const GenericValue& value) {
+    return value.getStreamer()->getJSONData(*this, value.getValue());
+}
+
+void JSONWriter::addTypeStreamer(const TypeStreamer* streamer) {
+    if (!_typeStreamerNames.contains(streamer->getName())) {
+        _typeStreamerNames.insert(streamer->getName());
+        
+        QJsonValue metadata = streamer->getJSONMetadata(*this);
+        if (!metadata.isNull()) {
+            _typeStreamers.append(metadata);
+        }
+    }
+}
+
+void JSONWriter::addObjectStreamer(const ObjectStreamer* streamer) {
+    if (!_objectStreamerNames.contains(streamer->getName())) {
+        _objectStreamerNames.insert(streamer->getName());
+        _objectStreamers.append(streamer->getJSONMetadata(*this));
+    }
+}
+
+void JSONWriter::addSharedObject(const SharedObjectPointer& object) {
+    if (!_sharedObjectIDs.contains(object->getID())) {
+        _sharedObjectIDs.insert(object->getID());
+        
+        QJsonObject sharedObject;
+        sharedObject.insert("id", object->getID());
+        sharedObject.insert("data", getData(static_cast<const QObject*>(object.data())));
+        _sharedObjects.append(sharedObject);
+    }
+}
+
+QJsonDocument JSONWriter::getDocument() const {
+    QJsonObject top;
+    top.insert("contents", _contents);
+    top.insert("objects", _sharedObjects);
+    top.insert("classes", _objectStreamers);
+    top.insert("types", _typeStreamers);
+    return QJsonDocument(top);
+}
+
+JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode genericsMode) {
+    // create and map the type streamers in order
+    QJsonObject top = document.object();
+    foreach (const QJsonValue& element, top.value("types").toArray()) {
+        QJsonObject type = element.toObject();
+        QString name = type.value("name").toString();
+        QByteArray latinName = name.toLatin1();
+        const TypeStreamer* baseStreamer = Bitstream::getTypeStreamers().value(QMetaType::type(latinName));
+        if (!baseStreamer) {
+            baseStreamer = Bitstream::getEnumStreamersByName().value(latinName);
+        }
+        if (!baseStreamer && genericsMode == Bitstream::NO_GENERICS) {
+            continue; // no built-in type and no generics allowed; we give up
+        }
+        QString category = type.value("category").toString();
+        if (!baseStreamer || genericsMode == Bitstream::ALL_GENERICS) {
+            // create a generic streamer
+            TypeStreamerPointer streamer;
+            if (category == "ENUM") {
+                QVector<NameIntPair> values;
+                int highestValue = 0;
+                foreach (const QJsonValue& value, type.value("values").toArray()) {
+                    QJsonObject object = value.toObject();
+                    int intValue = object.value("value").toInt();
+                    highestValue = qMax(intValue, highestValue);
+                    values.append(NameIntPair(object.value("key").toString().toLatin1(), intValue));
+                }
+                streamer = TypeStreamerPointer(new GenericEnumTypeStreamer(latinName,
+                    values, getBitsForHighestValue(highestValue), QByteArray()));
+            
+            } else if (category == "STREAMABLE") {
+                QVector<StreamerNamePair> fields;
+                foreach (const QJsonValue& field, type.value("fields").toArray()) {
+                    QJsonObject object = field.toObject();
+                    fields.append(StreamerNamePair(getTypeStreamer(object.value("type").toString()),
+                        object.value("name").toString().toLatin1()));
+                }
+                streamer = TypeStreamerPointer(new GenericStreamableTypeStreamer(latinName,
+                    fields, QByteArray()));
+            
+            } else if (category == "LIST") {
+                streamer = TypeStreamerPointer(new GenericListTypeStreamer(latinName,
+                    getTypeStreamer(type.value("valueType").toString())));
+            
+            } else if (category == "SET") {
+                streamer = TypeStreamerPointer(new GenericSetTypeStreamer(latinName,
+                    getTypeStreamer(type.value("valueType").toString())));
+                    
+            } else if (category == "MAP") {
+                streamer = TypeStreamerPointer(new GenericMapTypeStreamer(latinName,
+                    getTypeStreamer(type.value("keyType").toString()),
+                    getTypeStreamer(type.value("valueType").toString())));
+            }
+            _typeStreamers.insert(name, streamer);
+            static_cast<GenericTypeStreamer*>(streamer.data())->_weakSelf = streamer;
+            continue;
+        }
+        // create a mapped streamer, determining along the way whether it matches our base
+        if (category == "ENUM") {
+            QHash<int, int> mappings;
+            int highestValue = 0;
+            QMetaEnum metaEnum = baseStreamer->getMetaEnum();
+            QJsonArray array = type.value("values").toArray();
+            bool matches = (array.size() == metaEnum.keyCount());
+            foreach (const QJsonValue& value, array) {
+                QJsonObject object = value.toObject();
+                int intValue = object.value("value").toInt();
+                highestValue = qMax(intValue, highestValue);
+                int mapping = metaEnum.keyToValue(object.value("key").toString().toLatin1());
+                if (mapping != -1) {
+                    mappings.insert(intValue, mapping);
+                }
+                matches &= (intValue == mapping);
+            }
+            // if everything matches our built-in enum, we can use that, which will be faster
+            if (matches) {
+                _typeStreamers.insert(name, baseStreamer->getSelf());
+            } else {
+                _typeStreamers.insert(name, TypeStreamerPointer(new MappedEnumTypeStreamer(baseStreamer,
+                    getBitsForHighestValue(highestValue), mappings)));
+            }
+        } else if (category == "STREAMABLE") {
+            QVector<StreamerIndexPair> fields;
+            QJsonArray array = type.value("fields").toArray();
+            const QVector<MetaField>& metaFields = baseStreamer->getMetaFields(); 
+            bool matches = (array.size() == metaFields.size());
+            for (int i = 0; i < array.size(); i++) {
+                QJsonObject object = array.at(i).toObject();
+                TypeStreamerPointer streamer = getTypeStreamer(object.value("type").toString());
+                int index = baseStreamer->getFieldIndex(object.value("name").toString().toLatin1());
+                fields.append(StreamerIndexPair(streamer, index));
+                matches &= (index == i && streamer == metaFields.at(i).getStreamer());
+            }
+            // if everything matches our built-in streamable, we can use that, which will be faster
+            if (matches) {
+                _typeStreamers.insert(name, baseStreamer->getSelf());
+            } else {
+                _typeStreamers.insert(name, TypeStreamerPointer(new MappedStreamableTypeStreamer(baseStreamer, fields)));
+            }
+        } else if (category == "LIST") {
+            TypeStreamerPointer valueStreamer = getTypeStreamer(type.value("valueType").toString());
+            if (valueStreamer == baseStreamer->getValueStreamer()) {
+                _typeStreamers.insert(name, baseStreamer->getSelf());
+                            
+            } else {
+                _typeStreamers.insert(name, TypeStreamerPointer(new MappedListTypeStreamer(baseStreamer, valueStreamer)));
+            }
+        } else if (category == "SET") {
+            TypeStreamerPointer valueStreamer = getTypeStreamer(type.value("valueType").toString());
+            if (valueStreamer == baseStreamer->getValueStreamer()) {
+                _typeStreamers.insert(name, baseStreamer->getSelf());
+                            
+            } else {
+                _typeStreamers.insert(name, TypeStreamerPointer(new MappedSetTypeStreamer(baseStreamer, valueStreamer)));
+            }
+        } else if (category == "MAP") {
+            TypeStreamerPointer keyStreamer = getTypeStreamer(type.value("keyType").toString());
+            TypeStreamerPointer valueStreamer = getTypeStreamer(type.value("valueType").toString());
+            if (keyStreamer == baseStreamer->getKeyStreamer() && valueStreamer == baseStreamer->getValueStreamer()) {
+                _typeStreamers.insert(name, baseStreamer->getSelf());   
+                
+            } else {
+                _typeStreamers.insert(name, TypeStreamerPointer(new MappedMapTypeStreamer(
+                    baseStreamer, keyStreamer, valueStreamer)));
+            }
+        }
+    }
+
+    // create and map the object streamers in order
+    foreach (const QJsonValue& element, top.value("classes").toArray()) {
+        QJsonObject clazz = element.toObject();
+        QString name = clazz.value("name").toString();
+        QByteArray latinName = name.toLatin1();
+        const ObjectStreamer* baseStreamer = Bitstream::getObjectStreamers().value(
+            Bitstream::getMetaObjects().value(latinName));
+        if (!baseStreamer && genericsMode == Bitstream::NO_GENERICS) {
+            continue; // no built-in class and no generics allowed; we give up
+        }
+        if (!baseStreamer || genericsMode == Bitstream::ALL_GENERICS) {
+            // create a generic streamer
+            QVector<StreamerNamePair> properties;
+            foreach (const QJsonValue& property, clazz.value("properties").toArray()) {
+                QJsonObject object = property.toObject();
+                properties.append(StreamerNamePair(getTypeStreamer(object.value("type").toString()),
+                    object.value("name").toString().toLatin1()));
+            }
+            ObjectStreamerPointer streamer = ObjectStreamerPointer(new GenericObjectStreamer(
+                latinName, properties, QByteArray()));
+            _objectStreamers.insert(name, streamer);
+            static_cast<GenericObjectStreamer*>(streamer.data())->_weakSelf = streamer;
+            continue;
+        }
+        // create a mapped streamer, determining along the way whether it matches our base
+        const QMetaObject* metaObject = baseStreamer->getMetaObject();
+        const QVector<StreamerPropertyPair>& baseProperties = baseStreamer->getProperties();
+        QVector<StreamerPropertyPair> properties;
+        QJsonArray propertyArray = clazz.value("properties").toArray();
+        bool matches = (baseProperties.size() == propertyArray.size());
+        for (int i = 0; i < propertyArray.size(); i++) {
+            QJsonObject object = propertyArray.at(i).toObject();
+            TypeStreamerPointer typeStreamer = getTypeStreamer(object.value("type").toString());
+            QMetaProperty metaProperty = metaObject->property(metaObject->indexOfProperty(
+                object.value("name").toString().toLatin1()));
+            properties.append(StreamerPropertyPair(typeStreamer, metaProperty));
+            
+            const StreamerPropertyPair& baseProperty = baseProperties.at(i);
+            matches &= (typeStreamer == baseProperty.first &&
+                metaProperty.propertyIndex() == baseProperty.second.propertyIndex());
+        }
+        // if everything matches our built-in type, we can use that directly, which will be faster
+        if (matches) {
+            _objectStreamers.insert(name, baseStreamer->getSelf());
+        } else {
+            _objectStreamers.insert(name, ObjectStreamerPointer(new MappedObjectStreamer(metaObject, properties)));
+        }
+    }
+    
+    // create and map the objects in order
+    foreach (const QJsonValue& element, top.value("objects").toArray()) {
+        QJsonObject object = element.toObject();
+        int id = object.value("id").toInt();
+        QObject* qObject;
+        putData(object.value("data"), qObject);
+        if (qObject) {
+            _sharedObjects.insert(id, static_cast<SharedObject*>(qObject));
+        }
+    }
+    
+    // prepare the contents for extraction
+    _contents = top.value("contents").toArray();
+    _contentsIterator = _contents.constBegin();
+}
+
+void JSONReader::putData(const QJsonValue& data, bool& value) {
+    value = data.toBool();
+}
+
+void JSONReader::putData(const QJsonValue& data, int& value) {
+    value = data.toInt();
+}
+
+void JSONReader::putData(const QJsonValue& data, uint& value) {
+    value = data.toInt();
+}
+
+void JSONReader::putData(const QJsonValue& data, float& value) {
+    value = data.toDouble();
+}
+
+void JSONReader::putData(const QJsonValue& data, QByteArray& value) {
+    value = QByteArray::fromPercentEncoding(data.toString().toLatin1());
+}
+
+void JSONReader::putData(const QJsonValue& data, QColor& value) {
+    value.setNamedColor(data.toString());
+}
+
+void JSONReader::putData(const QJsonValue& data, QScriptValue& value) {
+    QJsonObject object = data.toObject();
+    QString type = object.value("type").toString();
+    if (type == "UNDEFINED") {
+        value = QScriptValue(QScriptValue::UndefinedValue);
+        
+    } else if (type == "NULL") {
+        value = QScriptValue(QScriptValue::NullValue);
+    
+    } else if (type == "BOOL") {
+        value = QScriptValue(object.value("value").toBool());
+    
+    } else if (type == "NUMBER") {
+        value = QScriptValue(object.value("value").toDouble());
+    
+    } else if (type == "STRING") {
+        value = QScriptValue(object.value("value").toString());
+    
+    } else if (type == "VARIANT") {
+        QVariant variant;
+        putData(object.value("value"), variant);
+        value = ScriptCache::getInstance()->getEngine()->newVariant(variant);
+        
+    } else if (type == "QOBJECT") {
+        QObject* qObject;
+        putData(object.value("value"), qObject);
+        value = ScriptCache::getInstance()->getEngine()->newQObject(qObject, QScriptEngine::ScriptOwnership);
+    
+    } else if (type == "QMETAOBJECT") {
+        const QMetaObject* metaObject;
+        putData(object.value("value"), metaObject);
+        value = ScriptCache::getInstance()->getEngine()->newQMetaObject(metaObject);
+    
+    } else if (type == "DATE") {
+        QDateTime dateTime;
+        putData(object.value("value"), dateTime);
+        value = ScriptCache::getInstance()->getEngine()->newDate(dateTime);
+    
+    } else if (type == "REGEXP") {
+        QRegExp regExp;
+        putData(object.value("value"), regExp);
+        value = ScriptCache::getInstance()->getEngine()->newRegExp(regExp);
+    
+    } else if (type == "ARRAY") {
+        QJsonArray array = object.value("value").toArray();
+        value = ScriptCache::getInstance()->getEngine()->newArray(array.size());
+        for (int i = 0; i < array.size(); i++) {
+            QScriptValue element;
+            putData(array.at(i), element);
+            value.setProperty(i, element);
+        }
+    } else if (type == "OBJECT") {
+        QJsonObject jsonObject = object.value("value").toObject();
+        value = ScriptCache::getInstance()->getEngine()->newObject();
+        for (QJsonObject::const_iterator it = jsonObject.constBegin(); it != jsonObject.constEnd(); it++) {
+            QScriptValue element;
+            putData(it.value(), element);
+            value.setProperty(it.key(), element); 
+        }
+    } else {
+        value = QScriptValue();
+    }
+}
+
+void JSONReader::putData(const QJsonValue& data, QString& value) {
+    value = data.toString();
+}
+
+void JSONReader::putData(const QJsonValue& data, QUrl& value) {
+    value = data.toString();
+}
+
+void JSONReader::putData(const QJsonValue& data, QDateTime& value) {
+    value.setMSecsSinceEpoch((qint64)data.toDouble());
+}
+
+void JSONReader::putData(const QJsonValue& data, QRegExp& value) {
+    QJsonObject object = data.toObject();
+    value = QRegExp(object.value("pattern").toString(), (Qt::CaseSensitivity)object.value("caseSensitivity").toInt(),
+        (QRegExp::PatternSyntax)object.value("patternSyntax").toInt());
+    value.setMinimal(object.value("minimal").toBool());
+}
+
+void JSONReader::putData(const QJsonValue& data, glm::vec3& value) {
+    QJsonArray array = data.toArray();
+    value = glm::vec3(array.at(0).toDouble(), array.at(1).toDouble(), array.at(2).toDouble());
+}
+
+void JSONReader::putData(const QJsonValue& data, glm::quat& value) {
+    QJsonArray array = data.toArray();
+    value = glm::quat(array.at(0).toDouble(), array.at(1).toDouble(), array.at(2).toDouble(), array.at(3).toDouble());
+}
+
+void JSONReader::putData(const QJsonValue& data, const QMetaObject*& value) {
+    ObjectStreamerPointer streamer = _objectStreamers.value(data.toString());
+    value = streamer ? streamer->getMetaObject() : NULL;
+}
+
+void JSONReader::putData(const QJsonValue& data, QVariant& value) {
+    QJsonObject object = data.toObject();
+    QString type = object.value("type").toString();
+    TypeStreamerPointer streamer = getTypeStreamer(type);
+    if (streamer) {
+        streamer->putJSONVariantData(*this, object.value("value"), value);
+    } else {
+        value = QVariant();
+    }
+}
+
+void JSONReader::putData(const QJsonValue& data, SharedObjectPointer& value) {
+    value = _sharedObjects.value(data.toInt()); 
+}
+
+void JSONReader::putData(const QJsonValue& data, QObject*& value) {
+    QJsonObject object = data.toObject();
+    ObjectStreamerPointer streamer = _objectStreamers.value(object.value("class").toString());
+    value = streamer ? streamer->putJSONData(*this, object) : NULL;
+}
+
+TypeStreamerPointer JSONReader::getTypeStreamer(const QString& name) const {
+    TypeStreamerPointer streamer = _typeStreamers.value(name);
+    if (!streamer) {
+        const TypeStreamer* defaultStreamer = Bitstream::getTypeStreamers().value(QMetaType::type(name.toLatin1()));
+        if (defaultStreamer) {
+            streamer = defaultStreamer->getSelf();
+        } else {
+            qWarning() << "Unknown type:" << name;
+        }
+    }
+    return streamer;
+}
+
 ObjectStreamer::ObjectStreamer(const QMetaObject* metaObject) :
     _metaObject(metaObject) {
+}
+
+ObjectStreamer::~ObjectStreamer() {
 }
 
 const QVector<StreamerPropertyPair>& ObjectStreamer::getProperties() const {
@@ -1697,6 +2274,59 @@ void MappedObjectStreamer::writeMetadata(Bitstream& out, bool full) const {
         QByteArray hashResult = hash.result();
         out.write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
     }
+}
+
+QJsonObject MappedObjectStreamer::getJSONMetadata(JSONWriter& writer) const {
+    QJsonObject metadata;
+    metadata.insert("name", QString(_metaObject->className()));
+    QJsonArray properties;
+    foreach (const StreamerPropertyPair& property, _properties) {
+        QJsonObject object;
+        writer.addTypeStreamer(property.first.data());
+        object.insert("type", QString(property.first->getName()));
+        object.insert("name", QString(property.second.name()));
+        properties.append(object);
+    }
+    metadata.insert("properties", properties);
+    return metadata;
+}
+
+QJsonObject MappedObjectStreamer::getJSONData(JSONWriter& writer, const QObject* object) const {
+    QJsonObject data;
+    writer.addObjectStreamer(this);
+    data.insert("class", QString(_metaObject->className()));
+    QJsonArray properties;
+    foreach (const StreamerPropertyPair& property, _properties) {
+        properties.append(property.first->getJSONData(writer, property.second.read(object)));
+    }
+    data.insert("properties", properties);
+    return data;
+}
+
+QObject* MappedObjectStreamer::putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const {
+    if (!_metaObject) {
+        return NULL;
+    }
+    QObject* object = _metaObject->newInstance();
+    QJsonArray properties = jsonObject.value("properties").toArray();
+    for (int i = 0; i < _properties.size(); i++) {
+        const StreamerPropertyPair& property = _properties.at(i);
+        if (property.second.isValid()) {
+            QVariant value;
+            property.first->putJSONData(reader, properties.at(i), value);
+            property.second.write(object, value);
+        }
+    }
+    return object;
+}
+
+bool MappedObjectStreamer::equal(const QObject* first, const QObject* second) const {
+    foreach (const StreamerPropertyPair& property, _properties) {
+        if (!property.first->equal(property.second.read(first), property.second.read(second))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void MappedObjectStreamer::write(Bitstream& out, const QObject* object) const {
@@ -1773,6 +2403,58 @@ void GenericObjectStreamer::writeMetadata(Bitstream& out, bool full) const {
         }
         out.write(_hash.constData(), _hash.size() * BITS_IN_BYTE);
     }
+}
+
+QJsonObject GenericObjectStreamer::getJSONMetadata(JSONWriter& writer) const {
+    QJsonObject metadata;
+    metadata.insert("name", QString(_name));
+    QJsonArray properties;
+    foreach (const StreamerNamePair& property, _properties) {
+        QJsonObject object;
+        writer.addTypeStreamer(property.first.data());
+        object.insert("type", QString(property.first->getName()));
+        object.insert("name", QString(property.second));
+        properties.append(object);
+    }
+    metadata.insert("properties", properties);
+    return metadata;
+}
+
+QJsonObject GenericObjectStreamer::getJSONData(JSONWriter& writer, const QObject* object) const {
+    QJsonObject data;
+    writer.addObjectStreamer(this);
+    data.insert("class", QString(_name));
+    QJsonArray properties;
+    const QVariantList& values = static_cast<const GenericSharedObject*>(object)->getValues();
+    for (int i = 0; i < _properties.size(); i++) {
+        properties.append(_properties.at(i).first->getJSONData(writer, values.at(i)));
+    }
+    data.insert("properties", properties);
+    return data;
+}
+
+QObject* GenericObjectStreamer::putJSONData(JSONReader& reader, const QJsonObject& jsonObject) const {
+    GenericSharedObject* object = new GenericSharedObject(_weakSelf);
+    QJsonArray properties = jsonObject.value("properties").toArray();
+    QVariantList values;
+    for (int i = 0; i < _properties.size(); i++) {    
+        QVariant value;
+        _properties.at(i).first->putJSONData(reader, properties.at(i), value);
+        values.append(value);
+    }
+    object->setValues(values);
+    return object;
+}
+
+bool GenericObjectStreamer::equal(const QObject* first, const QObject* second) const {
+    const QVariantList& firstValues = static_cast<const GenericSharedObject*>(first)->getValues();
+    const QVariantList& secondValues = static_cast<const GenericSharedObject*>(second)->getValues();
+    for (int i = 0; i < _properties.size(); i++) {
+        if (!_properties.at(i).first->equal(firstValues.at(i), secondValues.at(i))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void GenericObjectStreamer::write(Bitstream& out, const QObject* object) const {
@@ -1874,6 +2556,71 @@ void TypeStreamer::writeMetadata(Bitstream& out, bool full) const {
         QByteArray hashResult = hash.result();
         out.write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
     }
+}
+
+QJsonValue TypeStreamer::getJSONMetadata(JSONWriter& writer) const {
+    Category category = getCategory();
+    switch (category) {
+        case STREAMABLE_CATEGORY: {
+            QJsonObject metadata;
+            metadata.insert("name", QString(getName()));
+            metadata.insert("category", QString("STREAMABLE"));
+            QJsonArray fields;
+            foreach (const MetaField& metaField, getMetaFields()) {
+                QJsonObject field;
+                writer.addTypeStreamer(metaField.getStreamer());
+                field.insert("type", QString(metaField.getStreamer()->getName()));
+                field.insert("name", QString(metaField.getName()));
+                fields.append(field);
+            }
+            metadata.insert("fields", fields);
+            return metadata;
+        }
+        case LIST_CATEGORY:
+        case SET_CATEGORY: {
+            QJsonObject metadata;
+            metadata.insert("name", QString(getName()));
+            metadata.insert("category", QString(category == LIST_CATEGORY ? "LIST" : "SET"));
+            const TypeStreamer* valueStreamer = getValueStreamer();
+            writer.addTypeStreamer(valueStreamer);
+            metadata.insert("valueType", QString(valueStreamer->getName()));
+            return metadata;
+        }
+        case MAP_CATEGORY: {
+            QJsonObject metadata;
+            metadata.insert("name", QString(getName()));
+            metadata.insert("category", QString("MAP"));
+            const TypeStreamer* keyStreamer = getKeyStreamer();
+            writer.addTypeStreamer(keyStreamer);
+            metadata.insert("keyType", QString(keyStreamer->getName()));
+            const TypeStreamer* valueStreamer = getValueStreamer();
+            writer.addTypeStreamer(valueStreamer);
+            metadata.insert("valueType", QString(valueStreamer->getName()));
+            return metadata;
+        }
+        default:
+            return QJsonValue();
+    }
+}
+
+QJsonValue TypeStreamer::getJSONData(JSONWriter& writer, const QVariant& value) const {
+    return QJsonValue();
+}
+
+QJsonValue TypeStreamer::getJSONVariantData(JSONWriter& writer, const QVariant& value) const {
+    writer.addTypeStreamer(this);
+    QJsonObject data;
+    data.insert("type", QString(getName()));
+    data.insert("value", getJSONData(writer, value));
+    return data;   
+}
+
+void TypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = QVariant();
+}
+
+void TypeStreamer::putJSONVariantData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    putJSONData(reader, data, value);
 }
 
 bool TypeStreamer::equal(const QVariant& first, const QVariant& second) const {
@@ -2004,7 +2751,7 @@ QDebug& operator<<(QDebug& debug, const QMetaObject* metaObject) {
 EnumTypeStreamer::EnumTypeStreamer(const QMetaObject* metaObject, const char* name) :
     _metaObject(metaObject),
     _enumName(name),
-    _name(QByteArray(metaObject->className()) + "::" + name),
+    _name(getEnumName(metaObject->className(), name)),
     _bits(-1) {
     
     _type = QMetaType::Int;
@@ -2012,7 +2759,7 @@ EnumTypeStreamer::EnumTypeStreamer(const QMetaObject* metaObject, const char* na
 }
 
 EnumTypeStreamer::EnumTypeStreamer(const QMetaEnum& metaEnum) :
-    _name(QByteArray(metaEnum.scope()) + "::" + metaEnum.name()),
+    _name(getEnumName(metaEnum.scope(), metaEnum.name())),
     _metaEnum(metaEnum),
     _bits(-1) {
     
@@ -2043,6 +2790,30 @@ void EnumTypeStreamer::writeMetadata(Bitstream& out, bool full) const {
         QByteArray hashResult = hash.result();
         out.write(hashResult.constData(), hashResult.size() * BITS_IN_BYTE);
     }
+}
+
+QJsonValue EnumTypeStreamer::getJSONMetadata(JSONWriter& writer) const {
+    QJsonObject metadata;
+    metadata.insert("name", QString(getName()));
+    metadata.insert("category", QString("ENUM"));
+    QJsonArray values;
+    QMetaEnum metaEnum = getMetaEnum();
+    for (int i = 0; i < metaEnum.keyCount(); i++) {
+        QJsonObject value;
+        value.insert("key", QString(metaEnum.key(i)));
+        value.insert("value", metaEnum.value(i));
+        values.append(value);
+    }
+    metadata.insert("values", values);
+    return metadata;
+}
+
+QJsonValue EnumTypeStreamer::getJSONData(JSONWriter& writer, const QVariant& value) const {
+    return value.toInt();
+}
+
+void EnumTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = data.toInt();
 }
 
 TypeStreamer::Category EnumTypeStreamer::getCategory() const {
@@ -2137,6 +2908,11 @@ MappedEnumTypeStreamer::MappedEnumTypeStreamer(const TypeStreamer* baseStreamer,
     _mappings(mappings) {
 }
 
+void MappedEnumTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = QVariant(_baseStreamer->getType(), 0);
+    _baseStreamer->setEnumValue(value, data.toInt(), _mappings);
+}
+
 QVariant MappedEnumTypeStreamer::read(Bitstream& in) const {
     QVariant object = QVariant(_baseStreamer->getType(), 0);
     int value = 0;
@@ -2157,6 +2933,12 @@ GenericTypeStreamer::GenericTypeStreamer(const QByteArray& name) :
 
 const char* GenericTypeStreamer::getName() const {
     return _name.constData();
+}
+
+void GenericTypeStreamer::putJSONVariantData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    QVariant containedValue;
+    putJSONData(reader, data, containedValue);
+    value = QVariant::fromValue(GenericValue(_weakSelf, containedValue));
 }
 
 QVariant GenericTypeStreamer::readVariant(Bitstream& in) const {
@@ -2194,6 +2976,29 @@ void GenericEnumTypeStreamer::writeMetadata(Bitstream& out, bool full) const {
     }
 }
 
+QJsonValue GenericEnumTypeStreamer::getJSONMetadata(JSONWriter& writer) const {
+    QJsonObject metadata;
+    metadata.insert("name", QString(getName()));
+    metadata.insert("category", QString("ENUM"));
+    QJsonArray values;
+    foreach (const NameIntPair& value, _values) {
+        QJsonObject object;
+        object.insert("key", QString(value.first));
+        object.insert("value", value.second);
+        values.append(object);
+    }
+    metadata.insert("values", values);
+    return metadata;
+}
+
+QJsonValue GenericEnumTypeStreamer::getJSONData(JSONWriter& writer, const QVariant& value) const {
+    return value.toInt();
+}
+
+void GenericEnumTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = data.toInt();
+}
+
 void GenericEnumTypeStreamer::write(Bitstream& out, const QVariant& value) const {
     int intValue = value.toInt();
     out.write(&intValue, _bits);
@@ -2213,6 +3018,19 @@ MappedStreamableTypeStreamer::MappedStreamableTypeStreamer(const TypeStreamer* b
         const QVector<StreamerIndexPair>& fields) :
     _baseStreamer(baseStreamer),
     _fields(fields) {
+}
+
+void MappedStreamableTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = QVariant(_baseStreamer->getType(), 0);
+    QJsonArray array = data.toArray();
+    for (int i = 0; i < _fields.size(); i++) {
+        const StreamerIndexPair& pair = _fields.at(i);
+        if (pair.second != -1) {
+            QVariant element;
+            pair.first->putJSONData(reader, array.at(i), element);
+            _baseStreamer->setField(value, pair.second, element);    
+        }
+    }
 }
 
 QVariant MappedStreamableTypeStreamer::read(Bitstream& in) const {
@@ -2270,6 +3088,42 @@ void GenericStreamableTypeStreamer::writeMetadata(Bitstream& out, bool full) con
     }
 }
 
+QJsonValue GenericStreamableTypeStreamer::getJSONMetadata(JSONWriter& writer) const {
+    QJsonObject metadata;
+    metadata.insert("name", QString(getName()));
+    metadata.insert("category", QString("STREAMABLE"));
+    QJsonArray fields;
+    foreach (const StreamerNamePair& field, _fields) {
+        QJsonObject object;
+        writer.addTypeStreamer(field.first.data());
+        object.insert("type", QString(field.first->getName()));
+        object.insert("name", QString(field.second));
+        fields.append(object);
+    }
+    metadata.insert("fields", fields);
+    return metadata;
+}
+
+QJsonValue GenericStreamableTypeStreamer::getJSONData(JSONWriter& writer, const QVariant& value) const {
+    QVariantList values = value.toList();
+    QJsonArray array;
+    for (int i = 0; i < _fields.size(); i++) {
+        array.append(_fields.at(i).first->getJSONData(writer, values.at(i)));
+    }
+    return array;
+}
+
+void GenericStreamableTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    QJsonArray array = data.toArray();
+    QVariantList values;
+    for (int i = 0; i < _fields.size(); i++) {
+        QVariant element;
+        _fields.at(i).first->putJSONData(reader, array.at(i), element);
+        values.append(element);
+    }
+    value = values;
+}
+
 void GenericStreamableTypeStreamer::write(Bitstream& out, const QVariant& value) const {
     QVariantList values = value.toList();
     for (int i = 0; i < _fields.size(); i++) {
@@ -2292,6 +3146,15 @@ TypeStreamer::Category GenericStreamableTypeStreamer::getCategory() const {
 MappedListTypeStreamer::MappedListTypeStreamer(const TypeStreamer* baseStreamer, const TypeStreamerPointer& valueStreamer) :
     _baseStreamer(baseStreamer),
     _valueStreamer(valueStreamer) {
+}
+
+void MappedListTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = QVariant(_baseStreamer->getType(), 0);
+    foreach (const QJsonValue& element, data.toArray()) {
+        QVariant elementValue;
+        _valueStreamer->putJSONData(reader, element, elementValue);
+        _baseStreamer->insert(value, elementValue);
+    }
 }
 
 QVariant MappedListTypeStreamer::read(Bitstream& in) const {
@@ -2332,6 +3195,35 @@ GenericListTypeStreamer::GenericListTypeStreamer(const QByteArray& name, const T
 
 void GenericListTypeStreamer::writeMetadata(Bitstream& out, bool full) const {
     out << _valueStreamer.data();
+}
+
+QJsonValue GenericListTypeStreamer::getJSONMetadata(JSONWriter& writer) const {
+    QJsonObject metadata;
+    metadata.insert("name", QString(getName()));
+    metadata.insert("category", QString("LIST"));
+    writer.addTypeStreamer(_valueStreamer.data());
+    metadata.insert("valueType", QString(_valueStreamer->getName()));
+    return metadata;
+}
+
+QJsonValue GenericListTypeStreamer::getJSONData(JSONWriter& writer, const QVariant& value) const {
+    QVariantList values = value.toList();
+    QJsonArray array;
+    foreach (const QVariant& element, values) {
+        array.append(_valueStreamer->getJSONData(writer, element));
+    }
+    return array;
+}
+
+void GenericListTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    QJsonArray array = data.toArray();
+    QVariantList values;
+    foreach (const QJsonValue& element, array) {
+        QVariant elementValue;
+        _valueStreamer->putJSONData(reader, element, elementValue);
+        values.append(elementValue);
+    }
+    value = values;
 }
 
 void GenericListTypeStreamer::write(Bitstream& out, const QVariant& value) const {
@@ -2376,6 +3268,15 @@ GenericSetTypeStreamer::GenericSetTypeStreamer(const QByteArray& name, const Typ
     GenericListTypeStreamer(name, valueStreamer) {
 }
 
+QJsonValue GenericSetTypeStreamer::getJSONMetadata(JSONWriter& writer) const {
+    QJsonObject metadata;
+    metadata.insert("name", QString(getName()));
+    metadata.insert("category", QString("SET"));
+    writer.addTypeStreamer(_valueStreamer.data());
+    metadata.insert("valueType", QString(_valueStreamer->getName()));
+    return metadata;
+}
+
 TypeStreamer::Category GenericSetTypeStreamer::getCategory() const {
     return SET_CATEGORY;
 }
@@ -2385,6 +3286,18 @@ MappedMapTypeStreamer::MappedMapTypeStreamer(const TypeStreamer* baseStreamer, c
     _baseStreamer(baseStreamer),
     _keyStreamer(keyStreamer),
     _valueStreamer(valueStreamer) {
+}
+
+void MappedMapTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    value = QVariant(_baseStreamer->getType(), 0);
+    foreach (const QJsonValue& element, data.toArray()) {
+        QJsonArray pair = element.toArray();
+        QVariant elementKey;
+        _keyStreamer->putJSONData(reader, pair.at(0), elementKey);
+        QVariant elementValue;
+        _valueStreamer->putJSONData(reader, pair.at(1), elementValue);
+        _baseStreamer->insert(value, elementKey, elementValue);
+    }
 }
 
 QVariant MappedMapTypeStreamer::read(Bitstream& in) const {
@@ -2437,6 +3350,43 @@ void GenericMapTypeStreamer::writeMetadata(Bitstream& out, bool full) const {
     out << _keyStreamer.data() << _valueStreamer.data();
 }
 
+QJsonValue GenericMapTypeStreamer::getJSONMetadata(JSONWriter& writer) const {
+    QJsonObject metadata;
+    metadata.insert("name", QString(getName()));
+    metadata.insert("category", QString("MAP"));
+    writer.addTypeStreamer(_keyStreamer.data());
+    metadata.insert("keyType", QString(_keyStreamer->getName()));
+    writer.addTypeStreamer(_valueStreamer.data());
+    metadata.insert("valueType", QString(_valueStreamer->getName()));
+    return metadata;
+}
+
+QJsonValue GenericMapTypeStreamer::getJSONData(JSONWriter& writer, const QVariant& value) const {
+    QVariantPairList values = value.value<QVariantPairList>();
+    QJsonArray array;
+    foreach (const QVariantPair& pair, values) {
+        QJsonArray pairArray;
+        pairArray.append(_keyStreamer->getJSONData(writer, pair.first));
+        pairArray.append(_valueStreamer->getJSONData(writer, pair.second));
+        array.append(pairArray);
+    }
+    return array;
+}
+
+void GenericMapTypeStreamer::putJSONData(JSONReader& reader, const QJsonValue& data, QVariant& value) const {
+    QJsonArray array = data.toArray();
+    QVariantPairList values;
+    foreach (const QJsonValue& element, array) {
+        QJsonArray pair = element.toArray();
+        QVariant elementKey;
+        _keyStreamer->putJSONData(reader, pair.at(0), elementKey);
+        QVariant elementValue;
+        _valueStreamer->putJSONData(reader, pair.at(1), elementValue);
+        values.append(QVariantPair(elementKey, elementValue));
+    }
+    value = QVariant::fromValue(values);
+}
+
 void GenericMapTypeStreamer::write(Bitstream& out, const QVariant& value) const {
     QVariantPairList values = value.value<QVariantPairList>();
     out << values.size();
@@ -2460,6 +3410,15 @@ QVariant GenericMapTypeStreamer::read(Bitstream& in) const {
 
 TypeStreamer::Category GenericMapTypeStreamer::getCategory() const {
     return MAP_CATEGORY;
+}
+
+QJsonValue GenericValueStreamer::getJSONVariantData(JSONWriter& writer, const QVariant& value) const {
+    GenericValue genericValue = value.value<GenericValue>();
+    writer.addTypeStreamer(genericValue.getStreamer().data());
+    QJsonObject data;
+    data.insert("type", QString(genericValue.getStreamer()->getName()));
+    data.insert("value", genericValue.getStreamer()->getJSONData(writer, genericValue.getValue()));
+    return data;
 }
 
 void GenericValueStreamer::writeVariant(Bitstream& out, const QVariant& value) const {

@@ -34,7 +34,8 @@ class NetworkValue;
 class Spanner;
 class SpannerRenderer;
 
-/// Determines whether to subdivide each node when traversing.
+/// Determines whether to subdivide each node when traversing.  Contains the position (presumed to be of the viewer) and a
+/// threshold value, where lower thresholds cause smaller/more distant voxels to be subdivided.
 class MetavoxelLOD {
     STREAMABLE
     
@@ -46,6 +47,7 @@ public:
     
     bool isValid() const { return threshold > 0.0f; }
     
+    /// Checks whether, according to this LOD, we should subdivide the described voxel.
     bool shouldSubdivide(const glm::vec3& minimum, float size, float multiplier = 1.0f) const;
     
     /// Checks whether the node or any of the nodes underneath it have had subdivision enabled as compared to the reference.
@@ -54,7 +56,8 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelLOD)
 
-/// The base metavoxel representation shared between server and client.
+/// The base metavoxel representation shared between server and client.  Contains a size (for all dimensions) and a set of
+/// octrees for different attributes.  
 class MetavoxelData {
 public:
 
@@ -64,30 +67,38 @@ public:
 
     MetavoxelData& operator=(const MetavoxelData& other);
 
+    /// Sets the size in all dimensions.
     void setSize(float size) { _size = size; }
     float getSize() const { return _size; }
 
+    /// Returns the minimum extent of the octrees (which are centered about the origin).
     glm::vec3 getMinimum() const { return glm::vec3(_size, _size, _size) * -0.5f; }
 
+    /// Returns the bounds of the octrees.
     Box getBounds() const;
 
     /// Applies the specified visitor to the contained voxels.
     void guide(MetavoxelVisitor& visitor);
    
+    /// Inserts a spanner into the specified attribute layer.
     void insert(const AttributePointer& attribute, const SharedObjectPointer& object);
     void insert(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
     
+    /// Removes a spanner from the specified attribute layer.
     void remove(const AttributePointer& attribute, const SharedObjectPointer& object);
     void remove(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
 
+    /// Toggles the existence of a spanner in the specified attribute layer (removes if present, adds if not).
     void toggle(const AttributePointer& attribute, const SharedObjectPointer& object);
     void toggle(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
 
+    /// Replaces a spanner in the specified attribute layer.
     void replace(const AttributePointer& attribute, const SharedObjectPointer& oldObject,
         const SharedObjectPointer& newObject);
     void replace(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& oldObject,
         const SharedObjectPointer& newObject);
-        
+    
+    /// Clears all data in the specified attribute layer.
     void clear(const AttributePointer& attribute);
 
     /// Convenience function that finds the first spanner intersecting the provided ray.    
@@ -97,7 +108,7 @@ public:
     /// Sets part of the data.
     void set(const glm::vec3& minimum, const MetavoxelData& data, bool blend = false);
 
-    /// Expands the tree, increasing its capacity in all dimensions.
+    /// Expands the tree, doubling its size in all dimensions (that is, increasing its volume eightfold).
     void expand();
 
     void read(Bitstream& in, const MetavoxelLOD& lod = MetavoxelLOD());
@@ -109,6 +120,10 @@ public:
 
     MetavoxelNode* getRoot(const AttributePointer& attribute) const { return _roots.value(attribute); }
     MetavoxelNode* createRoot(const AttributePointer& attribute);
+
+    /// Performs a deep comparison between this data and the specified other (as opposed to the == operator, which does a
+    /// shallow comparison).
+    bool deepEquals(const MetavoxelData& other, const MetavoxelLOD& lod = MetavoxelLOD()) const;
 
     bool operator==(const MetavoxelData& other) const;
     bool operator!=(const MetavoxelData& other) const;
@@ -198,6 +213,14 @@ public:
 
     void clearChildren(const AttributePointer& attribute);
     
+    /// Performs a deep comparison between this and the specified other node.
+    bool deepEquals(const AttributePointer& attribute, const MetavoxelNode& other,
+        const glm::vec3& minimum, float size, const MetavoxelLOD& lod) const;
+
+    /// Retrieves all spanners satisfying the LOD constraint, placing them in the provided set.
+    void getSpanners(const AttributePointer& attribute, const glm::vec3& minimum,
+        float size, const MetavoxelLOD& lod, SharedObjectSet& results) const;
+    
 private:
     Q_DISABLE_COPY(MetavoxelNode)
     
@@ -233,6 +256,9 @@ public:
     
     /// Encodes a visitation order sequence that visits each child as sorted along the specified direction.
     static int encodeOrder(const glm::vec3& direction);
+    
+    /// Returns a random visitation order sequence.
+    static int encodeRandomOrder();
     
     /// The default visitation order.
     static const int DEFAULT_ORDER;

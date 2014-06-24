@@ -68,7 +68,7 @@ float randFloat();
 int randIntInRange (int min, int max);
 float randFloatInRange (float min,float max);
 float randomSign(); /// \return -1.0 or 1.0
-unsigned char randomColorValue(int minimum);
+unsigned char randomColorValue(int minimum = 0);
 bool randomBoolean();
 
 glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);

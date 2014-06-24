@@ -648,10 +648,10 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         int senderNumber = 0;
         NodeToSenderStatsMap& allSenderStats = _octreeInboundPacketProcessor->getSingleSenderStats();
-        for (NodeToSenderStatsMapIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
+        for (NodeToSenderStatsMapConstIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
             senderNumber++;
-            QUuid senderID = i->first;
-            SingleSenderStats& senderStats = i->second;
+            QUuid senderID = i.key();
+            const SingleSenderStats& senderStats = i.value();
 
             statsString += QString("\r\n             Stats for sender %1 uuid: %2\r\n")
                 .arg(senderNumber).arg(senderID.toString());
@@ -851,7 +851,6 @@ void OctreeServer::readPendingDatagrams() {
                 // If we got a nack packet, then we're talking to an agent, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
-                    nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
                     OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
                     if (nodeData) {
                         nodeData->parseNackPacket(receivedPacket);
@@ -1059,6 +1058,9 @@ void OctreeServer::nodeAdded(SharedNodePointer node) {
 
 void OctreeServer::nodeKilled(SharedNodePointer node) {
     quint64 start  = usecTimestampNow();
+
+    // calling this here since nodeKilled slot in ReceivedPacketProcessor can't be triggered by signals yet!!
+    _octreeInboundPacketProcessor->nodeKilled(node);
 
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
