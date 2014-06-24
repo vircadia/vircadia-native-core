@@ -243,5 +243,9 @@ void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
         if (_desiredJitterBufferFrames < 1) {
             _desiredJitterBufferFrames = 1;
         }
+        const int maxDesired = RING_BUFFER_LENGTH_FRAMES - 1;
+        if (_desiredJitterBufferFrames > maxDesired) {
+            _desiredJitterBufferFrames = maxDesired;
+        }
     }
 }
