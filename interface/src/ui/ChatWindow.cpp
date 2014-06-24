@@ -178,7 +178,7 @@ void ChatWindow::addTimeStamp() {
         QLabel* timeLabel = new QLabel(timeString);
         timeLabel->setStyleSheet("color: #333333;"
                                  "background-color: white;"
-                                 "font-size: 14pt;"
+                                 "font-size: 14px;"
                                  "padding: 4px;");
         timeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         timeLabel->setAlignment(Qt::AlignLeft);
@@ -284,7 +284,7 @@ void ChatWindow::participantsChanged() {
                                  "padding-bottom: 2px;"
                                  "padding-left: 2px;"
                                  "border: 1px solid palette(shadow);"
-                                 "font-size: 14pt;"
+                                 "font-size: 14px;"
                                  "font-weight: bold");
         userLabel->setProperty("user", participantName);
         userLabel->setCursor(Qt::PointingHandCursor);
@@ -320,7 +320,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
                                "padding-right: 20px;"
                                "margin: 0px;"
                                "color: #333333;"
-                               "font-size: 14pt;"
+                               "font-size: 14px;"
                                "background-color: rgba(0, 0, 0, 0%);"
                                "border: 0; }"
                                "QMenu{ border: 2px outset gray; }");
