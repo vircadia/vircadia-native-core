@@ -21,6 +21,7 @@
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
     NodeData(),
+    _resetCount(0),
     _sampleCapacity(numFrameSamples * RING_BUFFER_LENGTH_FRAMES),
     _numFrameSamples(numFrameSamples),
     _isStarved(true),
@@ -128,6 +129,7 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
         _endOfLastWrite = _buffer;
         _nextOutput = _buffer;
         _isStarved = true;
+        _resetCount++;
     }
     
     if (_endOfLastWrite + samplesToCopy <= _buffer + _sampleCapacity) {

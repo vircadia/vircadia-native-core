@@ -16,6 +16,7 @@
 
 #include "InjectedAudioRingBuffer.h"
 
+#include "AudioMixer.h"
 #include "AudioMixerClientData.h"
 
 AudioMixerClientData::AudioMixerClientData() :
@@ -65,7 +66,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         if (!avatarRingBuffer) {
             // we don't have an AvatarAudioRingBuffer yet, so add it
-            avatarRingBuffer = new AvatarAudioRingBuffer(isStereo);
+            avatarRingBuffer = new AvatarAudioRingBuffer(isStereo, AudioMixer::getUseDynamicJitterBuffers());
             _ringBuffers.push_back(avatarRingBuffer);
         }
 
@@ -88,7 +89,8 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         if (!matchingInjectedRingBuffer) {
             // we don't have a matching injected audio ring buffer, so add it
-            matchingInjectedRingBuffer = new InjectedAudioRingBuffer(streamIdentifier);
+            matchingInjectedRingBuffer = new InjectedAudioRingBuffer(streamIdentifier, 
+                                                    AudioMixer::getUseDynamicJitterBuffers());
             _ringBuffers.push_back(matchingInjectedRingBuffer);
         }
 
@@ -146,13 +148,15 @@ QString AudioMixerClientData::getJitterBufferStats() const {
         int desiredJitterBuffer = avatarRingBuffer->getDesiredJitterBufferFrames();
         int calculatedJitterBuffer = avatarRingBuffer->getCalculatedDesiredJitterBufferFrames();
         int currentJitterBuffer = avatarRingBuffer->getCurrentJitterBufferFrames();
+        int resetCount = avatarRingBuffer->getResetCount();
         int samplesAvailable = avatarRingBuffer->samplesAvailable();
         int framesAvailable = (samplesAvailable / avatarRingBuffer->getSamplesPerFrame());
         result += "mic.desired:" + QString::number(desiredJitterBuffer) 
                     + " calculated:" + QString::number(calculatedJitterBuffer)
                     + " current:" + QString::number(currentJitterBuffer)
                     + " available:" + QString::number(framesAvailable)
-                    + " samples:" + QString::number(samplesAvailable);
+                    + " samples:" + QString::number(samplesAvailable)
+                    + " resets:" + QString::number(resetCount);
     } else {
         result = "mic unknown";
     }
@@ -162,13 +166,15 @@ QString AudioMixerClientData::getJitterBufferStats() const {
             int desiredJitterBuffer = _ringBuffers[i]->getDesiredJitterBufferFrames();
             int calculatedJitterBuffer = _ringBuffers[i]->getCalculatedDesiredJitterBufferFrames();
             int currentJitterBuffer = _ringBuffers[i]->getCurrentJitterBufferFrames();
+            int resetCount = _ringBuffers[i]->getResetCount();
             int samplesAvailable = _ringBuffers[i]->samplesAvailable();
             int framesAvailable = (samplesAvailable / _ringBuffers[i]->getSamplesPerFrame());
             result += "| injected["+QString::number(i)+"].desired:" + QString::number(desiredJitterBuffer) 
                     + " calculated:" + QString::number(calculatedJitterBuffer)
                     + " current:" + QString::number(currentJitterBuffer)
                     + " available:" + QString::number(framesAvailable)
-                    + " samples:" + QString::number(samplesAvailable);
+                    + " samples:" + QString::number(samplesAvailable)
+                    + " resets:" + QString::number(resetCount);
         }
     }
 

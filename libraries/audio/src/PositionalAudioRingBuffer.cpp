@@ -85,7 +85,9 @@ quint64 InterframeTimeGapStats::getWindowMaxGap() {
 }
 
 
-PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo) :
+PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, 
+        bool isStereo, bool dynamicJitterBuffers) :
+        
     AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
@@ -96,7 +98,8 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _isStereo(isStereo),
     _listenerUnattenuatedZone(NULL),
     _desiredJitterBufferFrames(1),
-    _currentJitterBufferFrames(0)
+    _currentJitterBufferFrames(0),
+    _dynamicJitterBuffers(dynamicJitterBuffers)
 {
 }
 
@@ -246,19 +249,19 @@ int PositionalAudioRingBuffer::getCalculatedDesiredJitterBufferFrames() const {
 
 void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
     if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) {
-    
-        _desiredJitterBufferFrames = 1; // HACK to see if this fixes the audio silence
-        /*
-         const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
+        if (!_dynamicJitterBuffers) {
+            _desiredJitterBufferFrames = 1; // HACK to see if this fixes the audio silence
+        } else {
+            const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
          
-        _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
-        if (_desiredJitterBufferFrames < 1) {
-            _desiredJitterBufferFrames = 1;
+            _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
+            if (_desiredJitterBufferFrames < 1) {
+                _desiredJitterBufferFrames = 1;
+            }
+            const int maxDesired = RING_BUFFER_LENGTH_FRAMES - 1;
+            if (_desiredJitterBufferFrames > maxDesired) {
+                _desiredJitterBufferFrames = maxDesired;
+            }
         }
-        const int maxDesired = RING_BUFFER_LENGTH_FRAMES - 1;
-        if (_desiredJitterBufferFrames > maxDesired) {
-            _desiredJitterBufferFrames = maxDesired;
-        }
-        */
     }
 }

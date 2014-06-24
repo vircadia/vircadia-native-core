@@ -50,7 +50,7 @@ public:
         Injector
     };
     
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false);
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false, bool dynamicJitterBuffers = false);
     
     int parseData(const QByteArray& packet);
     int parsePositionalData(const QByteArray& positionalByteArray);
@@ -102,6 +102,7 @@ protected:
     InterframeTimeGapStats _interframeTimeGapStats;
     int _desiredJitterBufferFrames;
     int _currentJitterBufferFrames;
+    bool _dynamicJitterBuffers;
 };
 
 #endif // hifi_PositionalAudioRingBuffer_h

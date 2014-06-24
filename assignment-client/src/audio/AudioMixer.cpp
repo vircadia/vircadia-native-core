@@ -64,6 +64,8 @@ void attachNewBufferToNode(Node *newNode) {
     }
 }
 
+bool AudioMixer::_useDynamicJitterBuffers = false;
+
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
@@ -502,6 +504,16 @@ void AudioMixer::run() {
             << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
     }
 
+    // check the payload to see if we have asked for dynamicJitterBuffer support
+    const QString DYNAMIC_JITTER_BUFFER_REGEX_STRING = "--dynamicJitterBuffer";
+    QRegExp dynamicJitterBufferMatch(DYNAMIC_JITTER_BUFFER_REGEX_STRING);
+    if (dynamicJitterBufferMatch.indexIn(_payload) != -1) {
+        qDebug() << "Enable dynamic jitter buffers.";
+        _useDynamicJitterBuffers = true;
+    } else {
+        qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
+    }
+    
     int nextFrame = 0;
     QElapsedTimer timer;
     timer.start();
