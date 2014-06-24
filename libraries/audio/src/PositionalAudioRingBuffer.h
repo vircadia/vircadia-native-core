@@ -79,7 +79,6 @@ public:
     int getCurrentJitterBufferFrames() const { return _currentJitterBufferFrames; }
 
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
-    int getCurrentJitterBufferFrames() const { return _currentJitterBufferFrames; }
 
 protected:
     // disallow copying of PositionalAudioRingBuffer objects
