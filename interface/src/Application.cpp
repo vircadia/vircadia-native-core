@@ -3523,10 +3523,10 @@ void Application::saveScripts() {
 ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor, bool activateMainWindow) {
     QUrl scriptUrl(scriptName);
     const QString& scriptURLString = scriptUrl.toString();
-    if (_scriptEnginesHash.contains(scriptURLString)) {
-        if (loadScriptFromEditor && !_scriptEnginesHash[scriptURLString]->isFinished()) {
-            return _scriptEnginesHash[scriptURLString];
-        }
+    if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
+        && !_scriptEnginesHash[scriptURLString]->isFinished()) {
+
+        return _scriptEnginesHash[scriptURLString];
     }
 
     ScriptEngine* scriptEngine;
