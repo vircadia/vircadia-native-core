@@ -233,6 +233,17 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     return true;
 }
 
+int PositionalAudioRingBuffer::getCalculatedDesiredJitterBufferFrames() const {
+    int calculatedDesiredJitterBufferFrames = 1;
+    const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
+     
+    calculatedDesiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.peekWindowMaxGap() / USECS_PER_FRAME);
+    if (calculatedDesiredJitterBufferFrames < 1) {
+        calculatedDesiredJitterBufferFrames = 1;
+    }
+    return calculatedDesiredJitterBufferFrames;
+}
+
 void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
     if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) {
     

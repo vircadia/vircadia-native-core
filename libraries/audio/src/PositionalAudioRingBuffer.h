@@ -77,6 +77,7 @@ public:
     
     int getSamplesPerFrame() const { return _isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
 
+    int getCalculatedDesiredJitterBufferFrames() const; /// returns what we would calculate our desired as if asked
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
     int getCurrentJitterBufferFrames() const { return _currentJitterBufferFrames; }
 

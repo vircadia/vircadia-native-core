@@ -144,10 +144,12 @@ QString AudioMixerClientData::getJitterBufferStats() const {
     AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
     if (avatarRingBuffer) {
         int desiredJitterBuffer = avatarRingBuffer->getDesiredJitterBufferFrames();
+        int calculatedJitterBuffer = avatarRingBuffer->getCalculatedDesiredJitterBufferFrames();
         int currentJitterBuffer = avatarRingBuffer->getCurrentJitterBufferFrames();
         int samplesAvailable = avatarRingBuffer->samplesAvailable();
         int framesAvailable = (samplesAvailable / avatarRingBuffer->getSamplesPerFrame());
         result += "mic.desired:" + QString::number(desiredJitterBuffer) 
+                    + " calculated:" + QString::number(calculatedJitterBuffer)
                     + " current:" + QString::number(currentJitterBuffer)
                     + " available:" + QString::number(framesAvailable)
                     + " samples:" + QString::number(samplesAvailable);
@@ -158,10 +160,12 @@ QString AudioMixerClientData::getJitterBufferStats() const {
     for (int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
             int desiredJitterBuffer = _ringBuffers[i]->getDesiredJitterBufferFrames();
+            int calculatedJitterBuffer = _ringBuffers[i]->getCalculatedDesiredJitterBufferFrames();
             int currentJitterBuffer = _ringBuffers[i]->getCurrentJitterBufferFrames();
             int samplesAvailable = _ringBuffers[i]->samplesAvailable();
             int framesAvailable = (samplesAvailable / _ringBuffers[i]->getSamplesPerFrame());
             result += "| injected["+QString::number(i)+"].desired:" + QString::number(desiredJitterBuffer) 
+                    + " calculated:" + QString::number(calculatedJitterBuffer)
                     + " current:" + QString::number(currentJitterBuffer)
                     + " available:" + QString::number(framesAvailable)
                     + " samples:" + QString::number(samplesAvailable);
