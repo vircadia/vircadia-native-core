@@ -82,6 +82,7 @@ protected:
     int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
     
     int _sampleCapacity;
+    int _arrayLength;
     int _numFrameSamples;
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;

@@ -148,6 +148,8 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         // there is audio data to read
         readBytes += writeData(packet.data() + readBytes, packet.size() - readBytes);
     }
+printf("\n >>> parse data.  %d samples available\n", samplesAvailable());
+printf("_endOfLastWrite at index %d\n", _endOfLastWrite - _buffer);
     return readBytes;
 }
 
@@ -200,7 +202,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     if (!isNotStarvedOrHasMinimumSamples(samplesPerFrame + desiredJitterBufferSamples)) {
         // if the buffer was starved, allow it to accrue at least the desired number of
         // jitter buffer frames before we start taking frames from it for mixing
-
+printf("NOT MIXED! waiting to refill after starve\n");
         if (_shouldOutputStarveDebug) {
             _shouldOutputStarveDebug = false;
         }
@@ -209,7 +211,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     } else if (samplesAvailable() < samplesPerFrame) { 
         // if the buffer doesn't have a full frame of samples to take for mixing, it is starved
         _isStarved = true;
-        
+printf("NOT MIXED! buffer is now starved\n");
         // set to 0 to indicate the jitter buffer is starved
         _currentJitterBufferFrames = 0;
         
@@ -225,6 +227,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
         // minus one (since a frame will be read immediately after this) is the length of the jitter buffer
         _currentJitterBufferFrames = samplesAvailable() / samplesPerFrame - 1;
         _isStarved = false;
+printf("buffer has been refilled.  current jbuffer frames: %d\n", _currentJitterBufferFrames);
     }
 
     // since we've read data from ring buffer at least once - we've started
@@ -237,12 +240,7 @@ void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
 
     static const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
 
-    if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) {
-    
-        _desiredJitterBufferFrames = 1; // HACK to see if this fixes the audio silence
-        /*
-         const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
-         
+    if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) { 
         _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
         if (_desiredJitterBufferFrames < 1) {
             _desiredJitterBufferFrames = 1;
@@ -251,6 +249,5 @@ void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
         if (_desiredJitterBufferFrames > maxDesired) {
             _desiredJitterBufferFrames = maxDesired;
         }
-        */
     }
 }

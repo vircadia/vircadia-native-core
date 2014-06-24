@@ -28,10 +28,12 @@ AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
     _hasStarted(false),
     _randomAccessMode(randomAccessMode)
 {
+    _arrayLength = _sampleCapacity + 1;
+
     if (numFrameSamples) {
-        _buffer = new int16_t[_sampleCapacity];
+        _buffer = new int16_t[_arrayLength];
         if (_randomAccessMode) {
-            memset(_buffer, 0, _sampleCapacity * sizeof(int16_t));
+            memset(_buffer, 0, _arrayLength * sizeof(int16_t));
         }
         _nextOutput = _buffer;
         _endOfLastWrite = _buffer;
@@ -55,9 +57,10 @@ void AudioRingBuffer::reset() {
 void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
     delete[] _buffer;
     _sampleCapacity = numFrameSamples * RING_BUFFER_LENGTH_FRAMES;
-    _buffer = new int16_t[_sampleCapacity];
+    _arrayLength = _sampleCapacity + 1;
+    _buffer = new int16_t[_arrayLength];
     if (_randomAccessMode) {
-        memset(_buffer, 0, _sampleCapacity * sizeof(int16_t));
+        memset(_buffer, 0, _arrayLength * sizeof(int16_t));
     }
     _nextOutput = _buffer;
     _endOfLastWrite = _buffer;
@@ -87,11 +90,11 @@ qint64 AudioRingBuffer::readData(char *data, qint64 maxSize) {
         numReadSamples = _endOfLastWrite ? (maxSize / sizeof(int16_t)) : 0;
     }
 
-    if (_nextOutput + numReadSamples > _buffer + _sampleCapacity) {
+    if (_nextOutput + numReadSamples > _buffer + _arrayLength) {
         // we're going to need to do two reads to get this data, it wraps around the edge
 
         // read to the end of the buffer
-        int numSamplesToEnd = (_buffer + _sampleCapacity) - _nextOutput;
+        int numSamplesToEnd = (_buffer + _arrayLength) - _nextOutput;
         memcpy(data, _nextOutput, numSamplesToEnd * sizeof(int16_t));
         if (_randomAccessMode) {
             memset(_nextOutput, 0, numSamplesToEnd * sizeof(int16_t)); // clear it
@@ -125,19 +128,28 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
     // otherwise we should not copy that data, and leave the buffer pointers where they are
 
     int samplesToCopy = std::min((quint64)(maxSize / sizeof(int16_t)), (quint64)_sampleCapacity);
-
+    /*
     if (_hasStarted && samplesToCopy > _sampleCapacity - samplesAvailable()) {
-        // this read will cross the next output, so call us starved and reset the buffer
-        qDebug() << "Filled the ring buffer. Resetting.";
+        // this write would overflow the buffer, so call us starved and reset the buffer
+        qDebug() << "Overflowed the ring buffer. Resetting.";
         _endOfLastWrite = _buffer;
         _nextOutput = _buffer;
         _isStarved = true;
+    }*/
+    
+    int samplesRoomFor = _sampleCapacity - samplesAvailable();
+    if (samplesToCopy > samplesRoomFor) {
+        // there's not enough room for this write.  erase old data to make room for this new data
+        int samplesToDelete = samplesToCopy - samplesRoomFor;
+        _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
+        qDebug() << "Overflowed ring buffer! Overwriting old data";
+printf("_nextOutput at index %d\n", _nextOutput - _buffer);
     }
     
-    if (_endOfLastWrite + samplesToCopy <= _buffer + _sampleCapacity) {
+    if (_endOfLastWrite + samplesToCopy <= _buffer + _arrayLength) {
         memcpy(_endOfLastWrite, data, samplesToCopy * sizeof(int16_t));
     } else {
-        int numSamplesToEnd = (_buffer + _sampleCapacity) - _endOfLastWrite;
+        int numSamplesToEnd = (_buffer + _arrayLength) - _endOfLastWrite;
         memcpy(_endOfLastWrite, data, numSamplesToEnd * sizeof(int16_t));
         memcpy(_buffer, data + (numSamplesToEnd * sizeof(int16_t)), (samplesToCopy - numSamplesToEnd) * sizeof(int16_t));
     }
@@ -157,6 +169,8 @@ const int16_t& AudioRingBuffer::operator[] (const int index) const {
 
 void AudioRingBuffer::shiftReadPosition(unsigned int numSamples) {
     _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, numSamples);
+printf("\n<<< mixed! %d samples remaining\n", samplesAvailable());
+printf("_nextOutput at index %d\n", _nextOutput - _buffer);
 }
 
 unsigned int AudioRingBuffer::samplesAvailable() const {
@@ -166,7 +180,7 @@ unsigned int AudioRingBuffer::samplesAvailable() const {
         int sampleDifference = _endOfLastWrite - _nextOutput;
 
         if (sampleDifference < 0) {
-            sampleDifference += _sampleCapacity;
+            sampleDifference += _arrayLength;
         }
 
         return sampleDifference;
@@ -174,13 +188,22 @@ unsigned int AudioRingBuffer::samplesAvailable() const {
 }
 
 void AudioRingBuffer::addSilentFrame(int numSilentSamples) {
+
+    int samplesRoomFor = _sampleCapacity - samplesAvailable();
+    if (numSilentSamples > samplesRoomFor) {
+        // there's not enough room for this write. write as many silent samples as we have room for
+        numSilentSamples = samplesRoomFor;
+        qDebug() << "Dropping some silent samples to prevent ring buffer overflow";
+printf("_nextOutput at index %d\n", _nextOutput - _buffer);
+    }
+
     // memset zeroes into the buffer, accomodate a wrap around the end
     // push the _endOfLastWrite to the correct spot
-    if (_endOfLastWrite + numSilentSamples <= _buffer + _sampleCapacity) {
+    if (_endOfLastWrite + numSilentSamples <= _buffer + _arrayLength) {
         memset(_endOfLastWrite, 0, numSilentSamples * sizeof(int16_t));
         _endOfLastWrite += numSilentSamples;
     } else {
-        int numSamplesToEnd = (_buffer + _sampleCapacity) - _endOfLastWrite;
+        int numSamplesToEnd = (_buffer + _arrayLength) - _endOfLastWrite;
         memset(_endOfLastWrite, 0, numSamplesToEnd * sizeof(int16_t));
         memset(_buffer, 0, (numSilentSamples - numSamplesToEnd) * sizeof(int16_t));
         
@@ -198,12 +221,12 @@ bool AudioRingBuffer::isNotStarvedOrHasMinimumSamples(unsigned int numRequiredSa
 
 int16_t* AudioRingBuffer::shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const {
 
-    if (numSamplesShift > 0 && position + numSamplesShift >= _buffer + _sampleCapacity) {
+    if (numSamplesShift > 0 && position + numSamplesShift >= _buffer + _arrayLength) {
         // this shift will wrap the position around to the beginning of the ring
-        return position + numSamplesShift - _sampleCapacity;
+        return position + numSamplesShift - _arrayLength;
     } else if (numSamplesShift < 0 && position + numSamplesShift < _buffer) {
         // this shift will go around to the end of the ring
-        return position + numSamplesShift + _sampleCapacity;
+        return position + numSamplesShift + _arrayLength;
     } else {
         return position + numSamplesShift;
     }
