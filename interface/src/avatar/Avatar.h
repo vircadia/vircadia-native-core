@@ -32,6 +32,10 @@ static const float RESCALING_TOLERANCE = .02f;
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 
+const int HAIR_STRANDS = 100;    //  Number of strands of hair
+const int HAIR_LINKS = 10;      //  Number of links in a hair strand
+const int HAIR_MAX_CONSTRAINTS = 2;
+
 enum DriveKeys {
     FWD = 0,
     BACK,
@@ -158,6 +162,9 @@ public:
     Q_INVOKABLE glm::quat getJointCombinedRotation(int index) const;
     Q_INVOKABLE glm::quat getJointCombinedRotation(const QString& name) const;
     
+    glm::vec3 getAcceleration() const { return _acceleration; }
+    glm::vec3 getAngularVelocity() const { return _angularVelocity; }
+    
 public slots:
     void updateCollisionGroups();
 
@@ -169,6 +176,10 @@ protected:
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
     glm::vec3 _velocity;
+    glm::vec3 _lastVelocity;
+    glm::vec3 _acceleration;
+    glm::vec3 _angularVelocity;
+    glm::quat _lastOrientation;
     float _leanScale;
     float _scale;
     glm::vec3 _worldUpDirection;
@@ -185,6 +196,7 @@ protected:
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void setScale(float scale);
+    void updateAcceleration(float deltaTime);
 
     float getSkeletonHeight() const;
     float getHeadHeight() const;
@@ -200,6 +212,17 @@ protected:
     virtual void renderAttachments(RenderMode renderMode);
 
     virtual void updateJointMappings();
+    
+    glm::vec3 _hairPosition[HAIR_STRANDS * HAIR_LINKS];
+    glm::vec3 _hairLastPosition[HAIR_STRANDS * HAIR_LINKS];
+    glm::vec3 _hairQuadDelta[HAIR_STRANDS * HAIR_LINKS];
+    glm::vec3 _hairNormals[HAIR_STRANDS * HAIR_LINKS];
+    glm::vec3 _hairColors[HAIR_STRANDS * HAIR_LINKS];
+    int _hairIsMoveable[HAIR_STRANDS * HAIR_LINKS];
+    int _hairConstraints[HAIR_STRANDS * HAIR_LINKS * 2];     // Hair can link to two others
+    void renderHair();
+    void simulateHair(float deltaTime);
+    void initializeHair();
 
 private:
 
@@ -211,6 +234,7 @@ private:
     void renderBillboard();
     
     float getBillboardSize() const;
+    
 };
 
 #endif // hifi_Avatar_h

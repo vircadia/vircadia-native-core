@@ -188,6 +188,8 @@ void MyAvatar::simulate(float deltaTime) {
         head->setScale(_scale);
         head->simulate(deltaTime, true);
     }
+    
+    simulateHair(deltaTime);
 
     // now that we're done stepping the avatar forward in time, compute new collisions
     if (_collisionGroups != 0) {
@@ -814,6 +816,7 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
         getHead()->render(1.0f, modelRenderMode);
     }
     getHand()->render(true, modelRenderMode);
+    renderHair();
 }
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
@@ -955,6 +958,7 @@ void MyAvatar::updatePosition(float deltaTime) {
         } else { 
             _position += _velocity * deltaTime;
         }
+        updateAcceleration(deltaTime);
     }
 
     // update moving flag based on speed

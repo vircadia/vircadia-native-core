@@ -49,12 +49,12 @@ var pose = [
 	{joint:"RightFoot", rotation: {x:30, y:15.0, z:0.0}},
 	{joint:"LeftUpLeg", rotation: {x:100.0, y:-15.0, z:0.0}},
 	{joint:"LeftLeg", rotation: {x:-130.0, y:-15.0, z:0.0}},
-	{joint:"LeftFoot", rotation: {x:30, y:15.0, z:0.0}},
+	{joint:"LeftFoot", rotation: {x:30, y:15.0, z:0.0}}
 
-	{joint:"Spine2", rotation: {x:20, y:0.0, z:0.0}},
+	//{joint:"Spine2", rotation: {x:20, y:0.0, z:0.0}},
 	
-	{joint:"RightShoulder", rotation: {x:0.0, y:40.0, z:0.0}},
-	{joint:"LeftShoulder", rotation: {x:0.0, y:-40.0, z:0.0}}
+	//{joint:"RightShoulder", rotation: {x:0.0, y:40.0, z:0.0}},
+	//{joint:"LeftShoulder", rotation: {x:0.0, y:-40.0, z:0.0}}
 
 ];
 
