@@ -3524,11 +3524,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     QUrl scriptUrl(scriptName);
     const QString& scriptURLString = scriptUrl.toString();
     if (_scriptEnginesHash.contains(scriptURLString)) {
-        if(loadScriptFromEditor && !_scriptEnginesHash[scriptURLString]->isFinished()) {
+        if (loadScriptFromEditor && !_scriptEnginesHash[scriptURLString]->isFinished()) {
             return _scriptEnginesHash[scriptURLString];
-        } else {
-            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " is already running.");
-            return NULL;
         }
     }
 
@@ -3545,7 +3542,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
             return NULL;
         }
 
-        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
+        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
     }
 
@@ -3617,7 +3614,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 }
 
 void Application::scriptFinished(const QString& scriptName) {
-    if (_scriptEnginesHash.remove(scriptName)) {
+    QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptName);
+    if (it != _scriptEnginesHash.end()) {
+        _scriptEnginesHash.erase(it);
         _runningScriptsWidget->scriptStopped(scriptName);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
         bumpSettings();
