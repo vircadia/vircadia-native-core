@@ -119,6 +119,9 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         
         readBytes += sizeof(int16_t);
         
+        // NOTE: fixes a bug in old clients that would send garbage for their number of silentSamples
+        numSilentSamples = getSamplesPerFrame();
+        
         if (numSilentSamples > 0) {
             if (_currentJitterBufferFrames > _desiredJitterBufferFrames) {
                 // our current jitter buffer size exceeds its desired value, so ignore some silent
@@ -231,13 +234,20 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
 }
 
 void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
-
-    const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
-
     if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) {
+    
+        _desiredJitterBufferFrames = 1; // HACK to see if this fixes the audio silence
+        /*
+         const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
+         
         _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
         if (_desiredJitterBufferFrames < 1) {
             _desiredJitterBufferFrames = 1;
         }
+        const int maxDesired = RING_BUFFER_LENGTH_FRAMES - 1;
+        if (_desiredJitterBufferFrames > maxDesired) {
+            _desiredJitterBufferFrames = maxDesired;
+        }
+        */
     }
 }
