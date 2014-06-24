@@ -219,9 +219,14 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
             pPropertyStore->Release();
             pPropertyStore = NULL;
-            //QAudio devices seems to only take the 31 first characters of the Friendly Device Name.
-            const DWORD QT_WIN_MAX_AUDIO_DEVICENAME_LEN = 31;
-            deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal).left(QT_WIN_MAX_AUDIO_DEVICENAME_LEN);
+            deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
+            const DWORD WINDOWS7_MAJOR_VERSION = 6;
+            const DWORD WINDOWS7_MINOR_VERSION = 1;
+            if (osvi.dwMajorVersion <= WINDOWS7_MAJOR_VERSION && osvi.dwMinorVersion <= WINDOWS7_MINOR_VERSION) {
+                // Windows 7 provides only the 31 first characters of the device name.
+                const DWORD QT_WIN7_MAX_AUDIO_DEVICENAME_LEN = 31;
+                deviceName = deviceName.left(QT_WIN7_MAX_AUDIO_DEVICENAME_LEN);
+            }
             qDebug() << (mode == QAudio::AudioOutput ? "output" : "input") << " device:" << deviceName;
             PropVariantClear(&pv);
         }
