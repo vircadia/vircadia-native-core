@@ -1286,7 +1286,7 @@ void Application::dropEvent(QDropEvent *event) {
 
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
-controlledBroadcastToNodes(pingPacket, NodeSet()
+    controlledBroadcastToNodes(pingPacket, NodeSet()
                                << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
                                << NodeType::MetavoxelServer);
