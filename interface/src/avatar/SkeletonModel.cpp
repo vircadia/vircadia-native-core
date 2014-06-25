@@ -220,7 +220,7 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
         JointState& parentState = _jointStates[parentJointIndex];
         parentState.setRotationFromBindFrame(palmRotation, PALM_PRIORITY);
         // lock hand to forearm by slamming its rotation (in parent-frame) to identity
-        _jointStates[jointIndex]._rotationInParentFrame = glm::quat();
+        _jointStates[jointIndex].setRotationInParentFrame(glm::quat());
     } else {
         setJointPosition(jointIndex, palmPosition, palmRotation, 
                 true, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
@@ -259,9 +259,9 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
     glm::mat3 axes = glm::mat3_cast(glm::quat());
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() * glm::translate(state.getDefaultTranslationInParentFrame()) *
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
-    state._rotationInParentFrame = glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
+    state.setRotationInParentFrame(glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
         glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), 
-        glm::normalize(inverse * axes[0])) * joint.rotation;
+        glm::normalize(inverse * axes[0])) * joint.rotation);
 }
 
 void SkeletonModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {

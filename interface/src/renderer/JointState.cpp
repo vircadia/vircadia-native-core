@@ -21,19 +21,19 @@ JointState::JointState() :
     _fbxJoint(NULL) {
 }
 
+void JointState::copyState(const JointState& state) {
+    _animationPriority = state._animationPriority;
+    _transform = state._transform;
+    _rotation = extractRotation(_transform);
+    _rotationInParentFrame = state._rotationInParentFrame;
+    // DO NOT copy _fbxJoint
+}
+
 void JointState::setFBXJoint(const FBXJoint* joint) {
     assert(joint != NULL);
     _rotationInParentFrame = joint->rotation;
     // NOTE: JointState does not own the FBXJoint to which it points.
     _fbxJoint = joint;
-}
-
-void JointState::copyState(const JointState& state) {
-    _rotationInParentFrame = state._rotationInParentFrame;
-    _transform = state._transform;
-    _rotation = extractRotation(_transform);
-    _animationPriority = state._animationPriority;
-    // DO NOT copy _fbxJoint
 }
 
 void JointState::computeTransform(const glm::mat4& parentTransform) {
