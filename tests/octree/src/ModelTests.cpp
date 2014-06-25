@@ -26,7 +26,7 @@
 
 
 void ModelTests::modelTreeTests(bool verbose) {
-    bool extraVerbose = true;
+    bool extraVerbose = false;
     int testsTaken = 0;
     int testsPassed = 0;
     int testsFailed = 0;
@@ -292,6 +292,8 @@ void ModelTests::modelTreeTests(bool verbose) {
             ModelTreeElement* containingElement = tree.getContainingElement(modelID);
             AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
             
+            bool elementIsBestFit = containingElement->bestFitModelBounds(*foundModelByID);
+            
             if (extraVerbose) {
                 qDebug() << "foundModelByRadius=" << foundModelByRadius;
                 qDebug() << "foundModelByID=" << foundModelByID;
@@ -303,6 +305,7 @@ void ModelTests::modelTreeTests(bool verbose) {
                     << elementCube.getScale() * TREE_SCALE;
                 qDebug() << "elementCube.getScale()=" << elementCube.getScale();
                 //containingElement->printDebugDetails("containingElement");
+                qDebug() << "elementIsBestFit=" << elementIsBestFit;
             }
             
             // Every 1000th test, show the size of the tree...
@@ -310,13 +313,14 @@ void ModelTests::modelTreeTests(bool verbose) {
                 qDebug() << "after test:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
             }
 
-            bool passed = foundModelByRadius && foundModelByID && (foundModelByRadius == foundModelByID);
+            bool passed = foundModelByRadius && foundModelByID && (foundModelByRadius == foundModelByID) && elementIsBestFit;
             if (passed) {
               iterationsPassed++;
             } else {
               qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
                   << "foundModelByRadius=" << foundModelByRadius << "foundModelByID=" << foundModelByID
-                  << "x/y/z=" << randomX << "," << randomY << "," << randomZ;
+                  << "x/y/z=" << randomX << "," << randomY << "," << randomZ
+                  << "elementIsBestFit=" << elementIsBestFit;
             }
         }
 
