@@ -65,7 +65,7 @@ void ModelServer::modelCreated(const ModelItem& newModel, const SharedNodePointe
     memcpy(copyAt, &modelID, sizeof(modelID));
     copyAt += sizeof(modelID);
     packetLength += sizeof(modelID);
-    
+
     NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, senderNode);
 }
 
