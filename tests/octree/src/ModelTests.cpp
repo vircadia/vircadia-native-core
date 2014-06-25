@@ -26,7 +26,7 @@
 
 
 void ModelTests::modelTreeTests(bool verbose) {
-    bool extraVerbose = false;
+    bool extraVerbose = true;
     int testsTaken = 0;
     int testsPassed = 0;
     int testsFailed = 0;
@@ -240,9 +240,10 @@ void ModelTests::modelTreeTests(bool verbose) {
     {
         // seed the random number generator so that our tests are reproducible
         srand(0xFEEDBEEF);
+        ModelTree tree;
     
         testsTaken++;
-        const int TEST_ITERATIONS = 10000;
+        const int TEST_ITERATIONS = 10;
         QString testName = "Performance - add model to tree " + QString::number(TEST_ITERATIONS) + " times";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
@@ -266,10 +267,20 @@ void ModelTests::modelTreeTests(bool verbose) {
             properties.setRadius(halfMeter);
             properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
 
+            if (extraVerbose) {
+                qDebug() << "iteration:" << i
+                      << "ading model at x/y/z=" << randomX << "," << randomY << "," << randomZ;
+                qDebug() << "before:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
+            }
+
             quint64 startAdd = usecTimestampNow();
             tree.addModel(modelID, properties);
             quint64 endAdd = usecTimestampNow();
             totalElapsedAdd += (endAdd - startAdd);
+
+            if (extraVerbose) {
+                qDebug() << "after:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
+            }
 
             quint64 startFind = usecTimestampNow();
             float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
@@ -285,7 +296,7 @@ void ModelTests::modelTreeTests(bool verbose) {
             
             // Every 1000th test, show the size of the tree...
             if (verbose && (i % 1000 == 0)) {
-              qDebug() << "after test:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
+                qDebug() << "after test:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
             }
 
             bool passed = foundModelByRadius && foundModelByID && (foundModelByRadius == foundModelByID);

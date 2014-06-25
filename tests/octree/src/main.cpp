@@ -17,8 +17,8 @@ int main(int argc, const char* argv[]) {
     const char* VERBOSE = "--verbose";
     bool verbose = cmdOptionExists(argc, argv, VERBOSE);
     qDebug() << "OctreeTests::runAllTests()";
-    OctreeTests::runAllTests(verbose);
-    AABoxCubeTests::runAllTests(verbose);
+    //OctreeTests::runAllTests(verbose);
+    //AABoxCubeTests::runAllTests(verbose);
     ModelTests::runAllTests(verbose);
     return 0;
 }
