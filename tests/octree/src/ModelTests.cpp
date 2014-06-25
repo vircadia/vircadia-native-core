@@ -176,13 +176,13 @@ void ModelTests::modelTreeTests(bool verbose) {
 
     {
         testsTaken++;
-        QString testName = "Performance - findClosestModel() 1,000,000 times";
+        const int TEST_ITERATIONS = 1000;
+        QString testName = "Performance - findClosestModel() "+ QString::number(TEST_ITERATIONS) + " times";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
 
         float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
-        const int TEST_ITERATIONS = 1000000;
         quint64 start = usecTimestampNow();
         const ModelItem* foundModelByRadius = NULL;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
@@ -208,12 +208,12 @@ void ModelTests::modelTreeTests(bool verbose) {
 
     {
         testsTaken++;
-        QString testName = "Performance - findModelByID() 1,000,000 times";
+        const int TEST_ITERATIONS = 1000;
+        QString testName = "Performance - findModelByID() "+ QString::number(TEST_ITERATIONS) + " times";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
 
-        const int TEST_ITERATIONS = 1000000;
         quint64 start = usecTimestampNow();
         const ModelItem* foundModelByID = NULL;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
@@ -242,7 +242,7 @@ void ModelTests::modelTreeTests(bool verbose) {
         srand(0xFEEDBEEF);
     
         testsTaken++;
-        const int TEST_ITERATIONS = 10000;
+        const int TEST_ITERATIONS = 1000;
         QString testName = "Performance - add model to tree " + QString::number(TEST_ITERATIONS) + " times";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
@@ -308,7 +308,7 @@ void ModelTests::modelTreeTests(bool verbose) {
             }
             
             // Every 1000th test, show the size of the tree...
-            if (verbose && (i % 1000 == 0)) {
+            if (extraVerbose && (i % 1000 == 0)) {
                 qDebug() << "after test:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
             }
 
@@ -316,10 +316,12 @@ void ModelTests::modelTreeTests(bool verbose) {
             if (passed) {
               iterationsPassed++;
             } else {
-              qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
-                  << "foundModelByRadius=" << foundModelByRadius << "foundModelByID=" << foundModelByID
-                  << "x/y/z=" << randomX << "," << randomY << "," << randomZ
-                  << "elementIsBestFit=" << elementIsBestFit;
+                if (extraVerbose) {
+                    qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
+                          << "foundModelByRadius=" << foundModelByRadius << "foundModelByID=" << foundModelByID
+                          << "x/y/z=" << randomX << "," << randomY << "," << randomZ
+                          << "elementIsBestFit=" << elementIsBestFit;
+                }
             }
         }
 
@@ -344,7 +346,7 @@ void ModelTests::modelTreeTests(bool verbose) {
 
     {
         testsTaken++;
-        const int TEST_ITERATIONS = 10000;
+        const int TEST_ITERATIONS = 1000;
         QString testName = "Performance - delete model from tree " + QString::number(TEST_ITERATIONS) + " times";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
@@ -384,7 +386,7 @@ void ModelTests::modelTreeTests(bool verbose) {
             }
             
             // Every 1000th test, show the size of the tree...
-            if (verbose && (i % 1000 == 0)) {
+            if (extraVerbose && (i % 1000 == 0)) {
                 qDebug() << "after test:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
             }
 
@@ -392,9 +394,11 @@ void ModelTests::modelTreeTests(bool verbose) {
             if (passed) {
               iterationsPassed++;
             } else {
-              qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
-                  << "foundModelByID=" << foundModelByID
-                  << "containingElement=" << containingElement;
+                if (extraVerbose) {
+                    qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
+                          << "foundModelByID=" << foundModelByID
+                          << "containingElement=" << containingElement;
+                }
             }
         }
 
