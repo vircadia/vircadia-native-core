@@ -420,6 +420,90 @@ void ModelTests::modelTreeTests(bool verbose) {
                         << "elapsed Delete=" << elapsedInMSecsDelete << "msecs"
                         << "elapsed Find=" << elapsedInMSecsFind << "msecs";
     }
+
+
+    {
+        testsTaken++;
+        const int TEST_ITERATIONS = 100;
+        const int MODELS_PER_ITERATION = 10;
+        QString testName = "Performance - delete " + QString::number(MODELS_PER_ITERATION) 
+                            + " models from tree " + QString::number(TEST_ITERATIONS) + " times";
+        if (verbose) {
+            qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
+        }
+
+        int iterationsPassed = 0;
+        quint64 totalElapsedDelete = 0;
+        quint64 totalElapsedFind = 0;
+        for (int i = 0; i < TEST_ITERATIONS; i++) {        
+
+            QSet<ModelItemID> modelsToDelete;
+            for (int j = 0; j < MODELS_PER_ITERATION; j++) {        
+                uint32_t id = 2 + (i * MODELS_PER_ITERATION) + j; // These are the models we added above
+                ModelItemID modelID(id);
+                modelsToDelete << modelID;
+            }
+
+            if (extraVerbose) {
+                qDebug() << "before:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
+            }
+
+            quint64 startDelete = usecTimestampNow();
+            tree.deleteModels(modelsToDelete);
+            quint64 endDelete = usecTimestampNow();
+            totalElapsedDelete += (endDelete - startDelete);
+
+            if (extraVerbose) {
+                qDebug() << "after:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
+            }
+
+            quint64 startFind = usecTimestampNow();
+            for (int j = 0; j < MODELS_PER_ITERATION; j++) {        
+                uint32_t id = 2 + (i * MODELS_PER_ITERATION) + j; // These are the models we added above
+                ModelItemID modelID(id);
+                const ModelItem* foundModelByID = tree.findModelByID(id);
+                ModelTreeElement* containingElement = tree.getContainingElement(modelID);
+
+                if (extraVerbose) {
+                    qDebug() << "foundModelByID=" << foundModelByID;
+                    qDebug() << "containingElement=" << containingElement;
+                }
+                bool passed = foundModelByID == NULL && containingElement == NULL;
+                if (passed) {
+                  iterationsPassed++;
+                } else {
+                    if (extraVerbose) {
+                        qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
+                              << "foundModelByID=" << foundModelByID
+                              << "containingElement=" << containingElement;
+                    }
+                }
+
+            }
+
+            quint64 endFind = usecTimestampNow();
+            totalElapsedFind += (endFind - startFind);
+        }
+
+        if (extraVerbose) {
+            qDebug() << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
+        }
+        
+        bool passed = iterationsPassed == (TEST_ITERATIONS * MODELS_PER_ITERATION);
+        if (passed) {
+            testsPassed++;
+        } else {
+            testsFailed++;
+            qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName);
+        }
+        float USECS_PER_MSECS = 1000.0f;
+        float elapsedInMSecsDelete = (float)(totalElapsedDelete) / USECS_PER_MSECS;
+        float elapsedInMSecsFind = (float)(totalElapsedFind) / USECS_PER_MSECS;
+        qDebug() << "TIME - Test" << testsTaken <<":" << qPrintable(testName) 
+                        << "elapsed Delete=" << elapsedInMSecsDelete << "msecs"
+                        << "elapsed Find=" << elapsedInMSecsFind << "msecs";
+    }
+
     qDebug() << "   tests passed:" << testsPassed << "out of" << testsTaken;
     if (verbose) {
         qDebug() << "******************************************************************************************";
