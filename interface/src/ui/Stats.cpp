@@ -342,8 +342,7 @@ void Stats::display(
         verticalOffset = 0;
         horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + 2;
     }
-
-
+    
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 

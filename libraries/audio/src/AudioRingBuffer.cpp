@@ -128,14 +128,6 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
     // otherwise we should not copy that data, and leave the buffer pointers where they are
 
     int samplesToCopy = std::min((quint64)(maxSize / sizeof(int16_t)), (quint64)_sampleCapacity);
-    /*
-    if (_hasStarted && samplesToCopy > _sampleCapacity - samplesAvailable()) {
-        // this write would overflow the buffer, so call us starved and reset the buffer
-        qDebug() << "Overflowed the ring buffer. Resetting.";
-        _endOfLastWrite = _buffer;
-        _nextOutput = _buffer;
-        _isStarved = true;
-    }*/
     
     int samplesRoomFor = _sampleCapacity - samplesAvailable();
     if (samplesToCopy > samplesRoomFor) {
@@ -143,7 +135,6 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         qDebug() << "Overflowed ring buffer! Overwriting old data";
-printf("_nextOutput at index %d\n", _nextOutput - _buffer);
     }
     
     if (_endOfLastWrite + samplesToCopy <= _buffer + _arrayLength) {
@@ -169,8 +160,6 @@ const int16_t& AudioRingBuffer::operator[] (const int index) const {
 
 void AudioRingBuffer::shiftReadPosition(unsigned int numSamples) {
     _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, numSamples);
-printf("\n<<< mixed! %d samples remaining\n", samplesAvailable());
-printf("_nextOutput at index %d\n", _nextOutput - _buffer);
 }
 
 unsigned int AudioRingBuffer::samplesAvailable() const {
@@ -194,7 +183,6 @@ int AudioRingBuffer::addSilentFrame(int numSilentSamples) {
         // there's not enough room for this write. write as many silent samples as we have room for
         numSilentSamples = samplesRoomFor;
         qDebug() << "Dropping some silent samples to prevent ring buffer overflow";
-printf("_nextOutput at index %d\n", _nextOutput - _buffer);
     }
 
     // memset zeroes into the buffer, accomodate a wrap around the end

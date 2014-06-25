@@ -148,8 +148,6 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         // there is audio data to read
         readBytes += writeData(packet.data() + readBytes, packet.size() - readBytes);
     }
-printf("\n >>> parse data.  %d samples available\n", samplesAvailable());
-printf("_endOfLastWrite at index %d\n", _endOfLastWrite - _buffer);
     return readBytes;
 }
 
@@ -202,7 +200,6 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     if (!isNotStarvedOrHasMinimumSamples(samplesPerFrame + desiredJitterBufferSamples)) {
         // if the buffer was starved, allow it to accrue at least the desired number of
         // jitter buffer frames before we start taking frames from it for mixing
-printf("NOT MIXED! waiting to refill after starve\n");
         if (_shouldOutputStarveDebug) {
             _shouldOutputStarveDebug = false;
         }
@@ -211,7 +208,7 @@ printf("NOT MIXED! waiting to refill after starve\n");
     } else if (samplesAvailable() < samplesPerFrame) { 
         // if the buffer doesn't have a full frame of samples to take for mixing, it is starved
         _isStarved = true;
-printf("NOT MIXED! buffer is now starved\n");
+
         // set to 0 to indicate the jitter buffer is starved
         _currentJitterBufferFrames = 0;
         
@@ -227,7 +224,6 @@ printf("NOT MIXED! buffer is now starved\n");
         // minus one (since a frame will be read immediately after this) is the length of the jitter buffer
         _currentJitterBufferFrames = samplesAvailable() / samplesPerFrame - 1;
         _isStarved = false;
-printf("buffer has been refilled.  current jbuffer frames: %d\n", _currentJitterBufferFrames);
     }
 
     // since we've read data from ring buffer at least once - we've started
