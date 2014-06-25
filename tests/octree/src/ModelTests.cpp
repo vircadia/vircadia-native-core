@@ -289,9 +289,20 @@ void ModelTests::modelTreeTests(bool verbose) {
             quint64 endFind = usecTimestampNow();
             totalElapsedFind += (endFind - startFind);
 
+            ModelTreeElement* containingElement = tree.getContainingElement(modelID);
+            AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
+            
             if (extraVerbose) {
-              qDebug() << "foundModelByRadius=" << foundModelByRadius;
-              qDebug() << "foundModelByID=" << foundModelByID;
+                qDebug() << "foundModelByRadius=" << foundModelByRadius;
+                qDebug() << "foundModelByID=" << foundModelByID;
+                qDebug() << "containingElement=" << containingElement;
+                qDebug() << "containingElement.box=" 
+                    << elementCube.getCorner().x * TREE_SCALE << "," 
+                    << elementCube.getCorner().y * TREE_SCALE << ","
+                    << elementCube.getCorner().z * TREE_SCALE << ":" 
+                    << elementCube.getScale() * TREE_SCALE;
+                qDebug() << "elementCube.getScale()=" << elementCube.getScale();
+                //containingElement->printDebugDetails("containingElement");
             }
             
             // Every 1000th test, show the size of the tree...
