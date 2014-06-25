@@ -766,7 +766,7 @@ color: #0e7077</string>
            <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: bold 14pt;
+font: bold 14px;
 padding: 10px;margin-top:10px</string>
           </property>
           <property name="text">

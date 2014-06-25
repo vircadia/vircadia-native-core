@@ -50,11 +50,11 @@ QWidget {
        <widget class="QLabel" name="widgetTitle">
         <property name="styleSheet">
          <string notr="true">color: #0e7077;
-font-size: 20pt;
+font-size: 20px;
 background: transparent;</string>
         </property>
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18px;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="margin">
          <number>0</number>
@@ -145,7 +145,7 @@ background: transparent;</string>
         </property>
         <property name="styleSheet">
          <string notr="true">color: #0e7077;
-font: bold 16pt;
+font: bold 16px;
 background: transparent;</string>
         </property>
         <property name="text">
@@ -217,7 +217,7 @@ background: transparent;</string>
             <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: bold 14pt;
+font: bold 14px;
 padding-top: 3px;</string>
            </property>
            <property name="text">
@@ -246,7 +246,7 @@ padding-top: 3px;</string>
             <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: bold 14pt;
+font: bold 14px;
 padding-top: 3px;</string>
            </property>
            <property name="text">
@@ -289,7 +289,7 @@ padding-top: 3px;</string>
       <item>
        <widget class="QLabel" name="noRunningScriptsLabel">
         <property name="styleSheet">
-         <string notr="true">font: 14pt;</string>
+         <string notr="true">font: 14px;</string>
         </property>
         <property name="text">
          <string>There are no scripts currently running.</string>
@@ -363,7 +363,7 @@ padding-top: 3px;</string>
           </sizepolicy>
          </property>
          <property name="styleSheet">
-          <string notr="true">font-size: 14pt;</string>
+          <string notr="true">font-size: 14px;</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
           <property name="spacing">
@@ -425,7 +425,7 @@ padding-top: 3px;</string>
        <widget class="QLabel" name="recentlyLoadedLabel">
         <property name="styleSheet">
          <string notr="true">color: #0e7077;
-font: bold 16pt;</string>
+font: bold 16px;</string>
         </property>
         <property name="text">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Recently loaded&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -435,7 +435,7 @@ font: bold 16pt;</string>
       <item>
        <widget class="QLabel" name="noRecentlyLoadedLabel">
         <property name="styleSheet">
-         <string notr="true">font: 14pt;</string>
+         <string notr="true">font: 14px;</string>
         </property>
         <property name="text">
          <string>There are no recently loaded scripts.</string>
@@ -458,7 +458,7 @@ font: bold 16pt;</string>
         </property>
         <property name="styleSheet">
          <string notr="true">background: transparent;
-font-size: 14pt;</string>
+font-size: 14px;</string>
         </property>
         <zorder>runningScriptsList</zorder>
        </widget>
@@ -521,7 +521,7 @@ font-size: 14pt;</string>
           <widget class="QLabel" name="label">
            <property name="styleSheet">
             <string notr="true">color: #0e7077;
-font: bold 16pt;</string>
+font: bold 16px;</string>
            </property>
            <property name="text">
             <string>Scripts</string>
@@ -562,7 +562,7 @@ font: bold 16pt;</string>
             <string notr="true">background: #0e7077;
 color: #fff;
 border-radius: 4px;
-font: bold 14pt;
+font: bold 14px;
 padding-top: 3px;</string>
            </property>
            <property name="text">
