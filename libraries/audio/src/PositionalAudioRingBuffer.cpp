@@ -203,6 +203,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     if (!isNotStarvedOrHasMinimumSamples(samplesPerFrame + desiredJitterBufferSamples)) {
         // if the buffer was starved, allow it to accrue at least the desired number of
         // jitter buffer frames before we start taking frames from it for mixing
+        
         if (_shouldOutputStarveDebug) {
             _shouldOutputStarveDebug = false;
         }
@@ -211,7 +212,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     } else if (samplesAvailable() < samplesPerFrame) { 
         // if the buffer doesn't have a full frame of samples to take for mixing, it is starved
         _isStarved = true;
-
+        
         // set to 0 to indicate the jitter buffer is starved
         _currentJitterBufferFrames = 0;
         
@@ -252,7 +253,7 @@ void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
             _desiredJitterBufferFrames = 1; // HACK to see if this fixes the audio silence
         } else {
             const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
-
+            
             _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
             if (_desiredJitterBufferFrames < 1) {
                 _desiredJitterBufferFrames = 1;
