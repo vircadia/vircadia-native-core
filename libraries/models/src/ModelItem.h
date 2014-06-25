@@ -28,6 +28,13 @@
 #include <OctreePacketData.h>
 #include <OctreeEditPacketSender.h>
 
+
+//#include <assert.h>
+//#include <PerfStat.h>
+#include <OctalCode.h>
+#include <PacketHeaders.h>
+#include "ModelEditPacketSender.h"
+
 class ModelItem;
 class ModelEditPacketSender;
 class ModelItemProperties;
