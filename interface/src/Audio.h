@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "InterfaceConfig.h"
-#include "PositionalAudioRingBuffer.h"
+#include "AudioStreamStats.h"
 
 #include <QAudio>
 #include <QAudioInput>
@@ -77,6 +77,7 @@ public slots:
     void start();
     void stop();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
+    void parseAudioStreamStatsPacket(const QByteArray& packet);
     void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
     void handleAudioInput();
     void reset();
@@ -218,8 +219,6 @@ private:
     void renderBackground(const float* color, int x, int y, int width, int height);
     void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
     void renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray);
-
-    void parseAudioMixerJitterBuffersStats(const QByteArray& audioByteArray);
 
     // Audio scope data
     static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;

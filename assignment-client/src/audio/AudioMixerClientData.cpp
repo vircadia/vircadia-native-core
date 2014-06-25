@@ -142,7 +142,7 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
     }
 }
 
-void AudioMixerClientData::calculateJitterBuffersStats(AudioMixerJitterBuffersStats& stats) const {
+void AudioMixerClientData::getJitterBuffersStats(AudioMixerJitterBuffersStats& stats) const {
     int avatarJitterBufferFrames = 0;
     int maxJitterBufferFrames = 0;
     int sumJitterBufferFrames = 0;
@@ -166,7 +166,20 @@ void AudioMixerClientData::calculateJitterBuffersStats(AudioMixerJitterBuffersSt
     stats._avgJitterBufferFrames = (float)sumJitterBufferFrames / (float)_ringBuffers.size();
 }
 
-QString AudioMixerClientData::getJitterBufferStats() const {
+int AudioMixerClientData::encodeAudioStreamStatsPacket(char* packet) const {
+    int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeAudioStreamStats);
+    char* dataAt = packet + numBytesPacketHeader;
+
+    // pack jitter buffer stats
+    AudioMixerJitterBuffersStats jitterBufferStats;
+    getJitterBuffersStats(jitterBufferStats);
+    memcpy(dataAt, &jitterBufferStats, sizeof(AudioMixerJitterBuffersStats));
+    dataAt += sizeof(AudioMixerJitterBuffersStats);
+
+    return dataAt - packet;
+}
+
+QString AudioMixerClientData::getJitterBufferStatsString() const {
     QString result;
     AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
     if (avatarRingBuffer) {

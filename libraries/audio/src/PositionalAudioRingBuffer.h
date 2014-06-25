@@ -43,17 +43,6 @@ private:
     bool _newWindowMaxGapAvailable;
 };
 
-class AudioMixerJitterBuffersStats {
-public:
-    AudioMixerJitterBuffersStats()
-        : _avatarJitterBufferFrames(0), _maxJitterBufferFrames(0), _avgJitterBufferFrames(0)
-    {}
-
-    int _avatarJitterBufferFrames;
-    int _maxJitterBufferFrames;
-    float _avgJitterBufferFrames;
-};
-
 class PositionalAudioRingBuffer : public AudioRingBuffer {
 public:
     enum Type {

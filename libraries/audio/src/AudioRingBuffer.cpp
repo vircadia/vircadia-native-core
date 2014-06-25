@@ -16,9 +16,8 @@
 #include <QtCore/QDebug>
 
 #include "PacketHeaders.h"
-
 #include "AudioRingBuffer.h"
-#include "PositionalAudioRingBuffer.h"
+
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
     NodeData(),
@@ -69,9 +68,6 @@ void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
 
 int AudioRingBuffer::parseData(const QByteArray& packet) {
     int numBytesBeforeAudioData = numBytesForPacketHeader(packet);
-    if (packetTypeForPacket(packet) == PacketTypeMixedAudio) {
-        numBytesBeforeAudioData += sizeof(AudioMixerJitterBuffersStats);
-    }
     return writeData(packet.data() + numBytesBeforeAudioData, packet.size() - numBytesBeforeAudioData);
 }
 

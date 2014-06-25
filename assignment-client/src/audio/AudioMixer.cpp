@@ -75,7 +75,8 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _sumListeners(0),
     _sumMixes(0),
     _sourceUnattenuatedZone(NULL),
-    _listenerUnattenuatedZone(NULL)
+    _listenerUnattenuatedZone(NULL),
+    _lastSendAudioStreamStatsTime(usecTimestampNow())
 {
     
 }
@@ -448,7 +449,7 @@ void AudioMixer::sendStatsPacket() {
         AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
             QString property = "jitterStats." + node->getUUID().toString();
-            QString value = clientData->getJitterBufferStats();
+            QString value = clientData->getJitterBufferStatsString();
             statsObject2[qPrintable(property)] = value;
             somethingToSend = true;
             sizeOfStats += property.size() + value.size();
@@ -587,6 +588,17 @@ void AudioMixer::run() {
             ++framesSinceCutoffEvent;
         }
         
+
+        const quint64 TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS = 1 * USECS_PER_SECOND;
+        
+        char audioStreamStatsPacket[MAX_PACKET_SIZE];
+        bool sendAudioStreamStats = false;
+        quint64 now = usecTimestampNow();
+        if (now - _lastSendAudioStreamStatsTime > TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS) {
+            _lastSendAudioStreamStatsTime = now;
+            sendAudioStreamStats = true;
+        }
+
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
@@ -596,20 +608,22 @@ void AudioMixer::run() {
                 int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
                 char* dataAt = clientMixBuffer + numBytesPacketHeader;
 
-                // calculate and pack the jitter buffer size stats for this node
-                AudioMixerJitterBuffersStats jitterBuffersStats;
-                ((AudioMixerClientData*)node->getLinkedData())->calculateJitterBuffersStats(jitterBuffersStats);
-                memcpy(dataAt, &jitterBuffersStats, sizeof(AudioMixerJitterBuffersStats));
-                dataAt += sizeof(AudioMixerJitterBuffersStats);
+                // pack mixed audio, send mixed audio packet
+                memcpy(clientMixBuffer + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                nodeList->writeDatagram(clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
                 
-                // pack mixed audio
-                memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
-                
+
+                // send an audio stream stats packet if it's time
+                if (sendAudioStreamStats) {
+                    int numBytesWritten = ((AudioMixerClientData*)node->getLinkedData())
+                        ->encodeAudioStreamStatsPacket(audioStreamStatsPacket);
+                    nodeList->writeDatagram(audioStreamStatsPacket, numBytesWritten, node);
+                }
+
                 ++_sumListeners;
             }
         }
-
+        
         // push forward the next output pointers for any audio buffers we used
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {

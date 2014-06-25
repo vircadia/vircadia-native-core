@@ -17,6 +17,7 @@
 #include <PositionalAudioRingBuffer.h>
 
 #include "AvatarAudioRingBuffer.h"
+#include "AudioStreamStats.h"
 
 class AudioMixerClientData : public NodeData {
 public:
@@ -30,8 +31,11 @@ public:
     void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
 
-    void calculateJitterBuffersStats(AudioMixerJitterBuffersStats& stats) const;
-    QString getJitterBufferStats() const;
+    void getJitterBuffersStats(AudioMixerJitterBuffersStats& stats) const;
+    
+    int encodeAudioStreamStatsPacket(char* packet) const;
+    
+    QString getJitterBufferStatsString() const;
 
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;

@@ -708,6 +708,16 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
 }
 
+void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
+
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    const char* dataAt = packet.constData() + numBytesPacketHeader;
+
+    // parse audio mixer jitter buffer stats
+    memcpy(&_audioMixerJitterBufferStats, dataAt, sizeof(AudioMixerJitterBuffersStats));
+    dataAt += sizeof(AudioMixerJitterBuffersStats);
+}
+
 // NOTE: numSamples is the total number of single channel samples, since callers will always call this with stereo
 // data we know that we will have 2x samples for each stereo time sample at the format's sample rate
 void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples) {
@@ -806,16 +816,7 @@ void Audio::toggleStereoInput() {
     }
 }
 
-void Audio::parseAudioMixerJitterBuffersStats(const QByteArray& audioByteArray) {
-
-    int numBytesPacketHeader = numBytesForPacketHeader(audioByteArray);
-    const char* dataAt = reinterpret_cast<const char*>(audioByteArray.data() + numBytesPacketHeader);
-
-    memcpy(&_audioMixerJitterBufferStats, dataAt, sizeof(AudioMixerJitterBuffersStats));
-}
-
 void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
-    parseAudioMixerJitterBuffersStats(audioByteArray);
     _ringBuffer.parseData(audioByteArray);
     
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
