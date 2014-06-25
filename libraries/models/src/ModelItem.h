@@ -12,11 +12,7 @@
 #ifndef hifi_ModelItem_h
 #define hifi_ModelItem_h
 
-#include <cstring> // ???
-#include <stddef.h>
-#include <stdio.h> // for ssize_t
 #include <stdint.h>
-#include <stdlib.h>
 
 #include <glm/glm.hpp>
 
@@ -27,14 +23,7 @@
 #include <CollisionInfo.h>
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
-#include <OctreeEditPacketSender.h>
 
-
-//#include <assert.h>
-//#include <PerfStat.h>
-#include <OctalCode.h>
-#include <PacketHeaders.h>
-//#include "ModelEditPacketSender.h"
 
 class ModelItem;
 class ModelEditPacketSender;

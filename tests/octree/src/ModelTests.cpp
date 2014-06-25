@@ -14,7 +14,13 @@
 
 #include <QDebug>
 
-#if 1
+#ifdef WIN32
+#ifndef ssize_t
+#define ssize_t int
+#endif
+#endif
+
+
 #include <Octree.h>
 #include <ModelItem.h>
 #include <ModelTree.h>
@@ -22,12 +28,10 @@
 #include <OctreeConstants.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
-#endif
 
 #include "ModelTests.h"
 
 void ModelTests::modelTreeTests(bool verbose) {
-#if 1
     int testsTaken = 0;
     int testsPassed = 0;
     int testsFailed = 0;
@@ -258,7 +262,6 @@ void ModelTests::modelTreeTests(bool verbose) {
     if (verbose) {
         qDebug() << "******************************************************************************************";
     }
-#endif
 }
 
 
