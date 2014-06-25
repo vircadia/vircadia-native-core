@@ -637,9 +637,12 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
 }
 
 void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans) {
-    if (bytes > 0) {
-        _writePosition %= _buffer.pos();
-        
+    if (bytes == 0) {
+        out << (quint32)0;
+        return;
+    }
+    _writePosition %= _buffer.pos();
+    while (bytes > 0) {
         int position = 0;
         for (int i = 0; i < _acknowledged.getSpans().size(); i++) {
             const SpanList::Span& span = _acknowledged.getSpans().at(i);
@@ -662,9 +665,11 @@ void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSeq
             int length = qMin(bytes, position - start);
             writeSpan(out, start, length, spans);
             writeFullSpans(out, bytes - length, 0, 0, spans);
+            out << (quint32)0;
+            return;
         }
+        _writePosition = 0;
     }
-    out << (quint32)0;
 }
 
 void ReliableChannel::writeFullSpans(QDataStream& out, int bytes, int startingIndex, int position,
