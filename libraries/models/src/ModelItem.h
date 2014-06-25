@@ -12,8 +12,9 @@
 #ifndef hifi_ModelItem_h
 #define hifi_ModelItem_h
 
-#include <glm/glm.hpp>
 #include <stdint.h>
+
+#include <glm/glm.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
@@ -22,6 +23,7 @@
 #include <CollisionInfo.h>
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
+
 
 class ModelItem;
 class ModelEditPacketSender;
