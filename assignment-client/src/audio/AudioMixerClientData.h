@@ -14,8 +14,8 @@
 
 #include <AABox.h>
 #include <NodeData.h>
+#include <PositionalAudioRingBuffer.h>
 
-#include "PositionalAudioRingBuffer.h"
 #include "AvatarAudioRingBuffer.h"
 
 class AudioMixerJitterBuffersStats {
