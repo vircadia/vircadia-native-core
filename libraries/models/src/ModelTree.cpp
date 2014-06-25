@@ -317,7 +317,111 @@ void ModelTree::addModel(const ModelItemID& modelID, const ModelItemProperties& 
     storeModel(updateItem);
 }
 
+class DeleteModelOperator : public RecurseOctreeOperator {
+public:
+    DeleteModelOperator(ModelTree* tree, const ModelItemID& searchModelID);
+    virtual bool PreRecursion(OctreeElement* element);
+    virtual bool PostRecursion(OctreeElement* element);
+private:
+    ModelTree* _tree;
+    const ModelItem* _oldModel;
+    AACube _oldModelCube;
+    ModelTreeElement* _containingElement;
+    bool _foundOld;
+    quint64 _changeTime;
+    bool subTreeContainsOldModel(OctreeElement* element);
+    bool subTreeContainsNewModel(OctreeElement* element);
+};
+
+DeleteModelOperator::DeleteModelOperator(ModelTree* tree, const ModelItemID& searchModelID) :
+    _tree(tree),
+    _oldModel(NULL),
+    _containingElement(NULL),
+    _foundOld(false),
+    _changeTime(usecTimestampNow())
+{
+    // check our tree, to determine if this model is known
+    _containingElement = _tree->getContainingElement(searchModelID);
+    if (_containingElement) {
+        _oldModel = _containingElement->getModelWithModelItemID(searchModelID);
+        if (!_oldModel) {
+            //assert(_oldModel);
+            qDebug() << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldModel!";
+        }
+        _oldModelCube = _oldModel->getAACube();
+    } else {
+        // if the old model is not known, then we can consider if found, and
+        // we'll only be searching for the new location
+        _foundOld = true;
+    }
+}
+
+// does this model tree element contain the old model
+bool DeleteModelOperator::subTreeContainsOldModel(OctreeElement* element) {
+    bool containsModel = false;
+
+    // If we don't have an old model, then we don't contain the model, otherwise
+    // check the bounds
+    if (_oldModel) {
+        AACube elementCube = element->getAACube();
+        containsModel = elementCube.contains(_oldModelCube);
+    }
+    return containsModel;
+}
+
+bool DeleteModelOperator::PreRecursion(OctreeElement* element) {
+    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+    
+    // In Pre-recursion, we're generally deciding whether or not we want to recurse this
+    // path of the tree. For this operation, we want to recurse the branch of the tree if
+    // and of the following are true:
+    //   * We have not yet found the old model, and this branch contains our old model
+    //   * We have not yet found the new model, and this branch contains our new model
+    //
+    // Note: it's often the case that the branch in question contains both the old model
+    // and the new model.
+    
+    bool keepSearching = false; // assume we don't need to search any more
+    
+    // If we haven't yet found the old model, and this subTreeContains our old
+    // model, then we need to keep searching.
+    if (!_foundOld && subTreeContainsOldModel(element)) {
+        
+        // If this is the element we're looking for, then ask it to remove the old model
+        // and we can stop searching.
+        if (modelTreeElement == _containingElement) {
+
+            // This is a good place to delete it!!!
+            ModelItemID modelItemID = _oldModel->getModelItemID();
+            modelTreeElement->removeModelWithModelItemID(modelItemID);
+            _tree->setContainingElement(modelItemID, NULL);
+            _foundOld = true;
+        } else {
+            // if this isn't the element we're looking for, then keep searching
+            keepSearching = true;
+        }
+    }
+
+    return keepSearching; // if we haven't yet found it, keep looking
+}
+
+bool DeleteModelOperator::PostRecursion(OctreeElement* element) {
+    // Post-recursion is the unwinding process. For this operation, while we
+    // unwind we want to mark the path as being dirty if we changed it below.
+    // We might have two paths, one for the old model and one for the new model.
+    bool keepSearching = !_foundOld;
+
+    // As we unwind, if we're in either of these two paths, we mark our element
+    // as dirty.
+    if ((_foundOld && subTreeContainsOldModel(element))) {
+        element->markWithChangedTime();
+    }
+    return keepSearching; // if we haven't yet found it, keep looking
+}
+
 void ModelTree::deleteModel(const ModelItemID& modelID) {
+
+/*
     if (modelID.isKnownID) {
         FindAndDeleteModelsArgs args;
         args._idsToDelete.push_back(modelID.id);
@@ -326,6 +430,20 @@ void ModelTree::deleteModel(const ModelItemID& modelID) {
         // path to get to the models as dirty, so that sending to any viewers
         // will work correctly
         recurseTreeWithOperation(findAndDeleteOperation, &args);
+    }
+*/
+    // NOTE: callers must lock the tree before using this method
+
+    // First, look for the existing model in the tree..
+    DeleteModelOperator theOperator(this, modelID);
+
+    recurseTreeWithOperator(&theOperator);
+    _isDirty = true;
+
+    bool wantDebug = false;
+    if (wantDebug) {
+        ModelTreeElement* containingElement = getContainingElement(modelID);
+        qDebug() << "ModelTree::storeModel().... after store... containingElement=" << containingElement;
     }
 }
 
