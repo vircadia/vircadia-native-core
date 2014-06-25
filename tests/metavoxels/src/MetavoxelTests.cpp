@@ -652,7 +652,7 @@ Endpoint::Endpoint(const QByteArray& datagramHeader, Mode mode) :
     output->setMessagesEnabled(false);
     QByteArray bytes;
     if (mode == CONGESTION_MODE) {
-        const int HUGE_STREAM_BYTES = 50 * 1024 * 1024;
+        const int HUGE_STREAM_BYTES = 60 * 1024 * 1024;
         bytes = createRandomBytes(HUGE_STREAM_BYTES, HUGE_STREAM_BYTES);
         
         // initialize the pipeline
@@ -820,14 +820,23 @@ bool Endpoint::simulate(int iterationNumber) {
             bytesReceived += datagram.size();
             _remainingPipelineCapacity += datagram.size();
         }
-    
-        Bitstream& out = _sequencer->startPacket();
-        out << QVariant();
-        _sequencer->endPacket();    
-        
-        // record the send
-        SendRecord record = { _sequencer->getOutgoingPacketNumber() };
-        _sendRecords.append(record);
+        int packetCount = _sequencer->startPacketGroup();
+        for (int i = 0; i < packetCount; i++) {
+            oldDatagramsSent = datagramsSent;
+            oldBytesSent = bytesSent;
+            
+            Bitstream& out = _sequencer->startPacket();
+            out << QVariant();
+            _sequencer->endPacket();
+            
+            maxDatagramsPerPacket = qMax(maxDatagramsPerPacket, datagramsSent - oldDatagramsSent);
+            maxBytesPerPacket = qMax(maxBytesPerPacket, bytesSent - oldBytesSent);
+            
+            // record the send
+            SendRecord record = { _sequencer->getOutgoingPacketNumber() };
+            _sendRecords.append(record);
+        }
+        return false;
         
     } else if (_mode == METAVOXEL_CLIENT_MODE) {
         Bitstream& out = _sequencer->startPacket();

@@ -23,6 +23,9 @@ const int MAX_DATAGRAM_SIZE = MAX_PACKET_SIZE;
 
 const int DEFAULT_MAX_PACKET_SIZE = 3000;
 
+// the default slow-start threshold, which will be lowered quickly when we first encounter packet loss
+const float DEFAULT_SLOW_START_THRESHOLD = 1000.0f;
+
 DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader, QObject* parent) :
     QObject(parent),
     _outgoingPacketStream(&_outgoingPacketData, QIODevice::WriteOnly),
@@ -37,7 +40,12 @@ DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader, QObject* 
     _incomingPacketStream(&_incomingPacketData, QIODevice::ReadOnly),
     _inputStream(_incomingPacketStream),
     _receivedHighPriorityMessages(0),
-    _maxPacketSize(DEFAULT_MAX_PACKET_SIZE) {
+    _maxPacketSize(DEFAULT_MAX_PACKET_SIZE),
+    _packetsPerGroup(1.0f),
+    _packetsToWrite(0.0f),
+    _slowStartThreshold(DEFAULT_SLOW_START_THRESHOLD),
+    _packetRateIncreasePacketNumber(0),
+    _packetRateDecreasePacketNumber(0) {
 
     _outgoingPacketStream.setByteOrder(QDataStream::LittleEndian);
     _incomingDatagramStream.setByteOrder(QDataStream::LittleEndian);
@@ -69,6 +77,14 @@ ReliableChannel* DatagramSequencer::getReliableInputChannel(int index) {
         channel = new ReliableChannel(this, index, false);
     }
     return channel;
+}
+
+int DatagramSequencer::startPacketGroup() {
+    // increment our packet counter and subtract/return the integer portion
+    _packetsToWrite += _packetsPerGroup;
+    int wholePackets = (int)_packetsToWrite;
+    _packetsToWrite -= wholePackets;
+    return wholePackets;
 }
 
 Bitstream& DatagramSequencer::startPacket() {
@@ -256,12 +272,27 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     foreach (const ChannelSpan& span, record.spans) {
         getReliableOutputChannel(span.channel)->spanAcknowledged(span);
     }
+    
+    // increase the packet rate with every ack until we pass the slow start threshold; then, every round trip
+    if (record.packetNumber >= _packetRateIncreasePacketNumber) {
+        if (_packetsPerGroup >= _slowStartThreshold) {
+            _packetRateIncreasePacketNumber = _outgoingPacketNumber + 1;
+        }
+        _packetsPerGroup += 1.0f;
+    }
 }
 
 void DatagramSequencer::sendRecordLost(const SendRecord& record) {
     // notify the channels of their lost spans
     foreach (const ChannelSpan& span, record.spans) {
         getReliableOutputChannel(span.channel)->spanLost(record.packetNumber, _outgoingPacketNumber + 1);
+    }
+    
+    // halve the rate and remember as threshold
+    if (record.packetNumber >= _packetRateDecreasePacketNumber) {
+        _packetsPerGroup = qMax(_packetsPerGroup * 0.5f, 1.0f);
+        _slowStartThreshold = _packetsPerGroup;
+        _packetRateDecreasePacketNumber = _outgoingPacketNumber + 1;
     }
 }
 

@@ -99,6 +99,10 @@ public:
     /// Returns the intput channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableInputChannel(int index = 0);
     
+    /// Starts a packet group.
+    /// \return the number of packets to write in the group
+    int startPacketGroup();
+    
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
     Bitstream& startPacket();
@@ -202,6 +206,12 @@ private:
     int _receivedHighPriorityMessages;
     
     int _maxPacketSize;
+    
+    float _packetsPerGroup;
+    float _packetsToWrite;
+    float _slowStartThreshold;
+    int _packetRateIncreasePacketNumber;
+    int _packetRateDecreasePacketNumber;
     
     QHash<int, ReliableChannel*> _reliableOutputChannels;
     QHash<int, ReliableChannel*> _reliableInputChannels;
