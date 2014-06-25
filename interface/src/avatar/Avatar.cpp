@@ -379,22 +379,22 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
     renderHair();
 }
 
-const float HAIR_LENGTH = 0.4f;
+const float HAIR_LENGTH = 0.2f;
 const float HAIR_LINK_LENGTH = HAIR_LENGTH / HAIR_LINKS;
 const float HAIR_DAMPING = 0.99f;
-const float HEAD_RADIUS = 0.25f;
+const float HEAD_RADIUS = 0.15f;
 const float COLLISION_RELAXATION = 10.f;
 const float CONSTRAINT_RELAXATION = 10.0f;
-const float NOISE = 0.0f;  // 0.1f;
-const float NOISE_MAGNITUDE = 0.02f;
-const glm::vec3 HAIR_GRAVITY(0.f, -0.05f, 0.f);
+const glm::vec3 HAIR_GRAVITY(0.f, -0.005f, 0.f);
 const float HAIR_ACCELERATION_COUPLING = 0.025f;
-const float HAIR_ANGULAR_VELOCITY_COUPLING = 0.15f;
-const float HAIR_MAX_LINEAR_ACCELERATION = 5.f;
+const float HAIR_ANGULAR_VELOCITY_COUPLING = 0.10f;
+const float HAIR_MAX_LINEAR_ACCELERATION = 4.f;
 const float HAIR_THICKNESS = 0.025f;
+const float HAIR_STIFFNESS = 0.002f;
 const glm::vec3 HAIR_COLOR1(0.98f, 0.92f, 0.843f);
 const glm::vec3 HAIR_COLOR2(0.545f, 0.533f, 0.47f);
-const glm::vec3 WIND_DIRECTION(1.0f, -1.0f, 0.f);
+const glm::vec3 WIND_DIRECTION(0.5f, -1.0f, 0.f);
+const float MAX_WIND_STRENGTH = 0.01f;
 
 void Avatar::renderHair() {
     //
@@ -447,18 +447,14 @@ void Avatar::simulateHair(float deltaTime) {
     acceleration = acceleration * rotation;
     glm::vec3 angularVelocity = getAngularVelocity() + getHead()->getAngularVelocity();
     
-    float windIntensity = randFloat() * 0.02f;
+    float windIntensity = randFloat() * MAX_WIND_STRENGTH;
     
     for (int strand = 0; strand < HAIR_STRANDS; strand++) {
         for (int link = 0; link < HAIR_LINKS; link++) {
             int vertexIndex = strand * HAIR_LINKS + link;
             if (vertexIndex % HAIR_LINKS == 0) {
                 //  Base Joint - no integration
-                if (randFloat() < NOISE) {
-                    //  Move base of hair
-                    _hairPosition[vertexIndex] += randVector() * NOISE_MAGNITUDE;
-                }
-            } else {
+             } else {
                 //
                 //  Vertlet Integration
                 //
@@ -476,6 +472,10 @@ void Avatar::simulateHair(float deltaTime) {
                 
                 //  Add linear acceleration of the avatar body
                 _hairPosition[vertexIndex] -= acceleration * HAIR_ACCELERATION_COUPLING * deltaTime;
+                
+                //  Add stiffness (product)
+                _hairPosition[vertexIndex] += (_hairOriginalPosition[vertexIndex] - _hairPosition[vertexIndex])
+                                                * powf(1.f - link / HAIR_LINKS, 2.f) * HAIR_STIFFNESS;
                 
                 //  Add some wind
                 glm::vec3 wind = WIND_DIRECTION * windIntensity;
@@ -529,17 +529,17 @@ void Avatar::simulateHair(float deltaTime) {
 }
 
 void Avatar::initializeHair() {
-    const float FACE_WIDTH =  0.25f * PI;
+    const float FACE_WIDTH =  PI / 4.0f;
     glm::vec3 thisVertex;
     for (int strand = 0; strand < HAIR_STRANDS; strand++) {
         float strandAngle = randFloat() * PI;
-        float azimuth = randFloat() * 2.f * PI;
-        float elevation;
-        if ((azimuth > FACE_WIDTH) || (azimuth < -FACE_WIDTH)) {
+        float azimuth = FACE_WIDTH / 2.0f + (randFloat() * (2.0 * PI - FACE_WIDTH));
+        float elevation = PI_OVER_TWO - (randFloat() * 0.75 * PI);
+        /*if ((azimuth > FACE_WIDTH) || (azimuth < -FACE_WIDTH)) {
             elevation = randFloat() * PI_OVER_TWO;
         } else {
             elevation = (PI_OVER_TWO / 2.f) + randFloat() * (PI_OVER_TWO / 2.f);
-        }
+        }*/
         glm::vec3 thisStrand(sinf(azimuth) * cosf(elevation), sinf(elevation), -cosf(azimuth) * cosf(elevation));
         thisStrand *= HEAD_RADIUS + 0.01f;
         
@@ -562,6 +562,7 @@ void Avatar::initializeHair() {
             }
             _hairPosition[vertexIndex] = thisVertex;
             _hairLastPosition[vertexIndex] = _hairPosition[vertexIndex];
+            _hairOriginalPosition[vertexIndex] = _hairPosition[vertexIndex];
 
             _hairQuadDelta[vertexIndex] = glm::vec3(cos(strandAngle) * HAIR_THICKNESS, 0.f, sin(strandAngle) * HAIR_THICKNESS);
             _hairNormals[vertexIndex] = glm::normalize(randVector());

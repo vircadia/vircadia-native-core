@@ -833,9 +833,9 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(Application::getInstance()->getCamera()->getPosition(), renderMode)) {
         getHead()->render(1.0f, modelRenderMode);
+        renderHair();
     }
     getHand()->render(true, modelRenderMode);
-    renderHair();
 }
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;

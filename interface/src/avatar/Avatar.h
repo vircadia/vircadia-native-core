@@ -201,6 +201,7 @@ protected:
     virtual void updateJointMappings();
     
     glm::vec3 _hairPosition[HAIR_STRANDS * HAIR_LINKS];
+    glm::vec3 _hairOriginalPosition[HAIR_STRANDS * HAIR_LINKS];
     glm::vec3 _hairLastPosition[HAIR_STRANDS * HAIR_LINKS];
     glm::vec3 _hairQuadDelta[HAIR_STRANDS * HAIR_LINKS];
     glm::vec3 _hairNormals[HAIR_STRANDS * HAIR_LINKS];
