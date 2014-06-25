@@ -14,16 +14,15 @@
 
 #include <QDebug>
 
+#include <Octree.h>
 #include <ModelItem.h>
 #include <ModelTree.h>
 #include <ModelTreeElement.h>
-#include <Octree.h>
 #include <OctreeConstants.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
 
 #include "ModelTests.h"
-
 
 void ModelTests::modelTreeTests(bool verbose) {
     int testsTaken = 0;

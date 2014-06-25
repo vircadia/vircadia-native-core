@@ -31,7 +31,7 @@ const int NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL = NETWORK_BUFFER_LENGTH_BYTE
 const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
                                                         / (float) SAMPLE_RATE) * 1000 * 1000);
 
-const short RING_BUFFER_LENGTH_FRAMES = 100;
+const short RING_BUFFER_LENGTH_FRAMES = 10;
 
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();

@@ -1183,7 +1183,7 @@ void ShapeColliderTests::rayMissesCapsule() {
 
 void ShapeColliderTests::rayHitsPlane() {
     // make a simple plane
-    float planeDistanceFromOrigin = 3.579;
+    float planeDistanceFromOrigin = 3.579f;
     glm::vec3 planePosition(0.0f, planeDistanceFromOrigin, 0.0f);
     PlaneShape plane;
     plane.setTranslation(planePosition);
@@ -1228,7 +1228,7 @@ void ShapeColliderTests::rayHitsPlane() {
 
 void ShapeColliderTests::rayMissesPlane() {
     // make a simple plane
-    float planeDistanceFromOrigin = 3.579;
+    float planeDistanceFromOrigin = 3.579f;
     glm::vec3 planePosition(0.0f, planeDistanceFromOrigin, 0.0f);
     PlaneShape plane;
     plane.setTranslation(planePosition);
