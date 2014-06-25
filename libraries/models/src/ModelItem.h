@@ -13,6 +13,7 @@
 #define hifi_ModelItem_h
 
 #include <stddef.h>
+#include <stdio.h> // for ssize_t
 #include <stdint.h>
 
 #include <glm/glm.hpp>
