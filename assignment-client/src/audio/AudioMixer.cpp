@@ -519,7 +519,7 @@ void AudioMixer::run() {
     QElapsedTimer timer;
     timer.start();
     
-    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO + sizeof(AudioMixerJitterBuffersStats)
+    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
                                      + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
     
     int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
