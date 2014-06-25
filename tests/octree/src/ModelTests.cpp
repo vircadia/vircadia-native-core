@@ -243,7 +243,7 @@ void ModelTests::modelTreeTests(bool verbose) {
         ModelTree tree;
     
         testsTaken++;
-        const int TEST_ITERATIONS = 10;
+        const int TEST_ITERATIONS = 10000;
         QString testName = "Performance - add model to tree " + QString::number(TEST_ITERATIONS) + " times";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
@@ -324,7 +324,9 @@ void ModelTests::modelTreeTests(bool verbose) {
             }
         }
 
-        qDebug() << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
+        if (extraVerbose) {
+            qDebug() << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
+        }
         
         bool passed = iterationsPassed == TEST_ITERATIONS;
         if (passed) {
