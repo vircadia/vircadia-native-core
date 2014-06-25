@@ -25,6 +25,7 @@
 #include <CollisionInfo.h>
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
+#include <OctreeEditPacketSender.h>
 
 class ModelItem;
 class ModelEditPacketSender;
