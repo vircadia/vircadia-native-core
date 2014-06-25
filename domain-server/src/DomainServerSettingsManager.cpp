@@ -103,11 +103,15 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
     }
 }
 
+QByteArray DomainServerSettingsManager::getJSONSettingsMap() const {
+    return QJsonDocument::fromVariant(_settingsMap).toJson();
+}
+
 void DomainServerSettingsManager::persistToFile() {
     QFile settingsFile(QCoreApplication::applicationDirPath() + SETTINGS_CONFIG_FILE_RELATIVE_PATH);
     
     if (settingsFile.open(QIODevice::WriteOnly)) {
-        settingsFile.write(QJsonDocument::fromVariant(_settingsMap).toJson());
+        settingsFile.write(getJSONSettingsMap());
     } else {
         qCritical("Could not write to JSON settings file. Unable to persist settings.");
     }

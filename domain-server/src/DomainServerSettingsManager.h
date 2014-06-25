@@ -21,6 +21,8 @@ class DomainServerSettingsManager : public QObject, HTTPRequestHandler {
 public:
     DomainServerSettingsManager();
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
+    
+    QByteArray getJSONSettingsMap() const;
 private:
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
                                                QJsonObject descriptionObject);

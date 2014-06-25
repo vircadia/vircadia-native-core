@@ -363,7 +363,7 @@ void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const Q
                 QString dashes = payloadKey.size() == 1 ? "-" : "--";
                 payloadStringList << QString("%1%2 %3").arg(dashes).arg(payloadKey).arg(jsonObject[payloadKey].toString());
             }
-
+            
             configAssignment->setPayload(payloadStringList.join(' ').toUtf8());
 
             addStaticAssignmentToAssignmentHash(configAssignment);
