@@ -14,20 +14,17 @@
 
 #include <QDebug>
 
-#if 0
+#include <Octree.h>
 #include <ModelItem.h>
 #include <ModelTree.h>
 #include <ModelTreeElement.h>
-#include <Octree.h>
 #include <OctreeConstants.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
-#endif
 
 #include "ModelTests.h"
 
 void ModelTests::modelTreeTests(bool verbose) {
-#if 0
     int testsTaken = 0;
     int testsPassed = 0;
     int testsFailed = 0;
@@ -258,7 +255,6 @@ void ModelTests::modelTreeTests(bool verbose) {
     if (verbose) {
         qDebug() << "******************************************************************************************";
     }
-#endif
 }
 
 
