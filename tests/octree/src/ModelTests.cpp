@@ -26,6 +26,7 @@
 
 
 void ModelTests::modelTreeTests(bool verbose) {
+    bool extraVerbose = false;
     int testsTaken = 0;
     int testsPassed = 0;
     int testsFailed = 0;
@@ -245,7 +246,8 @@ void ModelTests::modelTreeTests(bool verbose) {
         }
 
         int iterationsPassed = 0;
-        quint64 start = usecTimestampNow();
+        quint64 totalElapsedAdd = 0;
+        quint64 totalElapsedFind = 0;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
             uint32_t id = i + 2; // make sure it doesn't collide with previous model ids
             ModelItemID modelID(id);
@@ -261,38 +263,39 @@ void ModelTests::modelTreeTests(bool verbose) {
             properties.setRadius(halfMeter);
             properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
 
+            quint64 startAdd = usecTimestampNow();
             tree.addModel(modelID, properties);
+            quint64 endAdd = usecTimestampNow();
+            totalElapsedAdd += (endAdd - startAdd);
 
-
+            quint64 startFind = usecTimestampNow();
             float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
             const ModelItem* foundModelByRadius = tree.findClosestModel(randomPositionInTreeUnits, targetRadius);
             const ModelItem* foundModelByID = tree.findModelByID(id);
-            ModelTreeElement* containingElement = tree.getContainingElement(modelID);
-            AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
-        
-            if (verbose) {
-                qDebug() << "foundModelByRadius=" << foundModelByRadius;
-                qDebug() << "foundModelByID=" << foundModelByID;
-                qDebug() << "containingElement=" << containingElement;
-                qDebug() << "containingElement.box=" 
-                    << elementCube.getCorner().x * TREE_SCALE << "," 
-                    << elementCube.getCorner().y * TREE_SCALE << ","
-                    << elementCube.getCorner().z * TREE_SCALE << ":" 
-                    << elementCube.getScale() * TREE_SCALE;
-                //containingElement->printDebugDetails("containingElement");
+            quint64 endFind = usecTimestampNow();
+            totalElapsedFind += (endFind - startFind);
+
+            if (extraVerbose) {
+              qDebug() << "foundModelByRadius=" << foundModelByRadius;
+              qDebug() << "foundModelByID=" << foundModelByID;
+            }
+            
+            // Every 1000th test, show the size of the tree...
+            if (verbose && (i % 1000 == 0)) {
+              qDebug() << "after test:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
             }
 
             bool passed = foundModelByRadius && foundModelByID && (foundModelByRadius == foundModelByID);
             if (passed) {
-                iterationsPassed++;
+              iterationsPassed++;
             } else {
-                qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
-                    << "foundModelByRadius=" << foundModelByRadius << "foundModelByID=" << foundModelByID
-                    << "x/y/z=" << randomX << "," << randomY << "," << randomZ;
+              qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
+                  << "foundModelByRadius=" << foundModelByRadius << "foundModelByID=" << foundModelByID
+                  << "x/y/z=" << randomX << "," << randomY << "," << randomZ;
             }
-
         }
-        quint64 end = usecTimestampNow();
+
+        qDebug() << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
         
         bool passed = iterationsPassed == TEST_ITERATIONS;
         if (passed) {
@@ -302,8 +305,11 @@ void ModelTests::modelTreeTests(bool verbose) {
             qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName);
         }
         float USECS_PER_MSECS = 1000.0f;
-        float elapsedInMSecs = (float)(end - start) / USECS_PER_MSECS;
-        qDebug() << "TIME - Test" << testsTaken <<":" << qPrintable(testName) << "elapsed=" << elapsedInMSecs << "msecs";
+        float elapsedInMSecsAdd = (float)(totalElapsedAdd) / USECS_PER_MSECS;
+        float elapsedInMSecsFind = (float)(totalElapsedFind) / USECS_PER_MSECS;
+        qDebug() << "TIME - Test" << testsTaken <<":" << qPrintable(testName) 
+                        << "elapsed Add=" << elapsedInMSecsAdd << "msecs"
+                        << "elapsed Find=" << elapsedInMSecsFind << "msecs";
     }
 
     qDebug() << "   tests passed:" << testsPassed << "out of" << testsTaken;
