@@ -5,7 +5,7 @@
 <form class="form-horizontal" id="settings-form" role="form">
   
 <script id="template" type="text/x-handlebars-template">
-  {{#each groups}}
+  {{#each .}}
     {{setKey @key}}
     <div class="panel panel-default">
       <div class="panel-heading">

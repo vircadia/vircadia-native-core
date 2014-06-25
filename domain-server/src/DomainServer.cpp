@@ -41,7 +41,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _oauthClientID(),
     _hostname(),
     _networkReplyUUIDMap(),
-    _sessionAuthenticationHash()
+    _sessionAuthenticationHash(),
+    _settingsManager()
 {
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
@@ -1162,8 +1163,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
     }
 
-    // didn't process the request, let our HTTPManager handle
-    return false;
+    // didn't process the request, let our DomainServerSettingsManager or HTTPManager handle
+    return _settingsManager.handleHTTPRequest(connection, url);
 }
 
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url) {

@@ -14,8 +14,20 @@
 
 #include <QtCore/QJsonDocument>
 
-class DomainServerSettingsManager {
+#include <HTTPManager.h>
+
+class DomainServerSettingsManager : public QObject, HTTPRequestHandler {
+    Q_OBJECT
+public:
+    DomainServerSettingsManager();
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
+private:
+    void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
+                                               QJsonObject descriptionObject);
+    void persistToFile();
     
+    QJsonObject _descriptionObject;
+    QVariantMap _settingsMap;
 };
 
 #endif // hifi_DomainServerSettingsManager_h
