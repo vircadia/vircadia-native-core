@@ -195,7 +195,12 @@ void MyAvatar::simulate(float deltaTime) {
         head->simulate(deltaTime, true);
     }
     
-    simulateHair(deltaTime);
+    {
+        PerformanceTimer perfTimer("MyAvatar::simulate/hair Simulate");
+        if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
+            simulateHair(deltaTime);
+        }
+    }
 
     {
         PerformanceTimer perfTimer("MyAvatar::simulate/ragdoll");
@@ -370,6 +375,7 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     if (!_shouldRender) {
         return; // exit early
     }
+
     Avatar::render(cameraPosition, renderMode);
     
     // don't display IK constraints in shadow mode
@@ -852,7 +858,9 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(Application::getInstance()->getCamera()->getPosition(), renderMode)) {
         getHead()->render(1.0f, modelRenderMode);
-        renderHair();
+        if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
+            renderHair();
+        }
     }
     getHand()->render(true, modelRenderMode);
 }

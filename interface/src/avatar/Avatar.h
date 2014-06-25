@@ -32,9 +32,9 @@ static const float RESCALING_TOLERANCE = .02f;
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 
-const int HAIR_STRANDS = 200;    //  Number of strands of hair
-const int HAIR_LINKS = 10;      //  Number of links in a hair strand
-const int HAIR_MAX_CONSTRAINTS = 2;
+const int HAIR_STRANDS = 150;           //  Number of strands of hair
+const int HAIR_LINKS = 10;              //  Number of links in a hair strand
+const int HAIR_MAX_CONSTRAINTS = 2;     //  Hair verlet is connected to at most how many others
 
 enum DriveKeys {
     FWD = 0,
