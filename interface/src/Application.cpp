@@ -3643,8 +3643,9 @@ void Application::stopAllScripts(bool restart) {
 }
 
 void Application::stopScript(const QString &scriptName) {
-    if (_scriptEnginesHash.contains(scriptName)) {
-        _scriptEnginesHash.value(scriptName)->stop();
+    const QString& scriptURLString = QUrl(scriptName).toString();
+    if (_scriptEnginesHash.contains(scriptURLString)) {
+        _scriptEnginesHash.value(scriptURLString)->stop();
         qDebug() << "stopping script..." << scriptName;
     }
 }
