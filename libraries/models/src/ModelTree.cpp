@@ -37,49 +37,6 @@ bool ModelTree::handlesEditPacketType(PacketType packetType) const {
     }
 }
 
-class FindAndDeleteModelsArgs {
-public:
-    QList<uint32_t> _idsToDelete;
-};
-
-// TODO: this operations needs to correctly set the markAsChanged for each of the octree elments
-bool ModelTree::findAndDeleteOperation(OctreeElement* element, void* extraData) {
-    //qDebug() << "findAndDeleteOperation()";
-
-    FindAndDeleteModelsArgs* args = static_cast< FindAndDeleteModelsArgs*>(extraData);
-
-    // if we've found and deleted all our target models, then we can stop looking
-    if (args->_idsToDelete.size() <= 0) {
-        return false;
-    }
-
-    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
-
-    //qDebug() << "findAndDeleteOperation() args->_idsToDelete.size():" << args->_idsToDelete.size();
-
-    for (QList<uint32_t>::iterator it = args->_idsToDelete.begin(); it != args->_idsToDelete.end(); it++) {
-        uint32_t modelID = *it;
-        //qDebug() << "findAndDeleteOperation() modelID:" << modelID;
-
-        if (modelTreeElement->removeModelWithID(modelID)) {
-            // if the model was in this element, then remove it from our search list.
-            //qDebug() << "findAndDeleteOperation() it = args->_idsToDelete.erase(it)";
-            it = args->_idsToDelete.erase(it);
-        }
-
-        if (it == args->_idsToDelete.end()) {
-            //qDebug() << "findAndDeleteOperation() breaking";
-            break;
-        }
-    }
-
-    // if we've found and deleted all our target models, then we can stop looking
-    if (args->_idsToDelete.size() <= 0) {
-        return false;
-    }
-    return true;
-}
-
 class StoreModelOperator : public RecurseOctreeOperator {
 public:
     StoreModelOperator(ModelTree* tree, const ModelItem& searchModel);
@@ -420,18 +377,6 @@ bool DeleteModelOperator::PostRecursion(OctreeElement* element) {
 }
 
 void ModelTree::deleteModel(const ModelItemID& modelID) {
-
-/*
-    if (modelID.isKnownID) {
-        FindAndDeleteModelsArgs args;
-        args._idsToDelete.push_back(modelID.id);
-
-        // NOTE: We need to do this with recursion, because we need to mark the
-        // path to get to the models as dirty, so that sending to any viewers
-        // will work correctly
-        recurseTreeWithOperation(findAndDeleteOperation, &args);
-    }
-*/
     // NOTE: callers must lock the tree before using this method
 
     // First, look for the existing model in the tree..
@@ -444,6 +389,26 @@ void ModelTree::deleteModel(const ModelItemID& modelID) {
     if (wantDebug) {
         ModelTreeElement* containingElement = getContainingElement(modelID);
         qDebug() << "ModelTree::storeModel().... after store... containingElement=" << containingElement;
+    }
+}
+
+void ModelTree::deleteModels(QSet<ModelItemID> modelIDs) {
+    // NOTE: callers must lock the tree before using this method
+
+    // TODO: fix this to use one pass
+    foreach(const ModelItemID& modelID, modelIDs) {
+
+        // First, look for the existing model in the tree..
+        DeleteModelOperator theOperator(this, modelID);
+
+        recurseTreeWithOperator(&theOperator);
+        _isDirty = true;
+
+        bool wantDebug = false;
+        if (wantDebug) {
+            ModelTreeElement* containingElement = getContainingElement(modelID);
+            qDebug() << "ModelTree::storeModel().... after store... containingElement=" << containingElement;
+        }
     }
 }
 
@@ -907,7 +872,7 @@ void ModelTree::processEraseMessage(const QByteArray& dataByteArray, const Share
     processedBytes += sizeof(numberOfIds);
 
     if (numberOfIds > 0) {
-        FindAndDeleteModelsArgs args;
+        QSet<ModelItemID> modelItemIDsToDelete;
 
         for (size_t i = 0; i < numberOfIds; i++) {
             if (processedBytes + sizeof(uint32_t) > packetLength) {
@@ -918,14 +883,11 @@ void ModelTree::processEraseMessage(const QByteArray& dataByteArray, const Share
             memcpy(&modelID, dataAt, sizeof(modelID));
             dataAt += sizeof(modelID);
             processedBytes += sizeof(modelID);
-            args._idsToDelete.push_back(modelID);
+            
+            ModelItemID modelItemID(modelID);
+            modelItemIDsToDelete << modelItemID;
         }
-
-        // calling recurse to actually delete the models
-        // NOTE: We need to do this with recursion, because we need to mark the
-        // path to get to the models as dirty, so that sending to any viewers
-        // will work correctly
-        recurseTreeWithOperation(findAndDeleteOperation, &args);
+        deleteModels(modelItemIDsToDelete);
     }
 }
 

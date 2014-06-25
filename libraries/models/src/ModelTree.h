@@ -55,6 +55,7 @@ public:
     void updateModel(const ModelItemID& modelID, const ModelItemProperties& properties);
     void addModel(const ModelItemID& modelID, const ModelItemProperties& properties);
     void deleteModel(const ModelItemID& modelID);
+    void deleteModels(QSet<ModelItemID> modelIDs);
     const ModelItem* findClosestModel(glm::vec3 position, float targetRadius);
     const ModelItem* findModelByID(uint32_t id, bool alreadyLocked = false) const;
     const ModelItem* findModelByModelItemID(const ModelItemID& modelID) const;
