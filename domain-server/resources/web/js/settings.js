@@ -1,8 +1,12 @@
 var Settings = {};
 
 $(document).ready(function(){
-  Handlebars.registerHelper('setKey', function(value){
-      this.key = value;
+  Handlebars.registerHelper('setGroup', function(value){
+    this.group = value;
+  });
+  
+  Handlebars.registerHelper('settingsValue', function(values, key, group){
+    return values[group][key];
   });
   
   var source = $('#template').html();
@@ -12,10 +16,12 @@ $(document).ready(function(){
 });
 
 function reloadSettings() {
-  $.getJSON('describe.json', function(data){
+  $.getJSON('/settings.json', function(data){
     $('#settings').html(Settings.template(data));
   });
 }
+
+var SETTINGS_ERROR_MESSAGE = "There was a problem saving domain settings. Please try again!";
 
 $('#settings').on('click', 'button', function(e){  
   // grab a JSON representation of the form via form2js
@@ -26,17 +32,26 @@ $('#settings').on('click', 'button', function(e){
     data: JSON.stringify(formJSON),
     contentType: 'application/json',
     type: 'POST'
-  }).done(function(){
+  }).done(function(data){
+    if (data.status == "success") {
+      showAlertMessage("Domain settings saved.", true);
+    } else {
+      showAlertMessage(SETTINGS_ERROR_MESSAGE, false);
+    }
     
+    reloadSettings();
   }).fail(function(){
-    var alertBox = $('.alert');
-    alertBox.attr('class', 'alert');
-    alertBox.addClass('alert-danger');
-    alertBox.html("There was a problem saving domain settings. Please try again!");
-    alertBox.fadeIn();
-    
+    showAlertMessage(SETTINGS_ERROR_MESSAGE, false);
     reloadSettings();
   });
   
   return false;
 });
+
+function showAlertMessage(message, isSuccess) {
+  var alertBox = $('.alert');
+  alertBox.attr('class', 'alert');
+  alertBox.addClass(isSuccess ? 'alert-success' : 'alert-danger');
+  alertBox.html(message);
+  alertBox.fadeIn();
+}

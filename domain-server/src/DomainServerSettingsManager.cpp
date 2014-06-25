@@ -19,6 +19,7 @@
 #include "DomainServerSettingsManager.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/web/settings/describe.json";
+const QString SETTINGS_CONFIG_FILE_RELATIVE_PATH = "/resources/config.json";
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionObject(),
@@ -29,7 +30,12 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     descriptionFile.open(QIODevice::ReadOnly);
     
     _descriptionObject = QJsonDocument::fromJson(descriptionFile.readAll()).object();
-    qDebug() << _descriptionObject;
+    
+    // load the existing config file to get the current values
+    QFile configFile(QCoreApplication::applicationDirPath() + SETTINGS_CONFIG_FILE_RELATIVE_PATH);
+    configFile.open(QIODevice::ReadOnly);
+    
+    _settingsMap = QJsonDocument::fromJson(configFile.readAll()).toVariant().toMap();
 }
 
 bool DomainServerSettingsManager::handleHTTPRequest(HTTPConnection* connection, const QUrl &url) {
@@ -41,12 +47,23 @@ bool DomainServerSettingsManager::handleHTTPRequest(HTTPConnection* connection, 
         // we recurse one level deep below each group for the appropriate setting
         recurseJSONObjectAndOverwriteSettings(postedObject, _settingsMap, _descriptionObject);
         
-        // now let's look at the settingsMap?
-        qDebug() << QJsonDocument::fromVariant(_settingsMap).toJson();
-        
+        // store whatever the current _settingsMap is to file
         persistToFile();
         
-        return false;
+        // return success to the caller
+        QString jsonSuccess = "{\"status\": \"success\"}";
+        connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
+        
+        return true;
+    } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == "/settings.json") {
+        // this is a GET operation for our settings
+        // combine the description object and our current settings map
+        QJsonObject combinedObject;
+        combinedObject["descriptions"] = _descriptionObject;
+        combinedObject["values"] = QJsonDocument::fromVariant(_settingsMap).object();
+        
+        connection->respond(HTTPConnection::StatusCode200, QJsonDocument(combinedObject).toJson(), "application/json");
+        return true;
     }
     
     return false;
@@ -86,10 +103,8 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
     }
 }
 
-const QString SETTINGS_JSON_FILE_RELATIVE_PATH = "/resources/config.json";
-
 void DomainServerSettingsManager::persistToFile() {
-    QFile settingsFile(QCoreApplication::applicationDirPath() + SETTINGS_JSON_FILE_RELATIVE_PATH);
+    QFile settingsFile(QCoreApplication::applicationDirPath() + SETTINGS_CONFIG_FILE_RELATIVE_PATH);
     
     if (settingsFile.open(QIODevice::WriteOnly)) {
         settingsFile.write(QJsonDocument::fromVariant(_settingsMap).toJson());

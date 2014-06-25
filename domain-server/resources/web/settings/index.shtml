@@ -5,8 +5,8 @@
 <form class="form-horizontal" id="settings-form" role="form">
   
 <script id="template" type="text/x-handlebars-template">
-  {{#each .}}
-    {{setKey @key}}
+  {{#each descriptions}}
+    {{setGroup @key}}
     <div class="panel panel-default">
       <div class="panel-heading">
         <h3 class="panel-title">{{label}}</h3>
@@ -15,7 +15,7 @@
         {{#each settings}}
           <div class="form-group">
             <label for="{{../key}}.{{@key}}" class="col-sm-2 control-label">{{label}}</label>
-            <div class="col-sm-10"><input type="text" class="form-control" id="{{../key}}.{{@key}}" placeholder="{{placeholder}}"></div>
+            <div class="col-sm-10"><input type="text" class="form-control" id="{{../group}}.{{@key}}" placeholder="{{placeholder}}" value="{{settingsValue ../../values @key ../group}}"></div>
             <p class="help-block col-sm-offset-2 col-sm-10">{{help}}</p>
           </div>
         {{/each}}
