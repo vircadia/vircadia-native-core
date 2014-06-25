@@ -1,16 +1,8 @@
 var Settings = {};
 
-$(document).ready(function(){
-  Handlebars.registerHelper('setGroup', function(value){
-    this.group = value;
-  });
-  
-  Handlebars.registerHelper('settingsValue', function(values, key, group){
-    return values[group][key];
-  });
-  
-  var source = $('#template').html();
-  Settings.template = Handlebars.compile(source);
+$(document).ready(function(){  
+  var source = $('#settings-template').html();
+  Settings.template = _.template(source);
   
   reloadSettings();
 });
