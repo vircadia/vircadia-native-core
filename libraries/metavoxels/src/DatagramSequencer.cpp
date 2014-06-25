@@ -79,11 +79,30 @@ ReliableChannel* DatagramSequencer::getReliableInputChannel(int index) {
     return channel;
 }
 
-int DatagramSequencer::startPacketGroup() {
+int DatagramSequencer::startPacketGroup(int desiredPackets) {
+    // figure out how much data we have enqueued and increase the number of packets desired
+    int totalAvailable = 0;
+    foreach (ReliableChannel* channel, _reliableOutputChannels) {
+        totalAvailable += channel->getBytesAvailable();
+    }
+    desiredPackets += (totalAvailable / _maxPacketSize);
+
     // increment our packet counter and subtract/return the integer portion
     _packetsToWrite += _packetsPerGroup;
     int wholePackets = (int)_packetsToWrite;
     _packetsToWrite -= wholePackets;
+    wholePackets = qMin(wholePackets, desiredPackets);
+    
+    // if we don't want to send any more, push out the rate increase number past the group
+    if (desiredPackets <= _packetsPerGroup) {
+        _packetRateIncreasePacketNumber = _outgoingPacketNumber + wholePackets + 1;
+    }
+    
+    // likewise, if we're only sending one packet, don't let its loss cause rate decrease
+    if (wholePackets == 1) {
+        _packetRateDecreasePacketNumber = _outgoingPacketNumber + 2;
+    }
+    
     return wholePackets;
 }
 

@@ -147,6 +147,8 @@ static int bytesSent = 0;
 static int bytesReceived = 0;
 static int maxDatagramsPerPacket = 0;
 static int maxBytesPerPacket = 0;
+static int groupsSent = 0;
+static int maxPacketsPerGroup = 0;
 static int highPriorityMessagesSent = 0;
 static int highPriorityMessagesReceived = 0;
 static int unreliableMessagesSent = 0;
@@ -508,10 +510,12 @@ bool MetavoxelTests::run() {
         }
         
         qDebug() << "Sent" << streamedBytesSent << "streamed bytes, received" << streamedBytesReceived;
-        qDebug() << "Sent" << datagramsSent << "datagrams with" << bytesSent << "bytes, received" <<
-            datagramsReceived << "with" << bytesReceived << "bytes";
+        qDebug() << "Sent" << datagramsSent << "datagrams in" << groupsSent << "groups with" << bytesSent <<
+            "bytes, received" << datagramsReceived << "with" << bytesReceived << "bytes";
         qDebug() << "Max" << maxDatagramsPerPacket << "datagrams," << maxBytesPerPacket << "bytes per packet";
-        qDebug() << "Average" << (bytesReceived / datagramsReceived) << "bytes per datagram";
+        qDebug() << "Max" << maxPacketsPerGroup << "packets per group";
+        qDebug() << "Average" << (bytesReceived / datagramsReceived) << "bytes per datagram," <<
+            (datagramsSent / groupsSent) << "datagrams per group";
         qDebug() << "Speed:" << (bytesReceived / SIMULATION_ITERATIONS) << "bytes per iteration";
         qDebug() << "Efficiency:" << ((float)streamedBytesReceived / bytesReceived);
     }
@@ -821,6 +825,8 @@ bool Endpoint::simulate(int iterationNumber) {
             _remainingPipelineCapacity += datagram.size();
         }
         int packetCount = _sequencer->startPacketGroup();
+        groupsSent++;
+        maxPacketsPerGroup = qMax(maxPacketsPerGroup, packetCount);
         for (int i = 0; i < packetCount; i++) {
             oldDatagramsSent = datagramsSent;
             oldBytesSent = bytesSent;
