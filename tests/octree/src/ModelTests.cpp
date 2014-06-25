@@ -15,10 +15,10 @@
 #include <QDebug>
 
 #if 1
+#include <Octree.h>
 #include <ModelItem.h>
 #include <ModelTree.h>
 #include <ModelTreeElement.h>
-#include <Octree.h>
 #include <OctreeConstants.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
