@@ -14,6 +14,8 @@
 
 #include <QSettings>
 
+#include <PhysicsSimulation.h>
+
 #include "Avatar.h"
 
 enum AvatarHandState
@@ -173,6 +175,7 @@ private:
     float _oculusYawOffset;
 
     QList<AnimationHandlePointer> _animationHandles;
+    PhysicsSimulation _physicsSimulation;
 
 	// private methods
     float computeDistanceToFloor(const glm::vec3& startPoint);
