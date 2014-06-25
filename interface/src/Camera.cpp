@@ -317,8 +317,6 @@ void CameraScriptableObject::setMode(const QString& mode) {
     }
     if (currentMode != targetMode) {
         _camera->setMode(targetMode);
-        const float DEFAULT_MODE_SHIFT_PERIOD = 0.5f; // half second
-        _camera->setModeShiftPeriod(DEFAULT_MODE_SHIFT_PERIOD);
     }
 }
 
