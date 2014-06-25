@@ -39,9 +39,9 @@ inline float min(float a, float b) {
 ApplicationOverlay::ApplicationOverlay() : 
     _framebufferObject(NULL),
     _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
-    _crosshairTexture(0),
     _alpha(1.0f),
-    _active(true) {
+    _active(true),
+    _crosshairTexture(0) {
 
     memset(_reticleActive, 0, sizeof(_reticleActive));
     memset(_magActive, 0, sizeof(_reticleActive));
