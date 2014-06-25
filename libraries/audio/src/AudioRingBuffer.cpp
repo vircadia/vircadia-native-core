@@ -16,9 +16,9 @@
 #include <QtCore/QDebug>
 
 #include "PacketHeaders.h"
-#include "../../../assignment-client/src/audio/AudioMixerClientData.h"
 
 #include "AudioRingBuffer.h"
+#include "PositionalAudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
     NodeData(),

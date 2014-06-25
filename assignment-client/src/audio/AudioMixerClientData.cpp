@@ -161,9 +161,9 @@ void AudioMixerClientData::calculateJitterBuffersStats(AudioMixerJitterBuffersSt
         sumJitterBufferFrames += bufferJitterFrames;
     }
 
-    stats.avatarJitterBufferFrames = avatarJitterBufferFrames;
-    stats.maxJitterBufferFrames = maxJitterBufferFrames;
-    stats.avgJitterBufferFrames = (float)sumJitterBufferFrames / (float)_ringBuffers.size();
+    stats._avatarJitterBufferFrames = avatarJitterBufferFrames;
+    stats._maxJitterBufferFrames = maxJitterBufferFrames;
+    stats._avgJitterBufferFrames = (float)sumJitterBufferFrames / (float)_ringBuffers.size();
 }
 
 QString AudioMixerClientData::getJitterBufferStats() const {

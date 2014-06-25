@@ -18,17 +18,6 @@
 
 #include "AvatarAudioRingBuffer.h"
 
-class AudioMixerJitterBuffersStats {
-public:
-    AudioMixerJitterBuffersStats()
-        : avatarJitterBufferFrames(0), maxJitterBufferFrames(0), avgJitterBufferFrames(0)
-    {}
-
-    int avatarJitterBufferFrames;
-    int maxJitterBufferFrames;
-    float avgJitterBufferFrames;
-};
-
 class AudioMixerClientData : public NodeData {
 public:
     AudioMixerClientData();

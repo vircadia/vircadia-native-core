@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "InterfaceConfig.h"
-#include "../../assignment-client/src/audio/AudioMixerClientData.h"
+#include "PositionalAudioRingBuffer.h"
 
 #include <QAudio>
 #include <QAudioInput>
