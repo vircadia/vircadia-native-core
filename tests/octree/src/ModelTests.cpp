@@ -14,13 +14,6 @@
 
 #include <QDebug>
 
-#ifdef WIN32
-#ifndef ssize_t
-#define ssize_t int
-#endif
-#endif
-
-
 #include <Octree.h>
 #include <ModelItem.h>
 #include <ModelTree.h>
