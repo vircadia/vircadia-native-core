@@ -54,9 +54,6 @@
 
 #include "AudioMixer.h"
 
-const short JITTER_BUFFER_MSECS = 12;
-const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
-
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
@@ -66,6 +63,8 @@ void attachNewBufferToNode(Node *newNode) {
         newNode->setLinkedData(new AudioMixerClientData());
     }
 }
+
+bool AudioMixer::_useDynamicJitterBuffers = false;
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
@@ -427,12 +426,46 @@ void AudioMixer::sendStatsPacket() {
     } else {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
-    
+
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
-    
     _sumListeners = 0;
     _sumMixes = 0;
     _numStatFrames = 0;
+
+
+    // NOTE: These stats can be too large to fit in an MTU, so we break it up into multiple packts...
+    QJsonObject statsObject2;
+
+    // add stats for each listerner
+    bool somethingToSend = false;
+    int sizeOfStats = 0;
+    int TOO_BIG_FOR_MTU = 1200; // some extra space for JSONification
+    
+    NodeList* nodeList = NodeList::getInstance();
+    int clientNumber = 0;
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        clientNumber++;
+        AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        if (clientData) {
+            QString property = "jitterStats." + node->getUUID().toString();
+            QString value = clientData->getJitterBufferStats();
+            statsObject2[qPrintable(property)] = value;
+            somethingToSend = true;
+            sizeOfStats += property.size() + value.size();
+        }
+        
+        // if we're too large, send the packet
+        if (sizeOfStats > TOO_BIG_FOR_MTU) {
+            nodeList->sendStatsToDomainServer(statsObject2);
+            sizeOfStats = 0;
+            statsObject2 = QJsonObject(); // clear it
+            somethingToSend = false;
+        }
+    }
+
+    if (somethingToSend) {
+        nodeList->sendStatsToDomainServer(statsObject2);
+    }
 }
 
 void AudioMixer::run() {
@@ -471,6 +504,16 @@ void AudioMixer::run() {
             << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
     }
 
+    // check the payload to see if we have asked for dynamicJitterBuffer support
+    const QString DYNAMIC_JITTER_BUFFER_REGEX_STRING = "--dynamicJitterBuffer";
+    QRegExp dynamicJitterBufferMatch(DYNAMIC_JITTER_BUFFER_REGEX_STRING);
+    if (dynamicJitterBufferMatch.indexIn(_payload) != -1) {
+        qDebug() << "Enable dynamic jitter buffers.";
+        _useDynamicJitterBuffers = true;
+    } else {
+        qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
+    }
+    
     int nextFrame = 0;
     QElapsedTimer timer;
     timer.start();
@@ -487,8 +530,7 @@ void AudioMixer::run() {
         
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
-                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES,
-                                                                                             _sourceUnattenuatedZone,
+                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(_sourceUnattenuatedZone,
                                                                                              _listenerUnattenuatedZone);
             }
         }

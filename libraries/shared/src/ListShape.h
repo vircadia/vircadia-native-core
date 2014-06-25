@@ -42,7 +42,7 @@ public:
 
     ~ListShape();
 
-    void setPosition(const glm::vec3& position);
+    void setTranslation(const glm::vec3& position);
     void setRotation(const glm::quat& rotation);
 
     const Shape* getSubShape(int index) const;

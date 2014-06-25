@@ -9,8 +9,10 @@
 //
 
 #include "ShapeColliderTests.h"
+#include "VerletShapeTests.h"
 
 int main(int argc, char** argv) {
     ShapeColliderTests::runAllTests();
+    VerletShapeTests::runAllTests();
     return 0;
 }
