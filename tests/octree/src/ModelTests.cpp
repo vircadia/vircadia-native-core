@@ -14,7 +14,7 @@
 
 #include <QDebug>
 
-#if 0
+#if 1
 #include <ModelItem.h>
 #include <ModelTree.h>
 #include <ModelTreeElement.h>
@@ -27,7 +27,7 @@
 #include "ModelTests.h"
 
 void ModelTests::modelTreeTests(bool verbose) {
-#if 0
+#if 1
     int testsTaken = 0;
     int testsPassed = 0;
     int testsFailed = 0;

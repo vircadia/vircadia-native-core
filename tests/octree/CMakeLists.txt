@@ -30,12 +30,12 @@ include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 # link in the shared libraries
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
-link_hifi_library(animation ${TARGET_NAME} ${ROOT_DIR})
-link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
-link_hifi_library(fbx ${TARGET_NAME} ${ROOT_DIR})
-link_hifi_library(networking ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(models ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(networking ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(animation ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(fbx ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 
 IF (WIN32)
