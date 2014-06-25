@@ -12,8 +12,10 @@
 #ifndef hifi_ModelItem_h
 #define hifi_ModelItem_h
 
-#include <glm/glm.hpp>
+#include <stddef.h>
 #include <stdint.h>
+
+#include <glm/glm.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
