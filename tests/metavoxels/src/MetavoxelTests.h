@@ -63,6 +63,8 @@ private slots:
 
 private:
     
+    void receiveDatagram(const QByteArray& datagram);
+    
     void handleMessage(const QVariant& message, Bitstream& in);
     
     class SendRecord {
@@ -96,7 +98,14 @@ private:
     SharedObjectPointer _sphere;
     
     Endpoint* _other;
-    QList<QPair<QByteArray, int> > _delayedDatagrams;
+    
+    typedef QPair<QByteArray, int> ByteArrayIntPair;
+    QList<ByteArrayIntPair> _delayedDatagrams;
+
+    typedef QVector<QByteArray> ByteArrayVector;
+    QList<ByteArrayVector> _pipeline;
+    int _remainingPipelineCapacity;
+
     float _highPriorityMessagesToSend;
     QVariantList _highPriorityMessagesSent;
     QList<SequencedTestMessage> _unreliableMessagesSent;

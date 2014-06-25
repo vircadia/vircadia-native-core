@@ -28,6 +28,119 @@ MetavoxelTests::MetavoxelTests(int& argc, char** argv) :
     QCoreApplication(argc, argv) {
 }
 
+static bool testSpanList() {
+    SpanList list;
+
+    if (list.getTotalSet() != 0 || !list.getSpans().isEmpty()) {
+        qDebug() << "Failed empty state test.";
+        return true;
+    }
+    
+    if (list.set(-5, 15) != 10 || list.getTotalSet() != 0 || !list.getSpans().isEmpty()) {
+        qDebug() << "Failed initial front set.";
+        return true;
+    } 
+    
+    if (list.set(5, 15) != 0 || list.getTotalSet() != 15 || list.getSpans().size() != 1 ||
+            list.getSpans().at(0).unset != 5 || list.getSpans().at(0).set != 15) {
+        qDebug() << "Failed initial middle set.";
+        return true;
+    }
+    
+    if (list.set(25, 5) != 0 || list.getTotalSet() != 20 || list.getSpans().size() != 2 ||
+            list.getSpans().at(0).unset != 5 || list.getSpans().at(0).set != 15 ||
+            list.getSpans().at(1).unset != 5 || list.getSpans().at(1).set != 5) {
+        qDebug() << "Failed initial end set.";
+        return true;
+    }
+    
+    if (list.set(1, 3) != 0 || list.getTotalSet() != 23 || list.getSpans().size() != 3 ||
+            list.getSpans().at(0).unset != 1 || list.getSpans().at(0).set != 3 ||
+            list.getSpans().at(1).unset != 1 || list.getSpans().at(1).set != 15 ||
+            list.getSpans().at(2).unset != 5 || list.getSpans().at(2).set != 5) {
+        qDebug() << "Failed second front set.";
+        return true;
+    }
+    SpanList threeSet = list;
+    
+    if (list.set(20, 5) != 0 || list.getTotalSet() != 28 || list.getSpans().size() != 2 ||
+            list.getSpans().at(0).unset != 1 || list.getSpans().at(0).set != 3 ||
+            list.getSpans().at(1).unset != 1 || list.getSpans().at(1).set != 25) {
+        qDebug() << "Failed minimal join last two.";
+        return true;
+    }
+    
+    list = threeSet;
+    if (list.set(5, 25) != 0 || list.getTotalSet() != 28 || list.getSpans().size() != 2 ||
+            list.getSpans().at(0).unset != 1 || list.getSpans().at(0).set != 3 ||
+            list.getSpans().at(1).unset != 1 || list.getSpans().at(1).set != 25) {
+        qDebug() << "Failed maximal join last two.";
+        return true;
+    }
+    
+    list = threeSet;
+    if (list.set(10, 18) != 0 || list.getTotalSet() != 28 || list.getSpans().size() != 2 ||
+            list.getSpans().at(0).unset != 1 || list.getSpans().at(0).set != 3 ||
+            list.getSpans().at(1).unset != 1 || list.getSpans().at(1).set != 25) {
+        qDebug() << "Failed middle join last two.";
+        return true;
+    }
+    
+    list = threeSet;
+    if (list.set(10, 18) != 0 || list.getTotalSet() != 28 || list.getSpans().size() != 2 ||
+            list.getSpans().at(0).unset != 1 || list.getSpans().at(0).set != 3 ||
+            list.getSpans().at(1).unset != 1 || list.getSpans().at(1).set != 25) {
+        qDebug() << "Failed middle join last two.";
+        return true;
+    }
+    
+    list = threeSet;
+    if (list.set(2, 26) != 0 || list.getTotalSet() != 29 || list.getSpans().size() != 1 ||
+            list.getSpans().at(0).unset != 1 || list.getSpans().at(0).set != 29) {
+        qDebug() << "Failed middle join three.";
+        return true;
+    }
+    
+    list = threeSet;
+    if (list.set(0, 2) != 4 || list.getTotalSet() != 20 || list.getSpans().size() != 2 ||
+            list.getSpans().at(0).unset != 1 || list.getSpans().at(0).set != 15 ||
+            list.getSpans().at(1).unset != 5 || list.getSpans().at(1).set != 5) {
+        qDebug() << "Failed front advance.";
+        return true;
+    }
+    
+    list = threeSet;
+    if (list.set(-10, 15) != 20 || list.getTotalSet() != 5 || list.getSpans().size() != 1 ||
+            list.getSpans().at(0).unset != 5 || list.getSpans().at(0).set != 5) {
+        qDebug() << "Failed middle advance.";
+        return true;
+    }
+    
+    list = threeSet;
+    if (list.set(-10, 38) != 30 || list.getTotalSet() != 0 || list.getSpans().size() != 0) {
+        qDebug() << "Failed end advance.";
+        return true;
+    }
+    
+    list = threeSet;
+    if (list.set(-10, 100) != 90 || list.getTotalSet() != 0 || list.getSpans().size() != 0) {
+        qDebug() << "Failed clobber advance.";
+        return true;
+    }
+    
+    list = threeSet;
+    if (list.set(21, 3) != 0 || list.getTotalSet() != 26 || list.getSpans().size() != 4 ||
+            list.getSpans().at(0).unset != 1 || list.getSpans().at(0).set != 3 ||
+            list.getSpans().at(1).unset != 1 || list.getSpans().at(1).set != 15 ||
+            list.getSpans().at(2).unset != 1 || list.getSpans().at(2).set != 3 ||
+            list.getSpans().at(3).unset != 1 || list.getSpans().at(3).set != 5) {
+        qDebug() << "Failed adding fourth.";
+        return true;
+    }
+    
+    return false;
+}
+
 static int datagramsSent = 0;
 static int datagramsReceived = 0;
 static int bytesSent = 0;
@@ -332,9 +445,18 @@ bool MetavoxelTests::run() {
     QStringList arguments = this->arguments();
     int test = (arguments.size() > 1) ? arguments.at(1).toInt() : 0;
 
+    if (test == 0 || test == 1) {
+        qDebug() << "Running SpanList test...";
+        qDebug();
+        
+        if (testSpanList()) {
+            return true;
+        }
+    }
+
     QByteArray datagramHeader("testheader");
     const int SIMULATION_ITERATIONS = 10000;
-    if (test == 0 || test == 1) {
+    if (test == 0 || test == 2) {
         qDebug() << "Running transmission test...";
         qDebug();
     
@@ -364,7 +486,7 @@ bool MetavoxelTests::run() {
         qDebug();
     }
     
-    if (test == 0 || test == 2) {
+    if (test == 0 || test == 3) {
         qDebug() << "Running congestion control test...";
         qDebug();
         
@@ -394,7 +516,7 @@ bool MetavoxelTests::run() {
         qDebug() << "Efficiency:" << ((float)streamedBytesReceived / bytesReceived);
     }
     
-    if (test == 0 || test == 3) {
+    if (test == 0 || test == 4) {
         qDebug() << "Running serialization test...";
         qDebug();
         
@@ -403,7 +525,7 @@ bool MetavoxelTests::run() {
         }
     }
     
-    if (test == 0 || test == 4) {
+    if (test == 0 || test == 5) {
         qDebug() << "Running metavoxel data test...";
         qDebug();
     
@@ -532,6 +654,13 @@ Endpoint::Endpoint(const QByteArray& datagramHeader, Mode mode) :
     if (mode == CONGESTION_MODE) {
         const int HUGE_STREAM_BYTES = 50 * 1024 * 1024;
         bytes = createRandomBytes(HUGE_STREAM_BYTES, HUGE_STREAM_BYTES);
+        
+        // initialize the pipeline
+        for (int i = 0; i < 10; i++) {
+            _pipeline.append(ByteArrayVector());
+        }
+        _remainingPipelineCapacity = 100 * 1024;
+        
     } else {
         const int MIN_STREAM_BYTES = 100000;
         const int MAX_STREAM_BYTES = 200000;
@@ -669,10 +798,9 @@ int MutateVisitor::visit(MetavoxelInfo& info) {
 
 bool Endpoint::simulate(int iterationNumber) {
     // update/send our delayed datagrams
-    for (QList<QPair<QByteArray, int> >::iterator it = _delayedDatagrams.begin(); it != _delayedDatagrams.end(); ) {
+    for (QList<ByteArrayIntPair>::iterator it = _delayedDatagrams.begin(); it != _delayedDatagrams.end(); ) {
         if (it->second-- == 1) {
-            _other->_sequencer->receivedDatagram(it->first);
-            datagramsReceived++;    
+            _other->receiveDatagram(it->first);
             it = _delayedDatagrams.erase(it);
         
         } else {
@@ -683,6 +811,16 @@ bool Endpoint::simulate(int iterationNumber) {
     int oldDatagramsSent = datagramsSent;
     int oldBytesSent = bytesSent;
     if (_mode == CONGESTION_MODE) {
+        // cycle our pipeline
+        ByteArrayVector datagrams = _pipeline.takeLast();
+        _pipeline.prepend(ByteArrayVector());
+        foreach (const QByteArray& datagram, datagrams) {
+            _sequencer->receivedDatagram(datagram);
+            datagramsReceived++;
+            bytesReceived += datagram.size();
+            _remainingPipelineCapacity += datagram.size();
+        }
+    
         Bitstream& out = _sequencer->startPacket();
         out << QVariant();
         _sequencer->endPacket();    
@@ -804,7 +942,7 @@ void Endpoint::sendDatagram(const QByteArray& datagram) {
         const int MIN_DELAY = 1;
         const int MAX_DELAY = 5;
         // have to copy the datagram; the one we're passed is a reference to a shared buffer
-        _delayedDatagrams.append(QPair<QByteArray, int>(QByteArray(datagram.constData(), datagram.size()),
+        _delayedDatagrams.append(ByteArrayIntPair(QByteArray(datagram.constData(), datagram.size()),
             randIntInRange(MIN_DELAY, MAX_DELAY)));
         
         // and some are duplicated
@@ -814,9 +952,7 @@ void Endpoint::sendDatagram(const QByteArray& datagram) {
         }
     }
     
-    _other->_sequencer->receivedDatagram(datagram);
-    datagramsReceived++;
-    bytesReceived += datagram.size();
+    _other->receiveDatagram(datagram);
 }
 
 void Endpoint::handleHighPriorityMessage(const QVariant& message) {
@@ -940,6 +1076,20 @@ void Endpoint::clearSendRecordsBefore(int index) {
 
 void Endpoint::clearReceiveRecordsBefore(int index) {
     _receiveRecords.erase(_receiveRecords.begin(), _receiveRecords.begin() + index + 1);
+}
+
+void Endpoint::receiveDatagram(const QByteArray& datagram) {
+    if (_mode == CONGESTION_MODE) {
+        if (datagram.size() <= _remainingPipelineCapacity) {
+            // have to copy the datagram; the one we're passed is a reference to a shared buffer
+            _pipeline[0].append(QByteArray(datagram.constData(), datagram.size()));
+            _remainingPipelineCapacity -= datagram.size();   
+        }
+    } else {
+        _sequencer->receivedDatagram(datagram);
+        datagramsReceived++;
+        bytesReceived += datagram.size();
+    }
 }
 
 void Endpoint::handleMessage(const QVariant& message, Bitstream& in) {

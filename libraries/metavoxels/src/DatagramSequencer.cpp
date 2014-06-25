@@ -520,7 +520,9 @@ int SpanList::set(int offset, int length) {
 
     // look for an intersection within the list
     int position = 0;
-    for (QList<Span>::iterator it = _spans.begin(); it != _spans.end(); it++) {
+    for (int i = 0; i < _spans.size(); i++) {
+        QList<Span>::iterator it = _spans.begin() + i;
+    
         // if we intersect the unset portion, contract it
         position += it->unset;
         if (offset <= position) {
@@ -530,16 +532,20 @@ int SpanList::set(int offset, int length) {
             // if we continue into the set portion, expand it and consume following spans
             int extra = offset + length - position;
             if (extra >= 0) {
-                int amount = setSpans(it + 1, extra);
-                it->set += amount;
-                _totalSet += amount;
-            
+                extra -= it->set;
+                it->set += remove;
+                _totalSet += remove;
+                if (extra > 0) {
+                    int amount = setSpans(it + 1, extra);
+                    _spans[i].set += amount;
+                    _totalSet += amount;
+                }
             // otherwise, insert a new span
             } else {        
-                Span span = { it->unset, length + extra };
-                _spans.insert(it, span);
+                Span span = { it->unset, length };
                 it->unset = -extra;
-                _totalSet += span.set;
+                _spans.insert(it, span);
+                _totalSet += length;
             }
             return 0;
         }
@@ -548,9 +554,11 @@ int SpanList::set(int offset, int length) {
         position += it->set;
         if (offset <= position) {
             int extra = offset + length - position;
-            int amount = setSpans(it + 1, extra);
-            it->set += amount;
-            _totalSet += amount;
+            if (extra > 0) {
+                int amount = setSpans(it + 1, extra);
+                _spans[i].set += amount;
+                _totalSet += amount;
+            }
             return 0;
         }
     }
@@ -629,67 +637,71 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
 }
 
 void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans) {
-    // find out how many spans we want to write
-    int spanCount = 0;
-    int remainingBytes = bytes;
-    bool first = true;
-    while (remainingBytes > 0) {
+    if (bytes > 0) {
+        _writePosition %= _buffer.pos();
+        
         int position = 0;
-        foreach (const SpanList::Span& span, _acknowledged.getSpans()) {
-            if (remainingBytes <= 0) {
-                break;
+        for (int i = 0; i < _acknowledged.getSpans().size(); i++) {
+            const SpanList::Span& span = _acknowledged.getSpans().at(i);
+            position += span.unset;
+            if (_writePosition < position) {
+                int start = qMax(position - span.unset, _writePosition);
+                int length = qMin(bytes, position - start);
+                writeSpan(out, start, length, spans);
+                writeFullSpans(out, bytes - length, i + 1, position + span.set, spans);
+                out << (quint32)0;
+                return;
             }
-            spanCount++;
-            remainingBytes -= getBytesToWrite(first, qMin(remainingBytes, span.unset));
-            position += (span.unset + span.set);
+            position += span.set;
         }
         int leftover = _buffer.pos() - position;
-        if (remainingBytes > 0 && leftover > 0) {
-            spanCount++;
-            remainingBytes -= getBytesToWrite(first, qMin(remainingBytes, leftover));
+        position = _buffer.pos();
+        
+        if (_writePosition < position && leftover > 0) {
+            int start = qMax(position - leftover, _writePosition);
+            int length = qMin(bytes, position - start);
+            writeSpan(out, start, length, spans);
+            writeFullSpans(out, bytes - length, 0, 0, spans);
         }
     }
-    
-    // write the count and the spans
-    out << (quint32)spanCount;
-    remainingBytes = bytes;
-    first = true;
-    while (remainingBytes > 0) {
-        int position = 0;
-        foreach (const SpanList::Span& span, _acknowledged.getSpans()) {
-            if (remainingBytes <= 0) {
-                break;
-            }
-            remainingBytes -= writeSpan(out, first, position, qMin(remainingBytes, span.unset), spans);
-            position += (span.unset + span.set);
+    out << (quint32)0;
+}
+
+void ReliableChannel::writeFullSpans(QDataStream& out, int bytes, int startingIndex, int position,
+        QVector<DatagramSequencer::ChannelSpan>& spans) {
+    int expandedSize = _acknowledged.getSpans().size() + 1;
+    for (int i = 0; i < expandedSize; i++) {
+        if (bytes == 0) {
+            return;
         }
-        int leftover = _buffer.pos() - position;
-        if (remainingBytes > 0 && leftover > 0) {
-            remainingBytes -= writeSpan(out, first, position, qMin(remainingBytes, leftover), spans);
+        int index = (startingIndex + i) % expandedSize;
+        if (index == _acknowledged.getSpans().size()) {
+            int leftover = _buffer.pos() - position;
+            if (leftover > 0) {
+                int length = qMin(leftover, bytes);
+                writeSpan(out, position, length, spans);
+                bytes -= length;
+            }
+            position = 0;
+            
+        } else {
+            const SpanList::Span& span = _acknowledged.getSpans().at(index);
+            int length = qMin(span.unset, bytes);
+            writeSpan(out, position, length, spans);
+            bytes -= length;
+            position += (span.unset + span.set);
         }
     }
 }
 
-int ReliableChannel::getBytesToWrite(bool& first, int length) const {
-    if (first) {
-        first = false;
-        return length - (_writePosition % length);
-    }
-    return length;
-}
-
-int ReliableChannel::writeSpan(QDataStream& out, bool& first, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans) {
-    if (first) {
-        first = false;
-        position = _writePosition % length;
-        length -= position;
-        _writePosition += length;
-    }
+int ReliableChannel::writeSpan(QDataStream& out, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans) {
     DatagramSequencer::ChannelSpan span = { _index, _offset + position, length };
     spans.append(span);
-    out << (quint32)span.offset;
     out << (quint32)length;
+    out << (quint32)span.offset;
     _buffer.writeToStream(position, length, out);
+    _writePosition = position + length;
+    
     return length;
 }
 
@@ -700,17 +712,20 @@ void ReliableChannel::spanAcknowledged(const DatagramSequencer::ChannelSpan& spa
         _buffer.seek(_buffer.size());
         
         _offset += advancement;
-        _writePosition = qMax(_writePosition - advancement, 0);
-    } 
+        _writePosition = qMax(_writePosition - advancement, 0);   
+    }
 }
 
 void ReliableChannel::readData(QDataStream& in) {
-    quint32 segments;
-    in >> segments;
     bool readSome = false;
-    for (quint32 i = 0; i < segments; i++) {
-        quint32 offset, size;
-        in >> offset >> size;
+    forever {
+        quint32 size;
+        in >> size;
+        if (size == 0) {
+            break;
+        }
+        quint32 offset;
+        in >> offset;
         
         int position = offset - _offset;
         int end = position + size;

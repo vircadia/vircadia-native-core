@@ -343,8 +343,9 @@ private:
     ReliableChannel(DatagramSequencer* sequencer, int index, bool output);
     
     void writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans);
-    int getBytesToWrite(bool& first, int length) const;
-    int writeSpan(QDataStream& out, bool& first, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
+    void writeFullSpans(QDataStream& out, int bytes, int startingIndex, int position,
+        QVector<DatagramSequencer::ChannelSpan>& spans);
+    int writeSpan(QDataStream& out, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
     
     void spanAcknowledged(const DatagramSequencer::ChannelSpan& span);
     
