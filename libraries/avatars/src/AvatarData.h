@@ -223,7 +223,7 @@ public:
 
     virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 
-    virtual bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
+    virtual bool findSphereCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
         return false;
     }
 

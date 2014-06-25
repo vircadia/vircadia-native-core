@@ -16,14 +16,14 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/norm.hpp>
 
+#include <CapsuleShape.h>
 #include <GeometryUtil.h>
+#include <PhysicsEntity.h>
+#include <ShapeCollider.h>
+#include <SphereShape.h>
 
 #include "Application.h"
 #include "Model.h"
-
-#include <SphereShape.h>
-#include <CapsuleShape.h>
-#include <ShapeCollider.h>
 
 using namespace std;
 
@@ -40,10 +40,7 @@ Model::Model(QObject* parent) :
     _snapModelToCenter(false),
     _snappedToCenter(false),
     _rootIndex(-1),
-    _shapesAreDirty(true),
-    _boundingRadius(0.0f),
-    _boundingShape(),
-    _boundingShapeLocalOffset(0.0f),
+    //_enableCollisionShapes(false),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
     _url("http://invalid.com") {
@@ -129,7 +126,10 @@ void Model::setScaleInternal(const glm::vec3& scale) {
     const float ONE_PERCENT = 0.01f;
     if (relativeDeltaScale > ONE_PERCENT || scaleLength < EPSILON) {
         _scale = scale;
-        rebuildShapes();
+        if (_shapes.size() > 0) {
+            clearShapes();
+            buildShapes();
+        }
     }
 }
 
@@ -174,6 +174,7 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1) {
             _rootIndex = i;
+            // NOTE: in practice geometry.offset has a non-unity scale (rather than a translation)
             glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
             state.computeTransform(parentTransform);
         } else {
@@ -551,7 +552,6 @@ bool Model::updateGeometry() {
             model->setURL(attachment.url);
             _attachments.append(model);
         }
-        rebuildShapes();
         needFullUpdate = true;
     }
     return needFullUpdate;
@@ -560,6 +560,18 @@ bool Model::updateGeometry() {
 // virtual
 void Model::setJointStates(QVector<JointState> states) {
     _jointStates = states;
+
+    // compute an approximate bounding radius for broadphase collision queries
+    // against PhysicsSimulation boundaries
+    int numJoints = _jointStates.size();
+    float radius = 0.0f;
+    for (int i = 0; i < numJoints; ++i) {
+        float distance = glm::length(_jointStates[i].getPosition());
+        if (distance > radius) {
+            radius = distance;
+        }
+    }
+    _boundingRadius = radius;
 }
 
 bool Model::render(float alpha, RenderMode mode, bool receiveShadows) {
@@ -774,304 +786,13 @@ AnimationHandlePointer Model::createAnimationHandle() {
     return handle;
 }
 
-void Model::clearShapes() {
-    for (int i = 0; i < _jointShapes.size(); ++i) {
-        delete _jointShapes[i];
-    }
-    _jointShapes.clear();
-}
-
-void Model::rebuildShapes() {
-    clearShapes();
-    
-    if (!_geometry || _rootIndex == -1) {
-        return;
-    }
-    
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.joints.isEmpty()) {
-        return;
-    }
-
-    // We create the shapes with proper dimensions, but we set their transforms later.
-    float uniformScale = extractUniformScale(_scale);
-    for (int i = 0; i < _jointStates.size(); i++) {
-        const FBXJoint& joint = geometry.joints[i];
-
-        float radius = uniformScale * joint.boneRadius;
-        float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
-        Shape::Type type = joint.shapeType;
-        if (type == Shape::CAPSULE_SHAPE && halfHeight < EPSILON) {
-            // this capsule is effectively a sphere
-            type = Shape::SPHERE_SHAPE;
-        }
-        if (type == Shape::CAPSULE_SHAPE) {
-            CapsuleShape* capsule = new CapsuleShape(radius, halfHeight);
-            _jointShapes.push_back(capsule);
-        } else if (type == Shape::SPHERE_SHAPE) {
-            SphereShape* sphere = new SphereShape(radius, glm::vec3(0.0f));
-            _jointShapes.push_back(sphere);
-        } else {
-            // this shape type is not handled and the joint shouldn't collide, 
-            // however we must have a shape for each joint, 
-            // so we make a bogus sphere with zero radius.
-            // TODO: implement collision groups for more control over what collides with what
-            SphereShape* sphere = new SphereShape(0.0f, glm::vec3(0.0f)); 
-            _jointShapes.push_back(sphere);
-        }
-    }
-
-    // This method moves the shapes to their default positions in Model frame
-    // which is where we compute the bounding shape's parameters.
-    computeBoundingShape(geometry);
-
-    // finally sync shapes to joint positions
-    _shapesAreDirty = true;
-    updateShapePositions();
-}
-
-void Model::computeBoundingShape(const FBXGeometry& geometry) {
-    // compute default joint transforms and rotations 
-    // (in local frame, ignoring Model translation and rotation)
-    int numJoints = geometry.joints.size();
-    QVector<glm::mat4> transforms;
-    transforms.fill(glm::mat4(), numJoints);
-    QVector<glm::quat> finalRotations;
-    finalRotations.fill(glm::quat(), numJoints);
-
-    QVector<bool> shapeIsSet;
-    shapeIsSet.fill(false, numJoints);
-    int numShapesSet = 0;
-    int lastNumShapesSet = -1;
-    while (numShapesSet < numJoints && numShapesSet != lastNumShapesSet) {
-        lastNumShapesSet = numShapesSet;
-        for (int i = 0; i < numJoints; i++) {
-            const FBXJoint& joint = geometry.joints.at(i);
-            int parentIndex = joint.parentIndex;
-            
-            if (parentIndex == -1) {
-                glm::mat4 baseTransform = glm::scale(_scale) * glm::translate(_offset);
-                glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
-                glm::mat4 rootTransform = baseTransform * geometry.offset * glm::translate(joint.translation) 
-                    * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
-                // remove the tranlsation part before we save the root transform
-                transforms[i] = glm::translate(- extractTranslation(rootTransform)) * rootTransform;
-
-                finalRotations[i] = combinedRotation;
-                ++numShapesSet;
-                shapeIsSet[i] = true;
-            } else if (shapeIsSet[parentIndex]) {
-                glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
-                transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
-                    * joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
-                finalRotations[i] = finalRotations[parentIndex] * combinedRotation;
-                ++numShapesSet;
-                shapeIsSet[i] = true;
-            }
-        }
-    }
-
-    // sync shapes to joints
-    _boundingRadius = 0.0f;
-    float uniformScale = extractUniformScale(_scale);
-    for (int i = 0; i < _jointShapes.size(); i++) {
-        const FBXJoint& joint = geometry.joints[i];
-        glm::vec3 jointToShapeOffset = uniformScale * (finalRotations[i] * joint.shapePosition);
-        glm::vec3 localPosition = extractTranslation(transforms[i]) + jointToShapeOffset;
-        Shape* shape = _jointShapes[i];
-        shape->setPosition(localPosition);
-        shape->setRotation(finalRotations[i] * joint.shapeRotation);
-        float distance = glm::length(localPosition) + shape->getBoundingRadius();
-        if (distance > _boundingRadius) {
-            _boundingRadius = distance;
-        }
-    }
-
-    // compute bounding box
-    Extents totalExtents;
-    totalExtents.reset();
-    for (int i = 0; i < _jointShapes.size(); i++) {
-        Extents shapeExtents;
-        shapeExtents.reset();
-
-        Shape* shape = _jointShapes[i];
-        glm::vec3 localPosition = shape->getPosition();
-        int type = shape->getType();
-        if (type == Shape::CAPSULE_SHAPE) {
-            // add the two furthest surface points of the capsule
-            CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
-            glm::vec3 axis;
-            capsule->computeNormalizedAxis(axis);
-            float radius = capsule->getRadius();
-            float halfHeight = capsule->getHalfHeight();
-            axis = halfHeight * axis + glm::vec3(radius);
-
-            shapeExtents.addPoint(localPosition + axis);
-            shapeExtents.addPoint(localPosition - axis);
-            totalExtents.addExtents(shapeExtents);
-        } else if (type == Shape::SPHERE_SHAPE) {
-            float radius = shape->getBoundingRadius();
-            glm::vec3 axis = glm::vec3(radius);
-            shapeExtents.addPoint(localPosition + axis);
-            shapeExtents.addPoint(localPosition - axis);
-            totalExtents.addExtents(shapeExtents);
-        }
-    }
-
-    // compute bounding shape parameters
-    // NOTE: we assume that the longest side of totalExtents is the yAxis...
-    glm::vec3 diagonal = totalExtents.maximum - totalExtents.minimum;
-    // ... and assume the radius is half the RMS of the X and Z sides:
-    float capsuleRadius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
-    _boundingShape.setRadius(capsuleRadius);
-    _boundingShape.setHalfHeight(0.5f * diagonal.y - capsuleRadius);
-    _boundingShapeLocalOffset = 0.5f * (totalExtents.maximum + totalExtents.minimum);
-}
-
-void Model::resetShapePositions() {
-    // DEBUG method.
-    // Moves shapes to the joint default locations for debug visibility into
-    // how the bounding shape is computed.
-
-    if (!_geometry || _rootIndex == -1) {
-        // geometry or joints have not yet been created
-        return;
-    }
-    
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.joints.isEmpty() || _jointShapes.size() != geometry.joints.size()) {
-        return;
-    }
-
-    // The shapes are moved to their default positions in computeBoundingShape().
-    computeBoundingShape(geometry);
-
-    // Then we move them into world frame for rendering at the Model's location.
-    for (int i = 0; i < _jointShapes.size(); i++) {
-        Shape* shape = _jointShapes[i];
-        shape->setPosition(_translation + _rotation * shape->getPosition());
-        shape->setRotation(_rotation * shape->getRotation());
-    }
-    _boundingShape.setPosition(_translation + _rotation * _boundingShapeLocalOffset);
-    _boundingShape.setRotation(_rotation);
+// virtual override from PhysicsEntity
+void Model::buildShapes() {
+    // TODO: figure out how to load/build collision shapes for general models
 }
 
 void Model::updateShapePositions() {
-    if (_shapesAreDirty && _jointShapes.size() == _jointStates.size()) {
-        glm::vec3 rootPosition(0.0f);
-        _boundingRadius = 0.0f;
-        float uniformScale = extractUniformScale(_scale);
-        for (int i = 0; i < _jointStates.size(); i++) {
-            const JointState& state = _jointStates[i];
-            const FBXJoint& joint = state.getFBXJoint();
-            // shape position and rotation need to be in world-frame
-            glm::quat stateRotation = state.getRotation();
-            glm::vec3 shapeOffset = uniformScale * (stateRotation * joint.shapePosition);
-            glm::vec3 worldPosition = _translation + _rotation * (state.getPosition() + shapeOffset);
-            Shape* shape = _jointShapes[i];
-            shape->setPosition(worldPosition);
-            shape->setRotation(_rotation * stateRotation * joint.shapeRotation);
-            float distance = glm::distance(worldPosition, _translation) + shape->getBoundingRadius();
-            if (distance > _boundingRadius) {
-                _boundingRadius = distance;
-            }
-            if (joint.parentIndex == -1) {
-                rootPosition = worldPosition;
-            }
-        }
-        _shapesAreDirty = false;
-        _boundingShape.setPosition(rootPosition + _rotation * _boundingShapeLocalOffset);
-        _boundingShape.setRotation(_rotation);
-    }
-}
-
-bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
-    const glm::vec3 relativeOrigin = origin - _translation;
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    float minDistance = FLT_MAX;
-    float radiusScale = extractUniformScale(_scale);
-    for (int i = 0; i < _jointStates.size(); i++) {
-        const FBXJoint& joint = geometry.joints[i];
-        glm::vec3 end = _translation + _rotation * _jointStates[i].getPosition();
-        float endRadius = joint.boneRadius * radiusScale;
-        glm::vec3 start = end;
-        float startRadius = joint.boneRadius * radiusScale;
-        if (joint.parentIndex != -1) {
-            start = _translation + _rotation * _jointStates[joint.parentIndex].getPosition();
-            startRadius = geometry.joints[joint.parentIndex].boneRadius * radiusScale;
-        }
-        // for now, use average of start and end radii
-        float capsuleDistance;
-        if (findRayCapsuleIntersection(relativeOrigin, direction, start, end,
-                (startRadius + endRadius) / 2.0f, capsuleDistance)) {
-            minDistance = qMin(minDistance, capsuleDistance);
-        }
-    }
-    if (minDistance < FLT_MAX) {
-        distance = minDistance;
-        return true;
-    }
-    return false;
-}
-
-bool Model::findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions) {
-    bool collided = false;
-    for (int i = 0; i < shapes.size(); ++i) {
-        const Shape* theirShape = shapes[i];
-        for (int j = 0; j < _jointShapes.size(); ++j) {
-            const Shape* ourShape = _jointShapes[j];
-            if (ShapeCollider::collideShapes(theirShape, ourShape, collisions)) {
-                collided = true;
-            }
-        }
-    }
-    return collided;
-}
-
-bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius,
-    CollisionList& collisions, int skipIndex) {
-    bool collided = false;
-    SphereShape sphere(sphereRadius, sphereCenter);
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    for (int i = 0; i < _jointShapes.size(); i++) {
-        const FBXJoint& joint = geometry.joints[i];
-        if (joint.parentIndex != -1) {
-            if (skipIndex != -1) {
-                int ancestorIndex = joint.parentIndex;
-                do {
-                    if (ancestorIndex == skipIndex) {
-                        goto outerContinue;
-                    }
-                    ancestorIndex = geometry.joints[ancestorIndex].parentIndex;
-                    
-                } while (ancestorIndex != -1);
-            }
-        }
-        if (ShapeCollider::collideShapes(&sphere, _jointShapes[i], collisions)) {
-            CollisionInfo* collision = collisions.getLastCollision();
-            collision->_type = COLLISION_TYPE_MODEL;
-            collision->_data = (void*)(this);
-            collision->_intData = i;
-            collided = true;
-        }
-        outerContinue: ;
-    }
-    return collided;
-}
-
-bool Model::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
-    bool collided = false;
-    PlaneShape planeShape(plane);
-    for (int i = 0; i < _jointShapes.size(); i++) {
-        if (ShapeCollider::collideShapes(&planeShape, _jointShapes[i], collisions)) {
-            CollisionInfo* collision = collisions.getLastCollision();
-            collision->_type = COLLISION_TYPE_MODEL;
-            collision->_data = (void*)(this);
-            collision->_intData = i;
-            collided = true;
-        }
-    }
-    return collided;
+    // TODO: implement this when we know how to build shapes for regular Models
 }
 
 class Blender : public QRunnable {
@@ -1197,7 +918,7 @@ void Model::simulateInternal(float deltaTime) {
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
-    _shapesAreDirty = true;
+    _shapesAreDirty = ! _shapes.isEmpty();
     
     // update the attachment transforms and simulate them
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -1332,7 +1053,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const gl
     for (int j = freeLineage.size() - 1; j >= 0; j--) {
         updateJointState(freeLineage.at(j));
     }
-    _shapesAreDirty = true;
+    _shapesAreDirty = !_shapes.isEmpty();
         
     return true;
 }
@@ -1370,14 +1091,17 @@ const int BALL_SUBDIVISIONS = 10;
 void Model::renderJointCollisionShapes(float alpha) {
     glPushMatrix();
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
-    for (int i = 0; i < _jointShapes.size(); i++) {
-        glPushMatrix();
+    for (int i = 0; i < _shapes.size(); i++) {
+        Shape* shape = _shapes[i];
+        if (!shape) {
+            continue;
+        }
 
-        Shape* shape = _jointShapes[i];
-        
+        glPushMatrix();
+        // NOTE: the shapes are in the avatar local-frame
         if (shape->getType() == Shape::SPHERE_SHAPE) {
             // shapes are stored in world-frame, so we have to transform into model frame
-            glm::vec3 position = shape->getPosition() - _translation;
+            glm::vec3 position = _rotation * shape->getTranslation();
             glTranslatef(position.x, position.y, position.z);
             const glm::quat& rotation = shape->getRotation();
             glm::vec3 axis = glm::axis(rotation);
@@ -1392,7 +1116,7 @@ void Model::renderJointCollisionShapes(float alpha) {
             // draw a blue sphere at the capsule endpoint
             glm::vec3 endPoint;
             capsule->getEndPoint(endPoint);
-            endPoint = endPoint - _translation;
+            endPoint = _rotation * endPoint;
             glTranslatef(endPoint.x, endPoint.y, endPoint.z);
             glColor4f(0.6f, 0.6f, 0.8f, alpha);
             glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
@@ -1400,7 +1124,7 @@ void Model::renderJointCollisionShapes(float alpha) {
             // draw a yellow sphere at the capsule startpoint
             glm::vec3 startPoint;
             capsule->getStartPoint(startPoint);
-            startPoint = startPoint - _translation;
+            startPoint = _rotation * startPoint;
             glm::vec3 axis = endPoint - startPoint;
             glTranslatef(-axis.x, -axis.y, -axis.z);
             glColor4f(0.8f, 0.8f, 0.6f, alpha);
@@ -1414,85 +1138,6 @@ void Model::renderJointCollisionShapes(float alpha) {
         glPopMatrix();
     }
     glPopMatrix();
-}
-
-void Model::renderBoundingCollisionShapes(float alpha) {
-    glPushMatrix();
-
-    Application::getInstance()->loadTranslatedViewMatrix(_translation);
-
-    // draw a blue sphere at the capsule endpoint
-    glm::vec3 endPoint;
-    _boundingShape.getEndPoint(endPoint);
-    endPoint = endPoint - _translation;
-    glTranslatef(endPoint.x, endPoint.y, endPoint.z);
-    glColor4f(0.6f, 0.6f, 0.8f, alpha);
-    glutSolidSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-
-    // draw a yellow sphere at the capsule startpoint
-    glm::vec3 startPoint;
-    _boundingShape.getStartPoint(startPoint);
-    startPoint = startPoint - _translation;
-    glm::vec3 axis = endPoint - startPoint;
-    glTranslatef(-axis.x, -axis.y, -axis.z);
-    glColor4f(0.8f, 0.8f, 0.6f, alpha);
-    glutSolidSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-
-    // draw a green cylinder between the two points
-    glm::vec3 origin(0.0f);
-    glColor4f(0.6f, 0.8f, 0.6f, alpha);
-    Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius());
-
-    glPopMatrix();
-}
-
-bool Model::collisionHitsMoveableJoint(CollisionInfo& collision) const {
-    if (collision._type == COLLISION_TYPE_MODEL) {
-        // the joint is pokable by a collision if it exists and is free to move
-        const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._intData];
-        if (joint.parentIndex == -1 || _jointStates.isEmpty()) {
-            return false;
-        }
-        // an empty freeLineage means the joint can't move
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        int jointIndex = collision._intData;
-        const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-        return !freeLineage.isEmpty();
-    }
-    return false;
-}
-
-void Model::applyCollision(CollisionInfo& collision) {
-    if (collision._type != COLLISION_TYPE_MODEL) {
-        return;
-    }
-
-    glm::vec3 jointPosition(0.0f);
-    int jointIndex = collision._intData;
-    if (getJointPositionInWorldFrame(jointIndex, jointPosition)) {
-        const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
-        if (joint.parentIndex != -1) {
-            // compute the approximate distance (travel) that the joint needs to move
-            glm::vec3 start;
-            getJointPositionInWorldFrame(joint.parentIndex, start);
-            glm::vec3 contactPoint = collision._contactPoint - start;
-            glm::vec3 penetrationEnd = contactPoint + collision._penetration;
-            glm::vec3 axis = glm::cross(contactPoint, penetrationEnd);
-            float travel = glm::length(axis);
-            const float MIN_TRAVEL = 1.0e-8f;
-            if (travel > MIN_TRAVEL) {
-                // compute the new position of the joint
-                float angle = asinf(travel / (glm::length(contactPoint) * glm::length(penetrationEnd)));
-                axis = glm::normalize(axis);
-                glm::vec3 end;
-                getJointPositionInWorldFrame(jointIndex, end);
-                // transform into model-frame
-                glm::vec3 newEnd = glm::inverse(_rotation) * (start + glm::angleAxis(angle, axis) * (end - start) - _translation);
-                // try to move it
-                setJointPosition(jointIndex, newEnd, glm::quat(), false, -1, true);
-            }
-        }
-    }
 }
 
 void Model::setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {

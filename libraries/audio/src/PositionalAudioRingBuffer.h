@@ -50,7 +50,7 @@ public:
         Injector
     };
     
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false);
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false, bool dynamicJitterBuffers = false);
     
     int parseData(const QByteArray& packet);
     int parsePositionalData(const QByteArray& positionalByteArray);
@@ -76,7 +76,9 @@ public:
     void setListenerUnattenuatedZone(AABox* listenerUnattenuatedZone) { _listenerUnattenuatedZone = listenerUnattenuatedZone; }
     
     int getSamplesPerFrame() const { return _isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
-    
+
+    int getCalculatedDesiredJitterBufferFrames() const; /// returns what we would calculate our desired as if asked
+
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
     int getCurrentJitterBufferFrames() const { return _currentJitterBufferFrames; }
 
@@ -101,6 +103,7 @@ protected:
     InterframeTimeGapStats _interframeTimeGapStats;
     int _desiredJitterBufferFrames;
     int _currentJitterBufferFrames;
+    bool _dynamicJitterBuffers;
 };
 
 #endif // hifi_PositionalAudioRingBuffer_h
