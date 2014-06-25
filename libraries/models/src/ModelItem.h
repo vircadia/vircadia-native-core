@@ -33,7 +33,7 @@
 //#include <PerfStat.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
-#include "ModelEditPacketSender.h"
+//#include "ModelEditPacketSender.h"
 
 class ModelItem;
 class ModelEditPacketSender;
