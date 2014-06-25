@@ -247,16 +247,20 @@ int PositionalAudioRingBuffer::getCalculatedDesiredJitterBufferFrames() const {
 }
 
 void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
-    static const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
+    if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) {
+        if (!_dynamicJitterBuffers) {
+            _desiredJitterBufferFrames = 1; // HACK to see if this fixes the audio silence
+        } else {
+            const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
 
-    if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) { 
-        _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
-        if (_desiredJitterBufferFrames < 1) {
-            _desiredJitterBufferFrames = 1;
-        }
-        const int maxDesired = RING_BUFFER_LENGTH_FRAMES - 1;
-        if (_desiredJitterBufferFrames > maxDesired) {
-            _desiredJitterBufferFrames = maxDesired;
+            _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
+            if (_desiredJitterBufferFrames < 1) {
+                _desiredJitterBufferFrames = 1;
+            }
+            const int maxDesired = RING_BUFFER_LENGTH_FRAMES - 1;
+            if (_desiredJitterBufferFrames > maxDesired) {
+                _desiredJitterBufferFrames = maxDesired;
+            }
         }
     }
 }
