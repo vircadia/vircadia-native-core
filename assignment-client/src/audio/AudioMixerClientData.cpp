@@ -15,7 +15,6 @@
 #include <UUID.h>
 
 #include "InjectedAudioRingBuffer.h"
-#include "SharedUtil.h"
 
 #include "AudioMixer.h"
 #include "AudioMixerClientData.h"

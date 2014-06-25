@@ -604,15 +604,11 @@ void AudioMixer::run() {
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
                 
-                // pack header
                 int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
-                char* dataAt = clientMixBuffer + numBytesPacketHeader;
 
-                // pack mixed audio, send mixed audio packet
                 memcpy(clientMixBuffer + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
                 nodeList->writeDatagram(clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
                 
-
                 // send an audio stream stats packet if it's time
                 if (sendAudioStreamStats) {
                     int numBytesWritten = ((AudioMixerClientData*)node->getLinkedData())
