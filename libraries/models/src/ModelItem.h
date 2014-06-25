@@ -12,6 +12,7 @@
 #ifndef hifi_ModelItem_h
 #define hifi_ModelItem_h
 
+#include <cstring> // ???
 #include <stddef.h>
 #include <stdio.h> // for ssize_t
 #include <stdint.h>
