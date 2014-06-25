@@ -238,6 +238,9 @@ void ModelTests::modelTreeTests(bool verbose) {
     }
 
     {
+        // seed the random number generator so that our tests are reproducible
+        srand(0xFEEDBEEF);
+    
         testsTaken++;
         const int TEST_ITERATIONS = 10000;
         QString testName = "Performance - add model to tree " + QString::number(TEST_ITERATIONS) + " times";
