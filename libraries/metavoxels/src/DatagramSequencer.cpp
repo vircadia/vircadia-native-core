@@ -172,7 +172,10 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         if (index < 0 || index >= _sendRecords.size()) {
             continue;
         }
-        QList<SendRecord>::iterator it = _sendRecords.begin() + index;
+        QList<SendRecord>::iterator it = _sendRecords.begin();
+        for (int i = 0; i < index; i++) {
+            sendRecordLost(*it++);
+        }
         sendRecordAcknowledged(*it);
         emit sendAcknowledged(index);
         _sendRecords.erase(_sendRecords.begin(), it + 1);
@@ -252,6 +255,13 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     // acknowledge the received spans
     foreach (const ChannelSpan& span, record.spans) {
         getReliableOutputChannel(span.channel)->spanAcknowledged(span);
+    }
+}
+
+void DatagramSequencer::sendRecordLost(const SendRecord& record) {
+    // notify the channels of their lost spans
+    foreach (const ChannelSpan& span, record.spans) {
+        getReliableOutputChannel(span.channel)->spanLost(record.packetNumber, _outgoingPacketNumber + 1);
     }
 }
 
@@ -627,6 +637,7 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
     _priority(1.0f),
     _offset(0),
     _writePosition(0),
+    _writePositionResetPacketNumber(0),
     _messagesEnabled(true) {
     
     _buffer.open(output ? QIODevice::WriteOnly : QIODevice::ReadOnly);
@@ -718,6 +729,14 @@ void ReliableChannel::spanAcknowledged(const DatagramSequencer::ChannelSpan& spa
         
         _offset += advancement;
         _writePosition = qMax(_writePosition - advancement, 0);   
+    }
+}
+
+void ReliableChannel::spanLost(int packetNumber, int nextOutgoingPacketNumber) {
+    // reset the write position up to once each round trip time
+    if (packetNumber >= _writePositionResetPacketNumber) {
+        _writePosition = 0;
+        _writePositionResetPacketNumber = nextOutgoingPacketNumber;
     }
 }
 

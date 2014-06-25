@@ -165,6 +165,9 @@ private:
     /// Notes that the described send was acknowledged by the other party.
     void sendRecordAcknowledged(const SendRecord& record);
     
+    /// Notes that the described send was lost in transit.
+    void sendRecordLost(const SendRecord& record);
+    
     /// Appends some reliable data to the outgoing packet.
     void appendReliableData(int bytes, QVector<ChannelSpan>& spans);
     
@@ -348,6 +351,7 @@ private:
     int writeSpan(QDataStream& out, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
     
     void spanAcknowledged(const DatagramSequencer::ChannelSpan& span);
+    void spanLost(int packetNumber, int nextOutgoingPacketNumber);
     
     void readData(QDataStream& in);
     
@@ -360,6 +364,7 @@ private:
     
     int _offset;
     int _writePosition;
+    int _writePositionResetPacketNumber;
     SpanList _acknowledged;
     bool _messagesEnabled;
 };
