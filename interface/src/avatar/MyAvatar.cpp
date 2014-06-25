@@ -422,6 +422,25 @@ void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
     }
 }
 
+const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
+
+glm::vec3 MyAvatar::getLeftPalmPosition() {
+    glm::vec3 leftHandPosition;
+    getSkeletonModel().getLeftHandPosition(leftHandPosition);
+    glm::quat leftRotation;
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
+    leftHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftRotation);
+    return leftHandPosition;
+}
+glm::vec3 MyAvatar::getRightPalmPosition() {
+    glm::vec3 rightHandPosition;
+    getSkeletonModel().getRightHandPosition(rightHandPosition);
+    glm::quat rightRotation;
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
+    rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
+    return rightHandPosition;
+}
+
 void MyAvatar::setLocalGravity(glm::vec3 gravity) {
     _motionBehaviors |= AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
     // Environmental and Local gravities are incompatible.  Since Local is being set here

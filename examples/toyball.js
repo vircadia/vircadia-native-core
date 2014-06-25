@@ -51,24 +51,11 @@ function debugPrint(message) {
 }
 
 function getBallHoldPosition(whichSide) { 
-    var normal;
-    var tipPosition;
     if (whichSide == LEFT_PALM) {
-        normal = Controller.getSpatialControlNormal(LEFT_PALM);
-        tipPosition = Controller.getSpatialControlPosition(LEFT_TIP);
+        position = MyAvatar.getLeftPalmPosition();
     } else {
-        normal = Controller.getSpatialControlNormal(RIGHT_PALM);
-        tipPosition = Controller.getSpatialControlPosition(RIGHT_TIP);
+        position = MyAvatar.getRightPalmPosition();
     }
-    
-    var BALL_FORWARD_OFFSET = 0.15; // put the ball a bit forward of fingers
-    position = { x: BALL_FORWARD_OFFSET * normal.x,
-                 y: BALL_FORWARD_OFFSET * normal.y, 
-                 z: BALL_FORWARD_OFFSET * normal.z }; 
-
-    position.x += tipPosition.x;
-    position.y += tipPosition.y;
-    position.z += tipPosition.z;
     
     return position;
 }
