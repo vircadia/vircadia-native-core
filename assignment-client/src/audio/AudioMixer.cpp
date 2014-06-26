@@ -489,7 +489,7 @@ void AudioMixer::run() {
     settingsJSONURL.setHost(nodeList->getDomainHandler().getHostname());
     settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
     settingsJSONURL.setPath("/settings.json/");
-    settingsJSONURL.setQuery("type=" + QString(_type));
+    settingsJSONURL.setQuery(QString("type=%1").arg(_type));
     
     QNetworkReply *reply = NULL;
     
@@ -515,7 +515,6 @@ void AudioMixer::run() {
     }
     
     QJsonDocument settingsJSON = QJsonDocument::fromJson(reply->readAll());
-    qDebug() << settingsJSON;
     
     // check the payload to see if we have any unattenuated zones
     const QString UNATTENUATED_ZONE_REGEX_STRING = "--unattenuated-zone ([\\d.,-]+)";
