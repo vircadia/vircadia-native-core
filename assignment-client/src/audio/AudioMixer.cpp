@@ -38,6 +38,9 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
 #include <QtCore/QTimer>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
 
 #include <Logging.h>
 #include <NodeList.h>
@@ -477,6 +480,42 @@ void AudioMixer::run() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
+    
+    // setup a QNetworkAccessManager to ask the domain-server for our settings
+    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
+    
+    QUrl settingsJSONURL;
+    settingsJSONURL.setScheme("http");
+    settingsJSONURL.setHost(nodeList->getDomainHandler().getHostname());
+    settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
+    settingsJSONURL.setPath("/settings.json/");
+    settingsJSONURL.setQuery("type=" + QString(_type));
+    
+    QNetworkReply *reply = NULL;
+    
+    int failedAttempts = 0;
+    const int MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS = 5;
+    
+    qDebug() << "Requesting settings for assignment from domain-server at" << settingsJSONURL.toString();
+    
+    while (!reply || reply->error() != QNetworkReply::NoError) {
+        reply = networkManager->get(QNetworkRequest(settingsJSONURL));
+        
+        QEventLoop loop;
+        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+        
+        loop.exec();
+        ++failedAttempts;
+        
+        if (failedAttempts == MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS) {
+            qDebug() << "Failed to get settings from domain-server. Bailing on assignment.";
+            setFinished(true);
+            return;
+        }
+    }
+    
+    QJsonDocument settingsJSON = QJsonDocument::fromJson(reply->readAll());
+    qDebug() << settingsJSON;
     
     // check the payload to see if we have any unattenuated zones
     const QString UNATTENUATED_ZONE_REGEX_STRING = "--unattenuated-zone ([\\d.,-]+)";
