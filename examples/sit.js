@@ -19,7 +19,7 @@ var buttonHeight = 46;
 var buttonPadding = 10;
 
 var buttonPositionX = windowDimensions.x - buttonPadding - buttonWidth;
-var buttonPositionY = (windowDimensions.y - buttonHeight) / 2 ;
+var buttonPositionY = (windowDimensions.y - buttonHeight) / 2 - (buttonHeight + buttonPadding);
 
 var sitDownButton = Overlays.addOverlay("image", {
                                          x: buttonPositionX, y: buttonPositionY, width: buttonWidth, height: buttonHeight,

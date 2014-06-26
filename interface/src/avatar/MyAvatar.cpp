@@ -911,11 +911,19 @@ void MyAvatar::updateOrientation(float deltaTime) {
         float yaw, pitch, roll; 
         OculusManager::getEulerAngles(yaw, pitch, roll);
         // ... so they need to be converted to degrees before we do math...
-
+        yaw *= DEGREES_PER_RADIAN;
+        pitch *= DEGREES_PER_RADIAN;
+        roll *= DEGREES_PER_RADIAN;
+        
+        // Record the angular velocity
         Head* head = getHead();
-        head->setBaseYaw(yaw * DEGREES_PER_RADIAN);
-        head->setBasePitch(pitch * DEGREES_PER_RADIAN);
-        head->setBaseRoll(roll * DEGREES_PER_RADIAN);
+        glm::vec3 angularVelocity(yaw - head->getBaseYaw(), pitch - head->getBasePitch(), roll - head->getBaseRoll());
+        head->setAngularVelocity(angularVelocity);
+        
+        head->setBaseYaw(yaw);
+        head->setBasePitch(pitch);
+        head->setBaseRoll(roll);
+        
     }
 
     // update the euler angles
