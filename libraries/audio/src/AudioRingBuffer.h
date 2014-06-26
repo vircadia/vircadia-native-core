@@ -71,6 +71,7 @@ public:
     bool isStarved() const { return _isStarved; }
     void setIsStarved(bool isStarved) { _isStarved = isStarved; }
     
+    int getResetCount() const { return _resetCount; } /// how many times has the ring buffer written past the end and reset
     bool hasStarted() const { return _hasStarted; }
     
     void addSilentFrame(int numSilentSamples);
@@ -80,6 +81,8 @@ protected:
     AudioRingBuffer& operator= (const AudioRingBuffer&);
     
     int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
+
+    int _resetCount; /// how many times has the ring buffer written past the end and done a reset
     
     int _sampleCapacity;
     int _numFrameSamples;

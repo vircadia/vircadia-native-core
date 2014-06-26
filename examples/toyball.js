@@ -26,14 +26,21 @@ var RIGHT_TIP = 3;
 var RIGHT_BUTTON_FWD = 11;
 var RIGHT_BUTTON_3 = 9;
 
+var BALL_RADIUS = 0.08;
+var GRAVITY_STRENGTH = 0.5;
+
+var HELD_COLOR = { red: 240, green: 0, blue: 0 };
+var THROWN_COLOR = { red: 128, green: 0, blue: 0 };
+
 var leftBallAlreadyInHand = false;
 var rightBallAlreadyInHand = false;
 var leftHandParticle;
 var rightHandParticle;
 
-var throwSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
+var newSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
 var catchSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
-var targetRadius = 0.25;
+var throwSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
+var targetRadius = 1.0;
 
 
 var wantDebugging = false;
@@ -44,24 +51,11 @@ function debugPrint(message) {
 }
 
 function getBallHoldPosition(whichSide) { 
-    var normal;
-    var tipPosition;
     if (whichSide == LEFT_PALM) {
-        normal = Controller.getSpatialControlNormal(LEFT_PALM);
-        tipPosition = Controller.getSpatialControlPosition(LEFT_TIP);
+        position = MyAvatar.getLeftPalmPosition();
     } else {
-        normal = Controller.getSpatialControlNormal(RIGHT_PALM);
-        tipPosition = Controller.getSpatialControlPosition(RIGHT_TIP);
+        position = MyAvatar.getRightPalmPosition();
     }
-    
-    var BALL_FORWARD_OFFSET = 0.08; // put the ball a bit forward of fingers
-    position = { x: BALL_FORWARD_OFFSET * normal.x,
-                 y: BALL_FORWARD_OFFSET * normal.y, 
-                 z: BALL_FORWARD_OFFSET * normal.z }; 
-
-    position.x += tipPosition.x;
-    position.y += tipPosition.y;
-    position.z += tipPosition.z;
     
     return position;
 }
@@ -69,6 +63,7 @@ function getBallHoldPosition(whichSide) {
 function checkControllerSide(whichSide) {
     var BUTTON_FWD;
     var BUTTON_3;
+    var TRIGGER;
     var palmPosition;
     var ballAlreadyInHand;
     var handMessage;
@@ -76,18 +71,20 @@ function checkControllerSide(whichSide) {
     if (whichSide == LEFT_PALM) {
         BUTTON_FWD = LEFT_BUTTON_FWD;
         BUTTON_3 = LEFT_BUTTON_3;
+        TRIGGER = 0;
         palmPosition = Controller.getSpatialControlPosition(LEFT_PALM);
         ballAlreadyInHand = leftBallAlreadyInHand;
         handMessage = "LEFT";
     } else {
         BUTTON_FWD = RIGHT_BUTTON_FWD;
         BUTTON_3 = RIGHT_BUTTON_3;
+        TRIGGER = 1;
         palmPosition = Controller.getSpatialControlPosition(RIGHT_PALM);
         ballAlreadyInHand = rightBallAlreadyInHand;
         handMessage = "RIGHT";
     }
-    
-    var grabButtonPressed = (Controller.isButtonPressed(BUTTON_FWD) || Controller.isButtonPressed(BUTTON_3));
+
+    var grabButtonPressed = (Controller.isButtonPressed(BUTTON_FWD) || Controller.isButtonPressed(BUTTON_3) || (Controller.getTriggerValue(TRIGGER) > 0.5));
 
     // If I don't currently have a ball in my hand, then try to catch closest one
     if (!ballAlreadyInHand && grabButtonPressed) {
@@ -107,8 +104,11 @@ function checkControllerSide(whichSide) {
             var ballPosition = getBallHoldPosition(whichSide);
             var properties = { position: { x: ballPosition.x, 
                                            y: ballPosition.y, 
-                                           z: ballPosition.z }, 
-                                velocity : { x: 0, y: 0, z: 0}, inHand: true };
+                                           z: ballPosition.z },
+                                           color: HELD_COLOR, 
+                                velocity : { x: 0, y: 0, z: 0}, 
+                                lifetime : 600,
+                                inHand: true };
             Particles.editParticle(closestParticle, properties);
             
     		var options = new AudioInjectionOptions();
@@ -127,7 +127,7 @@ function checkControllerSide(whichSide) {
     //}
 
     //  If '3' is pressed, and not holding a ball, make a new one
-    if (Controller.isButtonPressed(BUTTON_3) && !ballAlreadyInHand) {
+    if (grabButtonPressed && !ballAlreadyInHand) {
         var ballPosition = getBallHoldPosition(whichSide);
         var properties = { position: { x: ballPosition.x, 
                                        y: ballPosition.y, 
@@ -135,11 +135,11 @@ function checkControllerSide(whichSide) {
                 velocity: { x: 0, y: 0, z: 0}, 
                 gravity: { x: 0, y: 0, z: 0}, 
                 inHand: true,
-                radius: 0.05,
+                radius: BALL_RADIUS,
                 damping: 0.999,
-                color: { red: 255, green: 0, blue: 0 },
+                color: HELD_COLOR,
 
-                lifetime: 10 // 10 seconds - same as default, not needed but here as an example
+                lifetime: 600 // 10 seconds - same as default, not needed but here as an example
             };
 
         newParticle = Particles.addParticle(properties);
@@ -155,7 +155,7 @@ function checkControllerSide(whichSide) {
         var options = new AudioInjectionOptions();
         options.position = ballPosition;
         options.volume = 1.0;
-        Audio.playSound(catchSound, options);
+        Audio.playSound(newSound, options);
         
         return; // exit early
     }
@@ -188,7 +188,9 @@ function checkControllerSide(whichSide) {
                                 y: tipVelocity.y * THROWN_VELOCITY_SCALING, 
                                 z: tipVelocity.z * THROWN_VELOCITY_SCALING } ,
                     inHand: false,
-                    gravity: { x: 0, y: -2, z: 0}, 
+                    color: THROWN_COLOR,
+                    lifetime: 10,
+                    gravity: { x: 0, y: -GRAVITY_STRENGTH, z: 0}, 
                 };
 
             Particles.editParticle(handParticle, properties);

@@ -21,6 +21,7 @@
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
     NodeData(),
+    _resetCount(0),
     _sampleCapacity(numFrameSamples * RING_BUFFER_LENGTH_FRAMES),
     _numFrameSamples(numFrameSamples),
     _isStarved(true),
@@ -122,15 +123,13 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
 
     int samplesToCopy = std::min((quint64)(maxSize / sizeof(int16_t)), (quint64)_sampleCapacity);
 
-    std::less<int16_t*> less;
-    std::less_equal<int16_t*> lessEqual;
-    
     if (_hasStarted && samplesToCopy > _sampleCapacity - samplesAvailable()) {
         // this read will cross the next output, so call us starved and reset the buffer
         qDebug() << "Filled the ring buffer. Resetting.";
         _endOfLastWrite = _buffer;
         _nextOutput = _buffer;
         _isStarved = true;
+        _resetCount++;
     }
     
     if (_endOfLastWrite + samplesToCopy <= _buffer + _sampleCapacity) {

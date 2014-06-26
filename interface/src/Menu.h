@@ -102,6 +102,9 @@ public:
     QString getSnapshotsLocation() const;
     void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; }
 
+    const QString& getScriptsLocation() const { return _scriptsLocation; }
+    void setScriptsLocation(const QString& scriptsLocation);
+
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -155,6 +158,9 @@ public:
     void static goToOrientation(QString orientation);
     void static goToDomain(const QString newDomain);
     void static goTo(QString destination);
+
+signals:
+    void scriptLocationChanged(const QString& newPath);
 
 public slots:
 
@@ -283,6 +289,7 @@ private:
     QPointer<LoginDialog> _loginDialog;
     QAction* _chatAction;
     QString _snapshotsLocation;
+    QString _scriptsLocation;
 };
 
 namespace MenuOption {
@@ -319,10 +326,11 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BuckyBalls = "Bucky Balls";
+    const QString StringHair = "String Hair";
     const QString CascadedShadows = "Cascaded";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
-    const QString CollideAsRagDoll = "Collide As RagDoll";
+    const QString CollideAsRagdoll = "Collide As Ragdoll";
     const QString CollideWithAvatars = "Collide With Avatars";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString CollideWithParticles = "Collide With Particles";
