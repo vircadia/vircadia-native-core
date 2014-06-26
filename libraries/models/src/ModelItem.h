@@ -314,7 +314,7 @@ public:
                                     ReadBitstreamToTreeParams& args);
     int readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
-    OctreeElement::AppendState oldVersionAppendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
+    /// For reading models from pre V3 bitstreams
     int oldVersionReadModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
 
