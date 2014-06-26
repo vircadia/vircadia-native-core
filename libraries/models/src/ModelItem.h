@@ -312,6 +312,9 @@ public:
 
     OctreeElement::AppendState appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                                 ModelTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;
+
+    static ModelItemID readModelItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+                                    ReadBitstreamToTreeParams& args);
     int readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
     OctreeElement::AppendState oldVersionAppendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;

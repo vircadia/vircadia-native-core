@@ -574,25 +574,16 @@ int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int b
         
         if (bytesLeftToRead >= (int)(numberOfModels * expectedBytesPerModel)) {
             for (uint16_t i = 0; i < numberOfModels; i++) {
-                ModelItem tempModel;
-                int bytesForThisModel = tempModel.readModelDataFromBuffer(dataAt, bytesLeftToRead, args);
-                ModelItemID modelItemID = tempModel.getModelItemID();
-
-                if (wantDebugging) {
-                    qDebug() << "ModelTreeElement::readElementDataFromBuffer()... tempModel.modelItemID.id="
-                            << modelItemID.id << "creatorTokenID=" << modelItemID.creatorTokenID;
-                }                
-                
-                // TODO: We should optimize this... some things we need to do.
-                //   1) it's also inefficient to call readModelDataFromBuffer() twice. It would be better to just
-                //      pull out the model item ID, then look it up, then read the rest of the data in the buffer
+                ModelItem tempModel; // we will read into this
+                ModelItemID modelItemID = ModelItem::readModelItemIDFromBuffer(dataAt, bytesLeftToRead, args);
                 const ModelItem* existingModelItem = _myTree->findModelByModelItemID(modelItemID);
                 if (existingModelItem) {
                     // copy original properties...
                     tempModel.copyChangedProperties(*existingModelItem); 
-                    // reread only the changed properties
-                    bytesForThisModel = tempModel.readModelDataFromBuffer(dataAt, bytesLeftToRead, args); 
                 }
+                // read only the changed properties
+                int bytesForThisModel = tempModel.readModelDataFromBuffer(dataAt, bytesLeftToRead, args);
+                
                 _myTree->storeModel(tempModel);
                 dataAt += bytesForThisModel;
                 bytesLeftToRead -= bytesForThisModel;
