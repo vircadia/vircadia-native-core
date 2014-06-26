@@ -44,6 +44,15 @@
       </tr>
     </thead>
     <tbody>
+      <script id="queued-template" type="text/template">
+        <% _.each(queued, function(assignment, uuid){ %>
+        <tr>
+          <td><%- assignment.type %></td>
+          <td><%- uuid %></td>
+          <td><%- assignment.pool %></td>
+        </tr>
+        <% }); %>
+      </script>
     </tbody>
   </table>
 <!--#include file="footer.html"-->

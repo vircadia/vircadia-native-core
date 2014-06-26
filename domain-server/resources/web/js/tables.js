@@ -1,6 +1,7 @@
 $(document).ready(function(){
   // setup the underscore templates
   var nodeTemplate = _.template($('#nodes-template').html());
+  var queuedTemplate = _.template($('#queued-template').html());
   
   // setup a function to grab the assignments
   function getNodesAndAssignments() {
@@ -36,17 +37,7 @@ $(document).ready(function(){
     });
     
     $.getJSON("assignments.json", function(json){      
-      queuedTableBody = "";
-        
-      $.each(json.queued, function (uuid, data) {
-        queuedTableBody += "<tr>";
-        queuedTableBody += "<td>" + data.type + "</td>";
-        queuedTableBody += "<td>" + uuid + "</td>";
-        queuedTableBody += "<td>" + (data.pool ? data.pool : "") + "</td>";
-        queuedTableBody += "</tr>";
-      });
-      
-      $('#assignments-table tbody').html(queuedTableBody);
+      $('#assignments-table tbody').html(queuedTemplate(json));
     });
   }
   
