@@ -35,16 +35,16 @@ public:
 };
 
 /// Represents a simulated endpoint.
-class Endpoint : public QObject {
+class TestEndpoint : public QObject {
     Q_OBJECT
 
 public:
     
     enum Mode { BASIC_PEER_MODE, CONGESTION_MODE, METAVOXEL_SERVER_MODE, METAVOXEL_CLIENT_MODE };
     
-    Endpoint(const QByteArray& datagramHeader, Mode mode = BASIC_PEER_MODE);
+    TestEndpoint(const QByteArray& datagramHeader, Mode mode = BASIC_PEER_MODE);
 
-    void setOther(Endpoint* other) { _other = other; }
+    void setOther(TestEndpoint* other) { _other = other; }
 
     /// Perform a simulation step.
     /// \return true if failure was detected
@@ -97,7 +97,7 @@ private:
     
     SharedObjectPointer _sphere;
     
-    Endpoint* _other;
+    TestEndpoint* _other;
     
     typedef QPair<QByteArray, int> ByteArrayIntPair;
     QList<ByteArrayIntPair> _delayedDatagrams;

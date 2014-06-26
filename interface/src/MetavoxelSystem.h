@@ -89,13 +89,13 @@ private:
 };
 
 /// A client session associated with a single server.
-class MetavoxelClient : public NodeData {
+class MetavoxelSystemClient : public NodeData {
     Q_OBJECT    
     
 public:
     
-    MetavoxelClient(const SharedNodePointer& node);
-    virtual ~MetavoxelClient();
+    MetavoxelSystemClient(const SharedNodePointer& node);
+    virtual ~MetavoxelSystemClient();
 
     MetavoxelData& getData() { return _data; }
 

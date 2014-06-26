@@ -54,7 +54,7 @@ SharedObjectPointer MetavoxelSystem::findFirstRaySpannerIntersection(
    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
-            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
             if (client) {
                 float clientDistance;
                 SharedObjectPointer clientSpanner = client->getData().findFirstRaySpannerIntersection(
@@ -76,7 +76,7 @@ void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit, bool reliable)
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
-            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
             if (client) {
                 client->applyEdit(edit, reliable);
             }
@@ -92,7 +92,7 @@ void MetavoxelSystem::simulate(float deltaTime) {
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
-            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
             if (client) {
                 client->simulate(deltaTime);
                 client->guide(_simulateVisitor);
@@ -153,7 +153,7 @@ void MetavoxelSystem::render() {
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
-            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
             if (client) {
                 client->guide(_renderVisitor);
             }
@@ -164,7 +164,7 @@ void MetavoxelSystem::render() {
 void MetavoxelSystem::maybeAttachClient(const SharedNodePointer& node) {
     if (node->getType() == NodeType::MetavoxelServer) {
         QMutexLocker locker(&node->getMutex());
-        node->setLinkedData(new MetavoxelClient(NodeList::getInstance()->nodeWithUUID(node->getUUID())));
+        node->setLinkedData(new MetavoxelSystemClient(NodeList::getInstance()->nodeWithUUID(node->getUUID())));
     }
 }
 
@@ -235,7 +235,7 @@ bool MetavoxelSystem::RenderVisitor::visit(Spanner* spanner, const glm::vec3& cl
     return true;
 }
 
-MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
+MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node) :
     _node(node),
     _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData)) {
     
@@ -253,7 +253,7 @@ MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
     _receiveRecords.append(receiveRecord);
 }
 
-MetavoxelClient::~MetavoxelClient() {
+MetavoxelSystemClient::~MetavoxelSystemClient() {
     // close the session
     Bitstream& out = _sequencer.startPacket();
     out << QVariant::fromValue(CloseSessionMessage());
@@ -265,12 +265,12 @@ static MetavoxelLOD getLOD() {
     return MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), FIXED_LOD_THRESHOLD);
 }
 
-void MetavoxelClient::guide(MetavoxelVisitor& visitor) {
+void MetavoxelSystemClient::guide(MetavoxelVisitor& visitor) {
     visitor.setLOD(getLOD());
     _data.guide(visitor);
 }
 
-void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
+void MetavoxelSystemClient::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
     if (reliable) {
         _sequencer.getReliableOutputChannel()->sendMessage(QVariant::fromValue(edit));
     
@@ -283,7 +283,7 @@ void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit, bool reliable)
     }
 }
 
-void MetavoxelClient::simulate(float deltaTime) {
+void MetavoxelSystemClient::simulate(float deltaTime) {
     Bitstream& out = _sequencer.startPacket();
     
     ClientStateMessage state = { getLOD() };
@@ -295,19 +295,19 @@ void MetavoxelClient::simulate(float deltaTime) {
     _sendRecords.append(record);
 }
 
-int MetavoxelClient::parseData(const QByteArray& packet) {
+int MetavoxelSystemClient::parseData(const QByteArray& packet) {
     // process through sequencer
     QMetaObject::invokeMethod(&_sequencer, "receivedDatagram", Q_ARG(const QByteArray&, packet));
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::METAVOXELS).updateValue(packet.size());
     return packet.size();
 }
 
-void MetavoxelClient::sendData(const QByteArray& data) {
+void MetavoxelSystemClient::sendData(const QByteArray& data) {
     NodeList::getInstance()->writeDatagram(data, _node);
     Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
 }
 
-void MetavoxelClient::readPacket(Bitstream& in) {
+void MetavoxelSystemClient::readPacket(Bitstream& in) {
     QVariant message;
     in >> message;
     handleMessage(message, in);
@@ -324,15 +324,15 @@ void MetavoxelClient::readPacket(Bitstream& in) {
     }
 }
 
-void MetavoxelClient::clearSendRecordsBefore(int index) {
+void MetavoxelSystemClient::clearSendRecordsBefore(int index) {
     _sendRecords.erase(_sendRecords.begin(), _sendRecords.begin() + index + 1);
 }
 
-void MetavoxelClient::clearReceiveRecordsBefore(int index) {
+void MetavoxelSystemClient::clearReceiveRecordsBefore(int index) {
     _receiveRecords.erase(_receiveRecords.begin(), _receiveRecords.begin() + index + 1);
 }
 
-void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
+void MetavoxelSystemClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType();
     if (userType == MetavoxelDeltaMessage::Type) {
         _data.readDelta(_receiveRecords.first().data, _receiveRecords.first().lod, in, _sendRecords.first().lod);

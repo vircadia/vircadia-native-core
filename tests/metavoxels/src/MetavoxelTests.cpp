@@ -463,7 +463,7 @@ bool MetavoxelTests::run() {
         qDebug();
     
         // create two endpoints with the same header
-        Endpoint alice(datagramHeader), bob(datagramHeader);
+        TestEndpoint alice(datagramHeader), bob(datagramHeader);
         
         alice.setOther(&bob);
         bob.setOther(&alice);
@@ -497,7 +497,7 @@ bool MetavoxelTests::run() {
         datagramsReceived = bytesReceived = maxDatagramsPerPacket = maxBytesPerPacket = 0;
         
         // create two endpoints with the same header
-        Endpoint alice(datagramHeader, Endpoint::CONGESTION_MODE), bob(datagramHeader, Endpoint::CONGESTION_MODE);
+        TestEndpoint alice(datagramHeader, TestEndpoint::CONGESTION_MODE), bob(datagramHeader, TestEndpoint::CONGESTION_MODE);
         
         alice.setOther(&bob);
         bob.setOther(&alice);
@@ -537,8 +537,8 @@ bool MetavoxelTests::run() {
         datagramsSent = bytesSent = datagramsReceived = bytesReceived = maxDatagramsPerPacket = maxBytesPerPacket = 0;
     
         // create client and server endpoints
-        Endpoint client(datagramHeader, Endpoint::METAVOXEL_CLIENT_MODE);
-        Endpoint server(datagramHeader, Endpoint::METAVOXEL_SERVER_MODE);
+        TestEndpoint client(datagramHeader, TestEndpoint::METAVOXEL_CLIENT_MODE);
+        TestEndpoint server(datagramHeader, TestEndpoint::METAVOXEL_SERVER_MODE);
         
         client.setOther(&server);
         server.setOther(&client);
@@ -599,7 +599,7 @@ int RandomVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
-Endpoint::Endpoint(const QByteArray& datagramHeader, Mode mode) :
+TestEndpoint::TestEndpoint(const QByteArray& datagramHeader, Mode mode) :
     _mode(mode),
     _sequencer(new DatagramSequencer(datagramHeader, this)),
     _highPriorityMessagesToSend(0.0f),
@@ -800,7 +800,7 @@ int MutateVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
-bool Endpoint::simulate(int iterationNumber) {
+bool TestEndpoint::simulate(int iterationNumber) {
     // update/send our delayed datagrams
     for (QList<ByteArrayIntPair>::iterator it = _delayedDatagrams.begin(); it != _delayedDatagrams.end(); ) {
         if (it->second-- == 1) {
@@ -940,7 +940,7 @@ bool Endpoint::simulate(int iterationNumber) {
     return false;
 }
 
-void Endpoint::sendDatagram(const QByteArray& datagram) {
+void TestEndpoint::sendDatagram(const QByteArray& datagram) {
     datagramsSent++;
     bytesSent += datagram.size();
     
@@ -970,7 +970,7 @@ void Endpoint::sendDatagram(const QByteArray& datagram) {
     _other->receiveDatagram(datagram);
 }
 
-void Endpoint::handleHighPriorityMessage(const QVariant& message) {
+void TestEndpoint::handleHighPriorityMessage(const QVariant& message) {
     if (message.userType() == ClearSharedObjectMessage::Type) {
         return;
     }
@@ -984,7 +984,7 @@ void Endpoint::handleHighPriorityMessage(const QVariant& message) {
     highPriorityMessagesReceived++;
 }
 
-void Endpoint::readMessage(Bitstream& in) {
+void TestEndpoint::readMessage(Bitstream& in) {
     if (_mode == CONGESTION_MODE) {
         QVariant message;
         in >> message;
@@ -1056,7 +1056,7 @@ void Endpoint::readMessage(Bitstream& in) {
     exit(true);
 }
 
-void Endpoint::handleReliableMessage(const QVariant& message) {
+void TestEndpoint::handleReliableMessage(const QVariant& message) {
     if (message.userType() == ClearSharedObjectMessage::Type ||
             message.userType() == ClearMainChannelSharedObjectMessage::Type) {
         return;
@@ -1071,7 +1071,7 @@ void Endpoint::handleReliableMessage(const QVariant& message) {
     reliableMessagesReceived++;
 }
 
-void Endpoint::readReliableChannel() {
+void TestEndpoint::readReliableChannel() {
     CircularBuffer& buffer = _sequencer->getReliableInputChannel(1)->getBuffer();
     QByteArray bytes = buffer.read(buffer.bytesAvailable());
     if (_other->_dataStreamed.size() < bytes.size()) {
@@ -1085,15 +1085,15 @@ void Endpoint::readReliableChannel() {
     streamedBytesReceived += bytes.size();
 }
 
-void Endpoint::clearSendRecordsBefore(int index) {
+void TestEndpoint::clearSendRecordsBefore(int index) {
     _sendRecords.erase(_sendRecords.begin(), _sendRecords.begin() + index + 1);
 }
 
-void Endpoint::clearReceiveRecordsBefore(int index) {
+void TestEndpoint::clearReceiveRecordsBefore(int index) {
     _receiveRecords.erase(_receiveRecords.begin(), _receiveRecords.begin() + index + 1);
 }
 
-void Endpoint::receiveDatagram(const QByteArray& datagram) {
+void TestEndpoint::receiveDatagram(const QByteArray& datagram) {
     if (_mode == CONGESTION_MODE) {
         if (datagram.size() <= _remainingPipelineCapacity) {
             // have to copy the datagram; the one we're passed is a reference to a shared buffer
@@ -1107,7 +1107,7 @@ void Endpoint::receiveDatagram(const QByteArray& datagram) {
     }
 }
 
-void Endpoint::handleMessage(const QVariant& message, Bitstream& in) {
+void TestEndpoint::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType();
     if (userType == ClientStateMessage::Type) {
         ClientStateMessage state = message.value<ClientStateMessage>();
