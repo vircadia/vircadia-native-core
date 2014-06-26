@@ -85,7 +85,7 @@ protected:
     int _resetCount; /// how many times has the ring buffer written past the end and done a reset
     
     int _sampleCapacity;
-    int _arrayLength;
+    bool _isFull;
     int _numFrameSamples;
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;
