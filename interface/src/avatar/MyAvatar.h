@@ -14,6 +14,8 @@
 
 #include <QSettings>
 
+#include <PhysicsSimulation.h>
+
 #include "Avatar.h"
 
 enum AvatarHandState
@@ -137,7 +139,10 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehaviorsFromMenu();
-
+    
+    glm::vec3 getLeftPalmPosition();
+    glm::vec3 getRightPalmPosition();
+    
 signals:
     void transformChanged();
 
@@ -173,6 +178,7 @@ private:
     float _oculusYawOffset;
 
     QList<AnimationHandlePointer> _animationHandles;
+    PhysicsSimulation _physicsSimulation;
 
 	// private methods
     float computeDistanceToFloor(const glm::vec3& startPoint);

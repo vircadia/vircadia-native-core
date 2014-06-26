@@ -134,7 +134,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _frameCount(0),
-        _fps(120.0f),
+        _fps(60.0f),
         _justStarted(true),
         _voxelImporter(NULL),
         _importSucceded(false),
@@ -167,7 +167,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _applicationOverlay(),
-        _runningScriptsWidget(new RunningScriptsWidget(_window)),
+        _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow())
@@ -200,6 +200,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
+
+    _runningScriptsWidget = new RunningScriptsWidget(_window);
 
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -551,7 +553,7 @@ void Application::initializeGL() {
     }
 
     // update before the first render
-    update(0.0f);
+    update(1.f / _fps);
 
     InfoView::showFirstTime();
 }
@@ -3189,7 +3191,7 @@ void Application::updateWindowTitle(){
         float creditBalance = accountManager.getAccountInfo().getBalance() / SATOSHIS_PER_CREDIT;
 
         QString creditBalanceString;
-        creditBalanceString.sprintf("%.8f", floor(creditBalance + 0.5));
+        creditBalanceString.sprintf("%.8f", creditBalance);
 
         title += " - ₵" + creditBalanceString;
     }
@@ -3532,10 +3534,12 @@ void Application::saveScripts() {
     _settings->endArray();
 }
 
-ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
+ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor, bool activateMainWindow) {
     QUrl scriptUrl(scriptName);
     const QString& scriptURLString = scriptUrl.toString();
-    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptURLString) && !_scriptEnginesHash[scriptURLString]->isFinished()){
+    if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
+        && !_scriptEnginesHash[scriptURLString]->isFinished()) {
+
         return _scriptEnginesHash[scriptURLString];
     }
 
@@ -3548,10 +3552,11 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
         if (!scriptEngine->hasScript()) {
             qDebug() << "Application::loadScript(), script failed to load...";
+            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
             return NULL;
         }
 
-        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
+        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
     }
 
@@ -3614,7 +3619,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     workerThread->start();
 
     // restore the main window's active state
-    if (!loadScriptFromEditor) {
+    if (activateMainWindow && !loadScriptFromEditor) {
         _window->activateWindow();
     }
     bumpSettings();
@@ -3623,7 +3628,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 }
 
 void Application::scriptFinished(const QString& scriptName) {
-    if (_scriptEnginesHash.remove(scriptName)) {
+    QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptName);
+    if (it != _scriptEnginesHash.end()) {
+        _scriptEnginesHash.erase(it);
         _runningScriptsWidget->scriptStopped(scriptName);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
         bumpSettings();

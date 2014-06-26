@@ -29,6 +29,7 @@ PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : F
     connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
     connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
     connect(ui.buttonBrowseLocation, &QPushButton::clicked, this, &PreferencesDialog::openSnapshotLocationBrowser);
+    connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked,
             Application::getInstance(), &Application::loadDefaultScripts);
 }
@@ -72,13 +73,32 @@ void PreferencesDialog::openBodyModelBrowser() {
 
 void PreferencesDialog::openSnapshotLocationBrowser() {
     setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
+    show();
+
     QString dir = QFileDialog::getExistingDirectory(this, tr("Snapshots Location"),
                                                     QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
                                                     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (!dir.isNull() && !dir.isEmpty()) {
         ui.snapshotLocationEdit->setText(dir);
     }
+
     setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    show();
+}
+
+void PreferencesDialog::openScriptsLocationBrowser() {
+    setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
+    show();
+
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Scripts Location"),
+                                                    ui.scriptsLocationEdit->text(),
+                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (!dir.isNull() && !dir.isEmpty()) {
+        ui.scriptsLocationEdit->setText(dir);
+    }
+
+    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    show();
 }
 
 void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
@@ -117,6 +137,8 @@ void PreferencesDialog::loadPreferences() {
     ui.skeletonURLEdit->setText(_skeletonURLString);
 
     ui.snapshotLocationEdit->setText(menuInstance->getSnapshotsLocation());
+
+    ui.scriptsLocationEdit->setText(menuInstance->getScriptsLocation());
 
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
@@ -178,6 +200,10 @@ void PreferencesDialog::savePreferences() {
 
     if (!ui.snapshotLocationEdit->text().isEmpty() && QDir(ui.snapshotLocationEdit->text()).exists()) {
         Menu::getInstance()->setSnapshotsLocation(ui.snapshotLocationEdit->text());
+    }
+
+    if (!ui.scriptsLocationEdit->text().isEmpty() && QDir(ui.scriptsLocationEdit->text()).exists()) {
+        Menu::getInstance()->setScriptsLocation(ui.scriptsLocationEdit->text());
     }
 
     myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());

@@ -16,7 +16,7 @@
 #include <QObject>
 #include <QUrl>
 
-#include <CapsuleShape.h>
+#include <PhysicsEntity.h>
 
 #include <AnimationCache.h>
 
@@ -33,19 +33,13 @@ typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject {
+class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
     
 public:
 
     Model(QObject* parent = NULL);
     virtual ~Model();
-    
-    void setTranslation(const glm::vec3& translation) { _translation = translation; }
-    const glm::vec3& getTranslation() const { return _translation; }
-    
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
-    const glm::quat& getRotation() const { return _rotation; }
     
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
@@ -67,7 +61,7 @@ public:
     
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
-    
+
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
@@ -134,69 +128,34 @@ public:
     QStringList getJointNames() const;
     
     AnimationHandlePointer createAnimationHandle();
-    
+
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
-    
-    void clearShapes();
-    void rebuildShapes();
-    void resetShapePositions();
+   
+    // virtual overrides from PhysicsEntity
+    virtual void buildShapes();
     virtual void updateShapePositions();
+
     void renderJointCollisionShapes(float alpha);
-    void renderBoundingCollisionShapes(float alpha);
     
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
-    
-    /// \param shapes list of pointers shapes to test against Model
-    /// \param collisions list to store collision results
-    /// \return true if at least one shape collided agains Model
-    bool findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions);
-
-    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, int skipIndex = -1);
-
-    bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
-    
-    /// \param collision details about the collisions
-    /// \return true if the collision is against a moveable joint
-    bool collisionHitsMoveableJoint(CollisionInfo& collision) const;
-
-    /// \param collision details about the collision
-    /// Use the collision to affect the model
-    void applyCollision(CollisionInfo& collision);
-
-    float getBoundingRadius() const { return _boundingRadius; }
-    float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
-
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
-    const CapsuleShape& getBoundingShape() const { return _boundingShape; }
-
 protected:
-
     QSharedPointer<NetworkGeometry> _geometry;
     
-    glm::vec3 _translation;
-    glm::quat _rotation;
     glm::vec3 _scale;
     glm::vec3 _offset;
 
     bool _scaleToFit; /// If you set scaleToFit, we will calculate scale based on MeshExtents
     float _scaleToFitLargestDimension; /// this is the dimension that scale to fit will use
     bool _scaledToFit; /// have we scaled to fit
-    
+
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center
     int _rootIndex;
     
-    bool _shapesAreDirty;
     QVector<JointState> _jointStates;
-    QVector<Shape*> _jointShapes;
-    
-    float _boundingRadius;
-    CapsuleShape _boundingShape;
-    glm::vec3 _boundingShapeLocalOffset;
-    
+
     class MeshState {
     public:
         QVector<glm::mat4> clusterMatrices;
@@ -239,8 +198,6 @@ protected:
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
-
-    void computeBoundingShape(const FBXGeometry& geometry);
 
 private:
     
