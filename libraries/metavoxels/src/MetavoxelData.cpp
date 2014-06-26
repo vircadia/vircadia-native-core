@@ -1094,14 +1094,14 @@ const int ORDER_ELEMENT_MASK = (1 << ORDER_ELEMENT_BITS) - 1;
 
 int MetavoxelVisitor::encodeRandomOrder() {
     // see http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_.22inside-out.22_algorithm
-    int order;
+    int order = 0;
     int randomValues = rand();
     for (int i = 0, iShift = 0; i < MetavoxelNode::CHILD_COUNT; i++, iShift += ORDER_ELEMENT_BITS) {
         int j = (randomValues >> iShift) % (i + 1);
         int jShift = j * ORDER_ELEMENT_BITS;
         if (j != i) {
             int jValue = (order >> jShift) & ORDER_ELEMENT_MASK;
-            order = (order & ~(ORDER_ELEMENT_MASK << iShift)) | (jValue << iShift);
+            order |= (jValue << iShift);
         }
         order = (order & ~(ORDER_ELEMENT_MASK << jShift)) | (i << jShift);
     }
