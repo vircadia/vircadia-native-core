@@ -44,6 +44,13 @@ AvatarAudioRingBuffer* AudioMixerClientData::getAvatarAudioRingBuffer() const {
 }
 
 int AudioMixerClientData::parseData(const QByteArray& packet) {
+
+    // parse sequence number for this packet
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    const char* sequenceAt = packet.constData() + numBytesPacketHeader;
+    quint16 sequence = *(reinterpret_cast<const quint16*>(sequenceAt));
+    _sequenceNumberStats.sequenceNumberReceived(sequence);
+
     PacketType packetType = packetTypeForPacket(packet);
     if (packetType == PacketTypeMicrophoneAudioWithEcho
         || packetType == PacketTypeMicrophoneAudioNoEcho

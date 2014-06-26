@@ -103,7 +103,8 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
-    _audioMixerJitterBufferStats()
+    _audioMixerJitterBufferStats(),
+    _sequenceNumber(0)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -119,6 +120,7 @@ void Audio::init(QGLWidget *parent) {
 
 void Audio::reset() {
     _ringBuffer.reset();
+    _sequenceNumber = 0;
 }
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
@@ -422,7 +424,7 @@ void Audio::handleAudioInput() {
     static char audioDataPacket[MAX_PACKET_SIZE];
 
     static int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMicrophoneAudioNoEcho);
-    static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
+    static int leadingBytes = numBytesPacketHeader + sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
 
     static int16_t* networkAudioSamples = (int16_t*) (audioDataPacket + leadingBytes);
 
@@ -654,6 +656,10 @@ void Audio::handleAudioInput() {
 
             char* currentPacketPtr = audioDataPacket + populatePacketHeader(audioDataPacket, packetType);
             
+            // pack seq number
+            memcpy(currentPacketPtr, &_sequenceNumber, sizeof(quint16));
+            currentPacketPtr += sizeof(quint16);
+
             // set the mono/stereo byte
             *currentPacketPtr++ = isStereo;
 
@@ -669,6 +675,9 @@ void Audio::handleAudioInput() {
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(numAudioBytes + leadingBytes);
+        } else {
+            // reset seq numbers if there's no connection with an audiomixer
+            _sequenceNumber = 0;
         }
         delete[] inputAudioSamples;
     }

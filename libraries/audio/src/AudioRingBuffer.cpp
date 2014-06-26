@@ -67,7 +67,7 @@ void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
 }
 
 int AudioRingBuffer::parseData(const QByteArray& packet) {
-    int numBytesBeforeAudioData = numBytesForPacketHeader(packet);
+    int numBytesBeforeAudioData = numBytesForPacketHeader(packet) + sizeof(quint16);
     return writeData(packet.data() + numBytesBeforeAudioData, packet.size() - numBytesBeforeAudioData);
 }
 

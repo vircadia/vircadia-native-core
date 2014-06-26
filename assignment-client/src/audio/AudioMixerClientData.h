@@ -18,6 +18,7 @@
 
 #include "AvatarAudioRingBuffer.h"
 #include "AudioStreamStats.h"
+#include "SequenceNumbersStats.h"
 
 class AudioMixerClientData : public NodeData {
 public:
@@ -37,8 +38,11 @@ public:
     
     QString getJitterBufferStatsString() const;
 
+    const SequenceNumberStats& getSequenceNumberStats() const { return _sequenceNumberStats; }
+
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;
+    SequenceNumberStats _sequenceNumberStats;
 };
 
 #endif // hifi_AudioMixerClientData_h

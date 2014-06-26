@@ -238,6 +238,8 @@ private:
     QByteArray* _scopeOutputRight;
 
     AudioMixerJitterBuffersStats _audioMixerJitterBufferStats;
+
+    quint16 _sequenceNumber;
 };
 
 
