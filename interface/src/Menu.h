@@ -193,6 +193,7 @@ private slots:
     void goToDomainDialog();
     void goToLocation();
     void nameLocation();
+    void showLocationList();
     void bandwidthDetailsClosed();
     void octreeStatsDetailsClosed();
     void lodToolsClosed();
@@ -387,6 +388,7 @@ namespace MenuOption {
     const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
+    const QString MyLocations = "My Locations...";
     const QString NameLocation = "Name this location";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString OctreeStats = "Voxel and Particle Statistics";

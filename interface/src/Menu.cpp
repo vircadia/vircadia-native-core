@@ -45,6 +45,7 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
+#include "ui/UserLocationsWindow.h"
 #include "devices/OculusManager.h"
 
 
@@ -165,6 +166,11 @@ Menu::Menu() :
                                   Qt::CTRL | Qt::Key_N,
                                   this,
                                   SLOT(nameLocation()));
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::MyLocations,
+                                  Qt::CTRL | Qt::Key_L,
+                                  this,
+                                  SLOT(showLocationList()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoTo,
                                   Qt::Key_At,
@@ -1177,6 +1183,11 @@ void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse res
     }
 
     msgBox.exec();
+}
+
+void Menu::showLocationList() {
+    UserLocationsWindow* window = new UserLocationsWindow();
+    window->show();
 }
 
 void Menu::nameLocation() {
