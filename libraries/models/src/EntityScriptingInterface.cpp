@@ -1,5 +1,5 @@
 //
-//  ModelsScriptingInterface.cpp
+//  EntityScriptingInterface.cpp
 //  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
@@ -9,73 +9,73 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ModelsScriptingInterface.h"
-#include "ModelTree.h"
+#include "EntityScriptingInterface.h"
+#include "EntityTree.h"
 
-ModelsScriptingInterface::ModelsScriptingInterface() :
+EntityScriptingInterface::EntityScriptingInterface() :
     _nextCreatorTokenID(0),
-    _modelTree(NULL)
+    _entityTree(NULL)
 {
 }
 
 
-void ModelsScriptingInterface::queueModelMessage(PacketType packetType,
-        ModelItemID modelID, const ModelItemProperties& properties) {
-    getModelPacketSender()->queueModelEditMessage(packetType, modelID, properties);
+void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
+        EntityItemID entityID, const EntityItemProperties& properties) {
+    getEntityPacketSender()->queueEntityEditMessage(packetType, entityID, properties);
 }
 
-ModelItemID ModelsScriptingInterface::addModel(const ModelItemProperties& properties) {
+EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     // The application will keep track of creatorTokenID
-    uint32_t creatorTokenID = ModelItem::getNextCreatorTokenID();
+    uint32_t creatorTokenID = EntityItem::getNextCreatorTokenID();
 
-    ModelItemID id(NEW_MODEL, creatorTokenID, false );
+    EntityItemID id(NEW_MODEL, creatorTokenID, false );
 
     // queue the packet
-    queueModelMessage(PacketTypeModelAddOrEdit, id, properties);
+    queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
 
     // If we have a local model tree set, then also update it.
-    if (_modelTree) {
-        _modelTree->lockForWrite();
-        _modelTree->addModel(id, properties);
-        _modelTree->unlock();
+    if (_entityTree) {
+        _entityTree->lockForWrite();
+        _entityTree->addEntity(id, properties);
+        _entityTree->unlock();
     }
 
     return id;
 }
 
-ModelItemID ModelsScriptingInterface::identifyModel(ModelItemID modelID) {
-    uint32_t actualID = modelID.id;
+EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
+    uint32_t actualID = entityID.id;
 
-    if (!modelID.isKnownID) {
-        actualID = ModelItem::getIDfromCreatorTokenID(modelID.creatorTokenID);
+    if (!entityID.isKnownID) {
+        actualID = EntityItem::getIDfromCreatorTokenID(entityID.creatorTokenID);
         if (actualID == UNKNOWN_MODEL_ID) {
-            return modelID; // bailing early
+            return entityID; // bailing early
         }
         
         // found it!
-        modelID.id = actualID;
-        modelID.isKnownID = true;
+        entityID.id = actualID;
+        entityID.isKnownID = true;
     }
-    return modelID;
+    return entityID;
 }
 
-ModelItemProperties ModelsScriptingInterface::getModelProperties(ModelItemID modelID) {
-    ModelItemProperties results;
-    ModelItemID identity = identifyModel(modelID);
+EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID entityID) {
+    EntityItemProperties results;
+    EntityItemID identity = identifyEntity(entityID);
     if (!identity.isKnownID) {
         results.setIsUnknownID();
         return results;
     }
-    if (_modelTree) {
-        _modelTree->lockForRead();
-        const ModelItem* model = _modelTree->findModelByID(identity.id, true);
+    if (_entityTree) {
+        _entityTree->lockForRead();
+        const EntityItem* model = _entityTree->findEntityByID(identity.id, true);
         if (model) {
-            results.copyFromModelItem(*model);
+            results.copyFromEntityItem(*model);
         } else {
             results.setIsUnknownID();
         }
-        _modelTree->unlock();
+        _entityTree->unlock();
     }
     
     return results;
@@ -83,73 +83,73 @@ ModelItemProperties ModelsScriptingInterface::getModelProperties(ModelItemID mod
 
 
 
-ModelItemID ModelsScriptingInterface::editModel(ModelItemID modelID, const ModelItemProperties& properties) {
-    uint32_t actualID = modelID.id;
+EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const EntityItemProperties& properties) {
+    uint32_t actualID = entityID.id;
     
     // if the model is unknown, attempt to look it up
-    if (!modelID.isKnownID) {
-        actualID = ModelItem::getIDfromCreatorTokenID(modelID.creatorTokenID);
+    if (!entityID.isKnownID) {
+        actualID = EntityItem::getIDfromCreatorTokenID(entityID.creatorTokenID);
     }
 
     // if at this point, we know the id, send the update to the model server
     if (actualID != UNKNOWN_MODEL_ID) {
-        modelID.id = actualID;
-        modelID.isKnownID = true;
-        queueModelMessage(PacketTypeModelAddOrEdit, modelID, properties);
+        entityID.id = actualID;
+        entityID.isKnownID = true;
+        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
     
     // If we have a local model tree set, then also update it. We can do this even if we don't know
     // the actual id, because we can edit out local models just with creatorTokenID
-    if (_modelTree) {
-        _modelTree->lockForWrite();
-        _modelTree->updateModel(modelID, properties);
-        _modelTree->unlock();
+    if (_entityTree) {
+        _entityTree->lockForWrite();
+        _entityTree->updateEntity(entityID, properties);
+        _entityTree->unlock();
     }
-    return modelID;
+    return entityID;
 }
 
 
-// TODO: This deleteModel() method uses the PacketType_MODEL_ADD_OR_EDIT message to send
+// TODO: This deleteEntity() method uses the PacketType_MODEL_ADD_OR_EDIT message to send
 // a changed model with a shouldDie() property set to true. This works and is currently the only
 // way to tell the model server to delete a model. But we should change this to use the PacketType_MODEL_ERASE
 // message which takes a list of model id's to delete.
-void ModelsScriptingInterface::deleteModel(ModelItemID modelID) {
+void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
 
     // setup properties to kill the model
-    ModelItemProperties properties;
+    EntityItemProperties properties;
     properties.setShouldDie(true);
 
-    uint32_t actualID = modelID.id;
+    uint32_t actualID = entityID.id;
     
     // if the model is unknown, attempt to look it up
-    if (!modelID.isKnownID) {
-        actualID = ModelItem::getIDfromCreatorTokenID(modelID.creatorTokenID);
+    if (!entityID.isKnownID) {
+        actualID = EntityItem::getIDfromCreatorTokenID(entityID.creatorTokenID);
     }
 
     // if at this point, we know the id, send the update to the model server
     if (actualID != UNKNOWN_MODEL_ID) {
-        modelID.id = actualID;
-        modelID.isKnownID = true;
-        queueModelMessage(PacketTypeModelAddOrEdit, modelID, properties);
+        entityID.id = actualID;
+        entityID.isKnownID = true;
+        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
 
     // If we have a local model tree set, then also update it.
-    if (_modelTree) {
-        _modelTree->lockForWrite();
-        _modelTree->deleteModel(modelID);
-        _modelTree->unlock();
+    if (_entityTree) {
+        _entityTree->lockForWrite();
+        _entityTree->deleteEntity(entityID);
+        _entityTree->unlock();
     }
 }
 
-ModelItemID ModelsScriptingInterface::findClosestModel(const glm::vec3& center, float radius) const {
-    ModelItemID result(UNKNOWN_MODEL_ID, UNKNOWN_MODEL_TOKEN, false);
-    if (_modelTree) {
-        _modelTree->lockForRead();
-        const ModelItem* closestModel = _modelTree->findClosestModel(center/(float)TREE_SCALE, 
+EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
+    EntityItemID result(UNKNOWN_MODEL_ID, UNKNOWN_MODEL_TOKEN, false);
+    if (_entityTree) {
+        _entityTree->lockForRead();
+        const EntityItem* closestEntity = _entityTree->findClosestEntity(center/(float)TREE_SCALE, 
                                                                                 radius/(float)TREE_SCALE);
-        _modelTree->unlock();
-        if (closestModel) {
-            result.id = closestModel->getID();
+        _entityTree->unlock();
+        if (closestEntity) {
+            result.id = closestEntity->getID();
             result.isKnownID = true;
         }
     }
@@ -157,41 +157,41 @@ ModelItemID ModelsScriptingInterface::findClosestModel(const glm::vec3& center, 
 }
 
 
-QVector<ModelItemID> ModelsScriptingInterface::findModels(const glm::vec3& center, float radius) const {
-    QVector<ModelItemID> result;
-    if (_modelTree) {
-        _modelTree->lockForRead();
-        QVector<const ModelItem*> models;
-        _modelTree->findModels(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, models);
-        _modelTree->unlock();
+QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {
+    QVector<EntityItemID> result;
+    if (_entityTree) {
+        _entityTree->lockForRead();
+        QVector<const EntityItem*> models;
+        _entityTree->findEntities(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, models);
+        _entityTree->unlock();
 
-        foreach (const ModelItem* model, models) {
-            ModelItemID thisModelItemID(model->getID(), UNKNOWN_MODEL_TOKEN, true);
-            result << thisModelItemID;
+        foreach (const EntityItem* model, models) {
+            EntityItemID thisEntityItemID(model->getID(), UNKNOWN_MODEL_TOKEN, true);
+            result << thisEntityItemID;
         }
     }
     return result;
 }
 
-RayToModelIntersectionResult ModelsScriptingInterface::findRayIntersection(const PickRay& ray) {
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray) {
     return findRayIntersectionWorker(ray, Octree::TryLock);
 }
 
-RayToModelIntersectionResult ModelsScriptingInterface::findRayIntersectionBlocking(const PickRay& ray) {
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray) {
     return findRayIntersectionWorker(ray, Octree::Lock);
 }
 
-RayToModelIntersectionResult ModelsScriptingInterface::findRayIntersectionWorker(const PickRay& ray, 
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray, 
                                                                                     Octree::lockType lockType) {
-    RayToModelIntersectionResult result;
-    if (_modelTree) {
+    RayToEntityIntersectionResult result;
+    if (_entityTree) {
         OctreeElement* element;
-        ModelItem* intersectedModel;
-        result.intersects = _modelTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
-                                                                (void**)&intersectedModel, lockType, &result.accurate);
-        if (result.intersects && intersectedModel) {
-            result.modelID = intersectedModel->getModelItemID();
-            result.modelProperties = intersectedModel->getProperties();
+        EntityItem* intersectedEntity;
+        result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
+                                                                (void**)&intersectedEntity, lockType, &result.accurate);
+        if (result.intersects && intersectedEntity) {
+            result.entityID = intersectedEntity->getEntityItemID();
+            result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);
         }
     }
@@ -199,25 +199,25 @@ RayToModelIntersectionResult ModelsScriptingInterface::findRayIntersectionWorker
 }
 
 
-RayToModelIntersectionResult::RayToModelIntersectionResult() : 
+RayToEntityIntersectionResult::RayToEntityIntersectionResult() : 
     intersects(false), 
     accurate(true), // assume it's accurate
-    modelID(),
-    modelProperties(),
+    entityID(),
+    properties(),
     distance(0),
     face()
 { 
 };
 
-QScriptValue RayToModelIntersectionResultToScriptValue(QScriptEngine* engine, const RayToModelIntersectionResult& value) {
+QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, const RayToEntityIntersectionResult& value) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
     obj.setProperty("accurate", value.accurate);
-    QScriptValue modelItemValue = ModelItemIDtoScriptValue(engine, value.modelID);
-    obj.setProperty("modelID", modelItemValue);
+    QScriptValue modelItemValue = EntityItemIDtoScriptValue(engine, value.entityID);
+    obj.setProperty("entityID", modelItemValue);
 
-    QScriptValue modelPropertiesValue = ModelItemPropertiesToScriptValue(engine, value.modelProperties);
-    obj.setProperty("modelProperties", modelPropertiesValue);
+    QScriptValue modelPropertiesValue = EntityItemPropertiesToScriptValue(engine, value.properties);
+    obj.setProperty("properties", modelPropertiesValue);
 
     obj.setProperty("distance", value.distance);
 
@@ -253,16 +253,16 @@ QScriptValue RayToModelIntersectionResultToScriptValue(QScriptEngine* engine, co
     return obj;
 }
 
-void RayToModelIntersectionResultFromScriptValue(const QScriptValue& object, RayToModelIntersectionResult& value) {
+void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, RayToEntityIntersectionResult& value) {
     value.intersects = object.property("intersects").toVariant().toBool();
     value.accurate = object.property("accurate").toVariant().toBool();
-    QScriptValue modelIDValue = object.property("modelID");
+    QScriptValue modelIDValue = object.property("entityID");
     if (modelIDValue.isValid()) {
-        ModelItemIDfromScriptValue(modelIDValue, value.modelID);
+        EntityItemIDfromScriptValue(modelIDValue, value.entityID);
     }
-    QScriptValue modelPropertiesValue = object.property("modelProperties");
+    QScriptValue modelPropertiesValue = object.property("properties");
     if (modelPropertiesValue.isValid()) {
-        ModelItemPropertiesFromScriptValue(modelPropertiesValue, value.modelProperties);
+        EntityItemPropertiesFromScriptValue(modelPropertiesValue, value.properties);
     }
     value.distance = object.property("distance").toVariant().toFloat();
 

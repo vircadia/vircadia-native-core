@@ -1,5 +1,5 @@
 //
-//  ModelTreeHeadlessViewer.cpp
+//  EntityTreeHeadlessViewer.cpp
 //  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 2/26/14.
@@ -9,23 +9,23 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ModelTreeHeadlessViewer.h"
+#include "EntityTreeHeadlessViewer.h"
 
-ModelTreeHeadlessViewer::ModelTreeHeadlessViewer() :
+EntityTreeHeadlessViewer::EntityTreeHeadlessViewer() :
     OctreeHeadlessViewer() {
 }
 
-ModelTreeHeadlessViewer::~ModelTreeHeadlessViewer() {
+EntityTreeHeadlessViewer::~EntityTreeHeadlessViewer() {
 }
 
-void ModelTreeHeadlessViewer::init() {
+void EntityTreeHeadlessViewer::init() {
     OctreeHeadlessViewer::init();
 }
 
 
-void ModelTreeHeadlessViewer::update() {
+void EntityTreeHeadlessViewer::update() {
     if (_tree) {
-        ModelTree* tree = static_cast<ModelTree*>(_tree);
+        EntityTree* tree = static_cast<EntityTree*>(_tree);
         if (tree->tryLockForWrite()) {
             tree->update();
             tree->unlock();
@@ -33,6 +33,6 @@ void ModelTreeHeadlessViewer::update() {
     }
 }
 
-void ModelTreeHeadlessViewer::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-    static_cast<ModelTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
+void EntityTreeHeadlessViewer::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+    static_cast<EntityTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
 }

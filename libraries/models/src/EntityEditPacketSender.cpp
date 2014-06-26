@@ -1,5 +1,5 @@
 //
-//  ModelEditPacketSender.cpp
+//  EntityEditPacketSender.cpp
 //  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
@@ -13,11 +13,11 @@
 #include <PerfStat.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
-#include "ModelEditPacketSender.h"
-#include "ModelItem.h"
+#include "EntityEditPacketSender.h"
+#include "EntityItem.h"
 
 
-void ModelEditPacketSender::sendEditModelMessage(PacketType type, ModelItemID modelID, const ModelItemProperties& properties) {
+void EntityEditPacketSender::sendEditEntityMessage(PacketType type, EntityItemID modelID, const EntityItemProperties& properties) {
     // allows app to disable sending if for example voxels have been disabled
     if (!_shouldSend) {
         return; // bail early
@@ -27,7 +27,7 @@ void ModelEditPacketSender::sendEditModelMessage(PacketType type, ModelItemID mo
     int sizeOut = 0;
 
     // This encodes the voxel edit message into a buffer...
-    if (ModelItem::encodeModelEditMessageDetails(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)){
+    if (EntityItem::encodeEntityEditMessageDetails(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)){
         // If we don't have voxel jurisdictions, then we will simply queue up these packets and wait till we have
         // jurisdictions for processing
         if (!serversExist()) {
@@ -38,13 +38,13 @@ void ModelEditPacketSender::sendEditModelMessage(PacketType type, ModelItemID mo
     }
 }
 
-void ModelEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
-    ModelItem::adjustEditPacketForClockSkew(codeColorBuffer, length, clockSkew);
+void EntityEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
+    EntityItem::adjustEditPacketForClockSkew(codeColorBuffer, length, clockSkew);
 }
 
 
-void ModelEditPacketSender::queueModelEditMessage(PacketType type, ModelItemID modelID, 
-                                                                const ModelItemProperties& properties) {
+void EntityEditPacketSender::queueEntityEditMessage(PacketType type, EntityItemID modelID, 
+                                                                const EntityItemProperties& properties) {
     if (!_shouldSend) {
         return; // bail early
     }
@@ -53,7 +53,7 @@ void ModelEditPacketSender::queueModelEditMessage(PacketType type, ModelItemID m
     static unsigned char bufferOut[MAX_PACKET_SIZE];
     int sizeOut = 0;
 
-    if (ModelItem::encodeModelEditMessageDetails(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
+    if (EntityItem::encodeEntityEditMessageDetails(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
         queueOctreeEditMessage(type, bufferOut, sizeOut);
     }
 }

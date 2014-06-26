@@ -22,7 +22,7 @@
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
 #include <CollisionInfo.h>
-#include <ModelsScriptingInterface.h>
+#include <EntityScriptingInterface.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <ParticlesScriptingInterface.h>
@@ -39,7 +39,7 @@
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
-ModelsScriptingInterface ScriptEngine::_modelsScriptingInterface;
+EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
 static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
     QUrl soundURL = QUrl(context->argument(0).toString());
@@ -227,10 +227,10 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
 
-    qScriptRegisterMetaType(&_engine, ModelItemPropertiesToScriptValue, ModelItemPropertiesFromScriptValue);
-    qScriptRegisterMetaType(&_engine, ModelItemIDtoScriptValue, ModelItemIDfromScriptValue);
-    qScriptRegisterMetaType(&_engine, RayToModelIntersectionResultToScriptValue, RayToModelIntersectionResultFromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<ModelItemID> >(&_engine);
+    qScriptRegisterMetaType(&_engine, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
+    qScriptRegisterMetaType(&_engine, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
+    qScriptRegisterMetaType(&_engine, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
+    qScriptRegisterSequenceMetaType<QVector<EntityItemID> >(&_engine);
 
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
     qScriptRegisterSequenceMetaType<QVector<glm::quat> >(&_engine);
@@ -257,7 +257,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
     registerGlobalObject("Controller", _controllerScriptingInterface);
-    registerGlobalObject("Models", &_modelsScriptingInterface);
+    registerGlobalObject("Entities", &_entityScriptingInterface);
     registerGlobalObject("Particles", &_particlesScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
@@ -403,13 +403,13 @@ void ScriptEngine::run() {
             }
         }
 
-        if (_modelsScriptingInterface.getModelPacketSender()->serversExist()) {
+        if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
             // release the queue of edit voxel messages.
-            _modelsScriptingInterface.getModelPacketSender()->releaseQueuedMessages();
+            _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
 
             // since we're in non-threaded mode, call process so that the packets are sent
-            if (!_modelsScriptingInterface.getModelPacketSender()->isThreaded()) {
-                _modelsScriptingInterface.getModelPacketSender()->process();
+            if (!_entityScriptingInterface.getEntityPacketSender()->isThreaded()) {
+                _entityScriptingInterface.getEntityPacketSender()->process();
             }
         }
 
@@ -524,13 +524,13 @@ void ScriptEngine::run() {
         }
     }
 
-    if (_modelsScriptingInterface.getModelPacketSender()->serversExist()) {
-        // release the queue of edit voxel messages.
-        _modelsScriptingInterface.getModelPacketSender()->releaseQueuedMessages();
+    if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
+        // release the queue of edit entity messages.
+        _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
 
         // since we're in non-threaded mode, call process so that the packets are sent
-        if (!_modelsScriptingInterface.getModelPacketSender()->isThreaded()) {
-            _modelsScriptingInterface.getModelPacketSender()->process();
+        if (!_entityScriptingInterface.getEntityPacketSender()->isThreaded()) {
+            _entityScriptingInterface.getEntityPacketSender()->process();
         }
     }
 

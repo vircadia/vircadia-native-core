@@ -1,5 +1,5 @@
 //
-//  ModelItem.cpp
+//  EntityItem.cpp
 //  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
@@ -25,30 +25,30 @@
 // better to add includes to the include path, but not link
 #include "../../script-engine/src/ScriptEngine.h"
 
-#include "ModelsScriptingInterface.h"
-#include "ModelItem.h"
-#include "ModelTree.h"
+#include "EntityScriptingInterface.h"
+#include "EntityItem.h"
+#include "EntityTree.h"
 
-uint32_t ModelItem::_nextID = 0;
+uint32_t EntityItem::_nextID = 0;
 
 // for locally created models
-std::map<uint32_t,uint32_t> ModelItem::_tokenIDsToIDs;
-uint32_t ModelItem::_nextCreatorTokenID = 0;
+std::map<uint32_t,uint32_t> EntityItem::_tokenIDsToIDs;
+uint32_t EntityItem::_nextCreatorTokenID = 0;
 
-uint32_t ModelItem::getIDfromCreatorTokenID(uint32_t creatorTokenID) {
+uint32_t EntityItem::getIDfromCreatorTokenID(uint32_t creatorTokenID) {
     if (_tokenIDsToIDs.find(creatorTokenID) != _tokenIDsToIDs.end()) {
         return _tokenIDsToIDs[creatorTokenID];
     }
     return UNKNOWN_MODEL_ID;
 }
 
-uint32_t ModelItem::getNextCreatorTokenID() {
+uint32_t EntityItem::getNextCreatorTokenID() {
     uint32_t creatorTokenID = _nextCreatorTokenID;
     _nextCreatorTokenID++;
     return creatorTokenID;
 }
 
-void ModelItem::handleAddModelResponse(const QByteArray& packet) {
+void EntityItem::handleAddEntityResponse(const QByteArray& packet) {
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data());
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     dataAt += numBytesPacketHeader;
@@ -65,12 +65,12 @@ void ModelItem::handleAddModelResponse(const QByteArray& packet) {
     _tokenIDsToIDs[creatorTokenID] = modelItemID;
 }
 
-ModelItem::ModelItem() {
+EntityItem::EntityItem() {
     rgbColor noColor = { 0, 0, 0 };
     init(glm::vec3(0,0,0), 0, noColor, NEW_MODEL);
 }
 
-void ModelItem::initFromModelItemID(const ModelItemID& modelItemID) {
+void EntityItem::initFromEntityItemID(const EntityItemID& modelItemID) {
     _id = modelItemID.id;
     _creatorTokenID = modelItemID.creatorTokenID;
 
@@ -85,7 +85,7 @@ void ModelItem::initFromModelItemID(const ModelItemID& modelItemID) {
     memcpy(_color, noColor, sizeof(_color));
     _shouldDie = false;
     _modelURL = MODEL_DEFAULT_MODEL_URL;
-    _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
+    _rotation = MODEL_DEFAULT_MODEL_ROTATION;
     
     // animation related
     _animationURL = MODEL_DEFAULT_ANIMATION_URL;
@@ -98,19 +98,19 @@ void ModelItem::initFromModelItemID(const ModelItemID& modelItemID) {
     _lastAnimated = now;
 }
 
-ModelItem::ModelItem(const ModelItemID& modelItemID) {
-    initFromModelItemID(modelItemID);
+EntityItem::EntityItem(const EntityItemID& modelItemID) {
+    initFromEntityItemID(modelItemID);
 }
 
-ModelItem::ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& properties) {
-    initFromModelItemID(modelItemID);
+EntityItem::EntityItem(const EntityItemID& modelItemID, const EntityItemProperties& properties) {
+    initFromEntityItemID(modelItemID);
     setProperties(properties, true); // force copy
 }
 
-ModelItem::~ModelItem() {
+EntityItem::~EntityItem() {
 }
 
-void ModelItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t id) {
+void EntityItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t id) {
     if (id == NEW_MODEL) {
         _id = _nextID;
         _nextID++;
@@ -126,7 +126,7 @@ void ModelItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t 
     memcpy(_color, color, sizeof(_color));
     _shouldDie = false;
     _modelURL = MODEL_DEFAULT_MODEL_URL;
-    _modelRotation = MODEL_DEFAULT_MODEL_ROTATION;
+    _rotation = MODEL_DEFAULT_MODEL_ROTATION;
 
     // animation related
     _animationURL = MODEL_DEFAULT_ANIMATION_URL;
@@ -138,8 +138,8 @@ void ModelItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t 
     _lastAnimated = now;
 }
 
-OctreeElement::AppendState ModelItem::appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                            ModelTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const {
+OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+                                            EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const {
 
     // ALL this fits...
     //    object ID [16 bytes]
@@ -154,8 +154,8 @@ OctreeElement::AppendState ModelItem::appendModelData(OctreePacketData* packetDa
     quint64 updateDelta = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
     ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
     QByteArray encodedUpdateDelta = updateDeltaCoder;
-    ModelPropertyFlags propertyFlags(PROP_LAST_ITEM);
-    ModelPropertyFlags requestedProperties;
+    EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
+    EntityPropertyFlags requestedProperties;
     
     requestedProperties += PROP_POSITION;
     requestedProperties += PROP_RADIUS;
@@ -168,12 +168,12 @@ OctreeElement::AppendState ModelItem::appendModelData(OctreePacketData* packetDa
     requestedProperties += PROP_ANIMATION_PLAYING;
     requestedProperties += PROP_SHOULD_BE_DELETED;
 
-    ModelPropertyFlags propertiesDidntFit = requestedProperties;
+    EntityPropertyFlags propertiesDidntFit = requestedProperties;
 
-    // If we are being called for a subsequent pass at appendModelData() that failed to completely encode this item,
+    // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our modelTreeElementExtraEncodeData should include data about which properties we need to append.
-    if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getModelItemID())) {
-        requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getModelItemID());
+    if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getEntityItemID())) {
+        requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
     }
 
     //qDebug() << "requestedProperties=";
@@ -195,7 +195,7 @@ OctreeElement::AppendState ModelItem::appendModelData(OctreePacketData* packetDa
     bool headerFits = successIDFits && successTypeFits && successLastEditedFits 
                               && successLastUpdatedFits && successPropertyFlagsFits;
 
-    int startOfModelItemData = packetData->getUncompressedByteOffset();
+    int startOfEntityItemData = packetData->getUncompressedByteOffset();
 
     if (headerFits) {
         bool successPropertyFits;
@@ -271,7 +271,7 @@ OctreeElement::AppendState ModelItem::appendModelData(OctreePacketData* packetDa
         if (requestedProperties.getHasProperty(PROP_ROTATION)) {
             //qDebug() << "PROP_ROTATION requested...";
             LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getModelRotation());
+            successPropertyFits = packetData->appendValue(getRotation());
             if (successPropertyFits) {
                 propertyFlags |= PROP_ROTATION;
                 propertiesDidntFit -= PROP_ROTATION;
@@ -411,7 +411,7 @@ OctreeElement::AppendState ModelItem::appendModelData(OctreePacketData* packetDa
         }
     }
     if (propertyCount > 0) {
-        int endOfModelItemData = packetData->getUncompressedByteOffset();
+        int endOfEntityItemData = packetData->getUncompressedByteOffset();
         
         encodedPropertyFlags = propertyFlags;
         int newPropertyFlagsLength = encodedPropertyFlags.length();
@@ -423,9 +423,9 @@ OctreeElement::AppendState ModelItem::appendModelData(OctreePacketData* packetDa
             int oldSize = packetData->getUncompressedSize();
 
             const unsigned char* modelItemData = packetData->getUncompressedData(propertyFlagsOffset + oldPropertyFlagsLength);
-            int modelItemDataLength = endOfModelItemData - startOfModelItemData;
-            int newModelItemDataStart = propertyFlagsOffset + newPropertyFlagsLength;
-            packetData->updatePriorBytes(newModelItemDataStart, modelItemData, modelItemDataLength);
+            int modelItemDataLength = endOfEntityItemData - startOfEntityItemData;
+            int newEntityItemDataStart = propertyFlagsOffset + newPropertyFlagsLength;
+            packetData->updatePriorBytes(newEntityItemDataStart, modelItemData, modelItemDataLength);
 
             int newSize = oldSize - (oldPropertyFlagsLength - newPropertyFlagsLength);
             packetData->setUncompressedSize(newSize);
@@ -449,13 +449,13 @@ OctreeElement::AppendState ModelItem::appendModelData(OctreePacketData* packetDa
     // If any part of the model items didn't fit, then the element is considered partial
     if (appendState != OctreeElement::COMPLETED) {
         // add this item into our list for the next appendElementData() pass
-        modelTreeElementExtraEncodeData->includedItems.insert(getModelItemID(), propertiesDidntFit);
+        modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
     }
 
     return appendState;
 }
 
-int ModelItem::expectedBytes() {
+int EntityItem::expectedBytes() {
     int expectedBytes = sizeof(uint32_t) // id
                 + sizeof(float) // age
                 + sizeof(quint64) // last updated
@@ -467,7 +467,7 @@ int ModelItem::expectedBytes() {
     return expectedBytes;
 }
 
-int ModelItem::oldVersionReadModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+int EntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
 
     int bytesRead = 0;
     if (bytesLeftToRead >= expectedBytes()) {
@@ -523,7 +523,7 @@ int ModelItem::oldVersionReadModelDataFromBuffer(const unsigned char* data, int 
         bytesRead += modelURLLength;
 
         // modelRotation
-        int bytes = unpackOrientationQuatFromBytes(dataAt, _modelRotation);
+        int bytes = unpackOrientationQuatFromBytes(dataAt, _rotation);
         dataAt += bytes;
         bytesRead += bytes;
 
@@ -557,9 +557,9 @@ int ModelItem::oldVersionReadModelDataFromBuffer(const unsigned char* data, int 
     return bytesRead;
 }
 
-ModelItemID ModelItem::readModelItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+EntityItemID EntityItem::readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                         ReadBitstreamToTreeParams& args) {
-    ModelItemID result;
+    EntityItemID result;
     if (bytesLeftToRead >= sizeof(uint32_t)) {
         // id
         uint32_t id;
@@ -571,10 +571,10 @@ ModelItemID ModelItem::readModelItemIDFromBuffer(const unsigned char* data, int 
     return result;
 }
 
-int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
 
     if (args.bitstreamVersion < VERSION_MODELS_SUPPORT_SPLIT_MTU) {
-        return oldVersionReadModelDataFromBuffer(data, bytesLeftToRead, args);
+        return oldVersionReadEntityDataFromBuffer(data, bytesLeftToRead, args);
     }
 
     // Header bytes
@@ -627,7 +627,7 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
 
         // Property Flags
         QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
-        ModelPropertyFlags propertyFlags = encodedPropertyFlags;
+        EntityPropertyFlags propertyFlags = encodedPropertyFlags;
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
@@ -662,7 +662,7 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
 
         // PROP_ROTATION
         if (propertyFlags.getHasProperty(PROP_ROTATION)) {
-            int bytes = unpackOrientationQuatFromBytes(dataAt, _modelRotation);
+            int bytes = unpackOrientationQuatFromBytes(dataAt, _rotation);
             dataAt += bytes;
             bytesRead += bytes;
         }
@@ -721,13 +721,13 @@ int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftT
     return bytesRead;
 }
 
-ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& processedBytes, ModelTree* tree, bool& valid) {
+EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid) {
     bool wantDebug = false;
     if (wantDebug) {
-        qDebug() << "ModelItem ModelItem::fromEditPacket() length=" << length;
+        qDebug() << "EntityItem EntityItem::fromEditPacket() length=" << length;
     }
 
-    ModelItem newModelItem; // id and _lastUpdated will get set here...
+    EntityItem newEntityItem; // id and _lastUpdated will get set here...
     const unsigned char* dataAt = data;
     processedBytes = 0;
 
@@ -736,7 +736,7 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
 
     if (wantDebug) {
-        qDebug() << "ModelItem ModelItem::fromEditPacket() lengthOfOctcode=" << lengthOfOctcode;
+        qDebug() << "EntityItem EntityItem::fromEditPacket() lengthOfOctcode=" << lengthOfOctcode;
     }
 
     // we don't actually do anything with this octcode...
@@ -750,13 +750,13 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
     processedBytes += sizeof(editID);
 
     if (wantDebug) {
-        qDebug() << "ModelItem ModelItem::fromEditPacket() editID=" << editID;
+        qDebug() << "EntityItem EntityItem::fromEditPacket() editID=" << editID;
     }
 
-    bool isNewModelItem = (editID == NEW_MODEL);
+    bool isNewEntityItem = (editID == NEW_MODEL);
 
     // special case for handling "new" modelItems
-    if (isNewModelItem) {
+    if (isNewEntityItem) {
         // If this is a NEW_MODEL, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
         uint32_t creatorTokenID;
@@ -764,16 +764,16 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         dataAt += sizeof(creatorTokenID);
         processedBytes += sizeof(creatorTokenID);
 
-        newModelItem.setCreatorTokenID(creatorTokenID);
-        newModelItem._newlyCreated = true;
+        newEntityItem.setCreatorTokenID(creatorTokenID);
+        newEntityItem._newlyCreated = true;
         valid = true;
     } else {
         // look up the existing modelItem
-        const ModelItem* existingModelItem = tree->findModelByID(editID, true);
+        const EntityItem* existingEntityItem = tree->findEntityByID(editID, true);
 
         // copy existing properties before over-writing with new properties
-        if (existingModelItem) {
-            newModelItem = *existingModelItem;
+        if (existingEntityItem) {
+            newEntityItem = *existingEntityItem;
             valid = true;
         } else {
             // the user attempted to edit a modelItem that doesn't exist
@@ -785,19 +785,19 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
             // of the edit packet so that we don't end up out of sync on our bitstream
             // fall through....
         }
-        newModelItem._id = editID;
-        newModelItem._newlyCreated = false;
+        newEntityItem._id = editID;
+        newEntityItem._newlyCreated = false;
     }
     
     // lastEdited
-    memcpy(&newModelItem._lastEdited, dataAt, sizeof(newModelItem._lastEdited));
-    dataAt += sizeof(newModelItem._lastEdited);
-    processedBytes += sizeof(newModelItem._lastEdited);
+    memcpy(&newEntityItem._lastEdited, dataAt, sizeof(newEntityItem._lastEdited));
+    dataAt += sizeof(newEntityItem._lastEdited);
+    processedBytes += sizeof(newEntityItem._lastEdited);
 
     // All of the remaining items are optional, and may or may not be included based on their included values in the
     // properties included bits
     uint16_t packetContainsBits = 0;
-    if (!isNewModelItem) {
+    if (!isNewEntityItem) {
         memcpy(&packetContainsBits, dataAt, sizeof(packetContainsBits));
         dataAt += sizeof(packetContainsBits);
         processedBytes += sizeof(packetContainsBits);
@@ -806,109 +806,109 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         if (!packetContainsBits) {
             //qDebug() << "edit packet didn't contain any information ignore it...";
             valid = false;
-            return newModelItem;
+            return newEntityItem;
         }
     }
 
     // radius
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_RADIUS) == MODEL_PACKET_CONTAINS_RADIUS)) {
-        memcpy(&newModelItem._radius, dataAt, sizeof(newModelItem._radius));
-        dataAt += sizeof(newModelItem._radius);
-        processedBytes += sizeof(newModelItem._radius);
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_RADIUS) == MODEL_PACKET_CONTAINS_RADIUS)) {
+        memcpy(&newEntityItem._radius, dataAt, sizeof(newEntityItem._radius));
+        dataAt += sizeof(newEntityItem._radius);
+        processedBytes += sizeof(newEntityItem._radius);
     }
 
     // position
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_POSITION) == MODEL_PACKET_CONTAINS_POSITION)) {
-        memcpy(&newModelItem._position, dataAt, sizeof(newModelItem._position));
-        dataAt += sizeof(newModelItem._position);
-        processedBytes += sizeof(newModelItem._position);
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_POSITION) == MODEL_PACKET_CONTAINS_POSITION)) {
+        memcpy(&newEntityItem._position, dataAt, sizeof(newEntityItem._position));
+        dataAt += sizeof(newEntityItem._position);
+        processedBytes += sizeof(newEntityItem._position);
     }
 
     // color
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_COLOR) == MODEL_PACKET_CONTAINS_COLOR)) {
-        memcpy(newModelItem._color, dataAt, sizeof(newModelItem._color));
-        dataAt += sizeof(newModelItem._color);
-        processedBytes += sizeof(newModelItem._color);
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_COLOR) == MODEL_PACKET_CONTAINS_COLOR)) {
+        memcpy(newEntityItem._color, dataAt, sizeof(newEntityItem._color));
+        dataAt += sizeof(newEntityItem._color);
+        processedBytes += sizeof(newEntityItem._color);
     }
 
     // shouldDie
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_SHOULDDIE) == MODEL_PACKET_CONTAINS_SHOULDDIE)) {
-        memcpy(&newModelItem._shouldDie, dataAt, sizeof(newModelItem._shouldDie));
-        dataAt += sizeof(newModelItem._shouldDie);
-        processedBytes += sizeof(newModelItem._shouldDie);
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_SHOULDDIE) == MODEL_PACKET_CONTAINS_SHOULDDIE)) {
+        memcpy(&newEntityItem._shouldDie, dataAt, sizeof(newEntityItem._shouldDie));
+        dataAt += sizeof(newEntityItem._shouldDie);
+        processedBytes += sizeof(newEntityItem._shouldDie);
     }
 
     // modelURL
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_URL) == MODEL_PACKET_CONTAINS_MODEL_URL)) {
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_URL) == MODEL_PACKET_CONTAINS_MODEL_URL)) {
         uint16_t modelURLLength;
         memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
         dataAt += sizeof(modelURLLength);
         processedBytes += sizeof(modelURLLength);
         QString tempString((const char*)dataAt);
-        newModelItem._modelURL = tempString;
+        newEntityItem._modelURL = tempString;
         dataAt += modelURLLength;
         processedBytes += modelURLLength;
     }
 
     // modelRotation
-    if (isNewModelItem || ((packetContainsBits & 
+    if (isNewEntityItem || ((packetContainsBits & 
                     MODEL_PACKET_CONTAINS_MODEL_ROTATION) == MODEL_PACKET_CONTAINS_MODEL_ROTATION)) {
-        int bytes = unpackOrientationQuatFromBytes(dataAt, newModelItem._modelRotation);
+        int bytes = unpackOrientationQuatFromBytes(dataAt, newEntityItem._rotation);
         dataAt += bytes;
         processedBytes += bytes;
     }
 
     // animationURL
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_ANIMATION_URL) == MODEL_PACKET_CONTAINS_ANIMATION_URL)) {
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_ANIMATION_URL) == MODEL_PACKET_CONTAINS_ANIMATION_URL)) {
         uint16_t animationURLLength;
         memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
         dataAt += sizeof(animationURLLength);
         processedBytes += sizeof(animationURLLength);
         QString tempString((const char*)dataAt);
-        newModelItem._animationURL = tempString;
+        newEntityItem._animationURL = tempString;
         dataAt += animationURLLength;
         processedBytes += animationURLLength;
     }
 
     // animationIsPlaying
-    if (isNewModelItem || ((packetContainsBits & 
+    if (isNewEntityItem || ((packetContainsBits & 
                     MODEL_PACKET_CONTAINS_ANIMATION_PLAYING) == MODEL_PACKET_CONTAINS_ANIMATION_PLAYING)) {
                     
-        memcpy(&newModelItem._animationIsPlaying, dataAt, sizeof(newModelItem._animationIsPlaying));
-        dataAt += sizeof(newModelItem._animationIsPlaying);
-        processedBytes += sizeof(newModelItem._animationIsPlaying);
+        memcpy(&newEntityItem._animationIsPlaying, dataAt, sizeof(newEntityItem._animationIsPlaying));
+        dataAt += sizeof(newEntityItem._animationIsPlaying);
+        processedBytes += sizeof(newEntityItem._animationIsPlaying);
     }
 
     // animationFrameIndex
-    if (isNewModelItem || ((packetContainsBits & 
+    if (isNewEntityItem || ((packetContainsBits & 
                     MODEL_PACKET_CONTAINS_ANIMATION_FRAME) == MODEL_PACKET_CONTAINS_ANIMATION_FRAME)) {
                     
-        memcpy(&newModelItem._animationFrameIndex, dataAt, sizeof(newModelItem._animationFrameIndex));
-        dataAt += sizeof(newModelItem._animationFrameIndex);
-        processedBytes += sizeof(newModelItem._animationFrameIndex);
+        memcpy(&newEntityItem._animationFrameIndex, dataAt, sizeof(newEntityItem._animationFrameIndex));
+        dataAt += sizeof(newEntityItem._animationFrameIndex);
+        processedBytes += sizeof(newEntityItem._animationFrameIndex);
     }
 
     // animationFPS
-    if (isNewModelItem || ((packetContainsBits & 
+    if (isNewEntityItem || ((packetContainsBits & 
                     MODEL_PACKET_CONTAINS_ANIMATION_FPS) == MODEL_PACKET_CONTAINS_ANIMATION_FPS)) {
                     
-        memcpy(&newModelItem._animationFPS, dataAt, sizeof(newModelItem._animationFPS));
-        dataAt += sizeof(newModelItem._animationFPS);
-        processedBytes += sizeof(newModelItem._animationFPS);
+        memcpy(&newEntityItem._animationFPS, dataAt, sizeof(newEntityItem._animationFPS));
+        dataAt += sizeof(newEntityItem._animationFPS);
+        processedBytes += sizeof(newEntityItem._animationFPS);
     }
 
     const bool wantDebugging = false;
     if (wantDebugging) {
-        qDebug("ModelItem::fromEditPacket()...");
-        qDebug() << "   ModelItem id in packet:" << editID;
-        newModelItem.debugDump();
+        qDebug("EntityItem::fromEditPacket()...");
+        qDebug() << "   EntityItem id in packet:" << editID;
+        newEntityItem.debugDump();
     }
 
-    return newModelItem;
+    return newEntityItem;
 }
 
-void ModelItem::debugDump() const {
-    qDebug("ModelItem id  :%u", _id);
+void EntityItem::debugDump() const {
+    qDebug("EntityItem id  :%u", _id);
     qDebug(" edited ago:%f", getEditedAgo());
     qDebug(" should die:%s", debug::valueOf(getShouldDie()));
     qDebug(" position:%f,%f,%f", _position.x, _position.y, _position.z);
@@ -917,7 +917,7 @@ void ModelItem::debugDump() const {
     qDebug() << " modelURL:" << qPrintable(getModelURL());
 }
 
-bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id, const ModelItemProperties& properties,
+bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID id, const EntityItemProperties& properties,
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
 
     bool success = true; // assume the best
@@ -947,7 +947,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     sizeOut += lengthOfOctcode;
 
     // Now add our edit content details...
-    bool isNewModelItem = (id.id == NEW_MODEL);
+    bool isNewEntityItem = (id.id == NEW_MODEL);
 
     // id
     memcpy(copyAt, &id.id, sizeof(id.id));
@@ -955,7 +955,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     sizeOut += sizeof(id.id);
 
     // special case for handling "new" modelItems
-    if (isNewModelItem) {
+    if (isNewEntityItem) {
         // If this is a NEW_MODEL, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
         memcpy(copyAt, &id.creatorTokenID, sizeof(id.creatorTokenID));
@@ -972,14 +972,14 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     // For new modelItems, all remaining items are mandatory, for an edited modelItem, All of the remaining items are
     // optional, and may or may not be included based on their included values in the properties included bits
     uint16_t packetContainsBits = properties.getChangedBits();
-    if (!isNewModelItem) {
+    if (!isNewEntityItem) {
         memcpy(copyAt, &packetContainsBits, sizeof(packetContainsBits));
         copyAt += sizeof(packetContainsBits);
         sizeOut += sizeof(packetContainsBits);
     }
 
     // radius
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_RADIUS) == MODEL_PACKET_CONTAINS_RADIUS)) {
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_RADIUS) == MODEL_PACKET_CONTAINS_RADIUS)) {
         float radius = properties.getRadius() / (float) TREE_SCALE;
         memcpy(copyAt, &radius, sizeof(radius));
         copyAt += sizeof(radius);
@@ -987,7 +987,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     }
 
     // position
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_POSITION) == MODEL_PACKET_CONTAINS_POSITION)) {
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_POSITION) == MODEL_PACKET_CONTAINS_POSITION)) {
         glm::vec3 position = properties.getPosition() / (float)TREE_SCALE;
         memcpy(copyAt, &position, sizeof(position));
         copyAt += sizeof(position);
@@ -995,7 +995,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     }
 
     // color
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_COLOR) == MODEL_PACKET_CONTAINS_COLOR)) {
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_COLOR) == MODEL_PACKET_CONTAINS_COLOR)) {
         rgbColor color = { properties.getColor().red, properties.getColor().green, properties.getColor().blue };
         memcpy(copyAt, color, sizeof(color));
         copyAt += sizeof(color);
@@ -1003,7 +1003,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     }
 
     // shoulDie
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_SHOULDDIE) == MODEL_PACKET_CONTAINS_SHOULDDIE)) {
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_SHOULDDIE) == MODEL_PACKET_CONTAINS_SHOULDDIE)) {
         bool shouldDie = properties.getShouldDie();
         memcpy(copyAt, &shouldDie, sizeof(shouldDie));
         copyAt += sizeof(shouldDie);
@@ -1011,7 +1011,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     }
 
     // modelURL
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_URL) == MODEL_PACKET_CONTAINS_MODEL_URL)) {
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_URL) == MODEL_PACKET_CONTAINS_MODEL_URL)) {
         uint16_t urlLength = properties.getModelURL().size() + 1;
         memcpy(copyAt, &urlLength, sizeof(urlLength));
         copyAt += sizeof(urlLength);
@@ -1022,14 +1022,14 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     }
 
     // modelRotation
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_ROTATION) == MODEL_PACKET_CONTAINS_MODEL_ROTATION)) {
-        int bytes = packOrientationQuatToBytes(copyAt, properties.getModelRotation());
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_ROTATION) == MODEL_PACKET_CONTAINS_MODEL_ROTATION)) {
+        int bytes = packOrientationQuatToBytes(copyAt, properties.getRotation());
         copyAt += bytes;
         sizeOut += bytes;
     }
 
     // animationURL
-    if (isNewModelItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_ANIMATION_URL) == MODEL_PACKET_CONTAINS_ANIMATION_URL)) {
+    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_ANIMATION_URL) == MODEL_PACKET_CONTAINS_ANIMATION_URL)) {
         uint16_t urlLength = properties.getAnimationURL().size() + 1;
         memcpy(copyAt, &urlLength, sizeof(urlLength));
         copyAt += sizeof(urlLength);
@@ -1040,7 +1040,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     }
 
     // animationIsPlaying
-    if (isNewModelItem || ((packetContainsBits & 
+    if (isNewEntityItem || ((packetContainsBits & 
                     MODEL_PACKET_CONTAINS_ANIMATION_PLAYING) == MODEL_PACKET_CONTAINS_ANIMATION_PLAYING)) {
                     
         bool animationIsPlaying = properties.getAnimationIsPlaying();
@@ -1050,7 +1050,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     }
 
     // animationFrameIndex
-    if (isNewModelItem || ((packetContainsBits & 
+    if (isNewEntityItem || ((packetContainsBits & 
                     MODEL_PACKET_CONTAINS_ANIMATION_FRAME) == MODEL_PACKET_CONTAINS_ANIMATION_FRAME)) {
                     
         float animationFrameIndex = properties.getAnimationFrameIndex();
@@ -1060,7 +1060,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
     }
 
     // animationFPS
-    if (isNewModelItem || ((packetContainsBits & 
+    if (isNewEntityItem || ((packetContainsBits & 
                     MODEL_PACKET_CONTAINS_ANIMATION_FPS) == MODEL_PACKET_CONTAINS_ANIMATION_FPS)) {
                     
         float animationFPS = properties.getAnimationFPS();
@@ -1071,8 +1071,8 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
 
     bool wantDebugging = false;
     if (wantDebugging) {
-        qDebug("encodeModelItemEditMessageDetails()....");
-        qDebug("ModelItem id  :%u", id.id);
+        qDebug("encodeEntityItemEditMessageDetails()....");
+        qDebug("EntityItem id  :%u", id.id);
         qDebug(" nextID:%u", _nextID);
     }
 
@@ -1083,7 +1083,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
+void EntityItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
     unsigned char* dataAt = codeColorBuffer;
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
@@ -1107,7 +1107,7 @@ void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssi
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
     const bool wantDebug = false;
     if (wantDebug) {
-        qDebug("ModelItem::adjustEditPacketForClockSkew()...");
+        qDebug("EntityItem::adjustEditPacketForClockSkew()...");
         qDebug() << "     lastEditedInLocalTime: " << lastEditedInLocalTime;
         qDebug() << "                 clockSkew: " << clockSkew;
         qDebug() << "    lastEditedInServerTime: " << lastEditedInServerTime;
@@ -1115,27 +1115,27 @@ void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssi
 }
 
 
-QMap<QString, AnimationPointer> ModelItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
-AnimationCache ModelItem::_animationCache;
+QMap<QString, AnimationPointer> EntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
+AnimationCache EntityItem::_animationCache;
 
 // This class/instance will cleanup the animations once unloaded.
-class ModelAnimationsBookkeeper {
+class EntityAnimationsBookkeeper {
 public:
-    ~ModelAnimationsBookkeeper() {
-        ModelItem::cleanupLoadedAnimations();
+    ~EntityAnimationsBookkeeper() {
+        EntityItem::cleanupLoadedAnimations();
     }
 };
 
-ModelAnimationsBookkeeper modelAnimationsBookkeeperInstance;
+EntityAnimationsBookkeeper modelAnimationsBookkeeperInstance;
 
-void ModelItem::cleanupLoadedAnimations() {
+void EntityItem::cleanupLoadedAnimations() {
     foreach(AnimationPointer animation, _loadedAnimations) {
         animation.clear();
     }
     _loadedAnimations.clear();
 }
 
-Animation* ModelItem::getAnimation(const QString& url) {
+Animation* EntityItem::getAnimation(const QString& url) {
     AnimationPointer animation;
     
     // if we don't already have this model then create it and initialize it
@@ -1148,7 +1148,7 @@ Animation* ModelItem::getAnimation(const QString& url) {
     return animation.data();
 }
 
-void ModelItem::mapJoints(const QStringList& modelJointNames) {
+void EntityItem::mapJoints(const QStringList& modelJointNames) {
     // if we don't have animation, or we're already joint mapped then bail early
     if (!hasAnimation() || _jointMappingCompleted) {
         return;
@@ -1169,7 +1169,7 @@ void ModelItem::mapJoints(const QStringList& modelJointNames) {
     }
 }
 
-QVector<glm::quat> ModelItem::getAnimationFrame() {
+QVector<glm::quat> EntityItem::getAnimationFrame() {
     QVector<glm::quat> frameData;
     if (hasAnimation() && _jointMappingCompleted) {
         Animation* myAnimation = getAnimation(_animationURL);
@@ -1191,7 +1191,7 @@ QVector<glm::quat> ModelItem::getAnimationFrame() {
     return frameData;
 }
 
-void ModelItem::update(const quint64& updateTime) {
+void EntityItem::update(const quint64& updateTime) {
     _lastUpdated = updateTime;
     setShouldDie(getShouldDie());
 
@@ -1204,7 +1204,7 @@ void ModelItem::update(const quint64& updateTime) {
         
         const bool wantDebugging = false;
         if (wantDebugging) {
-            qDebug() << "ModelItem::update() now=" << now;
+            qDebug() << "EntityItem::update() now=" << now;
             qDebug() << "             updateTime=" << updateTime;
             qDebug() << "          _lastAnimated=" << _lastAnimated;
             qDebug() << "              deltaTime=" << deltaTime;
@@ -1221,27 +1221,27 @@ void ModelItem::update(const quint64& updateTime) {
     }
 }
 
-void ModelItem::copyChangedProperties(const ModelItem& other) {
+void EntityItem::copyChangedProperties(const EntityItem& other) {
     *this = other;
 }
 
-ModelItemProperties ModelItem::getProperties() const {
-    ModelItemProperties properties;
-    properties.copyFromModelItem(*this);
+EntityItemProperties EntityItem::getProperties() const {
+    EntityItemProperties properties;
+    properties.copyFromEntityItem(*this);
     return properties;
 }
 
-void ModelItem::setProperties(const ModelItemProperties& properties, bool forceCopy) {
-    properties.copyToModelItem(*this, forceCopy);
+void EntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+    properties.copyToEntityItem(*this, forceCopy);
 }
 
-ModelItemProperties::ModelItemProperties() :
+EntityItemProperties::EntityItemProperties() :
     _position(0),
     _color(),
     _radius(MODEL_DEFAULT_RADIUS),
     _shouldDie(false),
     _modelURL(""),
-    _modelRotation(MODEL_DEFAULT_MODEL_ROTATION),
+    _rotation(MODEL_DEFAULT_MODEL_ROTATION),
     _animationURL(""),
     _animationIsPlaying(false),
     _animationFrameIndex(0.0),
@@ -1257,7 +1257,7 @@ ModelItemProperties::ModelItemProperties() :
     _radiusChanged(false),
     _shouldDieChanged(false),
     _modelURLChanged(false),
-    _modelRotationChanged(false),
+    _rotationChanged(false),
     _animationURLChanged(false),
     _animationIsPlayingChanged(false),
     _animationFrameIndexChanged(false),
@@ -1267,8 +1267,8 @@ ModelItemProperties::ModelItemProperties() :
 {
 }
 
-void ModelItemProperties::debugDump() const {
-    qDebug() << "ModelItemProperties...";
+void EntityItemProperties::debugDump() const {
+    qDebug() << "EntityItemProperties...";
     qDebug() << "   _id=" << _id;
     qDebug() << "   _idSet=" << _idSet;
     qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
@@ -1278,7 +1278,7 @@ void ModelItemProperties::debugDump() const {
 }
 
 
-uint16_t ModelItemProperties::getChangedBits() const {
+uint16_t EntityItemProperties::getChangedBits() const {
     uint16_t changedBits = 0;
     if (_radiusChanged) {
         changedBits += MODEL_PACKET_CONTAINS_RADIUS;
@@ -1300,7 +1300,7 @@ uint16_t ModelItemProperties::getChangedBits() const {
         changedBits += MODEL_PACKET_CONTAINS_MODEL_URL;
     }
 
-    if (_modelRotationChanged) {
+    if (_rotationChanged) {
         changedBits += MODEL_PACKET_CONTAINS_MODEL_ROTATION;
     }
 
@@ -1324,7 +1324,7 @@ uint16_t ModelItemProperties::getChangedBits() const {
 }
 
 
-QScriptValue ModelItemProperties::copyToScriptValue(QScriptEngine* engine) const {
+QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) const {
     QScriptValue properties = engine->newObject();
 
     QScriptValue position = vec3toScriptValue(engine, _position);
@@ -1339,7 +1339,7 @@ QScriptValue ModelItemProperties::copyToScriptValue(QScriptEngine* engine) const
 
     properties.setProperty("modelURL", _modelURL);
 
-    QScriptValue modelRotation = quatToScriptValue(engine, _modelRotation);
+    QScriptValue modelRotation = quatToScriptValue(engine, _rotation);
     properties.setProperty("modelRotation", modelRotation);
 
     properties.setProperty("animationURL", _animationURL);
@@ -1356,7 +1356,7 @@ QScriptValue ModelItemProperties::copyToScriptValue(QScriptEngine* engine) const
     return properties;
 }
 
-void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
+void EntityItemProperties::copyFromScriptValue(const QScriptValue &object) {
 
     QScriptValue position = object.property("position");
     if (position.isValid()) {
@@ -1431,14 +1431,14 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
         QScriptValue z = modelRotation.property("z");
         QScriptValue w = modelRotation.property("w");
         if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            glm::quat newModelRotation;
-            newModelRotation.x = x.toVariant().toFloat();
-            newModelRotation.y = y.toVariant().toFloat();
-            newModelRotation.z = z.toVariant().toFloat();
-            newModelRotation.w = w.toVariant().toFloat();
-            if (_defaultSettings || newModelRotation != _modelRotation) {
-                _modelRotation = newModelRotation;
-                _modelRotationChanged = true;
+            glm::quat newRotation;
+            newRotation.x = x.toVariant().toFloat();
+            newRotation.y = y.toVariant().toFloat();
+            newRotation.z = z.toVariant().toFloat();
+            newRotation.w = w.toVariant().toFloat();
+            if (_defaultSettings || newRotation != _rotation) {
+                _rotation = newRotation;
+                _rotationChanged = true;
             }
         }
     }
@@ -1496,7 +1496,7 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
     _lastEdited = usecTimestampNow();
 }
 
-void ModelItemProperties::copyToModelItem(ModelItem& modelItem, bool forceCopy) const {
+void EntityItemProperties::copyToEntityItem(EntityItem& modelItem, bool forceCopy) const {
     bool somethingChanged = false;
     if (_positionChanged || forceCopy) {
         modelItem.setPosition(_position / (float) TREE_SCALE);
@@ -1523,8 +1523,8 @@ void ModelItemProperties::copyToModelItem(ModelItem& modelItem, bool forceCopy) 
         somethingChanged = true;
     }
 
-    if (_modelRotationChanged || forceCopy) {
-        modelItem.setModelRotation(_modelRotation);
+    if (_rotationChanged || forceCopy) {
+        modelItem.setRotation(_rotation);
         somethingChanged = true;
     }
 
@@ -1558,20 +1558,20 @@ void ModelItemProperties::copyToModelItem(ModelItem& modelItem, bool forceCopy) 
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - _lastEdited;
-            qDebug() << "ModelItemProperties::copyToModelItem() AFTER update... edited AGO=" << elapsed <<
+            qDebug() << "EntityItemProperties::copyToEntityItem() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " _lastEdited=" << _lastEdited;
         }
         modelItem.setLastEdited(_lastEdited);
     }
 }
 
-void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
+void EntityItemProperties::copyFromEntityItem(const EntityItem& modelItem) {
     _position = modelItem.getPosition() * (float) TREE_SCALE;
     _color = modelItem.getXColor();
     _radius = modelItem.getRadius() * (float) TREE_SCALE;
     _shouldDie = modelItem.getShouldDie();
     _modelURL = modelItem.getModelURL();
-    _modelRotation = modelItem.getModelRotation();
+    _rotation = modelItem.getRotation();
     _animationURL = modelItem.getAnimationURL();
     _animationIsPlaying = modelItem.getAnimationIsPlaying();
     _animationFrameIndex = modelItem.getAnimationFrameIndex();
@@ -1587,7 +1587,7 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     
     _shouldDieChanged = false;
     _modelURLChanged = false;
-    _modelRotationChanged = false;
+    _rotationChanged = false;
     _animationURLChanged = false;
     _animationIsPlayingChanged = false;
     _animationFrameIndexChanged = false;
@@ -1596,16 +1596,16 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _defaultSettings = false;
 }
 
-QScriptValue ModelItemPropertiesToScriptValue(QScriptEngine* engine, const ModelItemProperties& properties) {
+QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties) {
     return properties.copyToScriptValue(engine);
 }
 
-void ModelItemPropertiesFromScriptValue(const QScriptValue &object, ModelItemProperties& properties) {
+void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties) {
     properties.copyFromScriptValue(object);
 }
 
 
-QScriptValue ModelItemIDtoScriptValue(QScriptEngine* engine, const ModelItemID& id) {
+QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID& id) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("id", id.id);
     obj.setProperty("creatorTokenID", id.creatorTokenID);
@@ -1613,7 +1613,7 @@ QScriptValue ModelItemIDtoScriptValue(QScriptEngine* engine, const ModelItemID& 
     return obj;
 }
 
-void ModelItemIDfromScriptValue(const QScriptValue &object, ModelItemID& id) {
+void EntityItemIDfromScriptValue(const QScriptValue &object, EntityItemID& id) {
     id.id = object.property("id").toVariant().toUInt();
     id.creatorTokenID = object.property("creatorTokenID").toVariant().toUInt();
     id.isKnownID = object.property("isKnownID").toVariant().toBool();

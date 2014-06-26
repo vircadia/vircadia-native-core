@@ -57,15 +57,15 @@ void DatagramProcessor::processDatagrams() {
                     Particle::handleAddParticleResponse(incomingPacket);
                     application->getParticles()->getTree()->handleAddParticleResponse(incomingPacket);
                     break;
-                case PacketTypeModelAddResponse:
+                case PacketTypeEntityAddResponse:
                     // this will keep creatorTokenIDs to IDs mapped correctly
-                    ModelItem::handleAddModelResponse(incomingPacket);
-                    application->getModels()->getTree()->handleAddModelResponse(incomingPacket);
+                    EntityItem::handleAddEntityResponse(incomingPacket);
+                    application->getEntities()->getTree()->handleAddEntityResponse(incomingPacket);
                     break;
                 case PacketTypeParticleData:
                 case PacketTypeParticleErase:
-                case PacketTypeModelData:
-                case PacketTypeModelErase:
+                case PacketTypeEntityData:
+                case PacketTypeEntityErase:
                 case PacketTypeVoxelData:
                 case PacketTypeVoxelErase:
                 case PacketTypeOctreeStats:
@@ -151,8 +151,8 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeParticleEditNack:
                     application->_particleEditSender.processNackPacket(incomingPacket);
                     break;
-                case PacketTypeModelEditNack:
-                    application->_modelEditSender.processNackPacket(incomingPacket);
+                case PacketTypeEntityEditNack:
+                    application->_entityEditSender.processNackPacket(incomingPacket);
                     break;
                 default:
                     nodeList->processNodeData(senderSockAddr, incomingPacket);

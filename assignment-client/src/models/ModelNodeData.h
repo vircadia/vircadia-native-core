@@ -1,5 +1,5 @@
 //
-//  ModelNodeData.h
+//  EntityNodeData.h
 //  assignment-client/src/models
 //
 //  Created by Brad Hefta-Gaub on 4/29/14
@@ -9,26 +9,26 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ModelNodeData_h
-#define hifi_ModelNodeData_h
+#ifndef hifi_EntityNodeData_h
+#define hifi_EntityNodeData_h
 
 #include <PacketHeaders.h>
 
 #include "../octree/OctreeQueryNode.h"
 
-class ModelNodeData : public OctreeQueryNode {
+class EntityNodeData : public OctreeQueryNode {
 public:
-    ModelNodeData() :
+    EntityNodeData() :
         OctreeQueryNode(),
-        _lastDeletedModelsSentAt(0) {  };
+        _lastDeletedEntitysSentAt(0) {  };
 
-    virtual PacketType getMyPacketType() const { return PacketTypeModelData; }
+    virtual PacketType getMyPacketType() const { return PacketTypeEntityData; }
 
-    quint64 getLastDeletedModelsSentAt() const { return _lastDeletedModelsSentAt; }
-    void setLastDeletedModelsSentAt(quint64 sentAt) { _lastDeletedModelsSentAt = sentAt; }
+    quint64 getLastDeletedEntitysSentAt() const { return _lastDeletedEntitysSentAt; }
+    void setLastDeletedEntitysSentAt(quint64 sentAt) { _lastDeletedEntitysSentAt = sentAt; }
 
 private:
-    quint64 _lastDeletedModelsSentAt;
+    quint64 _lastDeletedEntitysSentAt;
 };
 
-#endif // hifi_ModelNodeData_h
+#endif // hifi_EntityNodeData_h

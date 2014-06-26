@@ -61,15 +61,15 @@ enum PacketType {
     PacketTypeDomainConnectRequest,
     PacketTypeDomainServerRequireDTLS,
     PacketTypeNodeJsonStats,
-    PacketTypeModelQuery,
-    PacketTypeModelData, // 41
-    PacketTypeModelAddOrEdit,
-    PacketTypeModelErase,
-    PacketTypeModelAddResponse,
+    PacketTypeEntityQuery,
+    PacketTypeEntityData, // 41
+    PacketTypeEntityAddOrEdit,
+    PacketTypeEntityErase,
+    PacketTypeEntityAddResponse,
     PacketTypeOctreeDataNack, // 45
     PacketTypeVoxelEditNack,
     PacketTypeParticleEditNack,
-    PacketTypeModelEditNack,
+    PacketTypeEntityEditNack, // 48
 };
 
 typedef char PacketVersion;
@@ -78,8 +78,8 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
     << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainOAuthRequest
     << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
-    << PacketTypeNodeJsonStats << PacketTypeVoxelQuery << PacketTypeParticleQuery << PacketTypeModelQuery
-    << PacketTypeOctreeDataNack << PacketTypeVoxelEditNack << PacketTypeParticleEditNack << PacketTypeModelEditNack;
+    << PacketTypeNodeJsonStats << PacketTypeVoxelQuery << PacketTypeParticleQuery << PacketTypeEntityQuery
+    << PacketTypeOctreeDataNack << PacketTypeVoxelEditNack << PacketTypeParticleEditNack << PacketTypeEntityEditNack;
 
 const int NUM_BYTES_MD5_HASH = 16;
 const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;

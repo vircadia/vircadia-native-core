@@ -1,5 +1,5 @@
 //
-//  ModelEditPacketSender.h
+//  EntityEditPacketSender.h
 //  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
@@ -9,29 +9,29 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ModelEditPacketSender_h
-#define hifi_ModelEditPacketSender_h
+#ifndef hifi_EntityEditPacketSender_h
+#define hifi_EntityEditPacketSender_h
 
 #include <OctreeEditPacketSender.h>
 
-#include "ModelItem.h"
+#include "EntityItem.h"
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
-class ModelEditPacketSender :  public OctreeEditPacketSender {
+class EntityEditPacketSender :  public OctreeEditPacketSender {
     Q_OBJECT
 public:
     /// Send model add message immediately
-    /// NOTE: ModelItemProperties assumes that all distances are in meter units
-    void sendEditModelMessage(PacketType type, ModelItemID modelID, const ModelItemProperties& properties);
+    /// NOTE: EntityItemProperties assumes that all distances are in meter units
+    void sendEditEntityMessage(PacketType type, EntityItemID modelID, const EntityItemProperties& properties);
 
     /// Queues an array of several voxel edit messages. Will potentially send a pending multi-command packet. Determines
     /// which voxel-server node or nodes the packet should be sent to. Can be called even before voxel servers are known, in
     /// which case up to MaxPendingMessages will be buffered and processed when voxel servers are known.
-    /// NOTE: ModelItemProperties assumes that all distances are in meter units
-    void queueModelEditMessage(PacketType type, ModelItemID modelID, const ModelItemProperties& properties);
+    /// NOTE: EntityItemProperties assumes that all distances are in meter units
+    void queueEntityEditMessage(PacketType type, EntityItemID modelID, const EntityItemProperties& properties);
 
     // My server type is the model server
-    virtual char getMyNodeType() const { return NodeType::ModelServer; }
+    virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 };
-#endif // hifi_ModelEditPacketSender_h
+#endif // hifi_EntityEditPacketSender_h

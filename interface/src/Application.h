@@ -30,7 +30,7 @@
 #include <QUndoStack>
 #include <QSystemTrayIcon>
 
-#include <ModelEditPacketSender.h>
+#include <EntityEditPacketSender.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -63,7 +63,7 @@
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
-#include "models/ModelTreeRenderer.h"
+#include "models/ModelTreeRenderer.h" // rename to "models/EntityTreeRenderer.h"
 #include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
@@ -195,7 +195,7 @@ public:
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
-    ModelTreeRenderer* getModels() { return &_models; }
+    EntityTreeRenderer* getEntities() { return &_entities; }
     bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
@@ -280,7 +280,7 @@ public:
     glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
-    NodeToJurisdictionMap& getModelServerJurisdictions() { return _modelServerJurisdictions; }
+    NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
     void skipVersion(QString latestVersion);
@@ -454,7 +454,7 @@ private:
     ParticleTreeRenderer _particles;
     ParticleCollisionSystem _particleCollisionSystem;
 
-    ModelTreeRenderer _models;
+    EntityTreeRenderer _entities;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
@@ -541,7 +541,7 @@ private:
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
-    ModelEditPacketSender _modelEditSender;
+    EntityEditPacketSender _entityEditSender;
 
     int _packetsPerSecond;
     int _bytesPerSecond;
@@ -554,7 +554,7 @@ private:
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
-    NodeToJurisdictionMap _modelServerJurisdictions;
+    NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     QReadWriteLock _octreeSceneStatsLock;
 

@@ -1,5 +1,5 @@
 //
-//  ModelItem.h
+//  EntityItem.h
 //  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ModelItem_h
-#define hifi_ModelItem_h
+#ifndef hifi_EntityItem_h
+#define hifi_EntityItem_h
 
 #include <glm/glm.hpp>
 #include <stdint.h>
@@ -24,12 +24,12 @@
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
 
-class ModelItem;
-class ModelEditPacketSender;
-class ModelItemProperties;
-class ModelsScriptingInterface;
-class ModelTree;
-class ModelTreeElementExtraEncodeData;
+class EntityItem;
+class EntityEditPacketSender;
+class EntityItemProperties;
+class EntitysScriptingInterface;
+class EntityTree;
+class EntityTreeElementExtraEncodeData;
 class ScriptEngine;
 class VoxelEditPacketSender;
 class VoxelsScriptingInterface;
@@ -58,7 +58,7 @@ const QString MODEL_DEFAULT_ANIMATION_URL("");
 const float MODEL_DEFAULT_ANIMATION_FPS = 30.0f;
 
 // PropertyFlags support
-enum ModelPropertyList {
+enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
     PROP_CUSTOM_PROPERTIES_INCLUDED,
     PROP_VISIBLE,
@@ -76,22 +76,22 @@ enum ModelPropertyList {
     PROP_LAST_ITEM = PROP_SHOULD_BE_DELETED
 };
 
-typedef PropertyFlags<ModelPropertyList> ModelPropertyFlags;
+typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 
 
 /// A collection of properties of a model item used in the scripting API. Translates between the actual properties of a model
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
 /// model item properties via JavaScript hashes/QScriptValues
 /// all units for position, radius, etc are in meter units
-class ModelItemProperties {
+class EntityItemProperties {
 public:
-    ModelItemProperties();
+    EntityItemProperties();
 
     QScriptValue copyToScriptValue(QScriptEngine* engine) const;
     void copyFromScriptValue(const QScriptValue& object);
 
-    void copyToModelItem(ModelItem& modelItem, bool forceCopy = false) const;
-    void copyFromModelItem(const ModelItem& modelItem);
+    void copyToEntityItem(EntityItem& modelItem, bool forceCopy = false) const;
+    void copyFromEntityItem(const EntityItem& modelItem);
 
     const glm::vec3& getPosition() const { return _position; }
     xColor getColor() const { return _color; }
@@ -99,7 +99,7 @@ public:
     bool getShouldDie() const { return _shouldDie; }
     
     const QString& getModelURL() const { return _modelURL; }
-    const glm::quat& getModelRotation() const { return _modelRotation; }
+    const glm::quat& getRotation() const { return _rotation; }
     const QString& getAnimationURL() const { return _animationURL; }
     float getAnimationFrameIndex() const { return _animationFrameIndex; }
     bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
@@ -117,14 +117,14 @@ public:
 
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
-    void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; _modelRotationChanged = true; }
+    void setRotation(const glm::quat& rotation) { _rotation = rotation; _rotationChanged = true; }
     void setAnimationURL(const QString& url) { _animationURL = url; _animationURLChanged = true; }
     void setAnimationFrameIndex(float value) { _animationFrameIndex = value; _animationFrameIndexChanged = true; }
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     
-    /// used by ModelScriptingInterface to return ModelItemProperties for unknown models
+    /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_MODEL_ID; _idSet = true; }
     
     glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
@@ -139,7 +139,7 @@ private:
     bool _shouldDie; /// to delete it
     
     QString _modelURL;
-    glm::quat _modelRotation;
+    glm::quat _rotation;
     QString _animationURL;
     bool _animationIsPlaying;
     float _animationFrameIndex;
@@ -156,7 +156,7 @@ private:
     bool _shouldDieChanged;
 
     bool _modelURLChanged;
-    bool _modelRotationChanged;
+    bool _rotationChanged;
     bool _animationURLChanged;
     bool _animationIsPlayingChanged;
     bool _animationFrameIndexChanged;
@@ -164,23 +164,23 @@ private:
     bool _glowLevelChanged;
     bool _defaultSettings;
 };
-Q_DECLARE_METATYPE(ModelItemProperties);
-QScriptValue ModelItemPropertiesToScriptValue(QScriptEngine* engine, const ModelItemProperties& properties);
-void ModelItemPropertiesFromScriptValue(const QScriptValue &object, ModelItemProperties& properties);
+Q_DECLARE_METATYPE(EntityItemProperties);
+QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties);
 
 
-/// Abstract ID for editing model items. Used in ModelItem JS API - When models are created in the JS api, they are given a
+/// Abstract ID for editing model items. Used in EntityItem JS API - When models are created in the JS api, they are given a
 /// local creatorTokenID, the actual id for the model is not known until the server responds to the creator with the
 /// correct mapping. This class works with the scripting API an allows the developer to edit models they created.
-class ModelItemID {
+class EntityItemID {
 public:
-    ModelItemID() :
+    EntityItemID() :
             id(NEW_MODEL), creatorTokenID(UNKNOWN_MODEL_TOKEN), isKnownID(false) { };
 
-    ModelItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID) :
+    EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID) :
             id(id), creatorTokenID(creatorTokenID), isKnownID(isKnownID) { };
 
-    ModelItemID(uint32_t id) :
+    EntityItemID(uint32_t id) :
             id(id), creatorTokenID(UNKNOWN_MODEL_TOKEN), isKnownID(true) { };
 
     uint32_t id;
@@ -188,18 +188,18 @@ public:
     bool isKnownID;
 };
 
-inline bool operator<(const ModelItemID& a, const ModelItemID& b) {
+inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
     return (a.id == b.id) ? (a.creatorTokenID < b.creatorTokenID) : (a.id < b.id);
 }
 
-inline bool operator==(const ModelItemID& a, const ModelItemID& b) {
+inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
     if (a.id == UNKNOWN_MODEL_ID && b.id == UNKNOWN_MODEL_ID) {
         return a.creatorTokenID == b.creatorTokenID;
     }
     return a.id == b.id;
 }
 
-inline uint qHash(const ModelItemID& a, uint seed) {
+inline uint qHash(const EntityItemID& a, uint seed) {
     qint64 temp;
     if (a.id == UNKNOWN_MODEL_ID) {
         temp = -a.creatorTokenID;
@@ -209,30 +209,30 @@ inline uint qHash(const ModelItemID& a, uint seed) {
     return qHash(temp, seed);
 }
 
-inline QDebug operator<<(QDebug debug, const ModelItemID& id) {
+inline QDebug operator<<(QDebug debug, const EntityItemID& id) {
     debug << "[ id:" << id.id << ", creatorTokenID:" << id.creatorTokenID << "]";
     return debug;
 }
 
-Q_DECLARE_METATYPE(ModelItemID);
-Q_DECLARE_METATYPE(QVector<ModelItemID>);
-QScriptValue ModelItemIDtoScriptValue(QScriptEngine* engine, const ModelItemID& properties);
-void ModelItemIDfromScriptValue(const QScriptValue &object, ModelItemID& properties);
+Q_DECLARE_METATYPE(EntityItemID);
+Q_DECLARE_METATYPE(QVector<EntityItemID>);
+QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID& properties);
+void EntityItemIDfromScriptValue(const QScriptValue &object, EntityItemID& properties);
 
 
 
-/// ModelItem class - this is the actual model item class.
-class ModelItem  {
+/// EntityItem class - this is the actual model item class.
+class EntityItem  {
 
 public:
-    ModelItem();
-    ModelItem(const ModelItemID& modelItemID);
-    ModelItem(const ModelItemID& modelItemID, const ModelItemProperties& properties);
+    EntityItem();
+    EntityItem(const EntityItemID& modelItemID);
+    EntityItem(const EntityItemID& modelItemID, const EntityItemProperties& properties);
     
     /// creates an NEW model from an model add or edit message data buffer
-    static ModelItem fromEditPacket(const unsigned char* data, int length, int& processedBytes, ModelTree* tree, bool& valid);
+    static EntityItem fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid);
 
-    virtual ~ModelItem();
+    virtual ~EntityItem();
 
     quint8 getType() const { return 0; } /// place holder for now
 
@@ -257,13 +257,13 @@ public:
     // model related properties
     bool hasModel() const { return !_modelURL.isEmpty(); }
     const QString& getModelURL() const { return _modelURL; }
-    const glm::quat& getModelRotation() const { return _modelRotation; }
+    const glm::quat& getRotation() const { return _rotation; }
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
     const QString& getAnimationURL() const { return _animationURL; }
     float getGlowLevel() const { return _glowLevel; }
 
-    ModelItemID getModelItemID() const { return ModelItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_MODEL_ID); }
-    ModelItemProperties getProperties() const;
+    EntityItemID getEntityItemID() const { return EntityItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_MODEL_ID); }
+    EntityItemProperties getProperties() const;
 
     /// The last updated/simulated time of this model from the time perspective of the authoritative server/source
     quint64 getLastUpdated() const { return _lastUpdated; }
@@ -298,27 +298,27 @@ public:
     
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; }
-    void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; }
+    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
     void setAnimationURL(const QString& url) { _animationURL = url; }
     void setAnimationFrameIndex(float value) { _animationFrameIndex = value; }
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
     void setAnimationFPS(float value) { _animationFPS = value; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
     
-    void setProperties(const ModelItemProperties& properties, bool forceCopy = false);
+    void setProperties(const EntityItemProperties& properties, bool forceCopy = false);
 
-    OctreeElement::AppendState appendModelData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                                ModelTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;
+    OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
+                                                EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;
 
-    static ModelItemID readModelItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+    static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                     ReadBitstreamToTreeParams& args);
-    int readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+    int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
     /// For reading models from pre V3 bitstreams
-    int oldVersionReadModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+    int oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
 
-    static bool encodeModelEditMessageDetails(PacketType command, ModelItemID id, const ModelItemProperties& details,
+    static bool encodeEntityEditMessageDetails(PacketType command, EntityItemID id, const EntityItemProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
@@ -328,12 +328,12 @@ public:
     void debugDump() const;
 
     // similar to assignment/copy, but it handles keeping lifetime accurate
-    void copyChangedProperties(const ModelItem& other);
+    void copyChangedProperties(const EntityItem& other);
 
     // these methods allow you to create models, and later edit them.
     static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
-    static void handleAddModelResponse(const QByteArray& packet);
+    static void handleAddEntityResponse(const QByteArray& packet);
 
     void mapJoints(const QStringList& modelJointNames);
     QVector<glm::quat> getAnimationFrame();
@@ -346,7 +346,7 @@ public:
     static void cleanupLoadedAnimations();
 
 protected:
-    void initFromModelItemID(const ModelItemID& modelItemID);
+    void initFromEntityItemID(const EntityItemID& modelItemID);
     virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_MODEL);
 
     glm::vec3 _position;
@@ -358,7 +358,7 @@ protected:
 
     // model related items
     QString _modelURL;
-    glm::quat _modelRotation;
+    glm::quat _rotation;
     
     float _glowLevel;
 
@@ -389,4 +389,4 @@ protected:
 
 };
 
-#endif // hifi_ModelItem_h
+#endif // hifi_EntityItem_h

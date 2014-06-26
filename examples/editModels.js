@@ -1,5 +1,5 @@
 //
-//  editModels.js
+//  editEntities.js
 //  examples
 //
 //  Created by Clément Brisset on 4/24/14.
@@ -103,7 +103,7 @@ function controller(wichSide) {
     this.pressing = false; // is trigger being pressed (is pressed now but wasn't previously)
     
     this.grabbing = false;
-    this.modelID = { isKnownID: false };
+    this.entityID = { isKnownID: false };
     this.modelURL = "";
     this.oldModelRotation;
     this.oldModelPosition;
@@ -157,14 +157,14 @@ function controller(wichSide) {
     
 
     
-    this.grab = function (modelID, properties) {
+    this.grab = function (entityID, properties) {
         if (isLocked(properties)) {
-            print("Model locked " + modelID.id);
+            print("Model locked " + entityID.id);
         } else {
-            print("Grabbing " + modelID.id);
+            print("Grabbing " + entityID.id);
         
             this.grabbing = true;
-            this.modelID = modelID;
+            this.entityID = entityID;
             this.modelURL = properties.modelURL;
         
             this.oldModelPosition = properties.position;
@@ -210,7 +210,7 @@ function controller(wichSide) {
                 
                 if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1 ||
                     (leftController.grabbing && rightController.grabbing &&
-                    leftController.modelID.id == rightController.modelID.id)) {
+                    leftController.entityID.id == rightController.entityID.id)) {
                     // Do nothing
                 } else {
                     print("Attaching to " + jointList[closestJointIndex]);
@@ -225,13 +225,13 @@ function controller(wichSide) {
                                     attachmentOffset, attachmentRotation, 2.0 * this.oldModelRadius,
                                     true, false);
                     
-                    Models.deleteModel(this.modelID);
+                    Entities.deleteEntity(this.entityID);
                 }
             }
         }
         
         this.grabbing = false;
-        this.modelID.isKnownID = false;
+        this.entityID.isKnownID = false;
         this.jointsIntersectingFromStart = [];
         this.showLaser(true);
     }
@@ -250,7 +250,7 @@ function controller(wichSide) {
         }
     }
 
-    this.checkModel = function (properties) {
+    this.checkEntity = function (properties) {
         // special case to lock the ground plane model in hq.
         if (isLocked(properties)) {
             return { valid: false };
@@ -320,18 +320,18 @@ function controller(wichSide) {
         this.showLaser(!this.grabbing || mode == 0);
         
         if (this.glowedIntersectingModel.isKnownID) {
-            Models.editModel(this.glowedIntersectingModel, { glowLevel: 0.0 });
+            Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.0 });
             this.glowedIntersectingModel.isKnownID = false;
         }
         if (!this.grabbing) {
-            var intersection = Models.findRayIntersection({
+            var intersection = Entities.findRayIntersection({
                                                           origin: this.palmPosition,
                                                           direction: this.front
                                                           });
-            var angularSize = 2 * Math.atan(intersection.modelProperties.radius / Vec3.distance(Camera.getPosition(), intersection.modelProperties.position)) * 180 / 3.14;
-            if (intersection.accurate && intersection.modelID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
-                this.glowedIntersectingModel = intersection.modelID;
-                Models.editModel(this.glowedIntersectingModel, { glowLevel: 0.25 });
+            var angularSize = 2 * Math.atan(intersection.properties.radius / Vec3.distance(Camera.getPosition(), intersection.properties.position)) * 180 / 3.14;
+            if (intersection.accurate && intersection.entityID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
+                this.glowedIntersectingModel = intersection.entityID;
+                Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.25 });
             }
         }
     }
@@ -343,15 +343,15 @@ function controller(wichSide) {
         Overlays.editOverlay(this.topDown, { visible: show });
     }
     
-    this.moveModel = function () {
+    this.moveEntity = function () {
         if (this.grabbing) {
-            if (!this.modelID.isKnownID) {
-                print("Unknown grabbed ID " + this.modelID.id + ", isKnown: " + this.modelID.isKnownID);
-                this.modelID =  Models.findRayIntersection({
+            if (!this.entityID.isKnownID) {
+                print("Unknown grabbed ID " + this.entityID.id + ", isKnown: " + this.entityID.isKnownID);
+                this.entityID =  Entities.findRayIntersection({
                                                         origin: this.palmPosition,
                                                         direction: this.front
-                                                           }).modelID;
-                print("Identified ID " + this.modelID.id + ", isKnown: " + this.modelID.isKnownID);
+                                                           }).entityID;
+                print("Identified ID " + this.entityID.id + ", isKnown: " + this.entityID.isKnownID);
             }
             var newPosition;
             var newRotation;
@@ -398,7 +398,7 @@ function controller(wichSide) {
                     break;
             }
             
-            Models.editModel(this.modelID, {
+            Entities.editEntity(this.entityID, {
                              position: newPosition,
                              modelRotation: newRotation
                              });
@@ -504,39 +504,39 @@ function controller(wichSide) {
                 radius: attachments[attachmentIndex].scale / 2.0,
                 modelURL: attachments[attachmentIndex].modelURL
                 };
-                newModel = Models.addModel(newProperties);
+                newModel = Entities.addEntity(newProperties);
             } else {
                 // There is none so ...
                 // Checking model tree
                 Vec3.print("Looking at: ", this.palmPosition);
                 var pickRay = { origin: this.palmPosition,
                     direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)) };
-                var foundIntersection = Models.findRayIntersection(pickRay);
+                var foundIntersection = Entities.findRayIntersection(pickRay);
                 
                 if(!foundIntersection.accurate) {
                     print("No accurate intersection");
                     return;
                 }
-                newModel = foundIntersection.modelID;
+                newModel = foundIntersection.entityID;
                 
                 if (!newModel.isKnownID) {
-                    var identify = Models.identifyModel(newModel);
+                    var identify = Entities.identifyEntity(newModel);
                     if (!identify.isKnownID) {
                         print("Unknown ID " + identify.id + " (update loop " + newModel.id + ")");
                         return;
                     }
                     newModel = identify;
                 }
-                newProperties = Models.getModelProperties(newModel);
+                newProperties = Entities.getEntityProperties(newModel);
             }
             
             
-            print("foundModel.modelURL=" + newProperties.modelURL);
+            print("foundEntity.modelURL=" + newProperties.modelURL);
             
             if (isLocked(newProperties)) {
                 print("Model locked " + newProperties.id);
             } else {
-                var check = this.checkModel(newProperties);
+                var check = this.checkEntity(newProperties);
                 if (!check.valid) {
                     return;
                 }
@@ -563,7 +563,7 @@ var leftController = new controller(LEFT);
 var rightController = new controller(RIGHT);
 
 function moveModels() {
-    if (leftController.grabbing && rightController.grabbing && rightController.modelID.id == leftController.modelID.id) {
+    if (leftController.grabbing && rightController.grabbing && rightController.entityID.id == leftController.entityID.id) {
         var newPosition = leftController.oldModelPosition;
         var rotation = leftController.oldModelRotation;
         var ratio = 1;
@@ -619,7 +619,7 @@ function moveModels() {
                 break;
         }
         
-        Models.editModel(leftController.modelID, {
+        Entities.editEntity(leftController.entityID, {
                          position: newPosition,
                          modelRotation: rotation,
                          radius: leftController.oldModelRadius * ratio
@@ -635,8 +635,8 @@ function moveModels() {
         return;
     }
     
-    leftController.moveModel();
-    rightController.moveModel();
+    leftController.moveEntity();
+    rightController.moveEntity();
 }
 
 var hydraConnected = false;
@@ -700,9 +700,9 @@ function moveOverlays() {
 
 
 
-var modelSelected = false;
-var selectedModelID;
-var selectedModelProperties;
+var entitySelected = false;
+var selectedEntityID;
+var selectedEntityProperties;
 var mouseLastPosition;
 var orientation;
 var intersection;
@@ -768,7 +768,7 @@ function mousePressEvent(event) {
     }
     
     mouseLastPosition = { x: event.x, y: event.y };
-    modelSelected = false;
+    entitySelected = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
     if (newModel == toolBar.clicked(clickedOverlay)) {
@@ -780,7 +780,7 @@ function mousePressEvent(event) {
         var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
         
         if (position.x > 0 && position.y > 0 && position.z > 0) {
-            Models.addModel({ position: position,
+            Entities.addEntity({ position: position,
                             radius: radiusDefault,
                             modelURL: url
                             });
@@ -791,23 +791,24 @@ function mousePressEvent(event) {
     } else {
         var pickRay = Camera.computePickRay(event.x, event.y);
         Vec3.print("[Mouse] Looking at: ", pickRay.origin);
-        var foundIntersection = Models.findRayIntersection(pickRay);
-        
+        var foundIntersection = Entities.findRayIntersection(pickRay);
+
         if(!foundIntersection.accurate) {
             return;
         }
-        var foundModel = foundIntersection.modelID;
-        
-        if (!foundModel.isKnownID) {
-            var identify = Models.identifyModel(foundModel);
+        var foundEntity = foundIntersection.entityID;
+
+        if (!foundEntity.isKnownID) {
+            var identify = Entities.identifyEntity(foundEntity);
             if (!identify.isKnownID) {
-                print("Unknown ID " + identify.id + " (update loop " + foundModel.id + ")");
+                print("Unknown ID " + identify.id + " (update loop " + foundEntity.id + ")");
                 return;
             }
-            foundModel = identify;
+            foundEntity = identify;
         }
-        
-        var properties = Models.getModelProperties(foundModel);
+
+        var properties = Entities.getEntityProperties(foundEntity);
+
         if (isLocked(properties)) {
             print("Model locked " + properties.id);
         } else {
@@ -834,9 +835,9 @@ function mousePressEvent(event) {
             var angularSize = 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
             if (0 < x && angularSize > MIN_ANGULAR_SIZE) {
                 if (angularSize < MAX_ANGULAR_SIZE) {
-                    modelSelected = true;
-                    selectedModelID = foundModel;
-                    selectedModelProperties = properties;
+                    entitySelected = true;
+                    selectedEntityID = foundEntity;
+                    selectedEntityProperties = properties;
                     
                     orientation = MyAvatar.orientation;
                     intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
@@ -847,28 +848,28 @@ function mousePressEvent(event) {
         }
     }
     
-    if (modelSelected) {
-        selectedModelProperties.oldRadius = selectedModelProperties.radius;
-        selectedModelProperties.oldPosition = {
-        x: selectedModelProperties.position.x,
-        y: selectedModelProperties.position.y,
-        z: selectedModelProperties.position.z,
+    if (entitySelected) {
+        selectedEntityProperties.oldRadius = selectedEntityProperties.radius;
+        selectedEntityProperties.oldPosition = {
+        x: selectedEntityProperties.position.x,
+        y: selectedEntityProperties.position.y,
+        z: selectedEntityProperties.position.z,
         };
-        selectedModelProperties.oldRotation = {
-        x: selectedModelProperties.modelRotation.x,
-        y: selectedModelProperties.modelRotation.y,
-        z: selectedModelProperties.modelRotation.z,
-        w: selectedModelProperties.modelRotation.w,
+        selectedEntityProperties.oldRotation = {
+        x: selectedEntityProperties.modelRotation.x,
+        y: selectedEntityProperties.modelRotation.y,
+        z: selectedEntityProperties.modelRotation.z,
+        w: selectedEntityProperties.modelRotation.w,
         };
-        selectedModelProperties.glowLevel = 0.0;
+        selectedEntityProperties.glowLevel = 0.0;
         
-        print("Clicked on " + selectedModelID.id + " " +  modelSelected);
-        tooltip.updateText(selectedModelProperties);
+        print("Clicked on " + selectedEntityID.id + " " +  entitySelected);
+        tooltip.updateText(selectedEntityProperties);
         tooltip.show(true);
     }
 }
 
-var glowedModelID = { id: -1, isKnownID: false };
+var glowedEntityID = { id: -1, isKnownID: false };
 var oldModifier = 0;
 var modifier = 0;
 var wasShifted = false;
@@ -879,19 +880,19 @@ function mouseMoveEvent(event)  {
     
     var pickRay = Camera.computePickRay(event.x, event.y);
     
-    if (!modelSelected) {
-        var modelIntersection = Models.findRayIntersection(pickRay);
-        if (modelIntersection.accurate) {
-            if(glowedModelID.isKnownID && glowedModelID.id != modelIntersection.modelID.id) {
-                Models.editModel(glowedModelID, { glowLevel: 0.0 });
-                glowedModelID.id = -1;
-                glowedModelID.isKnownID = false;
+    if (!entitySelected) {
+        var entityIntersection = Entities.findRayIntersection(pickRay);
+        if (entityIntersection.accurate) {
+            if(glowedEntityID.isKnownID && glowedEntityID.id != entityIntersection.entityID.id) {
+                Entities.editEntity(glowedEntityID, { glowLevel: 0.0 });
+                glowedEntityID.id = -1;
+                glowedEntityID.isKnownID = false;
             }
             
-            var angularSize = 2 * Math.atan(modelIntersection.modelProperties.radius / Vec3.distance(Camera.getPosition(), modelIntersection.modelProperties.position)) * 180 / 3.14;
-            if (modelIntersection.modelID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
-                Models.editModel(modelIntersection.modelID, { glowLevel: 0.25 });
-                glowedModelID = modelIntersection.modelID;
+            var angularSize = 2 * Math.atan(entityIntersection.properties.radius / Vec3.distance(Camera.getPosition(), entityIntersection.properties.position)) * 180 / 3.14;
+            if (entityIntersection.entityID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
+                Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
+                glowedEntityID = entityIntersection.entityID;
             }
         }
         return;
@@ -910,22 +911,22 @@ function mouseMoveEvent(event)  {
     }
     pickRay = Camera.computePickRay(event.x, event.y);
     if (wasShifted != event.isShifted || modifier != oldModifier) {
-        selectedModelProperties.oldRadius = selectedModelProperties.radius;
+        selectedEntityProperties.oldRadius = selectedEntityProperties.radius;
         
-        selectedModelProperties.oldPosition = {
-        x: selectedModelProperties.position.x,
-        y: selectedModelProperties.position.y,
-        z: selectedModelProperties.position.z,
+        selectedEntityProperties.oldPosition = {
+        x: selectedEntityProperties.position.x,
+        y: selectedEntityProperties.position.y,
+        z: selectedEntityProperties.position.z,
         };
-        selectedModelProperties.oldRotation = {
-        x: selectedModelProperties.modelRotation.x,
-        y: selectedModelProperties.modelRotation.y,
-        z: selectedModelProperties.modelRotation.z,
-        w: selectedModelProperties.modelRotation.w,
+        selectedEntityProperties.oldRotation = {
+        x: selectedEntityProperties.modelRotation.x,
+        y: selectedEntityProperties.modelRotation.y,
+        z: selectedEntityProperties.modelRotation.z,
+        w: selectedEntityProperties.modelRotation.w,
         };
         orientation = MyAvatar.orientation;
         intersection = rayPlaneIntersection(pickRay,
-                                            selectedModelProperties.oldPosition,
+                                            selectedEntityProperties.oldPosition,
                                             Quat.getFront(orientation));
         
         mouseLastPosition = { x: event.x, y: event.y };
@@ -940,10 +941,10 @@ function mouseMoveEvent(event)  {
             return;
         case 1:
             // Let's Scale
-            selectedModelProperties.radius = (selectedModelProperties.oldRadius *
+            selectedEntityProperties.radius = (selectedEntityProperties.oldRadius *
                                               (1.0 + (mouseLastPosition.y - event.y) / SCALE_FACTOR));
             
-            if (selectedModelProperties.radius < 0.01) {
+            if (selectedEntityProperties.radius < 0.01) {
                 print("Scale too small ... bailling.");
                 return;
             }
@@ -952,7 +953,7 @@ function mouseMoveEvent(event)  {
         case 2:
             // Let's translate
             var newIntersection = rayPlaneIntersection(pickRay,
-                                                       selectedModelProperties.oldPosition,
+                                                       selectedEntityProperties.oldPosition,
                                                        Quat.getFront(orientation));
             var vector = Vec3.subtract(newIntersection, intersection)
             if (event.isShifted) {
@@ -962,15 +963,15 @@ function mouseMoveEvent(event)  {
                                   Vec3.multiply(Quat.getFront(orientation), j));
             }
             
-            selectedModelProperties.position = Vec3.sum(selectedModelProperties.oldPosition, vector);
+            selectedEntityProperties.position = Vec3.sum(selectedEntityProperties.oldPosition, vector);
             break;
         case 3:
             // Let's rotate
             if (somethingChanged) {
-                selectedModelProperties.oldRotation.x = selectedModelProperties.modelRotation.x;
-                selectedModelProperties.oldRotation.y = selectedModelProperties.modelRotation.y;
-                selectedModelProperties.oldRotation.z = selectedModelProperties.modelRotation.z;
-                selectedModelProperties.oldRotation.w = selectedModelProperties.modelRotation.w;
+                selectedEntityProperties.oldRotation.x = selectedEntityProperties.modelRotation.x;
+                selectedEntityProperties.oldRotation.y = selectedEntityProperties.modelRotation.y;
+                selectedEntityProperties.oldRotation.z = selectedEntityProperties.modelRotation.z;
+                selectedEntityProperties.oldRotation.w = selectedEntityProperties.modelRotation.w;
                 mouseLastPosition.x = event.x;
                 mouseLastPosition.y = event.y;
                 somethingChanged = false;
@@ -984,7 +985,7 @@ function mouseMoveEvent(event)  {
             var rotationAxis = (!zIsPressed && xIsPressed) ? { x: 1, y: 0, z: 0 } :
                                (!zIsPressed && !xIsPressed) ? { x: 0, y: 1, z: 0 } :
                                                               { x: 0, y: 0, z: 1 };
-            rotationAxis = Vec3.multiplyQbyV(selectedModelProperties.modelRotation, rotationAxis);
+            rotationAxis = Vec3.multiplyQbyV(selectedEntityProperties.modelRotation, rotationAxis);
             var orthogonalAxis = Vec3.cross(cameraForward, rotationAxis);
             var mouseDelta = { x: event.x - mouseLastPosition
                 .x, y: mouseLastPosition.y - event.y, z: 0 };
@@ -1001,17 +1002,17 @@ function mouseMoveEvent(event)  {
                                                 y: (!zIsPressed && !xIsPressed) ? delta : 0,   // neither is pressed
                                                 z: (zIsPressed && !xIsPressed) ? delta : 0   // z is pressed
                                                 });
-            rotation = Quat.multiply(selectedModelProperties.oldRotation, rotation);
+            rotation = Quat.multiply(selectedEntityProperties.oldRotation, rotation);
             
-            selectedModelProperties.modelRotation.x = rotation.x;
-            selectedModelProperties.modelRotation.y = rotation.y;
-            selectedModelProperties.modelRotation.z = rotation.z;
-            selectedModelProperties.modelRotation.w = rotation.w;
+            selectedEntityProperties.modelRotation.x = rotation.x;
+            selectedEntityProperties.modelRotation.y = rotation.y;
+            selectedEntityProperties.modelRotation.z = rotation.z;
+            selectedEntityProperties.modelRotation.w = rotation.w;
             break;
     }
     
-    Models.editModel(selectedModelID, selectedModelProperties);
-    tooltip.updateText(selectedModelProperties);
+    Entities.editEntity(selectedEntityID, selectedEntityProperties);
+    tooltip.updateText(selectedEntityProperties);
 }
 
 
@@ -1020,14 +1021,14 @@ function mouseReleaseEvent(event) {
         return;
     }
     
-    if (modelSelected) {
+    if (entitySelected) {
         tooltip.show(false);
     }
     
-    modelSelected = false;
+    entitySelected = false;
     
-    glowedModelID.id = -1;
-    glowedModelID.isKnownID = false;
+    glowedEntityID.id = -1;
+    glowedEntityID.isKnownID = false;
 }
 
 // In order for editVoxels and editModels to play nice together, they each check to see if a "delete" menu item already
@@ -1080,38 +1081,38 @@ function handeMenuEvent(menuItem){
     print("menuItemEvent() in JS... menuItem=" + menuItem);
     if (menuItem == "Delete") {
         if (leftController.grabbing) {
-            print("  Delete Model.... leftController.modelID="+ leftController.modelID);
-            Models.deleteModel(leftController.modelID);
+            print("  Delete Model.... leftController.entityID="+ leftController.entityID);
+            Entities.deleteEntity(leftController.entityID);
             leftController.grabbing = false;
         } else if (rightController.grabbing) {
-            print("  Delete Model.... rightController.modelID="+ rightController.modelID);
-            Models.deleteModel(rightController.modelID);
+            print("  Delete Model.... rightController.entityID="+ rightController.entityID);
+            Entities.deleteEntity(rightController.entityID);
             rightController.grabbing = false;
-        } else if (modelSelected) {
-            print("  Delete Model.... selectedModelID="+ selectedModelID);
-            Models.deleteModel(selectedModelID);
-            modelSelected = false;
+        } else if (entitySelected) {
+            print("  Delete Model.... selectedEntityID="+ selectedEntityID);
+            Entities.deleteEntity(selectedEntityID);
+            entitySelected = false;
         } else {
             print("  Delete Model.... not holding...");
         }
     } else if (menuItem == "Edit Properties...") {
         var editModelID = -1;
         if (leftController.grabbing) {
-            print("  Edit Properties.... leftController.modelID="+ leftController.modelID);
-            editModelID = leftController.modelID;
+            print("  Edit Properties.... leftController.entityID="+ leftController.entityID);
+            editModelID = leftController.entityID;
         } else if (rightController.grabbing) {
-            print("  Edit Properties.... rightController.modelID="+ rightController.modelID);
-            editModelID = rightController.modelID;
-        } else if (modelSelected) {
-            print("  Edit Properties.... selectedModelID="+ selectedModelID);
-            editModelID = selectedModelID;
+            print("  Edit Properties.... rightController.entityID="+ rightController.entityID);
+            editModelID = rightController.entityID;
+        } else if (entitySelected) {
+            print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
+            editModelID = selectedEntityID;
         } else {
             print("  Edit Properties.... not holding...");
         }
         if (editModelID != -1) {
             print("  Edit Properties.... about to edit properties...");
             var propertyName = Window.prompt("Which property would you like to change?", "modelURL");
-            var properties = Models.getModelProperties(editModelID);
+            var properties = Entities.getEntityProperties(editModelID);
             var oldValue = properties[propertyName];
             var newValue = Window.prompt("New value for: " + propertyName, oldValue);
             if (newValue != "") {
@@ -1127,7 +1128,7 @@ function handeMenuEvent(menuItem){
                     }
                 }
                 properties[propertyName] = newValue;
-                Models.editModel(editModelID, properties);
+                Entities.editEntity(editModelID, properties);
             }
         }
     }
@@ -1152,10 +1153,10 @@ Controller.keyPressEvent.connect(function(event) {
     }
                                  
     // resets model orientation when holding with mouse
-    if (event.text == "r" && modelSelected) {
-        selectedModelProperties.modelRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 0 });
-        Models.editModel(selectedModelID, selectedModelProperties);
-        tooltip.updateText(selectedModelProperties);
+    if (event.text == "r" && entitySelected) {
+        selectedEntityProperties.modelRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 0 });
+        Entities.editEntity(selectedEntityID, selectedEntityProperties);
+        tooltip.updateText(selectedEntityProperties);
         somethingChanged = true;
     }
 });

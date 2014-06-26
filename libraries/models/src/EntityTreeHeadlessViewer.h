@@ -1,5 +1,5 @@
 //
-//  ModelTreeHeadlessViewer.h
+//  EntityTreeHeadlessViewer.h
 //  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 2/26/14.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ModelTreeHeadlessViewer_h
-#define hifi_ModelTreeHeadlessViewer_h
+#ifndef hifi_EntityTreeHeadlessViewer_h
+#define hifi_EntityTreeHeadlessViewer_h
 
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -19,27 +19,27 @@
 #include <OctreeHeadlessViewer.h>
 #include <ViewFrustum.h>
 
-#include "ModelTree.h"
+#include "EntityTree.h"
 
 // Generic client side Octree renderer class.
-class ModelTreeHeadlessViewer : public OctreeHeadlessViewer {
+class EntityTreeHeadlessViewer : public OctreeHeadlessViewer {
     Q_OBJECT
 public:
-    ModelTreeHeadlessViewer();
-    virtual ~ModelTreeHeadlessViewer();
+    EntityTreeHeadlessViewer();
+    virtual ~EntityTreeHeadlessViewer();
 
-    virtual Octree* createTree() { return new ModelTree(true); }
-    virtual char getMyNodeType() const { return NodeType::ModelServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketTypeModelQuery; }
-    virtual PacketType getExpectedPacketType() const { return PacketTypeModelData; }
+    virtual Octree* createTree() { return new EntityTree(true); }
+    virtual char getMyNodeType() const { return NodeType::EntityServer; }
+    virtual PacketType getMyQueryMessageType() const { return PacketTypeEntityQuery; }
+    virtual PacketType getExpectedPacketType() const { return PacketTypeEntityData; }
 
     void update();
 
-    ModelTree* getTree() { return (ModelTree*)_tree; }
+    EntityTree* getTree() { return (EntityTree*)_tree; }
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
 };
 
-#endif // hifi_ModelTreeHeadlessViewer_h
+#endif // hifi_EntityTreeHeadlessViewer_h

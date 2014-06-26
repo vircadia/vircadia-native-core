@@ -32,7 +32,7 @@ public:
         VoxelServerType,
         ParticleServerType,
         MetavoxelServerType,
-        ModelServerType,
+        EntityServerType,
         AllTypes
     };
 

@@ -1,5 +1,5 @@
 //
-//  ModelTreeRenderer.cpp
+//  EntityTreeRenderer.cpp
 //  interface/src
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
@@ -15,131 +15,131 @@
 
 #include "InterfaceConfig.h"
 #include "Menu.h"
-#include "ModelTreeRenderer.h"
+#include "ModelTreeRenderer.h" // rename to "EntityTreeRenderer.h"
 
-ModelTreeRenderer::ModelTreeRenderer() :
+EntityTreeRenderer::EntityTreeRenderer() :
     OctreeRenderer() {
 }
 
-ModelTreeRenderer::~ModelTreeRenderer() {
+EntityTreeRenderer::~EntityTreeRenderer() {
     clearModelsCache();
 }
 
-void ModelTreeRenderer::clear() {
+void EntityTreeRenderer::clear() {
     OctreeRenderer::clear();
     clearModelsCache();
 }
 
-void ModelTreeRenderer::clearModelsCache() {
-    qDebug() << "ModelTreeRenderer::clearModelsCache()...";
+void EntityTreeRenderer::clearModelsCache() {
+    qDebug() << "EntityTreeRenderer::clearModelsCache()...";
     
-    // delete the models in _knownModelsItemModels
-    foreach(Model* model, _knownModelsItemModels) {
+    // delete the models in _knownEntityItemModels
+    foreach(Model* model, _knownEntityItemModels) {
         delete model;
     }
-    _knownModelsItemModels.clear();
+    _knownEntityItemModels.clear();
 
-    foreach(Model* model, _unknownModelsItemModels) {
+    foreach(Model* model, _unknownEntityItemModels) {
         delete model;
     }
-    _unknownModelsItemModels.clear();
+    _unknownEntityItemModels.clear();
 }
 
-void ModelTreeRenderer::init() {
+void EntityTreeRenderer::init() {
     OctreeRenderer::init();
-    static_cast<ModelTree*>(_tree)->setFBXService(this);
+    static_cast<EntityTree*>(_tree)->setFBXService(this);
 }
 
-void ModelTreeRenderer::setTree(Octree* newTree) {
+void EntityTreeRenderer::setTree(Octree* newTree) {
     OctreeRenderer::setTree(newTree);
-    static_cast<ModelTree*>(_tree)->setFBXService(this);
+    static_cast<EntityTree*>(_tree)->setFBXService(this);
 }
 
-void ModelTreeRenderer::update() {
+void EntityTreeRenderer::update() {
     if (_tree) {
-        ModelTree* tree = static_cast<ModelTree*>(_tree);
+        EntityTree* tree = static_cast<EntityTree*>(_tree);
         tree->update();
     }
 }
 
-void ModelTreeRenderer::render(RenderMode renderMode) {
+void EntityTreeRenderer::render(RenderMode renderMode) {
     OctreeRenderer::render(renderMode);
 }
 
-const FBXGeometry* ModelTreeRenderer::getGeometryForModel(const ModelItem& modelItem) {
+const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem& entityItem) {
     const FBXGeometry* result = NULL;
     
-    Model* model = getModel(modelItem);
+    Model* model = getModel(entityItem);
     if (model) {
         result = &model->getGeometry()->getFBXGeometry();
     }
     return result;
 }
 
-Model* ModelTreeRenderer::getModel(const ModelItem& modelItem) {
+Model* EntityTreeRenderer::getModel(const EntityItem& entityItem) {
     Model* model = NULL;
 
-    if (modelItem.isKnownID()) {
-        if (_knownModelsItemModels.find(modelItem.getID()) != _knownModelsItemModels.end()) {
-            model = _knownModelsItemModels[modelItem.getID()];
-            if (QUrl(modelItem.getModelURL()) != model->getURL()) {
+    if (entityItem.isKnownID()) {
+        if (_knownEntityItemModels.find(entityItem.getID()) != _knownEntityItemModels.end()) {
+            model = _knownEntityItemModels[entityItem.getID()];
+            if (QUrl(entityItem.getModelURL()) != model->getURL()) {
                 delete model; // delete the old model...
                 model = NULL;
-                _knownModelsItemModels.remove(modelItem.getID());
+                _knownEntityItemModels.remove(entityItem.getID());
             }
         }
 
         // if we don't have a model...        
         if (!model) {
-            // Make sure we only create new models on the thread that owns the ModelTreeRenderer
+            // Make sure we only create new models on the thread that owns the EntityTreeRenderer
             if (QThread::currentThread() != thread()) {
                 QMetaObject::invokeMethod(this, "getModel", Qt::BlockingQueuedConnection,
-                    Q_RETURN_ARG(Model*, model), Q_ARG(const ModelItem&, modelItem));
+                    Q_RETURN_ARG(Model*, model), Q_ARG(const EntityItem&, entityItem));
                 return model;
             }
 
             model = new Model();
             model->init();
-            model->setURL(QUrl(modelItem.getModelURL()));
-            _knownModelsItemModels[modelItem.getID()] = model;
+            model->setURL(QUrl(entityItem.getModelURL()));
+            _knownEntityItemModels[entityItem.getID()] = model;
         }
         
     } else {
-        if (_unknownModelsItemModels.find(modelItem.getCreatorTokenID()) != _unknownModelsItemModels.end()) {
-            model = _unknownModelsItemModels[modelItem.getCreatorTokenID()];
-            if (QUrl(modelItem.getModelURL()) != model->getURL()) {
+        if (_unknownEntityItemModels.find(entityItem.getCreatorTokenID()) != _unknownEntityItemModels.end()) {
+            model = _unknownEntityItemModels[entityItem.getCreatorTokenID()];
+            if (QUrl(entityItem.getModelURL()) != model->getURL()) {
                 delete model; // delete the old model...
                 model = NULL;
-                _unknownModelsItemModels.remove(modelItem.getID());
+                _unknownEntityItemModels.remove(entityItem.getID());
             }
         }
 
         if (!model) {
-            // Make sure we only create new models on the thread that owns the ModelTreeRenderer
+            // Make sure we only create new models on the thread that owns the EntityTreeRenderer
             if (QThread::currentThread() != thread()) {
                 QMetaObject::invokeMethod(this, "getModel", Qt::BlockingQueuedConnection,
-                    Q_RETURN_ARG(Model*, model), Q_ARG(const ModelItem&, modelItem));
+                    Q_RETURN_ARG(Model*, model), Q_ARG(const EntityItem&, entityItem));
                 return model;
             }
     
             model = new Model();
             model->init();
-            model->setURL(QUrl(modelItem.getModelURL()));
-            _unknownModelsItemModels[modelItem.getCreatorTokenID()] = model;
+            model->setURL(QUrl(entityItem.getModelURL()));
+            _unknownEntityItemModels[entityItem.getCreatorTokenID()] = model;
         }
     }
     return model;
 }
 
-void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
+void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
     args->_elementsTouched++;
     // actually render it here...
-    // we need to iterate the actual modelItems of the element
-    ModelTreeElement* modelTreeElement = (ModelTreeElement*)element;
+    // we need to iterate the actual entityItems of the element
+    EntityTreeElement* entityTreeElement = (EntityTreeElement*)element;
 
-    QList<ModelItem>& modelItems = modelTreeElement->getModels();
+    QList<EntityItem>& entityItems = entityTreeElement->getEntities();
 
-    uint16_t numberOfModels = modelItems.size();
+    uint16_t numberOfEntities = entityItems.size();
     
     bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
 
@@ -148,9 +148,9 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
     bool displayElementChildProxies = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelElementChildProxies);
 
 
-    if (!isShadowMode && displayElementProxy && numberOfModels > 0) {
-        glm::vec3 elementCenter = modelTreeElement->getAACube().calcCenter() * (float)TREE_SCALE;
-        float elementSize = modelTreeElement->getScale() * (float)TREE_SCALE;
+    if (!isShadowMode && displayElementProxy && numberOfEntities > 0) {
+        glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter() * (float)TREE_SCALE;
+        float elementSize = entityTreeElement->getScale() * (float)TREE_SCALE;
         glColor3f(1.0f, 0.0f, 0.0f);
         glPushMatrix();
             glTranslatef(elementCenter.x, elementCenter.y, elementCenter.z);
@@ -212,17 +212,17 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
 
     }
 
-    for (uint16_t i = 0; i < numberOfModels; i++) {
-        ModelItem& modelItem = modelItems[i];
-        // render modelItem aspoints
-        AACube modelCube = modelItem.getAACube();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
+        EntityItem& entityItem = entityItems[i];
+        // render entityItem aspoints
+        AACube modelCube = entityItem.getAACube();
         modelCube.scale(TREE_SCALE);
         if (args->_viewFrustum->cubeInFrustum(modelCube) != ViewFrustum::OUTSIDE) {
-            glm::vec3 position = modelItem.getPosition() * (float)TREE_SCALE;
-            float radius = modelItem.getRadius() * (float)TREE_SCALE;
-            float size = modelItem.getSize() * (float)TREE_SCALE;
+            glm::vec3 position = entityItem.getPosition() * (float)TREE_SCALE;
+            float radius = entityItem.getRadius() * (float)TREE_SCALE;
+            float size = entityItem.getSize() * (float)TREE_SCALE;
 
-            bool drawAsModel = modelItem.hasModel();
+            bool drawAsModel = entityItem.hasModel();
 
             args->_itemsRendered++;
 
@@ -231,27 +231,27 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                 {
                     const float alpha = 1.0f;
                 
-                    Model* model = getModel(modelItem);
+                    Model* model = getModel(entityItem);
                     
                     if (model) {
                         model->setScaleToFit(true, radius * 2.0f);
                         model->setSnapModelToCenter(true);
                 
                         // set the rotation
-                        glm::quat rotation = modelItem.getModelRotation();
+                        glm::quat rotation = entityItem.getRotation();
                         model->setRotation(rotation);
                 
                         // set the position
                         model->setTranslation(position);
                     
                         // handle animations..
-                        if (modelItem.hasAnimation()) {
-                            if (!modelItem.jointsMapped()) {
+                        if (entityItem.hasAnimation()) {
+                            if (!entityItem.jointsMapped()) {
                                 QStringList modelJointNames = model->getJointNames();
-                                modelItem.mapJoints(modelJointNames);
+                                entityItem.mapJoints(modelJointNames);
                             }
 
-                            QVector<glm::quat> frameData = modelItem.getAnimationFrame();
+                            QVector<glm::quat> frameData = entityItem.getAnimationFrame();
                             for (int i = 0; i < frameData.size(); i++) {
                                 model->setJointState(i, true, frameData[i]);
                             }
@@ -260,18 +260,18 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                         // make sure to simulate so everything gets set up correctly for rendering
                         model->simulate(0.0f);
 
-                        // TODO: should we allow modelItems to have alpha on their models?
+                        // TODO: should we allow entityItems to have alpha on their models?
                         Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
                                                                 ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
                 
-                        if (modelItem.getGlowLevel() > 0.0f) {
-                            Glower glower(modelItem.getGlowLevel());
+                        if (entityItem.getGlowLevel() > 0.0f) {
+                            Glower glower(entityItem.getGlowLevel());
                             
                             if (model->isActive()) {
                                 model->render(alpha, modelRenderMode);
                             } else {
                                 // if we couldn't get a model, then just draw a sphere
-                                glColor3ub(modelItem.getColor()[RED_INDEX],modelItem.getColor()[GREEN_INDEX],modelItem.getColor()[BLUE_INDEX]);
+                                glColor3ub(entityItem.getColor()[RED_INDEX],entityItem.getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
                                 glPushMatrix();
                                     glTranslatef(position.x, position.y, position.z);
                                     glutSolidSphere(radius, 15, 15);
@@ -282,7 +282,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                                 model->render(alpha, modelRenderMode);
                             } else {
                                 // if we couldn't get a model, then just draw a sphere
-                                glColor3ub(modelItem.getColor()[RED_INDEX],modelItem.getColor()[GREEN_INDEX],modelItem.getColor()[BLUE_INDEX]);
+                                glColor3ub(entityItem.getColor()[RED_INDEX],entityItem.getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
                                 glPushMatrix();
                                     glTranslatef(position.x, position.y, position.z);
                                     glutSolidSphere(radius, 15, 15);
@@ -333,7 +333,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                         }
                     } else {
                         // if we couldn't get a model, then just draw a sphere
-                        glColor3ub(modelItem.getColor()[RED_INDEX],modelItem.getColor()[GREEN_INDEX],modelItem.getColor()[BLUE_INDEX]);
+                        glColor3ub(entityItem.getColor()[RED_INDEX],entityItem.getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
                         glPushMatrix();
                             glTranslatef(position.x, position.y, position.z);
                             glutSolidSphere(radius, 15, 15);
@@ -342,7 +342,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
                 }
                 glPopMatrix();
             } else {
-                //glColor3ub(modelItem.getColor()[RED_INDEX],modelItem.getColor()[GREEN_INDEX],modelItem.getColor()[BLUE_INDEX]);
+                //glColor3ub(entityItem.getColor()[RED_INDEX],entityItem.getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
                 glColor3f(1.0f, 0.0f, 0.0f);
                 glPushMatrix();
                     glTranslatef(position.x, position.y, position.z);
@@ -355,15 +355,15 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
     }
 }
 
-float ModelTreeRenderer::getSizeScale() const { 
+float EntityTreeRenderer::getSizeScale() const { 
     return Menu::getInstance()->getVoxelSizeScale();
 }
 
-int ModelTreeRenderer::getBoundaryLevelAdjust() const { 
+int EntityTreeRenderer::getBoundaryLevelAdjust() const { 
     return Menu::getInstance()->getBoundaryLevelAdjust();
 }
 
 
-void ModelTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-    static_cast<ModelTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
+void EntityTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+    static_cast<EntityTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
 }

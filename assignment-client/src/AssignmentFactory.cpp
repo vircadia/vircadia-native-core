@@ -42,8 +42,8 @@ ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet
             return new ParticleServer(packet);
         case Assignment::MetavoxelServerType:
             return new MetavoxelServer(packet);
-        case Assignment::ModelServerType:
-            return new ModelServer(packet);
+        case Assignment::EntityServerType:
+            return new EntityServer(packet);
         default:
             return NULL;
     }

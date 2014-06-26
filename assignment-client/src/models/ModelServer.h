@@ -1,5 +1,5 @@
 //
-//  ModelServer.h
+//  EntityServer.h
 //  assignment-client/src/models
 //
 //  Created by Brad Hefta-Gaub on 4/29/14
@@ -9,43 +9,43 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ModelServer_h
-#define hifi_ModelServer_h
+#ifndef hifi_EntityServer_h
+#define hifi_EntityServer_h
 
 #include "../octree/OctreeServer.h"
 
-#include "ModelItem.h"
-#include "ModelServerConsts.h"
-#include "ModelTree.h"
+#include "EntityItem.h"
+#include "ModelServerConsts.h" // rename to ""EntityServerConsts.h"
+#include "EntityTree.h"
 
-/// Handles assignments of type ModelServer - sending models to various clients.
-class ModelServer : public OctreeServer, public NewlyCreatedModelHook {
+/// Handles assignments of type EntityServer - sending models to various clients.
+class EntityServer : public OctreeServer, public NewlyCreatedEntityHook {
     Q_OBJECT
 public:
-    ModelServer(const QByteArray& packet);
-    ~ModelServer();
+    EntityServer(const QByteArray& packet);
+    ~EntityServer();
 
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode();
     virtual Octree* createTree();
-    virtual char getMyNodeType() const { return NodeType::ModelServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketTypeModelQuery; }
+    virtual char getMyNodeType() const { return NodeType::EntityServer; }
+    virtual PacketType getMyQueryMessageType() const { return PacketTypeEntityQuery; }
     virtual const char* getMyServerName() const { return MODEL_SERVER_NAME; }
     virtual const char* getMyLoggingServerTargetName() const { return MODEL_SERVER_LOGGING_TARGET_NAME; }
     virtual const char* getMyDefaultPersistFilename() const { return LOCAL_MODELS_PERSIST_FILE; }
-    virtual PacketType getMyEditNackType() const { return PacketTypeModelEditNack; }
+    virtual PacketType getMyEditNackType() const { return PacketTypeEntityEditNack; }
 
     // subclass may implement these method
     virtual void beforeRun();
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node);
     virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent);
 
-    virtual void modelCreated(const ModelItem& newModel, const SharedNodePointer& senderNode);
+    virtual void modelCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
 public slots:
-    void pruneDeletedModels();
+    void pruneDeletedEntitys();
 
 private:
 };
 
-#endif // hifi_ModelServer_h
+#endif // hifi_EntityServer_h

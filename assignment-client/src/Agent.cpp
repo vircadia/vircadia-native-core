@@ -27,7 +27,7 @@
 #include <VoxelConstants.h>
 
 #include <ParticlesScriptingInterface.h> // TODO: consider moving to scriptengine.h
-#include <ModelsScriptingInterface.h> // TODO: consider moving to scriptengine.h
+#include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "Agent.h"
 
@@ -35,7 +35,7 @@ Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
     _particleEditSender(),
-    _modelEditSender(),
+    _entityEditSender(),
     _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO),
     _avatarHashMap()
 {
@@ -44,7 +44,7 @@ Agent::Agent(const QByteArray& packet) :
     
     _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
-    _scriptEngine.getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
+    _scriptEngine.getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
 }
 
 void Agent::readPendingDatagrams() {
@@ -72,8 +72,8 @@ void Agent::readPendingDatagrams() {
                             _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->
                                                                 queueReceivedPacket(matchedNode, receivedPacket);
                             break;
-                        case NodeType::ModelServer:
-                            _scriptEngine.getModelsScriptingInterface()->getJurisdictionListener()->
+                        case NodeType::EntityServer:
+                            _scriptEngine.getEntityScriptingInterface()->getJurisdictionListener()->
                                                                 queueReceivedPacket(matchedNode, receivedPacket);
                             break;
                     }
@@ -90,12 +90,12 @@ void Agent::readPendingDatagrams() {
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
                 sourceNode->setLastHeardMicrostamp(usecTimestampNow());
 
-            } else if (datagramPacketType == PacketTypeModelAddResponse) {
+            } else if (datagramPacketType == PacketTypeEntityAddResponse) {
                 // this will keep creatorTokenIDs to IDs mapped correctly
-                ModelItem::handleAddModelResponse(receivedPacket);
+                EntityItem::handleAddEntityResponse(receivedPacket);
                 
                 // also give our local particle tree a chance to remap any internal locally created particles
-                _modelViewer.getTree()->handleAddModelResponse(receivedPacket);
+                _entityViewer.getTree()->handleAddEntityResponse(receivedPacket);
 
                 // Make sure our Node and NodeList knows we've heard from this node.
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
@@ -105,8 +105,8 @@ void Agent::readPendingDatagrams() {
                         || datagramPacketType == PacketTypeParticleErase
                         || datagramPacketType == PacketTypeOctreeStats
                         || datagramPacketType == PacketTypeVoxelData
-                        || datagramPacketType == PacketTypeModelData
-                        || datagramPacketType == PacketTypeModelErase
+                        || datagramPacketType == PacketTypeEntityData
+                        || datagramPacketType == PacketTypeEntityErase
             ) {
                 // Make sure our Node and NodeList knows we've heard from this node.
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
@@ -138,8 +138,8 @@ void Agent::readPendingDatagrams() {
                     _particleViewer.processDatagram(mutablePacket, sourceNode);
                 }
 
-                if (datagramPacketType == PacketTypeModelData || datagramPacketType == PacketTypeModelErase) {
-                    _modelViewer.processDatagram(mutablePacket, sourceNode);
+                if (datagramPacketType == PacketTypeEntityData || datagramPacketType == PacketTypeEntityErase) {
+                    _entityViewer.processDatagram(mutablePacket, sourceNode);
                 }
                 
                 if (datagramPacketType == PacketTypeVoxelData) {
@@ -185,7 +185,7 @@ void Agent::run() {
                                                  << NodeType::AvatarMixer
                                                  << NodeType::VoxelServer
                                                  << NodeType::ParticleServer
-                                                 << NodeType::ModelServer
+                                                 << NodeType::EntityServer
                                                 );
     
     // figure out the URL for the script for this agent assignment
@@ -252,11 +252,11 @@ void Agent::run() {
     _particleViewer.init();
     _scriptEngine.getParticlesScriptingInterface()->setParticleTree(_particleViewer.getTree());
 
-    _scriptEngine.registerGlobalObject("ModelViewer", &_modelViewer);
-    JurisdictionListener* modelJL = _scriptEngine.getModelsScriptingInterface()->getJurisdictionListener();
-    _modelViewer.setJurisdictionListener(modelJL);
-    _modelViewer.init();
-    _scriptEngine.getModelsScriptingInterface()->setModelTree(_modelViewer.getTree());
+    _scriptEngine.registerGlobalObject("EntityViewer", &_entityViewer);
+    JurisdictionListener* modelJL = _scriptEngine.getEntityScriptingInterface()->getJurisdictionListener();
+    _entityViewer.setJurisdictionListener(modelJL);
+    _entityViewer.init();
+    _scriptEngine.getEntityScriptingInterface()->setEntityTree(_entityViewer.getTree());
 
     _scriptEngine.setScriptContents(scriptContents);
     _scriptEngine.run();

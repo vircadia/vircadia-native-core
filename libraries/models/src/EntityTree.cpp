@@ -1,5 +1,5 @@
 //
-//  ModelTree.cpp
+//  EntityTree.cpp
 //  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
@@ -9,74 +9,74 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ModelTree.h"
+#include "EntityTree.h"
 
-ModelTree::ModelTree(bool shouldReaverage) : Octree(shouldReaverage) {
+EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage) {
     _rootElement = createNewElement();
 }
 
-ModelTreeElement* ModelTree::createNewElement(unsigned char * octalCode) {
-    ModelTreeElement* newElement = new ModelTreeElement(octalCode);
+EntityTreeElement* EntityTree::createNewElement(unsigned char * octalCode) {
+    EntityTreeElement* newElement = new EntityTreeElement(octalCode);
     newElement->setTree(this);
     return newElement;
 }
 
-void ModelTree::eraseAllOctreeElements() {
+void EntityTree::eraseAllOctreeElements() {
     _modelToElementMap.clear();
     Octree::eraseAllOctreeElements();
 }
 
-bool ModelTree::handlesEditPacketType(PacketType packetType) const {
+bool EntityTree::handlesEditPacketType(PacketType packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PacketTypeModelAddOrEdit:
-        case PacketTypeModelErase:
+        case PacketTypeEntityAddOrEdit:
+        case PacketTypeEntityErase:
             return true;
         default:
             return false;
     }
 }
 
-class StoreModelOperator : public RecurseOctreeOperator {
+class StoreEntityOperator : public RecurseOctreeOperator {
 public:
-    StoreModelOperator(ModelTree* tree, const ModelItem& searchModel);
+    StoreEntityOperator(EntityTree* tree, const EntityItem& searchEntity);
     virtual bool PreRecursion(OctreeElement* element);
     virtual bool PostRecursion(OctreeElement* element);
     virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex);
 private:
-    ModelTree* _tree;
-    const ModelItem& _newModel;
-    const ModelItem* _oldModel;
-    ModelTreeElement* _containingElement;
+    EntityTree* _tree;
+    const EntityItem& _newEntity;
+    const EntityItem* _oldEntity;
+    EntityTreeElement* _containingElement;
     bool _foundOld;
     bool _foundNew;
     quint64 _changeTime;
 
-    bool subTreeContainsOldModel(OctreeElement* element);
-    bool subTreeContainsNewModel(OctreeElement* element);
+    bool subTreeContainsOldEntity(OctreeElement* element);
+    bool subTreeContainsNewEntity(OctreeElement* element);
 };
 
-StoreModelOperator::StoreModelOperator(ModelTree* tree, const ModelItem& searchModel) :
+StoreEntityOperator::StoreEntityOperator(EntityTree* tree, const EntityItem& searchEntity) :
     _tree(tree),
-    _newModel(searchModel),
-    _oldModel(NULL),
+    _newEntity(searchEntity),
+    _oldEntity(NULL),
     _containingElement(NULL),
     _foundOld(false),
     _foundNew(false),
     _changeTime(usecTimestampNow())
 {
     // check our tree, to determine if this model is known
-    _containingElement = _tree->getContainingElement(searchModel.getModelItemID());
+    _containingElement = _tree->getContainingElement(searchEntity.getEntityItemID());
     if (_containingElement) {
-        _oldModel = _containingElement->getModelWithModelItemID(searchModel.getModelItemID());
-        if (!_oldModel) {
-            //assert(_oldModel);
-            qDebug() << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldModel!";
+        _oldEntity = _containingElement->getEntityWithEntityItemID(searchEntity.getEntityItemID());
+        if (!_oldEntity) {
+            //assert(_oldEntity);
+            qDebug() << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldEntity!";
         }
         
         // If this containing element would be the best fit for our new model, then just do the new
         // portion of the store pass, since the change path will be the same for both parts of the update
-        if (_containingElement->bestFitModelBounds(_newModel)) {
+        if (_containingElement->bestFitEntityBounds(_newEntity)) {
             _foundOld = true;
         }
     } else {
@@ -87,28 +87,28 @@ StoreModelOperator::StoreModelOperator(ModelTree* tree, const ModelItem& searchM
 }
 
 // does this model tree element contain the old model
-bool StoreModelOperator::subTreeContainsOldModel(OctreeElement* element) {
-    bool containsModel = false;
+bool StoreEntityOperator::subTreeContainsOldEntity(OctreeElement* element) {
+    bool containsEntity = false;
 
     // If we don't have an old model, then we don't contain the model, otherwise
     // check the bounds
-    if (_oldModel) {
+    if (_oldEntity) {
         AACube elementCube = element->getAACube();
-        AACube modelCube = _oldModel->getAACube();
-        containsModel = elementCube.contains(modelCube);
+        AACube modelCube = _oldEntity->getAACube();
+        containsEntity = elementCube.contains(modelCube);
     }
-    return containsModel;
+    return containsEntity;
 }
 
-bool StoreModelOperator::subTreeContainsNewModel(OctreeElement* element) {
+bool StoreEntityOperator::subTreeContainsNewEntity(OctreeElement* element) {
     AACube elementCube = element->getAACube();
-    AACube modelCube = _newModel.getAACube();
+    AACube modelCube = _newEntity.getAACube();
     return elementCube.contains(modelCube);
 }
 
 
-bool StoreModelOperator::PreRecursion(OctreeElement* element) {
-    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+bool StoreEntityOperator::PreRecursion(OctreeElement* element) {
+    EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
     // path of the tree. For this operation, we want to recurse the branch of the tree if
@@ -123,23 +123,23 @@ bool StoreModelOperator::PreRecursion(OctreeElement* element) {
     
     // If we haven't yet found the old model, and this subTreeContains our old
     // model, then we need to keep searching.
-    if (!_foundOld && subTreeContainsOldModel(element)) {
+    if (!_foundOld && subTreeContainsOldEntity(element)) {
         
         // If this is the element we're looking for, then ask it to remove the old model
         // and we can stop searching.
         if (modelTreeElement == _containingElement) {
         
             // If the containgElement IS NOT the best fit for the new model properties
-            // then we need to remove it, and the updateModel below will store it in the
+            // then we need to remove it, and the updateEntity below will store it in the
             // correct element.
-            if (!_containingElement->bestFitModelBounds(_newModel)) {
-                modelTreeElement->removeModelWithModelItemID(_newModel.getModelItemID());
+            if (!_containingElement->bestFitEntityBounds(_newEntity)) {
+                modelTreeElement->removeEntityWithEntityItemID(_newEntity.getEntityItemID());
                 
                 // If we haven't yet found the new location, then we need to 
                 // make sure to remove our model to element map, because for
                 // now we're not in that map
                 if (!_foundNew) {
-                    _tree->setContainingElement(_newModel.getModelItemID(), NULL);
+                    _tree->setContainingElement(_newEntity.getEntityItemID(), NULL);
                 }
             }
             _foundOld = true;
@@ -151,12 +151,12 @@ bool StoreModelOperator::PreRecursion(OctreeElement* element) {
 
     // If we haven't yet found the new model,  and this subTreeContains our new
     // model, then we need to keep searching.
-    if (!_foundNew && subTreeContainsNewModel(element)) {
+    if (!_foundNew && subTreeContainsNewEntity(element)) {
     
-        // Note: updateModel() will only operate on correctly found models and/or add them
+        // Note: updateEntity() will only operate on correctly found models and/or add them
         // to the element if they SHOULD be stored there.
-        if (modelTreeElement->updateModel(_newModel)) {
-            //qDebug() << "StoreModelOperator::PreRecursion()... model was updated!";
+        if (modelTreeElement->updateEntity(_newEntity)) {
+            //qDebug() << "StoreEntityOperator::PreRecursion()... model was updated!";
             _foundNew = true;
             // NOTE: don't change the keepSearching here, if it came in here
             // false then we stay false, if it came in here true, then it
@@ -171,7 +171,7 @@ bool StoreModelOperator::PreRecursion(OctreeElement* element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool StoreModelOperator::PostRecursion(OctreeElement* element) {
+bool StoreEntityOperator::PostRecursion(OctreeElement* element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old model and one for the new model.
@@ -179,21 +179,21 @@ bool StoreModelOperator::PostRecursion(OctreeElement* element) {
 
     // As we unwind, if we're in either of these two paths, we mark our element
     // as dirty.
-    if ((_foundOld && subTreeContainsOldModel(element)) ||
-            (_foundNew && subTreeContainsNewModel(element))) {
+    if ((_foundOld && subTreeContainsOldEntity(element)) ||
+            (_foundNew && subTreeContainsNewEntity(element))) {
         element->markWithChangedTime();
     }
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-OctreeElement* StoreModelOperator::PossiblyCreateChildAt(OctreeElement* element, int childIndex) { 
+OctreeElement* StoreEntityOperator::PossiblyCreateChildAt(OctreeElement* element, int childIndex) { 
     // If we're getting called, it's because there was no child element at this index while recursing.
     // We only care if this happens while still searching for the new model location.
     // Check to see if 
     if (!_foundNew) {
-        int indexOfChildContainingNewModel = element->getMyChildContaining(_newModel.getAACube());
+        int indexOfChildContainingNewEntity = element->getMyChildContaining(_newEntity.getAACube());
         
-        if (childIndex == indexOfChildContainingNewModel) {
+        if (childIndex == indexOfChildContainingNewEntity) {
             return element->addChildAtIndex(childIndex);
         }
     }
@@ -201,120 +201,120 @@ OctreeElement* StoreModelOperator::PossiblyCreateChildAt(OctreeElement* element,
 }
 
 
-void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& senderNode) {
+void EntityTree::storeEntity(const EntityItem& model, const SharedNodePointer& senderNode) {
     // NOTE: callers must lock the tree before using this method
 
     // First, look for the existing model in the tree..
-    StoreModelOperator theOperator(this, model);
+    StoreEntityOperator theOperator(this, model);
 
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
 
     bool wantDebug = false;
     if (wantDebug) {
-        ModelTreeElement* containingElement = getContainingElement(model.getModelItemID());
-        qDebug() << "ModelTree::storeModel().... after store... containingElement=" << containingElement;
+        EntityTreeElement* containingElement = getContainingElement(model.getEntityItemID());
+        qDebug() << "EntityTree::storeEntity().... after store... containingElement=" << containingElement;
     }
 
 }
 
-void ModelTree::updateModel(const ModelItemID& modelID, const ModelItemProperties& properties) {
-    ModelItem updateItem(modelID);
+void EntityTree::updateEntity(const EntityItemID& modelID, const EntityItemProperties& properties) {
+    EntityItem updateItem(modelID);
 
     bool wantDebug = false;
     if (wantDebug) {    
-        qDebug() << "ModelTree::updateModel(modelID, properties) line:" << __LINE__ << "updateItem:";
+        qDebug() << "EntityTree::updateEntity(modelID, properties) line:" << __LINE__ << "updateItem:";
         updateItem.debugDump();
     }
     
     // since the properties might not be complete, they may only contain some values,
     // we need to first see if we already have the model in our tree, and make a copy of
     // its existing properties first
-    ModelTreeElement* containingElement = getContainingElement(modelID);
+    EntityTreeElement* containingElement = getContainingElement(modelID);
 
     if (wantDebug) {    
-        qDebug() << "ModelTree::updateModel(modelID, properties) containingElement=" << containingElement;
+        qDebug() << "EntityTree::updateEntity(modelID, properties) containingElement=" << containingElement;
     }
 
     if (containingElement) {
-        const ModelItem* oldModel = containingElement->getModelWithModelItemID(modelID);
-        if (oldModel) {
-            ModelItemProperties oldProps = oldModel->getProperties();
+        const EntityItem* oldEntity = containingElement->getEntityWithEntityItemID(modelID);
+        if (oldEntity) {
+            EntityItemProperties oldProps = oldEntity->getProperties();
             if (wantDebug) {    
-                qDebug() << "ModelTree::updateModel(modelID, properties) ********** COPY PROPERTIES FROM oldModel=" << oldModel << "*******************";
-                qDebug() << "ModelTree::updateModel(modelID, properties) oldModel=" << oldModel;
+                qDebug() << "EntityTree::updateEntity(modelID, properties) ********** COPY PROPERTIES FROM oldEntity=" << oldEntity << "*******************";
+                qDebug() << "EntityTree::updateEntity(modelID, properties) oldEntity=" << oldEntity;
                 oldProps.debugDump();
-                qDebug() << "ModelTree::updateModel(modelID, properties) line:" << __LINE__ << "about to call updateItem.setProperties(oldProps);";
+                qDebug() << "EntityTree::updateEntity(modelID, properties) line:" << __LINE__ << "about to call updateItem.setProperties(oldProps);";
             }
             updateItem.setProperties(oldProps, true); // force copy
 
             if (wantDebug) {    
-                qDebug() << "ModelTree::updateModel(modelID, properties) line:" << __LINE__ << "updateItem:";
+                qDebug() << "EntityTree::updateEntity(modelID, properties) line:" << __LINE__ << "updateItem:";
                 updateItem.debugDump();
             }
 
         } else {
             if (wantDebug) {    
-                qDebug() << "ModelTree::updateModel(modelID, properties) WAIT WHAT!!! COULDN'T FIND oldModel=" << oldModel;
+                qDebug() << "EntityTree::updateEntity(modelID, properties) WAIT WHAT!!! COULDN'T FIND oldEntity=" << oldEntity;
             }
         }
     }
     updateItem.setProperties(properties);
 
     if (wantDebug) {    
-        qDebug() << "ModelTree::updateModel(modelID, properties) line:" << __LINE__ << "updateItem:";
+        qDebug() << "EntityTree::updateEntity(modelID, properties) line:" << __LINE__ << "updateItem:";
         updateItem.debugDump();
     }
 
-    storeModel(updateItem);
+    storeEntity(updateItem);
 }
 
-void ModelTree::addModel(const ModelItemID& modelID, const ModelItemProperties& properties) {
-    ModelItem updateItem(modelID, properties);
-    storeModel(updateItem);
+void EntityTree::addEntity(const EntityItemID& modelID, const EntityItemProperties& properties) {
+    EntityItem updateItem(modelID, properties);
+    storeEntity(updateItem);
 }
 
-class ModelToDeleteDetails {
+class EntityToDeleteDetails {
 public:
-    const ModelItem* model;
+    const EntityItem* model;
     AACube cube;
-    ModelTreeElement* containingElement;
+    EntityTreeElement* containingElement;
 };
 
-inline uint qHash(const ModelToDeleteDetails& a, uint seed) {
-    return qHash(a.model->getModelItemID(), seed);
+inline uint qHash(const EntityToDeleteDetails& a, uint seed) {
+    return qHash(a.model->getEntityItemID(), seed);
 }
 
-inline bool operator==(const ModelToDeleteDetails& a, const ModelToDeleteDetails& b) {
-    return a.model->getModelItemID() == b.model->getModelItemID();
+inline bool operator==(const EntityToDeleteDetails& a, const EntityToDeleteDetails& b) {
+    return a.model->getEntityItemID() == b.model->getEntityItemID();
 }
 
-class DeleteModelOperator : public RecurseOctreeOperator {
+class DeleteEntityOperator : public RecurseOctreeOperator {
 public:
-    DeleteModelOperator(ModelTree* tree);
-    DeleteModelOperator(ModelTree* tree, const ModelItemID& searchModelID);
-    void modelToDelete(const ModelItemID& searchModelID);
+    DeleteEntityOperator(EntityTree* tree);
+    DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID);
+    void modelToDelete(const EntityItemID& searchEntityID);
     virtual bool PreRecursion(OctreeElement* element);
     virtual bool PostRecursion(OctreeElement* element);
 private:
-    ModelTree* _tree;
-    QSet<ModelToDeleteDetails> _modelsToDelete;
+    EntityTree* _tree;
+    QSet<EntityToDeleteDetails> _modelsToDelete;
     quint64 _changeTime;
     int _foundCount;
     int _lookingCount;
-    bool subTreeContainsSomeModelsToDelete(OctreeElement* element);
+    bool subTreeContainsSomeEntitysToDelete(OctreeElement* element);
 };
 
-DeleteModelOperator::DeleteModelOperator(ModelTree* tree, const ModelItemID& searchModelID) :
+DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID) :
     _tree(tree),
     _changeTime(usecTimestampNow()),
     _foundCount(0),
     _lookingCount(0)
 {
-    modelToDelete(searchModelID);
+    modelToDelete(searchEntityID);
 }
 
-DeleteModelOperator::DeleteModelOperator(ModelTree* tree) :
+DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree) :
     _tree(tree),
     _changeTime(usecTimestampNow()),
     _foundCount(0),
@@ -322,16 +322,16 @@ DeleteModelOperator::DeleteModelOperator(ModelTree* tree) :
 {
 }
 
-void DeleteModelOperator::modelToDelete(const ModelItemID& searchModelID) {
+void DeleteEntityOperator::modelToDelete(const EntityItemID& searchEntityID) {
     // check our tree, to determine if this model is known
-    ModelToDeleteDetails details;
-    details.containingElement = _tree->getContainingElement(searchModelID);
+    EntityToDeleteDetails details;
+    details.containingElement = _tree->getContainingElement(searchEntityID);
 
     if (details.containingElement) {
-        details.model = details.containingElement->getModelWithModelItemID(searchModelID);
+        details.model = details.containingElement->getEntityWithEntityItemID(searchEntityID);
         if (!details.model) {
             //assert(false);
-            qDebug() << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldModel!";
+            qDebug() << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldEntity!";
         } else {
             details.cube = details.model->getAACube();
             _modelsToDelete << details;
@@ -342,25 +342,25 @@ void DeleteModelOperator::modelToDelete(const ModelItemID& searchModelID) {
 
 
 // does this model tree element contain the old model
-bool DeleteModelOperator::subTreeContainsSomeModelsToDelete(OctreeElement* element) {
-    bool containsModel = false;
+bool DeleteEntityOperator::subTreeContainsSomeEntitysToDelete(OctreeElement* element) {
+    bool containsEntity = false;
 
     // If we don't have an old model, then we don't contain the model, otherwise
     // check the bounds
     if (_modelsToDelete.size() > 0) {
         AACube elementCube = element->getAACube();
-        foreach(const ModelToDeleteDetails& details, _modelsToDelete) {
+        foreach(const EntityToDeleteDetails& details, _modelsToDelete) {
             if (elementCube.contains(details.cube)) {
-                containsModel = true;
+                containsEntity = true;
                 break; // if it contains at least one, we're good to go
             }
         }
     }
-    return containsModel;
+    return containsEntity;
 }
 
-bool DeleteModelOperator::PreRecursion(OctreeElement* element) {
-    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
+    EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
     // path of the tree. For this operation, we want to recurse the branch of the tree if
@@ -375,18 +375,18 @@ bool DeleteModelOperator::PreRecursion(OctreeElement* element) {
     
     // If we haven't yet found all the models, and this sub tree contains at least one of our
     // models, then we need to keep searching.
-    if ((_foundCount < _lookingCount) && subTreeContainsSomeModelsToDelete(element)) {
+    if ((_foundCount < _lookingCount) && subTreeContainsSomeEntitysToDelete(element)) {
 
         // check against each of our search models
-        foreach(const ModelToDeleteDetails& details, _modelsToDelete) {
+        foreach(const EntityToDeleteDetails& details, _modelsToDelete) {
 
             // If this is the element we're looking for, then ask it to remove the old model
             // and we can stop searching.
             if (modelTreeElement == details.containingElement) {
 
                 // This is a good place to delete it!!!
-                ModelItemID modelItemID = details.model->getModelItemID();
-                modelTreeElement->removeModelWithModelItemID(modelItemID);
+                EntityItemID modelItemID = details.model->getEntityItemID();
+                modelTreeElement->removeEntityWithEntityItemID(modelItemID);
                 _tree->setContainingElement(modelItemID, NULL);
                 _foundCount++;
             }
@@ -399,7 +399,7 @@ bool DeleteModelOperator::PreRecursion(OctreeElement* element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool DeleteModelOperator::PostRecursion(OctreeElement* element) {
+bool DeleteEntityOperator::PostRecursion(OctreeElement* element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old model and one for the new model.
@@ -407,33 +407,33 @@ bool DeleteModelOperator::PostRecursion(OctreeElement* element) {
 
     // As we unwind, if we're in either of these two paths, we mark our element
     // as dirty.
-    if ((subTreeContainsSomeModelsToDelete(element))) {
+    if ((subTreeContainsSomeEntitysToDelete(element))) {
         element->markWithChangedTime();
     }
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-void ModelTree::deleteModel(const ModelItemID& modelID) {
+void EntityTree::deleteEntity(const EntityItemID& modelID) {
     // NOTE: callers must lock the tree before using this method
 
     // First, look for the existing model in the tree..
-    DeleteModelOperator theOperator(this, modelID);
+    DeleteEntityOperator theOperator(this, modelID);
 
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
 
     bool wantDebug = false;
     if (wantDebug) {
-        ModelTreeElement* containingElement = getContainingElement(modelID);
-        qDebug() << "ModelTree::storeModel().... after store... containingElement=" << containingElement;
+        EntityTreeElement* containingElement = getContainingElement(modelID);
+        qDebug() << "EntityTree::storeEntity().... after store... containingElement=" << containingElement;
     }
 }
 
-void ModelTree::deleteModels(QSet<ModelItemID> modelIDs) {
+void EntityTree::deleteEntitys(QSet<EntityItemID> modelIDs) {
     // NOTE: callers must lock the tree before using this method
 
-    DeleteModelOperator theOperator(this);
-    foreach(const ModelItemID& modelID, modelIDs) {
+    DeleteEntityOperator theOperator(this);
+    foreach(const EntityItemID& modelID, modelIDs) {
         // First, look for the existing model in the tree..
         theOperator.modelToDelete(modelID);
     }
@@ -443,9 +443,9 @@ void ModelTree::deleteModels(QSet<ModelItemID> modelIDs) {
 
     bool wantDebug = false;
     if (wantDebug) {
-        foreach(const ModelItemID& modelID, modelIDs) {
-            ModelTreeElement* containingElement = getContainingElement(modelID);
-            qDebug() << "ModelTree::storeModel().... after store... containingElement=" << containingElement;
+        foreach(const EntityItemID& modelID, modelIDs) {
+            EntityTreeElement* containingElement = getContainingElement(modelID);
+            qDebug() << "EntityTree::storeEntity().... after store... containingElement=" << containingElement;
         }
     }
 }
@@ -454,29 +454,29 @@ void ModelTree::deleteModels(QSet<ModelItemID> modelIDs) {
 // in the event that this tree is also viewing the scene, then we need to also
 // search the tree to make sure we don't have a duplicate model from the viewing
 // operation.
-bool ModelTree::findAndUpdateModelItemIDOperation(OctreeElement* element, void* extraData) {
+bool EntityTree::findAndUpdateEntityItemIDOperation(OctreeElement* element, void* extraData) {
     bool keepSearching = true;
 
-    FindAndUpdateModelItemIDArgs* args = static_cast<FindAndUpdateModelItemIDArgs*>(extraData);
-    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+    FindAndUpdateEntityItemIDArgs* args = static_cast<FindAndUpdateEntityItemIDArgs*>(extraData);
+    EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
 
-    // Note: updateModelItemID() will only operate on correctly found models
-    modelTreeElement->updateModelItemID(args);
+    // Note: updateEntityItemID() will only operate on correctly found models
+    modelTreeElement->updateEntityItemID(args);
 
-    // if we've found and replaced both the creatorTokenID and the viewedModel, then we
+    // if we've found and replaced both the creatorTokenID and the viewedEntity, then we
     // can stop looking, otherwise we will keep looking    
-    if (args->creatorTokenFound && args->viewedModelFound) {
+    if (args->creatorTokenFound && args->viewedEntityFound) {
         keepSearching = false;
     }
     
     return keepSearching;
 }
 
-void ModelTree::handleAddModelResponse(const QByteArray& packet) {
+void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     const bool wantDebug = false;
 
     if (wantDebug) {
-        qDebug() << "ModelTree::handleAddModelResponse()..."; 
+        qDebug() << "EntityTree::handleAddEntityResponse()..."; 
     }
 
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
@@ -497,12 +497,12 @@ void ModelTree::handleAddModelResponse(const QByteArray& packet) {
     }
 
     // update models in our tree
-    bool assumeModelFound = !getIsViewing(); // if we're not a viewing tree, then we don't have to find the actual model
-    FindAndUpdateModelItemIDArgs args = { 
+    bool assumeEntityFound = !getIsViewing(); // if we're not a viewing tree, then we don't have to find the actual model
+    FindAndUpdateEntityItemIDArgs args = { 
         modelID, 
         creatorTokenID, 
         false, 
-        assumeModelFound,
+        assumeEntityFound,
         getIsViewing() 
     };
     
@@ -512,7 +512,7 @@ void ModelTree::handleAddModelResponse(const QByteArray& packet) {
     }
     lockForWrite();
     // TODO: Switch this to use list of known model IDs....
-    recurseTreeWithOperation(findAndUpdateModelItemIDOperation, &args);
+    recurseTreeWithOperation(findAndUpdateEntityItemIDOperation, &args);
     unlock();
 }
 
@@ -522,14 +522,14 @@ public:
     glm::vec3 position;
     float targetRadius;
     bool found;
-    const ModelItem* closestModel;
-    float closestModelDistance;
+    const EntityItem* closestEntity;
+    float closestEntityDistance;
 };
 
 
-bool ModelTree::findNearPointOperation(OctreeElement* element, void* extraData) {
+bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData) {
     FindNearPointArgs* args = static_cast<FindNearPointArgs*>(extraData);
-    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+    EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
 
     glm::vec3 penetration;
     bool sphereIntersection = modelTreeElement->getAACube().findSpherePenetration(args->position,
@@ -537,19 +537,19 @@ bool ModelTree::findNearPointOperation(OctreeElement* element, void* extraData) 
 
     // If this modelTreeElement contains the point, then search it...
     if (sphereIntersection) {
-        const ModelItem* thisClosestModel = modelTreeElement->getClosestModel(args->position);
+        const EntityItem* thisClosestEntity = modelTreeElement->getClosestEntity(args->position);
 
         // we may have gotten NULL back, meaning no model was available
-        if (thisClosestModel) {
-            glm::vec3 modelPosition = thisClosestModel->getPosition();
-            float distanceFromPointToModel = glm::distance(modelPosition, args->position);
+        if (thisClosestEntity) {
+            glm::vec3 modelPosition = thisClosestEntity->getPosition();
+            float distanceFromPointToEntity = glm::distance(modelPosition, args->position);
 
             // If we're within our target radius
-            if (distanceFromPointToModel <= args->targetRadius) {
+            if (distanceFromPointToEntity <= args->targetRadius) {
                 // we are closer than anything else we've found
-                if (distanceFromPointToModel < args->closestModelDistance) {
-                    args->closestModel = thisClosestModel;
-                    args->closestModelDistance = distanceFromPointToModel;
+                if (distanceFromPointToEntity < args->closestEntityDistance) {
+                    args->closestEntity = thisClosestEntity;
+                    args->closestEntityDistance = distanceFromPointToEntity;
                     args->found = true;
                 }
             }
@@ -563,24 +563,24 @@ bool ModelTree::findNearPointOperation(OctreeElement* element, void* extraData) 
     return false;
 }
 
-const ModelItem* ModelTree::findClosestModel(glm::vec3 position, float targetRadius) {
+const EntityItem* EntityTree::findClosestEntity(glm::vec3 position, float targetRadius) {
     FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
     lockForRead();
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findNearPointOperation, &args);
     unlock();
-    return args.closestModel;
+    return args.closestEntity;
 }
 
 class FindAllNearPointArgs {
 public:
     glm::vec3 position;
     float targetRadius;
-    QVector<const ModelItem*> models;
+    QVector<const EntityItem*> models;
 };
 
 
-bool ModelTree::findInSphereOperation(OctreeElement* element, void* extraData) {
+bool EntityTree::findInSphereOperation(OctreeElement* element, void* extraData) {
     FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
     glm::vec3 penetration;
     bool sphereIntersection = element->getAACube().findSpherePenetration(args->position,
@@ -588,8 +588,8 @@ bool ModelTree::findInSphereOperation(OctreeElement* element, void* extraData) {
 
     // If this element contains the point, then search it...
     if (sphereIntersection) {
-        ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
-        modelTreeElement->getModels(args->position, args->targetRadius, args->models);
+        EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
+        modelTreeElement->getEntitys(args->position, args->targetRadius, args->models);
         return true; // keep searching in case children have closer models
     }
 
@@ -597,84 +597,84 @@ bool ModelTree::findInSphereOperation(OctreeElement* element, void* extraData) {
     return false;
 }
 
-void ModelTree::findModels(const glm::vec3& center, float radius, QVector<const ModelItem*>& foundModels) {
+void EntityTree::findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntitys) {
     FindAllNearPointArgs args = { center, radius };
     lockForRead();
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInSphereOperation, &args);
     unlock();
     // swap the two lists of model pointers instead of copy
-    foundModels.swap(args.models);
+    foundEntitys.swap(args.models);
 }
 
-class FindModelsInCubeArgs {
+class FindEntitysInCubeArgs {
 public:
-    FindModelsInCubeArgs(const AACube& cube) 
-        : _cube(cube), _foundModels() {
+    FindEntitysInCubeArgs(const AACube& cube) 
+        : _cube(cube), _foundEntitys() {
     }
 
     AACube _cube;
-    QVector<ModelItem*> _foundModels;
+    QVector<EntityItem*> _foundEntitys;
 };
 
-bool ModelTree::findInCubeOperation(OctreeElement* element, void* extraData) {
-    FindModelsInCubeArgs* args = static_cast< FindModelsInCubeArgs*>(extraData);
+bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
+    FindEntitysInCubeArgs* args = static_cast< FindEntitysInCubeArgs*>(extraData);
     const AACube& elementCube = element->getAACube();
     if (elementCube.touches(args->_cube)) {
-        ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
-        modelTreeElement->getModels(args->_cube, args->_foundModels);
+        EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
+        modelTreeElement->getEntitys(args->_cube, args->_foundEntitys);
         return true;
     }
     return false;
 }
 
-void ModelTree::findModels(const AACube& cube, QVector<ModelItem*> foundModels) {
-    FindModelsInCubeArgs args(cube);
+void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*> foundEntitys) {
+    FindEntitysInCubeArgs args(cube);
     lockForRead();
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInCubeOperation, &args);
     unlock();
     // swap the two lists of model pointers instead of copy
-    foundModels.swap(args._foundModels);
+    foundEntitys.swap(args._foundEntitys);
 }
 
-const ModelItem* ModelTree::findModelByID(uint32_t id, bool alreadyLocked) const {
-    ModelItemID modelID(id);
+const EntityItem* EntityTree::findEntityByID(uint32_t id, bool alreadyLocked) const {
+    EntityItemID modelID(id);
 
     bool wantDebug = false;
     if (wantDebug) {
-        qDebug() << "ModelTree::findModelByID()...";
+        qDebug() << "EntityTree::findEntityByID()...";
         qDebug() << "    id=" << id;
         qDebug() << "    modelID=" << modelID;
         qDebug() << "_modelToElementMap=" << _modelToElementMap;
     }
 
-    return findModelByModelItemID(modelID);
+    return findEntityByEntityItemID(modelID);
 }
 
-const ModelItem* ModelTree::findModelByModelItemID(const ModelItemID& modelID) const {
-    const ModelItem* foundModel = NULL;
-    ModelTreeElement* containingElement = getContainingElement(modelID);
+const EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& modelID) const {
+    const EntityItem* foundEntity = NULL;
+    EntityTreeElement* containingElement = getContainingElement(modelID);
     if (containingElement) {
-        foundModel = containingElement->getModelWithModelItemID(modelID);
+        foundEntity = containingElement->getEntityWithEntityItemID(modelID);
     }
-    return foundModel;
+    return foundEntity;
 }
 
 
-int ModelTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
+int EntityTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode) {
 
     int processedBytes = 0;
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PacketTypeModelAddOrEdit: {
+        case PacketTypeEntityAddOrEdit: {
             bool isValid;
-            ModelItem newModel = ModelItem::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
+            EntityItem newEntity = EntityItem::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
             if (isValid) {
-                storeModel(newModel, senderNode);
-                if (newModel.isNewlyCreated()) {
-                    notifyNewlyCreatedModel(newModel, senderNode);
+                storeEntity(newEntity, senderNode);
+                if (newEntity.isNewlyCreated()) {
+                    notifyNewlyCreatedEntity(newEntity, senderNode);
                 }
             }
         } break;
@@ -687,21 +687,21 @@ int ModelTree::processEditPacketData(PacketType packetType, const unsigned char*
     return processedBytes;
 }
 
-void ModelTree::notifyNewlyCreatedModel(const ModelItem& newModel, const SharedNodePointer& senderNode) {
+void EntityTree::notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
     _newlyCreatedHooksLock.lockForRead();
     for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
-        _newlyCreatedHooks[i]->modelCreated(newModel, senderNode);
+        _newlyCreatedHooks[i]->modelCreated(newEntity, senderNode);
     }
     _newlyCreatedHooksLock.unlock();
 }
 
-void ModelTree::addNewlyCreatedHook(NewlyCreatedModelHook* hook) {
+void EntityTree::addNewlyCreatedHook(NewlyCreatedEntityHook* hook) {
     _newlyCreatedHooksLock.lockForWrite();
     _newlyCreatedHooks.push_back(hook);
     _newlyCreatedHooksLock.unlock();
 }
 
-void ModelTree::removeNewlyCreatedHook(NewlyCreatedModelHook* hook) {
+void EntityTree::removeNewlyCreatedHook(NewlyCreatedEntityHook* hook) {
     _newlyCreatedHooksLock.lockForWrite();
     for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
         if (_newlyCreatedHooks[i] == hook) {
@@ -713,49 +713,49 @@ void ModelTree::removeNewlyCreatedHook(NewlyCreatedModelHook* hook) {
 }
 
 
-bool ModelTree::updateOperation(OctreeElement* element, void* extraData) {
-    ModelTreeUpdateArgs* args = static_cast<ModelTreeUpdateArgs*>(extraData);
-    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+bool EntityTree::updateOperation(OctreeElement* element, void* extraData) {
+    EntityTreeUpdateArgs* args = static_cast<EntityTreeUpdateArgs*>(extraData);
+    EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
     modelTreeElement->update(*args);
     return true;
 }
 
-bool ModelTree::pruneOperation(OctreeElement* element, void* extraData) {
-    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+bool EntityTree::pruneOperation(OctreeElement* element, void* extraData) {
+    EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        ModelTreeElement* childAt = modelTreeElement->getChildAtIndex(i);
-        if (childAt && childAt->isLeaf() && !childAt->hasModels()) {
+        EntityTreeElement* childAt = modelTreeElement->getChildAtIndex(i);
+        if (childAt && childAt->isLeaf() && !childAt->hasEntities()) {
             modelTreeElement->deleteChildAtIndex(i);
         }
     }
     return true;
 }
 
-void ModelTree::update() {
+void EntityTree::update() {
     lockForWrite();
     _isDirty = true;
 
     // TODO: could we manage this by iterating the known models map/hash? Would that be faster?
-    ModelTreeUpdateArgs args;
+    EntityTreeUpdateArgs args;
     recurseTreeWithOperation(updateOperation, &args);
 
     // now add back any of the particles that moved elements....
-    int movingModels = args._movingModels.size();
+    int movingEntitys = args._movingEntitys.size();
     
-    for (int i = 0; i < movingModels; i++) {
-        bool shouldDie = args._movingModels[i].getShouldDie();
+    for (int i = 0; i < movingEntitys; i++) {
+        bool shouldDie = args._movingEntitys[i].getShouldDie();
 
         // if the particle is still inside our total bounds, then re-add it
         AACube treeBounds = getRoot()->getAACube();
 
-        if (!shouldDie && treeBounds.contains(args._movingModels[i].getPosition())) {
-            storeModel(args._movingModels[i]);
+        if (!shouldDie && treeBounds.contains(args._movingEntitys[i].getPosition())) {
+            storeEntity(args._movingEntitys[i]);
         } else {
-            uint32_t modelItemID = args._movingModels[i].getID();
+            uint32_t modelItemID = args._movingEntitys[i].getID();
             quint64 deletedAt = usecTimestampNow();
-            _recentlyDeletedModelsLock.lockForWrite();
-            _recentlyDeletedModelItemIDs.insert(deletedAt, modelItemID);
-            _recentlyDeletedModelsLock.unlock();
+            _recentlyDeletedEntitysLock.lockForWrite();
+            _recentlyDeletedEntityItemIDs.insert(deletedAt, modelItemID);
+            _recentlyDeletedEntitysLock.unlock();
         }
     }
 
@@ -765,13 +765,13 @@ void ModelTree::update() {
 }
 
 
-bool ModelTree::hasModelsDeletedSince(quint64 sinceTime) {
+bool EntityTree::hasEntitysDeletedSince(quint64 sinceTime) {
     // we can probably leverage the ordered nature of QMultiMap to do this quickly...
     bool hasSomethingNewer = false;
 
-    _recentlyDeletedModelsLock.lockForRead();
-    QMultiMap<quint64, uint32_t>::const_iterator iterator = _recentlyDeletedModelItemIDs.constBegin();
-    while (iterator != _recentlyDeletedModelItemIDs.constEnd()) {
+    _recentlyDeletedEntitysLock.lockForRead();
+    QMultiMap<quint64, uint32_t>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
+    while (iterator != _recentlyDeletedEntityItemIDs.constEnd()) {
         //qDebug() << "considering... time/key:" << iterator.key();
         if (iterator.key() > sinceTime) {
             //qDebug() << "YES newer... time/key:" << iterator.key();
@@ -779,18 +779,18 @@ bool ModelTree::hasModelsDeletedSince(quint64 sinceTime) {
         }
         ++iterator;
     }
-    _recentlyDeletedModelsLock.unlock();
+    _recentlyDeletedEntitysLock.unlock();
     return hasSomethingNewer;
 }
 
 // sinceTime is an in/out parameter - it will be side effected with the last time sent out
-bool ModelTree::encodeModelsDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* outputBuffer,
+bool EntityTree::encodeEntitysDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* outputBuffer,
                                             size_t maxLength, size_t& outputLength) {
 
     bool hasMoreToSend = true;
 
     unsigned char* copyAt = outputBuffer;
-    size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeModelErase);
+    size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeEntityErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
 
@@ -822,10 +822,10 @@ bool ModelTree::encodeModelsDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, 
     
     // we keep a multi map of model IDs to timestamps, we only want to include the model IDs that have been
     // deleted since we last sent to this node
-    _recentlyDeletedModelsLock.lockForRead();
-    QMultiMap<quint64, uint32_t>::const_iterator iterator = _recentlyDeletedModelItemIDs.constBegin();
-    while (iterator != _recentlyDeletedModelItemIDs.constEnd()) {
-        QList<uint32_t> values = _recentlyDeletedModelItemIDs.values(iterator.key());
+    _recentlyDeletedEntitysLock.lockForRead();
+    QMultiMap<quint64, uint32_t>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
+    while (iterator != _recentlyDeletedEntityItemIDs.constEnd()) {
+        QList<uint32_t> values = _recentlyDeletedEntityItemIDs.values(iterator.key());
         for (int valueItem = 0; valueItem < values.size(); ++valueItem) {
 
             // if the timestamp is more recent then out last sent time, include it
@@ -854,10 +854,10 @@ bool ModelTree::encodeModelsDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, 
     }
 
     // if we got to the end, then we're done sending
-    if (iterator == _recentlyDeletedModelItemIDs.constEnd()) {
+    if (iterator == _recentlyDeletedEntityItemIDs.constEnd()) {
         hasMoreToSend = false;
     }
-    _recentlyDeletedModelsLock.unlock();
+    _recentlyDeletedEntitysLock.unlock();
 
     // replace the correct count for ids included
     memcpy(numberOfIDsAt, &numberOfIds, sizeof(numberOfIds));
@@ -866,15 +866,15 @@ bool ModelTree::encodeModelsDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, 
 
 // called by the server when it knows all nodes have been sent deleted packets
 
-void ModelTree::forgetModelsDeletedBefore(quint64 sinceTime) {
-    //qDebug() << "forgetModelsDeletedBefore()";
+void EntityTree::forgetEntitysDeletedBefore(quint64 sinceTime) {
+    //qDebug() << "forgetEntitysDeletedBefore()";
     QSet<quint64> keysToRemove;
 
-    _recentlyDeletedModelsLock.lockForWrite();
-    QMultiMap<quint64, uint32_t>::iterator iterator = _recentlyDeletedModelItemIDs.begin();
+    _recentlyDeletedEntitysLock.lockForWrite();
+    QMultiMap<quint64, uint32_t>::iterator iterator = _recentlyDeletedEntityItemIDs.begin();
 
     // First find all the keys in the map that are older and need to be deleted
-    while (iterator != _recentlyDeletedModelItemIDs.end()) {
+    while (iterator != _recentlyDeletedEntityItemIDs.end()) {
         if (iterator.key() <= sinceTime) {
             keysToRemove << iterator.key();
         }
@@ -883,15 +883,15 @@ void ModelTree::forgetModelsDeletedBefore(quint64 sinceTime) {
 
     // Now run through the keysToRemove and remove them
     foreach (quint64 value, keysToRemove) {
-        //qDebug() << "removing the key, _recentlyDeletedModelItemIDs.remove(value); time/key:" << value;
-        _recentlyDeletedModelItemIDs.remove(value);
+        //qDebug() << "removing the key, _recentlyDeletedEntityItemIDs.remove(value); time/key:" << value;
+        _recentlyDeletedEntityItemIDs.remove(value);
     }
     
-    _recentlyDeletedModelsLock.unlock();
+    _recentlyDeletedEntitysLock.unlock();
 }
 
 
-void ModelTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
     size_t packetLength = dataByteArray.size();
@@ -910,7 +910,7 @@ void ModelTree::processEraseMessage(const QByteArray& dataByteArray, const Share
     processedBytes += sizeof(numberOfIds);
 
     if (numberOfIds > 0) {
-        QSet<ModelItemID> modelItemIDsToDelete;
+        QSet<EntityItemID> modelItemIDsToDelete;
 
         for (size_t i = 0; i < numberOfIds; i++) {
             if (processedBytes + sizeof(uint32_t) > packetLength) {
@@ -922,15 +922,15 @@ void ModelTree::processEraseMessage(const QByteArray& dataByteArray, const Share
             dataAt += sizeof(modelID);
             processedBytes += sizeof(modelID);
             
-            ModelItemID modelItemID(modelID);
+            EntityItemID modelItemID(modelID);
             modelItemIDsToDelete << modelItemID;
         }
-        deleteModels(modelItemIDsToDelete);
+        deleteEntitys(modelItemIDsToDelete);
     }
 }
 
 
-ModelTreeElement* ModelTree::getContainingElement(const ModelItemID& modelItemID) const {
+EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& modelItemID) const {
     //qDebug() << "_modelToElementMap=" << _modelToElementMap;
 
     // TODO: do we need to make this thread safe? Or is it acceptable as is
@@ -940,7 +940,7 @@ ModelTreeElement* ModelTree::getContainingElement(const ModelItemID& modelItemID
     return NULL;
 }
 
-void ModelTree::setContainingElement(const ModelItemID& modelItemID, ModelTreeElement* element) {
+void EntityTree::setContainingElement(const EntityItemID& modelItemID, EntityTreeElement* element) {
     // TODO: do we need to make this thread safe? Or is it acceptable as is
     if (element) {
         _modelToElementMap[modelItemID] = element;
@@ -952,8 +952,8 @@ void ModelTree::setContainingElement(const ModelItemID& modelItemID, ModelTreeEl
     //qDebug() << "AFTER _modelToElementMap=" << _modelToElementMap;
 }
 
-void ModelTree::debugDumpMap() {
-    QHashIterator<ModelItemID, ModelTreeElement*> i(_modelToElementMap);
+void EntityTree::debugDumpMap() {
+    QHashIterator<EntityItemID, EntityTreeElement*> i(_modelToElementMap);
     while (i.hasNext()) {
         i.next();
         qDebug() << i.key() << ": " << i.value();

@@ -95,12 +95,12 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
                     app->_particles.processDatagram(mutablePacket, sendingNode);
                 } break;
 
-                case PacketTypeModelErase: {
-                    app->_models.processEraseMessage(mutablePacket, sendingNode);
+                case PacketTypeEntityErase: {
+                    app->_entities.processEraseMessage(mutablePacket, sendingNode);
                 } break;
 
-                case PacketTypeModelData: {
-                    app->_models.processDatagram(mutablePacket, sendingNode);
+                case PacketTypeEntityData: {
+                    app->_entities.processDatagram(mutablePacket, sendingNode);
                 } break;
 
                 case PacketTypeEnvironmentData: {

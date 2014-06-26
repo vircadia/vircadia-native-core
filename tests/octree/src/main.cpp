@@ -9,7 +9,7 @@
 //
 
 #include "AABoxCubeTests.h"
-#include "ModelTests.h"
+#include "ModelTests.h" // needs to be EntityTests.h soon
 #include "OctreeTests.h"
 #include "SharedUtil.h"
 
@@ -19,6 +19,6 @@ int main(int argc, const char* argv[]) {
     qDebug() << "OctreeTests::runAllTests()";
     //OctreeTests::runAllTests(verbose);
     //AABoxCubeTests::runAllTests(verbose);
-    ModelTests::runAllTests(verbose);
+    EntityTests::runAllTests(verbose);
     return 0;
 }

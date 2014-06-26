@@ -1,5 +1,5 @@
 //
-//  ModelTreeRenderer.h
+//  EntityTreeRenderer.h
 //  interface/src
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
@@ -9,13 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ModelTreeRenderer_h
-#define hifi_ModelTreeRenderer_h
+#ifndef hifi_EntityTreeRenderer_h
+#define hifi_EntityTreeRenderer_h
 
 #include <glm/glm.hpp>
 #include <stdint.h>
 
-#include <ModelTree.h>
+#include <EntityTree.h>
 #include <Octree.h>
 #include <OctreePacketData.h>
 #include <OctreeRenderer.h>
@@ -26,15 +26,15 @@
 #include "renderer/Model.h"
 
 // Generic client side Octree renderer class.
-class ModelTreeRenderer : public OctreeRenderer, public ModelItemFBXService {
+class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
 public:
-    ModelTreeRenderer();
-    virtual ~ModelTreeRenderer();
+    EntityTreeRenderer();
+    virtual ~EntityTreeRenderer();
 
-    virtual Octree* createTree() { return new ModelTree(true); }
-    virtual char getMyNodeType() const { return NodeType::ModelServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketTypeModelQuery; }
-    virtual PacketType getExpectedPacketType() const { return PacketTypeModelData; }
+    virtual Octree* createTree() { return new EntityTree(true); }
+    virtual char getMyNodeType() const { return NodeType::EntityServer; }
+    virtual PacketType getMyQueryMessageType() const { return PacketTypeEntityQuery; }
+    virtual PacketType getExpectedPacketType() const { return PacketTypeEntityData; }
     virtual void renderElement(OctreeElement* element, RenderArgs* args);
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
@@ -42,23 +42,23 @@ public:
 
     void update();
 
-    ModelTree* getTree() { return (ModelTree*)_tree; }
+    EntityTree* getTree() { return (EntityTree*)_tree; }
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
     virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
 
-    virtual const FBXGeometry* getGeometryForModel(const ModelItem& modelItem);
+    virtual const FBXGeometry* getGeometryForEntity(const EntityItem& modelItem);
 
     /// clears the tree
     virtual void clear();
 
 protected:
     void clearModelsCache();
-    Model* getModel(const ModelItem& modelItem);
-    QMap<uint32_t, Model*> _knownModelsItemModels;
-    QMap<uint32_t, Model*> _unknownModelsItemModels;
+    Model* getModel(const EntityItem& modelItem);
+    QMap<uint32_t, Model*> _knownEntityItemModels;
+    QMap<uint32_t, Model*> _unknownEntityItemModels;
 };
 
-#endif // hifi_ModelTreeRenderer_h
+#endif // hifi_EntityTreeRenderer_h

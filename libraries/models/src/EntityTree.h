@@ -1,5 +1,5 @@
 //
-//  ModelTree.h
+//  EntityTree.h
 //  libraries/models/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
@@ -9,39 +9,39 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ModelTree_h
-#define hifi_ModelTree_h
+#ifndef hifi_EntityTree_h
+#define hifi_EntityTree_h
 
 #include <Octree.h>
-#include "ModelTreeElement.h"
+#include "EntityTreeElement.h"
 
-class NewlyCreatedModelHook {
+class NewlyCreatedEntityHook {
 public:
-    virtual void modelCreated(const ModelItem& newModel, const SharedNodePointer& senderNode) = 0;
+    virtual void modelCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) = 0;
 };
 
-class ModelItemFBXService {
+class EntityItemFBXService {
 public:
-    virtual const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) = 0;
+    virtual const FBXGeometry* getGeometryForEntity(const EntityItem& modelItem) = 0;
 };
 
-class ModelTree : public Octree {
+class EntityTree : public Octree {
     Q_OBJECT
 public:
-    ModelTree(bool shouldReaverage = false);
+    EntityTree(bool shouldReaverage = false);
 
     /// Implements our type specific root element factory
-    virtual ModelTreeElement* createNewElement(unsigned char * octalCode = NULL);
+    virtual EntityTreeElement* createNewElement(unsigned char * octalCode = NULL);
 
     /// Type safe version of getRoot()
-    ModelTreeElement* getRoot() { return static_cast<ModelTreeElement*>(_rootElement); }
+    EntityTreeElement* getRoot() { return static_cast<EntityTreeElement*>(_rootElement); }
 
     virtual void eraseAllOctreeElements();
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return true; }
-    virtual PacketType expectedDataPacketType() const { return PacketTypeModelData; }
+    virtual PacketType expectedDataPacketType() const { return PacketTypeEntityData; }
     virtual bool canProcessVersion(PacketVersion thisVersion) const { return true; } // we support all versions
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
@@ -50,48 +50,48 @@ public:
     virtual bool rootElementHasData() const { return true; }
     virtual void update();
 
-    void OLD__storeModel(const ModelItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
-    void storeModel(const ModelItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
-    void updateModel(const ModelItemID& modelID, const ModelItemProperties& properties);
-    void addModel(const ModelItemID& modelID, const ModelItemProperties& properties);
-    void deleteModel(const ModelItemID& modelID);
-    void deleteModels(QSet<ModelItemID> modelIDs);
-    const ModelItem* findClosestModel(glm::vec3 position, float targetRadius);
-    const ModelItem* findModelByID(uint32_t id, bool alreadyLocked = false) const;
-    const ModelItem* findModelByModelItemID(const ModelItemID& modelID) const;
+    void OLD__storeEntity(const EntityItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
+    void storeEntity(const EntityItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
+    void updateEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
+    void addEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
+    void deleteEntity(const EntityItemID& modelID);
+    void deleteEntitys(QSet<EntityItemID> modelIDs);
+    const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
+    const EntityItem* findEntityByID(uint32_t id, bool alreadyLocked = false) const;
+    const EntityItem* findEntityByEntityItemID(const EntityItemID& modelID) const;
 
     /// finds all models that touch a sphere
     /// \param center the center of the sphere
     /// \param radius the radius of the sphere
-    /// \param foundModels[out] vector of const ModelItem*
-    /// \remark Side effect: any initial contents in foundModels will be lost
-    void findModels(const glm::vec3& center, float radius, QVector<const ModelItem*>& foundModels);
+    /// \param foundEntitys[out] vector of const EntityItem*
+    /// \remark Side effect: any initial contents in foundEntitys will be lost
+    void findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntitys);
 
     /// finds all models that touch a cube
     /// \param cube the query cube
-    /// \param foundModels[out] vector of non-const ModelItem*
+    /// \param foundEntitys[out] vector of non-const EntityItem*
     /// \remark Side effect: any initial contents in models will be lost
-    void findModels(const AACube& cube, QVector<ModelItem*> foundModels);
+    void findEntities(const AACube& cube, QVector<EntityItem*> foundEntitys);
 
-    void addNewlyCreatedHook(NewlyCreatedModelHook* hook);
-    void removeNewlyCreatedHook(NewlyCreatedModelHook* hook);
+    void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
+    void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
 
-    bool hasAnyDeletedModels() const { return _recentlyDeletedModelItemIDs.size() > 0; }
-    bool hasModelsDeletedSince(quint64 sinceTime);
-    bool encodeModelsDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, 
+    bool hasAnyDeletedEntitys() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
+    bool hasEntitysDeletedSince(quint64 sinceTime);
+    bool encodeEntitysDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, 
                                     unsigned char* packetData, size_t maxLength, size_t& outputLength);
-    void forgetModelsDeletedBefore(quint64 sinceTime);
+    void forgetEntitysDeletedBefore(quint64 sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
-    void handleAddModelResponse(const QByteArray& packet);
+    void handleAddEntityResponse(const QByteArray& packet);
     
-    void setFBXService(ModelItemFBXService* service) { _fbxService = service; }
-    const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) {
-        return _fbxService ? _fbxService->getGeometryForModel(modelItem) : NULL;
+    void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
+    const FBXGeometry* getGeometryForEntity(const EntityItem& modelItem) {
+        return _fbxService ? _fbxService->getGeometryForEntity(modelItem) : NULL;
     }
     
-    ModelTreeElement* getContainingElement(const ModelItemID& modelItemID) const;
-    void setContainingElement(const ModelItemID& modelItemID, ModelTreeElement* element);
+    EntityTreeElement* getContainingElement(const EntityItemID& modelItemID) const;
+    void setContainingElement(const EntityItemID& modelItemID, EntityTreeElement* element);
     void debugDumpMap();
 
 private:
@@ -104,19 +104,19 @@ private:
     static bool pruneOperation(OctreeElement* element, void* extraData);
     static bool findByIDOperation(OctreeElement* element, void* extraData);
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
-    static bool findAndUpdateModelItemIDOperation(OctreeElement* element, void* extraData);
+    static bool findAndUpdateEntityItemIDOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
 
-    void notifyNewlyCreatedModel(const ModelItem& newModel, const SharedNodePointer& senderNode);
+    void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
     QReadWriteLock _newlyCreatedHooksLock;
-    QVector<NewlyCreatedModelHook*> _newlyCreatedHooks;
+    QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
-    QReadWriteLock _recentlyDeletedModelsLock;
-    QMultiMap<quint64, uint32_t> _recentlyDeletedModelItemIDs;
-    ModelItemFBXService* _fbxService;
+    QReadWriteLock _recentlyDeletedEntitysLock;
+    QMultiMap<quint64, uint32_t> _recentlyDeletedEntityItemIDs;
+    EntityItemFBXService* _fbxService;
 
-    QHash<ModelItemID, ModelTreeElement*> _modelToElementMap;
+    QHash<EntityItemID, EntityTreeElement*> _modelToElementMap;
 };
 
-#endif // hifi_ModelTree_h
+#endif // hifi_EntityTree_h
