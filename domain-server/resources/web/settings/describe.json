@@ -1,7 +1,7 @@
 {
   "audio": {
     "label": "Audio",
-    "types": [0],
+    "assignment-types": [0],
     "settings": {
       "unattenuated-zone": {
         "label": "Unattenuated Zone",

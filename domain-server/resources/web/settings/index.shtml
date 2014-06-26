@@ -18,10 +18,12 @@
             <div class="col-sm-10">
               <% if(setting.type) %>
                 <% if (setting.type === "checkbox") { %>
-                  <% var checked_box = (_.isUndefined(values[group_key][setting_key]) ? setting.default : values[group_key][setting_key]) %>
+                  <% var checked_box = (values[group_key] || {})[setting_key] || setting.default %>
                   <input type="checkbox" id="<%- setting_id %>" <%- checked_box ? "checked" : "" %>>
                 <% } else { %>
-                <input type="text" class="form-control" id="<%- setting_id %>" placeholder="<%- setting.placeholder %>" value="<%- values[group_key][setting_key] %>">
+                <input type="text" class="form-control" id="<%- setting_id %>" 
+                  placeholder="<%- setting.placeholder %>" 
+                  value="<%- (values[group_key] || {})[setting_key] %>">
               <% } %>
               
             </div>
