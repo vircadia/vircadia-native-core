@@ -12,13 +12,20 @@
 #ifndef hifi_OculusManager_h
 #define hifi_OculusManager_h
 
-#include <iostream>
-
 #ifdef HAVE_LIBOVR
 #include <OVR.h>
+//#include <../src/OVR_CAPI.h>
 #endif
 
+#include "../src/Util/Util_Render_Stereo.h"
+using namespace OVR::Util::Render;
+
+#include <../src/Kernel/OVR_SysFile.h>
+#include <../src/Kernel/OVR_Log.h>
+#include <../src/Kernel/OVR_Timer.h>
+
 #include "renderer/ProgramObject.h"
+
 
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
 
@@ -29,6 +36,8 @@ class OculusManager {
 public:
     static void connect();
     
+    static void generateDistortionMesh();
+
     static bool isConnected();
     
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
@@ -45,18 +54,47 @@ public:
     static void updateYawOffset();
     
 private:
+
+    struct DistortionVertex {
+        glm::vec2 pos;
+        glm::vec2 texR;
+        glm::vec2 texG;
+        glm::vec2 texB;
+        struct {
+            GLubyte r;
+            GLubyte g;
+            GLubyte b;
+            GLubyte a;
+        } color;
+    };
+
     static ProgramObject _program;
+    //Uniforms
     static int _textureLocation;
-    static int _lensCenterLocation;
-    static int _screenCenterLocation;
-    static int _scaleLocation;
-    static int _scaleInLocation;
-    static int _hmdWarpParamLocation;    
+    static int _eyeToSourceUVScaleLocation;
+    static int _eyeToSourceUVOffsetLocation;
+    static int _eyeRotationStartLocation;
+    static int _eyeRotationEndLocation;
+    //Attributes
+    static int _positionAttributeLocation;
+    static int _colorAttributeLocation;
+    static int _texCoord0AttributeLocation;
+    static int _texCoord1AttributeLocation;
+    static int _texCoord2AttributeLocation;
+
     static bool _isConnected;
     
+
+
 #ifdef HAVE_LIBOVR
     static ovrHmd _ovrHmd;
     static ovrHmdDesc _ovrHmdDesc;
+    static ovrFovPort _eyeFov[ovrEye_Count];
+    static ovrSizei _renderTargetSize;
+    static ovrVector2f _UVScaleOffset[ovrEye_Count][2];
+    static GLuint _vbo[ovrEye_Count];
+    static GLuint _indicesVbo[ovrEye_Count];
+    static GLsizei _meshSize[ovrEye_Count];
 #endif
 };
 

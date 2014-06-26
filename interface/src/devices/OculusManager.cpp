@@ -11,28 +11,39 @@
 
 #include "InterfaceConfig.h"
 
+#include "OculusManager.h"
+
 #include <QOpenGLFramebufferObject>
 
 #include <glm/glm.hpp>
 
 #include "Application.h"
-#include "OculusManager.h"
+
+using namespace OVR;
 
 ProgramObject OculusManager::_program;
 int OculusManager::_textureLocation;
-int OculusManager::_lensCenterLocation;
-int OculusManager::_screenCenterLocation;
-int OculusManager::_scaleLocation;
-int OculusManager::_scaleInLocation;
-int OculusManager::_hmdWarpParamLocation;
+int OculusManager::_eyeToSourceUVScaleLocation;
+int OculusManager::_eyeToSourceUVOffsetLocation;
+int OculusManager::_eyeRotationStartLocation;
+int OculusManager::_eyeRotationEndLocation;
+int OculusManager::_positionAttributeLocation;
+int OculusManager::_colorAttributeLocation;
+int OculusManager::_texCoord0AttributeLocation;
+int OculusManager::_texCoord1AttributeLocation;
+int OculusManager::_texCoord2AttributeLocation;
 bool OculusManager::_isConnected = false;
 
 #ifdef HAVE_LIBOVR
-using namespace OVR;
-using namespace OVR::Util::Render;
 
 ovrHmd OculusManager::_ovrHmd;
 ovrHmdDesc OculusManager::_ovrHmdDesc;
+ovrFovPort OculusManager::_eyeFov[ovrEye_Count];
+ovrSizei OculusManager::_renderTargetSize;
+ovrVector2f OculusManager::_UVScaleOffset[ovrEye_Count][2];
+GLuint  OculusManager::_vbo[ovrEye_Count];
+GLuint OculusManager::_indicesVbo[ovrEye_Count];
+GLsizei OculusManager::_meshSize[ovrEye_Count];
 
 #endif
 
@@ -46,21 +57,105 @@ void OculusManager::connect() {
       
         ovrHmd_GetDesc(_ovrHmd, &_ovrHmdDesc);
 
+        _eyeFov[0] = _ovrHmdDesc.DefaultEyeFov[0];
+        _eyeFov[1] = _ovrHmdDesc.DefaultEyeFov[1];
+
+        //Get texture size
+        ovrSizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left,
+                                                                _ovrHmdDesc.DefaultEyeFov[0], 1.0f);
+        ovrSizei recommendedTex1Size = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Right,
+                                                                _ovrHmdDesc.DefaultEyeFov[1], 1.0f);
+        _renderTargetSize.w = recommendedTex0Size.w + recommendedTex1Size.w;
+        _renderTargetSize.h = recommendedTex0Size.h;
+        if (_renderTargetSize.h < recommendedTex1Size.h) {
+            _renderTargetSize.h = recommendedTex1Size.h;
+        }
+
         ovrHmd_StartSensor(_ovrHmd, ovrSensorCap_Orientation | ovrSensorCap_YawCorrection |
-                           ovrSensorCap_Position | ovrHmdCap_LowPersistence,
+                           ovrSensorCap_Position,
                            ovrSensorCap_Orientation);
 
+        _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/oculus.vert");
         _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/oculus.frag");
         _program.link();
-        
+
+        generateDistortionMesh();
+
+        // Uniforms
         _textureLocation = _program.uniformLocation("texture");
-        _lensCenterLocation = _program.uniformLocation("lensCenter");
-        _screenCenterLocation = _program.uniformLocation("screenCenter");
-        _scaleLocation = _program.uniformLocation("scale");
-        _scaleInLocation = _program.uniformLocation("scaleIn");
-        _hmdWarpParamLocation = _program.uniformLocation("hmdWarpParam");        
+        _eyeToSourceUVScaleLocation = _program.uniformLocation("EyeToSourceUVScale");
+        _eyeToSourceUVOffsetLocation = _program.uniformLocation("EyeToSourceUVOffset");
+        _eyeRotationStartLocation = _program.uniformLocation("EyeRotationStart");
+        _eyeRotationEndLocation = _program.uniformLocation("EyeRotationEnd");
+
+        // Attributes
+        _positionAttributeLocation = _program.attributeLocation("position");
+        _colorAttributeLocation = _program.attributeLocation("color");
+        _texCoord0AttributeLocation = _program.attributeLocation("texCoord0");
+        _texCoord1AttributeLocation = _program.attributeLocation("texCoord1");
+        _texCoord2AttributeLocation = _program.attributeLocation("texCoord2");
+
     } else {
         ovr_Shutdown();
+    }
+#endif
+}
+
+void OculusManager::generateDistortionMesh() {
+#ifdef HAVE_LIBOVR
+    ovrEyeRenderDesc eyeDesc[2];
+    eyeDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
+    eyeDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
+
+    ovrRecti eyeRenderViewport[2];
+    eyeRenderViewport[0].Pos = Vector2i(0, 0);
+    eyeRenderViewport[0].Size = Sizei(_renderTargetSize.w / 2, _renderTargetSize.h);
+    eyeRenderViewport[1].Pos = Vector2i((_renderTargetSize.w + 1) / 2, 0);
+    eyeRenderViewport[1].Size = eyeRenderViewport[0].Size;
+
+    for (int eyeNum = 0; eyeNum < ovrEye_Count; eyeNum++) {
+        // Allocate and generate distortion mesh vertices
+        ovrDistortionMesh meshData;
+        ovrHmd_CreateDistortionMesh(_ovrHmd, eyeDesc[eyeNum].Eye, eyeDesc[eyeNum].Fov, _ovrHmdDesc.DistortionCaps, &meshData);
+        
+        ovrHmd_GetRenderScaleAndOffset(eyeDesc[eyeNum].Fov, _renderTargetSize, eyeRenderViewport[eyeNum],
+                                       _UVScaleOffset[eyeNum]);
+
+        // Parse the vertex data and create a render ready vertex buffer
+        DistortionVertex* pVBVerts = (DistortionVertex*)OVR_ALLOC(sizeof(DistortionVertex) * meshData.VertexCount);
+        _meshSize[eyeNum] = meshData.IndexCount;
+
+        DistortionVertex* v = pVBVerts;
+        ovrDistortionVertex* ov = meshData.pVertexData;
+        for (unsigned int vertNum = 0; vertNum < meshData.VertexCount; vertNum++) {
+            v->pos.x = ov->Pos.x;
+            v->pos.y = ov->Pos.y;
+            v->texR.x = ov->TexR.x;
+            v->texR.y = ov->TexR.y;
+            v->texG.x = ov->TexG.x;
+            v->texG.y = ov->TexG.y;
+            v->texB.x = ov->TexB.x;
+            v->texB.y = ov->TexB.y;
+            v->color.r = v->color.g = v->color.b = (GLubyte)(ov->VignetteFactor * 255.99f);
+            v->color.a = (GLubyte)(ov->TimeWarpFactor * 255.99f);
+            v++; 
+            ov++;
+        }
+
+        //vertices
+        glGenBuffers(1, &(_vbo[eyeNum]));
+        glBindBuffer(GL_ARRAY_BUFFER, _vbo[eyeNum]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(DistortionVertex) * meshData.VertexCount, pVBVerts, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        OVR_FREE(pVBVerts);
+
+        //indices
+        glGenBuffers(1, &(_indicesVbo[eyeNum]));
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indicesVbo[eyeNum]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short) * meshData.IndexCount, meshData.pIndexData, GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        
+        ovrHmd_DestroyDistortionMesh(&meshData);
     }
 #endif
 }
@@ -75,14 +170,30 @@ bool OculusManager::isConnected() {
 
 void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenHeight) {
 #ifdef HAVE_LIBOVR
-    _stereoConfig.SetFullViewport(Viewport(0, 0, screenWidth, screenHeight));
-    camera.setAspectRatio(_stereoConfig.GetAspect());
-    camera.setFieldOfView(_stereoConfig.GetYFOVDegrees());
+    ovrSizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left,
+                                                         _ovrHmdDesc.DefaultEyeFov[0], 1.0f);
+    ovrSizei recommendedTex1Size = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Right,
+                                                         _ovrHmdDesc.DefaultEyeFov[1], 1.0f);
+    
+    float width = recommendedTex0Size.w + recommendedTex1Size.w;
+    float height = recommendedTex0Size.h;
+    if (height < recommendedTex1Size.h) {
+        height = recommendedTex1Size.h;
+    }
+    
+    camera.setAspectRatio(width / height);
+    camera.setFieldOfView(110);
 #endif    
 }
 
 void OculusManager::display(Camera& whichCamera) {
 #ifdef HAVE_LIBOVR
+    static unsigned int frameIndex = 0;
+    ovrFrameTiming hmdFrameTiming = ovrHmd_BeginFrameTiming(_ovrHmd, frameIndex);
+   
+    ovrEyeRenderDesc eyeDesc[2];
+    eyeDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
+    eyeDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
     ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
     // We only need to render the overlays to a texture once, then we just render the texture as a quad
     // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
@@ -91,119 +202,146 @@ void OculusManager::display(Camera& whichCamera) {
     
     Application::getInstance()->getGlowEffect()->prepare(); 
 
+    ovrPosef eyeRenderPose[ovrEye_Count];
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    
     // render the left eye view to the left side of the screen
-    const StereoEyeParams& leftEyeParams = _stereoConfig.GetEyeRenderParams(StereoEye_Left);
+
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    glLoadIdentity();
-    glTranslatef(_stereoConfig.GetProjectionCenterOffset(), 0, 0);
-    gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
-        whichCamera.getNearClip(), whichCamera.getFarClip());
-    
-    glViewport(leftEyeParams.VP.x, leftEyeParams.VP.y, leftEyeParams.VP.w, leftEyeParams.VP.h);
+
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glLoadIdentity();
-    glTranslatef(_stereoConfig.GetIPD() * 0.5f, 0, 0);
-    
-    Application::getInstance()->displaySide(whichCamera);
 
-    if (displayOverlays) {
-        applicationOverlay.displayOverlayTextureOculus(whichCamera);
-    }
-    
-    // and the right eye to the right side
-    const StereoEyeParams& rightEyeParams = _stereoConfig.GetEyeRenderParams(StereoEye_Right);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glTranslatef(-_stereoConfig.GetProjectionCenterOffset(), 0, 0);
-    gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
-        whichCamera.getNearClip(), whichCamera.getFarClip());
-    
-    glViewport(rightEyeParams.VP.x, rightEyeParams.VP.y, rightEyeParams.VP.w, rightEyeParams.VP.h);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glTranslatef(_stereoConfig.GetIPD() * -0.5f, 0, 0);
-    
-    Application::getInstance()->displaySide(whichCamera);
+    eyeRenderPose[0] = ovrHmd_GetEyePose(_ovrHmd, ovrEye_Left);
+    eyeRenderPose[1] = ovrHmd_GetEyePose(_ovrHmd, ovrEye_Right);
 
-    if (displayOverlays) {
-        applicationOverlay.displayOverlayTextureOculus(whichCamera);
+    for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++) {
+
+        ovrEyeType eye = _ovrHmdDesc.EyeRenderOrder[eyeIndex];
+
+        Matrix4f proj = ovrMatrix4f_Projection(eyeDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);
+        proj.Transpose();
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glLoadMatrixf((GLfloat *)proj.M);
+        glTranslatef(0.0f, 0, 0);
+
+       // gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
+       //                whichCamera.getNearClip(), whichCamera.getFarClip());
+
+
+        glViewport(eyeDesc[eye].DistortedViewport.Pos.x, eyeDesc[eye].DistortedViewport.Pos.y,
+                   eyeDesc[eye].DistortedViewport.Size.w, eyeDesc[eye].DistortedViewport.Size.h);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glTranslatef(eyeDesc[eye].ViewAdjust.x, eyeDesc[eye].ViewAdjust.y, eyeDesc[eye].ViewAdjust.z);
+
+        Application::getInstance()->displaySide(whichCamera);
+
+        if (displayOverlays) {
+            applicationOverlay.displayOverlayTextureOculus(whichCamera);
+        }
     }
-   
+
+    //Wait till time-warp to reduce latency
+    ovr_WaitTillTime(hmdFrameTiming.TimewarpPointSeconds);
+
     glPopMatrix();
-    
+
     // restore our normal viewport
-    const Viewport& fullViewport = _stereoConfig.GetFullViewport();
-    glViewport(fullViewport.x, fullViewport.y, fullViewport.w, fullViewport.h);
+    glViewport(0, 0, Application::getInstance()->getGLWidget()->width(), Application::getInstance()->getGLWidget()->height());
 
     QOpenGLFramebufferObject* fbo = Application::getInstance()->getGlowEffect()->render(true);
     glBindTexture(GL_TEXTURE_2D, fbo->texture());
 
     glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
     glLoadIdentity();
-    gluOrtho2D(fullViewport.x, fullViewport.x + fullViewport.w, fullViewport.y, fullViewport.y + fullViewport.h);
+    gluOrtho2D(0, Application::getInstance()->getGLWidget()->width(), 0, Application::getInstance()->getGLWidget()->height());
     glDisable(GL_DEPTH_TEST);
-    
-    // for reference on setting these values, see SDK file Samples/OculusRoomTiny/RenderTiny_Device.cpp
-    
-    float scaleFactor = 1.0 / _stereoConfig.GetDistortionScale();
-    float aspectRatio = _stereoConfig.GetAspect();
-    
+
     glDisable(GL_BLEND);
     _program.bind();
     _program.setUniformValue(_textureLocation, 0);
-    const DistortionConfig& distortionConfig = _stereoConfig.GetDistortionConfig();
-    _program.setUniformValue(_lensCenterLocation, (0.5 + distortionConfig.XCenterOffset * 0.5) * 0.5, 0.5);
-    _program.setUniformValue(_screenCenterLocation, 0.25, 0.5);
-    _program.setUniformValue(_scaleLocation, 0.25 * scaleFactor, 0.5 * scaleFactor * aspectRatio);
-    _program.setUniformValue(_scaleInLocation, 4, 2 / aspectRatio);
-    _program.setUniformValue(_hmdWarpParamLocation, distortionConfig.K[0], distortionConfig.K[1],
-        distortionConfig.K[2], distortionConfig.K[3]);
+   
+    _program.enableAttributeArray(_positionAttributeLocation);
+    _program.enableAttributeArray(_colorAttributeLocation);
+    _program.enableAttributeArray(_texCoord0AttributeLocation);
+    _program.enableAttributeArray(_texCoord1AttributeLocation);
+    _program.enableAttributeArray(_texCoord2AttributeLocation);
+    
+    for (int eyeNum = 0; eyeNum < ovrEye_Count; eyeNum++) {
+        GLfloat uvScale[2] = { _UVScaleOffset[eyeNum][0].x, _UVScaleOffset[eyeNum][0].y };
+        _program.setUniformValueArray(_eyeToSourceUVScaleLocation, uvScale, 1, 2);
+        GLfloat uvOffset[2] = { _UVScaleOffset[eyeNum][1].x, _UVScaleOffset[eyeNum][1].y };
+       _program.setUniformValueArray(_eyeToSourceUVOffsetLocation, uvOffset, 1, 2);
 
-    glColor3f(1, 0, 1);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0, 0);
-    glVertex2f(0, 0);
-    glTexCoord2f(0.5, 0);
-    glVertex2f(leftEyeParams.VP.w, 0);
-    glTexCoord2f(0.5, 1);
-    glVertex2f(leftEyeParams.VP.w, leftEyeParams.VP.h);
-    glTexCoord2f(0, 1);
-    glVertex2f(0, leftEyeParams.VP.h);
-    glEnd();
+        ovrMatrix4f timeWarpMatrices[2];
+        Matrix4f transposeMatrices[2];
+        ovrHmd_GetEyeTimewarpMatrices(_ovrHmd, (ovrEyeType)eyeNum, eyeRenderPose[eyeNum], timeWarpMatrices);
+        transposeMatrices[0] = Matrix4f(timeWarpMatrices[0]);
+        transposeMatrices[1] = Matrix4f(timeWarpMatrices[1]);
+
+        transposeMatrices[0].Transpose();
+        transposeMatrices[1].Transpose();
     
-    _program.setUniformValue(_lensCenterLocation, 0.5 + (0.5 - distortionConfig.XCenterOffset * 0.5) * 0.5, 0.5);
-    _program.setUniformValue(_screenCenterLocation, 0.75, 0.5);
-    
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.5, 0);
-    glVertex2f(leftEyeParams.VP.w, 0);
-    glTexCoord2f(1, 0);
-    glVertex2f(fullViewport.w, 0);
-    glTexCoord2f(1, 1);
-    glVertex2f(fullViewport.w, leftEyeParams.VP.h);
-    glTexCoord2f(0.5, 1);
-    glVertex2f(leftEyeParams.VP.w, leftEyeParams.VP.h);
-    glEnd();
+        glUniformMatrix4fv(_eyeRotationStartLocation, 1, GL_FALSE, (GLfloat *)transposeMatrices[0].M);
+      
+        glUniformMatrix4fv(_eyeRotationEndLocation, 1, GL_FALSE, (GLfloat *)transposeMatrices[1].M);
+     
+        glBindBuffer(GL_ARRAY_BUFFER, _vbo[eyeNum]);
+        //pos     
+        glVertexAttribPointer(_positionAttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)0);
+        glVertexAttribPointer(_texCoord0AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)8);
+        glVertexAttribPointer(_texCoord1AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)16);
+        glVertexAttribPointer(_texCoord2AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)24);
+        glVertexAttribPointer(_colorAttributeLocation, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(DistortionVertex), (void *)32);
+     
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indicesVbo[eyeNum]);
+        glDrawElements(GL_TRIANGLES, _meshSize[eyeNum], GL_UNSIGNED_SHORT, 0);
+        int error = glGetError();
+        if (error != GL_NO_ERROR) {
+            printf("ERROR %d\n", error);
+        }
+    }
+
+    _program.disableAttributeArray(_positionAttributeLocation);
+    _program.disableAttributeArray(_colorAttributeLocation);
+    _program.disableAttributeArray(_texCoord0AttributeLocation);
+    _program.disableAttributeArray(_texCoord1AttributeLocation);
+    _program.disableAttributeArray(_texCoord2AttributeLocation);
     
     glEnable(GL_BLEND);           
+    glEnable(GL_DEPTH_TEST);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     _program.release();
-    
-    glPopMatrix();
+   
+    ovrHmd_EndFrameTiming(_ovrHmd);
+    frameIndex++;
 #endif
 }
 
 void OculusManager::reset() {
 #ifdef HAVE_LIBOVR
-    _sensorFusion->Reset();
+    //_sensorFusion->Reset();
 #endif
 }
 
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #ifdef HAVE_LIBOVR
-    _sensorFusion->GetPredictedOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
+     ovrSensorState ss = ovrHmd_GetSensorState(_ovrHmd, 0.0);
+
+ //   if (ss.StatusFlags & (ovrStatus_OrientationTracked | ovrStatus_PositionTracked)) {
+        ovrPosef pose = ss.Recorded.Pose;
+        Quatf orientation = Quatf(pose.Orientation);
+        orientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
+  //  }
 #endif
 }
 
