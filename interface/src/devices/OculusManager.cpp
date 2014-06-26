@@ -41,12 +41,13 @@ ovrHmdDesc OculusManager::_ovrHmdDesc;
 ovrFovPort OculusManager::_eyeFov[ovrEye_Count];
 ovrSizei OculusManager::_renderTargetSize;
 ovrVector2f OculusManager::_UVScaleOffset[ovrEye_Count][2];
-GLuint  OculusManager::_vbo[ovrEye_Count];
-GLuint OculusManager::_indicesVbo[ovrEye_Count];
-GLsizei OculusManager::_meshSize[ovrEye_Count];
+GLuint  OculusManager::_vbo[ovrEye_Count] = { 0, 0 };
+GLuint OculusManager::_indicesVbo[ovrEye_Count] = { 0, 0 };
+GLsizei OculusManager::_meshSize[ovrEye_Count] = { 0, 0 };
 ovrFrameTiming OculusManager::_hmdFrameTiming;
 unsigned int OculusManager::_frameIndex = 0;
 bool OculusManager::_frameTimingActive = false;
+bool OculusManager::_programInitialized = false;
 
 #endif
 
@@ -78,34 +79,69 @@ void OculusManager::connect() {
                            ovrSensorCap_Position,
                            ovrSensorCap_Orientation);
 
-        _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/oculus.vert");
-        _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/oculus.frag");
-        _program.link();
 
+        if (!_programInitialized) {
+            // Shader program
+            _programInitialized = true;
+            _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/oculus.vert");
+            _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/oculus.frag");
+            _program.link();
+
+            // Uniforms
+            _textureLocation = _program.uniformLocation("texture");
+            _eyeToSourceUVScaleLocation = _program.uniformLocation("EyeToSourceUVScale");
+            _eyeToSourceUVOffsetLocation = _program.uniformLocation("EyeToSourceUVOffset");
+            _eyeRotationStartLocation = _program.uniformLocation("EyeRotationStart");
+            _eyeRotationEndLocation = _program.uniformLocation("EyeRotationEnd");
+
+            // Attributes
+            _positionAttributeLocation = _program.attributeLocation("position");
+            _colorAttributeLocation = _program.attributeLocation("color");
+            _texCoord0AttributeLocation = _program.attributeLocation("texCoord0");
+            _texCoord1AttributeLocation = _program.attributeLocation("texCoord1");
+            _texCoord2AttributeLocation = _program.attributeLocation("texCoord2");
+        }
+
+        //Generate the distortion VBOs
         generateDistortionMesh();
 
-        // Uniforms
-        _textureLocation = _program.uniformLocation("texture");
-        _eyeToSourceUVScaleLocation = _program.uniformLocation("EyeToSourceUVScale");
-        _eyeToSourceUVOffsetLocation = _program.uniformLocation("EyeToSourceUVOffset");
-        _eyeRotationStartLocation = _program.uniformLocation("EyeRotationStart");
-        _eyeRotationEndLocation = _program.uniformLocation("EyeRotationEnd");
-
-        // Attributes
-        _positionAttributeLocation = _program.attributeLocation("position");
-        _colorAttributeLocation = _program.attributeLocation("color");
-        _texCoord0AttributeLocation = _program.attributeLocation("texCoord0");
-        _texCoord1AttributeLocation = _program.attributeLocation("texCoord1");
-        _texCoord2AttributeLocation = _program.attributeLocation("texCoord2");
-
     } else {
+        _isConnected = false;
+        ovrHmd_Destroy(_ovrHmd);
         ovr_Shutdown();
     }
 #endif
 }
 
+//Disconnects and deallocates the OR
+void OculusManager::disconnect() {
+    if (_isConnected) {
+        _isConnected = false;
+        ovrHmd_Destroy(_ovrHmd);
+        ovr_Shutdown();
+
+        //Free the distortion mesh data
+        for (int i = 0; i < ovrEye_Count; i++) {
+            if (_vbo[i] != 0) {
+                glDeleteBuffers(1, &(_vbo[i]));
+                _vbo[i] = 0;
+            }
+            if (_indicesVbo[i] != 0) {
+                glDeleteBuffers(1, &(_indicesVbo[i]));
+                _indicesVbo[i] = 0;
+            }
+        }
+    }
+}
+
 void OculusManager::generateDistortionMesh() {
 #ifdef HAVE_LIBOVR
+    //Already have the distortion mesh
+    if (_vbo[0] != 0) {
+        printf("WARNING: Tried to generate Oculus distortion mesh twice without freeing the VBOs.");
+        return;
+    }
+
     ovrEyeRenderDesc eyeDesc[ovrEye_Count];
     eyeDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
     eyeDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
@@ -346,7 +382,8 @@ void OculusManager::display(Camera& whichCamera) {
 
 void OculusManager::reset() {
 #ifdef HAVE_LIBOVR
-    //_sensorFusion->Reset();
+    disconnect();
+    connect();
 #endif
 }
 

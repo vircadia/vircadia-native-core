@@ -18,9 +18,7 @@
 
 #include "../src/Util/Util_Render_Stereo.h"
 
-
 #include "renderer/ProgramObject.h"
-
 
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
 
@@ -30,19 +28,12 @@ class Camera;
 class OculusManager {
 public:
     static void connect();
-    
-    static void generateDistortionMesh();
-
+    static void disconnect();
     static bool isConnected();
-    
     static void beginFrameTiming();
-
     static void endFrameTiming();
-
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
-    
     static void display(Camera& whichCamera);
-    
     static void reset();
     
     /// param \yaw[out] yaw in radians
@@ -50,9 +41,8 @@ public:
     /// param \roll[out] roll in radians
     static void getEulerAngles(float& yaw, float& pitch, float& roll);
     
-    static void updateYawOffset();
-    
 private:
+    static void generateDistortionMesh();
 
     struct DistortionVertex {
         glm::vec2 pos;
@@ -97,6 +87,7 @@ private:
     static ovrFrameTiming _hmdFrameTiming;
     static unsigned int _frameIndex;
     static bool _frameTimingActive;
+    static bool _programInitialized;
 #endif
 };
 
