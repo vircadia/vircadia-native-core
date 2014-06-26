@@ -57,9 +57,6 @@ const glm::quat MODEL_DEFAULT_MODEL_ROTATION;
 const QString MODEL_DEFAULT_ANIMATION_URL("");
 const float MODEL_DEFAULT_ANIMATION_FPS = 30.0f;
 
-const PacketVersion VERSION_MODELS_HAVE_ANIMATION = 1;
-const PacketVersion VERSION_ROOT_ELEMENT_HAS_DATA = 2;
-
 // PropertyFlags support
 enum ModelPropertyList {
     PROP_PAGED_PROPERTY,

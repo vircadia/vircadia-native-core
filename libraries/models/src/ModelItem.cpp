@@ -636,9 +636,10 @@ ModelItemID ModelItem::readModelItemIDFromBuffer(const unsigned char* data, int 
 }
 
 int ModelItem::readModelDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-    
-    // TODO: handle old format??
-    //if (args.bitstreamVersion >= VERSION_MODELS_HAVE_ANIMATION) {
+
+    if (args.bitstreamVersion < VERSION_MODELS_SUPPORT_SPLIT_MTU) {
+        return oldVersionReadModelDataFromBuffer(data, bytesLeftToRead, args);
+    }
 
     // Header bytes
     //    object ID [16 bytes]
