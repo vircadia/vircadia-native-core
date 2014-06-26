@@ -12,12 +12,12 @@
 #include <QTimer>
 #include <EntityTree.h>
 
-#include "ModelServer.h" // rename to "EntityServer.h"
-#include "ModelServerConsts.h" // rename to ""EntityServerConsts.h"
-#include "ModelNodeData.h" // rename to ""EntityNodeData.h"
+#include "EntityServer.h"
+#include "EntityServerConsts.h"
+#include "EntityNodeData.h"
 
 const char* MODEL_SERVER_NAME = "Entity";
-const char* MODEL_SERVER_LOGGING_TARGET_NAME = "model-server";
+const char* MODEL_SERVER_LOGGING_TARGET_NAME = "entity-server";
 const char* LOCAL_MODELS_PERSIST_FILE = "resources/models.svo";
 
 EntityServer::EntityServer(const QByteArray& packet) : OctreeServer(packet) {

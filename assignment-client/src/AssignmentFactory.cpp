@@ -16,7 +16,7 @@
 #include "audio/AudioMixer.h"
 #include "avatars/AvatarMixer.h"
 #include "metavoxels/MetavoxelServer.h"
-#include "models/ModelServer.h"
+#include "models/EntityServer.h"
 #include "particles/ParticleServer.h"
 #include "voxels/VoxelServer.h"
 

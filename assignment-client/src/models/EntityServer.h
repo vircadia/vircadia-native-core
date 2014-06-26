@@ -15,7 +15,7 @@
 #include "../octree/OctreeServer.h"
 
 #include "EntityItem.h"
-#include "ModelServerConsts.h" // rename to ""EntityServerConsts.h"
+#include "EntityServerConsts.h"
 #include "EntityTree.h"
 
 /// Handles assignments of type EntityServer - sending models to various clients.
