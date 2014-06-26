@@ -12,19 +12,33 @@
 #ifndef hifi_UserActivityLogger_h
 #define hifi_UserActivityLogger_h
 
+#include <QObject>
 #include <QString>
 #include <QJsonObject>
+#include <QNetworkReply>
 
-class UserActivityLogger {
+class UserActivityLogger : public QObject {
+    Q_OBJECT
+    
 public:
     static UserActivityLogger& getInstance();
     
+public slots:
+    void logAction(QString action, QJsonObject details = QJsonObject());
+    
     void login();
     void logout();
+//    void changedDisplayName();
+    void changedModel();
+    void changedDomain();
+//    void connectedDevice();
+    
+private slots:
+    void requestFinished(const QJsonObject& object);
+    void requestError(QNetworkReply::NetworkError error,const QString& string);
     
 private:
     UserActivityLogger();
-    void logAction(QString action, QJsonObject details = QJsonObject());
 };
 
 #endif // hifi_UserActivityLogger_h
