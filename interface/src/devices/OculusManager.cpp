@@ -41,8 +41,8 @@ ovrHmdDesc OculusManager::_ovrHmdDesc;
 ovrFovPort OculusManager::_eyeFov[ovrEye_Count];
 ovrSizei OculusManager::_renderTargetSize;
 ovrVector2f OculusManager::_UVScaleOffset[ovrEye_Count][2];
-GLuint  OculusManager::_vbo[ovrEye_Count] = { 0, 0 };
-GLuint OculusManager::_indicesVbo[ovrEye_Count] = { 0, 0 };
+GLuint  OculusManager::_vertices[ovrEye_Count] = { 0, 0 };
+GLuint OculusManager::_indices[ovrEye_Count] = { 0, 0 };
 GLsizei OculusManager::_meshSize[ovrEye_Count] = { 0, 0 };
 ovrFrameTiming OculusManager::_hmdFrameTiming;
 unsigned int OculusManager::_frameIndex = 0;
@@ -122,13 +122,13 @@ void OculusManager::disconnect() {
 
         //Free the distortion mesh data
         for (int i = 0; i < ovrEye_Count; i++) {
-            if (_vbo[i] != 0) {
-                glDeleteBuffers(1, &(_vbo[i]));
-                _vbo[i] = 0;
+            if (_vertices[i] != 0) {
+                glDeleteBuffers(1, &(_vertices[i]));
+                _vertices[i] = 0;
             }
-            if (_indicesVbo[i] != 0) {
-                glDeleteBuffers(1, &(_indicesVbo[i]));
-                _indicesVbo[i] = 0;
+            if (_indices[i] != 0) {
+                glDeleteBuffers(1, &(_indices[i]));
+                _indices[i] = 0;
             }
         }
     }
@@ -136,8 +136,8 @@ void OculusManager::disconnect() {
 
 void OculusManager::generateDistortionMesh() {
 #ifdef HAVE_LIBOVR
-    //Already have the distortion mesh
-    if (_vbo[0] != 0) {
+    //Check if we already have the distortion mesh
+    if (_vertices[0] != 0) {
         printf("WARNING: Tried to generate Oculus distortion mesh twice without freeing the VBOs.");
         return;
     }
@@ -164,6 +164,7 @@ void OculusManager::generateDistortionMesh() {
         DistortionVertex* pVBVerts = (DistortionVertex*)OVR_ALLOC(sizeof(DistortionVertex) * meshData.VertexCount);
         _meshSize[eyeNum] = meshData.IndexCount;
 
+        // Convert the oculus vertex data to the DistortionVertex format.
         DistortionVertex* v = pVBVerts;
         ovrDistortionVertex* ov = meshData.pVertexData;
         for (unsigned int vertNum = 0; vertNum < meshData.VertexCount; vertNum++) {
@@ -182,18 +183,19 @@ void OculusManager::generateDistortionMesh() {
         }
 
         //vertices
-        glGenBuffers(1, &(_vbo[eyeNum]));
-        glBindBuffer(GL_ARRAY_BUFFER, _vbo[eyeNum]);
+        glGenBuffers(1, &(_vertices[eyeNum]));
+        glBindBuffer(GL_ARRAY_BUFFER, _vertices[eyeNum]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(DistortionVertex) * meshData.VertexCount, pVBVerts, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        OVR_FREE(pVBVerts);
 
         //indices
-        glGenBuffers(1, &(_indicesVbo[eyeNum]));
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indicesVbo[eyeNum]);
+        glGenBuffers(1, &(_indices[eyeNum]));
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indices[eyeNum]);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short) * meshData.IndexCount, meshData.pIndexData, GL_STATIC_DRAW);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         
+        //Now that we have the VBOs we can get rid of the mesh data
+        OVR_FREE(pVBVerts);
         ovrHmd_DestroyDistortionMesh(&meshData);
     }
 #endif
@@ -354,7 +356,7 @@ void OculusManager::display(Camera& whichCamera) {
       
         glUniformMatrix4fv(_eyeRotationEndLocation, 1, GL_FALSE, (GLfloat *)transposeMatrices[1].M);
      
-        glBindBuffer(GL_ARRAY_BUFFER, _vbo[eyeNum]);
+        glBindBuffer(GL_ARRAY_BUFFER, _vertices[eyeNum]);
         
         glVertexAttribPointer(_positionAttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)0);
         glVertexAttribPointer(_texCoord0AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)8);
@@ -362,7 +364,7 @@ void OculusManager::display(Camera& whichCamera) {
         glVertexAttribPointer(_texCoord2AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)24);
         glVertexAttribPointer(_colorAttributeLocation, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(DistortionVertex), (void *)32);
      
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indicesVbo[eyeNum]);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indices[eyeNum]);
         glDrawElements(GL_TRIANGLES, _meshSize[eyeNum], GL_UNSIGNED_SHORT, 0);
     }
 
@@ -380,6 +382,7 @@ void OculusManager::display(Camera& whichCamera) {
 #endif
 }
 
+//Tries to reconnect to the sensors
 void OculusManager::reset() {
 #ifdef HAVE_LIBOVR
     disconnect();
