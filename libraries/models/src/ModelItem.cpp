@@ -624,17 +624,7 @@ int ModelItem::oldVersionReadModelDataFromBuffer(const unsigned char* data, int 
 ModelItemID ModelItem::readModelItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                         ReadBitstreamToTreeParams& args) {
     ModelItemID result;
-
-    // Header bytes
-    //    object ID [16 bytes]
-    //    ByteCountCoded(type code) [~1 byte]
-    //    last edited [8 bytes]
-    //    ByteCountCoded(last_edited to last_updated delta) [~1-8 bytes]
-    //    PropertyFlags<>( everything ) [1-2 bytes]
-    // ~27-35 bytes...
-    const int MINIMUM_HEADER_BYTES = 27;
-    int bytesRead = 0;
-    if (bytesLeftToRead >= MINIMUM_HEADER_BYTES) {
+    if (bytesLeftToRead >= sizeof(uint32_t)) {
         // id
         uint32_t id;
         memcpy(&id, data, sizeof(id));
