@@ -134,7 +134,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _frameCount(0),
-        _fps(120.0f),
+        _fps(60.0f),
         _justStarted(true),
         _voxelImporter(NULL),
         _importSucceded(false),
@@ -553,7 +553,7 @@ void Application::initializeGL() {
     }
 
     // update before the first render
-    update(0.0f);
+    update(1.f / _fps);
 
     InfoView::showFirstTime();
 }
