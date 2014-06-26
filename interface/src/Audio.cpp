@@ -672,6 +672,7 @@ void Audio::handleAudioInput() {
             currentPacketPtr += sizeof(headOrientation);
             
             nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
+            _sequenceNumber++;
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(numAudioBytes + leadingBytes);
