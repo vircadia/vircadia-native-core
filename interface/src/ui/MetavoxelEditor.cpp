@@ -771,7 +771,7 @@ int VoxelizationVisitor::visit(MetavoxelInfo& info) {
         }
         return DEFAULT_ORDER;
     }
-    QRgb closestColor;
+    QRgb closestColor = QRgb();
     float closestDistance = FLT_MAX;
     for (unsigned int i = 0; i < sizeof(DIRECTION_ROTATIONS) / sizeof(DIRECTION_ROTATIONS[0]); i++) {
         glm::vec3 rotated = DIRECTION_ROTATIONS[i] * center;

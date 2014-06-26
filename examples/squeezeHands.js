@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var rightHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/RightHandAnim.fbx";
-var leftHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/LeftHandAnim.fbx";
+var rightHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/RightHandAnimPhilip.fbx";
+var leftHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/LeftHandAnimPhilip.fbx";
 
 var LEFT = 0;
 var RIGHT = 1;

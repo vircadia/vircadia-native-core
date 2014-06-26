@@ -27,6 +27,7 @@ class QScriptValue;
 
 class Attribute;
 class MetavoxelData;
+class MetavoxelLOD;
 class MetavoxelNode;
 class MetavoxelStreamState;
 
@@ -212,6 +213,11 @@ public:
     virtual void writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
 
     virtual bool equal(void* first, void* second) const = 0;
+
+    virtual bool deepEqual(void* first, void* second) const { return equal(first, second); }
+
+    virtual bool metavoxelRootsEqual(const MetavoxelNode& firstRoot, const MetavoxelNode& secondRoot,
+        const glm::vec3& minimum, float size, const MetavoxelLOD& lod);
 
     /// Merges the value of a parent and its children.
     /// \param postRead whether or not the merge is happening after a read
@@ -406,6 +412,8 @@ public:
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
 
+    virtual bool deepEqual(void* first, void* second) const;
+
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
     
     virtual void* createFromVariant(const QVariant& value) const;
@@ -433,6 +441,8 @@ public:
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
     
     virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
+    
+    virtual bool deepEqual(void* first, void* second) const;
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 
@@ -462,6 +472,9 @@ public:
     
     virtual void readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamState& state);
     virtual void writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
+    
+    virtual bool metavoxelRootsEqual(const MetavoxelNode& firstRoot, const MetavoxelNode& secondRoot,
+        const glm::vec3& minimum, float size, const MetavoxelLOD& lod);
 };
 
 #endif // hifi_AttributeRegistry_h

@@ -108,6 +108,7 @@ Menu::Menu() :
     _fastFPSAverage(ONE_SECOND_OF_FRAMES),
     _loginAction(NULL),
     _preferencesDialog(NULL),
+    _scriptsLocation(),
     _loginDialog(NULL),
     _snapshotsLocation()
 {
@@ -249,12 +250,21 @@ Menu::Menu() :
 
     QMenu* viewMenu = addMenu("View");
 
+#ifdef Q_OS_MAC
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::META | Qt::Key_F,
                                            false,
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
+#else
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::Fullscreen,
+                                           Qt::CTRL | Qt::Key_F,
+                                           false,
+                                           appInstance,
+                                           SLOT(setFullscreen(bool)));
+#endif
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
                                             appInstance,SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
@@ -336,6 +346,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, false);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::StringHair, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
@@ -366,7 +377,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderSkeletonCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderHeadCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderBoundingCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollideAsRagDoll);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollideAsRagdoll);
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
@@ -598,6 +609,7 @@ void Menu::loadSettings(QSettings* settings) {
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
     _snapshotsLocation = settings->value("snapshotsLocation",
                                          QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
+    setScriptsLocation(settings->value("scriptsLocation", QString()).toString());
 
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -642,6 +654,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("avatarLODDistanceMultiplier", _avatarLODDistanceMultiplier);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->setValue("snapshotsLocation", _snapshotsLocation);
+    settings->setValue("scriptsLocation", _scriptsLocation);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
     settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
@@ -1293,6 +1306,7 @@ void Menu::showChat() {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
         }
+        _chatWindow->activateWindow();
     } else {
         Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
     }
@@ -1775,4 +1789,9 @@ QString Menu::getSnapshotsLocation() const {
         return QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     }
     return _snapshotsLocation;
+}
+
+void Menu::setScriptsLocation(const QString& scriptsLocation) {
+    _scriptsLocation = scriptsLocation;
+    emit scriptLocationChanged(scriptsLocation);
 }

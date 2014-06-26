@@ -68,6 +68,7 @@ void printVector(glm::vec3 vec) {
     qDebug("%4.2f, %4.2f, %4.2f", vec.x, vec.y, vec.z);
 }
 
+
 //  Return the azimuth angle (in radians) between two points.
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z);

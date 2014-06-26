@@ -94,39 +94,6 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
     }
 }
 
-void Hand::collideAgainstOurself() {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::HandsCollideWithSelf)) {
-        return;
-    }
-
-    int leftPalmIndex, rightPalmIndex;   
-    getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
-    float scaledPalmRadius = PALM_COLLISION_RADIUS * _owningAvatar->getScale();
-    
-    const SkeletonModel& skeletonModel = _owningAvatar->getSkeletonModel();
-    for (int i = 0; i < int(getNumPalms()); i++) {
-        PalmData& palm = getPalms()[i];
-        if (!palm.isActive()) {
-            continue;
-        }
-        // ignoring everything below the parent of the parent of the last free joint
-        int skipIndex = skeletonModel.getParentJointIndex(skeletonModel.getParentJointIndex(
-            skeletonModel.getLastFreeJointIndex((int(i) == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
-                (int(i) == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1)));
-
-        handCollisions.clear();
-        if (_owningAvatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, handCollisions, skipIndex)) {
-            glm::vec3 totalPenetration;
-            for (int j = 0; j < handCollisions.size(); ++j) {
-                CollisionInfo* collision = handCollisions.getCollision(j);
-                totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
-            }
-            // resolve penetration
-            palm.addToPenetration(totalPenetration);
-        }
-    }
-}
-
 void Hand::resolvePenetrations() {
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
