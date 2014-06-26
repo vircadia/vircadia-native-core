@@ -56,6 +56,11 @@ function keyPressEvent(event) {
         Camera.setPosition(cameraLocations[choice - 1]);
         Camera.keepLookingAt(cameraLookAts[choice - 1]);
     }
+    if (event.text == "ESC") {
+        cameraNumber = 0;
+        freeCamera = false;
+        restoreCameraState();
+    }
     if (event.text == "0") {
         //  Show camera location in log
         var cameraLocation = Camera.getPosition();
