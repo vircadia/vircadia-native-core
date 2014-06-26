@@ -206,7 +206,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         }
 
         const SharedNodePointer& destinationNode = NodeList::getInstance()->getNodeHash().value(nodeUUID);
-        const QSet<unsigned short int>& missingSequenceNumbers = nodeStats.getMissingSequenceNumbers();
+        const QSet<unsigned short int>& missingSequenceNumbers = nodeStats.getSequenceNumberStats().getMissingSet();
         
         // construct nack packet(s) for this node
         int numSequenceNumbersAvailable = missingSequenceNumbers.size();
@@ -254,8 +254,7 @@ SingleSenderStats::SingleSenderStats()
     _totalLockWaitTime(0),
     _totalElementsInPacket(0),
     _totalPackets(0),
-    _incomingLastSequence(0),
-    _missingSequenceNumbers()
+    _sequenceNumberStats()
 {
 
 }
@@ -263,74 +262,8 @@ SingleSenderStats::SingleSenderStats()
 void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
     int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
 
-    const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
-    const int  MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
-    const int MAX_MISSING_SEQUENCE_SIZE = 100;
-
-    unsigned short int expectedSequence = _totalPackets == 0 ? incomingSequence : _incomingLastSequence + (unsigned short int)1;
-    
-    if (incomingSequence == expectedSequence) { // on time
-        _incomingLastSequence = incomingSequence;
-    } else { // out of order
-        int incoming = (int)incomingSequence;
-        int expected = (int)expectedSequence;
-
-        // check if the gap between incoming and expected is reasonable, taking possible rollover into consideration
-        int absGap = std::abs(incoming - expected);
-        if (absGap >= UINT16_RANGE - MAX_REASONABLE_SEQUENCE_GAP) {
-            // rollover likely occurred between incoming and expected.
-            // correct the larger of the two so that it's within [-UINT16_RANGE, -1] while the other remains within [0, UINT16_RANGE-1]
-            if (incoming > expected) {
-                incoming -= UINT16_RANGE;
-            } else {
-                expected -= UINT16_RANGE;
-            }
-        } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
-            // ignore packet if gap is unreasonable
-            qDebug() << "ignoring unreasonable packet... sequence:" << incomingSequence
-                << "_incomingLastSequence:" << _incomingLastSequence;
-            return;
-        }
-        
-        // now that rollover has been corrected for (if it occurred), incoming and expected can be
-        // compared to each other directly, though one of them might be negative
-        if (incoming > expected) { // early
-            // add all sequence numbers that were skipped to the missing sequence numbers list
-            for (int missingSequence = expected; missingSequence < incoming; missingSequence++) {
-                _missingSequenceNumbers.insert(missingSequence < 0 ? missingSequence + UINT16_RANGE : missingSequence);
-            }
-            _incomingLastSequence = incomingSequence;
-        } else { // late
-            // remove this from missing sequence number if it's in there
-            _missingSequenceNumbers.remove(incomingSequence);
-
-            // do not update _incomingLastSequence; it shouldn't become smaller
-        }
-    }
-
-    // prune missing sequence list if it gets too big; sequence numbers that are older than MAX_REASONABLE_SEQUENCE_GAP
-    // will be removed.
-    if (_missingSequenceNumbers.size() > MAX_MISSING_SEQUENCE_SIZE) {
-        // some older sequence numbers may be from before a rollover point; this must be handled.
-        // some sequence numbers in this list may be larger than _incomingLastSequence, indicating that they were received
-        // before the most recent rollover.
-        int cutoff = (int)_incomingLastSequence - MAX_REASONABLE_SEQUENCE_GAP;
-        if (cutoff >= 0) {
-            foreach(unsigned short int missingSequence, _missingSequenceNumbers) {
-                unsigned short int nonRolloverCutoff = (unsigned short int)cutoff;
-                if (missingSequence > _incomingLastSequence || missingSequence <= nonRolloverCutoff) {
-                    _missingSequenceNumbers.remove(missingSequence);
-                }
-            }
-        } else {
-            unsigned short int rolloverCutoff = (unsigned short int)(cutoff + UINT16_RANGE);
-            foreach(unsigned short int missingSequence, _missingSequenceNumbers) {
-                if (missingSequence > _incomingLastSequence && missingSequence <= rolloverCutoff) {
-                    _missingSequenceNumbers.remove(missingSequence);
-                }
-            }
-        }
-    }
+    // track sequence number
+    _sequenceNumberStats.sequenceNumberReceived(incomingSequence);
 
     // update other stats
     _totalTransitTime += transitTime;

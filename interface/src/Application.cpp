@@ -2164,7 +2164,7 @@ int Application::sendNackPackets() {
             OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
 
             // make copy of missing sequence numbers from stats
-            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = stats.getMissingSequenceNumbers();
+            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = stats.getSequenceNumberStats().getMissingSet();
 
             _octreeSceneStatsLock.unlock();
 

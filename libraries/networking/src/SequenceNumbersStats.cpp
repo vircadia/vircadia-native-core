@@ -17,6 +17,7 @@ SequenceNumberStats::SequenceNumberStats()
     : _lastReceived(std::numeric_limits<quint16>::max()),
     _missingSet(),
     _numReceived(0),
+    _numUnreasonable(0),
     _numEarly(0),
     _numLate(0),
     _numLost(0),
@@ -29,6 +30,8 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, const bool wa
 
     static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
     static const int MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
+
+    _numReceived++;
 
     // determine our expected sequence number... handle rollover appropriately
     quint16 expected = _numReceived > 0 ? _lastReceived + (quint16)1 : incoming;
@@ -58,6 +61,7 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, const bool wa
             // ignore packet if gap is unreasonable
             qDebug() << "ignoring unreasonable packet... sequence:" << incoming
                 << "previous:" << _lastReceived;
+            _numUnreasonable++;
             return;
         }
 
@@ -100,7 +104,6 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, const bool wa
             // do not update _incomingLastSequence; it shouldn't become smaller
         }
     }
-    _numReceived++;
 
     // prune missing sequence list if it gets too big; sequence numbers that are older than MAX_REASONABLE_SEQUENCE_GAP
     // will be removed.

@@ -13,6 +13,7 @@
 
 int main(int argc, char** argv) {
     AudioRingBufferTests::runAllTests();
+    printf("all tests passed.  press enter to exit\n");
     getchar();
     return 0;
 }

@@ -21,6 +21,8 @@ public:
     void sequenceNumberReceived(quint16 incoming, const bool wantExtraDebugging = false);
 
     quint32 getNumReceived() const { return _numReceived; }
+    quint32 getNumUnreasonable() const { return _numUnreasonable; }
+    quint32 getNumOutOfOrder() const { return _numEarly + _numLate; }
     quint32 getNumEarly() const { return _numEarly; }
     quint32 getNumLate() const { return _numLate; }
     quint32 getNumLost() const { return _numLost; }
@@ -33,6 +35,7 @@ private:
     QSet<quint16> _missingSet;
 
     quint32 _numReceived;
+    quint32 _numUnreasonable;
     quint32 _numEarly;
     quint32 _numLate;
     quint32 _numLost;
