@@ -81,10 +81,11 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
         // we don't continue if this key is not present in our descriptionObject
         if (descriptionObject.contains(key)) {
             if (rootValue.isString()) {
-                // if this is a string then just set it in our settingsVariant
                 settingsVariant[key] = rootValue.toString();
+            } else if (rootValue.isBool()) {
+                settingsVariant[key] = rootValue.toBool();
             } else if (rootValue.isObject()) {
-                
+                // there's a JSON Object to explore, so attempt to recurse into it
                 QJsonObject nextDescriptionObject = descriptionObject[key].toObject();
                 
                 if (nextDescriptionObject.contains(DESCRIPTION_SETTINGS_KEY)) {
@@ -93,7 +94,7 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                         settingsVariant[key] = QVariantMap();
                     }
                     
-                    // there's a JSON Object to explore, so recurse into it
+                    
                     recurseJSONObjectAndOverwriteSettings(rootValue.toObject(),
                                                           *reinterpret_cast<QVariantMap*>(settingsVariant[key].data()),
                                                           nextDescriptionObject[DESCRIPTION_SETTINGS_KEY].toObject());
