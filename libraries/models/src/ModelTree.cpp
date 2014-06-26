@@ -432,17 +432,18 @@ void ModelTree::deleteModel(const ModelItemID& modelID) {
 void ModelTree::deleteModels(QSet<ModelItemID> modelIDs) {
     // NOTE: callers must lock the tree before using this method
 
-    // TODO: fix this to use one pass
+    DeleteModelOperator theOperator(this);
     foreach(const ModelItemID& modelID, modelIDs) {
-
         // First, look for the existing model in the tree..
-        DeleteModelOperator theOperator(this, modelID);
+        theOperator.modelToDelete(modelID);
+    }
 
-        recurseTreeWithOperator(&theOperator);
-        _isDirty = true;
+    recurseTreeWithOperator(&theOperator);
+    _isDirty = true;
 
-        bool wantDebug = false;
-        if (wantDebug) {
+    bool wantDebug = false;
+    if (wantDebug) {
+        foreach(const ModelItemID& modelID, modelIDs) {
             ModelTreeElement* containingElement = getContainingElement(modelID);
             qDebug() << "ModelTree::storeModel().... after store... containingElement=" << containingElement;
         }
