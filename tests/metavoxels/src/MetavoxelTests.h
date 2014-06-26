@@ -40,7 +40,7 @@ class Endpoint : public QObject {
 
 public:
     
-    enum Mode { BASIC_PEER_MODE, METAVOXEL_SERVER_MODE, METAVOXEL_CLIENT_MODE };
+    enum Mode { BASIC_PEER_MODE, CONGESTION_MODE, METAVOXEL_SERVER_MODE, METAVOXEL_CLIENT_MODE };
     
     Endpoint(const QByteArray& datagramHeader, Mode mode = BASIC_PEER_MODE);
 
@@ -62,6 +62,8 @@ private slots:
     void clearReceiveRecordsBefore(int index);
 
 private:
+    
+    void receiveDatagram(const QByteArray& datagram);
     
     void handleMessage(const QVariant& message, Bitstream& in);
     
@@ -96,7 +98,14 @@ private:
     SharedObjectPointer _sphere;
     
     Endpoint* _other;
-    QList<QPair<QByteArray, int> > _delayedDatagrams;
+    
+    typedef QPair<QByteArray, int> ByteArrayIntPair;
+    QList<ByteArrayIntPair> _delayedDatagrams;
+
+    typedef QVector<QByteArray> ByteArrayVector;
+    QList<ByteArrayVector> _pipeline;
+    int _remainingPipelineCapacity;
+
     float _highPriorityMessagesToSend;
     QVariantList _highPriorityMessagesSent;
     QList<SequencedTestMessage> _unreliableMessagesSent;
