@@ -104,7 +104,7 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
     _audioMixerJitterBufferStats(),
-    _sequenceNumber(0)
+    _outgoingSequenceNumber(0)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -120,7 +120,7 @@ void Audio::init(QGLWidget *parent) {
 
 void Audio::reset() {
     _ringBuffer.reset();
-    _sequenceNumber = 0;
+    _outgoingSequenceNumber = 0;
 }
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
@@ -656,8 +656,8 @@ void Audio::handleAudioInput() {
 
             char* currentPacketPtr = audioDataPacket + populatePacketHeader(audioDataPacket, packetType);
             
-            // pack seq number
-            memcpy(currentPacketPtr, &_sequenceNumber, sizeof(quint16));
+            // pack sequence number
+            memcpy(currentPacketPtr, &_outgoingSequenceNumber, sizeof(quint16));
             currentPacketPtr += sizeof(quint16);
 
             // set the mono/stereo byte
@@ -672,13 +672,13 @@ void Audio::handleAudioInput() {
             currentPacketPtr += sizeof(headOrientation);
             
             nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
-            _sequenceNumber++;
+            _outgoingSequenceNumber++;
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(numAudioBytes + leadingBytes);
         } else {
             // reset seq numbers if there's no connection with an audiomixer
-            _sequenceNumber = 0;
+            _outgoingSequenceNumber = 0;
         }
         delete[] inputAudioSamples;
     }
@@ -827,6 +827,14 @@ void Audio::toggleStereoInput() {
 }
 
 void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
+
+    // parse sequence number for this packet
+    int numBytesPacketHeader = numBytesForPacketHeader(audioByteArray);
+    const char* sequenceAt = audioByteArray.constData() + numBytesPacketHeader;
+    quint16 sequence = *((quint16*)sequenceAt);
+    _incomingSequenceNumberStats.sequenceNumberReceived(sequence);
+
+    // parse audio data
     _ringBuffer.parseData(audioByteArray);
     
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())

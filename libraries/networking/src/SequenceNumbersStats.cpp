@@ -59,7 +59,7 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, const bool wa
             }
         } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
             // ignore packet if gap is unreasonable
-            qDebug() << "ignoring unreasonable packet... sequence:" << incoming
+            qDebug() << "ignoring unreasonable sequence number:" << incoming
                 << "previous:" << _lastReceived;
             _numUnreasonable++;
             return;

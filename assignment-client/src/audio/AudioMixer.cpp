@@ -519,7 +519,7 @@ void AudioMixer::run() {
     QElapsedTimer timer;
     timer.start();
     
-    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
+    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO + sizeof(quint16)
                                      + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
     
     int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
@@ -602,18 +602,32 @@ void AudioMixer::run() {
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
+
+                AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
+
                 prepareMixForListeningNode(node.data());
                 
+                // pack header
                 int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
+                char* dataAt = clientMixBuffer + numBytesPacketHeader;
 
-                memcpy(clientMixBuffer + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                nodeList->writeDatagram(clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
+                // pack sequence number
+                quint16 sequence = nodeData->getOutgoingSequenceNumber();
+                memcpy(dataAt, &sequence, sizeof(quint16));
+                dataAt += sizeof(quint16);
+
+                // pack mixed audio samples
+                memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+
+                // send mixed audio packet
+                nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
+                nodeData->incrementOutgoingSequenceNumber();
                 
                 // send an audio stream stats packet if it's time
                 if (sendAudioStreamStats) {
-                    int numBytesWritten = ((AudioMixerClientData*)node->getLinkedData())
-                        ->encodeAudioStreamStatsPacket(audioStreamStatsPacket);
-                    nodeList->writeDatagram(audioStreamStatsPacket, numBytesWritten, node);
+                    int numBytesAudioStreamStatsPacket = nodeData->encodeAudioStreamStatsPacket(audioStreamStatsPacket);
+                    nodeList->writeDatagram(audioStreamStatsPacket, numBytesAudioStreamStatsPacket, node);
                 }
 
                 ++_sumListeners;

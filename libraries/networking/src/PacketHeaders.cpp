@@ -50,6 +50,8 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeMicrophoneAudioNoEcho:
         case PacketTypeMicrophoneAudioWithEcho:
         case PacketTypeSilentAudioFrame:
+            return 2;
+        case PacketTypeMixedAudio:
             return 1;
         case PacketTypeAvatarData:
             return 3;

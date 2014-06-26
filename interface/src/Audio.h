@@ -239,7 +239,8 @@ private:
 
     AudioMixerJitterBuffersStats _audioMixerJitterBufferStats;
 
-    quint16 _sequenceNumber;
+    quint16 _outgoingSequenceNumber;
+    SequenceNumberStats _incomingSequenceNumberStats;
 };
 
 

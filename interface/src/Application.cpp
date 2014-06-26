@@ -3608,6 +3608,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
 
+    NodeList* nodeList = NodeList::getInstance();
+    connect(nodeList, &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
+
     scriptEngine->moveToThread(workerThread);
 
     // Starts an event loop, and emits workerThread->started()

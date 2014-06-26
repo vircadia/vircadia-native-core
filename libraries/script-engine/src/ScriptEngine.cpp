@@ -459,32 +459,55 @@ void ScriptEngine::run() {
                     }
                 }
 
-                QByteArray audioPacket = byteArrayWithPopulatedHeader(silentFrame
-                                                                      ? PacketTypeSilentAudioFrame
-                                                                      : PacketTypeMicrophoneAudioNoEcho);
+                char audioPacket[MAX_PACKET_SIZE];
 
-                QDataStream packetStream(&audioPacket, QIODevice::Append);
+                // pack header
+                int numBytesPacketHeader = populatePacketHeader(audioPacket, silentFrame
+                                                                            ? PacketTypeSilentAudioFrame
+                                                                            : PacketTypeMicrophoneAudioNoEcho);
+                char* dataAt = audioPacket + numBytesPacketHeader;
+
+                // skip over sequence number for now; will be packed when destination node is known
+                char* sequenceAt = dataAt;
+                dataAt += sizeof(quint16);
 
                 // use the orientation and position of this avatar for the source of this audio
-                packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
+                memcpy(dataAt, &_avatarData->getPosition(), sizeof(glm::vec3));
+                dataAt += sizeof(glm::vec3);
+
                 glm::quat headOrientation = _avatarData->getHeadOrientation();
-                packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
+                memcpy(dataAt, &headOrientation, sizeof(glm::quat));
+                dataAt += sizeof(glm::quat);
 
                 if (silentFrame) {
                     if (!_isListeningToAudioStream) {
                         // if we have a silent frame and we're not listening then just send nothing and break out of here
                         break;
                     }
-
                     // write the number of silent samples so the audio-mixer can uphold timing
-                    packetStream.writeRawData(reinterpret_cast<const char*>(&SCRIPT_AUDIO_BUFFER_SAMPLES), sizeof(int16_t));
+                    memcpy(dataAt, &SCRIPT_AUDIO_BUFFER_SAMPLES, sizeof(int16_t));
+                    dataAt += sizeof(int16_t);
                 } else if (nextSoundOutput) {
                     // write the raw audio data
-                    packetStream.writeRawData(reinterpret_cast<const char*>(nextSoundOutput),
-                                              numAvailableSamples * sizeof(int16_t));
+                    int numAvailableBytes = numAvailableSamples * sizeof(int16_t);
+                    memcpy(dataAt, nextSoundOutput, numAvailableBytes);
+                    dataAt += numAvailableBytes;
                 }
 
-                nodeList->broadcastToNodes(audioPacket, NodeSet() << NodeType::AudioMixer);
+                // write audio packet to AudioMixer nodes
+                int audioPacketSize = dataAt - audioPacket;
+                NodeList* nodeList = NodeList::getInstance();
+                foreach(const SharedNodePointer& node, nodeList->getNodeHash()) {
+                    // only send to nodes of type AudioMixer
+                    if (node->getType() == NodeType::AudioMixer) {
+                        // pack sequence number
+                        quint16 sequence = _outgoingSequenceNumbers[node->getUUID()]++;
+                        memcpy(sequenceAt, &sequence, sizeof(quint16));
+                        
+                        // send audio packet
+                        nodeList->writeDatagram(audioPacket, audioPacketSize, node);
+                    }
+                }
             }
         }
 
@@ -657,4 +680,8 @@ void ScriptEngine::include(const QString& includeFile) {
         qDebug() << "Uncaught exception at (" << includeFile << ") line" << line << ":" << result.toString();
         emit errorMessage("Uncaught exception at (" + includeFile + ") line" + QString::number(line) + ":" + result.toString());
     }
+}
+
+void ScriptEngine::nodeKilled(SharedNodePointer node) {
+    _outgoingSequenceNumbers.remove(node->getUUID());
 }

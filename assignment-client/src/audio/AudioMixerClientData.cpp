@@ -20,7 +20,9 @@
 #include "AudioMixerClientData.h"
 
 AudioMixerClientData::AudioMixerClientData() :
-    _ringBuffers()
+    _ringBuffers(),
+    _outgoingSequenceNumber(0),
+    _incomingAvatarSequenceNumberStats()
 {
     
 }
@@ -49,12 +51,13 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     const char* sequenceAt = packet.constData() + numBytesPacketHeader;
     quint16 sequence = *(reinterpret_cast<const quint16*>(sequenceAt));
-    _sequenceNumberStats.sequenceNumberReceived(sequence);
 
     PacketType packetType = packetTypeForPacket(packet);
     if (packetType == PacketTypeMicrophoneAudioWithEcho
         || packetType == PacketTypeMicrophoneAudioNoEcho
         || packetType == PacketTypeSilentAudioFrame) {
+
+        _incomingAvatarSequenceNumberStats.sequenceNumberReceived(sequence);
 
         // grab the AvatarAudioRingBuffer from the vector (or create it if it doesn't exist)
         AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
@@ -84,6 +87,8 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         // grab the stream identifier for this injected audio
         QUuid streamIdentifier = QUuid::fromRfc4122(packet.mid(numBytesForPacketHeader(packet), NUM_BYTES_RFC4122_UUID));
+
+        _incomingInjectedSequenceNumberStatsMap[streamIdentifier].sequenceNumberReceived(sequence);
 
         InjectedAudioRingBuffer* matchingInjectedRingBuffer = NULL;
 
@@ -140,6 +145,9 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
         } else if (audioBuffer->getType() == PositionalAudioRingBuffer::Injector
                    && audioBuffer->hasStarted() && audioBuffer->isStarved()) {
             // this is an empty audio buffer that has starved, safe to delete
+            // also delete its sequence number stats
+            QUuid streamIdentifier = ((InjectedAudioRingBuffer*)audioBuffer)->getStreamIdentifier();
+            _incomingInjectedSequenceNumberStatsMap.remove(streamIdentifier);
             delete audioBuffer;
             i = _ringBuffers.erase(i);
             continue;

@@ -147,6 +147,8 @@ void Agent::readPendingDatagrams() {
                 }
 
             } else if (datagramPacketType == PacketTypeMixedAudio) {
+                // TODO: track sequence numbers for mixed audio???
+
                 // parse the data and grab the average loudness
                 _receivedAudioBuffer.parseData(receivedPacket);
                 
