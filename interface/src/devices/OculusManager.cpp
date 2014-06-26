@@ -45,6 +45,8 @@ GLuint  OculusManager::_vbo[ovrEye_Count];
 GLuint OculusManager::_indicesVbo[ovrEye_Count];
 GLsizei OculusManager::_meshSize[ovrEye_Count];
 ovrFrameTiming OculusManager::_hmdFrameTiming;
+unsigned int OculusManager::_frameIndex = 0;
+bool OculusManager::_frameTimingActive = false;
 
 #endif
 
@@ -169,6 +171,29 @@ bool OculusManager::isConnected() {
 #endif
 }
 
+//Begins the frame timing for oculus prediction purposes
+void OculusManager::beginFrameTiming() {
+#ifdef HAVE_LIBOVR
+
+    if (_frameTimingActive) {
+        printf("WARNING: Called OculusManager::beginFrameTiming() twice in a row, need to call OculusManager::endFrameTiming().");
+    }
+
+   _hmdFrameTiming = ovrHmd_BeginFrameTiming(_ovrHmd, _frameIndex);
+   _frameTimingActive = true;
+#endif
+}
+
+//Ends frame timing
+void OculusManager::endFrameTiming() {
+#ifdef HAVE_LIBOVR
+    ovrHmd_EndFrameTiming(_ovrHmd);
+    _frameIndex++;
+    _frameTimingActive = false;
+#endif
+}
+
+//Sets the camera FoV and aspect ratio
 void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenHeight) {
 #ifdef HAVE_LIBOVR
     ovrSizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left,
@@ -187,11 +212,15 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
 #endif    
 }
 
+//Displays everything for the oculus, frame timing must be active
 void OculusManager::display(Camera& whichCamera) {
 #ifdef HAVE_LIBOVR
-    static unsigned int frameIndex = 0;
-    _hmdFrameTiming = ovrHmd_BeginFrameTiming(_ovrHmd, frameIndex);
-   
+    //beginFrameTiming must be called before display
+    if (!_frameTimingActive) {
+        printf("WARNING: Called OculusManager::display() without calling OculusManager::beginFrameTiming() first.");
+        return;
+    }
+
     ovrEyeRenderDesc eyeDesc[ovrEye_Count];
     eyeDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
     eyeDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
@@ -225,7 +254,6 @@ void OculusManager::display(Camera& whichCamera) {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glLoadMatrixf((GLfloat *)proj.M);
-        glTranslatef(0.0f, 0, 0);
 
         glViewport(eyeDesc[eye].DistortedViewport.Pos.x, eyeDesc[eye].DistortedViewport.Pos.y,
                    eyeDesc[eye].DistortedViewport.Size.w, eyeDesc[eye].DistortedViewport.Size.h);
@@ -270,6 +298,7 @@ void OculusManager::display(Camera& whichCamera) {
     _program.enableAttributeArray(_texCoord1AttributeLocation);
     _program.enableAttributeArray(_texCoord2AttributeLocation);
     
+    //Render the distortion meshes for each eye
     for (int eyeNum = 0; eyeNum < ovrEye_Count; eyeNum++) {
         GLfloat uvScale[2] = { _UVScaleOffset[eyeNum][0].x, _UVScaleOffset[eyeNum][0].y };
         _program.setUniformValueArray(_eyeToSourceUVScaleLocation, uvScale, 1, 2);
@@ -312,9 +341,6 @@ void OculusManager::display(Camera& whichCamera) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     _program.release();
-   
-    ovrHmd_EndFrameTiming(_ovrHmd);
-    frameIndex++;
 #endif
 }
 
@@ -324,6 +350,7 @@ void OculusManager::reset() {
 #endif
 }
 
+//Gets the current predicted angles from the oculus sensors
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #ifdef HAVE_LIBOVR
     ovrSensorState ss = ovrHmd_GetSensorState(_ovrHmd, _hmdFrameTiming.ScanoutMidpointSeconds);

@@ -14,15 +14,10 @@
 
 #ifdef HAVE_LIBOVR
 #include <OVR.h>
-//#include <../src/OVR_CAPI.h>
 #endif
 
 #include "../src/Util/Util_Render_Stereo.h"
-using namespace OVR::Util::Render;
 
-#include <../src/Kernel/OVR_SysFile.h>
-#include <../src/Kernel/OVR_Log.h>
-#include <../src/Kernel/OVR_Timer.h>
 
 #include "renderer/ProgramObject.h"
 
@@ -40,6 +35,10 @@ public:
 
     static bool isConnected();
     
+    static void beginFrameTiming();
+
+    static void endFrameTiming();
+
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
     
     static void display(Camera& whichCamera);
@@ -96,6 +95,8 @@ private:
     static GLuint _indicesVbo[ovrEye_Count];
     static GLsizei _meshSize[ovrEye_Count];
     static ovrFrameTiming _hmdFrameTiming;
+    static unsigned int _frameIndex;
+    static bool _frameTimingActive;
 #endif
 };
 
