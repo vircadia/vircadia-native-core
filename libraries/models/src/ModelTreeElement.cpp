@@ -548,8 +548,6 @@ bool ModelTreeElement::removeModelWithModelItemID(const ModelItemID& id) {
 
 int ModelTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
-            
-    const bool wantDebugging = false;
 
     // If we're the root, but this bitstream doesn't support root elements with data, then
     // return without reading any bytes
