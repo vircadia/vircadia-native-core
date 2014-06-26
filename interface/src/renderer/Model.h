@@ -120,6 +120,9 @@ public:
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
 
+    bool getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
+    bool getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
+
     /// \param jointIndex index of joint in model structure
     /// \param position[out] position of joint in model-frame
     /// \return true if joint exists
@@ -152,6 +155,7 @@ protected:
 
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center
+    bool _showTrueJointTransforms;
     int _rootIndex;
     
     QVector<JointState> _jointStates;
@@ -176,6 +180,8 @@ protected:
 
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
+
+    virtual void updateVisibleJointStates();
     
     /// \param jointIndex index of joint in model structure
     /// \param position position of joint in model-frame

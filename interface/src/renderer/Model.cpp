@@ -39,8 +39,8 @@ Model::Model(QObject* parent) :
     _scaledToFit(false),
     _snapModelToCenter(false),
     _snappedToCenter(false),
+    _showTrueJointTransforms(false),
     _rootIndex(-1),
-    //_enableCollisionShapes(false),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
     _url("http://invalid.com") {
@@ -571,6 +571,9 @@ void Model::setJointStates(QVector<JointState> states) {
             radius = distance;
         }
     }
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].slaveVisibleTransform();
+    }
     _boundingRadius = radius;
 }
 
@@ -765,6 +768,23 @@ bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const 
     return true;
 }
 
+bool Model::getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    // position is in world-frame
+    position = _translation + _rotation * _jointStates[jointIndex].getVisiblePosition();
+    return true;
+}
+
+bool Model::getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    rotation = _rotation * _jointStates[jointIndex].getVisibleRotation();
+    return true;
+}
+
 QStringList Model::getJointNames() const {
     if (QThread::currentThread() != thread()) {
         QStringList result;
@@ -918,6 +938,8 @@ void Model::simulateInternal(float deltaTime) {
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
+    updateVisibleJointStates();
+
     _shapesAreDirty = ! _shapes.isEmpty();
     
     // update the attachment transforms and simulate them
@@ -928,8 +950,13 @@ void Model::simulateInternal(float deltaTime) {
         
         glm::vec3 jointTranslation = _translation;
         glm::quat jointRotation = _rotation;
-        getJointPositionInWorldFrame(attachment.jointIndex, jointTranslation);
-        getJointRotationInWorldFrame(attachment.jointIndex, jointRotation);
+        if (_showTrueJointTransforms) {
+            getJointPositionInWorldFrame(attachment.jointIndex, jointTranslation);
+            getJointRotationInWorldFrame(attachment.jointIndex, jointRotation);
+        } else {
+            getVisibleJointPositionInWorldFrame(attachment.jointIndex, jointTranslation);
+            getVisibleJointRotationInWorldFrame(attachment.jointIndex, jointRotation);
+        }
         
         model->setTranslation(jointTranslation + jointRotation * attachment.translation * _scale);
         model->setRotation(jointRotation * attachment.rotation);
@@ -944,9 +971,16 @@ void Model::simulateInternal(float deltaTime) {
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
-        for (int j = 0; j < mesh.clusters.size(); j++) {
-            const FBXCluster& cluster = mesh.clusters.at(j);
-            state.clusterMatrices[j] = modelToWorld * _jointStates[cluster.jointIndex].getTransform() * cluster.inverseBindMatrix;
+        if (_showTrueJointTransforms) {
+            for (int j = 0; j < mesh.clusters.size(); j++) {
+                const FBXCluster& cluster = mesh.clusters.at(j);
+                state.clusterMatrices[j] = modelToWorld * _jointStates[cluster.jointIndex].getTransform() * cluster.inverseBindMatrix;
+            }
+        } else {
+            for (int j = 0; j < mesh.clusters.size(); j++) {
+                const FBXCluster& cluster = mesh.clusters.at(j);
+                state.clusterMatrices[j] = modelToWorld * _jointStates[cluster.jointIndex].getVisibleTransform() * cluster.inverseBindMatrix;
+            }
         }
     }
     
@@ -969,6 +1003,14 @@ void Model::updateJointState(int index) {
     } else {
         const JointState& parentState = _jointStates.at(parentIndex);
         state.computeTransform(parentState.getTransform());
+    }
+}
+
+void Model::updateVisibleJointStates() {
+    if (!_showTrueJointTransforms) {
+        for (int i = 0; i < _jointStates.size(); i++) {
+            _jointStates[i].slaveVisibleTransform();
+        }
     }
 }
 

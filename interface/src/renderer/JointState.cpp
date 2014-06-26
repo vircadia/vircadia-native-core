@@ -11,7 +11,6 @@
 
 #include <glm/gtx/norm.hpp>
 
-//#include <GeometryUtil.h>
 #include <SharedUtil.h>
 
 #include "JointState.h"
@@ -26,6 +25,10 @@ void JointState::copyState(const JointState& state) {
     _transform = state._transform;
     _rotation = extractRotation(_transform);
     _rotationInParentFrame = state._rotationInParentFrame;
+
+    _visibleTransform = state._visibleTransform;
+    _visibleRotation = extractRotation(_visibleTransform);
+    _visibleRotationInParentFrame = state._visibleRotationInParentFrame;
     // DO NOT copy _fbxJoint
 }
 
@@ -41,6 +44,13 @@ void JointState::computeTransform(const glm::mat4& parentTransform) {
     glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
     _transform = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
     _rotation = extractRotation(_transform);
+}
+
+void JointState::computeVisibleTransform(const glm::mat4& parentTransform) {
+    glm::quat modifiedRotation = _fbxJoint->preRotation * _visibleRotationInParentFrame * _fbxJoint->postRotation;
+    glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(modifiedRotation) * _fbxJoint->postTransform;
+    _visibleTransform = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
+    _visibleRotation = extractRotation(_visibleTransform);
 }
 
 glm::quat JointState::getRotationFromBindToModelFrame() const {
@@ -68,6 +78,9 @@ void JointState::clearTransformTranslation() {
     _transform[3][0] = 0.0f;
     _transform[3][1] = 0.0f;
     _transform[3][2] = 0.0f;
+    _visibleTransform[3][0] = 0.0f;
+    _visibleTransform[3][1] = 0.0f;
+    _visibleTransform[3][2] = 0.0f;
 }
 
 void JointState::setRotation(const glm::quat& rotation, bool constrain, float priority) {
@@ -98,4 +111,10 @@ void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, floa
 const glm::vec3& JointState::getDefaultTranslationInParentFrame() const {
     assert(_fbxJoint != NULL);
     return _fbxJoint->translation;
+}
+
+void JointState::slaveVisibleTransform() {
+    _visibleTransform = _transform;
+    _visibleRotation = _rotation;
+    _visibleRotationInParentFrame = _rotationInParentFrame;
 }

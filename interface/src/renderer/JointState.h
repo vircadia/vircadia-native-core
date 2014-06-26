@@ -27,8 +27,13 @@ public:
     void setFBXJoint(const FBXJoint* joint); 
     const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
 
+
     void computeTransform(const glm::mat4& parentTransform);
 
+    void computeVisibleTransform(const glm::mat4& parentTransform);
+    const glm::mat4& getVisibleTransform() const { return _visibleTransform; }
+    glm::quat getVisibleRotation() const { return _visibleRotation; }
+    glm::vec3 getVisiblePosition() const { return extractTranslation(_visibleTransform); }
 
     const glm::mat4& getTransform() const { return _transform; }
 
@@ -59,12 +64,18 @@ public:
 
     void clearTransformTranslation();
 
+    void slaveVisibleTransform();
+
     float _animationPriority; // the priority of the animation affecting this joint
 
 private:
     glm::mat4 _transform; // joint- to model-frame
     glm::quat _rotation;  // joint- to model-frame
     glm::quat _rotationInParentFrame; // joint- to parentJoint-frame
+
+    glm::mat4 _visibleTransform;
+    glm::quat _visibleRotation;
+    glm::quat _visibleRotationInParentFrame;
 
     const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
 };

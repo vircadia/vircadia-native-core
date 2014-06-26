@@ -539,6 +539,11 @@ void SkeletonModel::buildRagdollConstraints() {
     }
 }
 
+void SkeletonModel::updateVisibleJointStates() {
+    Model::updateVisibleJointStates();
+    // TODO: implement this to move visible joints to agree with joint shape positions
+}
+
 // virtual 
 void SkeletonModel::stepRagdollForward(float deltaTime) {
     const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.03f;
@@ -699,7 +704,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     _boundingRadius = 0.5f * glm::length(diagonal);
 }
 
-void SkeletonModel::resetShapePositions() {
+void SkeletonModel::resetShapePositionsToDefaultPose() {
     // DEBUG method.
     // Moves shapes to the joint default locations for debug visibility into
     // how the bounding shape is computed.
