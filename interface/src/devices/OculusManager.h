@@ -95,6 +95,7 @@ private:
     static GLuint _vbo[ovrEye_Count];
     static GLuint _indicesVbo[ovrEye_Count];
     static GLsizei _meshSize[ovrEye_Count];
+    static ovrFrameTiming _hmdFrameTiming;
 #endif
 };
 
