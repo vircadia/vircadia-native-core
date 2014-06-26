@@ -53,10 +53,10 @@ void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) 
     for (size_t i = 0; i < _palms.size(); i++) {
         const PalmData& palm = _palms[i];
         if (palm.isActive()) {
-            if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
+            if (palm.getSixenseID() == LEFT_HAND_INDEX) {
                 leftPalmIndex = i;
             }
-            if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_RIGHT_HAND) {
+            if (palm.getSixenseID() == RIGHT_HAND_INDEX) {
                 rightPalmIndex = i;
             }
         }

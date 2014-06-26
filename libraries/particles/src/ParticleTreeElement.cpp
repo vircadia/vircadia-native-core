@@ -20,8 +20,9 @@ ParticleTreeElement::ParticleTreeElement(unsigned char* octalCode) : OctreeEleme
 
 ParticleTreeElement::~ParticleTreeElement() {
     _voxelMemoryUsage -= sizeof(ParticleTreeElement);
-    delete _particles;
+    QList<Particle>* tmpParticles = _particles;
     _particles = NULL;
+    delete tmpParticles;
 }
 
 // This will be called primarily on addChildAt(), which means we're adding a child of our
@@ -78,7 +79,7 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
 
         // If the particle wants to die, or if it's left our bounding box, then move it
         // into the arguments moving particles. These will be added back or deleted completely
-        if (particle.getShouldDie() || !_box.contains(particle.getPosition())) {
+        if (particle.getShouldDie() || !_cube.contains(particle.getPosition())) {
             args._movingParticles.push_back(particle);
 
             // erase this particle
@@ -244,18 +245,18 @@ void ParticleTreeElement::getParticles(const glm::vec3& searchPosition, float se
     }
 }
 
-void ParticleTreeElement::getParticlesForUpdate(const AABox& box, QVector<Particle*>& foundParticles) {
+void ParticleTreeElement::getParticlesForUpdate(const AACube& box, QVector<Particle*>& foundParticles) {
     QList<Particle>::iterator particleItr = _particles->begin();
     QList<Particle>::iterator particleEnd = _particles->end();
-    AABox particleBox;
+    AACube particleCube;
     while(particleItr != particleEnd) {
         Particle* particle = &(*particleItr);
         float radius = particle->getRadius();
         // NOTE: we actually do box-box collision queries here, which is sloppy but good enough for now
         // TODO: decide whether to replace particleBox-box query with sphere-box (requires a square root
         // but will be slightly more accurate).
-        particleBox.setBox(particle->getPosition() - glm::vec3(radius), 2.f * radius);
-        if (particleBox.touches(_box)) {
+        particleCube.setBox(particle->getPosition() - glm::vec3(radius), 2.f * radius);
+        if (particleCube.touches(_cube)) {
             foundParticles.push_back(particle);
         }
         ++particleItr;
@@ -277,12 +278,14 @@ const Particle* ParticleTreeElement::getParticleWithID(uint32_t id) const {
 
 bool ParticleTreeElement::removeParticleWithID(uint32_t id) {
     bool foundParticle = false;
-    uint16_t numberOfParticles = _particles->size();
-    for (uint16_t i = 0; i < numberOfParticles; i++) {
-        if ((*_particles)[i].getID() == id) {
-            foundParticle = true;
-            _particles->removeAt(i);
-            break;
+    if (_particles) {
+        uint16_t numberOfParticles = _particles->size();
+        for (uint16_t i = 0; i < numberOfParticles; i++) {
+            if ((*_particles)[i].getID() == id) {
+                foundParticle = true;
+                _particles->removeAt(i);
+                break;
+            }
         }
     }
     return foundParticle;

@@ -16,6 +16,7 @@
 #include <NodeList.h>
 #include <SharedUtil.h>
 #include "JurisdictionMap.h"
+#include "OctreePacketData.h"
 
 #define GREENISH  0x40ff40d0
 #define YELLOWISH 0xffef40c0
@@ -171,6 +172,8 @@ public:
     quint32 getIncomingReallyLate() const { return _incomingReallyLate; }
     quint32 getIncomingPossibleDuplicate() const { return _incomingPossibleDuplicate; }
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
+    
+    const QSet<OCTREE_PACKET_SEQUENCE>& getMissingSequenceNumbers() const { return _missingSequenceNumbers; }
 
 private:
 
@@ -272,7 +275,7 @@ private:
     quint32 _incomingLate; /// out of order later than expected
     quint32 _incomingReallyLate; /// out of order and later than MAX_MISSING_SEQUENCE_OLD_AGE late
     quint32 _incomingPossibleDuplicate; /// out of order possibly a duplicate
-    QSet<uint16_t> _missingSequenceNumbers;
+    QSet<OCTREE_PACKET_SEQUENCE> _missingSequenceNumbers;
     SimpleMovingAverage _incomingFlightTimeAverage;
     
     // features related items

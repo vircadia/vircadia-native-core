@@ -33,7 +33,10 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QJsonValue>
 #include <QtCore/QTimer>
 
 #include <Logging.h>
@@ -51,9 +54,6 @@
 
 #include "AudioMixer.h"
 
-const short JITTER_BUFFER_MSECS = 12;
-const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
-
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
@@ -64,6 +64,8 @@ void attachNewBufferToNode(Node *newNode) {
     }
 }
 
+bool AudioMixer::_useDynamicJitterBuffers = false;
+
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
@@ -71,9 +73,16 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _performanceThrottlingRatio(0.0f),
     _numStatFrames(0),
     _sumListeners(0),
-    _sumMixes(0)
+    _sumMixes(0),
+    _sourceUnattenuatedZone(NULL),
+    _listenerUnattenuatedZone(NULL)
 {
     
+}
+
+AudioMixer::~AudioMixer() {
+    delete _sourceUnattenuatedZone;
+    delete _listenerUnattenuatedZone;
 }
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -83,7 +92,9 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     int numSamplesDelay = 0;
     float weakChannelAmplitudeRatio = 1.0f;
     
-    if (bufferToAdd != listeningNodeBuffer) {
+    bool shouldAttenuate = (bufferToAdd != listeningNodeBuffer);
+    
+    if (shouldAttenuate) {
         // if the two buffer pointers do not match then these are different buffers
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
         
@@ -101,206 +112,243 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         
         ++_sumMixes;
         
-        glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
-        
-        float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
-        float radius = 0.0f;
-
-        if (bufferToAdd->getType() == PositionalAudioRingBuffer::Injector) {
-            InjectedAudioRingBuffer* injectedBuffer = (InjectedAudioRingBuffer*) bufferToAdd;
-            radius = injectedBuffer->getRadius();
-            attenuationCoefficient *= injectedBuffer->getAttenuationRatio();
+        if (bufferToAdd->getListenerUnattenuatedZone()) {
+            shouldAttenuate = !bufferToAdd->getListenerUnattenuatedZone()->contains(listeningNodeBuffer->getPosition());
         }
-
-        if (radius == 0 || (distanceSquareToSource > radius * radius)) {
-            // this is either not a spherical source, or the listener is outside the sphere
-
-            if (radius > 0) {
-                // this is a spherical source - the distance used for the coefficient
-                // needs to be the closest point on the boundary to the source
-
-                // ovveride the distance to the node with the distance to the point on the
-                // boundary of the sphere
-                distanceSquareToSource -= (radius * radius);
-
-            } else {
-                // calculate the angle delivery for off-axis attenuation
-                glm::vec3 rotatedListenerPosition = glm::inverse(bufferToAdd->getOrientation()) * relativePosition;
-
-                float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                   glm::normalize(rotatedListenerPosition));
-
-                const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-                const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-
-                float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
-
-                // multiply the current attenuation coefficient by the calculated off axis coefficient
-                attenuationCoefficient *= offAxisCoefficient;
+        
+        if (shouldAttenuate) {
+            glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
+            
+            float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
+            float radius = 0.0f;
+            
+            if (bufferToAdd->getType() == PositionalAudioRingBuffer::Injector) {
+                InjectedAudioRingBuffer* injectedBuffer = (InjectedAudioRingBuffer*) bufferToAdd;
+                radius = injectedBuffer->getRadius();
+                attenuationCoefficient *= injectedBuffer->getAttenuationRatio();
             }
-
-            glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
-
-            const float DISTANCE_SCALE = 2.5f;
-            const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
-            const float DISTANCE_LOG_BASE = 2.5f;
-            const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
-
-            // calculate the distance coefficient using the distance to this node
-            float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
-                                             DISTANCE_SCALE_LOG +
-                                             (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
-            distanceCoefficient = std::min(1.0f, distanceCoefficient);
-
-            // multiply the current attenuation coefficient by the distance coefficient
-            attenuationCoefficient *= distanceCoefficient;
-
-            // project the rotated source position vector onto the XZ plane
-            rotatedSourcePosition.y = 0.0f;
-
-            // produce an oriented angle about the y-axis
-            bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                              glm::normalize(rotatedSourcePosition),
-                                                              glm::vec3(0.0f, 1.0f, 0.0f));
-
-            const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-
-            // figure out the number of samples of delay and the ratio of the amplitude
-            // in the weak channel for audio spatialization
-            float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-            numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
-            weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+            
+            if (radius == 0 || (distanceSquareToSource > radius * radius)) {
+                // this is either not a spherical source, or the listener is outside the sphere
+                
+                if (radius > 0) {
+                    // this is a spherical source - the distance used for the coefficient
+                    // needs to be the closest point on the boundary to the source
+                    
+                    // ovveride the distance to the node with the distance to the point on the
+                    // boundary of the sphere
+                    distanceSquareToSource -= (radius * radius);
+                    
+                } else {
+                    // calculate the angle delivery for off-axis attenuation
+                    glm::vec3 rotatedListenerPosition = glm::inverse(bufferToAdd->getOrientation()) * relativePosition;
+                    
+                    float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                       glm::normalize(rotatedListenerPosition));
+                    
+                    const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
+                    const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
+                    
+                    float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
+                    
+                    // multiply the current attenuation coefficient by the calculated off axis coefficient
+                    attenuationCoefficient *= offAxisCoefficient;
+                }
+                
+                glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
+                
+                const float DISTANCE_SCALE = 2.5f;
+                const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
+                const float DISTANCE_LOG_BASE = 2.5f;
+                const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
+                
+                // calculate the distance coefficient using the distance to this node
+                float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
+                                                 DISTANCE_SCALE_LOG +
+                                                 (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
+                distanceCoefficient = std::min(1.0f, distanceCoefficient);
+                
+                // multiply the current attenuation coefficient by the distance coefficient
+                attenuationCoefficient *= distanceCoefficient;
+                
+                // project the rotated source position vector onto the XZ plane
+                rotatedSourcePosition.y = 0.0f;
+                
+                // produce an oriented angle about the y-axis
+                bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                                  glm::normalize(rotatedSourcePosition),
+                                                                  glm::vec3(0.0f, 1.0f, 0.0f));
+                
+                const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+                
+                // figure out the number of samples of delay and the ratio of the amplitude
+                // in the weak channel for audio spatialization
+                float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
+                numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
+                weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+            }
         }
     }
-
-    // if the bearing relative angle to source is > 0 then the delayed channel is the right one
-    int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
-    int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
     
     const int16_t* nextOutputStart = bufferToAdd->getNextOutput();
-   
-    const int16_t* bufferStart = bufferToAdd->getBuffer();
-    int ringBufferSampleCapacity = bufferToAdd->getSampleCapacity();
-
-    int16_t correctBufferSample[2], delayBufferSample[2];
-    int delayedChannelIndex = 0;
     
-    const int SINGLE_STEREO_OFFSET = 2;
-    
-    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
+    if (!bufferToAdd->isStereo() && shouldAttenuate) {
+        // this is a mono buffer, which means it gets full attenuation and spatialization
         
-        // setup the int16_t variables for the two sample sets
-        correctBufferSample[0] = nextOutputStart[s / 2] * attenuationCoefficient;
-        correctBufferSample[1] = nextOutputStart[(s / 2) + 1] * attenuationCoefficient;
+        // if the bearing relative angle to source is > 0 then the delayed channel is the right one
+        int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
+        int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
         
-        delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
+        const int16_t* bufferStart = bufferToAdd->getBuffer();
+        int ringBufferSampleCapacity = bufferToAdd->getSampleCapacity();
         
-        delayBufferSample[0] = correctBufferSample[0] * weakChannelAmplitudeRatio;
-        delayBufferSample[1] = correctBufferSample[1] * weakChannelAmplitudeRatio;
+        int16_t correctBufferSample[2], delayBufferSample[2];
+        int delayedChannelIndex = 0;
         
-        __m64 bufferSamples = _mm_set_pi16(_clientSamples[s + goodChannelOffset],
-                                           _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET],
-                                           _clientSamples[delayedChannelIndex],
-                                           _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET]);
-        __m64 addedSamples = _mm_set_pi16(correctBufferSample[0], correctBufferSample[1],
-                                         delayBufferSample[0], delayBufferSample[1]);
+        const int SINGLE_STEREO_OFFSET = 2;
         
-        // perform the MMX add (with saturation) of two correct and delayed samples
-        __m64 mmxResult = _mm_adds_pi16(bufferSamples, addedSamples);
-        int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
-        
-        // assign the results from the result of the mmx arithmetic
-        _clientSamples[s + goodChannelOffset] = shortResults[3];
-        _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET] = shortResults[2];
-        _clientSamples[delayedChannelIndex] = shortResults[1];
-        _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] = shortResults[0];
-    }
-    
-    // The following code is pretty gross and redundant, but AFAIK it's the best way to avoid
-    // too many conditionals in handling the delay samples at the beginning of _clientSamples.
-    // Basically we try to take the samples in batches of four, and then handle the remainder
-    // conditionally to get rid of the rest.
-    
-    const int DOUBLE_STEREO_OFFSET = 4;
-    const int TRIPLE_STEREO_OFFSET = 6;
-    
-    if (numSamplesDelay > 0) {
-        // if there was a sample delay for this buffer, we need to pull samples prior to the nextOutput
-        // to stick at the beginning
-        float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
-        const int16_t* delayNextOutputStart = nextOutputStart - numSamplesDelay;
-        if (delayNextOutputStart < bufferStart) {
-            delayNextOutputStart = bufferStart + ringBufferSampleCapacity - numSamplesDelay;
+        for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
+            
+            // setup the int16_t variables for the two sample sets
+            correctBufferSample[0] = nextOutputStart[s / 2] * attenuationCoefficient;
+            correctBufferSample[1] = nextOutputStart[(s / 2) + 1] * attenuationCoefficient;
+            
+            delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
+            
+            delayBufferSample[0] = correctBufferSample[0] * weakChannelAmplitudeRatio;
+            delayBufferSample[1] = correctBufferSample[1] * weakChannelAmplitudeRatio;
+            
+            __m64 bufferSamples = _mm_set_pi16(_clientSamples[s + goodChannelOffset],
+                                               _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET],
+                                               _clientSamples[delayedChannelIndex],
+                                               _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET]);
+            __m64 addedSamples = _mm_set_pi16(correctBufferSample[0], correctBufferSample[1],
+                                              delayBufferSample[0], delayBufferSample[1]);
+            
+            // perform the MMX add (with saturation) of two correct and delayed samples
+            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addedSamples);
+            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+            
+            // assign the results from the result of the mmx arithmetic
+            _clientSamples[s + goodChannelOffset] = shortResults[3];
+            _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET] = shortResults[2];
+            _clientSamples[delayedChannelIndex] = shortResults[1];
+            _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] = shortResults[0];
         }
         
-        int i = 0;
+        // The following code is pretty gross and redundant, but AFAIK it's the best way to avoid
+        // too many conditionals in handling the delay samples at the beginning of _clientSamples.
+        // Basically we try to take the samples in batches of four, and then handle the remainder
+        // conditionally to get rid of the rest.
         
-        while (i + 3 < numSamplesDelay) {
-            // handle the first cases where we can MMX add four samples at once
+        const int DOUBLE_STEREO_OFFSET = 4;
+        const int TRIPLE_STEREO_OFFSET = 6;
+        
+        if (numSamplesDelay > 0) {
+            // if there was a sample delay for this buffer, we need to pull samples prior to the nextOutput
+            // to stick at the beginning
+            float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
+            const int16_t* delayNextOutputStart = nextOutputStart - numSamplesDelay;
+            if (delayNextOutputStart < bufferStart) {
+                delayNextOutputStart = bufferStart + ringBufferSampleCapacity - numSamplesDelay;
+            }
+            
+            int i = 0;
+            
+            while (i + 3 < numSamplesDelay) {
+                // handle the first cases where we can MMX add four samples at once
+                int parentIndex = i * 2;
+                __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset]);
+                __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 3] * attenuationAndWeakChannelRatio);
+                __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+                int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+                
+                _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+                _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+                _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
+                _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[0];
+                
+                // push the index
+                i += 4;
+            }
+            
             int parentIndex = i * 2;
-            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
-                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
-                                               _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
-                                               _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset]);
-            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 3] * attenuationAndWeakChannelRatio);
-            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
-            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
             
-            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
-            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
-            _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
-            _clientSamples[parentIndex + TRIPLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[0];
-            
-            // push the index
-            i += 4;
+            if (i + 2 < numSamplesDelay) {
+                // MMX add only three delayed samples
+                
+                __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
+                                                   0);
+                __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
+                                                0);
+                __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+                int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+                
+                _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+                _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+                _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
+                
+            } else if (i + 1 < numSamplesDelay) {
+                // MMX add two delayed samples
+                __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
+                                                   _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
+                                                   0, 0);
+                __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
+                                                delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio, 0, 0);
+                
+                __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+                int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+                
+                _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+                _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
+                
+            } else if (i < numSamplesDelay) {
+                // MMX add a single delayed sample
+                __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset], 0, 0, 0);
+                __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio, 0, 0, 0);
+                
+                __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
+                int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+                
+                _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+            }
         }
-        
-        int parentIndex = i * 2;
-        
-        if (i + 2 < numSamplesDelay) {
-            // MMX add only three delayed samples
+    } else {
+        // this is a stereo buffer or an unattenuated buffer, don't perform spatialization
+        for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
             
-            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
-                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset],
-                                               _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset],
-                                               0);
-            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 2] * attenuationAndWeakChannelRatio,
-                                            0);
-            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
-            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
+            int stereoDivider = bufferToAdd->isStereo() ? 1 : 2;
             
-            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
-            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
-            _clientSamples[parentIndex + DOUBLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[1];
+            if (!shouldAttenuate) {
+                attenuationCoefficient = 1.0f;
+            }
             
-        } else if (i + 1 < numSamplesDelay) {
-            // MMX add two delayed samples
-            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset],
-                                               _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset], 0, 0);
-            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio,
-                                            delayNextOutputStart[i + 1] * attenuationAndWeakChannelRatio, 0, 0);
-            
-            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
-            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
-            
-            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
-            _clientSamples[parentIndex + SINGLE_STEREO_OFFSET + delayedChannelOffset] = shortResults[2];
-            
-        } else if (i < numSamplesDelay) {
-            // MMX add a single delayed sample
-            __m64 bufferSamples = _mm_set_pi16(_clientSamples[parentIndex + delayedChannelOffset], 0, 0, 0);
-            __m64 addSamples = _mm_set_pi16(delayNextOutputStart[i] * attenuationAndWeakChannelRatio, 0, 0, 0);
-            
-            __m64 mmxResult = _mm_adds_pi16(bufferSamples, addSamples);
-            int16_t* shortResults = reinterpret_cast<int16_t*>(&mmxResult);
-            
-            _clientSamples[parentIndex + delayedChannelOffset] = shortResults[3];
+            _clientSamples[s] = glm::clamp(_clientSamples[s]
+                                           + (int) (nextOutputStart[(s / stereoDivider)] * attenuationCoefficient),
+                                           MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + 1] = glm::clamp(_clientSamples[s + 1]
+                                               + (int) (nextOutputStart[(s / stereoDivider) + (1 / stereoDivider)]
+                                                        * attenuationCoefficient),
+                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + 2] = glm::clamp(_clientSamples[s + 2]
+                                               + (int) (nextOutputStart[(s / stereoDivider) + (2 / stereoDivider)]
+                                                        * attenuationCoefficient),
+                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + 3] = glm::clamp(_clientSamples[s + 3]
+                                               + (int) (nextOutputStart[(s / stereoDivider) + (3 / stereoDivider)]
+                                                        * attenuationCoefficient),
+                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
     }
 }
@@ -318,7 +366,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
-            for (unsigned int i = 0; i < otherNodeClientData->getRingBuffers().size(); i++) {
+            for (int i = 0; i < otherNodeClientData->getRingBuffers().size(); i++) {
                 PositionalAudioRingBuffer* otherNodeBuffer = otherNodeClientData->getRingBuffers()[i];
 
                 if ((*otherNode != *node
@@ -378,12 +426,46 @@ void AudioMixer::sendStatsPacket() {
     } else {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
-    
+
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
-    
     _sumListeners = 0;
     _sumMixes = 0;
     _numStatFrames = 0;
+
+
+    // NOTE: These stats can be too large to fit in an MTU, so we break it up into multiple packts...
+    QJsonObject statsObject2;
+
+    // add stats for each listerner
+    bool somethingToSend = false;
+    int sizeOfStats = 0;
+    int TOO_BIG_FOR_MTU = 1200; // some extra space for JSONification
+    
+    NodeList* nodeList = NodeList::getInstance();
+    int clientNumber = 0;
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        clientNumber++;
+        AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        if (clientData) {
+            QString property = "jitterStats." + node->getUUID().toString();
+            QString value = clientData->getJitterBufferStats();
+            statsObject2[qPrintable(property)] = value;
+            somethingToSend = true;
+            sizeOfStats += property.size() + value.size();
+        }
+        
+        // if we're too large, send the packet
+        if (sizeOfStats > TOO_BIG_FOR_MTU) {
+            nodeList->sendStatsToDomainServer(statsObject2);
+            sizeOfStats = 0;
+            statsObject2 = QJsonObject(); // clear it
+            somethingToSend = false;
+        }
+    }
+
+    if (somethingToSend) {
+        nodeList->sendStatsToDomainServer(statsObject2);
+    }
 }
 
 void AudioMixer::run() {
@@ -395,7 +477,43 @@ void AudioMixer::run() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
+    
+    // check the payload to see if we have any unattenuated zones
+    const QString UNATTENUATED_ZONE_REGEX_STRING = "--unattenuated-zone ([\\d.,-]+)";
+    QRegExp unattenuatedZoneMatch(UNATTENUATED_ZONE_REGEX_STRING);
+    
+    if (unattenuatedZoneMatch.indexIn(_payload) != -1) {
+        QString unattenuatedZoneString = unattenuatedZoneMatch.cap(1);
+        QStringList zoneStringList = unattenuatedZoneString.split(',');
+        
+        glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
+        glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
+     
+        glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
+        glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
+        
+        _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
+        _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
+        
+        glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
+        glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
+        
+        qDebug() << "There is an unattenuated zone with source center at"
+            << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
+        qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
+            << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
+    }
 
+    // check the payload to see if we have asked for dynamicJitterBuffer support
+    const QString DYNAMIC_JITTER_BUFFER_REGEX_STRING = "--dynamicJitterBuffer";
+    QRegExp dynamicJitterBufferMatch(DYNAMIC_JITTER_BUFFER_REGEX_STRING);
+    if (dynamicJitterBufferMatch.indexIn(_payload) != -1) {
+        qDebug() << "Enable dynamic jitter buffers.";
+        _useDynamicJitterBuffers = true;
+    } else {
+        qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
+    }
+    
     int nextFrame = 0;
     QElapsedTimer timer;
     timer.start();
@@ -412,7 +530,8 @@ void AudioMixer::run() {
         
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
-                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
+                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(_sourceUnattenuatedZone,
+                                                                                             _listenerUnattenuatedZone);
             }
         }
         

@@ -14,6 +14,8 @@
 
 #include <QSettings>
 
+#include <PhysicsSimulation.h>
+
 #include "Avatar.h"
 
 enum AvatarHandState
@@ -67,11 +69,20 @@ public:
     void removeAnimationHandle(const AnimationHandlePointer& handle);
     
     /// Allows scripts to run animations.
-    Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f,
-        float priority = 1.0f, bool loop = false, const QStringList& maskedJoints = QStringList());
+    Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
+        bool hold = false, float firstFrame = 0.0f, float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
     
     /// Stops an animation as identified by a URL.
     Q_INVOKABLE void stopAnimation(const QString& url);
+    
+    /// Starts an animation by its role, using the provided URL and parameters if the avatar doesn't have a custom
+    /// animation for the role.
+    Q_INVOKABLE void startAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
+        float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
+        float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
+    
+    /// Stops an animation identified by its role.
+    Q_INVOKABLE void stopAnimationByRole(const QString& role);
     
     // get/set avatar data
     void saveData(QSettings* settings);
@@ -120,6 +131,7 @@ public slots:
     void resetSize();
     
     void goToLocationFromResponse(const QJsonObject& jsonObject);
+    void goToLocationFromAddress(const QJsonObject& jsonObject);
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
@@ -127,7 +139,10 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehaviorsFromMenu();
-
+    
+    glm::vec3 getLeftPalmPosition();
+    glm::vec3 getRightPalmPosition();
+    
 signals:
     void transformChanged();
 
@@ -141,11 +156,11 @@ private:
     bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
-    glm::vec3 _environmentGravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
     bool _wasPushing;
     bool _isPushing;
+    bool _isBraking;
     float _trapDuration; // seconds that avatar has been trapped by collisions
     glm::vec3 _thrust;  // final acceleration from outside sources for the current frame
 
@@ -163,9 +178,12 @@ private:
     float _oculusYawOffset;
 
     QList<AnimationHandlePointer> _animationHandles;
+    PhysicsSimulation _physicsSimulation;
 
 	// private methods
+    float computeDistanceToFloor(const glm::vec3& startPoint);
     void updateOrientation(float deltaTime);
+    void updatePosition(float deltaTime);
     void updateMotorFromKeyboard(float deltaTime, bool walking);
     float computeMotorTimescale();
     void applyMotor(float deltaTime);

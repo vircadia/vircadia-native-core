@@ -23,7 +23,7 @@ XmppClient::XmppClient() :
     _xmppMUCManager()
 {
     AccountManager& accountManager = AccountManager::getInstance();
-    connect(&accountManager, SIGNAL(accessTokenChanged()), this, SLOT(connectToServer()));
+    connect(&accountManager, SIGNAL(profileChanged()), this, SLOT(connectToServer()));
     connect(&accountManager, SIGNAL(logoutComplete()), this, SLOT(disconnectFromServer()));
 }
 

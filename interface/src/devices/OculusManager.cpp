@@ -50,7 +50,8 @@ void OculusManager::connect() {
         _sensorDevice = *_hmdDevice->GetSensor();
         _sensorFusion = new SensorFusion;
         _sensorFusion->AttachToSensor(_sensorDevice);
-        
+        _sensorFusion->SetPredictionEnabled(true);
+
         HMDInfo info;
         _hmdDevice->GetDeviceInfo(&info);
         _stereoConfig.SetHMDInfo(info);
@@ -71,6 +72,14 @@ void OculusManager::connect() {
 #endif
 }
 
+bool OculusManager::isConnected() {
+#ifdef HAVE_LIBOVR
+    return _isConnected && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode);
+#else
+    return false;
+#endif
+}
+
 void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenHeight) {
 #ifdef HAVE_LIBOVR
     _stereoConfig.SetFullViewport(Viewport(0, 0, screenWidth, screenHeight));
@@ -81,7 +90,13 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
 
 void OculusManager::display(Camera& whichCamera) {
 #ifdef HAVE_LIBOVR
-    Application::getInstance()->getGlowEffect()->prepare();
+    ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
+    // We only need to render the overlays to a texture once, then we just render the texture as a quad
+    // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
+    applicationOverlay.renderOverlay(true);
+    const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::DisplayOculusOverlays);
+    
+    Application::getInstance()->getGlowEffect()->prepare(); 
 
     // render the left eye view to the left side of the screen
     const StereoEyeParams& leftEyeParams = _stereoConfig.GetEyeRenderParams(StereoEye_Left);
@@ -100,6 +115,10 @@ void OculusManager::display(Camera& whichCamera) {
     
     Application::getInstance()->displaySide(whichCamera);
 
+    if (displayOverlays) {
+        applicationOverlay.displayOverlayTextureOculus(whichCamera);
+    }
+    
     // and the right eye to the right side
     const StereoEyeParams& rightEyeParams = _stereoConfig.GetEyeRenderParams(StereoEye_Right);
     glMatrixMode(GL_PROJECTION);
@@ -115,6 +134,10 @@ void OculusManager::display(Camera& whichCamera) {
     
     Application::getInstance()->displaySide(whichCamera);
 
+    if (displayOverlays) {
+        applicationOverlay.displayOverlayTextureOculus(whichCamera);
+    }
+   
     glPopMatrix();
     
     // restore our normal viewport
@@ -187,7 +210,7 @@ void OculusManager::reset() {
 
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #ifdef HAVE_LIBOVR
-    _sensorFusion->GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
+    _sensorFusion->GetPredictedOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
 #endif
 }
 

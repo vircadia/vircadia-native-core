@@ -30,6 +30,9 @@
 
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
+const float OPACITY_ACTIVE = 1.0;
+const float OPACITY_INACTIVE = 0.8;
+
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?)|(?:hifi))://\\S+)");
 const QRegularExpression regexHifiLinks("([#@]\\S+)");
 const QString mentionSoundsPath("/mention-sounds/");
@@ -80,7 +83,7 @@ ChatWindow::ChatWindow(QWidget* parent) :
     } else {
         ui->numOnlineLabel->hide();
         ui->closeButton->hide();
-        ui->usersWidget->hide();
+        ui->usersArea->hide();
         ui->messagesScrollArea->hide();
         ui->messagePlainTextEdit->hide();
         connect(&XmppClient::getInstance(), SIGNAL(joinedPublicChatRoom()), this, SLOT(connected()));
@@ -108,7 +111,7 @@ ChatWindow::~ChatWindow() {
 
 void ChatWindow::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Escape) {
-        hide();
+        Application::getInstance()->getWindow()->activateWindow();
     } else {
         FramelessDialog::keyPressEvent(event);
     }
@@ -178,7 +181,7 @@ void ChatWindow::addTimeStamp() {
         QLabel* timeLabel = new QLabel(timeString);
         timeLabel->setStyleSheet("color: #333333;"
                                  "background-color: white;"
-                                 "font-size: 14pt;"
+                                 "font-size: 14px;"
                                  "padding: 4px;");
         timeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         timeLabel->setAlignment(Qt::AlignLeft);
@@ -208,7 +211,7 @@ void ChatWindow::connected() {
     ui->connectingToXMPPLabel->hide();
     ui->numOnlineLabel->show();
     ui->closeButton->show();
-    ui->usersWidget->show();
+    ui->usersArea->show();
     ui->messagesScrollArea->show();
     ui->messagePlainTextEdit->show();
     ui->messagePlainTextEdit->setFocus();
@@ -248,6 +251,7 @@ void ChatWindow::notificationClicked() {
             return;
         }
     }
+    Application::processEvents();
 
     scrollToBottom();
 }
@@ -262,6 +266,8 @@ void ChatWindow::error(QXmppClient::Error error) {
 }
 
 void ChatWindow::participantsChanged() {
+    bool atBottom = isNearBottom();
+
     QStringList participants = XmppClient::getInstance().getPublicChatRoom()->participants();
     ui->numOnlineLabel->setText(tr("%1 online now:").arg(participants.count()));
 
@@ -281,12 +287,17 @@ void ChatWindow::participantsChanged() {
                                  "padding-bottom: 2px;"
                                  "padding-left: 2px;"
                                  "border: 1px solid palette(shadow);"
-                                 "font-size: 14pt;"
+                                 "font-size: 14px;"
                                  "font-weight: bold");
         userLabel->setProperty("user", participantName);
         userLabel->setCursor(Qt::PointingHandCursor);
         userLabel->installEventFilter(this);
         ui->usersWidget->layout()->addWidget(userLabel);
+    }
+    Application::processEvents();
+
+    if (atBottom) {
+        scrollToBottom();
     }
 }
 
@@ -306,15 +317,16 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     messageArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     messageArea->setReadOnly(true);
 
-    messageArea->setStyleSheet("padding-bottom: 2px;"
+    messageArea->setStyleSheet("QTextBrowser{ padding-bottom: 2px;"
                                "padding-left: 2px;"
                                "padding-top: 2px;"
                                "padding-right: 20px;"
                                "margin: 0px;"
                                "color: #333333;"
-                               "font-size: 14pt;"
+                               "font-size: 14px;"
                                "background-color: rgba(0, 0, 0, 0%);"
-                               "border: 0;");
+                               "border: 0; }"
+                               "QMenu{ border: 2px outset gray; }");
 
     QString userLabel = getParticipantName(message.from());
     if (fromSelf) {
@@ -373,4 +385,13 @@ bool ChatWindow::isNearBottom() {
 void ChatWindow::scrollToBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
     verticalScrollBar->setValue(verticalScrollBar->maximum());
+}
+
+bool ChatWindow::event(QEvent* event) {
+    if (event->type() == QEvent::WindowActivate) {
+        setWindowOpacity(OPACITY_ACTIVE);
+    } else if (event->type() == QEvent::WindowDeactivate) {
+        setWindowOpacity(OPACITY_INACTIVE);
+    }
+    return FramelessDialog::event(event);
 }

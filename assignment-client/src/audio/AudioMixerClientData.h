@@ -12,8 +12,7 @@
 #ifndef hifi_AudioMixerClientData_h
 #define hifi_AudioMixerClientData_h
 
-#include <vector>
-
+#include <AABox.h>
 #include <NodeData.h>
 #include <PositionalAudioRingBuffer.h>
 
@@ -24,14 +23,17 @@ public:
     AudioMixerClientData();
     ~AudioMixerClientData();
     
-    const std::vector<PositionalAudioRingBuffer*> getRingBuffers() const { return _ringBuffers; }
+    const QList<PositionalAudioRingBuffer*> getRingBuffers() const { return _ringBuffers; }
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
     
     int parseData(const QByteArray& packet);
-    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples);
+    void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
+
+    QString getJitterBufferStats() const;
+
 private:
-    std::vector<PositionalAudioRingBuffer*> _ringBuffers;
+    QList<PositionalAudioRingBuffer*> _ringBuffers;
 };
 
 #endif // hifi_AudioMixerClientData_h

@@ -177,7 +177,9 @@ int retrieveData(std::string filename, std::stringstream &ss) {
     int type = file.peek();
     if (type == 0x0A) {
         ss.flush();
-        ss << file;
+        std::copy(std::istreambuf_iterator<char>(file),
+            std::istreambuf_iterator<char>(),
+            std::ostreambuf_iterator<char>(ss));
         return 0;
     }
 
@@ -186,7 +188,7 @@ int retrieveData(std::string filename, std::stringstream &ss) {
         return ret;
     }
 
-    std::cerr << "[DEBUG] Schematic compression type not recognize : " << type << std::endl;
+    std::cerr << "[ERROR] Schematic compression type not recognize : " << type << std::endl;
     return 1;
 }
 

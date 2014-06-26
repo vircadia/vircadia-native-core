@@ -45,15 +45,18 @@ public:
     void render(float alpha, Model::RenderMode mode);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
-    void setGravity(glm::vec3 gravity) { _gravity = gravity; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
     void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
     void setLeanForward(float leanForward) { _leanForward = leanForward; }
+
+    /// \return orientationBase+Delta
+    glm::quat getFinalOrientationInLocalFrame() const;
     
-    /// \return orientationBody * orientationBase+Delta
-    glm::quat getFinalOrientation() const;
+    /// \return orientationBody * (orientationBase+Delta)
+    glm::quat getFinalOrientationInWorldFrame() const;
+
 
     /// \return orientationBody * orientationBasePitch
     glm::quat getCameraOrientation () const;
@@ -118,7 +121,6 @@ private:
     glm::vec3 _rightEyePosition;
     glm::vec3 _eyePosition;
     float _scale;
-    glm::vec3 _gravity;
     float _lastLoudness;
     float _audioAttack;
     glm::vec3 _angularVelocity;

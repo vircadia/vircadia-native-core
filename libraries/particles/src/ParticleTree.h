@@ -60,14 +60,14 @@ public:
     /// \param box the query box
     /// \param foundParticles[out] vector of non-const Particle*
     /// \remark Side effect: any initial contents in particles will be lost
-    void findParticlesForUpdate(const AABox& box, QVector<Particle*> foundParticles);
+    void findParticlesForUpdate(const AACube& box, QVector<Particle*> foundParticles);
 
     void addNewlyCreatedHook(NewlyCreatedParticleHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);
 
     bool hasAnyDeletedParticles() const { return _recentlyDeletedParticleIDs.size() > 0; }
     bool hasParticlesDeletedSince(quint64 sinceTime);
-    bool encodeParticlesDeletedSince(quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    bool encodeParticlesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
     void forgetParticlesDeletedBefore(quint64 sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
@@ -84,7 +84,7 @@ private:
     static bool findByIDOperation(OctreeElement* element, void* extraData);
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateParticleIDOperation(OctreeElement* element, void* extraData);
-    static bool findInBoxForUpdateOperation(OctreeElement* element, void* extraData);
+    static bool findInCubeForUpdateOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedParticle(const Particle& newParticle, const SharedNodePointer& senderNode);
 

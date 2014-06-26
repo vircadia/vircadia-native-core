@@ -237,7 +237,7 @@ bool ParticleTree::findNearPointOperation(OctreeElement* element, void* extraDat
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
 
     glm::vec3 penetration;
-    bool sphereIntersection = particleTreeElement->getAABox().findSpherePenetration(args->position,
+    bool sphereIntersection = particleTreeElement->getAACube().findSpherePenetration(args->position,
                                                                     args->targetRadius, penetration);
 
     // If this particleTreeElement contains the point, then search it...
@@ -287,7 +287,7 @@ public:
 bool ParticleTree::findInSphereOperation(OctreeElement* element, void* extraData) {
     FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
     glm::vec3 penetration;
-    bool sphereIntersection = element->getAABox().findSpherePenetration(args->position,
+    bool sphereIntersection = element->getAACube().findSpherePenetration(args->position,
                                                                     args->targetRadius, penetration);
 
     // If this element contains the point, then search it...
@@ -310,31 +310,31 @@ void ParticleTree::findParticles(const glm::vec3& center, float radius, QVector<
     foundParticles.swap(args.particles);
 }
 
-class FindParticlesInBoxArgs {
+class FindParticlesInCubeArgs {
 public:
-    FindParticlesInBoxArgs(const AABox& box) 
-        : _box(box), _foundParticles() {
+    FindParticlesInCubeArgs(const AACube& cube) 
+        : _cube(cube), _foundParticles() {
     }
 
-    AABox _box;
+    AACube _cube;
     QVector<Particle*> _foundParticles;
 };
 
-bool ParticleTree::findInBoxForUpdateOperation(OctreeElement* element, void* extraData) {
-    FindParticlesInBoxArgs* args = static_cast< FindParticlesInBoxArgs*>(extraData);
-    const AABox& elementBox = element->getAABox();
-    if (elementBox.touches(args->_box)) {
+bool ParticleTree::findInCubeForUpdateOperation(OctreeElement* element, void* extraData) {
+    FindParticlesInCubeArgs* args = static_cast< FindParticlesInCubeArgs*>(extraData);
+    const AACube& elementBox = element->getAACube();
+    if (elementBox.touches(args->_cube)) {
         ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
-        particleTreeElement->getParticlesForUpdate(args->_box, args->_foundParticles);
+        particleTreeElement->getParticlesForUpdate(args->_cube, args->_foundParticles);
         return true;
     }
     return false;
 }
 
-void ParticleTree::findParticlesForUpdate(const AABox& box, QVector<Particle*> foundParticles) {
-    FindParticlesInBoxArgs args(box);
+void ParticleTree::findParticlesForUpdate(const AACube& cube, QVector<Particle*> foundParticles) {
+    FindParticlesInCubeArgs args(cube);
     lockForRead();
-    recurseTreeWithOperation(findInBoxForUpdateOperation, &args);
+    recurseTreeWithOperation(findInCubeForUpdateOperation, &args);
     unlock();
     // swap the two lists of particle pointers instead of copy
     foundParticles.swap(args._foundParticles);
@@ -473,7 +473,7 @@ void ParticleTree::update() {
         bool shouldDie = args._movingParticles[i].getShouldDie();
 
         // if the particle is still inside our total bounds, then re-add it
-        AABox treeBounds = getRoot()->getAABox();
+        AACube treeBounds = getRoot()->getAACube();
 
         if (!shouldDie && treeBounds.contains(args._movingParticles[i].getPosition())) {
             storeParticle(args._movingParticles[i]);
@@ -511,8 +511,8 @@ bool ParticleTree::hasParticlesDeletedSince(quint64 sinceTime) {
 }
 
 // sinceTime is an in/out parameter - it will be side effected with the last time sent out
-bool ParticleTree::encodeParticlesDeletedSince(quint64& sinceTime, unsigned char* outputBuffer, size_t maxLength,
-                                                    size_t& outputLength) {
+bool ParticleTree::encodeParticlesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* outputBuffer,
+                                                size_t maxLength, size_t& outputLength) {
 
     bool hasMoreToSend = true;
 
@@ -520,6 +520,24 @@ bool ParticleTree::encodeParticlesDeletedSince(quint64& sinceTime, unsigned char
     size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeParticleErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
+
+    // pack in flags
+    OCTREE_PACKET_FLAGS flags = 0;
+    memcpy(copyAt, &flags, sizeof(OCTREE_PACKET_FLAGS));
+    copyAt += sizeof(OCTREE_PACKET_FLAGS);
+    outputLength += sizeof(OCTREE_PACKET_FLAGS);
+
+    // pack in sequence number
+    memcpy(copyAt, &sequenceNumber, sizeof(OCTREE_PACKET_SEQUENCE));
+    copyAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    outputLength += sizeof(OCTREE_PACKET_SEQUENCE);
+
+    // pack in timestamp
+    OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
+    memcpy(copyAt, &now, sizeof(OCTREE_PACKET_SENT_TIME));
+    copyAt += sizeof(OCTREE_PACKET_SENT_TIME);
+    outputLength += sizeof(OCTREE_PACKET_SENT_TIME);
+
 
     uint16_t numberOfIds = 0; // placeholder for now
     unsigned char* numberOfIDsAt = copyAt;
@@ -608,6 +626,10 @@ void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const Sh
     size_t numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
     size_t processedBytes = numBytesPacketHeader;
     dataAt += numBytesPacketHeader;
+
+    dataAt += sizeof(OCTREE_PACKET_FLAGS);
+    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
 
     uint16_t numberOfIds = 0; // placeholder for now
     memcpy(&numberOfIds, dataAt, sizeof(numberOfIds));

@@ -82,7 +82,7 @@ void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authoriz
         _activeWebView = new QWebView;
         
         // keep the window on top and delete it when it closes
-        _activeWebView->setWindowFlags(Qt::Sheet | Qt::WindowStaysOnTopHint);
+        _activeWebView->setWindowFlags(Qt::Sheet);
         _activeWebView->setAttribute(Qt::WA_DeleteOnClose);
         
         qDebug() << "Displaying QWebView for OAuth authorization at" << authorizationURL.toString();
@@ -103,8 +103,9 @@ void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authoriz
             codedAuthorizationURL.setQuery(authQuery);
         }
         
+        connect(_activeWebView.data(), &QWebView::urlChanged, this, &OAuthWebViewHandler::handleURLChanged);
+        
         _activeWebView->load(codedAuthorizationURL);
-        _activeWebView->show();
         
         connect(_activeWebView->page()->networkAccessManager(), &QNetworkAccessManager::sslErrors,
                 this, &OAuthWebViewHandler::handleSSLErrors);
@@ -136,4 +137,18 @@ void OAuthWebViewHandler::handleLoadFinished(bool success) {
 
 void OAuthWebViewHandler::handleWebViewDestroyed(QObject* destroyedObject) {
     _webViewRedisplayTimer.restart();
+}
+
+void OAuthWebViewHandler::handleURLChanged(const QUrl& url) {
+    // check if this is the authorization screen - if it is then we need to show the OAuthWebViewHandler
+    const QString ACCESS_TOKEN_URL_REGEX_STRING = "redirect_uri=[\\w:\\/\\.]+&access_token=";
+    QRegExp accessTokenRegex(ACCESS_TOKEN_URL_REGEX_STRING);
+    
+    if (accessTokenRegex.indexIn(url.toString()) != -1) {
+        _activeWebView->show();
+    } else if (url.toString() == DEFAULT_NODE_AUTH_URL.toString() + "/login") {
+        // this is a login request - we're going to close the webview and signal the AccountManager that we need a login
+        _activeWebView->close();
+        AccountManager::getInstance().checkAndSignalForAccessToken();        
+    }
 }

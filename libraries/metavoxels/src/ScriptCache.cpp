@@ -13,10 +13,95 @@
 
 #include <QNetworkReply>
 #include <QScriptEngine>
+#include <QScriptValueIterator>
 #include <QTextStream>
 
 #include "AttributeRegistry.h"
 #include "ScriptCache.h"
+
+static int scriptValueMetaTypeId = qRegisterMetaType<QScriptValue>();
+static bool scriptValueComparators = QMetaType::registerComparators<QScriptValue>();
+
+bool operator==(const QScriptValue& first, const QScriptValue& second) {
+    if (first.isUndefined()) {
+        return second.isUndefined();
+        
+    } else if (first.isNull()) {
+        return second.isNull();
+    
+    } else if (first.isBool()) {
+        return second.isBool() && first.toBool() == second.toBool();
+    
+    } else if (first.isNumber()) {
+        return second.isNumber() && first.toNumber() == second.toNumber();
+    
+    } else if (first.isString()) {
+        return second.isString() && first.toString() == second.toString();
+    
+    } else if (first.isVariant()) {
+        return second.isVariant() && first.toVariant() == second.toVariant();
+        
+    } else if (first.isQObject()) {
+        return second.isQObject() && first.toQObject() == second.toQObject();
+    
+    } else if (first.isQMetaObject()) {
+        return second.isQMetaObject() && first.toQMetaObject() == second.toQMetaObject();
+        
+    } else if (first.isDate()) {
+        return second.isDate() && first.toDateTime() == second.toDateTime();
+    
+    } else if (first.isRegExp()) {
+        return second.isRegExp() && first.toRegExp() == second.toRegExp();
+    
+    } else if (first.isArray()) {
+        if (!second.isArray()) {
+            return false;
+        }
+        int length = first.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+        if (second.property(ScriptCache::getInstance()->getLengthString()).toInt32() != length) {
+            return false;
+        }
+        for (int i = 0; i < length; i++) {
+            if (first.property(i) != second.property(i)) {
+                return false;
+            }
+        }
+        return true;
+        
+    } else if (first.isObject()) {
+        if (!second.isObject()) {
+            return false;
+        }
+        int propertyCount = 0;
+        for (QScriptValueIterator it(first); it.hasNext(); ) {
+            it.next();
+            if (second.property(it.scriptName()) != it.value()) {
+                return false;
+            }
+            propertyCount++;
+        }
+        // make sure the second has exactly as many properties as the first
+        for (QScriptValueIterator it(second); it.hasNext(); ) {
+            it.next();
+            if (--propertyCount < 0) {
+                return false;
+            }
+        }
+        return true;
+        
+    } else {
+        // if none of the above tests apply, first must be invalid
+        return !second.isValid();
+    }
+}
+
+bool operator!=(const QScriptValue& first, const QScriptValue& second) {
+    return !(first == second);
+}
+
+bool operator<(const QScriptValue& first, const QScriptValue& second) {
+    return first.lessThan(second);
+}
 
 ScriptCache* ScriptCache::getInstance() {
     static ScriptCache cache;

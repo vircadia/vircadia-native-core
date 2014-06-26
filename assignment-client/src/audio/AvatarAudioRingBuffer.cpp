@@ -13,12 +13,15 @@
 
 #include "AvatarAudioRingBuffer.h"
 
-AvatarAudioRingBuffer::AvatarAudioRingBuffer() :
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone) {
+AvatarAudioRingBuffer::AvatarAudioRingBuffer(bool isStereo, bool dynamicJitterBuffer) :
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone, isStereo, dynamicJitterBuffer) {
     
 }
 
 int AvatarAudioRingBuffer::parseData(const QByteArray& packet) {
+    _interframeTimeGapStats.frameReceived();
+    updateDesiredJitterBufferFrames();
+
     _shouldLoopbackForNode = (packetTypeForPacket(packet) == PacketTypeMicrophoneAudioWithEcho);
     return PositionalAudioRingBuffer::parseData(packet);
 }

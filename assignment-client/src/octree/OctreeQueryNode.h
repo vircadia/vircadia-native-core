@@ -23,6 +23,8 @@
 #include <OctreeQuery.h>
 #include <OctreeSceneStats.h>
 #include <ThreadedAssignment.h> // for SharedAssignmentPointer
+#include "SentPacketHistory.h"
+#include <qqueue.h>
 
 class OctreeSendThread;
 
@@ -35,7 +37,7 @@ public:
     void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
 
-    void resetOctreePacket(bool lastWasSurpressed = false);  // resets octree packet to after "V" header
+    void resetOctreePacket();  // resets octree packet to after "V" header
 
     void writeToPacket(const unsigned char* buffer, unsigned int bytes); // writes to end of packet
 
@@ -99,7 +101,17 @@ public:
     void nodeKilled();
     void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
-    
+
+    void octreePacketSent();
+    void packetSent(unsigned char* packet, int packetLength);
+    void packetSent(const QByteArray& packet);
+
+    OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
+
+    void parseNackPacket(QByteArray& packet);
+    bool hasNextNackedPacket() const;
+    const QByteArray* getNextNackedPacket();
+
 private slots:
     void sendThreadFinished();
     
@@ -135,12 +147,16 @@ private:
     float _lastClientOctreeSizeScale;
     bool _lodChanged;
     bool _lodInitialized;
-    
+
     OCTREE_PACKET_SEQUENCE _sequenceNumber;
+
     quint64 _lastRootTimestamp;
     
     PacketType _myPacketType;
     bool _isShuttingDown;
+
+    SentPacketHistory _sentPacketHistory;
+    QQueue<OCTREE_PACKET_SEQUENCE> _nackedSequenceNumbers;
 };
 
 #endif // hifi_OctreeQueryNode_h

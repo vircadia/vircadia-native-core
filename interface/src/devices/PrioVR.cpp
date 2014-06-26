@@ -63,7 +63,7 @@ static void setPalm(float deltaTime, int index) {
     if (!Application::getInstance()->getJoystickManager()->getJoystickStates().isEmpty()) {
         const JoystickState& state = Application::getInstance()->getJoystickManager()->getJoystickStates().at(0);
         if (state.axes.size() >= 4 && state.buttons.size() >= 4) {
-            if (index == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
+            if (index == LEFT_HAND_INDEX) {
                 palm->setControllerButtons(state.buttons.at(1) ? BUTTON_FWD : 0);
                 palm->setTrigger(state.buttons.at(0) ? 1.0f : 0.0f);
                 palm->setJoystick(state.axes.at(0), -state.axes.at(1));
@@ -76,23 +76,24 @@ static void setPalm(float deltaTime, int index) {
         }
     }
     
+    // NOTE: this math is done in the worl-frame with unecessary complexity.
+    // TODO: transfom this to stay in the model-frame.
     glm::vec3 position;
     glm::quat rotation;
-    
-    Model* skeletonModel = &Application::getInstance()->getAvatar()->getSkeletonModel();
+    SkeletonModel* skeletonModel = &Application::getInstance()->getAvatar()->getSkeletonModel();
     int jointIndex;
     glm::quat inverseRotation = glm::inverse(Application::getInstance()->getAvatar()->getOrientation());
-    if (index == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
+    if (index == LEFT_HAND_INDEX) {
         jointIndex = skeletonModel->getLeftHandJointIndex();
-        skeletonModel->getJointRotation(jointIndex, rotation, true);      
+        skeletonModel->getJointRotationInWorldFrame(jointIndex, rotation);      
         rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, PI_OVER_TWO, 0.0f));
         
     } else {
         jointIndex = skeletonModel->getRightHandJointIndex();
-        skeletonModel->getJointRotation(jointIndex, rotation, true);
+        skeletonModel->getJointRotationInWorldFrame(jointIndex, rotation);
         rotation = inverseRotation * rotation * glm::quat(glm::vec3(0.0f, -PI_OVER_TWO, 0.0f));
     }
-    skeletonModel->getJointPosition(jointIndex, position);
+    skeletonModel->getJointPositionInWorldFrame(jointIndex, position);
     position = inverseRotation * (position - skeletonModel->getTranslation());
     
     palm->setRawRotation(rotation);
@@ -180,8 +181,8 @@ void PrioVR::update(float deltaTime) {
     }
     
     // convert the joysticks into palm data
-    setPalm(deltaTime, SIXENSE_CONTROLLER_ID_LEFT_HAND);
-    setPalm(deltaTime, SIXENSE_CONTROLLER_ID_RIGHT_HAND);
+    setPalm(deltaTime, LEFT_HAND_INDEX);
+    setPalm(deltaTime, RIGHT_HAND_INDEX);
 #endif
 }
 

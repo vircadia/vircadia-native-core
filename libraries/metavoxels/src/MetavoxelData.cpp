@@ -610,6 +610,23 @@ MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
     return root = new MetavoxelNode(attribute);
 }
 
+bool MetavoxelData::deepEquals(const MetavoxelData& other, const MetavoxelLOD& lod) const {
+    if (_size != other._size) {
+        return false;
+    }
+    if (_roots.size() != other._roots.size()) {
+        return false;
+    }
+    glm::vec3 minimum = getMinimum();
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        MetavoxelNode* otherNode = other._roots.value(it.key());
+        if (!(otherNode && it.key()->metavoxelRootsEqual(*it.value(), *otherNode, minimum, _size, lod))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool MetavoxelData::operator==(const MetavoxelData& other) const {
     return _size == other._size && _roots == other._roots;
 }
@@ -1006,6 +1023,44 @@ void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
     }
 }
 
+bool MetavoxelNode::deepEquals(const AttributePointer& attribute, const MetavoxelNode& other,
+        const glm::vec3& minimum, float size, const MetavoxelLOD& lod) const {
+    if (!attribute->deepEqual(_attributeValue, other._attributeValue)) {
+        return false;
+    }
+    if (!lod.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier())) {
+        return true;
+    }
+    bool leaf = isLeaf(), otherLeaf = other.isLeaf();
+    if (leaf && otherLeaf) {
+        return true;
+    }
+    if (leaf || otherLeaf) {
+        return false;
+    }
+    float nextSize = size * 0.5f;
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        glm::vec3 nextMinimum = getNextMinimum(minimum, nextSize, i);
+        if (!_children[i]->deepEquals(attribute, *(other._children[i]), nextMinimum, nextSize, lod)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void MetavoxelNode::getSpanners(const AttributePointer& attribute, const glm::vec3& minimum,
+        float size, const MetavoxelLOD& lod, SharedObjectSet& results) const {
+    results.unite(decodeInline<SharedObjectSet>(_attributeValue));
+    if (isLeaf() || !lod.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier())) {
+        return;
+    }
+    float nextSize = size * 0.5f;
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        glm::vec3 nextMinimum = getNextMinimum(minimum, nextSize, i);
+        _children[i]->getSpanners(attribute, nextMinimum, nextSize, lod, results);
+    }
+}
+
 int MetavoxelVisitor::encodeOrder(int first, int second, int third, int fourth,
         int fifth, int sixth, int seventh, int eighth) {
     return first | (second << 3) | (third << 6) | (fourth << 9) |
@@ -1032,6 +1087,25 @@ int MetavoxelVisitor::encodeOrder(const glm::vec3& direction) {
     return encodeOrder(indexDistances.at(0).index, indexDistances.at(1).index, indexDistances.at(2).index,
         indexDistances.at(3).index, indexDistances.at(4).index, indexDistances.at(5).index,
         indexDistances.at(6).index, indexDistances.at(7).index);
+}
+
+const int ORDER_ELEMENT_BITS = 3;
+const int ORDER_ELEMENT_MASK = (1 << ORDER_ELEMENT_BITS) - 1;
+
+int MetavoxelVisitor::encodeRandomOrder() {
+    // see http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_.22inside-out.22_algorithm
+    int order = 0;
+    int randomValues = rand();
+    for (int i = 0, iShift = 0; i < MetavoxelNode::CHILD_COUNT; i++, iShift += ORDER_ELEMENT_BITS) {
+        int j = (randomValues >> iShift) % (i + 1);
+        int jShift = j * ORDER_ELEMENT_BITS;
+        if (j != i) {
+            int jValue = (order >> jShift) & ORDER_ELEMENT_MASK;
+            order |= (jValue << iShift);
+        }
+        order = (order & ~(ORDER_ELEMENT_MASK << jShift)) | (i << jShift);
+    }
+    return order;
 }
 
 const int MetavoxelVisitor::DEFAULT_ORDER = encodeOrder(0, 1, 2, 3, 4, 5, 6, 7);
@@ -1227,8 +1301,6 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             QVector<OwnedAttributeValue>(visitation.outputNodes.size()) } };
     for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
         // the encoded order tells us the child indices for each iteration
-        const int ORDER_ELEMENT_BITS = 3;
-        const int ORDER_ELEMENT_MASK = (1 << ORDER_ELEMENT_BITS) - 1;
         int index = encodedOrder & ORDER_ELEMENT_MASK;
         encodedOrder >>= ORDER_ELEMENT_BITS;
         for (int j = 0; j < visitation.inputNodes.size(); j++) {
@@ -1269,7 +1341,7 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
                 }
             }
             MetavoxelNode* node = visitation.outputNodes.at(j);
-            MetavoxelNode* child = node->getChild(i);
+            MetavoxelNode* child = node->getChild(index);
             if (child) {
                 child->decrementReferenceCount(value.getAttribute());
             } else {

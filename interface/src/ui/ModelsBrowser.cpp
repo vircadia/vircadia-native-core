@@ -89,6 +89,12 @@ ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
     _view.setEditTriggers(QAbstractItemView::NoEditTriggers);
     _view.setRootIsDecorated(false);
     _view.setModel(_handler->getModel());
+    _view.blockSignals(true);
+
+    // Initialize the search bar
+    _searchBar = new QLineEdit;
+    _searchBar->setDisabled(true);
+    connect(_handler, SIGNAL(doneDownloading()), SLOT(enableSearchBar()));
 }
 
 void ModelsBrowser::applyFilter(const QString &filter) {
@@ -130,6 +136,11 @@ void ModelsBrowser::resizeView() {
     }
 }
 
+void ModelsBrowser::enableSearchBar() {
+    _view.blockSignals(false);
+    _searchBar->setEnabled(true);
+}
+
 void ModelsBrowser::browse() {
     QDialog dialog;
     dialog.setWindowTitle("Browse models");
@@ -138,12 +149,10 @@ void ModelsBrowser::browse() {
     QGridLayout* layout = new QGridLayout(&dialog);
     dialog.setLayout(layout);
     
-    QLineEdit* searchBar = new QLineEdit(&dialog);
-    layout->addWidget(searchBar, 0, 0);
-    
+    layout->addWidget(_searchBar, 0, 0);
     layout->addWidget(&_view, 1, 0);
     dialog.connect(&_view, SIGNAL(doubleClicked(const QModelIndex&)), SLOT(accept()));
-    connect(searchBar, SIGNAL(textChanged(const QString&)), SLOT(applyFilter(const QString&)));
+    connect(_searchBar, SIGNAL(textChanged(const QString&)), SLOT(applyFilter(const QString&)));
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     layout->addWidget(buttons, 2, 0);

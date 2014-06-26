@@ -17,6 +17,8 @@
 
 #include "avatar/MyAvatar.h"
 
+class QCheckBox;
+class QComboBox;
 class QDoubleSpinner;
 class QLineEdit;
 class QPushButton;
@@ -61,11 +63,19 @@ private:
     
     AnimationsDialog* _dialog;
     AnimationHandlePointer _handle;
+    QComboBox* _role;
     QLineEdit* _url;
     QDoubleSpinBox* _fps;
     QDoubleSpinBox* _priority;
+    QCheckBox* _loop;
+    QCheckBox* _hold;
+    QCheckBox* _startAutomatically;
+    QDoubleSpinBox* _firstFrame;
+    QDoubleSpinBox* _lastFrame;
     QLineEdit* _maskedJoints;
     QPushButton* _chooseMaskedJoints;
+    QPushButton* _start;
+    QPushButton* _stop;
     bool _applying;
 };
 

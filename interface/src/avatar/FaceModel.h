@@ -28,6 +28,11 @@ public:
     
     virtual void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     virtual void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
+    virtual void updateJointState(int index);
+
+    /// Retrieve the positions of up to two eye meshes.
+    /// \return whether or not both eye meshes were found
+    bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
 private:
     

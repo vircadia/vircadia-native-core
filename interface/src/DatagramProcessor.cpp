@@ -71,7 +71,7 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeOctreeStats:
                 case PacketTypeEnvironmentData: {
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                                            "Application::networkReceive()... _voxelProcessor.queueReceivedPacket()");
+                                            "Application::networkReceive()... _octreeProcessor.queueReceivedPacket()");
                     
                     bool wantExtraDebugging = application->getLogger()->extraDebugging();
                     if (wantExtraDebugging && packetTypeForPacket(incomingPacket) == PacketTypeVoxelData) {
@@ -92,7 +92,7 @@ void DatagramProcessor::processDatagrams() {
                     
                     if (matchedNode) {
                         // add this packet to our list of voxel packets and process them on the voxel processing
-                        application->_voxelProcessor.queueReceivedPacket(matchedNode, incomingPacket);
+                        application->_octreeProcessor.queueReceivedPacket(matchedNode, incomingPacket);
                     }
                     
                     break;
@@ -145,6 +145,15 @@ void DatagramProcessor::processDatagrams() {
                     }
                     break;
                 }
+                case PacketTypeVoxelEditNack:
+                    application->_voxelEditSender.processNackPacket(incomingPacket);
+                    break;
+                case PacketTypeParticleEditNack:
+                    application->_particleEditSender.processNackPacket(incomingPacket);
+                    break;
+                case PacketTypeModelEditNack:
+                    application->_modelEditSender.processNackPacket(incomingPacket);
+                    break;
                 default:
                     nodeList->processNodeData(senderSockAddr, incomingPacket);
                     break;

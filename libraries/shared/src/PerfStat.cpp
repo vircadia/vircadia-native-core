@@ -52,4 +52,22 @@ PerformanceWarning::~PerformanceWarning() {
     }
 };
 
+QMap<QString, PerformanceTimerRecord> PerformanceTimer::_records;
 
+
+PerformanceTimer::~PerformanceTimer() {
+    quint64 end = usecTimestampNow();
+    quint64 elapsedusec = (end - _start);
+    PerformanceTimerRecord& namedRecord = _records[_name];
+    namedRecord.recordResult(elapsedusec);
+}
+
+void PerformanceTimer::dumpAllTimerRecords() {
+    QMapIterator<QString, PerformanceTimerRecord> i(_records);
+    while (i.hasNext()) {
+        i.next();
+        qDebug() << i.key() << ": average " << i.value().getAverage() 
+            << " [" << i.value().getMovingAverage() << "]"
+            << "usecs over" << i.value().getCount() << "calls";
+    }
+}

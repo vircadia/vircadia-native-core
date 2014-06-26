@@ -147,7 +147,12 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
             QEventLoop loop;
             QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
             loop.exec();
-            _scriptContents = reply->readAll();
+            if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
+                _scriptContents = reply->readAll();
+            } else {
+                qDebug() << "ERROR Loading file:" << url.toString();
+                emit errorMessage("ERROR Loading file:" + url.toString());
+            }
         }
     }
 }
@@ -224,6 +229,7 @@ void ScriptEngine::init() {
 
     qScriptRegisterMetaType(&_engine, ModelItemPropertiesToScriptValue, ModelItemPropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ModelItemIDtoScriptValue, ModelItemIDfromScriptValue);
+    qScriptRegisterMetaType(&_engine, RayToModelIntersectionResultToScriptValue, RayToModelIntersectionResultFromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ModelItemID> >(&_engine);
 
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
@@ -308,9 +314,22 @@ void ScriptEngine::evaluate() {
 
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at line" << line << ":" << result.toString();
-        emit errorMessage("Uncaught exception at line" + QString::number(line) + ":" + result.toString());
+        qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
+        emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + result.toString());
+        _engine.clearExceptions();
     }
+}
+
+QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileName, int lineNumber) {
+    QScriptValue result = _engine.evaluate(program, fileName, lineNumber);
+    bool hasUncaughtException = _engine.hasUncaughtException();
+    if (hasUncaughtException) {
+        int line = _engine.uncaughtExceptionLineNumber();
+        qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ": " << result.toString();
+    }
+    emit evaluationFinished(result, hasUncaughtException);
+    _engine.clearExceptions();
+    return result;
 }
 
 void ScriptEngine::sendAvatarIdentityPacket() {
@@ -335,9 +354,9 @@ void ScriptEngine::run() {
     QScriptValue result = _engine.evaluate(_scriptContents);
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
-
-        qDebug() << "Uncaught exception at line" << line << ":" << result.toString();
-        emit errorMessage("Uncaught exception at line" + QString::number(line) + ":" + result.toString());
+        qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
+        emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + result.toString());
+        _engine.clearExceptions();
     }
 
     QElapsedTimer startTime;
@@ -477,8 +496,9 @@ void ScriptEngine::run() {
 
         if (_engine.hasUncaughtException()) {
             int line = _engine.uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at line" << line << ":" << _engine.uncaughtException().toString();
-            emit errorMessage("Uncaught exception at line" + QString::number(line) + ":" + _engine.uncaughtException().toString());
+            qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << _engine.uncaughtException().toString();
+            emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + _engine.uncaughtException().toString());
+            _engine.clearExceptions();
         }
     }
     emit scriptEnding();
@@ -638,5 +658,6 @@ void ScriptEngine::include(const QString& includeFile) {
         int line = _engine.uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at (" << includeFile << ") line" << line << ":" << result.toString();
         emit errorMessage("Uncaught exception at (" + includeFile + ") line" + QString::number(line) + ":" + result.toString());
+        _engine.clearExceptions();
     }
 }

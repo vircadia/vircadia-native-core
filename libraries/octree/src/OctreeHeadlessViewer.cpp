@@ -45,9 +45,11 @@ void OctreeHeadlessViewer::queryOctree() {
         qDebug() << "---------------";
         qDebug() << "_jurisdictionListener=" << _jurisdictionListener;
         qDebug() << "Jurisdictions...";
+        jurisdictions.lockForRead();
         for (NodeToJurisdictionMapIterator i = jurisdictions.begin(); i != jurisdictions.end(); ++i) {
             qDebug() << i.key() << ": " << &i.value();
         }
+        jurisdictions.unlock();
         qDebug() << "---------------";
     }
 
@@ -85,7 +87,9 @@ void OctreeHeadlessViewer::queryOctree() {
 
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
+            jurisdictions.lockForRead();
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
+                jurisdictions.unlock();
                 unknownJurisdictionServers++;
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
@@ -95,14 +99,17 @@ void OctreeHeadlessViewer::queryOctree() {
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    jurisdictions.unlock();
+                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
 
-                    ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+                    ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inViewServers++;
                     }
+                } else {
+                    jurisdictions.unlock();
                 }
             }
         }
@@ -148,7 +155,9 @@ void OctreeHeadlessViewer::queryOctree() {
 
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
+            jurisdictions.lockForRead();
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
+                jurisdictions.unlock();
                 unknownView = true; // assume it's in view
                 if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.";
@@ -161,16 +170,18 @@ void OctreeHeadlessViewer::queryOctree() {
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    jurisdictions.unlock();
+                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
 
-                    ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+                    ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inView = true;
                     } else {
                         inView = false;
                     }
                 } else {
+                    jurisdictions.unlock();
                     if (wantExtraDebugging) {
                         qDebug() << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
                     }

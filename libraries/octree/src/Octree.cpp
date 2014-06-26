@@ -583,7 +583,7 @@ OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, floa
     return getRoot()->getOrCreateChildElementAt(x, y, z, s);
 }
 
-OctreeElement* Octree::getOrCreateChildElementContaining(const AABox& box) {
+OctreeElement* Octree::getOrCreateChildElementContaining(const AACube& box) {
     return getRoot()->getOrCreateChildElementContaining(box);
 }
 
@@ -596,34 +596,25 @@ public:
     OctreeElement*& element;
     float& distance;
     BoxFace& face;
+    void** intersectedObject;
     bool found;
 };
 
 bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
-    AABox box = element->getAABox();
-    float distance;
-    BoxFace face;
-    if (!box.findRayIntersection(args->origin, args->direction, distance, face)) {
-        return false;
-    }
-    if (!element->isLeaf()) {
-        return true; // recurse on children
-    }
-    distance *= TREE_SCALE;
-    if (element->hasContent() && (!args->found || distance < args->distance)) {
-        args->element = element;
-        args->distance = distance;
-        args->face = face;
+    bool keepSearching = true;
+    if (element->findRayIntersection(args->origin, args->direction, keepSearching, 
+                            args->element, args->distance, args->face, args->intersectedObject)) {
         args->found = true;
     }
-    return false;
+    return keepSearching;
 }
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElement*& element, float& distance, BoxFace& face, 
+                                    OctreeElement*& element, float& distance, BoxFace& face, void** intersectedObject,
                                     Octree::lockType lockType, bool* accurateResult) {
-    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, false};
+    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, intersectedObject, false};
+    distance = FLT_MAX;
 
     bool gotLock = false;
     if (lockType == Octree::Lock) {
@@ -664,7 +655,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
 
     // coarse check against bounds
-    const AABox& box = element->getAABox();
+    const AACube& box = element->getAACube();
     if (!box.expandedContains(args->center, args->radius)) {
         return false;
     }
@@ -743,7 +734,7 @@ bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
     // coarse check against bounds
-    const AABox& box = element->getAABox();
+    const AACube& box = element->getAACube();
     if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
@@ -764,9 +755,9 @@ bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
     ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
 
     // coarse check against bounds
-    AABox cube = element->getAABox();
+    AACube cube = element->getAACube();
     cube.scale(TREE_SCALE);
-    if (!cube.expandedContains(args->shape->getPosition(), args->shape->getBoundingRadius())) {
+    if (!cube.expandedContains(args->shape->getTranslation(), args->shape->getBoundingRadius())) {
         return false;
     }
     if (!element->isLeaf()) {
@@ -858,7 +849,7 @@ public:
 // Find the smallest colored voxel enclosing a point (if there is one)
 bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
     GetElementEnclosingArgs* args = static_cast<GetElementEnclosingArgs*>(extraData);
-    AABox elementBox = element->getAABox();
+    AACube elementBox = element->getAACube();
     if (elementBox.contains(args->point)) {
         if (element->hasContent() && element->isLeaf()) {
             // we've reached a solid leaf containing the point, return the element.
@@ -1117,7 +1108,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // If the user also asked for occlusion culling, check if this element is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
         if (params.wantOcclusionCulling && !element->isLeaf()) {
-            AABox voxelBox = element->getAABox();
+            AACube voxelBox = element->getAACube();
             voxelBox.scale(TREE_SCALE);
             OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(voxelBox));
 
@@ -1250,7 +1241,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 if (params.wantOcclusionCulling && childElement->isLeaf()) {
                     // Don't check occlusion here, just add them to our distance ordered array...
 
-                    AABox voxelBox = childElement->getAABox();
+                    AACube voxelBox = childElement->getAACube();
                     voxelBox.scale(TREE_SCALE);
                     OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
                                 params.viewFrustum->getProjectedPolygon(voxelBox));
@@ -1344,14 +1335,23 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         }
     }
 
-    // write the color data...
+    // write the child element data...
     if (continueThisLevel && params.includeColor) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             if (oneAtBit(childrenColoredBits, i)) {
                 OctreeElement* childElement = element->getChildAtIndex(i);
                 if (childElement) {
+                
                     int bytesBeforeChild = packetData->getUncompressedSize();
+                    
+                    // TODO: we want to support the ability for a childElement to "partially" write it's data.
+                    //       for example, consider the case of the model server where the entire contents of the
+                    //       element may be larger than can fit in a single MTU/packetData. In this case, we want
+                    //       to allow the appendElementData() to respond that it produced partial data, which should be
+                    //       written, but that the childElement needs to be reprocessed in an additional pass or passes
+                    //       to be completed. In the case that an element was partially written, we need to 
                     continueThisLevel = childElement->appendElementData(packetData, params);
+                    
                     int bytesAfterChild = packetData->getUncompressedSize();
 
                     if (!continueThisLevel) {

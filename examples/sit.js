@@ -19,7 +19,7 @@ var buttonHeight = 46;
 var buttonPadding = 10;
 
 var buttonPositionX = windowDimensions.x - buttonPadding - buttonWidth;
-var buttonPositionY = (windowDimensions.y - buttonHeight) / 2 ;
+var buttonPositionY = (windowDimensions.y - buttonHeight) / 2 - (buttonHeight + buttonPadding);
 
 var sitDownButton = Overlays.addOverlay("image", {
                                          x: buttonPositionX, y: buttonPositionY, width: buttonWidth, height: buttonHeight,
@@ -40,6 +40,8 @@ var passedTime = 0.0;
 var startPosition = null;
 var animationLenght = 2.0;
 
+var sitting = false; 
+
 // This is the pose we would like to end up
 var pose = [
 	{joint:"RightUpLeg", rotation: {x:100.0, y:15.0, z:0.0}},
@@ -47,13 +49,7 @@ var pose = [
 	{joint:"RightFoot", rotation: {x:30, y:15.0, z:0.0}},
 	{joint:"LeftUpLeg", rotation: {x:100.0, y:-15.0, z:0.0}},
 	{joint:"LeftLeg", rotation: {x:-130.0, y:-15.0, z:0.0}},
-	{joint:"LeftFoot", rotation: {x:30, y:15.0, z:0.0}},
-
-	{joint:"Spine2", rotation: {x:20, y:0.0, z:0.0}},
-	
-	{joint:"RightShoulder", rotation: {x:0.0, y:40.0, z:0.0}},
-	{joint:"LeftShoulder", rotation: {x:0.0, y:-40.0, z:0.0}}
-
+	{joint:"LeftFoot", rotation: {x:30, y:15.0, z:0.0}}
 ];
 
 var startPoseAndTransition = [];
@@ -101,31 +97,41 @@ var standingUpAnimation = function(deltaTime){
 	}
 }
 
+function sitDown() {
+	sitting = true;
+	passedTime = 0.0;
+	startPosition = MyAvatar.position;
+	storeStartPoseAndTransition();
+	try{
+		Script.update.disconnect(standingUpAnimation);
+	} catch(e){
+			// no need to handle. if it wasn't connected no harm done
+	}
+	Script.update.connect(sittingDownAnimation);
+	Overlays.editOverlay(sitDownButton, { visible: false });
+	Overlays.editOverlay(standUpButton, { visible: true });
+}
+
+function standUp() {
+	sitting = false;
+	passedTime = 0.0;
+	startPosition = MyAvatar.position;
+	try{
+		Script.update.disconnect(sittingDownAnimation);
+	} catch (e){}
+	Script.update.connect(standingUpAnimation);
+	Overlays.editOverlay(standUpButton, { visible: false });
+	Overlays.editOverlay(sitDownButton, { visible: true });
+}
+
 Controller.mousePressEvent.connect(function(event){
 
 	var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
 
 	if (clickedOverlay == sitDownButton) {
-		passedTime = 0.0;
-		startPosition = MyAvatar.position;
-		storeStartPoseAndTransition();
-		try{
-			Script.update.disconnect(standingUpAnimation);
-		} catch(e){
-			// no need to handle. if it wasn't connected no harm done
-		}
-		Script.update.connect(sittingDownAnimation);
-		Overlays.editOverlay(sitDownButton, { visible: false });
-		Overlays.editOverlay(standUpButton, { visible: true });
+		sitDown();
 	} else if (clickedOverlay == standUpButton) {
-		passedTime = 0.0;
-		startPosition = MyAvatar.position;
-		try{
-			Script.update.disconnect(sittingDownAnimation);
-		} catch (e){}
-		Script.update.connect(standingUpAnimation);
-		Overlays.editOverlay(standUpButton, { visible: false });
-		Overlays.editOverlay(sitDownButton, { visible: true });
+		standUp();
 	}
 })
 
@@ -140,12 +146,24 @@ function update(deltaTime){
 	}		
 }
 
+function keyPressEvent(event) {
+    if (event.text === ".") {
+        if (sitting) {
+        	standUp();
+        } else {
+        	sitDown();
+        }
+    }
+}
+
+
 Script.update.connect(update);
+Controller.keyPressEvent.connect(keyPressEvent);
 
 Script.scriptEnding.connect(function() {
 
 	for (var i = 0; i < pose.length; i++){
-		    MyAvatar.clearJointData(pose[i][0]);
+		    MyAvatar.clearJointData(pose[i].joint);
 	}		
 
 	Overlays.deleteOverlay(sitDownButton);

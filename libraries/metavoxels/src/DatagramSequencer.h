@@ -19,22 +19,54 @@
 #include <QSet>
 #include <QVector>
 
-#include "Bitstream.h"
+#include "AttributeRegistry.h"
 
 class ReliableChannel;
 
-/// Performs simple datagram sequencing, packet fragmentation and reassembly.
+/// Performs datagram sequencing, packet fragmentation and reassembly.  Works with Bitstream to provide methods to send and
+/// receive data over UDP with varying reliability and latency characteristics.  To use, create a DatagramSequencer with the
+/// fixed-size header that will be included with all outgoing datagrams and expected in all incoming ones (the contents of the
+/// header are not checked on receive, only skipped over, and may be modified by the party that actually send the
+/// datagram--this means that the header may include dynamically generated data, as long as its size remains fixed).  Connect
+/// the readyToWrite signal to a slot that will actually transmit the datagram to the remote party.  When a datagram is
+/// received from that party, call receivedDatagram with its contents.
+///
+/// A "packet" represents a batch of data sent at one time (split into one or more datagrams sized below the MTU).  Packets are
+/// received in full and in order or not at all (that is, a packet being assembled is dropped as soon as a fragment from the
+/// next packet is received).  Packets can be any size, but the larger a packet is, the more likely it is to be dropped--so,
+/// it's better to keep packet sizes close to the MTU.  To write a packet, call startPacket, write data to the returned
+/// Bitstream, then call endPacket (which will result in one or more firings of readyToWrite).  Data written in this way is not
+/// guaranteed to be received, but if it is received, it will arrive in order.  This is a good way to transmit delta state:
+/// state that represents the change between the last acknowledged state and the current state (which, if not received, will
+/// not be resent as-is; instead, it will be replaced by up-to-date new deltas).
+///
+/// There are two methods for sending reliable data.  The first, for small messages that require minimum-latency processing, is
+/// the high priority messaging system.  When you call sendHighPriorityMessage, the message that you send will be included with
+/// every outgoing packet until it is acknowledged.  When the receiving party first sees the message, it will fire a
+/// receivedHighPriorityMessage signal.
+///
+/// The second method employs a set of independent reliable channels multiplexed onto the packet stream.  These channels are
+/// created lazily through the getReliableOutputChannel/getReliableInputChannel functions.  Output channels contain buffers
+/// to which one may write either arbitrary data (as a QIODevice) or messages (as QVariants), or switch between the two.
+/// Each time a packet is sent, data pending for reliable output channels is added, in proportion to their relative priorities,
+/// until the packet size limit set by setMaxPacketSize is reached.  On the receive side, the streams are reconstructed and
+/// (again, depending on whether messages are enabled) either the QIODevice reports that data is available, or, when a complete
+/// message is decoded, the receivedMessage signal is fired.
 class DatagramSequencer : public QObject {
     Q_OBJECT
 
 public:
     
+    /// Contains the content of a high-priority message along with the number of the first packet in which it was sent.
     class HighPriorityMessage {
     public:
         QVariant data;
         int firstPacketNumber;
     };
     
+    /// Creates a new datagram sequencer.
+    /// \param datagramHeader the content of the header that will be prepended to each outgoing datagram and whose length
+    /// will be skipped over in each incoming datagram
     DatagramSequencer(const QByteArray& datagramHeader = QByteArray(), QObject* parent = NULL);
     
     /// Returns a reference to the weak hash mapping remote ids to shared objects.
@@ -66,6 +98,11 @@ public:
     
     /// Returns the intput channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableInputChannel(int index = 0);
+    
+    /// Starts a packet group.
+    /// \param desiredPackets the number of packets we'd like to write in the group
+    /// \return the number of packets to write in the group
+    int startPacketGroup(int desiredPackets = 1);
     
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
@@ -133,6 +170,9 @@ private:
     /// Notes that the described send was acknowledged by the other party.
     void sendRecordAcknowledged(const SendRecord& record);
     
+    /// Notes that the described send was lost in transit.
+    void sendRecordLost(const SendRecord& record);
+    
     /// Appends some reliable data to the outgoing packet.
     void appendReliableData(int bytes, QVector<ChannelSpan>& spans);
     
@@ -167,6 +207,12 @@ private:
     int _receivedHighPriorityMessages;
     
     int _maxPacketSize;
+    
+    float _packetsPerGroup;
+    float _packetsToWrite;
+    float _slowStartThreshold;
+    int _packetRateIncreasePacketNumber;
+    int _packetRateDecreasePacketNumber;
     
     QHash<int, ReliableChannel*> _reliableOutputChannels;
     QHash<int, ReliableChannel*> _reliableInputChannels;
@@ -267,15 +313,24 @@ class ReliableChannel : public QObject {
     
 public:
 
+    /// Returns the channel's index in the sequencer's channel map.
     int getIndex() const { return _index; }
 
+    /// Returns a reference to the buffer used to write/read data to/from this channel.
     CircularBuffer& getBuffer() { return _buffer; }
+    
+    /// Returns a reference to the data stream created on this channel's buffer.
     QDataStream& getDataStream() { return _dataStream; }
+    
+    /// Returns a reference to the bitstream created on this channel's data stream.
     Bitstream& getBitstream() { return _bitstream; }
 
+    /// Sets the channel priority, which determines how much of this channel's data (in proportion to the other channels) to
+    /// include in each outgoing packet.
     void setPriority(float priority) { _priority = priority; }
     float getPriority() const { return _priority; }
 
+    /// Returns the number of bytes available to read from this channel.
     int getBytesAvailable() const;
 
     /// Sets whether we expect to write/read framed messages.
@@ -287,6 +342,7 @@ public:
 
 signals:
 
+    /// Fired when a framed message has been received on this channel.
     void receivedMessage(const QVariant& message);
 
 private slots:
@@ -301,10 +357,12 @@ private:
     ReliableChannel(DatagramSequencer* sequencer, int index, bool output);
     
     void writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans);
-    int getBytesToWrite(bool& first, int length) const;
-    int writeSpan(QDataStream& out, bool& first, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
+    void writeFullSpans(QDataStream& out, int bytes, int startingIndex, int position,
+        QVector<DatagramSequencer::ChannelSpan>& spans);
+    int writeSpan(QDataStream& out, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
     
     void spanAcknowledged(const DatagramSequencer::ChannelSpan& span);
+    void spanLost(int packetNumber, int nextOutgoingPacketNumber);
     
     void readData(QDataStream& in);
     
@@ -317,6 +375,7 @@ private:
     
     int _offset;
     int _writePosition;
+    int _writePositionResetPacketNumber;
     SpanList _acknowledged;
     bool _messagesEnabled;
 };

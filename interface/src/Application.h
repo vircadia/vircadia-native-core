@@ -28,6 +28,7 @@
 #include <QHash>
 #include <QTouchEvent>
 #include <QUndoStack>
+#include <QSystemTrayIcon>
 
 #include <ModelEditPacketSender.h>
 #include <NetworkPacket.h>
@@ -82,11 +83,12 @@
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
+#include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
 #include "voxels/VoxelImporter.h"
-#include "voxels/VoxelPacketProcessor.h"
+#include "voxels/OctreePacketProcessor.h"
 #include "voxels/VoxelSystem.h"
 
 
@@ -115,10 +117,19 @@ static const QString CUSTOM_URL_SCHEME = "hifi:";
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.0f;       // meters
 
+static const int MIRROR_VIEW_TOP_PADDING = 5;
+static const int MIRROR_VIEW_LEFT_PADDING = 10;
+static const int MIRROR_VIEW_WIDTH = 265;
+static const int MIRROR_VIEW_HEIGHT = 215;
+static const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
+static const float MIRROR_REARVIEW_DISTANCE = 0.65f;
+static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
+static const float MIRROR_FIELD_OF_VIEW = 30.0f;
+
 class Application : public QApplication {
     Q_OBJECT
 
-    friend class VoxelPacketProcessor;
+    friend class OctreePacketProcessor;
     friend class VoxelEditPacketSender;
     friend class DatagramProcessor;
 
@@ -181,6 +192,7 @@ public:
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
+    const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     ModelTreeRenderer* getModels() { return &_models; }
@@ -194,6 +206,7 @@ public:
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     int getMouseX() const { return _mouseX; }
     int getMouseY() const { return _mouseY; }
+    unsigned int getLastMouseMoveType() const { return _lastMouseMoveType; }
     Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
@@ -203,6 +216,14 @@ public:
     JoystickManager* getJoystickManager() { return &_joystickManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
+    QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
+    ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
+    Overlays& getOverlays() { return _overlays; }
+
+    float getFps() const { return _fps; }
+    float getPacketsPerSecond() const { return _packetsPerSecond; }
+    float getBytesPerSecond() const { return _bytesPerSecond; }
+    const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
@@ -241,10 +262,10 @@ public:
     /// result from matrix multiplication at high translation magnitudes.
     void loadTranslatedViewMatrix(const glm::vec3& translation);
 
-    const glm::mat4& getShadowMatrix() const { return _shadowMatrix; }
-
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
+
+    const glm::vec3& getShadowDistances() const { return _shadowDistances; }
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
@@ -303,11 +324,12 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
-    ScriptEngine* loadScript(const QString& fileNameString, bool loadScriptFromEditor = false);
+    ScriptEngine* loadScript(const QString& fileNameString = QString(), bool loadScriptFromEditor = false, bool activateMainWindow = false);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
+    void loadDefaultScripts();
     void toggleRunningScriptsWidget();
 
     void uploadHead();
@@ -324,6 +346,7 @@ private slots:
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
+    void setEnableVRMode(bool enableVRMode);
     void cameraMenuChanged();
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
@@ -375,7 +398,6 @@ private:
     glm::vec3 getSunDirection();
 
     void updateShadowMap();
-    void displayOverlay();
     void renderRearViewMirror(const QRect& region, bool billboard = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
@@ -390,6 +412,8 @@ private:
 
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
+
+    int sendNackPackets();
 
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
@@ -467,12 +491,14 @@ private:
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
-    
+
     float _scaleMirror;
     float _rotateMirror;
     float _raiseMirror;
 
-    glm::mat4 _shadowMatrix;
+    static const int CASCADED_SHADOW_MATRIX_COUNT = 4;
+    glm::mat4 _shadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];
+    glm::vec3 _shadowDistances;
 
     Environment _environment;
 
@@ -481,6 +507,7 @@ private:
     int _mouseDragStartedX;
     int _mouseDragStartedY;
     quint64 _lastMouseMove;
+    unsigned int _lastMouseMoveType;
     bool _mouseHidden;
     bool _seenMouseMove;
 
@@ -497,6 +524,7 @@ private:
 
     QSet<int> _keysPressed;
 
+
     GeometryCache _geometryCache;
     AnimationCache _animationCache;
     TextureCache _textureCache;
@@ -509,7 +537,7 @@ private:
     Audio _audio;
 
     bool _enableProcessVoxelsThread;
-    VoxelPacketProcessor _voxelProcessor;
+    OctreePacketProcessor _octreeProcessor;
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
@@ -533,6 +561,7 @@ private:
     NodeBounds _nodeBoundsDisplay;
 
     std::vector<VoxelFade> _voxelFades;
+    QReadWriteLock _voxelFadesLock;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;
@@ -549,11 +578,16 @@ private:
     TouchEvent _lastTouchEvent;
 
     Overlays _overlays;
+    ApplicationOverlay _applicationOverlay;
 
     AudioReflector _audioReflector;
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;
+
+    QSystemTrayIcon* _trayIcon;
+
+    quint64 _lastNackTime;
 };
 
 #endif // hifi_Application_h

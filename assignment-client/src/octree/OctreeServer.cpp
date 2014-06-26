@@ -648,10 +648,10 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         int senderNumber = 0;
         NodeToSenderStatsMap& allSenderStats = _octreeInboundPacketProcessor->getSingleSenderStats();
-        for (NodeToSenderStatsMapIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
+        for (NodeToSenderStatsMapConstIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
             senderNumber++;
-            QUuid senderID = i->first;
-            SingleSenderStats& senderStats = i->second;
+            QUuid senderID = i.key();
+            const SingleSenderStats& senderStats = i.value();
 
             statsString += QString("\r\n             Stats for sender %1 uuid: %2\r\n")
                 .arg(senderNumber).arg(senderID.toString());
@@ -832,20 +832,28 @@ void OctreeServer::readPendingDatagrams() {
             PacketType packetType = packetTypeForPacket(receivedPacket);
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (packetType == getMyQueryMessageType()) {
-            
                 // If we got a query packet, then we're talking to an agent, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
-                    OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                    
+                        
                         // NOTE: this is an important aspect of the proper ref counting. The send threads/node data need to 
                         // know that the OctreeServer/Assignment will not get deleted on it while it's still active. The 
                         // solution is to get the shared pointer for the current assignment. We need to make sure this is the 
                         // same SharedAssignmentPointer that was ref counted by the assignment client.                    
                         SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
+                    }
+                }
+            } else if (packetType == PacketTypeOctreeDataNack) {
+                // If we got a nack packet, then we're talking to an agent, and we
+                // need to make sure we have it in our nodeList.
+                if (matchingNode) {
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
+                    if (nodeData) {
+                        nodeData->parseNackPacket(receivedPacket);
                     }
                 }
             } else if (packetType == PacketTypeJurisdictionRequest) {
@@ -1050,6 +1058,9 @@ void OctreeServer::nodeAdded(SharedNodePointer node) {
 
 void OctreeServer::nodeKilled(SharedNodePointer node) {
     quint64 start  = usecTimestampNow();
+
+    // calling this here since nodeKilled slot in ReceivedPacketProcessor can't be triggered by signals yet!!
+    _octreeInboundPacketProcessor->nodeKilled(node);
 
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());

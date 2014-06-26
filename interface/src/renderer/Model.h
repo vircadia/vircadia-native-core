@@ -16,12 +16,13 @@
 #include <QObject>
 #include <QUrl>
 
-#include <CapsuleShape.h>
+#include <PhysicsEntity.h>
 
 #include <AnimationCache.h>
 
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
+#include "JointState.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
@@ -32,19 +33,13 @@ typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject {
+class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
     
 public:
 
     Model(QObject* parent = NULL);
     virtual ~Model();
-    
-    void setTranslation(const glm::vec3& translation) { _translation = translation; }
-    const glm::vec3& getTranslation() const { return _translation; }
-    
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
-    const glm::quat& getRotation() const { return _rotation; }
     
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
@@ -66,7 +61,7 @@ public:
     
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
-    
+
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
@@ -79,7 +74,7 @@ public:
     
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
-    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE);
+    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, bool receiveShadows = true);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -113,13 +108,7 @@ public:
     bool getJointState(int index, glm::quat& rotation) const;
     
     /// Sets the joint state at the specified index.
-    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat());
-    
-    /// Returns the index of the left hand joint, or -1 if not found.
-    int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
-    
-    /// Returns the index of the right hand joint, or -1 if not found.
-    int getRightHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().rightHandJointIndex : -1; }
+    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat(), float priority = 1.0f);
     
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
@@ -127,144 +116,46 @@ public:
     /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
     int getLastFreeJointIndex(int jointIndex) const;
     
-    /// Returns the position of the head joint.
-    /// \return whether or not the head was found
-    bool getHeadPosition(glm::vec3& headPosition) const;
-    
-    /// Returns the position of the neck joint.
-    /// \return whether or not the neck was found
-    bool getNeckPosition(glm::vec3& neckPosition) const;
-    
-    /// Returns the rotation of the neck joint.
-    /// \return whether or not the neck was found
-    bool getNeckRotation(glm::quat& neckRotation) const;
-    
-    /// Returns the rotation of the neck joint's parent.
-    /// \return whether or not the neck was found
-    bool getNeckParentRotation(glm::quat& neckRotation) const;
-    
-    /// Retrieve the positions of up to two eye meshes.
-    /// \return whether or not both eye meshes were found
-    bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
-    
-    /// Retrieve the position of the left hand
-    /// \return true whether or not the position was found
-    bool getLeftHandPosition(glm::vec3& position) const;
-    
-    /// Retrieve the rotation of the left hand
-    /// \return true whether or not the rotation was found
-    bool getLeftHandRotation(glm::quat& rotation) const;
-    
-    /// Retrieve the position of the right hand
-    /// \return true whether or not the position was found
-    bool getRightHandPosition(glm::vec3& position) const;
-    
-    /// Retrieve the rotation of the right hand
-    /// \return true whether or not the rotation was found
-    bool getRightHandRotation(glm::quat& rotation) const;
-    
-    /// Restores some percentage of the default position of the left hand.
-    /// \param percent the percentage of the default position to restore
-    /// \return whether or not the left hand joint was found
-    bool restoreLeftHandPosition(float percent = 1.0f);
-    
-    /// Gets the position of the left shoulder.
-    /// \return whether or not the left shoulder joint was found
-    bool getLeftShoulderPosition(glm::vec3& position) const;
-    
-    /// Returns the extended length from the left hand to its last free ancestor.
-    float getLeftArmLength() const;
-    
-    /// Restores some percentage of the default position of the right hand.
-    /// \param percent the percentage of the default position to restore
-    /// \return whether or not the right hand joint was found
-    bool restoreRightHandPosition(float percent = 1.0f);
-    
-    /// Gets the position of the right shoulder.
-    /// \return whether or not the right shoulder joint was found
-    bool getRightShoulderPosition(glm::vec3& position) const;
-    
-    /// Returns the extended length from the right hand to its first free ancestor.
-    float getRightArmLength() const;
-    
+    bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
+    bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
+    bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
+
+    /// \param jointIndex index of joint in model structure
+    /// \param position[out] position of joint in model-frame
+    /// \return true if joint exists
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
-    bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
 
     QStringList getJointNames() const;
     
     AnimationHandlePointer createAnimationHandle();
-    
+
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
-    
-    void clearShapes();
-    void rebuildShapes();
-    void resetShapePositions();
-    void updateShapePositions();
+   
+    // virtual overrides from PhysicsEntity
+    virtual void buildShapes();
+    virtual void updateShapePositions();
+
     void renderJointCollisionShapes(float alpha);
-    void renderBoundingCollisionShapes(float alpha);
     
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
-    
-    /// \param shapes list of pointers shapes to test against Model
-    /// \param collisions list to store collision results
-    /// \return true if at least one shape collided agains Model
-    bool findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions);
-
-    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, int skipIndex = -1);
-
-    bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
-    
-    /// \param collision details about the collisions
-    /// \return true if the collision is against a moveable joint
-    bool collisionHitsMoveableJoint(CollisionInfo& collision) const;
-
-    /// \param collision details about the collision
-    /// Use the collision to affect the model
-    void applyCollision(CollisionInfo& collision);
-
-    float getBoundingRadius() const { return _boundingRadius; }
-    float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
-
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
-    const CapsuleShape& getBoundingShape() const { return _boundingShape; }
-
 protected:
-
     QSharedPointer<NetworkGeometry> _geometry;
     
-    glm::vec3 _translation;
-    glm::quat _rotation;
     glm::vec3 _scale;
     glm::vec3 _offset;
 
     bool _scaleToFit; /// If you set scaleToFit, we will calculate scale based on MeshExtents
     float _scaleToFitLargestDimension; /// this is the dimension that scale to fit will use
     bool _scaledToFit; /// have we scaled to fit
-    
+
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center
     int _rootIndex;
     
-    class JointState {
-    public:
-        glm::vec3 translation;  // translation relative to parent
-        glm::quat rotation;     // rotation relative to parent
-        glm::mat4 transform;    // rotation to world frame + translation in model frame
-        glm::quat combinedRotation; // rotation from joint local to world frame
-        bool animationDisabled; // if true, animations do not affect this joint
-    };
-    
-    bool _shapesAreDirty;
     QVector<JointState> _jointStates;
-    QVector<Shape*> _jointShapes;
-    
-    float _boundingRadius;
-    CapsuleShape _boundingShape;
-    glm::vec3 _boundingShapeLocalOffset;
-    
+
     class MeshState {
     public:
         QVector<glm::mat4> clusterMatrices;
@@ -274,6 +165,8 @@ protected:
     
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
+
+    virtual void setJointStates(QVector<JointState> states);
     
     void setScaleInternal(const glm::vec3& scale);
     void scaleToFit();
@@ -284,30 +177,27 @@ protected:
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
-    virtual void maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    virtual void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    virtual void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    
-    bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
+    /// \param jointIndex index of joint in model structure
+    /// \param position position of joint in model-frame
+    /// \param rotation rotation of joint in model-frame
+    /// \param useRotation false if rotation should be ignored
+    /// \param lastFreeIndex
+    /// \param allIntermediatesFree
+    /// \param alignment
+    /// \return true if joint exists
+    bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
-        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f));
-    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false);
-    
-    void setJointTranslation(int jointIndex, const glm::vec3& translation);
+        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
     
     /// Restores the indexed joint to its default position.
-    /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
+    /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
     /// the original position
     /// \return true if the joint was found
-    bool restoreJointPosition(int jointIndex, float percent = 1.0f);
+    bool restoreJointPosition(int jointIndex, float fraction = 1.0f, float priority = 0.0f);
     
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
-
-    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
-    
-    void computeBoundingShape(const FBXGeometry& geometry);
 
 private:
     
@@ -315,7 +205,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, RenderMode mode, bool translucent);
+    void renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
@@ -344,15 +234,47 @@ private:
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;
     static ProgramObject _normalSpecularMapProgram;
+    
+    static ProgramObject _shadowMapProgram;
+    static ProgramObject _shadowNormalMapProgram;
+    static ProgramObject _shadowSpecularMapProgram;
+    static ProgramObject _shadowNormalSpecularMapProgram;
+    
+    static ProgramObject _cascadedShadowMapProgram;
+    static ProgramObject _cascadedShadowNormalMapProgram;
+    static ProgramObject _cascadedShadowSpecularMapProgram;
+    static ProgramObject _cascadedShadowNormalSpecularMapProgram;
+    
     static ProgramObject _shadowProgram;
+    
     static ProgramObject _skinProgram;
     static ProgramObject _skinNormalMapProgram;
     static ProgramObject _skinSpecularMapProgram;
     static ProgramObject _skinNormalSpecularMapProgram;
+    
+    static ProgramObject _skinShadowMapProgram;
+    static ProgramObject _skinShadowNormalMapProgram;
+    static ProgramObject _skinShadowSpecularMapProgram;
+    static ProgramObject _skinShadowNormalSpecularMapProgram;
+    
+    static ProgramObject _skinCascadedShadowMapProgram;
+    static ProgramObject _skinCascadedShadowNormalMapProgram;
+    static ProgramObject _skinCascadedShadowSpecularMapProgram;
+    static ProgramObject _skinCascadedShadowNormalSpecularMapProgram;
+    
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
+    static int _shadowNormalMapTangentLocation;
+    static int _shadowNormalSpecularMapTangentLocation;
+    static int _cascadedShadowNormalMapTangentLocation;
+    static int _cascadedShadowNormalSpecularMapTangentLocation;
+    
+    static int _cascadedShadowMapDistancesLocation;
+    static int _cascadedShadowNormalMapDistancesLocation;
+    static int _cascadedShadowSpecularMapDistancesLocation;
+    static int _cascadedShadowNormalSpecularMapDistancesLocation;
     
     class SkinLocations {
     public:
@@ -360,15 +282,25 @@ private:
         int clusterIndices;
         int clusterWeights;
         int tangent;
+        int shadowDistances;
     };
     
     static SkinLocations _skinLocations;
     static SkinLocations _skinNormalMapLocations;
     static SkinLocations _skinSpecularMapLocations;
     static SkinLocations _skinNormalSpecularMapLocations;
+    static SkinLocations _skinShadowMapLocations;
+    static SkinLocations _skinShadowNormalMapLocations;
+    static SkinLocations _skinShadowSpecularMapLocations;
+    static SkinLocations _skinShadowNormalSpecularMapLocations;
+    static SkinLocations _skinCascadedShadowMapLocations;
+    static SkinLocations _skinCascadedShadowNormalMapLocations;
+    static SkinLocations _skinCascadedShadowSpecularMapLocations;
+    static SkinLocations _skinCascadedShadowNormalSpecularMapLocations;
     static SkinLocations _skinShadowLocations;
     
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations,
+        int specularTextureUnit = 1, int shadowTextureUnit = 1);
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
@@ -380,6 +312,9 @@ class AnimationHandle : public QObject {
     Q_OBJECT
     
 public:
+
+    void setRole(const QString& role) { _role = role; }
+    const QString& getRole() const { return _role; }
 
     void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
@@ -393,12 +328,30 @@ public:
     void setLoop(bool loop) { _loop = loop; }
     bool getLoop() const { return _loop; }
     
+    void setHold(bool hold) { _hold = hold; }
+    bool getHold() const { return _hold; }
+    
+    void setStartAutomatically(bool startAutomatically);
+    bool getStartAutomatically() const { return _startAutomatically; }
+    
+    void setFirstFrame(float firstFrame) { _firstFrame = firstFrame; }
+    float getFirstFrame() const { return _firstFrame; }
+    
+    void setLastFrame(float lastFrame) { _lastFrame = lastFrame; }
+    float getLastFrame() const { return _lastFrame; }
+    
     void setMaskedJoints(const QStringList& maskedJoints);
     const QStringList& getMaskedJoints() const { return _maskedJoints; }
     
     void setRunning(bool running);
     bool isRunning() const { return _running; }
+
+signals:
     
+    void runningChanged(bool running);
+
+public slots:
+
     void start() { setRunning(true); }
     void stop() { setRunning(false); }
     
@@ -409,14 +362,21 @@ private:
     AnimationHandle(Model* model);
         
     void simulate(float deltaTime);
-        
+    void applyFrame(float frameIndex);
+    void replaceMatchingPriorities(float newPriority);
+    
     Model* _model;
     WeakAnimationHandlePointer _self;
     AnimationPointer _animation;
+    QString _role;
     QUrl _url;
     float _fps;
     float _priority;
     bool _loop;
+    bool _hold;
+    bool _startAutomatically;
+    float _firstFrame;
+    float _lastFrame;
     QStringList _maskedJoints;
     bool _running;
     QVector<int> _jointMappings;

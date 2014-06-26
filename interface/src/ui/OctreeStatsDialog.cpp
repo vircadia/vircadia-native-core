@@ -281,8 +281,10 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
             
             // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
             // missing at least one jurisdiction
+            serverJurisdictions.lockForRead();
             if (serverJurisdictions.find(nodeUUID) == serverJurisdictions.end()) {
                 serverDetails << " unknown jurisdiction ";
+                serverJurisdictions.unlock();
             } else {
                 const JurisdictionMap& map = serverJurisdictions[nodeUUID];
                 
@@ -293,7 +295,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                     
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
                     serverDetails << " jurisdiction: "
                     << qPrintable(rootCodeHex)
@@ -305,6 +307,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                 } else {
                     serverDetails << " jurisdiction has no rootCode";
                 } // root code
+                serverJurisdictions.unlock();
             } // jurisdiction
             
             // now lookup stats details for this server...

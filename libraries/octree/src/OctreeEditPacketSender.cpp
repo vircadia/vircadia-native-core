@@ -17,7 +17,6 @@
 #include <PacketHeaders.h>
 #include "OctreeEditPacketSender.h"
 
-
 EditPacketBuffer::EditPacketBuffer(PacketType type, unsigned char* buffer, ssize_t length, QUuid nodeUUID) :
     _nodeUUID(nodeUUID),
     _currentType(type),
@@ -71,9 +70,11 @@ bool OctreeEditPacketSender::serversExist() const {
             if (_serverJurisdictions) {
                 // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
                 // missing at least one jurisdiction
+                _serverJurisdictions->lockForRead();
                 if ((*_serverJurisdictions).find(nodeUUID) == (*_serverJurisdictions).end()) {
                     atLeastOneJurisdictionMissing = true;
                 }
+                _serverJurisdictions->unlock();
             }
             hasServers = true;
         }
@@ -87,7 +88,7 @@ bool OctreeEditPacketSender::serversExist() const {
 
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
 // a known nodeID.
-void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer, ssize_t length) {
+void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, const unsigned char* buffer, ssize_t length) {
     NodeList* nodeList = NodeList::getInstance();
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
@@ -95,12 +96,19 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
         if (node->getType() == getMyNodeType() &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
             if (node->getActiveSocket()) {
-                queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(buffer), length));
+                QByteArray packet(reinterpret_cast<const char*>(buffer), length);
+                queuePacketForSending(node, packet);
+
+                // extract sequence number and add packet to history
+                int numBytesPacketHeader = numBytesForPacketHeader(packet);
+                const char* dataAt = reinterpret_cast<const char*>(packet.data()) + numBytesPacketHeader;
+                unsigned short int sequence = *((unsigned short int*)dataAt);
+                _sentPacketHistories[nodeUUID].packetSent(sequence, packet);
 
                 // debugging output...
                 bool wantDebugging = false;
                 if (wantDebugging) {
-                    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<char*>(buffer));
+                    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(buffer));
                     unsigned short int sequence = (*((unsigned short int*)(buffer + numBytesPacketHeader)));
                     quint64 createdAt = (*((quint64*)(buffer + numBytesPacketHeader + sizeof(sequence))));
                     quint64 queuedAt = usecTimestampNow();
@@ -185,8 +193,10 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
             bool isMyJurisdiction = true;
             // we need to get the jurisdiction for this
             // here we need to get the "pending packet" for this server
+            _serverJurisdictions->lockForRead();
             const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
             isMyJurisdiction = (map.isMyJurisdiction(octCode, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+            _serverJurisdictions->unlock();
             if (isMyJurisdiction) {
                 queuePacketToNode(nodeUUID, buffer, length);
             }
@@ -236,12 +246,14 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
             if (_serverJurisdictions) {
                 // we need to get the jurisdiction for this
                 // here we need to get the "pending packet" for this server
+                _serverJurisdictions->lockForRead();
                 if ((*_serverJurisdictions).find(nodeUUID) != (*_serverJurisdictions).end()) {
                     const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
                     isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
                 } else {
                     isMyJurisdiction = false;
                 }
+                _serverJurisdictions->unlock();
             }
             if (isMyJurisdiction) {
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeUUID];
@@ -281,18 +293,20 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
     if (!serversExist()) {
         _releaseQueuedMessagesPending = true;
     } else {
-        for (std::map<QUuid, EditPacketBuffer>::iterator i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
-            releaseQueuedPacket(i->second);
+        for (QHash<QUuid, EditPacketBuffer>::iterator i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
+            releaseQueuedPacket(i.value());
         }
     }
 }
 
 void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) {
+    _releaseQueuedPacketMutex.lock();
     if (packetBuffer._currentSize > 0 && packetBuffer._currentType != PacketTypeUnknown) {
         queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
+        packetBuffer._currentSize = 0;
+        packetBuffer._currentType = PacketTypeUnknown;
     }
-    packetBuffer._currentSize = 0;
-    packetBuffer._currentType = PacketTypeUnknown;
+    _releaseQueuedPacketMutex.unlock();
 }
 
 void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PacketType type) {
@@ -322,4 +336,42 @@ bool OctreeEditPacketSender::process() {
 
     // base class does most of the work.
     return PacketSender::process();
+}
+
+void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
+    // parse sending node from packet, retrieve packet history for that node
+    QUuid sendingNodeUUID = uuidFromPacketHeader(packet);
+    
+    // if packet history doesn't exist for the sender node (somehow), bail
+    if (!_sentPacketHistories.contains(sendingNodeUUID)) {
+        return;
+    }
+    const SentPacketHistory& sentPacketHistory = _sentPacketHistories.value(sendingNodeUUID);
+
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
+
+    // read number of sequence numbers
+    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
+    dataAt += sizeof(uint16_t);
+    
+    // read sequence numbers and queue packets for resend
+    for (int i = 0; i < numSequenceNumbers; i++) {
+        unsigned short int sequenceNumber = (*(unsigned short int*)dataAt);
+        dataAt += sizeof(unsigned short int);
+
+        // retrieve packet from history
+        const QByteArray* packet = sentPacketHistory.getPacket(sequenceNumber);
+        if (packet) {
+            const SharedNodePointer& node = NodeList::getInstance()->getNodeHash().value(sendingNodeUUID);
+            queuePacketForSending(node, *packet);
+        }
+    }
+}
+
+void OctreeEditPacketSender::nodeKilled(SharedNodePointer node) {
+    // TODO: add locks
+    QUuid nodeUUID = node->getUUID();
+    _pendingEditPackets.remove(nodeUUID);
+    _sentPacketHistories.remove(nodeUUID);
 }

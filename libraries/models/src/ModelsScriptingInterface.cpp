@@ -173,3 +173,115 @@ QVector<ModelItemID> ModelsScriptingInterface::findModels(const glm::vec3& cente
     return result;
 }
 
+RayToModelIntersectionResult ModelsScriptingInterface::findRayIntersection(const PickRay& ray) {
+    return findRayIntersectionWorker(ray, Octree::TryLock);
+}
+
+RayToModelIntersectionResult ModelsScriptingInterface::findRayIntersectionBlocking(const PickRay& ray) {
+    return findRayIntersectionWorker(ray, Octree::Lock);
+}
+
+RayToModelIntersectionResult ModelsScriptingInterface::findRayIntersectionWorker(const PickRay& ray, 
+                                                                                    Octree::lockType lockType) {
+    RayToModelIntersectionResult result;
+    if (_modelTree) {
+        OctreeElement* element;
+        ModelItem* intersectedModel;
+        result.intersects = _modelTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
+                                                                (void**)&intersectedModel, lockType, &result.accurate);
+        if (result.intersects && intersectedModel) {
+            result.modelID = intersectedModel->getModelItemID();
+            result.modelProperties = intersectedModel->getProperties();
+            result.intersection = ray.origin + (ray.direction * result.distance);
+        }
+    }
+    return result;
+}
+
+
+RayToModelIntersectionResult::RayToModelIntersectionResult() : 
+    intersects(false), 
+    accurate(true), // assume it's accurate
+    modelID(),
+    modelProperties(),
+    distance(0),
+    face()
+{ 
+};
+
+QScriptValue RayToModelIntersectionResultToScriptValue(QScriptEngine* engine, const RayToModelIntersectionResult& value) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("intersects", value.intersects);
+    obj.setProperty("accurate", value.accurate);
+    QScriptValue modelItemValue = ModelItemIDtoScriptValue(engine, value.modelID);
+    obj.setProperty("modelID", modelItemValue);
+
+    QScriptValue modelPropertiesValue = ModelItemPropertiesToScriptValue(engine, value.modelProperties);
+    obj.setProperty("modelProperties", modelPropertiesValue);
+
+    obj.setProperty("distance", value.distance);
+
+    QString faceName = "";    
+    // handle BoxFace
+    switch (value.face) {
+        case MIN_X_FACE:
+            faceName = "MIN_X_FACE";
+            break;
+        case MAX_X_FACE:
+            faceName = "MAX_X_FACE";
+            break;
+        case MIN_Y_FACE:
+            faceName = "MIN_Y_FACE";
+            break;
+        case MAX_Y_FACE:
+            faceName = "MAX_Y_FACE";
+            break;
+        case MIN_Z_FACE:
+            faceName = "MIN_Z_FACE";
+            break;
+        case MAX_Z_FACE:
+            faceName = "MAX_Z_FACE";
+            break;
+        case UNKNOWN_FACE:
+            faceName = "UNKNOWN_FACE";
+            break;
+    }
+    obj.setProperty("face", faceName);
+
+    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    obj.setProperty("intersection", intersection);
+    return obj;
+}
+
+void RayToModelIntersectionResultFromScriptValue(const QScriptValue& object, RayToModelIntersectionResult& value) {
+    value.intersects = object.property("intersects").toVariant().toBool();
+    value.accurate = object.property("accurate").toVariant().toBool();
+    QScriptValue modelIDValue = object.property("modelID");
+    if (modelIDValue.isValid()) {
+        ModelItemIDfromScriptValue(modelIDValue, value.modelID);
+    }
+    QScriptValue modelPropertiesValue = object.property("modelProperties");
+    if (modelPropertiesValue.isValid()) {
+        ModelItemPropertiesFromScriptValue(modelPropertiesValue, value.modelProperties);
+    }
+    value.distance = object.property("distance").toVariant().toFloat();
+
+    QString faceName = object.property("face").toVariant().toString();
+    if (faceName == "MIN_X_FACE") {
+        value.face = MIN_X_FACE;
+    } else if (faceName == "MAX_X_FACE") {
+        value.face = MAX_X_FACE;
+    } else if (faceName == "MIN_Y_FACE") {
+        value.face = MIN_Y_FACE;
+    } else if (faceName == "MAX_Y_FACE") {
+        value.face = MAX_Y_FACE;
+    } else if (faceName == "MIN_Z_FACE") {
+        value.face = MIN_Z_FACE;
+    } else {
+        value.face = MAX_Z_FACE;
+    };
+    QScriptValue intersection = object.property("intersection");
+    if (intersection.isValid()) {
+        vec3FromScriptValue(intersection, value.intersection);
+    }
+}

@@ -22,6 +22,9 @@ attribute vec3 tangent;
 attribute vec4 clusterIndices;
 attribute vec4 clusterWeights;
 
+// the interpolated position
+varying vec4 interpolatedPosition;
+
 // the interpolated normal
 varying vec4 interpolatedNormal;
 
@@ -29,17 +32,17 @@ varying vec4 interpolatedNormal;
 varying vec4 interpolatedTangent;
 
 void main(void) {
-    vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
+    interpolatedPosition = vec4(0.0, 0.0, 0.0, 0.0);
     interpolatedNormal = vec4(0.0, 0.0, 0.0, 0.0);
     interpolatedTangent = vec4(0.0, 0.0, 0.0, 0.0);
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
         mat4 clusterMatrix = clusterMatrices[int(clusterIndices[i])];
         float clusterWeight = clusterWeights[i];
-        position += clusterMatrix * gl_Vertex * clusterWeight;
+        interpolatedPosition += clusterMatrix * gl_Vertex * clusterWeight;
         interpolatedNormal += clusterMatrix * vec4(gl_Normal, 0.0) * clusterWeight;
         interpolatedTangent += clusterMatrix * vec4(tangent, 0.0) * clusterWeight;
     }
-    position = gl_ModelViewProjectionMatrix * position;
+    interpolatedPosition = gl_ModelViewMatrix * interpolatedPosition;
     interpolatedNormal = gl_ModelViewMatrix * interpolatedNormal;
     interpolatedTangent = gl_ModelViewMatrix * interpolatedTangent;
     
@@ -49,5 +52,9 @@ void main(void) {
     // and the texture coordinates
     gl_TexCoord[0] = gl_MultiTexCoord0;
     
-    gl_Position = position;
+    // and the shadow texture coordinates
+    gl_TexCoord[1] = vec4(dot(gl_EyePlaneS[0], interpolatedPosition), dot(gl_EyePlaneT[0], interpolatedPosition),
+        dot(gl_EyePlaneR[0], interpolatedPosition), 1.0); 
+        
+    gl_Position = gl_ProjectionMatrix * interpolatedPosition;
 }

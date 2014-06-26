@@ -20,6 +20,11 @@ public:
     virtual void modelCreated(const ModelItem& newModel, const SharedNodePointer& senderNode) = 0;
 };
 
+class ModelItemFBXService {
+public:
+    virtual const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) = 0;
+};
+
 class ModelTree : public Octree {
     Q_OBJECT
 public:
@@ -58,22 +63,27 @@ public:
     /// \remark Side effect: any initial contents in foundModels will be lost
     void findModels(const glm::vec3& center, float radius, QVector<const ModelItem*>& foundModels);
 
-    /// finds all models that touch a box
-    /// \param box the query box
+    /// finds all models that touch a cube
+    /// \param cube the query cube
     /// \param foundModels[out] vector of non-const ModelItem*
     /// \remark Side effect: any initial contents in models will be lost
-    void findModelsForUpdate(const AABox& box, QVector<ModelItem*> foundModels);
+    void findModelsForUpdate(const AACube& cube, QVector<ModelItem*> foundModels);
 
     void addNewlyCreatedHook(NewlyCreatedModelHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedModelHook* hook);
 
     bool hasAnyDeletedModels() const { return _recentlyDeletedModelItemIDs.size() > 0; }
     bool hasModelsDeletedSince(quint64 sinceTime);
-    bool encodeModelsDeletedSince(quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    bool encodeModelsDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
     void forgetModelsDeletedBefore(quint64 sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     void handleAddModelResponse(const QByteArray& packet);
+    
+    void setFBXService(ModelItemFBXService* service) { _fbxService = service; }
+    const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) {
+        return _fbxService ? _fbxService->getGeometryForModel(modelItem) : NULL;
+    }
 
 private:
 
@@ -86,7 +96,7 @@ private:
     static bool findByIDOperation(OctreeElement* element, void* extraData);
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateModelItemIDOperation(OctreeElement* element, void* extraData);
-    static bool findInBoxForUpdateOperation(OctreeElement* element, void* extraData);
+    static bool findInCubeForUpdateOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedModel(const ModelItem& newModel, const SharedNodePointer& senderNode);
 
@@ -96,6 +106,7 @@ private:
 
     QReadWriteLock _recentlyDeletedModelsLock;
     QMultiMap<quint64, uint32_t> _recentlyDeletedModelItemIDs;
+    ModelItemFBXService* _fbxService;
 };
 
 #endif // hifi_ModelTree_h
