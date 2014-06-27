@@ -752,7 +752,16 @@ function Tooltip() {
         text += "ID: " + properties.id + "\n"
         text += "model url: " + properties.modelURL + "\n"
         text += "animation url: " + properties.animationURL + "\n"
-        
+        if (properties.sittingPoints.length > 0) {
+            text += properties.sittingPoints.length + " sitting points: "
+            for (var i = 0; i < properties.sittingPoints.length; ++i) {
+                text += properties.sittingPoints[i].name + " "
+            }
+        } else {
+            text += "No sitting points"
+        }
+
+
         Overlays.editOverlay(this.textOverlay, { text: text });
     }
     

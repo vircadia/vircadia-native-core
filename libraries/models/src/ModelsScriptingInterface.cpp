@@ -160,10 +160,8 @@ ModelItemID ModelsScriptingInterface::findClosestModel(const glm::vec3& center, 
 QVector<ModelItemID> ModelsScriptingInterface::findModels(const glm::vec3& center, float radius) const {
     QVector<ModelItemID> result;
     if (_modelTree) {
-        _modelTree->lockForRead();
         QVector<const ModelItem*> models;
         _modelTree->findModels(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, models);
-        _modelTree->unlock();
 
         foreach (const ModelItem* model, models) {
             ModelItemID thisModelItemID(model->getID(), UNKNOWN_MODEL_TOKEN, true);
