@@ -1,0 +1,20 @@
+{
+  "audio": {
+    "label": "Audio",
+    "assignment-types": [0],
+    "settings": {
+      "unattenuated-zone": {
+        "label": "Unattenuated Zone",
+        "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
+        "placeholder": "no zone",
+        "default": ""
+      },
+      "dynamic-jitter-buffer": {
+        "type": "checkbox",
+        "label": "Dynamic Jitter Buffers",
+        "help": "Dynamically buffer client audio based on perceived jitter in packet receipt timing",
+        "default": false
+      }
+    }
+  }
+}
