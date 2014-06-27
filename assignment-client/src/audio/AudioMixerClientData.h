@@ -38,7 +38,7 @@ public:
     
     QString getJitterBufferStatsString() const;
 
-    void incrementOutgoingSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
+    void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
 
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
     //const SequenceNumberStats& getIncomingSequenceNumberStats() const { return _incomingSequenceNumberStats; }

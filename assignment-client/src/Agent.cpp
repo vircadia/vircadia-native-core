@@ -155,7 +155,6 @@ void Agent::readPendingDatagrams() {
                 const char* sequenceAt = receivedPacket.constData() + numBytesPacketHeader;
                 quint16 sequence = *(reinterpret_cast<const quint16*>(sequenceAt));
                 _incomingMixedAudioSequenceNumberStats.sequenceNumberReceived(sequence, senderUUID);
-printf("mixed audio received %d\n", sequence);
 
                 // parse the data and grab the average loudness
                 _receivedAudioBuffer.parseData(receivedPacket);

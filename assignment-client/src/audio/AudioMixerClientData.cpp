@@ -58,7 +58,6 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
         || packetType == PacketTypeSilentAudioFrame) {
 
         _incomingAvatarAudioSequenceNumberStats.sequenceNumberReceived(sequence);
-printf("avatar audio received %d\n", sequence);
 
         // grab the AvatarAudioRingBuffer from the vector (or create it if it doesn't exist)
         AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
@@ -90,7 +89,6 @@ printf("avatar audio received %d\n", sequence);
         QUuid streamIdentifier = QUuid::fromRfc4122(packet.mid(numBytesForPacketHeader(packet) + sizeof(quint16), NUM_BYTES_RFC4122_UUID));
 
         _incomingInjectedAudioSequenceNumberStatsMap[streamIdentifier].sequenceNumberReceived(sequence);
-printf("injected stream %s received seq %d\n", streamIdentifier.toString().toLatin1().data(), sequence);
 
         InjectedAudioRingBuffer* matchingInjectedRingBuffer = NULL;
 

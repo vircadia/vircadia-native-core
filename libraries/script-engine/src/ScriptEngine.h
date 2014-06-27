@@ -148,7 +148,7 @@ private:
     ScriptUUID _uuidLibrary;
     AnimationCache _animationCache;
 
-    QHash<QUuid, quint16> _outgoingInjectedAudioSequenceNumbers;
+    QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 };
 
 #endif // hifi_ScriptEngine_h
