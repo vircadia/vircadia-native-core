@@ -1169,6 +1169,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url) {
     const QString URI_OAUTH = "/oauth";
+    qDebug() << "HTTPS request received at" << url.toString();
     if (url.path() == URI_OAUTH) {
 
         QUrlQuery codeURLQuery(url);
