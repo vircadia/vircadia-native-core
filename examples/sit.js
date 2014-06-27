@@ -164,7 +164,7 @@ function SeatIndicator(modelProperties, seatIndex) {
                                     size: this.scale,
                                     solid: true,
                                     color: { red: 0, green: 0, blue: 255 },
-                                    alpha: 1,
+                                    alpha: 0.3,
                                     visible: true
                                     });
     
