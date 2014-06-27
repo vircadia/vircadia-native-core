@@ -15,8 +15,7 @@
 #include <QCoreApplication>
 #include <QVariantList>
 
-#include <DatagramSequencer.h>
-#include <MetavoxelData.h>
+#include <Endpoint.h>
 #include <ScriptCache.h>
 
 class SequencedTestMessage;
@@ -35,14 +34,14 @@ public:
 };
 
 /// Represents a simulated endpoint.
-class TestEndpoint : public QObject {
+class TestEndpoint : public Endpoint {
     Q_OBJECT
 
 public:
     
     enum Mode { BASIC_PEER_MODE, CONGESTION_MODE, METAVOXEL_SERVER_MODE, METAVOXEL_CLIENT_MODE };
     
-    TestEndpoint(const QByteArray& datagramHeader, Mode mode = BASIC_PEER_MODE);
+    TestEndpoint(Mode mode = BASIC_PEER_MODE);
 
     void setOther(TestEndpoint* other) { _other = other; }
 
@@ -50,44 +49,27 @@ public:
     /// \return true if failure was detected
     bool simulate(int iterationNumber);
 
-private slots:
+    virtual int parseData(const QByteArray& packet);
+    
+protected:
 
-    void sendDatagram(const QByteArray& datagram);    
+    virtual void sendDatagram(const QByteArray& data);
+    virtual void readMessage(Bitstream& in);
+    
+    virtual void handleMessage(const QVariant& message, Bitstream& in); 
+    
+    virtual PacketRecord* maybeCreateSendRecord() const;
+    virtual PacketRecord* maybeCreateReceiveRecord() const;
+    
+private slots:
+   
     void handleHighPriorityMessage(const QVariant& message);
-    void readMessage(Bitstream& in);
     void handleReliableMessage(const QVariant& message);
     void readReliableChannel();
 
-    void clearSendRecordsBefore(int index);    
-    void clearReceiveRecordsBefore(int index);
-
 private:
     
-    void receiveDatagram(const QByteArray& datagram);
-    
-    void handleMessage(const QVariant& message, Bitstream& in);
-    
-    class SendRecord {
-    public:
-        int packetNumber;
-        SharedObjectPointer localState;
-        MetavoxelData data;
-        MetavoxelLOD lod;
-    };
-    
-    class ReceiveRecord {
-    public:
-        int packetNumber;
-        SharedObjectPointer remoteState;
-        MetavoxelData data;
-        MetavoxelLOD lod;
-    };
-    
     Mode _mode;
-    
-    DatagramSequencer* _sequencer;
-    QList<SendRecord> _sendRecords;
-    QList<ReceiveRecord> _receiveRecords;
     
     SharedObjectPointer _localState;
     SharedObjectPointer _remoteState;
