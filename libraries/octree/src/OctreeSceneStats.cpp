@@ -39,7 +39,7 @@ OctreeSceneStats::OctreeSceneStats() :
     _incomingPacket(0),
     _incomingBytes(0),
     _incomingWastedBytes(0),
-    _sequenceNumberStats(),
+    _incomingOctreeSequenceNumberStats(),
     _incomingFlightTimeAverage(samples),
     _jurisdictionRoot(NULL)
 {
@@ -144,7 +144,7 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
     _incomingBytes = other._incomingBytes;
     _incomingWastedBytes = other._incomingWastedBytes;
 
-    _sequenceNumberStats = other._sequenceNumberStats;
+    _incomingOctreeSequenceNumberStats = other._incomingOctreeSequenceNumberStats;
 }
 
 
@@ -862,7 +862,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         return; // ignore any packets that are unreasonable
     }
     
-    _sequenceNumberStats.sequenceNumberReceived(sequence);
+    _incomingOctreeSequenceNumberStats.sequenceNumberReceived(sequence);
 
     // track packets here...
     _incomingPacket++;

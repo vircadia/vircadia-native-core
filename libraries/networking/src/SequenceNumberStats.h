@@ -13,12 +13,15 @@
 #define hifi_SequenceNumberStats_h
 
 #include "SharedUtil.h"
+#include <quuid.h>
 
 class SequenceNumberStats {
 public:
     SequenceNumberStats();
 
-    void sequenceNumberReceived(quint16 incoming, const bool wantExtraDebugging = false);
+    void reset();
+
+    void sequenceNumberReceived(quint16 incoming, QUuid senderUUID = QUuid(), const bool wantExtraDebugging = false);
 
     quint32 getNumReceived() const { return _numReceived; }
     quint32 getNumUnreasonable() const { return _numUnreasonable; }
@@ -31,6 +34,8 @@ public:
     const QSet<quint16>& getMissingSet() const { return _missingSet; }
 
 private:
+    void pruneMissingSet(const bool wantExtraDebugging);
+
     quint16 _lastReceived;
     QSet<quint16> _missingSet;
 
@@ -41,6 +46,8 @@ private:
     quint32 _numLost;
     quint32 _numRecovered;
     quint32 _numDuplicate;
+
+    QUuid _lastSenderUUID;
 };
 
 #endif // hifi_SequenceNumberStats_h

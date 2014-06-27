@@ -18,7 +18,7 @@
 
 #include "AvatarAudioRingBuffer.h"
 #include "AudioStreamStats.h"
-#include "SequenceNumbersStats.h"
+#include "SequenceNumberStats.h"
 
 class AudioMixerClientData : public NodeData {
 public:

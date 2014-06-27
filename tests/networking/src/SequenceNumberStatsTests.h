@@ -13,7 +13,7 @@
 #define hifi_SequenceNumberStatsTests_h
 
 #include "SequenceNumberStatsTests.h"
-#include "SequenceNumbersStats.h"
+#include "SequenceNumberStats.h"
 
 namespace SequenceNumberStatsTests {
 

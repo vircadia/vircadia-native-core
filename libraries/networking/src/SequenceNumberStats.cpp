@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "SequenceNumbersStats.h"
+#include "SequenceNumberStats.h"
 
 #include <limits>
 
@@ -22,19 +22,39 @@ SequenceNumberStats::SequenceNumberStats()
     _numLate(0),
     _numLost(0),
     _numRecovered(0),
-    _numDuplicate(0)
+    _numDuplicate(0),
+    _lastSenderUUID()
 {
 }
 
-void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, const bool wantExtraDebugging) {
+void SequenceNumberStats::reset() {
+    _missingSet.clear();
+    _numReceived = 0;
+    _numUnreasonable = 0;
+    _numEarly = 0;
+    _numLate = 0;
+    _numLost = 0;
+    _numRecovered = 0;
+    _numDuplicate = 0;
+}
 
-    static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
-    static const int MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
+static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
+static const int MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
 
-    _numReceived++;
+void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderUUID, const bool wantExtraDebugging) {
+
+    // if the sender node has changed, reset all stats
+    if (senderUUID != _lastSenderUUID) {
+        qDebug() << "sequence number stats was reset due to new sender node";
+        qDebug() << "previous:" << _lastSenderUUID << "current:" << senderUUID;
+        reset();
+        _lastSenderUUID = senderUUID;
+    }
 
     // determine our expected sequence number... handle rollover appropriately
     quint16 expected = _numReceived > 0 ? _lastReceived + (quint16)1 : incoming;
+
+    _numReceived++;
 
     if (incoming == expected) { // on time
         _lastReceived = incoming;
@@ -80,6 +100,13 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, const bool wa
             for (int missingInt = expectedInt; missingInt < incomingInt; missingInt++) {
                 _missingSet.insert((quint16)(missingInt < 0 ? missingInt + UINT16_RANGE : missingInt));
             }
+            
+            // prune missing sequence list if it gets too big; sequence numbers that are older than MAX_REASONABLE_SEQUENCE_GAP
+            // will be removed.
+            if (_missingSet.size() > MAX_REASONABLE_SEQUENCE_GAP) {
+                pruneMissingSet(wantExtraDebugging);
+            }
+
             _lastReceived = incoming;
         } else { // late
             if (wantExtraDebugging) {
@@ -104,55 +131,53 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, const bool wa
             // do not update _incomingLastSequence; it shouldn't become smaller
         }
     }
+}
 
-    // prune missing sequence list if it gets too big; sequence numbers that are older than MAX_REASONABLE_SEQUENCE_GAP
-    // will be removed.
-    if (_missingSet.size() > MAX_REASONABLE_SEQUENCE_GAP) {
-        if (wantExtraDebugging) {
-            qDebug() << "_missingSet is too large! size:" << _missingSet.size();
-        }
+void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {
+    if (wantExtraDebugging) {
+        qDebug() << "pruning _missingSet! size:" << _missingSet.size();
+    }
 
-        // some older sequence numbers may be from before a rollover point; this must be handled.
-        // some sequence numbers in this list may be larger than _incomingLastSequence, indicating that they were received
-        // before the most recent rollover.
-        int cutoff = (int)_lastReceived - MAX_REASONABLE_SEQUENCE_GAP;
-        if (cutoff >= 0) {
-            quint16 nonRolloverCutoff = (quint16)cutoff;
-            QSet<quint16>::iterator i = _missingSet.begin();
-            while (i != _missingSet.end()) {
-                quint16 missing = *i;
-                if (wantExtraDebugging) {
-                    qDebug() << "checking item:" << missing << "is it in need of pruning?";
-                    qDebug() << "old age cutoff:" << nonRolloverCutoff;
-                }
-
-                if (missing > _lastReceived || missing < nonRolloverCutoff) {
-                    i = _missingSet.erase(i);
-                    if (wantExtraDebugging) {
-                        qDebug() << "pruning really old missing sequence:" << missing;
-                    }
-                } else {
-                    i++;
-                }
+    // some older sequence numbers may be from before a rollover point; this must be handled.
+    // some sequence numbers in this list may be larger than _incomingLastSequence, indicating that they were received
+    // before the most recent rollover.
+    int cutoff = (int)_lastReceived - MAX_REASONABLE_SEQUENCE_GAP;
+    if (cutoff >= 0) {
+        quint16 nonRolloverCutoff = (quint16)cutoff;
+        QSet<quint16>::iterator i = _missingSet.begin();
+        while (i != _missingSet.end()) {
+            quint16 missing = *i;
+            if (wantExtraDebugging) {
+                qDebug() << "checking item:" << missing << "is it in need of pruning?";
+                qDebug() << "old age cutoff:" << nonRolloverCutoff;
             }
-        } else {
-            quint16 rolloverCutoff = (quint16)(cutoff + UINT16_RANGE);
-            QSet<quint16>::iterator i = _missingSet.begin();
-            while (i != _missingSet.end()) {
-                quint16 missing = *i;
-                if (wantExtraDebugging) {
-                    qDebug() << "checking item:" << missing << "is it in need of pruning?";
-                    qDebug() << "old age cutoff:" << rolloverCutoff;
-                }
 
-                if (missing > _lastReceived && missing < rolloverCutoff) {
-                    i = _missingSet.erase(i);
-                    if (wantExtraDebugging) {
-                        qDebug() << "pruning really old missing sequence:" << missing;
-                    }
-                } else {
-                    i++;
+            if (missing > _lastReceived || missing < nonRolloverCutoff) {
+                i = _missingSet.erase(i);
+                if (wantExtraDebugging) {
+                    qDebug() << "pruning really old missing sequence:" << missing;
                 }
+            } else {
+                i++;
+            }
+        }
+    } else {
+        quint16 rolloverCutoff = (quint16)(cutoff + UINT16_RANGE);
+        QSet<quint16>::iterator i = _missingSet.begin();
+        while (i != _missingSet.end()) {
+            quint16 missing = *i;
+            if (wantExtraDebugging) {
+                qDebug() << "checking item:" << missing << "is it in need of pruning?";
+                qDebug() << "old age cutoff:" << rolloverCutoff;
+            }
+
+            if (missing > _lastReceived && missing < rolloverCutoff) {
+                i = _missingSet.erase(i);
+                if (wantExtraDebugging) {
+                    qDebug() << "pruning really old missing sequence:" << missing;
+                }
+            } else {
+                i++;
             }
         }
     }

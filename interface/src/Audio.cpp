@@ -829,11 +829,13 @@ void Audio::toggleStereoInput() {
 
 void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
 
+    QUuid senderUUID = uuidFromPacketHeader(audioByteArray);
+
     // parse sequence number for this packet
     int numBytesPacketHeader = numBytesForPacketHeader(audioByteArray);
     const char* sequenceAt = audioByteArray.constData() + numBytesPacketHeader;
     quint16 sequence = *((quint16*)sequenceAt);
-    _incomingMixedAudioSequenceNumberStats.sequenceNumberReceived(sequence);
+    _incomingMixedAudioSequenceNumberStats.sequenceNumberReceived(sequence, senderUUID);
 printf("mixed audio received %d\n", sequence);
 
     // parse audio data

@@ -98,7 +98,6 @@ printf("injected stream %s received seq %d\n", streamIdentifier.toString().toLat
             if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector
                 && ((InjectedAudioRingBuffer*) _ringBuffers[i])->getStreamIdentifier() == streamIdentifier) {
                 matchingInjectedRingBuffer = (InjectedAudioRingBuffer*) _ringBuffers[i];
-printf("\t matching ring buffer found.\n");
             }
         }
 
@@ -107,7 +106,6 @@ printf("\t matching ring buffer found.\n");
             matchingInjectedRingBuffer = new InjectedAudioRingBuffer(streamIdentifier, 
                                                     AudioMixer::getUseDynamicJitterBuffers());
             _ringBuffers.push_back(matchingInjectedRingBuffer);
-printf("\t no matching ring buffer, creating new one.  _ringBuffer size now %d\n", _ringBuffers.size());
         }
 
         matchingInjectedRingBuffer->parseData(packet);

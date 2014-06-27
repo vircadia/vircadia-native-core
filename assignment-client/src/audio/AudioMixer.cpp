@@ -623,7 +623,7 @@ void AudioMixer::run() {
                 dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
 
                 // send mixed audio packet
-                //nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
+                nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
 printf("mixed audio sent %d\n", sequence);
                 nodeData->incrementOutgoingSequenceNumber();
                 

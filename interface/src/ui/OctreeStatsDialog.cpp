@@ -365,7 +365,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             QString incomingPacketsString = locale.toString((uint)stats.getIncomingPackets());
                             QString incomingBytesString = locale.toString((uint)stats.getIncomingBytes());
                             QString incomingWastedBytesString = locale.toString((uint)stats.getIncomingWastedBytes());
-                            const SequenceNumberStats& seqStats = stats.getSequenceNumberStats();
+                            const SequenceNumberStats& seqStats = stats.getIncomingOctreeSequenceNumberStats();
                             QString incomingOutOfOrderString = locale.toString((uint)seqStats.getNumOutOfOrder());
                             QString incomingLateString = locale.toString((uint)seqStats.getNumLate());
                             QString incomingUnreasonableString = locale.toString((uint)seqStats.getNumUnreasonable());

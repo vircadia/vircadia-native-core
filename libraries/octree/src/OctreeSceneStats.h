@@ -17,7 +17,7 @@
 #include <SharedUtil.h>
 #include "JurisdictionMap.h"
 #include "OctreePacketData.h"
-#include "SequenceNumbersStats.h"
+#include "SequenceNumberStats.h"
 
 #define GREENISH  0x40ff40d0
 #define YELLOWISH 0xffef40c0
@@ -167,7 +167,7 @@ public:
     quint64 getIncomingWastedBytes() const { return _incomingWastedBytes; }
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
     
-    const SequenceNumberStats& getSequenceNumberStats() const { return _sequenceNumberStats; }
+    const SequenceNumberStats& getIncomingOctreeSequenceNumberStats() const { return _incomingOctreeSequenceNumberStats; }
 
 private:
 
@@ -262,7 +262,7 @@ private:
     quint64 _incomingBytes;
     quint64 _incomingWastedBytes;
 
-    SequenceNumberStats _sequenceNumberStats;
+    SequenceNumberStats _incomingOctreeSequenceNumberStats;
 
     SimpleMovingAverage _incomingFlightTimeAverage;
     

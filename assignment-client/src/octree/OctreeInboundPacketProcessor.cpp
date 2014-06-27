@@ -206,7 +206,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         }
 
         const SharedNodePointer& destinationNode = NodeList::getInstance()->getNodeHash().value(nodeUUID);
-        const QSet<unsigned short int>& missingSequenceNumbers = nodeStats.getSequenceNumberStats().getMissingSet();
+        const QSet<unsigned short int>& missingSequenceNumbers = nodeStats.getIncomingEditSequenceNumberStats().getMissingSet();
         
         // construct nack packet(s) for this node
         int numSequenceNumbersAvailable = missingSequenceNumbers.size();
@@ -254,7 +254,7 @@ SingleSenderStats::SingleSenderStats()
     _totalLockWaitTime(0),
     _totalElementsInPacket(0),
     _totalPackets(0),
-    _sequenceNumberStats()
+    _incomingEditSequenceNumberStats()
 {
 
 }
@@ -263,7 +263,7 @@ void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, 
     int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
 
     // track sequence number
-    _sequenceNumberStats.sequenceNumberReceived(incomingSequence);
+    _incomingEditSequenceNumberStats.sequenceNumberReceived(incomingSequence);
 
     // update other stats
     _totalTransitTime += transitTime;

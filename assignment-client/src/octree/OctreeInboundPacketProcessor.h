@@ -16,7 +16,7 @@
 
 #include <ReceivedPacketProcessor.h>
 
-#include "SequenceNumbersStats.h"
+#include "SequenceNumberStats.h"
 
 class OctreeServer;
 
@@ -34,7 +34,7 @@ public:
     quint64 getAverageLockWaitTimePerElement() const 
                 { return _totalElementsInPacket == 0 ? 0 : _totalLockWaitTime / _totalElementsInPacket; }
     
-    const SequenceNumberStats& getSequenceNumberStats() const { return _sequenceNumberStats; }
+    const SequenceNumberStats& getIncomingEditSequenceNumberStats() const { return _incomingEditSequenceNumberStats; }
 
     void trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
         int editsInPacket, quint64 processTime, quint64 lockWaitTime);
@@ -44,7 +44,7 @@ public:
     quint64 _totalLockWaitTime;
     quint64 _totalElementsInPacket;
     quint64 _totalPackets;
-    SequenceNumberStats _sequenceNumberStats;
+    SequenceNumberStats _incomingEditSequenceNumberStats;
 };
 
 typedef QHash<QUuid, SingleSenderStats> NodeToSenderStatsMap;
