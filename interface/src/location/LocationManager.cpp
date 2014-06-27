@@ -15,7 +15,7 @@
 #include "LocationManager.h"
 
 const QString GET_USER_ADDRESS = "/api/v1/users/%1/address";
-const QString GET_PLACE_ADDRESS = "/api/v1/places/%1/address";
+const QString GET_PLACE_ADDRESS = "/api/v1/places/%1";
 const QString GET_ADDRESSES = "/api/v1/addresses/%1";
 const QString POST_PLACE_CREATE = "/api/v1/places/";
 
