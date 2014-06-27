@@ -24,6 +24,7 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 
+#include "DomainServerSettingsManager.h"
 #include "WalletTransaction.h"
 
 #include "PendingAssignedNodeData.h"
@@ -110,6 +111,8 @@ private:
     QString _hostname;
     QMap<QNetworkReply*, QUuid> _networkReplyUUIDMap;
     QHash<QUuid, bool> _sessionAuthenticationHash;
+    
+    DomainServerSettingsManager _settingsManager;
 };
 
 #endif // hifi_DomainServer_h
