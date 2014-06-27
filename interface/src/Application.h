@@ -63,7 +63,7 @@
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
-#include "models/EntityTreeRenderer.h"
+#include "entities/EntityTreeRenderer.h"
 #include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
