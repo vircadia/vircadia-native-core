@@ -58,6 +58,22 @@ const QString MODEL_DEFAULT_ANIMATION_URL("");
 const float MODEL_DEFAULT_ANIMATION_FPS = 30.0f;
 
 // PropertyFlags support
+
+class EntityTypes {
+public:
+    typedef enum EntityType {
+        Base,
+        Model,
+        Particle
+    } EntityType_t;
+
+    static const QString& getEntityTypeName(EntityType_t entityType);
+    static bool registerEntityTypeName(EntityType_t entityType, const QString& name);
+private:
+    static QHash<EntityType_t, QString> _typeNameHash;
+};
+
+// PropertyFlags support
 enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
     PROP_CUSTOM_PROPERTIES_INCLUDED,
@@ -146,7 +162,7 @@ private:
     float _animationFPS;
     float _glowLevel;
 
-    uint32_t _id;
+    quint32 _id;
     bool _idSet;
     quint64 _lastEdited;
 
@@ -234,7 +250,7 @@ public:
 
     virtual ~EntityItem();
 
-    quint8 getType() const { return 0; } /// place holder for now
+    quint8 getType() const { return _type; }
 
     /// get position in domain scale units (0.0 - 1.0)
     const glm::vec3& getPosition() const { return _position; }
@@ -352,9 +368,10 @@ protected:
     glm::vec3 _position;
     rgbColor _color;
     float _radius;
-    uint32_t _id;
-    static uint32_t _nextID;
+    quint32 _id;
+    static quint32 _nextID;
     bool _shouldBeDeleted;
+    quint32 _type;
 
     // model related items
     QString _modelURL;

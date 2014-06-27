@@ -29,6 +29,22 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
+QHash<EntityTypes::EntityType_t, QString> EntityTypes::_typeNameHash;
+
+const QString UNKNOWN_EntityType_t_NAME = "Unknown";
+const QString& EntityTypes::getEntityTypeName(EntityType_t entityType) {
+    QHash<EntityType_t, QString>::iterator matchedTypeName = _typeNameHash.find(entityType);
+    return matchedTypeName != _typeNameHash.end() ? matchedTypeName.value() : UNKNOWN_EntityType_t_NAME;
+}
+
+bool EntityTypes::registerEntityTypeName(EntityType_t entityType, const QString& name) {
+    _typeNameHash.insert(entityType, name);
+    return true;
+}
+
+bool registered = EntityTypes::registerEntityTypeName(EntityTypes::Base, "Base")
+                    && EntityTypes::registerEntityTypeName(EntityTypes::Model, "Model"); // TODO: move this to model subclass
+
 uint32_t EntityItem::_nextID = 0;
 
 // for locally created models
@@ -66,6 +82,7 @@ void EntityItem::handleAddEntityResponse(const QByteArray& packet) {
 }
 
 EntityItem::EntityItem() {
+    _type = EntityTypes::Base;
     rgbColor noColor = { 0, 0, 0 };
     init(glm::vec3(0,0,0), 0, noColor, NEW_MODEL);
 }
@@ -99,10 +116,12 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
+    _type = EntityTypes::Base;
     initFromEntityItemID(entityItemID);
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
+    _type = EntityTypes::Base;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
 }
@@ -151,6 +170,14 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     
     OctreeElement::AppendState appendState = OctreeElement::COMPLETED; // assume the best
 
+    // encode our ID as a byte count coded byte stream
+    ByteCountCoded<quint32> idCoder = getID();
+    QByteArray encodedID = idCoder;
+
+    // encode our type as a byte count coded byte stream
+    ByteCountCoded<quint32> typeCoder = getType();
+    QByteArray encodedType = typeCoder;
+
     quint64 updateDelta = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
     ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
     QByteArray encodedUpdateDelta = updateDeltaCoder;
@@ -181,8 +208,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     
     LevelDetails modelLevel = packetData->startLevel();
 
-    bool successIDFits = packetData->appendValue(getID());
-    bool successTypeFits = packetData->appendValue(getType());
+    bool successIDFits = packetData->appendValue(encodedID);
+    bool successTypeFits = packetData->appendValue(encodedType);
     bool successLastEditedFits = packetData->appendValue(getLastEdited());
     bool successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
     
@@ -584,7 +611,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     //    ByteCountCoded(last_edited to last_updated delta) [~1-8 bytes]
     //    PropertyFlags<>( everything ) [1-2 bytes]
     // ~27-35 bytes...
-    const int MINIMUM_HEADER_BYTES = 27;
+    const int MINIMUM_HEADER_BYTES = 27; // TODO: this is not correct, we don't yet have 16 byte IDs
 
     int bytesRead = 0;
     if (bytesLeftToRead >= MINIMUM_HEADER_BYTES) {
@@ -597,17 +624,22 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         const unsigned char* dataAt = data;
 
         // id
-        memcpy(&_id, dataAt, sizeof(_id));
-        dataAt += sizeof(_id);
-        bytesRead += sizeof(_id);
+        QByteArray encodedID = originalDataBuffer.mid(bytesRead); // maximum possible size
+        ByteCountCoded<quint32> idCoder = encodedID;
+        encodedID = idCoder; // determine true length
+        dataAt += encodedID.size();
+        bytesRead += encodedID.size();
+        _id = idCoder;
         _creatorTokenID = UNKNOWN_MODEL_TOKEN; // if we know the id, then we don't care about the creator token
         _newlyCreated = false;
 
-        // type - TODO: updated to using ByteCountCoding
-        quint8 type;
-        memcpy(&type, dataAt, sizeof(type));
-        dataAt += sizeof(type);
-        bytesRead += sizeof(type);
+        // type
+        QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
+        ByteCountCoded<quint32> typeCoder = encodedType;
+        encodedType = typeCoder; // determine true length
+        dataAt += encodedType.size();
+        bytesRead += encodedType.size();
+        _type = typeCoder;
 
         // _lastEdited
         memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
