@@ -26,7 +26,7 @@ link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(models ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(entities ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
 
 # link ZLIB

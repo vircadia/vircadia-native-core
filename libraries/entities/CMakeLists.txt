@@ -10,7 +10,7 @@ set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/modules/")
 
-set(TARGET_NAME models)
+set(TARGET_NAME entities)
 
 find_package(Qt5Widgets REQUIRED)
 

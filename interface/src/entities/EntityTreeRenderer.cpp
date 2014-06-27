@@ -15,7 +15,7 @@
 
 #include "InterfaceConfig.h"
 #include "Menu.h"
-#include "ModelTreeRenderer.h" // rename to "EntityTreeRenderer.h"
+#include "EntityTreeRenderer.h"
 
 EntityTreeRenderer::EntityTreeRenderer() :
     OctreeRenderer() {
