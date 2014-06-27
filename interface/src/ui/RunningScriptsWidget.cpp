@@ -28,8 +28,8 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     FramelessDialog(parent, 0, POSITION_LEFT),
     ui(new Ui::RunningScriptsWidget),
     _signalMapper(this),
-    _scriptsModel(this),
-    _proxyModel(this) {
+    _proxyModel(this),
+    _scriptsModel(this) {
     ui->setupUi(this);
 
     setAttribute(Qt::WA_DeleteOnClose, false);

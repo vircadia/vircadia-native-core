@@ -121,7 +121,7 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
     // make sure we have enough bytes left for this to be the right amount of audio
     // otherwise we should not copy that data, and leave the buffer pointers where they are
 
-    int samplesToCopy = std::min((quint64)(maxSize / sizeof(int16_t)), (quint64)_sampleCapacity);
+    quint64 samplesToCopy = std::min((quint64)(maxSize / sizeof(int16_t)), (quint64)_sampleCapacity);
 
     if (_hasStarted && samplesToCopy > _sampleCapacity - samplesAvailable()) {
         // this read will cross the next output, so call us starved and reset the buffer

@@ -376,7 +376,7 @@ void ApplicationOverlay::renderControllerPointers() {
             //then disable it.
 
             const int MAX_BUTTON_PRESS_TIME = 250 * MSECS_TO_USECS;
-            if (usecTimestampNow() - pressedTime[index] < MAX_BUTTON_PRESS_TIME) {
+            if (usecTimestampNow() < pressedTime[index] + MAX_BUTTON_PRESS_TIME) {
                 _magActive[index] = !stateWhenPressed[index];
             }
         }
