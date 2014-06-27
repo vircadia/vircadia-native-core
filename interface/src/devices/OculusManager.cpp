@@ -258,7 +258,7 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
 }
 
 //Displays everything for the oculus, frame timing must be active
-void OculusManager::display(Camera& whichCamera) {
+void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamera) {
 #ifdef HAVE_LIBOVR
     //beginFrameTiming must be called before display
     if (!_frameTimingActive) {
@@ -306,7 +306,7 @@ void OculusManager::display(Camera& whichCamera) {
         orientation.y = eyeRenderPose[eye].Orientation.y;
         orientation.z = eyeRenderPose[eye].Orientation.z;
         orientation.w = eyeRenderPose[eye].Orientation.w;
-        _camera->setTargetRotation(orientation);
+        _camera->setTargetRotation(orientation * bodyOrientation);
         _camera->update(1.0f / Application::getInstance()->getFps());
 
         Matrix4f proj = ovrMatrix4f_Projection(eyeDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);

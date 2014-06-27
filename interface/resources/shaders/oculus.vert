@@ -35,7 +35,7 @@ vec2 TimewarpTexCoord(vec2 texCoord, mat4 rotMat)
     // Vertex inputs are in TanEyeAngle space for the R,G,B channels (i.e. after chromatic
     // aberration and distortion). These are now "real world" vectors in direction (x,y,1)
     // relative to the eye of the HMD. Apply the 3x3 timewarp rotation to these vectors.
-    vec3 transformed = vec3( rotMat * vec4(texCoord.xy, 1, 1) ).xyz;
+    vec3 transformed = vec3( rotMat * vec4(texCoord.xy, 1, 1) );
     
     // Project them back onto the Z=1 plane of the rendered images.
     vec2 flattened = (transformed.xy / transformed.z);
@@ -47,7 +47,7 @@ vec2 TimewarpTexCoord(vec2 texCoord, mat4 rotMat)
 void main()
 {
     float timewarpMixFactor = color.a;
-    mat4 mixedEyeRot = EyeRotationStart * mat4(1.0 - timewarpMixFactor) + EyeRotationEnd * mat4(timewarpMixFactor);
+    mat4 mixedEyeRot = EyeRotationStart * (1.0 - timewarpMixFactor) + EyeRotationEnd * (timewarpMixFactor);
     
     oTexCoord0 = TimewarpTexCoord(texCoord0, mixedEyeRot);
     oTexCoord1 = TimewarpTexCoord(texCoord1, mixedEyeRot);

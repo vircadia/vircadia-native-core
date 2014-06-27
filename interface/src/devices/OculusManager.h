@@ -33,7 +33,7 @@ public:
     static void beginFrameTiming();
     static void endFrameTiming();
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
-    static void display(Camera& whichCamera);
+    static void display(const glm::quat &bodyOrientation, Camera& whichCamera);
     static void reset();
     
     /// param \yaw[out] yaw in radians
