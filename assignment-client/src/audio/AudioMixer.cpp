@@ -488,7 +488,7 @@ void AudioMixer::run() {
     settingsJSONURL.setScheme("http");
     settingsJSONURL.setHost(nodeList->getDomainHandler().getHostname());
     settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
-    settingsJSONURL.setPath("/settings.json/");
+    settingsJSONURL.setPath("/settings.json");
     settingsJSONURL.setQuery(QString("type=%1").arg(_type));
     
     QNetworkReply *reply = NULL;
@@ -505,6 +505,7 @@ void AudioMixer::run() {
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
         
         loop.exec();
+        
         ++failedAttempts;
         
         if (failedAttempts == MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS) {
@@ -514,42 +515,47 @@ void AudioMixer::run() {
         }
     }
     
-    QJsonDocument settingsJSON = QJsonDocument::fromJson(reply->readAll());
+    QJsonObject settingsObject = QJsonDocument::fromJson(reply->readAll()).object();
     
-    // check the payload to see if we have any unattenuated zones
-    const QString UNATTENUATED_ZONE_REGEX_STRING = "--unattenuated-zone ([\\d.,-]+)";
-    QRegExp unattenuatedZoneMatch(UNATTENUATED_ZONE_REGEX_STRING);
+    // check the settings object to see if we have anything we can parse out
+    const QString AUDIO_GROUP_KEY = "audio";
     
-    if (unattenuatedZoneMatch.indexIn(_payload) != -1) {
-        QString unattenuatedZoneString = unattenuatedZoneMatch.cap(1);
-        QStringList zoneStringList = unattenuatedZoneString.split(',');
+    if (settingsObject.contains(AUDIO_GROUP_KEY)) {
+        QJsonObject audioGroupObject = settingsObject[AUDIO_GROUP_KEY].toObject();
         
-        glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
-        glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
-     
-        glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
-        glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
+        const QString UNATTENUATED_ZONE_KEY = "unattenuated-zone";
         
-        _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
-        _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
-        
-        glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
-        glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
-        
-        qDebug() << "There is an unattenuated zone with source center at"
+        QString unattenuatedZoneString = audioGroupObject[UNATTENUATED_ZONE_KEY].toString();
+        if (!unattenuatedZoneString.isEmpty()) {
+            QStringList zoneStringList = unattenuatedZoneString.split(',');
+            
+            glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
+            glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
+            
+            glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
+            glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
+            
+            _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
+            _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
+            
+            glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
+            glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
+            
+            qDebug() << "There is an unattenuated zone with source center at"
             << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
-        qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
+            qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
             << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
-    }
-
-    // check the payload to see if we have asked for dynamicJitterBuffer support
-    const QString DYNAMIC_JITTER_BUFFER_REGEX_STRING = "--dynamicJitterBuffer";
-    QRegExp dynamicJitterBufferMatch(DYNAMIC_JITTER_BUFFER_REGEX_STRING);
-    if (dynamicJitterBufferMatch.indexIn(_payload) != -1) {
-        qDebug() << "Enable dynamic jitter buffers.";
-        _useDynamicJitterBuffers = true;
-    } else {
-        qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
+        }
+        
+        // check the payload to see if we have asked for dynamicJitterBuffer support
+        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic-jitter-buffer";
+        bool shouldUseDynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
+        if (shouldUseDynamicJitterBuffers) {
+            qDebug() << "Enable dynamic jitter buffers.";
+            _useDynamicJitterBuffers = true;
+        } else {
+            qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
+        }
     }
     
     int nextFrame = 0;

@@ -61,7 +61,7 @@ bool DomainServerSettingsManager::handleHTTPRequest(HTTPConnection* connection, 
         connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
         
         return true;
-    } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == "/settingz.json") {
+    } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == "/settings.json") {
         // this is a GET operation for our settings
         
         // check if there is a query parameter for settings affecting a particular type of assignment
