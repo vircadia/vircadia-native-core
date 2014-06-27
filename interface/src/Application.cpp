@@ -3136,9 +3136,7 @@ void Application::resetSensors() {
     _faceshift.reset();
     _visage.reset();
 
-    if (OculusManager::isConnected()) {
-        OculusManager::reset();
-    }
+    OculusManager::reset();
 
     _prioVR.reset();
 

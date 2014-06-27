@@ -73,21 +73,21 @@ private:
 
     static bool _isConnected;
     
-
-
 #ifdef HAVE_LIBOVR
     static ovrHmd _ovrHmd;
     static ovrHmdDesc _ovrHmdDesc;
     static ovrFovPort _eyeFov[ovrEye_Count];
     static ovrSizei _renderTargetSize;
     static ovrVector2f _UVScaleOffset[ovrEye_Count][2];
-    static GLuint _vbo[ovrEye_Count];
-    static GLuint _indicesVbo[ovrEye_Count];
+    static GLuint _vertices[ovrEye_Count];
+    static GLuint _indices[ovrEye_Count];
     static GLsizei _meshSize[ovrEye_Count];
     static ovrFrameTiming _hmdFrameTiming;
+    static ovrRecti _eyeRenderViewport[ovrEye_Count];
     static unsigned int _frameIndex;
     static bool _frameTimingActive;
     static bool _programInitialized;
+    static Camera* _camera;
 #endif
 };
 

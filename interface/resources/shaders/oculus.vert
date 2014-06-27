@@ -49,7 +49,6 @@ void main()
     float timewarpMixFactor = color.a;
     mat4 mixedEyeRot = EyeRotationStart * mat4(1.0 - timewarpMixFactor) + EyeRotationEnd * mat4(timewarpMixFactor);
     
-    
     oTexCoord0 = TimewarpTexCoord(texCoord0, mixedEyeRot);
     oTexCoord1 = TimewarpTexCoord(texCoord1, mixedEyeRot);
     oTexCoord2 = TimewarpTexCoord(texCoord2, mixedEyeRot);
