@@ -1,6 +1,6 @@
 //
 //  EntityTreeElement.h
-//  libraries/models/src
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -29,7 +29,7 @@ public:
             _movingItems(0)
     { }
     
-    QList<EntityItem> _movingEntitys;
+    QList<EntityItem> _movingEntities;
     int _totalElements;
     int _totalItems;
     int _movingItems;
@@ -37,7 +37,7 @@ public:
 
 class FindAndUpdateEntityItemIDArgs {
 public:
-    uint32_t modelID;
+    uint32_t entityID;
     uint32_t creatorTokenID;
     bool creatorTokenFound;
     bool viewedEntityFound;
@@ -120,21 +120,21 @@ public:
     void update(EntityTreeUpdateArgs& args);
     void setTree(EntityTree* tree) { _myTree = tree; }
 
-    bool updateEntity(const EntityItem& model);
+    bool updateEntity(const EntityItem& entity);
     void updateEntityItemID(FindAndUpdateEntityItemIDArgs* args);
 
     const EntityItem* getClosestEntity(glm::vec3 position) const;
 
-    /// finds all models that touch a sphere
+    /// finds all entities that touch a sphere
     /// \param position the center of the query sphere
     /// \param radius the radius of the query sphere
-    /// \param models[out] vector of const EntityItem*
-    void getEntitys(const glm::vec3& position, float radius, QVector<const EntityItem*>& foundEntitys) const;
+    /// \param entities[out] vector of const EntityItem*
+    void getEntities(const glm::vec3& position, float radius, QVector<const EntityItem*>& foundEntities) const;
 
-    /// finds all models that touch a box
+    /// finds all entities that touch a box
     /// \param box the query box
-    /// \param models[out] vector of non-const EntityItem*
-    void getEntitys(const AACube& box, QVector<EntityItem*>& foundEntitys);
+    /// \param entities[out] vector of non-const EntityItem*
+    void getEntities(const AACube& box, QVector<EntityItem*>& foundEntities);
 
     const EntityItem* getEntityWithID(uint32_t id) const;
     const EntityItem* getEntityWithEntityItemID(const EntityItemID& id) const;
@@ -142,8 +142,8 @@ public:
     bool removeEntityWithID(uint32_t id);
     bool removeEntityWithEntityItemID(const EntityItemID& id);
 
-    bool containsEntityBounds(const EntityItem& model) const;
-    bool bestFitEntityBounds(const EntityItem& model) const;
+    bool containsEntityBounds(const EntityItem& entity) const;
+    bool bestFitEntityBounds(const EntityItem& entity) const;
 
 protected:
     virtual void init(unsigned char * octalCode);

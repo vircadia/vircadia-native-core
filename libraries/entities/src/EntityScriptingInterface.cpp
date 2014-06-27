@@ -117,7 +117,7 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
 
     // setup properties to kill the model
     EntityItemProperties properties;
-    properties.setShouldDie(true);
+    properties.setShouldBeDeleted(true);
 
     uint32_t actualID = entityID.id;
     

@@ -385,9 +385,9 @@ bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
             if (modelTreeElement == details.containingElement) {
 
                 // This is a good place to delete it!!!
-                EntityItemID modelItemID = details.model->getEntityItemID();
-                modelTreeElement->removeEntityWithEntityItemID(modelItemID);
-                _tree->setContainingElement(modelItemID, NULL);
+                EntityItemID entityItemID = details.model->getEntityItemID();
+                modelTreeElement->removeEntityWithEntityItemID(entityItemID);
+                _tree->setContainingElement(entityItemID, NULL);
                 _foundCount++;
             }
         }
@@ -589,7 +589,7 @@ bool EntityTree::findInSphereOperation(OctreeElement* element, void* extraData) 
     // If this element contains the point, then search it...
     if (sphereIntersection) {
         EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
-        modelTreeElement->getEntitys(args->position, args->targetRadius, args->models);
+        modelTreeElement->getEntities(args->position, args->targetRadius, args->models);
         return true; // keep searching in case children have closer models
     }
 
@@ -622,7 +622,7 @@ bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
     const AACube& elementCube = element->getAACube();
     if (elementCube.touches(args->_cube)) {
         EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
-        modelTreeElement->getEntitys(args->_cube, args->_foundEntitys);
+        modelTreeElement->getEntities(args->_cube, args->_foundEntitys);
         return true;
     }
     return false;
@@ -740,21 +740,21 @@ void EntityTree::update() {
     recurseTreeWithOperation(updateOperation, &args);
 
     // now add back any of the particles that moved elements....
-    int movingEntitys = args._movingEntitys.size();
+    int movingEntitys = args._movingEntities.size();
     
     for (int i = 0; i < movingEntitys; i++) {
-        bool shouldDie = args._movingEntitys[i].getShouldDie();
+        bool shouldDie = args._movingEntities[i].getShouldBeDeleted();
 
         // if the particle is still inside our total bounds, then re-add it
         AACube treeBounds = getRoot()->getAACube();
 
-        if (!shouldDie && treeBounds.contains(args._movingEntitys[i].getPosition())) {
-            storeEntity(args._movingEntitys[i]);
+        if (!shouldDie && treeBounds.contains(args._movingEntities[i].getPosition())) {
+            storeEntity(args._movingEntities[i]);
         } else {
-            uint32_t modelItemID = args._movingEntitys[i].getID();
+            uint32_t entityItemID = args._movingEntities[i].getID();
             quint64 deletedAt = usecTimestampNow();
             _recentlyDeletedEntitysLock.lockForWrite();
-            _recentlyDeletedEntityItemIDs.insert(deletedAt, modelItemID);
+            _recentlyDeletedEntityItemIDs.insert(deletedAt, entityItemID);
             _recentlyDeletedEntitysLock.unlock();
         }
     }
@@ -922,33 +922,33 @@ void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Shar
             dataAt += sizeof(modelID);
             processedBytes += sizeof(modelID);
             
-            EntityItemID modelItemID(modelID);
-            modelItemIDsToDelete << modelItemID;
+            EntityItemID entityItemID(modelID);
+            modelItemIDsToDelete << entityItemID;
         }
         deleteEntitys(modelItemIDsToDelete);
     }
 }
 
 
-EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& modelItemID) const {
+EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityItemID) const {
     //qDebug() << "_modelToElementMap=" << _modelToElementMap;
 
     // TODO: do we need to make this thread safe? Or is it acceptable as is
-    if (_modelToElementMap.contains(modelItemID)) {
-        return _modelToElementMap.value(modelItemID);
+    if (_modelToElementMap.contains(entityItemID)) {
+        return _modelToElementMap.value(entityItemID);
     }
     return NULL;
 }
 
-void EntityTree::setContainingElement(const EntityItemID& modelItemID, EntityTreeElement* element) {
+void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element) {
     // TODO: do we need to make this thread safe? Or is it acceptable as is
     if (element) {
-        _modelToElementMap[modelItemID] = element;
+        _modelToElementMap[entityItemID] = element;
     } else {
-        _modelToElementMap.remove(modelItemID);
+        _modelToElementMap.remove(entityItemID);
     }
 
-    //qDebug() << "setContainingElement() modelItemID=" << modelItemID << "element=" << element;
+    //qDebug() << "setContainingElement() entityItemID=" << entityItemID << "element=" << element;
     //qDebug() << "AFTER _modelToElementMap=" << _modelToElementMap;
 }
 

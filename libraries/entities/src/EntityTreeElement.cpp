@@ -75,9 +75,9 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     LevelDetails elementLevel = packetData->startLevel();
 
     // write our models out... first determine which of the models are in view based on our params
-    uint16_t numberOfEntitys = 0;
-    uint16_t actualNumberOfEntitys = 0;
-    QVector<uint16_t> indexesOfEntitysToInclude;
+    uint16_t numberOfEntities = 0;
+    uint16_t actualNumberOfEntities = 0;
+    QVector<uint16_t> indexesOfEntitiesToInclude;
 
     for (uint16_t i = 0; i < _entityItems->size(); i++) {
         const EntityItem& model = (*_entityItems)[i];
@@ -96,16 +96,16 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         }
         
         if (includeThisEntity) {
-            indexesOfEntitysToInclude << i;
-            numberOfEntitys++;
+            indexesOfEntitiesToInclude << i;
+            numberOfEntities++;
         }
     }
 
-    int numberOfEntitysOffset = packetData->getUncompressedByteOffset();
-    bool successAppendEntityCount = packetData->appendValue(numberOfEntitys);
+    int numberOfEntitiesOffset = packetData->getUncompressedByteOffset();
+    bool successAppendEntityCount = packetData->appendValue(numberOfEntities);
 
     if (successAppendEntityCount) {
-        foreach (uint16_t i, indexesOfEntitysToInclude) {
+        foreach (uint16_t i, indexesOfEntitiesToInclude) {
             const EntityItem& model = (*_entityItems)[i];
             
             LevelDetails modelLevel = packetData->startLevel();
@@ -120,7 +120,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 // If either ALL or some of it got appended, then end the level (commit it)
                 // and include the model in our final count of models
                 packetData->endLevel(modelLevel);
-                actualNumberOfEntitys++;
+                actualNumberOfEntities++;
             }
             
             // If the model item got completely appended, then we can remove it from the extra encode data
@@ -153,18 +153,18 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     }
 
     // Determine if no models at all were able to fit    
-    bool noEntitysFit = (numberOfEntitys > 0 && actualNumberOfEntitys == 0);
+    bool noEntitiesFit = (numberOfEntities > 0 && actualNumberOfEntities == 0);
     
     // If we wrote fewer models than we expected, update the number of models in our packet
     bool successUpdateEntityCount = true;
-    if (!noEntitysFit && numberOfEntitys != actualNumberOfEntitys) {
-        successUpdateEntityCount = packetData->updatePriorBytes(numberOfEntitysOffset,
-                                            (const unsigned char*)&actualNumberOfEntitys, sizeof(actualNumberOfEntitys));
+    if (!noEntitiesFit && numberOfEntities != actualNumberOfEntities) {
+        successUpdateEntityCount = packetData->updatePriorBytes(numberOfEntitiesOffset,
+                                            (const unsigned char*)&actualNumberOfEntities, sizeof(actualNumberOfEntities));
     }
 
     // If we weren't able to update our model count, or we couldn't fit any models, then
     // we should discard our element and return a result of NONE
-    if (!successUpdateEntityCount || noEntitysFit) {
+    if (!successUpdateEntityCount || noEntitiesFit) {
         packetData->discardLevel(elementLevel);
         appendElementState = OctreeElement::NONE;
     } else {
@@ -215,8 +215,8 @@ void EntityTreeElement::update(EntityTreeUpdateArgs& args) {
 
         // If the model wants to die, or if it's left our bounding box, then move it
         // into the arguments moving models. These will be added back or deleted completely
-        if (model.getShouldDie() || !bestFitEntityBounds(model)) {
-            args._movingEntitys.push_back(model);
+        if (model.getShouldBeDeleted() || !bestFitEntityBounds(model)) {
+            args._movingEntities.push_back(model);
 
             // erase this model
             modelItr = _entityItems->erase(modelItr);
@@ -242,32 +242,32 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with models...
     
-    QList<EntityItem>::iterator modelItr = _entityItems->begin();
-    QList<EntityItem>::const_iterator modelEnd = _entityItems->end();
+    QList<EntityItem>::iterator entityItr = _entityItems->begin();
+    QList<EntityItem>::const_iterator entityEnd = _entityItems->end();
     bool somethingIntersected = false;
-    while(modelItr != modelEnd) {
-        EntityItem& model = (*modelItr);
+    while(entityItr != entityEnd) {
+        EntityItem& entity = (*entityItr);
         
-        AACube modelCube = model.getAACube();
+        AACube entityCube = entity.getAACube();
         float localDistance;
         BoxFace localFace;
 
         // if the ray doesn't intersect with our cube, we can stop searching!
-        if (modelCube.findRayIntersection(origin, direction, localDistance, localFace)) {
-            const FBXGeometry* fbxGeometry = _myTree->getGeometryForEntity(model);
+        if (entityCube.findRayIntersection(origin, direction, localDistance, localFace)) {
+            const FBXGeometry* fbxGeometry = _myTree->getGeometryForEntity(entity);
             if (fbxGeometry && fbxGeometry->meshExtents.isValid()) {
                 Extents extents = fbxGeometry->meshExtents;
 
-                // NOTE: If the model has a bad mesh, then extents will be 0,0,0 & 0,0,0
+                // NOTE: If the entity has a bad mesh, then extents will be 0,0,0 & 0,0,0
                 if (extents.minimum == extents.maximum && extents.minimum == glm::vec3(0,0,0)) {
                     extents.maximum = glm::vec3(1.0f,1.0f,1.0f); // in this case we will simulate the unit cube
                 }
 
-                // NOTE: these extents are model space, so we need to scale and center them accordingly
+                // NOTE: these extents are entity space, so we need to scale and center them accordingly
                 // size is our "target size in world space"
-                // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
+                // we need to set our entity scale so that the extents of the mesh, fit in a cube that size...
                 float maxDimension = glm::distance(extents.maximum, extents.minimum);
-                float scale = model.getSize() / maxDimension;
+                float scale = entity.getSize() / maxDimension;
 
                 glm::vec3 halfDimensions = (extents.maximum - extents.minimum) * 0.5f;
                 glm::vec3 offset = -extents.minimum - halfDimensions;
@@ -280,10 +280,10 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 
                 Extents rotatedExtents = extents;
 
-                calculateRotatedExtents(rotatedExtents, model.getRotation());
+                calculateRotatedExtents(rotatedExtents, entity.getRotation());
 
-                rotatedExtents.minimum += model.getPosition();
-                rotatedExtents.maximum += model.getPosition();
+                rotatedExtents.minimum += entity.getPosition();
+                rotatedExtents.maximum += entity.getPosition();
 
 
                 AABox rotatedExtentsBox(rotatedExtents.minimum, (rotatedExtents.maximum - rotatedExtents.minimum));
@@ -291,24 +291,24 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 // if it's in our AABOX for our rotated extents, then check to see if it's in our non-AABox
                 if (rotatedExtentsBox.findRayIntersection(origin, direction, localDistance, localFace)) {
                 
-                    // extents is the model relative, scaled, centered extents of the model
-                    glm::mat4 rotation = glm::mat4_cast(model.getRotation());
-                    glm::mat4 translation = glm::translate(model.getPosition());
-                    glm::mat4 modelToWorldMatrix = translation * rotation;
-                    glm::mat4 worldToEntityMatrix = glm::inverse(modelToWorldMatrix);
+                    // extents is the entity relative, scaled, centered extents of the entity
+                    glm::mat4 rotation = glm::mat4_cast(entity.getRotation());
+                    glm::mat4 translation = glm::translate(entity.getPosition());
+                    glm::mat4 entityToWorldMatrix = translation * rotation;
+                    glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-                    AABox modelFrameBox(extents.minimum, (extents.maximum - extents.minimum));
+                    AABox entityFrameBox(extents.minimum, (extents.maximum - extents.minimum));
 
-                    glm::vec3 modelFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
-                    glm::vec3 modelFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
+                    glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
+                    glm::vec3 entityFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
 
-                    // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
+                    // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
                     // and testing intersection there.
-                    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, localDistance, localFace)) {
+                    if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance, localFace)) {
                         if (localDistance < distance) {
                             distance = localDistance;
                             face = localFace;
-                            *intersectedObject = (void*)(&model);
+                            *intersectedObject = (void*)(&entity);
                             somethingIntersected = true;
                         }
                     }
@@ -316,93 +316,93 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
             } else if (localDistance < distance) {
                 distance = localDistance;
                 face = localFace;
-                *intersectedObject = (void*)(&model);
+                *intersectedObject = (void*)(&entity);
                 somethingIntersected = true;
             }
         }
         
-        ++modelItr;
+        ++entityItr;
     }
     return somethingIntersected;
 }
 
 bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                                     glm::vec3& penetration, void** penetratedObject) const {
-    QList<EntityItem>::iterator modelItr = _entityItems->begin();
-    QList<EntityItem>::const_iterator modelEnd = _entityItems->end();
-    while(modelItr != modelEnd) {
-        EntityItem& model = (*modelItr);
-        glm::vec3 modelCenter = model.getPosition();
-        float modelRadius = model.getRadius();
+    QList<EntityItem>::iterator entityItr = _entityItems->begin();
+    QList<EntityItem>::const_iterator entityEnd = _entityItems->end();
+    while(entityItr != entityEnd) {
+        EntityItem& entity = (*entityItr);
+        glm::vec3 entityCenter = entity.getPosition();
+        float entityRadius = entity.getRadius();
 
         // don't penetrate yourself
-        if (modelCenter == center && modelRadius == radius) {
+        if (entityCenter == center && entityRadius == radius) {
             return false;
         }
 
-        if (findSphereSpherePenetration(center, radius, modelCenter, modelRadius, penetration)) {
-            // return true on first valid model penetration
-            *penetratedObject = (void*)(&model);
+        if (findSphereSpherePenetration(center, radius, entityCenter, entityRadius, penetration)) {
+            // return true on first valid entity penetration
+            *penetratedObject = (void*)(&entity);
             return true;
         }
-        ++modelItr;
+        ++entityItr;
     }
     return false;
 }
 
-bool EntityTreeElement::updateEntity(const EntityItem& model) {
+bool EntityTreeElement::updateEntity(const EntityItem& entity) {
     const bool wantDebug = false;
     if (wantDebug) {
-        EntityItemID modelItemID = model.getEntityItemID();
-        qDebug() << "EntityTreeElement::updateEntity(model) modelID.id="
-                        << modelItemID.id << "creatorTokenID=" << modelItemID.creatorTokenID;
+        EntityItemID entityItemID = entity.getEntityItemID();
+        qDebug() << "EntityTreeElement::updateEntity(entity) entityID.id="
+                        << entityItemID.id << "creatorTokenID=" << entityItemID.creatorTokenID;
     }
     
-    // NOTE: this method must first lookup the model by ID, hence it is O(N)
-    // and "model is not found" is worst-case (full N) but maybe we don't care?
-    // (guaranteed that num models per elemen is small?)
-    uint16_t numberOfEntitys = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntitys; i++) {
+    // NOTE: this method must first lookup the entity by ID, hence it is O(N)
+    // and "entity is not found" is worst-case (full N) but maybe we don't care?
+    // (guaranteed that num entitys per elemen is small?)
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem& thisEntity = (*_entityItems)[i];
-        if (thisEntity.getID() == model.getID()) {
+        if (thisEntity.getID() == entity.getID()) {
             if (wantDebug) {
-                qDebug() << "found model with id";
+                qDebug() << "found entity with id";
             }
-            int difference = thisEntity.getLastUpdated() - model.getLastUpdated();
-            bool changedOnServer = thisEntity.getLastEdited() <= model.getLastEdited();
-            bool localOlder = thisEntity.getLastUpdated() < model.getLastUpdated();
+            int difference = thisEntity.getLastUpdated() - entity.getLastUpdated();
+            bool changedOnServer = thisEntity.getLastEdited() <= entity.getLastEdited();
+            bool localOlder = thisEntity.getLastUpdated() < entity.getLastUpdated();
             if (changedOnServer || localOlder) {
                 if (wantDebug) {
-                    qDebug("local model [id:%d] %s and %s than server model by %d, model.isNewlyCreated()=%s",
-                            model.getID(), (changedOnServer ? "CHANGED" : "same"),
+                    qDebug("local entity [id:%d] %s and %s than server entity by %d, entity.isNewlyCreated()=%s",
+                            entity.getID(), (changedOnServer ? "CHANGED" : "same"),
                             (localOlder ? "OLDER" : "NEWER"),
-                            difference, debug::valueOf(model.isNewlyCreated()) );
+                            difference, debug::valueOf(entity.isNewlyCreated()) );
                 }
                 
-                thisEntity.copyChangedProperties(model);
+                thisEntity.copyChangedProperties(entity);
                 markWithChangedTime();
                 
                 // seems like we shouldn't need this
-                _myTree->setContainingElement(model.getEntityItemID(), this);
+                _myTree->setContainingElement(entity.getEntityItemID(), this);
             } else {
                 if (wantDebug) {
                     qDebug(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
-                            "local model [id:%d] %s and %s than server model by %d, model.isNewlyCreated()=%s",
-                            model.getID(), (changedOnServer ? "CHANGED" : "same"),
+                            "local entity [id:%d] %s and %s than server entity by %d, entity.isNewlyCreated()=%s",
+                            entity.getID(), (changedOnServer ? "CHANGED" : "same"),
                             (localOlder ? "OLDER" : "NEWER"),
-                            difference, debug::valueOf(model.isNewlyCreated()) );
+                            difference, debug::valueOf(entity.isNewlyCreated()) );
                 }
             }
             return true;
         }
     }
     
-    // If we didn't find the model here, then let's check to see if we should add it...
-    if (bestFitEntityBounds(model)) {
-        _entityItems->push_back(model);
+    // If we didn't find the entity here, then let's check to see if we should add it...
+    if (bestFitEntityBounds(entity)) {
+        _entityItems->push_back(entity);
         markWithChangedTime();
         // Since we're adding this item to this element, we need to let the tree know about it
-        _myTree->setContainingElement(model.getEntityItemID(), this);
+        _myTree->setContainingElement(entity.getEntityItemID(), this);
         return true;
     }
     
@@ -411,37 +411,37 @@ bool EntityTreeElement::updateEntity(const EntityItem& model) {
 
 void EntityTreeElement::updateEntityItemID(FindAndUpdateEntityItemIDArgs* args) {
     bool wantDebug = false;
-    uint16_t numberOfEntitys = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntitys; i++) {
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem& thisEntity = (*_entityItems)[i];
         
         if (!args->creatorTokenFound) {
             // first, we're looking for matching creatorTokenIDs, if we find that, then we fix it to know the actual ID
             if (thisEntity.getCreatorTokenID() == args->creatorTokenID) {
                 if (wantDebug) {
-                    qDebug() << "EntityTreeElement::updateEntityItemID()... found the model... updating it's ID... "
+                    qDebug() << "EntityTreeElement::updateEntityItemID()... found the entity... updating it's ID... "
                         << "creatorTokenID=" << args->creatorTokenID
-                        << "modelID=" << args->modelID;
+                        << "entityID=" << args->entityID;
                 }
 
-                thisEntity.setID(args->modelID);
+                thisEntity.setID(args->entityID);
                 args->creatorTokenFound = true;
             }
         }
         
-        // if we're in an isViewing tree, we also need to look for an kill any viewed models
+        // if we're in an isViewing tree, we also need to look for an kill any viewed entitys
         if (!args->viewedEntityFound && args->isViewing) {
-            if (thisEntity.getCreatorTokenID() == UNKNOWN_MODEL_TOKEN && thisEntity.getID() == args->modelID) {
+            if (thisEntity.getCreatorTokenID() == UNKNOWN_MODEL_TOKEN && thisEntity.getID() == args->entityID) {
 
                 if (wantDebug) {
-                    qDebug() << "EntityTreeElement::updateEntityItemID()... VIEWED MODEL FOUND??? "
+                    qDebug() << "EntityTreeElement::updateEntityItemID()... VIEWED entity FOUND??? "
                         << "args->creatorTokenID=" << args->creatorTokenID
                         << "thisEntity.getCreatorTokenID()=" << thisEntity.getCreatorTokenID()
-                        << "args->modelID=" << args->modelID;
+                        << "args->entityID=" << args->entityID;
                 }
 
-                _entityItems->removeAt(i); // remove the model at this index
-                numberOfEntitys--; // this means we have 1 fewer model in this list
+                _entityItems->removeAt(i); // remove the entity at this index
+                numberOfEntities--; // this means we have 1 fewer entity in this list
                 i--; // and we actually want to back up i as well.
                 args->viewedEntityFound = true;
             }
@@ -454,8 +454,8 @@ void EntityTreeElement::updateEntityItemID(FindAndUpdateEntityItemIDArgs* args) 
 const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const {
     const EntityItem* closestEntity = NULL;
     float closestEntityDistance = FLT_MAX;
-    uint16_t numberOfEntitys = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntitys; i++) {
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
         float distanceToEntity = glm::distance(position, (*_entityItems)[i].getPosition());
         if (distanceToEntity < closestEntityDistance) {
             closestEntity = &(*_entityItems)[i];
@@ -464,40 +464,40 @@ const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const 
     return closestEntity;
 }
 
-void EntityTreeElement::getEntitys(const glm::vec3& searchPosition, float searchRadius, QVector<const EntityItem*>& foundEntitys) const {
-    uint16_t numberOfEntitys = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntitys; i++) {
-        const EntityItem* model = &(*_entityItems)[i];
-        float distance = glm::length(model->getPosition() - searchPosition);
-        if (distance < searchRadius + model->getRadius()) {
-            foundEntitys.push_back(model);
+void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searchRadius, QVector<const EntityItem*>& foundEntities) const {
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
+        const EntityItem* entity = &(*_entityItems)[i];
+        float distance = glm::length(entity->getPosition() - searchPosition);
+        if (distance < searchRadius + entity->getRadius()) {
+            foundEntities.push_back(entity);
         }
     }
 }
 
-void EntityTreeElement::getEntitys(const AACube& box, QVector<EntityItem*>& foundEntitys) {
-    QList<EntityItem>::iterator modelItr = _entityItems->begin();
-    QList<EntityItem>::iterator modelEnd = _entityItems->end();
-    AACube modelCube;
-    while(modelItr != modelEnd) {
-        EntityItem* model = &(*modelItr);
-        float radius = model->getRadius();
+void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& foundEntities) {
+    QList<EntityItem>::iterator entityItr = _entityItems->begin();
+    QList<EntityItem>::iterator entityEnd = _entityItems->end();
+    AACube entityCube;
+    while(entityItr != entityEnd) {
+        EntityItem* entity = &(*entityItr);
+        float radius = entity->getRadius();
         // NOTE: we actually do cube-cube collision queries here, which is sloppy but good enough for now
-        // TODO: decide whether to replace modelCube-cube query with sphere-cube (requires a square root
+        // TODO: decide whether to replace entityCube-cube query with sphere-cube (requires a square root
         // but will be slightly more accurate).
-        modelCube.setBox(model->getPosition() - glm::vec3(radius), 2.f * radius);
-        if (modelCube.touches(_cube)) {
-            foundEntitys.push_back(model);
+        entityCube.setBox(entity->getPosition() - glm::vec3(radius), 2.f * radius);
+        if (entityCube.touches(_cube)) {
+            foundEntities.push_back(entity);
         }
-        ++modelItr;
+        ++entityItr;
     }
 }
 
 const EntityItem* EntityTreeElement::getEntityWithID(uint32_t id) const {
-    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num models per elemen is small?)
+    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num entitys per elemen is small?)
     const EntityItem* foundEntity = NULL;
-    uint16_t numberOfEntitys = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntitys; i++) {
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i].getID() == id) {
             foundEntity = &(*_entityItems)[i];
             break;
@@ -507,10 +507,10 @@ const EntityItem* EntityTreeElement::getEntityWithID(uint32_t id) const {
 }
 
 const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) const {
-    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num models per elemen is small?)
+    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num entitys per elemen is small?)
     const EntityItem* foundEntity = NULL;
-    uint16_t numberOfEntitys = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntitys; i++) {
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i].getEntityItemID() == id) {
             foundEntity = &(*_entityItems)[i];
             break;
@@ -521,8 +521,8 @@ const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
 
 bool EntityTreeElement::removeEntityWithID(uint32_t id) {
     bool foundEntity = false;
-    uint16_t numberOfEntitys = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntitys; i++) {
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i].getID() == id) {
             foundEntity = true;
             _entityItems->removeAt(i);
@@ -535,8 +535,8 @@ bool EntityTreeElement::removeEntityWithID(uint32_t id) {
 
 bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     bool foundEntity = false;
-    uint16_t numberOfEntitys = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntitys; i++) {
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i].getEntityItemID() == id) {
             foundEntity = true;
             _entityItems->removeAt(i);
@@ -559,22 +559,22 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
 
     const unsigned char* dataAt = data;
     int bytesRead = 0;
-    uint16_t numberOfEntitys = 0;
+    uint16_t numberOfEntities = 0;
     int expectedBytesPerEntity = EntityItem::expectedBytes();
 
-    if (bytesLeftToRead >= (int)sizeof(numberOfEntitys)) {
-        // read our models in....
-        numberOfEntitys = *(uint16_t*)dataAt;
+    if (bytesLeftToRead >= (int)sizeof(numberOfEntities)) {
+        // read our entitys in....
+        numberOfEntities = *(uint16_t*)dataAt;
 
-        dataAt += sizeof(numberOfEntitys);
-        bytesLeftToRead -= (int)sizeof(numberOfEntitys);
-        bytesRead += sizeof(numberOfEntitys);
+        dataAt += sizeof(numberOfEntities);
+        bytesLeftToRead -= (int)sizeof(numberOfEntities);
+        bytesRead += sizeof(numberOfEntities);
         
-        if (bytesLeftToRead >= (int)(numberOfEntitys * expectedBytesPerEntity)) {
-            for (uint16_t i = 0; i < numberOfEntitys; i++) {
+        if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
+            for (uint16_t i = 0; i < numberOfEntities; i++) {
                 EntityItem tempEntity; // we will read into this
-                EntityItemID modelItemID = EntityItem::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead, args);
-                const EntityItem* existingEntityItem = _myTree->findEntityByEntityItemID(modelItemID);
+                EntityItemID entityItemID = EntityItem::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead, args);
+                const EntityItem* existingEntityItem = _myTree->findEntityByEntityItemID(entityItemID);
                 if (existingEntityItem) {
                     // copy original properties...
                     tempEntity.copyChangedProperties(*existingEntityItem); 

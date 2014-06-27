@@ -96,7 +96,7 @@ public:
     const glm::vec3& getPosition() const { return _position; }
     xColor getColor() const { return _color; }
     float getRadius() const { return _radius; }
-    bool getShouldDie() const { return _shouldDie; }
+    bool getShouldBeDeleted() const { return _shouldBeDeleted; }
     
     const QString& getModelURL() const { return _modelURL; }
     const glm::quat& getRotation() const { return _rotation; }
@@ -113,7 +113,7 @@ public:
     void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
     void setColor(const xColor& value) { _color = value; _colorChanged = true; }
     void setRadius(float value) { _radius = value; _radiusChanged = true; }
-    void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; _shouldDieChanged = true;  }
+    void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; _shouldBeDeletedChanged = true;  }
 
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
@@ -136,7 +136,7 @@ private:
     glm::vec3 _position;
     xColor _color;
     float _radius;
-    bool _shouldDie; /// to delete it
+    bool _shouldBeDeleted; /// to delete it
     
     QString _modelURL;
     glm::quat _rotation;
@@ -153,7 +153,7 @@ private:
     bool _positionChanged;
     bool _colorChanged;
     bool _radiusChanged;
-    bool _shouldDieChanged;
+    bool _shouldBeDeletedChanged;
 
     bool _modelURLChanged;
     bool _rotationChanged;
@@ -226,8 +226,8 @@ class EntityItem  {
 
 public:
     EntityItem();
-    EntityItem(const EntityItemID& modelItemID);
-    EntityItem(const EntityItemID& modelItemID, const EntityItemProperties& properties);
+    EntityItem(const EntityItemID& entityItemID);
+    EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     /// creates an NEW model from an model add or edit message data buffer
     static EntityItem fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid);
@@ -276,7 +276,7 @@ public:
     float getEditedAgo() const { return static_cast<float>(usecTimestampNow() - _lastEdited) / static_cast<float>(USECS_PER_SECOND); }
     uint32_t getID() const { return _id; }
     void setID(uint32_t id) { _id = id; }
-    bool getShouldDie() const { return _shouldDie; }
+    bool getShouldBeDeleted() const { return _shouldBeDeleted; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     bool isNewlyCreated() const { return _newlyCreated; }
     bool isKnownID() const { return getID() != UNKNOWN_MODEL_ID; }
@@ -293,7 +293,7 @@ public:
     /// set radius in domain scale units (0.0 - 1.0)
     void setRadius(float value) { _radius = value; }
 
-    void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
+    void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
     
     // model related properties
@@ -346,7 +346,7 @@ public:
     static void cleanupLoadedAnimations();
 
 protected:
-    void initFromEntityItemID(const EntityItemID& modelItemID);
+    void initFromEntityItemID(const EntityItemID& entityItemID);
     virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_MODEL);
 
     glm::vec3 _position;
@@ -354,7 +354,7 @@ protected:
     float _radius;
     uint32_t _id;
     static uint32_t _nextID;
-    bool _shouldDie;
+    bool _shouldBeDeleted;
 
     // model related items
     QString _modelURL;

@@ -50,7 +50,6 @@ public:
     virtual bool rootElementHasData() const { return true; }
     virtual void update();
 
-    void OLD__storeEntity(const EntityItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
     void storeEntity(const EntityItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
     void updateEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
     void addEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
@@ -90,8 +89,8 @@ public:
         return _fbxService ? _fbxService->getGeometryForEntity(modelItem) : NULL;
     }
     
-    EntityTreeElement* getContainingElement(const EntityItemID& modelItemID) const;
-    void setContainingElement(const EntityItemID& modelItemID, EntityTreeElement* element);
+    EntityTreeElement* getContainingElement(const EntityItemID& entityItemID) const;
+    void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
 
 private:
