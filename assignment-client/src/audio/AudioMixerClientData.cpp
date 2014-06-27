@@ -212,7 +212,7 @@ QString AudioMixerClientData::getJitterBufferStatsString() const {
     } else {
         result = "mic unknown";
     }
-    printf("\tget jitter buffer stats string.  _ringBuffer.size = %d\n", _ringBuffers.size());
+    
     for (int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
             int desiredJitterBuffer = _ringBuffers[i]->getDesiredJitterBufferFrames();
