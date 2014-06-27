@@ -13,7 +13,7 @@
 
 #include "Endpoint.h"
 
-Endpoint::Endpoint(const SharedNodePointer& node) :
+Endpoint::Endpoint(const SharedNodePointer& node, PacketRecord* baselineSendRecord, PacketRecord* baselineReceiveRecord) :
     _node(node),
     _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData)) {
     
@@ -23,8 +23,8 @@ Endpoint::Endpoint(const SharedNodePointer& node) :
     connect(&_sequencer, SIGNAL(receiveAcknowledged(int)), SLOT(clearReceiveRecordsBefore(int)));
     
     // insert the baseline send and receive records
-    _sendRecords.append(maybeCreateSendRecord(true));
-    _receiveRecords.append(maybeCreateReceiveRecord(true));
+    _sendRecords.append(baselineSendRecord);
+    _receiveRecords.append(baselineReceiveRecord);
 }
 
 Endpoint::~Endpoint() {
@@ -38,7 +38,7 @@ Endpoint::~Endpoint() {
 
 void Endpoint::update() {
     Bitstream& out = _sequencer.startPacket();
-    out << QVariant();
+    writeUpdateMessage(out);
     _sequencer.endPacket();
 
     // record the send
@@ -92,16 +92,17 @@ void Endpoint::handleMessage(const QVariant& message, Bitstream& in) {
     }
 }
 
-PacketRecord* Endpoint::maybeCreateSendRecord(bool baseline) const {
+PacketRecord* Endpoint::maybeCreateSendRecord() const {
     return NULL;
 }
 
-PacketRecord* Endpoint::maybeCreateReceiveRecord(bool baseline) const {
+PacketRecord* Endpoint::maybeCreateReceiveRecord() const {
     return NULL;
 }
 
-PacketRecord::PacketRecord(const MetavoxelLOD& lod) :
-    _lod(lod) {
+PacketRecord::PacketRecord(const MetavoxelLOD& lod, const MetavoxelData& data) :
+    _lod(lod),
+    _data(data) {
 }
 
 PacketRecord::~PacketRecord() {

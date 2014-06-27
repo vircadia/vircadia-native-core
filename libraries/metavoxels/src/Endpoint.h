@@ -19,16 +19,17 @@
 
 class PacketRecord;
 
-/// Base class for communication endpoints: clients or servers.
+/// Base class for communication endpoints: clients and server sessions.
 class Endpoint : public NodeData {
     Q_OBJECT
 
 public:
     
-    Endpoint(const SharedNodePointer& node);
+    Endpoint(const SharedNodePointer& node, PacketRecord* baselineSendRecord = NULL,
+        PacketRecord* baselineReceiveRecord = NULL);
     virtual ~Endpoint();
     
-    void update();
+    virtual void update();
     
     virtual int parseData(const QByteArray& packet);
 
@@ -45,8 +46,8 @@ protected:
     virtual void writeUpdateMessage(Bitstream& out);
     virtual void handleMessage(const QVariant& message, Bitstream& in); 
     
-    virtual PacketRecord* maybeCreateSendRecord(bool baseline = false) const;
-    virtual PacketRecord* maybeCreateReceiveRecord(bool baseline = false) const;
+    virtual PacketRecord* maybeCreateSendRecord() const;
+    virtual PacketRecord* maybeCreateReceiveRecord() const;
     
     PacketRecord* getLastAcknowledgedSendRecord() const { return _sendRecords.first(); }
     PacketRecord* getLastAcknowledgedReceiveRecord() const { return _receiveRecords.first(); }
@@ -62,14 +63,16 @@ protected:
 class PacketRecord {
 public:
 
-    PacketRecord(const MetavoxelLOD& lod = MetavoxelLOD());
+    PacketRecord(const MetavoxelLOD& lod = MetavoxelLOD(), const MetavoxelData& data = MetavoxelData());
     virtual ~PacketRecord();
     
     const MetavoxelLOD& getLOD() const { return _lod; }
+    const MetavoxelData& getData() const { return _data; }
     
 private:
     
     MetavoxelLOD _lod;
+    MetavoxelData _data;
 };
 
 #endif // hifi_Endpoint_h

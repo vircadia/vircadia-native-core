@@ -14,6 +14,7 @@
 
 #include "Endpoint.h"
 
+class MetavoxelClient;
 class MetavoxelEditMessage;
 
 /// Manages the set of connected metavoxel clients.
@@ -23,7 +24,7 @@ class MetavoxelClientManager : public QObject {
 public:
 
     virtual void init();
-    virtual void update();
+    void update();
 
     SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const AttributePointer& attribute, float& distance);
@@ -35,6 +36,11 @@ public:
 private slots:
 
     void maybeAttachClient(const SharedNodePointer& node);
+
+protected:
+    
+    virtual MetavoxelClient* createClient(const SharedNodePointer& node);
+    virtual void updateClient(MetavoxelClient* client);
 };
 
 /// Base class for metavoxel clients.
@@ -57,8 +63,8 @@ protected:
     virtual void readMessage(Bitstream& in);
     virtual void handleMessage(const QVariant& message, Bitstream& in);
 
-    virtual PacketRecord* maybeCreateSendRecord(bool baseline) const;
-    virtual PacketRecord* maybeCreateReceiveRecord(bool baseline) const;
+    virtual PacketRecord* maybeCreateSendRecord() const;
+    virtual PacketRecord* maybeCreateReceiveRecord() const;
 
 private:
     

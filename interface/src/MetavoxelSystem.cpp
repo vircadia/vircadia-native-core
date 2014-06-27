@@ -35,6 +35,8 @@ MetavoxelSystem::MetavoxelSystem() :
 }
 
 void MetavoxelSystem::init() {
+    MetavoxelClientManager::init();
+    
     if (!_program.isLinked()) {
         _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/metavoxel_point.vert");
         _program.link();
@@ -43,62 +45,19 @@ void MetavoxelSystem::init() {
     }
     _buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
     _buffer.create();
-    
-    connect(NodeList::getInstance(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(maybeAttachClient(const SharedNodePointer&)));
 }
 
-SharedObjectPointer MetavoxelSystem::findFirstRaySpannerIntersection(
-        const glm::vec3& origin, const glm::vec3& direction, const AttributePointer& attribute, float& distance) {
-   SharedObjectPointer closestSpanner;
-   float closestDistance = FLT_MAX;
-   foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getType() == NodeType::MetavoxelServer) {
-            QMutexLocker locker(&node->getMutex());
-            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
-            if (client) {
-                float clientDistance;
-                SharedObjectPointer clientSpanner = client->getData().findFirstRaySpannerIntersection(
-                    origin, direction, attribute, clientDistance);
-                if (clientSpanner && clientDistance < closestDistance) {
-                    closestSpanner = clientSpanner;
-                    closestDistance = clientDistance;
-                }
-            }
-        }
-    }
-    if (closestSpanner) {
-        distance = closestDistance;
-    }
-    return closestSpanner;
-}
-
-void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getType() == NodeType::MetavoxelServer) {
-            QMutexLocker locker(&node->getMutex());
-            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
-            if (client) {
-                client->applyEdit(edit, reliable);
-            }
-        }
-    }
+MetavoxelLOD MetavoxelSystem::getLOD() const {
+    const float FIXED_LOD_THRESHOLD = 0.01f;
+    return MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), FIXED_LOD_THRESHOLD);
 }
 
 void MetavoxelSystem::simulate(float deltaTime) {
-    // simulate the clients
+    // update the clients
     _points.clear();
     _simulateVisitor.setDeltaTime(deltaTime);
     _simulateVisitor.setOrder(-Application::getInstance()->getViewFrustum()->getDirection());
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getType() == NodeType::MetavoxelServer) {
-            QMutexLocker locker(&node->getMutex());
-            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
-            if (client) {
-                client->simulate(deltaTime);
-                client->guide(_simulateVisitor);
-            }
-        }
-    }
+    update();
     
     _buffer.bind();
     int bytes = _points.size() * sizeof(Point);
@@ -161,11 +120,13 @@ void MetavoxelSystem::render() {
     }
 }
 
-void MetavoxelSystem::maybeAttachClient(const SharedNodePointer& node) {
-    if (node->getType() == NodeType::MetavoxelServer) {
-        QMutexLocker locker(&node->getMutex());
-        node->setLinkedData(new MetavoxelSystemClient(NodeList::getInstance()->nodeWithUUID(node->getUUID())));
-    }
+MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
+    return new MetavoxelSystemClient(node, this);
+}
+
+void MetavoxelSystem::updateClient(MetavoxelClient* client) {
+    MetavoxelClientManager::updateClient(client);
+    client->guide(_simulateVisitor);
 }
 
 MetavoxelSystem::SimulateVisitor::SimulateVisitor(QVector<Point>& points) :
@@ -235,64 +196,8 @@ bool MetavoxelSystem::RenderVisitor::visit(Spanner* spanner, const glm::vec3& cl
     return true;
 }
 
-MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node) :
-    _node(node),
-    _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData)) {
-    
-    connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
-    connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
-    connect(&_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(clearSendRecordsBefore(int)));
-    connect(&_sequencer, SIGNAL(receiveAcknowledged(int)), SLOT(clearReceiveRecordsBefore(int)));
-    
-    // insert the baseline send record
-    SendRecord sendRecord = { 0 };
-    _sendRecords.append(sendRecord);
-    
-    // insert the baseline receive record
-    ReceiveRecord receiveRecord = { 0, _data };
-    _receiveRecords.append(receiveRecord);
-}
-
-MetavoxelSystemClient::~MetavoxelSystemClient() {
-    // close the session
-    Bitstream& out = _sequencer.startPacket();
-    out << QVariant::fromValue(CloseSessionMessage());
-    _sequencer.endPacket();
-}
-
-static MetavoxelLOD getLOD() {
-    const float FIXED_LOD_THRESHOLD = 0.01f;
-    return MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), FIXED_LOD_THRESHOLD);
-}
-
-void MetavoxelSystemClient::guide(MetavoxelVisitor& visitor) {
-    visitor.setLOD(getLOD());
-    _data.guide(visitor);
-}
-
-void MetavoxelSystemClient::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
-    if (reliable) {
-        _sequencer.getReliableOutputChannel()->sendMessage(QVariant::fromValue(edit));
-    
-    } else {
-        // apply immediately to local tree
-        edit.apply(_data, _sequencer.getWeakSharedObjectHash());
-
-        // start sending it out
-        _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
-    }
-}
-
-void MetavoxelSystemClient::simulate(float deltaTime) {
-    Bitstream& out = _sequencer.startPacket();
-    
-    ClientStateMessage state = { getLOD() };
-    out << QVariant::fromValue(state);
-    _sequencer.endPacket();
-    
-    // record the send
-    SendRecord record = { _sequencer.getOutgoingPacketNumber(), state.lod };
-    _sendRecords.append(record);
+MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelSystem* system) :
+    MetavoxelClient(node, system) {
 }
 
 int MetavoxelSystemClient::parseData(const QByteArray& packet) {
@@ -302,46 +207,9 @@ int MetavoxelSystemClient::parseData(const QByteArray& packet) {
     return packet.size();
 }
 
-void MetavoxelSystemClient::sendData(const QByteArray& data) {
+void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
     NodeList::getInstance()->writeDatagram(data, _node);
     Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
-}
-
-void MetavoxelSystemClient::readPacket(Bitstream& in) {
-    QVariant message;
-    in >> message;
-    handleMessage(message, in);
-    
-    // record the receipt
-    ReceiveRecord record = { _sequencer.getIncomingPacketNumber(), _data, _sendRecords.first().lod };
-    _receiveRecords.append(record);
-    
-    // reapply local edits
-    foreach (const DatagramSequencer::HighPriorityMessage& message, _sequencer.getHighPriorityMessages()) {
-        if (message.data.userType() == MetavoxelEditMessage::Type) {
-            message.data.value<MetavoxelEditMessage>().apply(_data, _sequencer.getWeakSharedObjectHash());
-        }
-    }
-}
-
-void MetavoxelSystemClient::clearSendRecordsBefore(int index) {
-    _sendRecords.erase(_sendRecords.begin(), _sendRecords.begin() + index + 1);
-}
-
-void MetavoxelSystemClient::clearReceiveRecordsBefore(int index) {
-    _receiveRecords.erase(_receiveRecords.begin(), _receiveRecords.begin() + index + 1);
-}
-
-void MetavoxelSystemClient::handleMessage(const QVariant& message, Bitstream& in) {
-    int userType = message.userType();
-    if (userType == MetavoxelDeltaMessage::Type) {
-        _data.readDelta(_receiveRecords.first().data, _receiveRecords.first().lod, in, _sendRecords.first().lod);
-        
-    } else if (userType == QMetaType::QVariantList) {
-        foreach (const QVariant& element, message.toList()) {
-            handleMessage(element, in);
-        }
-    }
 }
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {

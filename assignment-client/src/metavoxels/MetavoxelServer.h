@@ -17,8 +17,7 @@
 
 #include <ThreadedAssignment.h>
 
-#include <DatagramSequencer.h>
-#include <MetavoxelData.h>
+#include <Endpoint.h>
 
 class MetavoxelEditMessage;
 class MetavoxelSession;
@@ -53,46 +52,31 @@ private:
 };
 
 /// Contains the state of a single client session.
-class MetavoxelSession : public NodeData {
+class MetavoxelSession : public Endpoint {
     Q_OBJECT
     
 public:
     
-    MetavoxelSession(MetavoxelServer* server, const SharedNodePointer& node);
-    virtual ~MetavoxelSession();
+    MetavoxelSession(const SharedNodePointer& node, MetavoxelServer* server);
 
-    virtual int parseData(const QByteArray& packet);
+    virtual void update();
 
-    void sendDelta();
+protected:
+
+    virtual void writeUpdateMessage(Bitstream& out);
+    virtual void handleMessage(const QVariant& message, Bitstream& in);
+    
+    virtual PacketRecord* maybeCreateSendRecord() const;
 
 private slots:
 
-    void sendData(const QByteArray& data);
-
-    void readPacket(Bitstream& in);    
-    
-    void clearSendRecordsBefore(int index);
-    
     void handleMessage(const QVariant& message);
     
 private:
     
-    class SendRecord {
-    public:
-        int packetNumber;
-        MetavoxelData data;
-        MetavoxelLOD lod;
-    };
-    
     MetavoxelServer* _server;
     
-    DatagramSequencer _sequencer;
-    
-    SharedNodePointer _node;
-    
     MetavoxelLOD _lod;
-    
-    QList<SendRecord> _sendRecords;
 };
 
 #endif // hifi_MetavoxelServer_h

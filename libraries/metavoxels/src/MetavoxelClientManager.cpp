@@ -22,7 +22,7 @@ void MetavoxelClientManager::update() {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
-                client->update();
+                updateClient(client);
             }
         }
     }
@@ -72,12 +72,20 @@ MetavoxelLOD MetavoxelClientManager::getLOD() const {
 void MetavoxelClientManager::maybeAttachClient(const SharedNodePointer& node) {
     if (node->getType() == NodeType::MetavoxelServer) {
         QMutexLocker locker(&node->getMutex());
-        node->setLinkedData(new MetavoxelClient(node, this));
+        node->setLinkedData(createClient(node));
     }
 }
 
+MetavoxelClient* MetavoxelClientManager::createClient(const SharedNodePointer& node) {
+    return new MetavoxelClient(node, this);
+}
+
+void MetavoxelClientManager::updateClient(MetavoxelClient* client) {
+    client->update();
+}
+
 MetavoxelClient::MetavoxelClient(const SharedNodePointer& node, MetavoxelClientManager* manager) :
-    Endpoint(node),
+    Endpoint(node, new PacketRecord(), new PacketRecord()),
     _manager(manager) {
 }
 
@@ -115,26 +123,9 @@ void MetavoxelClient::readMessage(Bitstream& in) {
     }
 }
 
-class ReceiveRecord : public PacketRecord {
-public:
-    
-    ReceiveRecord(const MetavoxelLOD& lod = MetavoxelLOD(), const MetavoxelData& data = MetavoxelData());
-
-    const MetavoxelData& getData() const { return _data; }
-
-private:
-    
-    MetavoxelData _data;
-};
-
-ReceiveRecord::ReceiveRecord(const MetavoxelLOD& lod, const MetavoxelData& data) :
-    PacketRecord(lod),
-    _data(data) {
-}
-
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     if (message.userType() == MetavoxelDeltaMessage::Type) {
-        ReceiveRecord* receiveRecord = static_cast<ReceiveRecord*>(getLastAcknowledgedReceiveRecord());
+        PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
         _data.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in, getLastAcknowledgedSendRecord()->getLOD());
     
     } else {
@@ -142,10 +133,10 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     }
 }
 
-PacketRecord* MetavoxelClient::maybeCreateSendRecord(bool baseline) const {
-    return baseline ? new PacketRecord() : new PacketRecord(_manager->getLOD());
+PacketRecord* MetavoxelClient::maybeCreateSendRecord() const {
+    return new PacketRecord(_manager->getLOD());
 }
 
-PacketRecord* MetavoxelClient::maybeCreateReceiveRecord(bool baseline) const {
-    return baseline ? new ReceiveRecord() : new ReceiveRecord(getLastAcknowledgedSendRecord()->getLOD(), _data);
+PacketRecord* MetavoxelClient::maybeCreateReceiveRecord() const {
+    return new PacketRecord(getLastAcknowledgedSendRecord()->getLOD(), _data);
 }

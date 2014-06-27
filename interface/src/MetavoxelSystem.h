@@ -18,37 +18,31 @@
 
 #include <glm/glm.hpp>
 
-#include <NodeList.h>
-
-#include <DatagramSequencer.h>
-#include <MetavoxelData.h>
-#include <MetavoxelMessages.h>
+#include <MetavoxelClientManager.h>
 
 #include "renderer/ProgramObject.h"
 
 class Model;
 
 /// Renders a metavoxel tree.
-class MetavoxelSystem : public QObject {
+class MetavoxelSystem : public MetavoxelClientManager {
     Q_OBJECT
 
 public:
 
     MetavoxelSystem();
 
-    void init();
-    
-    SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const AttributePointer& attribute, float& distance);
-    
-    Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
+    virtual void init();
+
+    virtual MetavoxelLOD getLOD() const;
     
     void simulate(float deltaTime);
     void render();
-    
-private slots:
 
-    void maybeAttachClient(const SharedNodePointer& node);
+protected:
+
+    virtual MetavoxelClient* createClient(const SharedNodePointer& node);
+    virtual void updateClient(MetavoxelClient* client); 
 
 private:
     
@@ -89,59 +83,18 @@ private:
 };
 
 /// A client session associated with a single server.
-class MetavoxelSystemClient : public NodeData {
+class MetavoxelSystemClient : public MetavoxelClient {
     Q_OBJECT    
     
 public:
     
-    MetavoxelSystemClient(const SharedNodePointer& node);
-    virtual ~MetavoxelSystemClient();
-
-    MetavoxelData& getData() { return _data; }
-
-    void guide(MetavoxelVisitor& visitor);
-
-    void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
-
-    void simulate(float deltaTime);
-
+    MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelSystem* system);
+    
     virtual int parseData(const QByteArray& packet);
 
-private slots:
+protected:
     
-    void sendData(const QByteArray& data);
-
-    void readPacket(Bitstream& in);
-    
-    void clearSendRecordsBefore(int index);
-    
-    void clearReceiveRecordsBefore(int index);
-    
-private:
-    
-    void handleMessage(const QVariant& message, Bitstream& in);
-    
-    class SendRecord {
-    public:
-        int packetNumber;
-        MetavoxelLOD lod;
-    };
-    
-    class ReceiveRecord {
-    public:
-        int packetNumber;
-        MetavoxelData data;
-        MetavoxelLOD lod;
-    };
-    
-    SharedNodePointer _node;
-    
-    DatagramSequencer _sequencer;
-    
-    MetavoxelData _data;
-    
-    QList<SendRecord> _sendRecords;
-    QList<ReceiveRecord> _receiveRecords;
+    virtual void sendDatagram(const QByteArray& data);
 };
 
 /// Base class for spanner renderers; provides clipping.
