@@ -19,6 +19,7 @@
 
 #include <AvatarData.h>
 
+#include "Hair.h"
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
@@ -159,6 +160,7 @@ signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
 protected:
+    QVector<Hair*> _hairs;
     SkeletonModel _skeletonModel;
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;

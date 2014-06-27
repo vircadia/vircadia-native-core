@@ -143,6 +143,11 @@ void Avatar::simulate(float deltaTime) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
             simulateHair(deltaTime);
         }
+        
+        foreach (Hair* hair, _hairs) {
+            hair->simulate(deltaTime);
+        }
+
     }
     
     // update position by velocity, and subtract the change added earlier for gravity
@@ -380,6 +385,9 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
     getHead()->render(1.0f, modelRenderMode);
     if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
         renderHair();
+        foreach (Hair* hair, _hairs) {
+            hair->render();
+        }
     }
 }
 
