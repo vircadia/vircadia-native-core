@@ -1098,11 +1098,13 @@ void TestEndpoint::handleMessage(const QVariant& message, Bitstream& in) {
 }
 
 PacketRecord* TestEndpoint::maybeCreateSendRecord() const {
-    return new TestSendRecord(_lod, _data, _localState, _sequencer.getOutgoingPacketNumber());
+    return new TestSendRecord(_lod, (_mode == METAVOXEL_CLIENT_MODE) ? MetavoxelData() : _data,
+        _localState, _sequencer.getOutgoingPacketNumber());
 }
 
 PacketRecord* TestEndpoint::maybeCreateReceiveRecord() const {
-    return new TestReceiveRecord(getLastAcknowledgedSendRecord()->getLOD(), _data, _remoteState);
+    return new TestReceiveRecord(getLastAcknowledgedSendRecord()->getLOD(),
+        (_mode == METAVOXEL_SERVER_MODE) ? MetavoxelData() : _data, _remoteState);
 }
 
 void TestEndpoint::handleHighPriorityMessage(const QVariant& message) {
