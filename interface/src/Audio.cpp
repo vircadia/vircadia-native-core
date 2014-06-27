@@ -104,7 +104,7 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
     _audioMixerJitterBufferStats(),
-    _outgoingSequenceNumber(0)
+    _outgoingAvatarAudioSequenceNumber(0)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -120,7 +120,7 @@ void Audio::init(QGLWidget *parent) {
 
 void Audio::reset() {
     _ringBuffer.reset();
-    _outgoingSequenceNumber = 0;
+    _outgoingAvatarAudioSequenceNumber = 0;
 }
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
@@ -657,7 +657,7 @@ void Audio::handleAudioInput() {
             char* currentPacketPtr = audioDataPacket + populatePacketHeader(audioDataPacket, packetType);
             
             // pack sequence number
-            memcpy(currentPacketPtr, &_outgoingSequenceNumber, sizeof(quint16));
+            memcpy(currentPacketPtr, &_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
             currentPacketPtr += sizeof(quint16);
 
             // set the mono/stereo byte
@@ -672,13 +672,14 @@ void Audio::handleAudioInput() {
             currentPacketPtr += sizeof(headOrientation);
             
             nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
-            _outgoingSequenceNumber++;
+printf("avatar audio sent %d\n", _outgoingAvatarAudioSequenceNumber);
+            _outgoingAvatarAudioSequenceNumber++;
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(numAudioBytes + leadingBytes);
         } else {
             // reset seq numbers if there's no connection with an audiomixer
-            _outgoingSequenceNumber = 0;
+            _outgoingAvatarAudioSequenceNumber = 0;
         }
         delete[] inputAudioSamples;
     }
@@ -832,7 +833,8 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     int numBytesPacketHeader = numBytesForPacketHeader(audioByteArray);
     const char* sequenceAt = audioByteArray.constData() + numBytesPacketHeader;
     quint16 sequence = *((quint16*)sequenceAt);
-    _incomingSequenceNumberStats.sequenceNumberReceived(sequence);
+    _incomingMixedAudioSequenceNumberStats.sequenceNumberReceived(sequence);
+printf("mixed audio received %d\n", sequence);
 
     // parse audio data
     _ringBuffer.parseData(audioByteArray);

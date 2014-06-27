@@ -457,6 +457,7 @@ void AudioMixer::sendStatsPacket() {
         
         // if we're too large, send the packet
         if (sizeOfStats > TOO_BIG_FOR_MTU) {
+printf("sending stats to domain server: size: %d\n", sizeOfStats);
             nodeList->sendStatsToDomainServer(statsObject2);
             sizeOfStats = 0;
             statsObject2 = QJsonObject(); // clear it
@@ -465,6 +466,7 @@ void AudioMixer::sendStatsPacket() {
     }
 
     if (somethingToSend) {
+printf("sending stats to domain server: size: %d\n", sizeOfStats);
         nodeList->sendStatsToDomainServer(statsObject2);
     }
 }
@@ -621,7 +623,8 @@ void AudioMixer::run() {
                 dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
 
                 // send mixed audio packet
-                nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
+                //nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
+printf("mixed audio sent %d\n", sequence);
                 nodeData->incrementOutgoingSequenceNumber();
                 
                 // send an audio stream stats packet if it's time

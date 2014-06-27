@@ -21,8 +21,8 @@
 
 AudioMixerClientData::AudioMixerClientData() :
     _ringBuffers(),
-    _outgoingSequenceNumber(0),
-    _incomingAvatarSequenceNumberStats()
+    _outgoingMixedAudioSequenceNumber(0),
+    _incomingAvatarAudioSequenceNumberStats()
 {
     
 }
@@ -57,13 +57,14 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
         || packetType == PacketTypeMicrophoneAudioNoEcho
         || packetType == PacketTypeSilentAudioFrame) {
 
-        _incomingAvatarSequenceNumberStats.sequenceNumberReceived(sequence);
+        _incomingAvatarAudioSequenceNumberStats.sequenceNumberReceived(sequence);
+printf("avatar audio received %d\n", sequence);
 
         // grab the AvatarAudioRingBuffer from the vector (or create it if it doesn't exist)
         AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
         
         // read the first byte after the header to see if this is a stereo or mono buffer
-        quint8 channelFlag = packet.at(numBytesForPacketHeader(packet));
+        quint8 channelFlag = packet.at(numBytesForPacketHeader(packet) + sizeof(quint16));
         bool isStereo = channelFlag == 1;
         
         if (avatarRingBuffer && avatarRingBuffer->isStereo() != isStereo) {
@@ -86,9 +87,10 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
         // this is injected audio
 
         // grab the stream identifier for this injected audio
-        QUuid streamIdentifier = QUuid::fromRfc4122(packet.mid(numBytesForPacketHeader(packet), NUM_BYTES_RFC4122_UUID));
+        QUuid streamIdentifier = QUuid::fromRfc4122(packet.mid(numBytesForPacketHeader(packet) + sizeof(quint16), NUM_BYTES_RFC4122_UUID));
 
-        _incomingInjectedSequenceNumberStatsMap[streamIdentifier].sequenceNumberReceived(sequence);
+        _incomingInjectedAudioSequenceNumberStatsMap[streamIdentifier].sequenceNumberReceived(sequence);
+printf("injected stream %s received seq %d\n", streamIdentifier.toString().toLatin1().data(), sequence);
 
         InjectedAudioRingBuffer* matchingInjectedRingBuffer = NULL;
 
@@ -96,6 +98,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector
                 && ((InjectedAudioRingBuffer*) _ringBuffers[i])->getStreamIdentifier() == streamIdentifier) {
                 matchingInjectedRingBuffer = (InjectedAudioRingBuffer*) _ringBuffers[i];
+printf("\t matching ring buffer found.\n");
             }
         }
 
@@ -104,6 +107,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             matchingInjectedRingBuffer = new InjectedAudioRingBuffer(streamIdentifier, 
                                                     AudioMixer::getUseDynamicJitterBuffers());
             _ringBuffers.push_back(matchingInjectedRingBuffer);
+printf("\t no matching ring buffer, creating new one.  _ringBuffer size now %d\n", _ringBuffers.size());
         }
 
         matchingInjectedRingBuffer->parseData(packet);
@@ -147,7 +151,7 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
             // this is an empty audio buffer that has starved, safe to delete
             // also delete its sequence number stats
             QUuid streamIdentifier = ((InjectedAudioRingBuffer*)audioBuffer)->getStreamIdentifier();
-            _incomingInjectedSequenceNumberStatsMap.remove(streamIdentifier);
+            _incomingInjectedAudioSequenceNumberStatsMap.remove(streamIdentifier);
             delete audioBuffer;
             i = _ringBuffers.erase(i);
             continue;
@@ -212,7 +216,7 @@ QString AudioMixerClientData::getJitterBufferStatsString() const {
     } else {
         result = "mic unknown";
     }
-
+    printf("\tget jitter buffer stats string.  _ringBuffer.size = %d\n", _ringBuffers.size());
     for (int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
             int desiredJitterBuffer = _ringBuffers[i]->getDesiredJitterBufferFrames();

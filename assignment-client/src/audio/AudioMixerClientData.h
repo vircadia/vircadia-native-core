@@ -38,17 +38,17 @@ public:
     
     QString getJitterBufferStatsString() const;
 
-    void incrementOutgoingSequenceNumber() { _outgoingSequenceNumber++; }
+    void incrementOutgoingSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
 
-    quint16 getOutgoingSequenceNumber() const { return _outgoingSequenceNumber; }
+    quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
     //const SequenceNumberStats& getIncomingSequenceNumberStats() const { return _incomingSequenceNumberStats; }
 
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;
 
-    quint16 _outgoingSequenceNumber;
-    SequenceNumberStats _incomingAvatarSequenceNumberStats;
-    QHash<QUuid, SequenceNumberStats> _incomingInjectedSequenceNumberStatsMap;
+    quint16 _outgoingMixedAudioSequenceNumber;
+    SequenceNumberStats _incomingAvatarAudioSequenceNumberStats;
+    QHash<QUuid, SequenceNumberStats> _incomingInjectedAudioSequenceNumberStatsMap;
 };
 
 #endif // hifi_AudioMixerClientData_h

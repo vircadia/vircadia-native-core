@@ -501,9 +501,9 @@ void ScriptEngine::run() {
                     // only send to nodes of type AudioMixer
                     if (node->getType() == NodeType::AudioMixer) {
                         // pack sequence number
-                        quint16 sequence = _outgoingSequenceNumbers[node->getUUID()]++;
+                        quint16 sequence = _outgoingInjectedAudioSequenceNumbers[node->getUUID()]++;
                         memcpy(sequenceAt, &sequence, sizeof(quint16));
-                        
+printf("script engine audio sent %d\n", sequence);
                         // send audio packet
                         nodeList->writeDatagram(audioPacket, audioPacketSize, node);
                     }
@@ -683,5 +683,5 @@ void ScriptEngine::include(const QString& includeFile) {
 }
 
 void ScriptEngine::nodeKilled(SharedNodePointer node) {
-    _outgoingSequenceNumbers.remove(node->getUUID());
+    _outgoingInjectedAudioSequenceNumbers.remove(node->getUUID());
 }
