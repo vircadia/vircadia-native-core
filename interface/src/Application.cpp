@@ -565,6 +565,14 @@ void Application::paintGL() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
+    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
+    // Otherwise, it must rebuild the FBOs
+    if (OculusManager::isConnected()) {
+        _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
+    } else {
+        _textureCache.setFrameBufferSize(_glWidget->size());
+    }
+
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
@@ -630,7 +638,7 @@ void Application::paintGL() {
     }
 
     if (OculusManager::isConnected()) {
-        OculusManager::display(whichCamera);
+        OculusManager::display(_myAvatar->getOrientation(), whichCamera);
 
     } else if (TV3DManager::isConnected()) {
         _glowEffect.prepare();

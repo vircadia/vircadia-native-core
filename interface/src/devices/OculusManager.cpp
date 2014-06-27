@@ -39,6 +39,7 @@ bool OculusManager::_isConnected = false;
 ovrHmd OculusManager::_ovrHmd;
 ovrHmdDesc OculusManager::_ovrHmdDesc;
 ovrFovPort OculusManager::_eyeFov[ovrEye_Count];
+ovrEyeRenderDesc OculusManager::_eyeRenderDesc[ovrEye_Count];
 ovrSizei OculusManager::_renderTargetSize;
 ovrVector2f OculusManager::_UVScaleOffset[ovrEye_Count][2];
 GLuint  OculusManager::_vertices[ovrEye_Count] = { 0, 0 };
@@ -77,8 +78,13 @@ void OculusManager::connect() {
             _renderTargetSize.h = recommendedTex1Size.h;
         }
 
-        _renderTargetSize.w = Application::getInstance()->getGLWidget()->width();
-        _renderTargetSize.h = Application::getInstance()->getGLWidget()->height();
+        _eyeRenderDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
+        _eyeRenderDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
+
+        //_renderTargetSize.w = Application::getInstance()->getGLWidget()->width();
+        //_renderTargetSize.h = Application::getInstance()->getGLWidget()->height();
+
+        ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence | ovrHmdCap_LatencyTest);
 
         ovrHmd_StartSensor(_ovrHmd, ovrSensorCap_Orientation | ovrSensorCap_YawCorrection |
                            ovrSensorCap_Position,
@@ -150,10 +156,6 @@ void OculusManager::generateDistortionMesh() {
         return;
     }
 
-    ovrEyeRenderDesc eyeDesc[ovrEye_Count];
-    eyeDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
-    eyeDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
-
     _eyeRenderViewport[0].Pos = Vector2i(0, 0);
     _eyeRenderViewport[0].Size = Sizei(_renderTargetSize.w / 2, _renderTargetSize.h);
     _eyeRenderViewport[1].Pos = Vector2i((_renderTargetSize.w + 1) / 2, 0);
@@ -162,9 +164,9 @@ void OculusManager::generateDistortionMesh() {
     for (int eyeNum = 0; eyeNum < ovrEye_Count; eyeNum++) {
         // Allocate and generate distortion mesh vertices
         ovrDistortionMesh meshData;
-        ovrHmd_CreateDistortionMesh(_ovrHmd, eyeDesc[eyeNum].Eye, eyeDesc[eyeNum].Fov, _ovrHmdDesc.DistortionCaps, &meshData);
+        ovrHmd_CreateDistortionMesh(_ovrHmd, _eyeRenderDesc[eyeNum].Eye, _eyeRenderDesc[eyeNum].Fov, _ovrHmdDesc.DistortionCaps, &meshData);
         
-        ovrHmd_GetRenderScaleAndOffset(eyeDesc[eyeNum].Fov, _renderTargetSize, _eyeRenderViewport[eyeNum],
+        ovrHmd_GetRenderScaleAndOffset(_eyeRenderDesc[eyeNum].Fov, _renderTargetSize, _eyeRenderViewport[eyeNum],
                                        _UVScaleOffset[eyeNum]);
 
         // Parse the vertex data and create a render ready vertex buffer
@@ -266,9 +268,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
         return;
     }
 
-    ovrEyeRenderDesc eyeDesc[ovrEye_Count];
-    eyeDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
-    eyeDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
     ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
 
     // We only need to render the overlays to a texture once, then we just render the texture as a quad
@@ -296,6 +295,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
   
     glm::quat orientation;
 
+    //Render each eye into an fbo
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++) {
 
         ovrEyeType eye = _ovrHmdDesc.EyeRenderOrder[eyeIndex];
@@ -309,7 +309,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
         _camera->setTargetRotation(orientation * bodyOrientation);
         _camera->update(1.0f / Application::getInstance()->getFps());
 
-        Matrix4f proj = ovrMatrix4f_Projection(eyeDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);
+        Matrix4f proj = ovrMatrix4f_Projection(_eyeRenderDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);
         proj.Transpose();
 
         glMatrixMode(GL_PROJECTION);
@@ -323,7 +323,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        glTranslatef(eyeDesc[eye].ViewAdjust.x, eyeDesc[eye].ViewAdjust.y, eyeDesc[eye].ViewAdjust.z);
+        glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
 
         Application::getInstance()->displaySide(*_camera);
 
@@ -424,8 +424,18 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
         ovrPosef pose = ss.Predicted.Pose;
         Quatf orientation = Quatf(pose.Orientation);
         orientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
-        printf("%f %f %f\n", yaw, pitch, roll);
     }
+#endif
+}
+
+QSize OculusManager::getRenderTargetSize() {
+#ifdef HAVE_LIBOVR
+    QSize rv;
+    rv.setWidth(_renderTargetSize.w);
+    rv.setHeight(_renderTargetSize.h);
+    return rv;
+#else
+    return QSize(100, 100);
 #endif
 }
 

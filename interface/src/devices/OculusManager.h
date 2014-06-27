@@ -40,6 +40,7 @@ public:
     /// param \pitch[out] pitch in radians
     /// param \roll[out] roll in radians
     static void getEulerAngles(float& yaw, float& pitch, float& roll);
+    static QSize getRenderTargetSize();
     
 private:
     static void generateDistortionMesh();
@@ -77,6 +78,7 @@ private:
     static ovrHmd _ovrHmd;
     static ovrHmdDesc _ovrHmdDesc;
     static ovrFovPort _eyeFov[ovrEye_Count];
+    static ovrEyeRenderDesc _eyeRenderDesc[ovrEye_Count];
     static ovrSizei _renderTargetSize;
     static ovrVector2f _UVScaleOffset[ovrEye_Count][2];
     static GLuint _vertices[ovrEye_Count];
