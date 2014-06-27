@@ -46,6 +46,7 @@ var avatarOldPosition = { x: 0, y: 0, z: 0 };
 var sitting = false;
 
 var seat = new Object();
+var hiddingSeats = false;
 
 // This is the pose we would like to end up
 var pose = [
@@ -116,6 +117,7 @@ var goToSeatAnimation = function(deltaTime) {
     } else {
         Script.update.disconnect(goToSeatAnimation);
         sitDown();
+        showIndicators(false);
     }
 }
 
@@ -277,6 +279,10 @@ function update(deltaTime){
                 addIndicators(model);
             }
         }
+        
+        if (hiddingSeats && passedTime >= animationLenght) {
+            showIndicators(true);
+        }
     }
 }
 
@@ -298,6 +304,16 @@ function removeIndicators(modelID) {
         modelID.properties.sittingPoints[i].indicator.cleanup();
     }
     delete models[modelID.id];
+}
+
+function showIndicators(doShow) {
+    for (model in models) {
+        var modelID = models[model];
+        for (var i = 0; i < modelID.properties.sittingPoints.length; ++i) {
+            modelID.properties.sittingPoints[i].indicator.show(doShow);
+        }
+    }
+    hiddingSeats = !doShow;
 }
 
 function raySphereIntersection(origin, direction, center, radius) {
