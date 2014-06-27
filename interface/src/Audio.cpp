@@ -672,7 +672,7 @@ void Audio::handleAudioInput() {
             currentPacketPtr += sizeof(headOrientation);
             
             nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
-printf("avatar audio sent %d\n", _outgoingAvatarAudioSequenceNumber);
+//printf("avatar audio sent %d\n", _outgoingAvatarAudioSequenceNumber);
             _outgoingAvatarAudioSequenceNumber++;
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
@@ -836,7 +836,7 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     const char* sequenceAt = audioByteArray.constData() + numBytesPacketHeader;
     quint16 sequence = *((quint16*)sequenceAt);
     _incomingMixedAudioSequenceNumberStats.sequenceNumberReceived(sequence, senderUUID);
-printf("mixed audio received %d\n", sequence);
+printf("\nmixed audio received %d\n", sequence);
 
     // parse audio data
     _ringBuffer.parseData(audioByteArray);
@@ -844,16 +844,22 @@ printf("mixed audio received %d\n", sequence);
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
     
+printf("parse data: ring buffer now has %d samples\n", _ringBuffer.samplesAvailable());
+
     if (!_ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
         // we don't have any audio data left in the output buffer
         // we just starved
         //qDebug() << "Audio output just starved.";
         _ringBuffer.setIsStarved(true);
         _numFramesDisplayStarve = 10;
+
+printf("ring buffer just starved!\n");
     }
     
     // if there is anything in the ring buffer, decide what to do
     if (_ringBuffer.samplesAvailable() > 0) {
+
+
         
         int numNetworkOutputSamples = _ringBuffer.samplesAvailable();
         int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
@@ -861,11 +867,14 @@ printf("mixed audio received %d\n", sequence);
         QByteArray outputBuffer;
         outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
         
-        int numSamplesNeededToStartPlayback = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2);
+        int numSamplesNeededToStartPlayback = (_jitterBufferSamples * 2);// + NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
         
         if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
             //  We are still waiting for enough samples to begin playback
             // qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
+
+printf("MIX DELAYED: waiting for ring buffer to refill to %d samples after starve\n", numSamplesNeededToStartPlayback);
+
         } else {
             //  We are either already playing back, or we have enough audio to start playing back.
             //qDebug() << "pushing " << numNetworkOutputSamples;
@@ -878,6 +887,8 @@ printf("mixed audio received %d\n", sequence);
                 buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
 
                 _ringBuffer.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
+printf("mixed.  %d samples remaining\n", _ringBuffer.samplesAvailable());
+
                 // Accumulate direct transmission of audio from sender to receiver
                 if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
                     emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
@@ -897,6 +908,7 @@ printf("mixed audio received %d\n", sequence);
                 // copy the samples we'll resample from the ring buffer - this also
                 // pushes the read pointer of the ring buffer forwards
                 _ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
+printf("mixed.  %d samples remaining\n", _ringBuffer.samplesAvailable());
             }
 
             // copy the packet from the RB to the output
