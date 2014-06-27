@@ -589,8 +589,9 @@ EntityItemID EntityItem::readEntityItemIDFromBuffer(const unsigned char* data, i
     EntityItemID result;
     if (bytesLeftToRead >= sizeof(uint32_t)) {
         // id
-        uint32_t id;
-        memcpy(&id, data, sizeof(id));
+        QByteArray encodedID((const char*)data, bytesLeftToRead);
+        ByteCountCoded<quint32> idCoder = encodedID;
+        quint32 id = idCoder;
         result.id = id;
         result.isKnownID = true;
         result.creatorTokenID = UNKNOWN_MODEL_TOKEN;
