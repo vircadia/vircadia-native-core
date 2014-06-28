@@ -66,8 +66,7 @@ void AudioInjector::injectAudio() {
         packetStream << (quint16)0;
 
         // pack stream identifier (a generated UUID)
-QUuid streamID;
-        packetStream << (streamID = QUuid::createUuid());
+        packetStream << QUuid::createUuid();
         
         // pack the flag for loopback
         uchar loopbackFlag = (uchar) (!_options.getLoopbackAudioInterface());
@@ -118,7 +117,6 @@ QUuid streamID;
             
             // send off this audio packet
             nodeList->writeDatagram(injectAudioPacket, audioMixer);
-printf("injector stream %s sent seq %d\n", streamID.toString().toLatin1().data(), outgoingInjectedAudioSequenceNumber);
             outgoingInjectedAudioSequenceNumber++;
             
             currentSendPosition += bytesToCopy;

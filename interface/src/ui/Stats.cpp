@@ -299,7 +299,7 @@ void Stats::display(
                 (float) audio->getNetworkSampleRate() * 1000.f);
         drawText(30, glWidget->height() - 22, scale, rotation, font, audioJitter, color);
         
-                 
+        
         char audioPing[30];
         sprintf(audioPing, "Audio ping: %d", pingAudio);
                  

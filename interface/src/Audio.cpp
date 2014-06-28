@@ -676,9 +676,6 @@ void Audio::handleAudioInput() {
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(numAudioBytes + leadingBytes);
-        } else {
-            // reset seq numbers if there's no connection with an audiomixer
-            _outgoingAvatarAudioSequenceNumber = 0;
         }
         delete[] inputAudioSamples;
     }
@@ -852,8 +849,6 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     
     // if there is anything in the ring buffer, decide what to do
     if (_ringBuffer.samplesAvailable() > 0) {
-
-
         
         int numNetworkOutputSamples = _ringBuffer.samplesAvailable();
         int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
