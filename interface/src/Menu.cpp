@@ -108,9 +108,9 @@ Menu::Menu() :
     _fastFPSAverage(ONE_SECOND_OF_FRAMES),
     _loginAction(NULL),
     _preferencesDialog(NULL),
-    _scriptsLocation(),
     _loginDialog(NULL),
-    _snapshotsLocation()
+    _snapshotsLocation(),
+    _scriptsLocation()
 {
     Application *appInstance = Application::getInstance();
 

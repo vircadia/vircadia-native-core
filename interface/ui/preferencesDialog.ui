@@ -902,7 +902,7 @@ padding: 10px;margin-top:10px</string>
       </widget>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_11">
+      <layout class="QHBoxLayout" name="horizontalLayout_111">
        <property name="spacing">
         <number>0</number>
        </property>
@@ -937,7 +937,7 @@ padding: 10px;margin-top:10px</string>
         </widget>
        </item>
        <item>
-        <spacer name="horizontalSpacer_11">
+        <spacer name="horizontalSpacer_111">
          <property name="font">
           <font>
            <family>Arial</family>
