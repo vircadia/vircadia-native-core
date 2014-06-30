@@ -149,7 +149,6 @@ void SequenceNumberStatsTests::duplicateTest() {
             }
 
             // skip 10
-            quint16 skipped = seq;
             seq = seq + (quint16)10;
 
 
@@ -214,7 +213,6 @@ void SequenceNumberStatsTests::pruneTest() {
     int numSent = 0;
 
     int numEarly = 0;
-    int numLate = 0;
     int numLost = 0;
 
     for (int R = 0; R < 2; R++) {

@@ -21,10 +21,6 @@
 #include "OctreeSceneStats.h"
 
 
-const uint16_t MAX_MISSING_SEQUENCE = 100; /// how many items in our _missingSequenceNumbers before we start to prune them
-const uint16_t MAX_MISSING_SEQUENCE_OLD_AGE = 1000; /// age we allow items in _missingSequenceNumbers to be before pruning
-
-
 const int samples = 100;
 OctreeSceneStats::OctreeSceneStats() : 
     _isReadyToSend(false),

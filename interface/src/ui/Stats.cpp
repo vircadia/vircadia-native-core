@@ -327,8 +327,8 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
 
-            char* audioMixerJitterBuffersStatsLabel = "AudioMixer stream stats:";
-            char* audioMixerJitterBuffersStatsLabel2 = "early/late/lost, jframes";
+            char audioMixerJitterBuffersStatsLabel[] = "AudioMixer stream stats:";
+            char audioMixerJitterBuffersStatsLabel2[] = "early/late/lost, jframes";
             
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStatsLabel, color);
