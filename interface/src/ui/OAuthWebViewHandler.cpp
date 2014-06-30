@@ -109,6 +109,8 @@ void OAuthWebViewHandler::displayWebviewForAuthorizationURL(const QUrl& authoriz
         
         connect(_activeWebView->page()->networkAccessManager(), &QNetworkAccessManager::sslErrors,
                 this, &OAuthWebViewHandler::handleSSLErrors);
+        connect(_activeWebView->page()->networkAccessManager(), &QNetworkAccessManager::finished,
+                this, &OAuthWebViewHandler::handleReplyFinished);
         connect(_activeWebView.data(), &QWebView::loadFinished, this, &OAuthWebViewHandler::handleLoadFinished);
         
         // connect to the destroyed signal so after the web view closes we can start a timer
@@ -132,6 +134,14 @@ void OAuthWebViewHandler::handleLoadFinished(bool success) {
         NodeList::getInstance()->setSessionUUID(QUuid(authQuery.queryItemValue(AUTH_STATE_QUERY_KEY)));
         
         _activeWebView->close();
+        _activeWebView = NULL;
+    }
+}
+
+void OAuthWebViewHandler::handleReplyFinished(QNetworkReply* reply) {
+    if (_activeWebView && reply->error() != QNetworkReply::NoError) {
+        qDebug() << "Error loading" << reply->url() << "-" << reply->errorString();
+        _activeWebView->close();
     }
 }
 
@@ -148,6 +158,7 @@ void OAuthWebViewHandler::handleURLChanged(const QUrl& url) {
         _activeWebView->show();
     } else if (url.toString() == DEFAULT_NODE_AUTH_URL.toString() + "/login") {
         // this is a login request - we're going to close the webview and signal the AccountManager that we need a login
+        qDebug() << "data-server replied with login request. Signalling that login is required to proceed with OAuth.";
         _activeWebView->close();
         AccountManager::getInstance().checkAndSignalForAccessToken();        
     }

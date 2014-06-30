@@ -222,8 +222,6 @@ void Agent::run() {
     
     loop.exec();
     
-    
-    
     // let the AvatarData and ResourceCache classes use our QNetworkAccessManager
     AvatarData::setNetworkAccessManager(networkManager);
     ResourceCache::setNetworkAccessManager(networkManager);

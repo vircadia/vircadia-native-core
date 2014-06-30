@@ -195,6 +195,8 @@ function keyReleaseEvent(event) {
     }
 }
 
+
+
 function mousePressEvent(event) {
     if (alt && !isActive) {
         mouseLastX = event.x;
