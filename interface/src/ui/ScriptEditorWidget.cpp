@@ -28,7 +28,8 @@
 
 ScriptEditorWidget::ScriptEditorWidget() :
     _scriptEditorWidgetUI(new Ui::ScriptEditorWidget),
-    _scriptEngine(NULL)
+    _scriptEngine(NULL),
+    _isRestarting(false)
 {
     _scriptEditorWidgetUI->setupUi(this);
 
@@ -52,14 +53,22 @@ ScriptEditorWidget::~ScriptEditorWidget() {
 
 void ScriptEditorWidget::onScriptModified() {
     if(_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isRunning()) {
+        _isRestarting = true;
         setRunning(false);
-        setRunning(true);
+        // Script is restarted once current script instance finishes.
     }
 }
 
 void ScriptEditorWidget::onScriptEnding() {
     // signals will automatically be disonnected when the _scriptEngine is deleted later
     _scriptEngine = NULL;
+}
+
+void ScriptEditorWidget::onScriptFinished(const QString& scriptPath) {
+    if (_isRestarting) {
+        _isRestarting = false;
+        setRunning(true);
+    }
 }
 
 bool ScriptEditorWidget::isModified() {
@@ -93,6 +102,7 @@ bool ScriptEditorWidget::setRunning(bool run) {
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
         connect(_scriptEngine, &ScriptEngine::scriptEnding, this, &ScriptEditorWidget::onScriptEnding);
     } else {
+        connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
         Application::getInstance()->stopScript(_currentScript);
         _scriptEngine = NULL;
     }

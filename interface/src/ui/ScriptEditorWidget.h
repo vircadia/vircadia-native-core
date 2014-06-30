@@ -47,11 +47,13 @@ private slots:
     void onScriptPrint(const QString& message);
     void onScriptModified();
     void onScriptEnding();
+    void onScriptFinished(const QString& scriptName);
 
 private:
     Ui::ScriptEditorWidget* _scriptEditorWidgetUI;
     ScriptEngine* _scriptEngine;
     QString _currentScript;
+    bool _isRestarting;
 };
 
 #endif // hifi_ScriptEditorWidget_h
