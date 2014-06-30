@@ -68,7 +68,6 @@
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
-#include "UserActivityLogger.h"
 #include "Util.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
@@ -848,15 +847,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_Space:
-                
-                UserActivityLogger::getInstance().login();
-                break;
                 resetSensors();
                 break;
 
             case Qt::Key_G:
-                UserActivityLogger::getInstance().logout();
-                break;
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::ObeyEnvironmentalGravity);
                 }
