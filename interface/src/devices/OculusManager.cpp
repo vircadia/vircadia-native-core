@@ -333,9 +333,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
   
     //Bind the output texture from the glow shader
-   // QOpenGLFramebufferObject* fbo = Application::getInstance()->getGlowEffect()->render(true);
-    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->release();
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->texture());
+    QOpenGLFramebufferObject* fbo = Application::getInstance()->getGlowEffect()->render(true);
+    glBindTexture(GL_TEXTURE_2D, fbo->texture());
 
     // restore our normal viewport
     glViewport(0, 0, Application::getInstance()->getGLWidget()->width(), Application::getInstance()->getGLWidget()->height());
