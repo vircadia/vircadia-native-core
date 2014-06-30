@@ -652,7 +652,7 @@ TestEndpoint::TestEndpoint(Mode mode) :
         SLOT(handleHighPriorityMessage(const QVariant&)));
     
     if (mode == METAVOXEL_CLIENT_MODE) {
-        _lod = MetavoxelLOD(glm::vec3(), 0.001f);
+        _lod = MetavoxelLOD(glm::vec3(), 0.01f);
         return;
     }
     if (mode == METAVOXEL_SERVER_MODE) {
