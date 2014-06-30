@@ -15,9 +15,8 @@
 
 #ifdef HAVE_LIBOVR
 #include <OVR.h>
-#endif
-
 #include "../src/Util/Util_Render_Stereo.h"
+#endif
 
 #include "renderer/ProgramObject.h"
 
@@ -44,6 +43,7 @@ public:
     static QSize getRenderTargetSize();
     
 private:
+#ifdef HAVE_LIBOVR
     static void generateDistortionMesh();
     static void renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]);
 
@@ -76,7 +76,6 @@ private:
 
     static bool _isConnected;
     
-#ifdef HAVE_LIBOVR
     static ovrHmd _ovrHmd;
     static ovrHmdDesc _ovrHmdDesc;
     static ovrFovPort _eyeFov[ovrEye_Count];

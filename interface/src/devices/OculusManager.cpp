@@ -20,6 +20,8 @@
 
 #include "Application.h"
 
+#ifdef HAVE_LIBOVR
+
 using namespace OVR;
 
 ProgramObject OculusManager::_program;
@@ -34,8 +36,6 @@ int OculusManager::_texCoord0AttributeLocation;
 int OculusManager::_texCoord1AttributeLocation;
 int OculusManager::_texCoord2AttributeLocation;
 bool OculusManager::_isConnected = false;
-
-#ifdef HAVE_LIBOVR
 
 ovrHmd OculusManager::_ovrHmd;
 ovrHmdDesc OculusManager::_ovrHmdDesc;
@@ -127,6 +127,7 @@ void OculusManager::connect() {
 
 //Disconnects and deallocates the OR
 void OculusManager::disconnect() {
+#ifdef HAVE_LIBOVR
     if (_isConnected) {
         _isConnected = false;
         ovrHmd_Destroy(_ovrHmd);
@@ -144,10 +145,12 @@ void OculusManager::disconnect() {
             }
         }
     }
+#endif
 }
 
-void OculusManager::generateDistortionMesh() {
 #ifdef HAVE_LIBOVR
+void OculusManager::generateDistortionMesh() {
+
     //Check if we already have the distortion mesh
     if (_vertices[0] != 0) {
         printf("WARNING: Tried to generate Oculus distortion mesh twice without freeing the VBOs.");
@@ -206,8 +209,9 @@ void OculusManager::generateDistortionMesh() {
         OVR_FREE(pVBVerts);
         ovrHmd_DestroyDistortionMesh(&meshData);
     }
-#endif
+
 }
+#endif
 
 bool OculusManager::isConnected() {
 #ifdef HAVE_LIBOVR
@@ -347,6 +351,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 #endif
 }
 
+#ifdef HAVE_LIBOVR
 void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
     glLoadIdentity();
@@ -409,6 +414,7 @@ void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
     _program.release();
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
+#endif
 
 //Tries to reconnect to the sensors
 void OculusManager::reset() {
