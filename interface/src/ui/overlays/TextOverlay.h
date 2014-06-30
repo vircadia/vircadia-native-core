@@ -55,6 +55,7 @@ public:
 private:
 
     QString _text;
+    xColor _backgroundColor;
     int _leftMargin;
     int _topMargin;
     int _fontSize;
