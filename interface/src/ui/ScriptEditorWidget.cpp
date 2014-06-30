@@ -29,8 +29,11 @@
 ScriptEditorWidget::ScriptEditorWidget() :
     _scriptEditorWidgetUI(new Ui::ScriptEditorWidget),
     _scriptEngine(NULL),
-    _isRestarting(false)
+    _isRestarting(false),
+    _isReloading(false)
 {
+    setAttribute(Qt::WA_DeleteOnClose);
+
     _scriptEditorWidgetUI->setupUi(this);
 
     connect(_scriptEditorWidgetUI->scriptEdit->document(), &QTextDocument::modificationChanged, this,
@@ -52,7 +55,7 @@ ScriptEditorWidget::~ScriptEditorWidget() {
 }
 
 void ScriptEditorWidget::onScriptModified() {
-    if(_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isModified() && isRunning()) {
+    if(_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isModified() && isRunning() && !_isReloading) {
         _isRestarting = true;
         setRunning(false);
         // Script is restarted once current script instance finishes.
@@ -76,7 +79,7 @@ bool ScriptEditorWidget::isRunning() {
 }
 
 bool ScriptEditorWidget::setRunning(bool run) {
-    if (run && !save()) {
+    if (run && isModified() && !save()) {
         return false;
     }
 
@@ -114,13 +117,14 @@ bool ScriptEditorWidget::saveFile(const QString &scriptPath) {
 
      QTextStream out(&file);
      out << _scriptEditorWidgetUI->scriptEdit->toPlainText();
+     file.close();
 
      setScriptFile(scriptPath);
      return true;
 }
 
 void ScriptEditorWidget::loadFile(const QString& scriptPath) {
-     QUrl url(scriptPath);
+    QUrl url(scriptPath);
 
     // if the scheme length is one or lower, maybe they typed in a file, let's try
     const int WINDOWS_DRIVE_LETTER_SIZE = 1;
@@ -133,6 +137,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         }
         QTextStream in(&file);
         _scriptEditorWidgetUI->scriptEdit->setPlainText(in.readAll());
+        file.close();
         setScriptFile(scriptPath);
 
         if (_scriptEngine != NULL) {
@@ -184,6 +189,7 @@ bool ScriptEditorWidget::saveAs() {
 
 void ScriptEditorWidget::setScriptFile(const QString& scriptPath) {
     _currentScript = scriptPath;
+    _currentScriptModified = QFileInfo(_currentScript).lastModified();
     _scriptEditorWidgetUI->scriptEdit->document()->setModified(false);
     setWindowModified(false);
 
@@ -206,4 +212,29 @@ void ScriptEditorWidget::onScriptError(const QString& message) {
 
 void ScriptEditorWidget::onScriptPrint(const QString& message) {
     _scriptEditorWidgetUI->debugText->appendPlainText("> " + message);
+}
+
+void ScriptEditorWidget::onWindowActivated() {
+    if (!_isReloading) {
+        _isReloading = true;
+        
+        if (QFileInfo(_currentScript).lastModified() > _currentScriptModified) {
+            if (QMessageBox::warning(this, _currentScript,
+                tr("This file has been modified outside of the Interface editor.") + "\n\n"
+                    +(isModified()
+                    ? tr("Do you want to reload it and lose the changes you've made in the Interface editor?")
+                    : tr("Do you want to reload it?")),
+                QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+                loadFile(_currentScript);
+                if (_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isRunning()) {
+                    _isRestarting = true;
+                    setRunning(false);
+                    // Script is restarted once current script instance finishes.
+                }
+
+            }
+        }
+
+        _isReloading = false;
+    }
 }

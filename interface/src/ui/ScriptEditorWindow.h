@@ -27,8 +27,12 @@ public:
 
     void terminateCurrentTab();
 
+signals:
+    void windowActivated();
+
 protected:
     void closeEvent(QCloseEvent* event);
+    virtual bool event(QEvent* event);
 
 private:
     Ui::ScriptEditorWindow* _ScriptEditorWindowUI;
