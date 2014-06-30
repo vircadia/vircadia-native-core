@@ -84,7 +84,8 @@ bool ScriptEditorWidget::setRunning(bool run) {
     }
 
     if (run) {
-        _scriptEngine = Application::getInstance()->loadScript(_currentScript, true);
+        const QString& scriptURLString = QUrl(_currentScript).toString();
+        _scriptEngine = Application::getInstance()->loadScript(scriptURLString, true);
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
 
         // Make new connections.
@@ -148,7 +149,8 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         }
     }
 
-    _scriptEngine = Application::getInstance()->getScriptEngine(_currentScript);
+    const QString& scriptURLString = QUrl(_currentScript).toString();
+    _scriptEngine = Application::getInstance()->getScriptEngine(scriptURLString);
     if (_scriptEngine != NULL) {
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
