@@ -236,7 +236,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
         int desiredJitterBuffer = avatarRingBuffer->getDesiredJitterBufferFrames();
         int calculatedJitterBuffer = avatarRingBuffer->getCalculatedDesiredJitterBufferFrames();
         int currentJitterBuffer = avatarRingBuffer->getCurrentJitterBufferFrames();
-        int resetCount = avatarRingBuffer->getResetCount();
+        int overflowCount = avatarRingBuffer->getOverflowCount();
         int samplesAvailable = avatarRingBuffer->samplesAvailable();
         int framesAvailable = (samplesAvailable / avatarRingBuffer->getSamplesPerFrame());
         result += "mic.desired:" + QString::number(desiredJitterBuffer) 
@@ -244,7 +244,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
                     + " current:" + QString::number(currentJitterBuffer)
                     + " available:" + QString::number(framesAvailable)
                     + " samples:" + QString::number(samplesAvailable)
-                    + " resets:" + QString::number(resetCount);
+                    + " overflows:" + QString::number(overflowCount);
     } else {
         result = "mic unknown";
     }
@@ -254,7 +254,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
             int desiredJitterBuffer = _ringBuffers[i]->getDesiredJitterBufferFrames();
             int calculatedJitterBuffer = _ringBuffers[i]->getCalculatedDesiredJitterBufferFrames();
             int currentJitterBuffer = _ringBuffers[i]->getCurrentJitterBufferFrames();
-            int resetCount = _ringBuffers[i]->getResetCount();
+            int overflowCount = _ringBuffers[i]->getOverflowCount();
             int samplesAvailable = _ringBuffers[i]->samplesAvailable();
             int framesAvailable = (samplesAvailable / _ringBuffers[i]->getSamplesPerFrame());
             getAudioStreamStatsOfStream(_ringBuffers[i], streamStats);
@@ -263,7 +263,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
                 + " current:" + QString::number(currentJitterBuffer)
                 + " available:" + QString::number(framesAvailable)
                 + " samples:" + QString::number(samplesAvailable)
-                + " resets:" + QString::number(resetCount)
+                + " overflows:" + QString::number(overflowCount)
                 + " early:" + QString::number(streamStats._packetsEarly)
                 + " late:" + QString::number(streamStats._packetsLate)
                 + " lost:" + QString::number(streamStats._packetsLost);

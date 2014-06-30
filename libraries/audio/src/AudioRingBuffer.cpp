@@ -21,7 +21,7 @@
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
     NodeData(),
-    _resetCount(0),
+    _overflowCount(0),
     _sampleCapacity(numFrameSamples * RING_BUFFER_LENGTH_FRAMES),
     _numFrameSamples(numFrameSamples),
     _isStarved(true),
