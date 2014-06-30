@@ -39,7 +39,6 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
     }
 
     clearShapes();
-    clearRagdollConstraintsAndPoints();
     if (_enableShapes) {
         buildShapes();
     }
