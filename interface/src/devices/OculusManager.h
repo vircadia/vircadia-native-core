@@ -33,7 +33,7 @@ public:
     static void beginFrameTiming();
     static void endFrameTiming();
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
-    static void display(const glm::quat &bodyOrientation, Camera& whichCamera);
+    static void display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera);
     static void reset();
     
     /// param \yaw[out] yaw in radians
@@ -44,6 +44,7 @@ public:
     
 private:
     static void generateDistortionMesh();
+    static void renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]);
 
     struct DistortionVertex {
         glm::vec2 pos;

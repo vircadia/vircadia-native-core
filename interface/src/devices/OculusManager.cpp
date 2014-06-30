@@ -81,9 +81,6 @@ void OculusManager::connect() {
         _eyeRenderDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
         _eyeRenderDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
 
-        //_renderTargetSize.w = Application::getInstance()->getGLWidget()->width();
-        //_renderTargetSize.h = Application::getInstance()->getGLWidget()->height();
-
         ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence | ovrHmdCap_LatencyTest);
 
         ovrHmd_StartSensor(_ovrHmd, ovrSensorCap_Orientation | ovrSensorCap_YawCorrection |
@@ -260,7 +257,7 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
 }
 
 //Displays everything for the oculus, frame timing must be active
-void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamera) {
+void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
 #ifdef HAVE_LIBOVR
     //beginFrameTiming must be called before display
     if (!_frameTimingActive) {
@@ -280,12 +277,19 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
     ovrPosef eyeRenderPose[ovrEye_Count];
 
     _camera->setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-    _camera->setTargetPosition(whichCamera.getPosition());
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::AllowOculusCameraModeChange) || whichCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        _camera->setDistance(0.0f);
-    }
+    _camera->setDistance(0.0f);
     _camera->setUpShift(0.0f);
-    _camera->setTightness(0.0f);     //  Cam
+
+    glm::quat additionalRotation;
+
+   // if (_camera->getMode() == CAMERA_MODE_THIRD_PERSON) {
+   ////     _camera->setTargetPosition(_myAvatar->getUprightHeadPosition());
+   ////     _camera->setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
+
+   // } else if (_camera->getMode() == CAMERA_MODE_MIRROR) {
+   //     _camera->setDistance(MIRROR_FULLSCREEN_DISTANCE);
+   //     additionalRotation = glm::quat(glm::vec3(0.0f, PI, 0.0f));
+   // }
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -294,6 +298,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
     glPushMatrix();
   
     glm::quat orientation;
+    glm::vec3 positionOffset;
 
     //Render each eye into an fbo
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++) {
@@ -306,7 +311,12 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
         orientation.y = eyeRenderPose[eye].Orientation.y;
         orientation.z = eyeRenderPose[eye].Orientation.z;
         orientation.w = eyeRenderPose[eye].Orientation.w;
-        _camera->setTargetRotation(orientation * bodyOrientation);
+       
+        const float OCULUS_POSITION_SCALE = 0.2;
+        positionOffset = bodyOrientation * orientation * glm::vec3(eyeRenderPose[eye].Position.x, eyeRenderPose[eye].Position.y, eyeRenderPose[eye].Position.z) * OCULUS_POSITION_SCALE;
+
+        _camera->setTargetRotation(additionalRotation * bodyOrientation * orientation);
+        _camera->setTargetPosition(position);
         _camera->update(1.0f / Application::getInstance()->getFps());
 
         Matrix4f proj = ovrMatrix4f_Projection(_eyeRenderDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);
@@ -315,8 +325,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glLoadMatrixf((GLfloat *)proj.M);
-        
-        printf("%d %d\n", _renderTargetSize.w, _renderTargetSize.h);
 
         glViewport(_eyeRenderViewport[eye].Pos.x, _eyeRenderViewport[eye].Pos.y,
                    _eyeRenderViewport[eye].Size.w, _eyeRenderViewport[eye].Size.h);
@@ -337,36 +345,51 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
 
     glPopMatrix();
 
+    //Full texture viewport for glow effect
+    glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
+  
+    //Bind the output texture from the glow shader
+   // QOpenGLFramebufferObject* fbo = Application::getInstance()->getGlowEffect()->render(true);
+    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->release();
+    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->texture());
+
     // restore our normal viewport
     glViewport(0, 0, Application::getInstance()->getGLWidget()->width(), Application::getInstance()->getGLWidget()->height());
-
-    //Bind the output texture from the glow shader
-    QOpenGLFramebufferObject* fbo = Application::getInstance()->getGlowEffect()->render(true);
-    glBindTexture(GL_TEXTURE_2D, fbo->texture());
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
 
+    //Renders the distorted mesh onto the screen
+    renderDistortionMesh(eyeRenderPose);
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+#endif
+}
+
+void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
+
     glLoadIdentity();
     gluOrtho2D(0, Application::getInstance()->getGLWidget()->width(), 0, Application::getInstance()->getGLWidget()->height());
+
     glDisable(GL_DEPTH_TEST);
 
     glDisable(GL_BLEND);
     _program.bind();
     _program.setUniformValue(_textureLocation, 0);
-   
+
     _program.enableAttributeArray(_positionAttributeLocation);
     _program.enableAttributeArray(_colorAttributeLocation);
     _program.enableAttributeArray(_texCoord0AttributeLocation);
     _program.enableAttributeArray(_texCoord1AttributeLocation);
     _program.enableAttributeArray(_texCoord2AttributeLocation);
-    
+
     //Render the distortion meshes for each eye
     for (int eyeNum = 0; eyeNum < ovrEye_Count; eyeNum++) {
         GLfloat uvScale[2] = { _UVScaleOffset[eyeNum][0].x, _UVScaleOffset[eyeNum][0].y };
         _program.setUniformValueArray(_eyeToSourceUVScaleLocation, uvScale, 1, 2);
         GLfloat uvOffset[2] = { _UVScaleOffset[eyeNum][1].x, _UVScaleOffset[eyeNum][1].y };
-       _program.setUniformValueArray(_eyeToSourceUVOffsetLocation, uvOffset, 1, 2);
+        _program.setUniformValueArray(_eyeToSourceUVOffsetLocation, uvOffset, 1, 2);
 
         ovrMatrix4f timeWarpMatrices[2];
         Matrix4f transposeMatrices[2];
@@ -376,19 +399,19 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
 
         transposeMatrices[0].Transpose();
         transposeMatrices[1].Transpose();
-    
+
         glUniformMatrix4fv(_eyeRotationStartLocation, 1, GL_FALSE, (GLfloat *)transposeMatrices[0].M);
-      
+
         glUniformMatrix4fv(_eyeRotationEndLocation, 1, GL_FALSE, (GLfloat *)transposeMatrices[1].M);
-     
+
         glBindBuffer(GL_ARRAY_BUFFER, _vertices[eyeNum]);
-        
+
         glVertexAttribPointer(_positionAttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)0);
         glVertexAttribPointer(_texCoord0AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)8);
         glVertexAttribPointer(_texCoord1AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)16);
         glVertexAttribPointer(_texCoord2AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)24);
         glVertexAttribPointer(_colorAttributeLocation, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(DistortionVertex), (void *)32);
-     
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indices[eyeNum]);
         glDrawElements(GL_TRIANGLES, _meshSize[eyeNum], GL_UNSIGNED_SHORT, 0);
     }
@@ -398,13 +421,11 @@ void OculusManager::display(const glm::quat &bodyOrientation, Camera& whichCamer
     _program.disableAttributeArray(_texCoord0AttributeLocation);
     _program.disableAttributeArray(_texCoord1AttributeLocation);
     _program.disableAttributeArray(_texCoord2AttributeLocation);
-    
-    glEnable(GL_BLEND);           
+
+    glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
     _program.release();
-#endif
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 //Tries to reconnect to the sensors

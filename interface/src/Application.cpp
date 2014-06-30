@@ -582,8 +582,8 @@ void Application::paintGL() {
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
-        _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
@@ -592,17 +592,6 @@ void Application::paintGL() {
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-    }
-
-    if (OculusManager::isConnected()) {
-        // Oculus in third person causes nausea, so only allow it if option is checked in dev menu
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::AllowOculusCameraModeChange) || _myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-            _myCamera.setDistance(0.0f);
-            _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
-            _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
-        }
-        _myCamera.setUpShift(0.0f);
-        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
     }
 
     // Update camera position
@@ -638,7 +627,12 @@ void Application::paintGL() {
     }
 
     if (OculusManager::isConnected()) {
-        OculusManager::display(_myAvatar->getOrientation(), whichCamera);
+        //When in mirror mode, use camera rotation. Otherwise, use body rotation
+        if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+            OculusManager::display(whichCamera.getRotation(), whichCamera.getPosition(), whichCamera);
+        } else {
+            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), whichCamera.getPosition(), whichCamera);
+        }
 
     } else if (TV3DManager::isConnected()) {
         _glowEffect.prepare();
