@@ -228,7 +228,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     }
 }
 
-QString AudioMixerClientData::getJitterBufferStatsString() const {
+QString AudioMixerClientData::getAudioStreamStatsString() const {
     QString result;
     AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
     if (avatarRingBuffer) {
@@ -247,7 +247,7 @@ QString AudioMixerClientData::getJitterBufferStatsString() const {
     } else {
         result = "mic unknown";
     }
-    
+    AudioStreamStats streamStats;
     for (int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
             int desiredJitterBuffer = _ringBuffers[i]->getDesiredJitterBufferFrames();
@@ -256,12 +256,16 @@ QString AudioMixerClientData::getJitterBufferStatsString() const {
             int resetCount = _ringBuffers[i]->getResetCount();
             int samplesAvailable = _ringBuffers[i]->samplesAvailable();
             int framesAvailable = (samplesAvailable / _ringBuffers[i]->getSamplesPerFrame());
-            result += "| injected["+QString::number(i)+"].desired:" + QString::number(desiredJitterBuffer) 
-                    + " calculated:" + QString::number(calculatedJitterBuffer)
-                    + " current:" + QString::number(currentJitterBuffer)
-                    + " available:" + QString::number(framesAvailable)
-                    + " samples:" + QString::number(samplesAvailable)
-                    + " resets:" + QString::number(resetCount);
+            getAudioStreamStatsOfStream(_ringBuffers[i], streamStats);
+            result += "| injected[" + QString::number(i) + "].desired:" + QString::number(desiredJitterBuffer)
+                + " calculated:" + QString::number(calculatedJitterBuffer)
+                + " current:" + QString::number(currentJitterBuffer)
+                + " available:" + QString::number(framesAvailable)
+                + " samples:" + QString::number(samplesAvailable)
+                + " resets:" + QString::number(resetCount)
+                + " early:" + QString::number(streamStats._packetsEarly)
+                + " late:" + QString::number(streamStats._packetsLate)
+                + " lost:" + QString::number(streamStats._packetsLost);
         }
     }
     return result;

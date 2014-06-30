@@ -33,15 +33,12 @@ public:
     void pushBuffersAfterFrameSend();
 
     void getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer, AudioStreamStats& stats) const;
+    QString getAudioStreamStatsString() const;
     
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) const;
     
-    QString getJitterBufferStatsString() const;
-
     void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
-
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
-    //const SequenceNumberStats& getIncomingSequenceNumberStats() const { return _incomingSequenceNumberStats; }
 
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;

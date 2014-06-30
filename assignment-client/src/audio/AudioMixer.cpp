@@ -449,7 +449,7 @@ void AudioMixer::sendStatsPacket() {
         AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
             QString property = "jitterStats." + node->getUUID().toString();
-            QString value = clientData->getJitterBufferStatsString();
+            QString value = clientData->getAudioStreamStatsString();
             statsObject2[qPrintable(property)] = value;
             somethingToSend = true;
             sizeOfStats += property.size() + value.size();
