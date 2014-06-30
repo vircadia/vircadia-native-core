@@ -24,4 +24,8 @@ link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
+IF (WIN32)
+    target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
+ENDIF(WIN32)
+
 target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script)
