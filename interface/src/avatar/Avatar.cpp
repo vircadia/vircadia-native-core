@@ -574,8 +574,8 @@ void Avatar::initializeHair() {
         for (int link = 0; link < HAIR_LINKS; link++) {
             int vertexIndex = strand * HAIR_LINKS + link;
             //  Clear constraints
-            for (int link = 0; link < HAIR_MAX_CONSTRAINTS; link++) {
-                _hairConstraints[vertexIndex * HAIR_MAX_CONSTRAINTS + link] = -1;
+            for (int link2 = 0; link2 < HAIR_MAX_CONSTRAINTS; link2++) {
+                _hairConstraints[vertexIndex * HAIR_MAX_CONSTRAINTS + link2] = -1;
             }
             if (vertexIndex % HAIR_LINKS == 0) {
                 //  start of strand

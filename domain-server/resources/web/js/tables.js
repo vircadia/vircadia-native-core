@@ -1,4 +1,8 @@
 $(document).ready(function(){
+  // setup the underscore templates
+  var nodeTemplate = _.template($('#nodes-template').html());
+  var queuedTemplate = _.template($('#queued-template').html());
+  
   // setup a function to grab the assignments
   function getNodesAndAssignments() {
     $.getJSON("nodes.json", function(json){
@@ -29,40 +33,11 @@ $(document).ready(function(){
           }   
       });
       
-      nodesTableBody = "";
-      
-      $.each(json.nodes, function(index, data) {
-        nodesTableBody += "<tr>";
-        nodesTableBody += "<td>" + data.type + "</td>";
-        nodesTableBody += "<td><a href='stats/?uuid=" + data.uuid + "'>" + data.uuid + "</a></td>";
-        nodesTableBody += "<td>" + (data.pool ? data.pool : "") + "</td>";
-        nodesTableBody += "<td>" + data.public.ip + "<span class='port'>:" + data.public.port + "</span></td>";
-        nodesTableBody += "<td>" + data.local.ip + "<span class='port'>:" + data.local.port + "</span></td>";
-        
-        var uptimeSeconds = (Date.now() - data.wake_timestamp) / 1000;
-        nodesTableBody += "<td>" + uptimeSeconds.toLocaleString() + "</td>";
-        
-        nodesTableBody += "<td>" + (typeof data.pending_credits == 'number' ? data.pending_credits.toLocaleString() : 'N/A') + "</td>";
-        
-        nodesTableBody += "<td><span class='glyphicon glyphicon-remove' data-uuid=" + data.uuid + "></span></td>";
-        nodesTableBody += "</tr>";
-      });
-      
-      $('#nodes-table tbody').html(nodesTableBody);
+      $('#nodes-table tbody').html(nodeTemplate(json));
     });
     
     $.getJSON("assignments.json", function(json){      
-      queuedTableBody = "";
-        
-      $.each(json.queued, function (uuid, data) {
-        queuedTableBody += "<tr>";
-        queuedTableBody += "<td>" + data.type + "</td>";
-        queuedTableBody += "<td>" + uuid + "</td>";
-        queuedTableBody += "<td>" + (data.pool ? data.pool : "") + "</td>";
-        queuedTableBody += "</tr>";
-      });
-      
-      $('#assignments-table tbody').html(queuedTableBody);
+      $('#assignments-table tbody').html(queuedTemplate(json));
     });
   }
   
