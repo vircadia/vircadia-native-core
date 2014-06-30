@@ -156,7 +156,7 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
     }
 }
 
-void AudioMixerClientData::getJitterBuffersStats(AudioMixerJitterBuffersStats& stats) const {
+void AudioMixerClientData::getAudioStreamStats(AudioStreamStats& stats) const {
     int avatarJitterBufferFrames = 0;
     int maxJitterBufferFrames = 0;
     int sumJitterBufferFrames = 0;
@@ -185,10 +185,10 @@ int AudioMixerClientData::encodeAudioStreamStatsPacket(char* packet) const {
     char* dataAt = packet + numBytesPacketHeader;
 
     // pack jitter buffer stats
-    AudioMixerJitterBuffersStats jitterBufferStats;
-    getJitterBuffersStats(jitterBufferStats);
-    memcpy(dataAt, &jitterBufferStats, sizeof(AudioMixerJitterBuffersStats));
-    dataAt += sizeof(AudioMixerJitterBuffersStats);
+    AudioStreamStats stats;
+    getAudioStreamStats(stats);
+    memcpy(dataAt, &stats, sizeof(AudioStreamStats));
+    dataAt += sizeof(AudioStreamStats);
 
     return dataAt - packet;
 }

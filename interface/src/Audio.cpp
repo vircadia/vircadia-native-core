@@ -103,7 +103,7 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
-    _audioMixerJitterBufferStats(),
+    _audioMixerStreamStats(),
     _outgoingAvatarAudioSequenceNumber(0)
 {
     // clear the array of locally injected samples
@@ -721,8 +721,8 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
     const char* dataAt = packet.constData() + numBytesPacketHeader;
 
     // parse audio mixer jitter buffer stats
-    memcpy(&_audioMixerJitterBufferStats, dataAt, sizeof(AudioMixerJitterBuffersStats));
-    dataAt += sizeof(AudioMixerJitterBuffersStats);
+    memcpy(&_audioMixerStreamStats, dataAt, sizeof(AudioStreamStats));
+    dataAt += sizeof(AudioStreamStats);
 }
 
 // NOTE: numSamples is the total number of single channel samples, since callers will always call this with stereo

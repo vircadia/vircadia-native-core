@@ -32,7 +32,7 @@ public:
     void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
 
-    void getJitterBuffersStats(AudioMixerJitterBuffersStats& stats) const;
+    void getAudioStreamStats(AudioStreamStats& stats) const;
     
     int encodeAudioStreamStatsPacket(char* packet) const;
     

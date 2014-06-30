@@ -325,13 +325,13 @@ void Stats::display(
 
             static const float MSECS_PER_FRAME = (float)NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * (float)MSECS_PER_SECOND / (float)SAMPLE_RATE;
 
-            const AudioMixerJitterBuffersStats& audioMixerJitterBufferStats =
-                Application::getInstance()->getAudio()->getAudioMixerJitterBuffersStats();
+            const AudioStreamStats& audioMixerStreamStats =
+                Application::getInstance()->getAudio()->getAudioMixerStreamStats();
 
             char* audioMixerJitterBuffersStatsLabel = "AudioMixer j-buffers msecs:";
             char audioMixerJitterBuffersStats[30];
-            sprintf(audioMixerJitterBuffersStats, "mic/max/avg: %.1f / %.1f / %.1f", audioMixerJitterBufferStats._avatarJitterBufferFrames * MSECS_PER_FRAME,
-                audioMixerJitterBufferStats._maxJitterBufferFrames * MSECS_PER_FRAME, audioMixerJitterBufferStats._avgJitterBufferFrames * MSECS_PER_FRAME);
+            sprintf(audioMixerJitterBuffersStats, "mic/max/avg: %.1f / %.1f / %.1f", audioMixerStreamStats._avatarJitterBufferFrames * MSECS_PER_FRAME,
+                audioMixerStreamStats._maxJitterBufferFrames * MSECS_PER_FRAME, audioMixerStreamStats._avgJitterBufferFrames * MSECS_PER_FRAME);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStatsLabel, color);

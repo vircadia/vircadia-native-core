@@ -104,7 +104,7 @@ public slots:
     float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
 
-    const AudioMixerJitterBuffersStats& getAudioMixerJitterBuffersStats() const { return _audioMixerJitterBufferStats; }
+    const AudioStreamStats& getAudioMixerStreamStats() const { return _audioMixerStreamStats; }
 
 signals:
     bool muteToggled();
@@ -237,7 +237,7 @@ private:
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
 
-    AudioMixerJitterBuffersStats _audioMixerJitterBufferStats;
+    AudioStreamStats _audioMixerStreamStats;
 
     quint16 _outgoingAvatarAudioSequenceNumber;
     SequenceNumberStats _incomingMixedAudioSequenceNumberStats;

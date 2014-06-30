@@ -12,9 +12,9 @@
 #ifndef hifi_AudioStreamStats_h
 #define hifi_AudioStreamStats_h
 
-class AudioMixerJitterBuffersStats {
+class AudioStreamStats {
 public:
-    AudioMixerJitterBuffersStats()
+    AudioStreamStats()
         : _avatarJitterBufferFrames(0), _maxJitterBufferFrames(0), _avgJitterBufferFrames(0)
     {}
 
