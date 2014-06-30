@@ -157,13 +157,15 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
 }
 
 void AudioMixerClientData::getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer, AudioStreamStats& stats) const {
-    const SequenceNumberStats& streamSequenceNumberStats = stats._streamType == PositionalAudioRingBuffer::Injector
-                                                        ? _incomingAvatarAudioSequenceNumberStats
-                                                        : _incomingInjectedAudioSequenceNumberStatsMap[stats._streamIdentifier];
+    
+    SequenceNumberStats streamSequenceNumberStats;
 
     stats._streamType = ringBuffer->getType();
     if (stats._streamType == PositionalAudioRingBuffer::Injector) {
         stats._streamIdentifier = ((InjectedAudioRingBuffer*)ringBuffer)->getStreamIdentifier();
+        streamSequenceNumberStats = _incomingInjectedAudioSequenceNumberStatsMap.value(stats._streamIdentifier);
+    } else {
+        streamSequenceNumberStats = _incomingAvatarAudioSequenceNumberStats;
     }
     stats._jitterBufferFrames = ringBuffer->getCurrentJitterBufferFrames();
     
