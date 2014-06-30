@@ -52,7 +52,7 @@ ScriptEditorWidget::~ScriptEditorWidget() {
 }
 
 void ScriptEditorWidget::onScriptModified() {
-    if(_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isRunning()) {
+    if(_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isModified() && isRunning()) {
         _isRestarting = true;
         setRunning(false);
         // Script is restarted once current script instance finishes.
@@ -84,6 +84,7 @@ bool ScriptEditorWidget::setRunning(bool run) {
         disconnect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
+        disconnect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
         disconnect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     }
 
@@ -93,6 +94,7 @@ bool ScriptEditorWidget::setRunning(bool run) {
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
+        connect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     } else {
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
@@ -137,6 +139,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
             disconnect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
             disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
             disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
+            disconnect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
             disconnect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
         }
     } else {
@@ -158,6 +161,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
+        connect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     }
 }
