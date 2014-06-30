@@ -156,33 +156,33 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
     }
 }
 
-void AudioMixerClientData::getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer, AudioStreamStats& stats) const {
-    
+AudioStreamStats AudioMixerClientData::getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer) const {
+    AudioStreamStats streamStats;
     SequenceNumberStats streamSequenceNumberStats;
 
-    stats._streamType = ringBuffer->getType();
-    if (stats._streamType == PositionalAudioRingBuffer::Injector) {
-        stats._streamIdentifier = ((InjectedAudioRingBuffer*)ringBuffer)->getStreamIdentifier();
-        streamSequenceNumberStats = _incomingInjectedAudioSequenceNumberStatsMap.value(stats._streamIdentifier);
+    streamStats._streamType = ringBuffer->getType();
+    if (streamStats._streamType == PositionalAudioRingBuffer::Injector) {
+        streamStats._streamIdentifier = ((InjectedAudioRingBuffer*)ringBuffer)->getStreamIdentifier();
+        streamSequenceNumberStats = _incomingInjectedAudioSequenceNumberStatsMap.value(streamStats._streamIdentifier);
     } else {
         streamSequenceNumberStats = _incomingAvatarAudioSequenceNumberStats;
     }
-    stats._jitterBufferFrames = ringBuffer->getCurrentJitterBufferFrames();
+    streamStats._jitterBufferFrames = ringBuffer->getCurrentJitterBufferFrames();
     
-    stats._packetsReceived = streamSequenceNumberStats.getNumReceived();
-    stats._packetsUnreasonable = streamSequenceNumberStats.getNumUnreasonable();
-    stats._packetsEarly = streamSequenceNumberStats.getNumEarly();
-    stats._packetsLate = streamSequenceNumberStats.getNumLate();
-    stats._packetsLost = streamSequenceNumberStats.getNumLost();
-    stats._packetsRecovered = streamSequenceNumberStats.getNumRecovered();
-    stats._packetsDuplicate = streamSequenceNumberStats.getNumDuplicate();
+    streamStats._packetsReceived = streamSequenceNumberStats.getNumReceived();
+    streamStats._packetsUnreasonable = streamSequenceNumberStats.getNumUnreasonable();
+    streamStats._packetsEarly = streamSequenceNumberStats.getNumEarly();
+    streamStats._packetsLate = streamSequenceNumberStats.getNumLate();
+    streamStats._packetsLost = streamSequenceNumberStats.getNumLost();
+    streamStats._packetsRecovered = streamSequenceNumberStats.getNumRecovered();
+    streamStats._packetsDuplicate = streamSequenceNumberStats.getNumDuplicate();
+
+    return streamStats;
 }
 
 void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) const {
     
     char packet[MAX_PACKET_SIZE];
-    AudioStreamStats streamStats;
-
     NodeList* nodeList = NodeList::getInstance();
 
     // The append flag is a boolean value that will be packed right after the header.  The first packet sent 
@@ -217,8 +217,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
         // pack the calculated number of stream stats
         for (int i = 0; i < numStreamStatsToPack; i++) {
-            getAudioStreamStatsOfStream(*ringBuffersIterator, streamStats);
-
+            AudioStreamStats streamStats = getAudioStreamStatsOfStream(*ringBuffersIterator);
             memcpy(dataAt, &streamStats, sizeof(AudioStreamStats));
             dataAt += sizeof(AudioStreamStats);
 
@@ -250,7 +249,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
     } else {
         result = "mic unknown";
     }
-    AudioStreamStats streamStats;
+    
     for (int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
             int desiredJitterBuffer = _ringBuffers[i]->getDesiredJitterBufferFrames();
@@ -259,7 +258,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
             int overflowCount = _ringBuffers[i]->getOverflowCount();
             int samplesAvailable = _ringBuffers[i]->samplesAvailable();
             int framesAvailable = (samplesAvailable / _ringBuffers[i]->getSamplesPerFrame());
-            getAudioStreamStatsOfStream(_ringBuffers[i], streamStats);
+            AudioStreamStats streamStats = getAudioStreamStatsOfStream(_ringBuffers[i]);
             result += "| injected[" + QString::number(i) + "].desired:" + QString::number(desiredJitterBuffer)
                 + " calculated:" + QString::number(calculatedJitterBuffer)
                 + " current:" + QString::number(currentJitterBuffer)

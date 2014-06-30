@@ -32,7 +32,7 @@ public:
     void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
 
-    void getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer, AudioStreamStats& stats) const;
+    AudioStreamStats getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer) const;
     QString getAudioStreamStatsString() const;
     
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) const;
