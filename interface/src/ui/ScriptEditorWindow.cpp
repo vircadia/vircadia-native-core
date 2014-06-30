@@ -220,6 +220,10 @@ void ScriptEditorWindow::terminateCurrentTab() {
     }
 }
 
+bool ScriptEditorWindow::autoReloadScripts() {
+    return _ScriptEditorWindowUI->autoReloadCheckBox->isChecked();
+}
+
 bool ScriptEditorWindow::event(QEvent* event) {
     if (event->type() == QEvent::WindowActivate) {
         emit windowActivated();

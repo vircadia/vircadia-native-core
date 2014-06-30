@@ -219,12 +219,13 @@ void ScriptEditorWidget::onWindowActivated() {
         _isReloading = true;
         
         if (QFileInfo(_currentScript).lastModified() > _currentScriptModified) {
-            if (QMessageBox::warning(this, _currentScript,
-                tr("This file has been modified outside of the Interface editor.") + "\n\n"
-                    +(isModified()
-                    ? tr("Do you want to reload it and lose the changes you've made in the Interface editor?")
-                    : tr("Do you want to reload it?")),
-                QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+            if (static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->autoReloadScripts()
+                || QMessageBox::warning(this, _currentScript,
+                    tr("This file has been modified outside of the Interface editor.") + "\n\n"
+                        + (isModified()
+                        ? tr("Do you want to reload it and lose the changes you've made in the Interface editor?")
+                        : tr("Do you want to reload it?")),
+                    QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
                 loadFile(_currentScript);
                 if (_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isRunning()) {
                     _isRestarting = true;

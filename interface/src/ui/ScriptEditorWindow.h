@@ -26,6 +26,7 @@ public:
     ~ScriptEditorWindow();
 
     void terminateCurrentTab();
+    bool autoReloadScripts();
 
 signals:
     void windowActivated();
