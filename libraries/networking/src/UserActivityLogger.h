@@ -28,10 +28,11 @@ public slots:
     
     void login();
     void logout();
-//    void changedDisplayName();
-    void changedModel();
-    void changedDomain();
-//    void connectedDevice();
+    void changedDisplayName(QString displayName);
+    void changedModel(QString typeOfModel, QString modelURL);
+    void changedDomain(QString domainURL);
+    void connectedDevice(QString typeOfDevice, QString deviceName);
+    void loadedScript(QString scriptName);
     
 private slots:
     void requestFinished(const QJsonObject& object);

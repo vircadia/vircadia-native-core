@@ -11,7 +11,7 @@
 
 #include "UserActivityLogger.h"
 
-#include <AccountManager.h>
+#include "AccountManager.h"
 
 #include <QHttpMultiPart>
 #include <QJsonDocument>
@@ -96,19 +96,58 @@ void UserActivityLogger::logout() {
     logAction(ACTION_NAME);
 }
 
-void UserActivityLogger::changedModel() {
+void UserActivityLogger::changedDisplayName(QString displayName) {
+    const QString ACTION_NAME = "changed_display_name";
+    QJsonObject actionDetails;
+    const QString DISPLAY_NAME = "display_name";
+    
+    actionDetails.insert(DISPLAY_NAME, displayName);
+    
+    logAction(ACTION_NAME, actionDetails);
+}
+
+void UserActivityLogger::changedModel(QString typeOfModel, QString modelURL) {
     const QString ACTION_NAME = "changed_model";
     QJsonObject actionDetails;
+    const QString TYPE_OF_MODEL = "type_of_model";
+    const QString MODEL_URL = "model_url";
     
+    actionDetails.insert(TYPE_OF_MODEL, typeOfModel);
+    actionDetails.insert(MODEL_URL, modelURL);
     
     logAction(ACTION_NAME, actionDetails);
 }
 
-void UserActivityLogger::changedDomain() {
+void UserActivityLogger::changedDomain(QString domainURL) {
     const QString ACTION_NAME = "changed_domain";
     QJsonObject actionDetails;
+    const QString DOMAIN_URL = "domain_url";
     
+    actionDetails.insert(DOMAIN_URL, domainURL);
     
     logAction(ACTION_NAME, actionDetails);
 }
 
+void UserActivityLogger::connectedDevice(QString typeOfDevice, QString deviceName) {
+    const QString ACTION_NAME = "connected_device";
+    QJsonObject actionDetails;
+    const QString TYPE_OF_DEVICE = "type_of_device";
+    const QString DEVICE_NAME = "device_name";
+    
+    actionDetails.insert(TYPE_OF_DEVICE, typeOfDevice);
+    actionDetails.insert(DEVICE_NAME, deviceName);
+    
+    logAction(ACTION_NAME, actionDetails);
+
+}
+
+void UserActivityLogger::loadedScript(QString scriptName) {
+    const QString ACTION_NAME = "loaded_script";
+    QJsonObject actionDetails;
+    const QString SCRIPT_NAME = "script_name";
+    
+    actionDetails.insert(SCRIPT_NAME, scriptName);
+    
+    logAction(ACTION_NAME, actionDetails);
+
+}
