@@ -46,7 +46,6 @@ private slots:
     void onScriptError(const QString& message);
     void onScriptPrint(const QString& message);
     void onScriptModified();
-    void onScriptEnding();
     void onScriptFinished(const QString& scriptName);
 
 private:
