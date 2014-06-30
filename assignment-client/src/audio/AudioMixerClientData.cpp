@@ -157,22 +157,23 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
 }
 
 void AudioMixerClientData::getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer, AudioStreamStats& stats) const {
-    const SequenceNumberStats* streamSequenceNumberStats = &_incomingAvatarAudioSequenceNumberStats;
+    const SequenceNumberStats& streamSequenceNumberStats = stats._streamType == PositionalAudioRingBuffer::Injector
+                                                        ? _incomingAvatarAudioSequenceNumberStats
+                                                        : _incomingInjectedAudioSequenceNumberStatsMap[stats._streamIdentifier];
 
     stats._streamType = ringBuffer->getType();
     if (stats._streamType == PositionalAudioRingBuffer::Injector) {
         stats._streamIdentifier = ((InjectedAudioRingBuffer*)ringBuffer)->getStreamIdentifier();
-        streamSequenceNumberStats = &_incomingInjectedAudioSequenceNumberStatsMap.value(stats._streamIdentifier);
     }
     stats._jitterBufferFrames = ringBuffer->getCurrentJitterBufferFrames();
     
-    stats._packetsReceived = streamSequenceNumberStats->getNumReceived();
-    stats._packetsUnreasonable = streamSequenceNumberStats->getNumUnreasonable();
-    stats._packetsEarly = streamSequenceNumberStats->getNumEarly();
-    stats._packetsLate = streamSequenceNumberStats->getNumLate();
-    stats._packetsLost = streamSequenceNumberStats->getNumLost();
-    stats._packetsRecovered = streamSequenceNumberStats->getNumRecovered();
-    stats._packetsDuplicate = streamSequenceNumberStats->getNumDuplicate();
+    stats._packetsReceived = streamSequenceNumberStats.getNumReceived();
+    stats._packetsUnreasonable = streamSequenceNumberStats.getNumUnreasonable();
+    stats._packetsEarly = streamSequenceNumberStats.getNumEarly();
+    stats._packetsLate = streamSequenceNumberStats.getNumLate();
+    stats._packetsLost = streamSequenceNumberStats.getNumLost();
+    stats._packetsRecovered = streamSequenceNumberStats.getNumRecovered();
+    stats._packetsDuplicate = streamSequenceNumberStats.getNumDuplicate();
 }
 
 void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) const {
