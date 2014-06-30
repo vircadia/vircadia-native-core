@@ -18,6 +18,7 @@
 #include "ui/TextRenderer.h"
 
 TextOverlay::TextOverlay() :
+    _backgroundColor(DEFAULT_BACKGROUND_COLOR),
     _leftMargin(DEFAULT_MARGIN),
     _topMargin(DEFAULT_MARGIN),
     _fontSize(DEFAULT_FONTSIZE)

@@ -28,6 +28,7 @@
 #include "Overlay.h"
 #include "Overlay2D.h"
 
+const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const int DEFAULT_MARGIN = 10;
 const int DEFAULT_FONTSIZE = 11;
 
