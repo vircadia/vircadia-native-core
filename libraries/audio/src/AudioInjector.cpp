@@ -86,7 +86,6 @@ void AudioInjector::injectAudio() {
         quint8 volume = MAX_INJECTOR_VOLUME * _options.getVolume();
         packetStream << volume;
         
-        
         QElapsedTimer timer;
         timer.start();
         int nextFrame = 0;

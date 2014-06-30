@@ -23,11 +23,11 @@ AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
     NodeData(),
     _overflowCount(0),
     _sampleCapacity(numFrameSamples * RING_BUFFER_LENGTH_FRAMES),
+    _isFull(false),
     _numFrameSamples(numFrameSamples),
     _isStarved(true),
     _hasStarted(false),
-    _randomAccessMode(randomAccessMode),
-    _isFull(false)
+    _randomAccessMode(randomAccessMode)
 {
     if (numFrameSamples) {
         _buffer = new int16_t[_sampleCapacity];
@@ -56,7 +56,6 @@ void AudioRingBuffer::reset() {
 void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
     delete[] _buffer;
     _sampleCapacity = numFrameSamples * RING_BUFFER_LENGTH_FRAMES;
-    _sampleCapacity = _sampleCapacity + 1;
     _buffer = new int16_t[_sampleCapacity];
     if (_randomAccessMode) {
         memset(_buffer, 0, _sampleCapacity * sizeof(int16_t));
@@ -133,6 +132,7 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
         // there's not enough room for this write.  erase old data to make room for this new data
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
+        _overflowCount++;
         qDebug() << "Overflowed ring buffer! Overwriting old data";
     }
     
