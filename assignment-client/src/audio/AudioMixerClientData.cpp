@@ -156,41 +156,76 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
     }
 }
 
-void AudioMixerClientData::getAudioStreamStats(AudioStreamStats& stats) const {
-    int avatarJitterBufferFrames = 0;
-    int maxJitterBufferFrames = 0;
-    int sumJitterBufferFrames = 0;
+void AudioMixerClientData::getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer, AudioStreamStats& stats) const {
+    const SequenceNumberStats* streamSequenceNumberStats = &_incomingAvatarAudioSequenceNumberStats;
 
-    for (int i = 0; i < _ringBuffers.size(); i++) {
-
-        int bufferJitterFrames = _ringBuffers[i]->getCurrentJitterBufferFrames();
-        if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Microphone) {
-            avatarJitterBufferFrames = bufferJitterFrames;
-        }
-
-        if (bufferJitterFrames > maxJitterBufferFrames) {
-            maxJitterBufferFrames = bufferJitterFrames;
-        }
-
-        sumJitterBufferFrames += bufferJitterFrames;
+    stats._streamType = ringBuffer->getType();
+    if (stats._streamType == PositionalAudioRingBuffer::Injector) {
+        stats._streamIdentifier = ((InjectedAudioRingBuffer*)ringBuffer)->getStreamIdentifier();
+        streamSequenceNumberStats = &_incomingInjectedAudioSequenceNumberStatsMap.value(stats._streamIdentifier);
     }
-
-    stats._avatarJitterBufferFrames = avatarJitterBufferFrames;
-    stats._maxJitterBufferFrames = maxJitterBufferFrames;
-    stats._avgJitterBufferFrames = (float)sumJitterBufferFrames / (float)_ringBuffers.size();
+    stats._jitterBufferFrames = ringBuffer->getCurrentJitterBufferFrames();
+    
+    stats._packetsReceived = streamSequenceNumberStats->getNumReceived();
+    stats._packetsUnreasonable = streamSequenceNumberStats->getNumUnreasonable();
+    stats._packetsEarly = streamSequenceNumberStats->getNumEarly();
+    stats._packetsLate = streamSequenceNumberStats->getNumLate();
+    stats._packetsLost = streamSequenceNumberStats->getNumLost();
+    stats._packetsRecovered = streamSequenceNumberStats->getNumRecovered();
+    stats._packetsDuplicate = streamSequenceNumberStats->getNumDuplicate();
 }
 
-int AudioMixerClientData::encodeAudioStreamStatsPacket(char* packet) const {
+void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) const {
+    
+    char packet[MAX_PACKET_SIZE];
+    AudioStreamStats streamStats;
+
+    NodeList* nodeList = NodeList::getInstance();
+
+    // The append flag is a boolean value that will be packed right after the header.  The first packet sent 
+    // inside this method will have 0 for this flag, while every subsequent packet will have 1 for this flag.
+    // The sole purpose of this flag is so the client can clear its map of injected audio stream stats when
+    // it receives a packet with an appendFlag of 0. This prevents the buildup of dead audio stream stats in the client.
+    quint8 appendFlag = 0;
+
+    // pack header
     int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeAudioStreamStats);
-    char* dataAt = packet + numBytesPacketHeader;
+    char* headerEndAt = packet + numBytesPacketHeader;
 
-    // pack jitter buffer stats
-    AudioStreamStats stats;
-    getAudioStreamStats(stats);
-    memcpy(dataAt, &stats, sizeof(AudioStreamStats));
-    dataAt += sizeof(AudioStreamStats);
+    // calculate how many stream stat structs we can fit in each packet
+    const int numStreamStatsRoomFor = (MAX_PACKET_SIZE - numBytesPacketHeader - sizeof(quint8) - sizeof(quint16)) / sizeof(AudioStreamStats);
 
-    return dataAt - packet;
+    // pack and send stream stats packets until all ring buffers' stats are sent
+    int numStreamStatsRemaining = _ringBuffers.size();
+    QList<PositionalAudioRingBuffer*>::ConstIterator ringBuffersIterator = _ringBuffers.constBegin();
+    while (numStreamStatsRemaining > 0) {
+
+        char* dataAt = headerEndAt;
+
+        // pack the append flag
+        memcpy(dataAt, &appendFlag, sizeof(quint8));
+        appendFlag = 1;
+        dataAt += sizeof(quint8);
+
+        // calculate and pack the number of stream stats to follow
+        quint16 numStreamStatsToPack = std::min(numStreamStatsRemaining, numStreamStatsRoomFor);
+        memcpy(dataAt, &numStreamStatsToPack, sizeof(quint16));
+        dataAt += sizeof(quint16);
+
+        // pack the calculated number of stream stats
+        for (int i = 0; i < numStreamStatsToPack; i++) {
+            getAudioStreamStatsOfStream(*ringBuffersIterator, streamStats);
+
+            memcpy(dataAt, &streamStats, sizeof(AudioStreamStats));
+            dataAt += sizeof(AudioStreamStats);
+
+            ringBuffersIterator++;
+        }
+        numStreamStatsRemaining -= numStreamStatsToPack;
+
+        // send the current packet
+        nodeList->writeDatagram(packet, dataAt - packet, destinationNode);
+    }
 }
 
 QString AudioMixerClientData::getJitterBufferStatsString() const {

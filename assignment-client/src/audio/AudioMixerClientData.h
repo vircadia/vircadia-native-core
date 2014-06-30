@@ -32,9 +32,9 @@ public:
     void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
 
-    void getAudioStreamStats(AudioStreamStats& stats) const;
+    void getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer, AudioStreamStats& stats) const;
     
-    int encodeAudioStreamStatsPacket(char* packet) const;
+    void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) const;
     
     QString getJitterBufferStatsString() const;
 

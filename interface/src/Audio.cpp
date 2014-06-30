@@ -103,7 +103,7 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
-    _audioMixerStreamStats(),
+    _audioMixerAvatarStreamStats(),
     _outgoingAvatarAudioSequenceNumber(0)
 {
     // clear the array of locally injected samples
@@ -720,9 +720,29 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     const char* dataAt = packet.constData() + numBytesPacketHeader;
 
-    // parse audio mixer jitter buffer stats
-    memcpy(&_audioMixerStreamStats, dataAt, sizeof(AudioStreamStats));
-    dataAt += sizeof(AudioStreamStats);
+    // parse the appendFlag, clear injected audio stream stats if 0
+    quint8 appendFlag = *(reinterpret_cast<const quint16*>(dataAt));
+    dataAt += sizeof(quint8);
+    if (!appendFlag) {
+        _audioMixerInjectedStreamStatsMap.clear();
+    }
+
+    // parse the number of stream stats structs to follow
+    quint16 numStreamStats = *(reinterpret_cast<const quint16*>(dataAt));
+    dataAt += sizeof(quint16);
+
+    // parse the stream stats
+    AudioStreamStats streamStats;
+    for (quint16 i = 0; i < numStreamStats; i++) {
+        memcpy(&streamStats, dataAt, sizeof(AudioStreamStats));
+        dataAt += sizeof(AudioStreamStats);
+
+        if (streamStats._streamType == PositionalAudioRingBuffer::Microphone) {
+            _audioMixerAvatarStreamStats = streamStats;
+        } else {
+            _audioMixerInjectedStreamStatsMap[streamStats._streamIdentifier] = streamStats;
+        }
+    }
 }
 
 // NOTE: numSamples is the total number of single channel samples, since callers will always call this with stereo

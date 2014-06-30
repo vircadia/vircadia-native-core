@@ -591,7 +591,6 @@ void AudioMixer::run() {
 
         const quint64 TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS = 1 * USECS_PER_SECOND;
         
-        char audioStreamStatsPacket[MAX_PACKET_SIZE];
         bool sendAudioStreamStats = false;
         quint64 now = usecTimestampNow();
         if (now - _lastSendAudioStreamStatsTime > TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS) {
@@ -626,8 +625,7 @@ void AudioMixer::run() {
                 
                 // send an audio stream stats packet if it's time
                 if (sendAudioStreamStats) {
-                    int numBytesAudioStreamStatsPacket = nodeData->encodeAudioStreamStatsPacket(audioStreamStatsPacket);
-                    nodeList->writeDatagram(audioStreamStatsPacket, numBytesAudioStreamStatsPacket, node);
+                    nodeData->sendAudioStreamStatsPackets(node);
                 }
 
                 ++_sumListeners;

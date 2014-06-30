@@ -12,15 +12,35 @@
 #ifndef hifi_AudioStreamStats_h
 #define hifi_AudioStreamStats_h
 
+#include "PositionalAudioRingBuffer.h"
+
 class AudioStreamStats {
 public:
     AudioStreamStats()
-        : _avatarJitterBufferFrames(0), _maxJitterBufferFrames(0), _avgJitterBufferFrames(0)
+        : _streamType(PositionalAudioRingBuffer::Microphone),
+        _streamIdentifier(),
+        _jitterBufferFrames(0),
+        _packetsReceived(0),
+        _packetsUnreasonable(0),
+        _packetsEarly(0),
+        _packetsLate(0),
+        _packetsLost(0),
+        _packetsRecovered(0),
+        _packetsDuplicate(0)
     {}
 
-    quint16 _avatarJitterBufferFrames;
-    quint16 _maxJitterBufferFrames;
-    float _avgJitterBufferFrames;
+    PositionalAudioRingBuffer::Type _streamType;
+    QUuid _streamIdentifier;
+
+    quint16 _jitterBufferFrames;
+
+    quint32 _packetsReceived;
+    quint32 _packetsUnreasonable;
+    quint32 _packetsEarly;
+    quint32 _packetsLate;
+    quint32 _packetsLost;
+    quint32 _packetsRecovered;
+    quint32 _packetsDuplicate;
 };
 
 #endif  // hifi_AudioStreamStats_h

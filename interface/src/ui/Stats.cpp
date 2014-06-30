@@ -286,11 +286,16 @@ void Stats::display(
             pingVoxel = totalPingVoxel/voxelServerCount;
         }
 
-        lines = _expanded ? 6 : 3;
+
+        Audio* audio = Application::getInstance()->getAudio();
+        const AudioStreamStats& audioMixerAvatarStreamStats = audio->getAudioMixerAvatarStreamStats();
+        const QHash<QUuid, AudioStreamStats>& audioMixerInjectedStreamStatsMap = audio->getAudioMixerInjectedStreamStatsMap();
+
+        lines = _expanded ? 7 + audioMixerInjectedStreamStatsMap.size(): 3;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
 
-        Audio* audio = Application::getInstance()->getAudio();
+        
 
         char audioJitter[30];
         sprintf(audioJitter,
@@ -322,21 +327,29 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
 
-
-            static const float MSECS_PER_FRAME = (float)NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * (float)MSECS_PER_SECOND / (float)SAMPLE_RATE;
-
-            const AudioStreamStats& audioMixerStreamStats =
-                Application::getInstance()->getAudio()->getAudioMixerStreamStats();
-
-            char* audioMixerJitterBuffersStatsLabel = "AudioMixer j-buffers msecs:";
-            char audioMixerJitterBuffersStats[30];
-            sprintf(audioMixerJitterBuffersStats, "mic/max/avg: %.1f / %.1f / %.1f", audioMixerStreamStats._avatarJitterBufferFrames * MSECS_PER_FRAME,
-                audioMixerStreamStats._maxJitterBufferFrames * MSECS_PER_FRAME, audioMixerStreamStats._avgJitterBufferFrames * MSECS_PER_FRAME);
-
+            char* audioMixerJitterBuffersStatsLabel = "AudioMixer stream stats:";
+            char* audioMixerJitterBuffersStatsLabel2 = "early/late/lost, jframes";
+            
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStatsLabel, color);
             verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStatsLabel2, color);
+
+            char audioMixerJitterBuffersStats[30];
+            sprintf(audioMixerJitterBuffersStats, "mic: %d/%d/%d, %d", audioMixerAvatarStreamStats._packetsEarly,
+                audioMixerAvatarStreamStats._packetsLate, audioMixerAvatarStreamStats._packetsLost,
+                audioMixerAvatarStreamStats._jitterBufferFrames);
+
+            verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStats, color);
+
+            foreach(AudioStreamStats injectedStreamStats, audioMixerInjectedStreamStatsMap) {
+                sprintf(audioMixerJitterBuffersStats, "inj: %d/%d/%d, %d", injectedStreamStats._packetsEarly,
+                    injectedStreamStats._packetsLate, injectedStreamStats._packetsLost, injectedStreamStats._jitterBufferFrames);
+                
+                verticalOffset += STATS_PELS_PER_LINE;
+                drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStats, color);
+            }
         }
 
         verticalOffset = 0;
