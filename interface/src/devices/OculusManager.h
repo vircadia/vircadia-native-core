@@ -3,6 +3,7 @@
 //  interface/src/devices
 //
 //  Created by Stephen Birarda on 5/9/13.
+//  Refactored by Ben Arnold on 6/30/2014
 //  Copyright 2012 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

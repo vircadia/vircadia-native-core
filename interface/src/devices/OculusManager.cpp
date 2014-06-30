@@ -3,6 +3,7 @@
 //  interface/src/devices
 //
 //  Created by Stephen Birarda on 5/9/13.
+//  Refactored by Ben Arnold on 6/30/2014
 //  Copyright 2012 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -153,6 +154,7 @@ void OculusManager::generateDistortionMesh() {
         return;
     }
 
+    //Viewport for the render target for each eye
     _eyeRenderViewport[0].Pos = Vector2i(0, 0);
     _eyeRenderViewport[0].Size = Sizei(_renderTargetSize.w / 2, _renderTargetSize.h);
     _eyeRenderViewport[1].Pos = Vector2i((_renderTargetSize.w + 1) / 2, 0);
@@ -240,18 +242,7 @@ void OculusManager::endFrameTiming() {
 //Sets the camera FoV and aspect ratio
 void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenHeight) {
 #ifdef HAVE_LIBOVR
-    ovrSizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left,
-                                                            _eyeFov[0], 1.0f);
-    ovrSizei recommendedTex1Size = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Right,
-                                                            _eyeFov[1], 1.0f);
-    
-    float width = recommendedTex0Size.w + recommendedTex1Size.w;
-    float height = recommendedTex0Size.h;
-    if (height < recommendedTex1Size.h) {
-        height = recommendedTex1Size.h;
-    }
-    
-    camera.setAspectRatio(width / height);
+    camera.setAspectRatio(_renderTargetSize.w / _renderTargetSize.h);
     camera.setFieldOfView(atan(_eyeFov[0].UpTan) * DEGREES_PER_RADIAN * 2.0f);
 #endif    
 }
@@ -280,17 +271,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     _camera->setDistance(0.0f);
     _camera->setUpShift(0.0f);
 
-    glm::quat additionalRotation;
-
-   // if (_camera->getMode() == CAMERA_MODE_THIRD_PERSON) {
-   ////     _camera->setTargetPosition(_myAvatar->getUprightHeadPosition());
-   ////     _camera->setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
-
-   // } else if (_camera->getMode() == CAMERA_MODE_MIRROR) {
-   //     _camera->setDistance(MIRROR_FULLSCREEN_DISTANCE);
-   //     additionalRotation = glm::quat(glm::vec3(0.0f, PI, 0.0f));
-   // }
-
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
 
@@ -315,7 +295,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         const float OCULUS_POSITION_SCALE = 0.2;
         positionOffset = bodyOrientation * orientation * glm::vec3(eyeRenderPose[eye].Position.x, eyeRenderPose[eye].Position.y, eyeRenderPose[eye].Position.z) * OCULUS_POSITION_SCALE;
 
-        _camera->setTargetRotation(additionalRotation * bodyOrientation * orientation);
+        _camera->setTargetRotation(bodyOrientation * orientation);
         _camera->setTargetPosition(position);
         _camera->update(1.0f / Application::getInstance()->getFps());
 
@@ -393,19 +373,21 @@ void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
         ovrMatrix4f timeWarpMatrices[2];
         Matrix4f transposeMatrices[2];
+        //Grabs the timewarp matrices to be used in the shader
         ovrHmd_GetEyeTimewarpMatrices(_ovrHmd, (ovrEyeType)eyeNum, eyeRenderPose[eyeNum], timeWarpMatrices);
         transposeMatrices[0] = Matrix4f(timeWarpMatrices[0]);
         transposeMatrices[1] = Matrix4f(timeWarpMatrices[1]);
 
+        //Have to transpose the matrices before using them
         transposeMatrices[0].Transpose();
         transposeMatrices[1].Transpose();
 
         glUniformMatrix4fv(_eyeRotationStartLocation, 1, GL_FALSE, (GLfloat *)transposeMatrices[0].M);
-
         glUniformMatrix4fv(_eyeRotationEndLocation, 1, GL_FALSE, (GLfloat *)transposeMatrices[1].M);
 
         glBindBuffer(GL_ARRAY_BUFFER, _vertices[eyeNum]);
 
+        //Set vertex attribute pointers
         glVertexAttribPointer(_positionAttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)0);
         glVertexAttribPointer(_texCoord0AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)8);
         glVertexAttribPointer(_texCoord1AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)16);
@@ -449,6 +431,7 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #endif
 }
 
+//Used to set the size of the glow framebuffers
 QSize OculusManager::getRenderTargetSize() {
 #ifdef HAVE_LIBOVR
     QSize rv;
