@@ -587,11 +587,9 @@ void Application::paintGL() {
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
-        glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
-        float headHeight = eyePosition.y - _myAvatar->getPosition().y;
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
     }
 
     // Update camera position
