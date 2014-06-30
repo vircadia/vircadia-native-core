@@ -28,7 +28,8 @@ OctreeInboundPacketProcessor::OctreeInboundPacketProcessor(OctreeServer* myServe
     _totalLockWaitTime(0),
     _totalElementsInPacket(0),
     _totalPackets(0),
-    _lastNackTime(usecTimestampNow())
+    _lastNackTime(usecTimestampNow()),
+    _shuttingDown(false)
 {
 }
 
@@ -72,6 +73,10 @@ void OctreeInboundPacketProcessor::midProcess() {
 }
 
 void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
+    if (_shuttingDown) {
+        qDebug() << "OctreeInboundPacketProcessor::processPacket() while shutting down... ignoring incoming packet";
+        return;
+    }
 
     bool debugProcessPacket = _myServer->wantsVerboseDebug();
 
@@ -182,8 +187,13 @@ void OctreeInboundPacketProcessor::trackInboundPacket(const QUuid& nodeUUID, uns
 }
 
 int OctreeInboundPacketProcessor::sendNackPackets() {
-
     int packetsSent = 0;
+
+    if (_shuttingDown) {
+        qDebug() << "OctreeInboundPacketProcessor::sendNackPackets() while shutting down... ignore";
+        return packetsSent;
+    }
+
     char packet[MAX_PACKET_SIZE];
     
     NodeToSenderStatsMapIterator i = _singleSenderStats.begin();
@@ -241,6 +251,8 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             // send it
             NodeList::getInstance()->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
             packetsSent++;
+            
+            qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
         }
         i++;
     }
