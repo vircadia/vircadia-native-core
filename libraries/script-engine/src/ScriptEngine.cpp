@@ -460,8 +460,8 @@ void ScriptEngine::run() {
                 }
                 
                 QByteArray audioPacket = byteArrayWithPopulatedHeader(silentFrame
-                    ? PacketTypeSilentAudioFrame
-                    : PacketTypeMicrophoneAudioNoEcho);
+                                                                      ? PacketTypeSilentAudioFrame
+                                                                      : PacketTypeMicrophoneAudioNoEcho);
 
                 QDataStream packetStream(&audioPacket, QIODevice::Append);
 
@@ -485,7 +485,7 @@ void ScriptEngine::run() {
                 } else if (nextSoundOutput) {
                     // write the raw audio data
                     packetStream.writeRawData(reinterpret_cast<const char*>(nextSoundOutput),
-                        numAvailableSamples * sizeof(int16_t));
+                                              numAvailableSamples * sizeof(int16_t));
                 }
 
                 // write audio packet to AudioMixer nodes
