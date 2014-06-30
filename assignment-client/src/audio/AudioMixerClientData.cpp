@@ -240,12 +240,16 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
         int overflowCount = avatarRingBuffer->getOverflowCount();
         int samplesAvailable = avatarRingBuffer->samplesAvailable();
         int framesAvailable = (samplesAvailable / avatarRingBuffer->getSamplesPerFrame());
-        result += "mic.desired:" + QString::number(desiredJitterBuffer) 
-                    + " calculated:" + QString::number(calculatedJitterBuffer)
-                    + " current:" + QString::number(currentJitterBuffer)
-                    + " available:" + QString::number(framesAvailable)
-                    + " samples:" + QString::number(samplesAvailable)
-                    + " overflows:" + QString::number(overflowCount);
+        AudioStreamStats streamStats = getAudioStreamStatsOfStream(avatarRingBuffer);
+        result += "mic.desired:" + QString::number(desiredJitterBuffer)
+            + " calculated:" + QString::number(calculatedJitterBuffer)
+            + " current:" + QString::number(currentJitterBuffer)
+            + " available:" + QString::number(framesAvailable)
+            + " samples:" + QString::number(samplesAvailable)
+            + " overflows:" + QString::number(overflowCount);
+            + " early:" + QString::number(streamStats._packetsEarly)
+            + " late:" + QString::number(streamStats._packetsLate)
+            + " lost:" + QString::number(streamStats._packetsLost);
     } else {
         result = "mic unknown";
     }
