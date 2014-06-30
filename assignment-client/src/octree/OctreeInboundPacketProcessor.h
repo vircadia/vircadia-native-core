@@ -73,6 +73,8 @@ public:
 
     NodeToSenderStatsMap& getSingleSenderStats() { return _singleSenderStats; }
 
+    void shuttingDown() { _shuttingDown = true;}
+
 protected:
 
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
@@ -100,5 +102,6 @@ private:
     NodeToSenderStatsMap _singleSenderStats;
 
     quint64 _lastNackTime;
+    bool _shuttingDown;
 };
 #endif // hifi_OctreeInboundPacketProcessor_h
