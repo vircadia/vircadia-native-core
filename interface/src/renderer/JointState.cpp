@@ -11,6 +11,7 @@
 
 #include <glm/gtx/norm.hpp>
 
+#include <AngularConstraint.h>
 //#include <GeometryUtil.h>
 #include <SharedUtil.h>
 
@@ -18,7 +19,13 @@
 
 JointState::JointState() :
     _animationPriority(0.0f),
-    _fbxJoint(NULL) {
+    _fbxJoint(NULL),
+    _constraint(NULL) {
+}
+
+JointState::~JointState() {
+    delete _constraint;
+    _constraint = NULL;
 }
 
 void JointState::setFBXJoint(const FBXJoint* joint) {

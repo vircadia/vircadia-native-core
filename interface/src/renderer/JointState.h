@@ -18,9 +18,12 @@
 
 #include <FBXReader.h>
 
+class AngularConstraint;
+
 class JointState {
 public:
     JointState();
+    ~JointState();
 
     void setFBXJoint(const FBXJoint* joint); 
     const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
@@ -61,6 +64,7 @@ private:
     glm::quat _rotation;  // joint- to model-frame
 
     const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
+    AngularConstraint* _constraint;
 };
 
 #endif // hifi_JointState_h
