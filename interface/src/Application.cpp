@@ -406,13 +406,13 @@ Application::~Application() {
     params.errorCallbackReceiver = &loop;
     params.jsonCallbackMethod = "quit";
     params.errorCallbackMethod = "quit";
-    // In case something goes wrong, we also setup a timer so that the delai is not greater than DELAI_TIME
-    int DELAI_TIME = 1000;
+    // In case something goes wrong, we also setup a timer so that the delai is not greater than DELAY_TIME
+    int DELAY_TIME = 1000;
     QTimer timer;
     connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
     // Now we can log it
     UserActivityLogger::getInstance().close(params);
-    timer.start(DELAI_TIME);
+    timer.start(DELAY_TIME);
     loop.exec();
     
     qInstallMessageHandler(NULL);
