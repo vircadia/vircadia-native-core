@@ -878,7 +878,8 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
         QByteArray outputBuffer;
         outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
         
-        int numSamplesNeededToStartPlayback = (_jitterBufferSamples * 2);// + NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+        int numSamplesNeededToStartPlayback = std::min(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2),
+            _ringBuffer.getSampleCapacity());
         
         if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
             //  We are still waiting for enough samples to begin playback
