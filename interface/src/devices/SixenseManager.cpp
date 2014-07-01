@@ -13,6 +13,7 @@
 
 #include "Application.h"
 #include "SixenseManager.h"
+#include "UserActivityLogger.h"
 
 #ifdef HAVE_SIXENSE
 const int CALIBRATION_STATE_IDLE = 0;

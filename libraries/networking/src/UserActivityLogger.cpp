@@ -11,8 +11,6 @@
 
 #include "UserActivityLogger.h"
 
-#include "AccountManager.h"
-
 #include <QHttpMultiPart>
 #include <QJsonDocument>
 
@@ -26,32 +24,32 @@ UserActivityLogger& UserActivityLogger::getInstance() {
 UserActivityLogger::UserActivityLogger() {
 }
 
-void UserActivityLogger::logAction(QString action, QJsonObject details) {
+void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCallbackParameters params) {
     AccountManager& accountManager = AccountManager::getInstance();
     QHttpMultiPart* multipart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
     
-    if (action != "login") {
-        QHttpPart actionPart;
-        actionPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"action_name\"");
-        actionPart.setBody(QByteArray().append(action));
-        multipart->append(actionPart);
-        
-        
-        if (!details.isEmpty()) {
-            QHttpPart detailsPart;
-            detailsPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
-                                  " name=\"action_details\"");
-            detailsPart.setBody(QJsonDocument(details).toJson(QJsonDocument::Compact));
-            multipart->append(detailsPart);
-        }
-    }
-    qDebug() << "Loging activity " << action;
+    QHttpPart actionPart;
+    actionPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"action_name\"");
+    actionPart.setBody(QByteArray().append(action));
+    multipart->append(actionPart);
     
-    JSONCallbackParameters params;
-    params.jsonCallbackReceiver = this;
-    params.jsonCallbackMethod = "requestFinished";
-    params.errorCallbackReceiver = this;
-    params.errorCallbackMethod = "requestError";
+    
+    if (!details.isEmpty()) {
+        QHttpPart detailsPart;
+        detailsPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
+                              " name=\"action_details\"");
+        detailsPart.setBody(QJsonDocument(details).toJson(QJsonDocument::Compact));
+        multipart->append(detailsPart);
+    }
+    qDebug() << "Loging activity" << action;
+    qDebug() << AccountManager::getInstance().getAuthURL() << ": " << AccountManager::getInstance().isLoggedIn();
+    
+    if (params.isEmpty()) {
+        params.jsonCallbackReceiver = this;
+        params.jsonCallbackMethod = "requestFinished";
+        params.errorCallbackReceiver = this;
+        params.errorCallbackMethod = "requestError";
+    }
     
     accountManager.authenticatedRequest(USER_ACTIVITY_URL,
                                         QNetworkAccessManager::PostOperation,
@@ -68,8 +66,8 @@ void UserActivityLogger::requestError(QNetworkReply::NetworkError error,const QS
     qDebug() << error << ": " << string;
 }
 
-void UserActivityLogger::login() {
-    const QString ACTION_NAME = "login";
+void UserActivityLogger::launch() {
+    const QString ACTION_NAME = "launch";
     QJsonObject actionDetails;
     
     QString OS_KEY = "OS";
@@ -91,9 +89,9 @@ void UserActivityLogger::login() {
     logAction(ACTION_NAME, actionDetails);
 }
 
-void UserActivityLogger::logout() {
-    const QString ACTION_NAME = "";
-    logAction(ACTION_NAME);
+void UserActivityLogger::close(JSONCallbackParameters params) {
+    const QString ACTION_NAME = "close";
+    logAction(ACTION_NAME, QJsonObject(), params);
 }
 
 void UserActivityLogger::changedDisplayName(QString displayName) {

@@ -12,6 +12,8 @@
 #ifndef hifi_UserActivityLogger_h
 #define hifi_UserActivityLogger_h
 
+#include "AccountManager.h"
+
 #include <QObject>
 #include <QString>
 #include <QJsonObject>
@@ -24,10 +26,10 @@ public:
     static UserActivityLogger& getInstance();
     
 public slots:
-    void logAction(QString action, QJsonObject details = QJsonObject());
+    void logAction(QString action, QJsonObject details = QJsonObject(), JSONCallbackParameters params = JSONCallbackParameters());
     
-    void login();
-    void logout();
+    void launch();
+    void close(JSONCallbackParameters params = JSONCallbackParameters());
     void changedDisplayName(QString displayName);
     void changedModel(QString typeOfModel, QString modelURL);
     void changedDomain(QString domainURL);
