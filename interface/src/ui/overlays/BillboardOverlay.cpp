@@ -19,9 +19,6 @@ BillboardOverlay::BillboardOverlay()
   _isFacingAvatar(true) {
 }
 
-void BillboardOverlay::update(float deltatime) {
-}
-
 void BillboardOverlay::render() {
     if (_billboard.isEmpty()) {
         return;

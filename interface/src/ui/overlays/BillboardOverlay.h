@@ -23,7 +23,6 @@ class BillboardOverlay : public Base3DOverlay {
 public:
     BillboardOverlay();
     
-    virtual void update(float deltatime);
     virtual void render();
     virtual void setProperties(const QScriptValue& properties);
 
