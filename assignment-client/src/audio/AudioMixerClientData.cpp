@@ -246,7 +246,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
             + " current:" + QString::number(currentJitterBuffer)
             + " available:" + QString::number(framesAvailable)
             + " samples:" + QString::number(samplesAvailable)
-            + " overflows:" + QString::number(overflowCount);
+            + " overflows:" + QString::number(overflowCount)
             + " early:" + QString::number(streamStats._packetsEarly)
             + " late:" + QString::number(streamStats._packetsLate)
             + " lost:" + QString::number(streamStats._packetsLost);
