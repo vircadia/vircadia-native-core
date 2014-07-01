@@ -398,22 +398,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 }
 
 Application::~Application() {
-    // In order to get the end of the session, we nned to give the account manager enough time to send the packet.
-    QEventLoop loop;
-    // Here we connect the callbacks to stop the event loop
-    JSONCallbackParameters params;
-    params.jsonCallbackReceiver = &loop;
-    params.errorCallbackReceiver = &loop;
-    params.jsonCallbackMethod = "quit";
-    params.errorCallbackMethod = "quit";
-    // In case something goes wrong, we also setup a timer so that the delai is not greater than DELAY_TIME
     int DELAY_TIME = 1000;
-    QTimer timer;
-    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    // Now we can log it
-    UserActivityLogger::getInstance().close(params);
-    timer.start(DELAY_TIME);
-    loop.exec();
+    UserActivityLogger::getInstance().close(DELAY_TIME);
     
     qInstallMessageHandler(NULL);
 

@@ -11,8 +11,10 @@
 
 #include "UserActivityLogger.h"
 
-#include <QHttpMultiPart>
+#include <QEventLoop>
 #include <QJsonDocument>
+#include <QHttpMultiPart>
+#include <QTimer>
 
 static const QString USER_ACTIVITY_URL = "/api/v1/user_activities";
 
@@ -76,9 +78,24 @@ void UserActivityLogger::launch(QString applicationVersion) {
     logAction(ACTION_NAME, actionDetails);
 }
 
-void UserActivityLogger::close(JSONCallbackParameters params) {
+void UserActivityLogger::close(int delayTime) {
     const QString ACTION_NAME = "close";
+    
+    // In order to get the end of the session, we need to give the account manager enough time to send the packet.
+    QEventLoop loop;
+    // Here we connect the callbacks to stop the event loop
+    JSONCallbackParameters params;
+    params.jsonCallbackReceiver = &loop;
+    params.errorCallbackReceiver = &loop;
+    params.jsonCallbackMethod = "quit";
+    params.errorCallbackMethod = "quit";
+    // In case something goes wrong, we also setup a timer so that the delai is not greater than delayTime
+    QTimer timer;
+    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    // Now we can log it
     logAction(ACTION_NAME, QJsonObject(), params);
+    timer.start(delayTime);
+    loop.exec();
 }
 
 void UserActivityLogger::changedDisplayName(QString displayName) {
