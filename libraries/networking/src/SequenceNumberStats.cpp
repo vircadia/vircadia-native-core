@@ -39,7 +39,6 @@ void SequenceNumberStats::reset() {
 }
 
 static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
-static const int MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
 
 void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderUUID, const bool wantExtraDebugging) {
 
