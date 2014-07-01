@@ -31,24 +31,26 @@ UserLocation::UserLocation(QString id, QString name, QString location) :
 }
 
 void UserLocation::requestRename(const QString& newName) {
-    _updating = true;
+    if (!_updating) {
+        _updating = true;
 
-    JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
-    callbackParams.jsonCallbackMethod = "handleRenameResponse";
-    callbackParams.errorCallbackReceiver = this;
-    callbackParams.errorCallbackMethod = "handleRenameError";
-    QJsonObject jsonNameObject;
-    jsonNameObject.insert("name", QJsonValue(newName));
-    QJsonDocument jsonDocument(jsonNameObject);
-    AccountManager::getInstance().authenticatedRequest(PLACES_UPDATE.arg(_id),
-                                                       QNetworkAccessManager::PutOperation,
-                                                       callbackParams,
-                                                       jsonDocument.toJson());
-    _previousName = _name;
-    _name = newName;
+        JSONCallbackParameters callbackParams;
+        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.jsonCallbackMethod = "handleRenameResponse";
+        callbackParams.errorCallbackReceiver = this;
+        callbackParams.errorCallbackMethod = "handleRenameError";
+        QJsonObject jsonNameObject;
+        jsonNameObject.insert("name", QJsonValue(newName));
+        QJsonDocument jsonDocument(jsonNameObject);
+        AccountManager::getInstance().authenticatedRequest(PLACES_UPDATE.arg(_id),
+                                                           QNetworkAccessManager::PutOperation,
+                                                           callbackParams,
+                                                           jsonDocument.toJson());
+        _previousName = _name;
+        _name = newName;
 
-    emit updated(_name);
+        emit updated(_name);
+    }
 }
 
 void UserLocation::handleRenameResponse(const QJsonObject& responseData) {
@@ -80,16 +82,18 @@ void UserLocation::handleRenameError(QNetworkReply::NetworkError error, const QS
 }
 
 void UserLocation::requestDelete() {
-    _updating = true;
+    if (!_updating) {
+        _updating = true;
 
-    JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
-    callbackParams.jsonCallbackMethod = "handleDeleteResponse";
-    callbackParams.errorCallbackReceiver = this;
-    callbackParams.errorCallbackMethod = "handleDeleteError";
-    AccountManager::getInstance().authenticatedRequest(PLACES_DELETE.arg(_id),
-                                                       QNetworkAccessManager::DeleteOperation,
-                                                       callbackParams);
+        JSONCallbackParameters callbackParams;
+        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.jsonCallbackMethod = "handleDeleteResponse";
+        callbackParams.errorCallbackReceiver = this;
+        callbackParams.errorCallbackMethod = "handleDeleteError";
+        AccountManager::getInstance().authenticatedRequest(PLACES_DELETE.arg(_id),
+                                                           QNetworkAccessManager::DeleteOperation,
+                                                           callbackParams);
+    }
 }
 
 void UserLocation::handleDeleteResponse(const QJsonObject& responseData) {
