@@ -147,6 +147,15 @@ void Agent::readPendingDatagrams() {
                 }
 
             } else if (datagramPacketType == PacketTypeMixedAudio) {
+
+                QUuid senderUUID = uuidFromPacketHeader(receivedPacket);
+
+                // parse sequence number for this packet
+                int numBytesPacketHeader = numBytesForPacketHeader(receivedPacket);
+                const char* sequenceAt = receivedPacket.constData() + numBytesPacketHeader;
+                quint16 sequence = *(reinterpret_cast<const quint16*>(sequenceAt));
+                _incomingMixedAudioSequenceNumberStats.sequenceNumberReceived(sequence, senderUUID);
+
                 // parse the data and grab the average loudness
                 _receivedAudioBuffer.parseData(receivedPacket);
                 

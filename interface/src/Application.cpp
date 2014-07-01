@@ -2182,7 +2182,8 @@ int Application::sendNackPackets() {
             OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
 
             // make copy of missing sequence numbers from stats
-            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = stats.getMissingSequenceNumbers();
+            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers =
+                stats.getIncomingOctreeSequenceNumberStats().getMissingSet();
 
             _octreeSceneStatsLock.unlock();
 
@@ -3304,6 +3305,10 @@ void Application::nodeKilled(SharedNodePointer node) {
     _particleEditSender.nodeKilled(node);
     _modelEditSender.nodeKilled(node);
 
+    if (node->getType() == NodeType::AudioMixer) {
+        QMetaObject::invokeMethod(&_audio, "resetIncomingMixedAudioSequenceNumberStats");
+    }
+
     if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
@@ -3626,6 +3631,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
+
+    NodeList* nodeList = NodeList::getInstance();
+    connect(nodeList, &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
 
     scriptEngine->moveToThread(workerThread);
 
