@@ -351,6 +351,7 @@ namespace MenuOption {
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
+    const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableVRMode = "Enable VR Mode";
     const QString ExpandMiscAvatarTiming = "Expand Misc MyAvatar Timing";

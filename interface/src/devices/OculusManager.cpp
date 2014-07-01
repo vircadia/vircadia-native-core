@@ -266,8 +266,14 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
     applicationOverlay.renderOverlay(true);
     const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::DisplayOculusOverlays);
-    
-    Application::getInstance()->getGlowEffect()->prepare(); 
+
+    //Bind our framebuffer object. If we are rendering the glow effect, we let the glow effect shader take care of it
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
+        Application::getInstance()->getGlowEffect()->prepare();
+    } else {
+        Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
 
     ovrPosef eyeRenderPose[ovrEye_Count];
 
@@ -332,9 +338,14 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     //Full texture viewport for glow effect
     glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
   
-    //Bind the output texture from the glow shader
-    QOpenGLFramebufferObject* fbo = Application::getInstance()->getGlowEffect()->render(true);
-    glBindTexture(GL_TEXTURE_2D, fbo->texture());
+    //Bind the output texture from the glow shader. If glow effect is disabled, we just grab the texture
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
+        QOpenGLFramebufferObject* fbo = Application::getInstance()->getGlowEffect()->render(true);
+        glBindTexture(GL_TEXTURE_2D, fbo->texture());
+    } else {
+        Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->release();
+        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->texture());
+    }
 
     // restore our normal viewport
     glViewport(0, 0, Application::getInstance()->getGLWidget()->width(), Application::getInstance()->getGLWidget()->height());
