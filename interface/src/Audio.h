@@ -83,6 +83,7 @@ public slots:
     void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
     void handleAudioInput();
     void reset();
+    void resetIncomingMixedAudioSequenceNumberStats() { _incomingMixedAudioSequenceNumberStats.reset(); }
     void toggleMute();
     void toggleAudioNoiseReduction();
     void toggleToneInjection();

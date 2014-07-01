@@ -3291,6 +3291,10 @@ void Application::nodeKilled(SharedNodePointer node) {
     _particleEditSender.nodeKilled(node);
     _modelEditSender.nodeKilled(node);
 
+    if (node->getType() == NodeType::AudioMixer) {
+        QMetaObject::invokeMethod(&_audio, "resetIncomingMixedAudioSequenceNumberStats");
+    }
+
     if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...

@@ -121,6 +121,8 @@ void Audio::init(QGLWidget *parent) {
 void Audio::reset() {
     _ringBuffer.reset();
     _outgoingAvatarAudioSequenceNumber = 0;
+    _audioMixerInjectedStreamStatsMap.clear();
+    _incomingMixedAudioSequenceNumberStats.reset();
 }
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
