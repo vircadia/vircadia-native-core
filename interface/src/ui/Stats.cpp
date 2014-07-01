@@ -291,7 +291,7 @@ void Stats::display(
         const AudioStreamStats& audioMixerAvatarStreamStats = audio->getAudioMixerAvatarStreamStats();
         const QHash<QUuid, AudioStreamStats>& audioMixerInjectedStreamStatsMap = audio->getAudioMixerInjectedStreamStatsMap();
 
-        lines = _expanded ? 7 + audioMixerInjectedStreamStatsMap.size(): 3;
+        lines = _expanded ? 10 + audioMixerInjectedStreamStatsMap.size(): 3;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
 
@@ -327,28 +327,46 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
 
-            char audioMixerJitterBuffersStatsLabel[] = "AudioMixer stream stats:";
-            char audioMixerJitterBuffersStatsLabel2[] = "early/late/lost, jframes";
+            char audioMixerStatsLabelString[] = "AudioMixer stats:";
+            char streamStatsFormatLabelString[] = "early/late/lost, jframes";
             
             verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStatsLabel, color);
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerStatsLabelString, color);
             verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStatsLabel2, color);
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, streamStatsFormatLabelString, color);
 
-            char audioMixerJitterBuffersStats[30];
-            sprintf(audioMixerJitterBuffersStats, "mic: %d/%d/%d, %d", audioMixerAvatarStreamStats._packetsEarly,
+
+            char downstreamLabelString[] = " Downstream:";
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamLabelString, color);
+
+            const SequenceNumberStats& downstreamAudioSequenceNumberStats = audio->getIncomingMixedAudioSequenceNumberStats();
+            char downstreamAudioStatsString[30];
+            sprintf(downstreamAudioStatsString, "  mix: %d/%d/%d, %d", downstreamAudioSequenceNumberStats.getNumEarly(),
+                downstreamAudioSequenceNumberStats.getNumLate(), downstreamAudioSequenceNumberStats.getNumLost(),
+                audio->getJitterBufferSamples() / NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
+            
+            char upstreamLabelString[] = " Upstream:";
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamLabelString, color);
+
+            char upstreamAudioStatsString[30];
+            sprintf(upstreamAudioStatsString, "  mic: %d/%d/%d, %d", audioMixerAvatarStreamStats._packetsEarly,
                 audioMixerAvatarStreamStats._packetsLate, audioMixerAvatarStreamStats._packetsLost,
                 audioMixerAvatarStreamStats._jitterBufferFrames);
 
             verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStats, color);
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
 
             foreach(AudioStreamStats injectedStreamStats, audioMixerInjectedStreamStatsMap) {
-                sprintf(audioMixerJitterBuffersStats, "inj: %d/%d/%d, %d", injectedStreamStats._packetsEarly,
+                sprintf(upstreamAudioStatsString, "  inj: %d/%d/%d, %d", injectedStreamStats._packetsEarly,
                     injectedStreamStats._packetsLate, injectedStreamStats._packetsLost, injectedStreamStats._jitterBufferFrames);
                 
                 verticalOffset += STATS_PELS_PER_LINE;
-                drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerJitterBuffersStats, color);
+                drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
             }
         }
 

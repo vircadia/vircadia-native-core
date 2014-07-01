@@ -73,6 +73,8 @@ public:
 
     bool getProcessSpatialAudio() const { return _processSpatialAudio; }
 
+    const SequenceNumberStats& getIncomingMixedAudioSequenceNumberStats() const { return _incomingMixedAudioSequenceNumberStats; }
+
 public slots:
     void start();
     void stop();
