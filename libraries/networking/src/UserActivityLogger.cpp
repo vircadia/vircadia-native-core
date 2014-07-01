@@ -28,12 +28,13 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
     AccountManager& accountManager = AccountManager::getInstance();
     QHttpMultiPart* multipart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
     
+    // Adding the action name
     QHttpPart actionPart;
     actionPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"action_name\"");
     actionPart.setBody(QByteArray().append(action));
     multipart->append(actionPart);
     
-    
+    // If there are action details, add them to the multipart
     if (!details.isEmpty()) {
         QHttpPart detailsPart;
         detailsPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
@@ -41,9 +42,9 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         detailsPart.setBody(QJsonDocument(details).toJson(QJsonDocument::Compact));
         multipart->append(detailsPart);
     }
-    qDebug() << "Loging activity" << action;
-    qDebug() << AccountManager::getInstance().getAuthURL() << ": " << AccountManager::getInstance().isLoggedIn();
+    qDebug() << "Logging activity" << action;
     
+    // if no callbacks specified, call our owns
     if (params.isEmpty()) {
         params.jsonCallbackReceiver = this;
         params.jsonCallbackMethod = "requestFinished";

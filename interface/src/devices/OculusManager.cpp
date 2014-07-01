@@ -14,6 +14,7 @@
 #include <QOpenGLFramebufferObject>
 
 #include <glm/glm.hpp>
+#include <UserActivityLogger.h>
 
 #include "Application.h"
 #include "OculusManager.h"
@@ -45,6 +46,9 @@ void OculusManager::connect() {
     _hmdDevice = *_deviceManager->EnumerateDevices<HMDDevice>().CreateDevice();
 
     if (_hmdDevice) {
+        if (!_isConnected) {
+            UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
+        }
         _isConnected = true;
         
         _sensorDevice = *_hmdDevice->GetSensor();
