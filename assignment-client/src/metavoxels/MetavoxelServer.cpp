@@ -69,7 +69,7 @@ void MetavoxelServer::readPendingDatagrams() {
 void MetavoxelServer::maybeAttachSession(const SharedNodePointer& node) {
     if (node->getType() == NodeType::Agent) {
         QMutexLocker locker(&node->getMutex());
-        node->setLinkedData(new MetavoxelSession(this, NodeList::getInstance()->nodeWithUUID(node->getUUID())));
+        node->setLinkedData(new MetavoxelSession(node, this));
     }
 }
 
@@ -77,7 +77,7 @@ void MetavoxelServer::sendDeltas() {
     // send deltas for all sessions
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::Agent) {
-            static_cast<MetavoxelSession*>(node->getLinkedData())->sendDelta();
+            static_cast<MetavoxelSession*>(node->getLinkedData())->update();
         }
     }
     
@@ -89,59 +89,34 @@ void MetavoxelServer::sendDeltas() {
     _sendTimer.start(qMax(0, 2 * SEND_INTERVAL - elapsed));
 }
 
-MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const SharedNodePointer& node) :
-    _server(server),
-    _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData)),
-    _node(node) {
+MetavoxelSession::MetavoxelSession(const SharedNodePointer& node, MetavoxelServer* server) :
+    Endpoint(node, new PacketRecord(), NULL),
+    _server(server) {
     
-    connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
-    connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
-    connect(&_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(clearSendRecordsBefore(int)));
     connect(&_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)), SLOT(handleMessage(const QVariant&)));
     connect(_sequencer.getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&)),
         SLOT(handleMessage(const QVariant&)));
-    
-    // insert the baseline send record
-    SendRecord record = { 0 };
-    _sendRecords.append(record);
 }
 
-MetavoxelSession::~MetavoxelSession() {
-}
-
-int MetavoxelSession::parseData(const QByteArray& packet) {
-    // process through sequencer
-    _sequencer.receivedDatagram(packet);
-    return packet.size();
-}
-
-void MetavoxelSession::sendDelta() {
+void MetavoxelSession::update() {
     // wait until we have a valid lod
-    if (!_lod.isValid()) {
-        return;
+    if (_lod.isValid()) {
+        Endpoint::update();
     }
-    Bitstream& out = _sequencer.startPacket();
+}
+
+void MetavoxelSession::writeUpdateMessage(Bitstream& out) {
     out << QVariant::fromValue(MetavoxelDeltaMessage());
-    _server->getData().writeDelta(_sendRecords.first().data, _sendRecords.first().lod, out, _lod);
-    _sequencer.endPacket();
-    
-    // record the send
-    SendRecord record = { _sequencer.getOutgoingPacketNumber(), _server->getData(), _lod };
-    _sendRecords.append(record);
+    PacketRecord* sendRecord = getLastAcknowledgedSendRecord();
+    _server->getData().writeDelta(sendRecord->getData(), sendRecord->getLOD(), out, _lod);
 }
 
-void MetavoxelSession::sendData(const QByteArray& data) {
-    NodeList::getInstance()->writeDatagram(data, _node);
-}
-
-void MetavoxelSession::readPacket(Bitstream& in) {
-    QVariant message;
-    in >> message;
+void MetavoxelSession::handleMessage(const QVariant& message, Bitstream& in) {
     handleMessage(message);
 }
 
-void MetavoxelSession::clearSendRecordsBefore(int index) {
-    _sendRecords.erase(_sendRecords.begin(), _sendRecords.begin() + index + 1);
+PacketRecord* MetavoxelSession::maybeCreateSendRecord() const {
+    return new PacketRecord(_lod, _server->getData());
 }
 
 void MetavoxelSession::handleMessage(const QVariant& message) {
