@@ -29,6 +29,7 @@ UserLocationsWindow::UserLocationsWindow(QWidget* parent) :
 
     _ui.locationsTreeView->setModel(&_proxyModel);
     _ui.locationsTreeView->setSortingEnabled(true);
+    _ui.locationsTreeView->sortByColumn(UserLocationsModel::NameColumn, Qt::AscendingOrder);
 
     connect(_ui.locationsTreeView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, &UserLocationsWindow::updateEnabled);
