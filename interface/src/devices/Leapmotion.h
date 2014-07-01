@@ -1,5 +1,5 @@
 //
-//  LeapMotionManager.h
+//  Leapmotion.h
 //  interface/src/devices
 //
 //  Created by Sam Cake on 6/2/2014
@@ -9,46 +9,37 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_LeapMotionManager_h
-#define hifi_LeapMotionManager_h
+#ifndef hifi_Leapmotion_h
+#define hifi_Leapmotion_h
 
 #include <QDateTime>
-#include <QObject>
-#include <QVector>
 
-#include <glm/gtc/quaternion.hpp>
+#include "HandTracker.h"
+#include "MotionTracker.h"
 
 #ifdef HAVE_LEAPMOTION
 #include <Leap.h>
-/*extern "C" {
-#include <yei_skeletal_api.h>
-}*/
 #endif
 
-/// Handles interaction with the LeapMotionManager skeleton tracking suit.
-class LeapMotionManager : public QObject {
+/// Handles interaction with the Leapmotion skeleton tracking suit.
+class Leapmotion : public MotionTracker {
     Q_OBJECT
 
 public:
+
+    Leapmotion();
+    virtual ~Leapmotion();
+
+    void init();
+
+    bool isActive() const { return _active; }
     
-    LeapMotionManager();
-    virtual ~LeapMotionManager();
-
-    bool isActive() const { return !_hands.isEmpty(); }
-
-    int nbHands() const { return _hands.size(); }
-
-    glm::vec3 getHandPos( unsigned int handNb ) const;
-
-    const QVector<int>& getHumanIKJointIndices() const { return _humanIKJointIndices; }
-    const QVector<glm::quat>& getJointRotations() const { return _jointRotations; }
-    
-    void update(float deltaTime);
+    void update();
     void reset();
 
-private slots:
+public slots:
 
-    void renderCalibrationCountdown();
+    void updateEnabled();
 
 private:
 #ifdef HAVE_LEAPMOTION
@@ -76,13 +67,11 @@ private:
 #endif
     glm::vec3           _leapBasePos;
     glm::quat           _leapBaseOri;
-    QVector<glm::vec3>  _hands;
 
-    QVector<int> _humanIKJointIndices;
-    QVector<glm::quat> _jointRotations;
-    QVector<glm::quat> _lastJointRotations;
-    
-    QDateTime _calibrationCountdownStarted;
+    void setEnabled(bool enabled);
+
+    bool _enabled;
+    bool _active;
 };
 
-#endif // hifi_LeapMotionManager_h
+#endif // hifi_Leapmotion_h

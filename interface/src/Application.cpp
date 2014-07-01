@@ -86,6 +86,8 @@
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
 
+#include "devices/Leapmotion.h"
+
 using namespace std;
 
 //  Starfield information
@@ -1653,6 +1655,10 @@ void Application::init() {
     _faceplus.init();
     _visage.init();
 
+    Leapmotion* leap = new Leapmotion();
+    int index = DeviceTracker::registerDevice( "Leapmotion", leap );
+   // _leapmotion.init();
+
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
 
@@ -1990,6 +1996,9 @@ void Application::update(float deltaTime) {
 
     updateLOD();
     updateMouseRay(); // check what's under the mouse and update the mouse voxel
+
+    DeviceTracker::updateAll();
+
     updateFaceshift();
     updateVisage();
 
@@ -2003,6 +2012,7 @@ void Application::update(float deltaTime) {
         _sixenseManager.update(deltaTime);
         _joystickManager.update();
         _prioVR.update(deltaTime);
+
     }
     
     {
@@ -2010,6 +2020,10 @@ void Application::update(float deltaTime) {
         updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     }
     
+
+    // Dispatch input events
+    _controllerScriptingInterface.updateInputControllers();
+
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     
     {
@@ -3104,6 +3118,7 @@ void Application::resetSensors() {
     }
 
     _prioVR.reset();
+    //_leapmotion.reset();
 
     QCursor::setPos(_mouseX, _mouseY);
     _myAvatar->reset();

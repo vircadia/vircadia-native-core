@@ -66,7 +66,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
     const float HAND_RESTORATION_RATE = 0.25f;    
-    if (leftPalmIndex == -1) {
+    if ( (leftPalmIndex == -1) && ( rightPalmIndex == -1) ) { // NO palm active
         // palms are not yet set, use mouse
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
             restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
@@ -77,10 +77,15 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         }
         restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
 
-    } else if (leftPalmIndex == rightPalmIndex) {
+    } else if ( (leftPalmIndex == -1) && ( rightPalmIndex != -1)) { // Just right hand active
+        // right hand only
+        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+        restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+
+    } else if ( (leftPalmIndex != -1) && ( rightPalmIndex == -1) ) { // Just left hand active
         // right hand only
         applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
-        restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+        restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
 
     } else {
         applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);

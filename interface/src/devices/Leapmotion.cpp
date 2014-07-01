@@ -1,5 +1,5 @@
 //
-//  LeapMotionManager.cpp
+//  Leapmotion.cpp
 //  interface/src/devices
 //
 //  Created by Sam Cake on 6/2/2014
@@ -15,56 +15,56 @@
 #include <FBXReader.h>
 
 #include "Application.h"
-#include "LeapMotionManager.h"
+#include "Leapmotion.h"
 #include "ui/TextRenderer.h"
 
 
 #ifdef HAVE_LEAPMOTION
 
 
-LeapMotionManager::SampleListener::SampleListener() : ::Leap::Listener()
+Leapmotion::SampleListener::SampleListener() : ::Leap::Listener()
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
 
-LeapMotionManager::SampleListener::~SampleListener()
+Leapmotion::SampleListener::~SampleListener()
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
 
-void LeapMotionManager::SampleListener::onConnect(const ::Leap::Controller &)
+void Leapmotion::SampleListener::onConnect(const ::Leap::Controller &)
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
-void LeapMotionManager::SampleListener::onDisconnect(const ::Leap::Controller &)
+void Leapmotion::SampleListener::onDisconnect(const ::Leap::Controller &)
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
-void LeapMotionManager::SampleListener::onExit(const ::Leap::Controller &)
+void Leapmotion::SampleListener::onExit(const ::Leap::Controller &)
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
-void LeapMotionManager::SampleListener::onFocusGained(const ::Leap::Controller &)
+void Leapmotion::SampleListener::onFocusGained(const ::Leap::Controller &)
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
-void LeapMotionManager::SampleListener::onFocusLost(const ::Leap::Controller &)
+void Leapmotion::SampleListener::onFocusLost(const ::Leap::Controller &)
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
-void LeapMotionManager::SampleListener::onFrame(const ::Leap::Controller &)
+void Leapmotion::SampleListener::onFrame(const ::Leap::Controller &)
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
-void LeapMotionManager::SampleListener::onInit(const ::Leap::Controller &)
+void Leapmotion::SampleListener::onInit(const ::Leap::Controller &)
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
-void LeapMotionManager::SampleListener::onServiceConnect(const ::Leap::Controller &)
+void Leapmotion::SampleListener::onServiceConnect(const ::Leap::Controller &)
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
-void LeapMotionManager::SampleListener::onServiceDisconnect(const ::Leap::Controller &)
+void Leapmotion::SampleListener::onServiceDisconnect(const ::Leap::Controller &)
 {
 //    std::cout << __FUNCTION__ << std::endl;
 }
@@ -177,55 +177,109 @@ const float LEAP_Y = 0.3f;  // meters
 const float LEAP_Z = 0.3f;  // meters
 #endif
 
-LeapMotionManager::LeapMotionManager() {
+const int FINGER_NUM_JOINTS = 4;
+const int HAND_NUM_JOINTS = FINGER_NUM_JOINTS*5+1;
+
+Leapmotion::Leapmotion() :
+     MotionTracker(),
+    _enabled(false),
+    _active(false)
+{
 #ifdef HAVE_LEAPMOTION
 
     // Have the sample listener receive events from the controller
     _controller.addListener(_listener);
 
-    // By default we assume the _neckBase (in orb frame) is as high above the orb 
-    // as the "torso" is below it.
-    _leapBasePos = glm::vec3(0, -LEAP_Y, LEAP_Z);
-
-    glm::vec3 xAxis(1.f, 0.f, 0.f);
-    glm::vec3 yAxis(0.f, 1.f, 0.f);
-    glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
-    xAxis = glm::normalize(glm::cross(yAxis, zAxis));
-    _leapBaseOri = glm::inverse(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
+    reset();
 
 #endif
+
+    // Create the Leapmotion joint hierarchy
+    {
+        std::vector< Semantic > hands;
+        hands.push_back( "Left" );
+        hands.push_back( "Right" );
+
+        std::vector< Semantic > fingers;
+        fingers.push_back( "Thumb" );
+        fingers.push_back( "Index" );
+        fingers.push_back( "Middle" );
+        fingers.push_back( "Ring" );
+        fingers.push_back( "Pinky" );
+
+        std::vector< Semantic > fingerBones;
+/*      fingerBones.push_back( "Metacarpal" );
+        fingerBones.push_back( "Proximal" );
+        fingerBones.push_back( "Intermediate" );
+        fingerBones.push_back( "Distal" );
+*/
+        fingerBones.push_back( "1" );
+        fingerBones.push_back( "2" );
+        fingerBones.push_back( "3" );
+        fingerBones.push_back( "4" );
+
+        std::vector< Index > palms;
+        for ( int h = 0; h < hands.size(); h++ ) {
+            Index rootJoint = addJoint( hands[h] + "Hand", 0 );
+            palms.push_back( rootJoint );
+
+            for ( int f = 0; f < fingers.size(); f++ ) {
+                for ( int b = 0; b < fingerBones.size(); b++ ) {
+                    rootJoint  = addJoint( hands[h] + "Hand" + fingers[f] + fingerBones[b], rootJoint );
+                }
+            }
+        }
+    }
 }
 
-LeapMotionManager::~LeapMotionManager() {
+Leapmotion::~Leapmotion() {
 #ifdef HAVE_LEAPMOTION
     // Remove the sample listener when done
     _controller.removeListener(_listener);
 #endif
 }
 
-const int HEAD_ROTATION_INDEX = 0;
 
-glm::vec3 LeapMotionManager::getHandPos( unsigned int handNb ) const
-{
-    if ( handNb < _hands.size() )
-    {
-        return _hands[ handNb ];
-    }
-    else
-        return glm::vec3(0.f);
+void Leapmotion::init() {
+ //   connect(Application::getInstance()->getFaceshift(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
+    updateEnabled();
 }
 
-void LeapMotionManager::update(float deltaTime) {
 #ifdef HAVE_LEAPMOTION
+glm::quat quatFromLeapBase( float sideSign, const Leap::Matrix& basis ) {
 
-    if ( !_controller.isConnected() )
+    glm::vec3 xAxis = glm::normalize( sideSign * glm::vec3( basis.xBasis.x, basis.xBasis.y, basis.xBasis.z) );
+    glm::vec3 yAxis = glm::normalize( glm::vec3( basis.yBasis.x, basis.yBasis.y, basis.yBasis.z) );
+    glm::vec3 zAxis = glm::normalize( glm::vec3( basis.zBasis.x, basis.zBasis.y, basis.zBasis.z) );
+
+    glm::quat orientation = /* glm::inverse*/ (glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
+
+    return orientation;
+}
+
+glm::vec3 vec3FromLeapVector( const Leap::Vector& vec ) {
+    return glm::vec3( vec.x * METERS_PER_MILLIMETER, vec.y * METERS_PER_MILLIMETER, vec.z * METERS_PER_MILLIMETER );
+}
+
+#endif
+
+void Leapmotion::update() {
+#ifdef HAVE_LEAPMOTION
+    _active = _controller.isConnected();
+    if (!_active) {
         return;
+    }
 
+    // go through all the joints and increment their counter since last update
+    for ( auto jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++ ) {
+        (*jointIt).tickNewFrame();
+    }
+
+    float deltaTime = 0.001f;
 
     // Get the most recent frame and report some basic information
     const Leap::Frame frame = _controller.frame();
     static _int64 lastFrame = -1;
-    _hands.clear();
     _int64 newFrameNb = frame.id();
 
     if ( (lastFrame >= newFrameNb) )
@@ -233,135 +287,64 @@ void LeapMotionManager::update(float deltaTime) {
 
     glm::vec3 delta(0.f);
     glm::quat handOri;
-    if (!frame.hands().isEmpty())
-    {
-        // Get the first hand
-        const Leap::Hand hand = frame.hands()[0];
-        Leap::Vector lp = hand.palmPosition();
-        glm::vec3 p(lp.x * METERS_PER_MILLIMETER, lp.y * METERS_PER_MILLIMETER, lp.z * METERS_PER_MILLIMETER );
+    if ( !frame.hands().isEmpty() ) {
+        for ( int handNum = 0; handNum < frame.hands().count(); handNum++ ) {
+            // Get the first hand
+            const Leap::Hand hand = frame.hands()[handNum];
+            int side = ( hand.isRight() ? -1 : 1 );
+            Index handIndex = 1 + ((1 - side)/2) * HAND_NUM_JOINTS;
 
-        Leap::Vector n = hand.palmNormal();
-        glm::vec3 xAxis(n.x, n.y, n.z);
-        glm::vec3 yAxis(0.f, 1.f, 0.f);
-        glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
-        xAxis = glm::normalize(glm::cross(yAxis, zAxis));
-        handOri = glm::inverse(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
+            glm::vec3 pos = vec3FromLeapVector(hand.palmPosition());
+            glm::quat ori = quatFromLeapBase(float(side), hand.basis() );
 
-        _hands.push_back( p );
+            JointTracker* palmJoint = editJointTracker( handIndex );
+            palmJoint->editLocFrame().setTranslation( pos );
+            palmJoint->editLocFrame().setRotation( ori );
+            palmJoint->editAbsFrame().setTranslation( pos );
+            palmJoint->editAbsFrame().setRotation( ori );
+            palmJoint->activeFrame();
+
+            // Transform the measured position into body frame.  
+            glm::vec3 neck = _leapBasePos;
+            // Zeroing y component of the "neck" effectively raises the measured position a little bit.
+            //neck.y = 0.f;
+            pos = _leapBaseOri * (pos - neck);
 
 
-        //Leap::Vector dp = hand.translation( _controller.frame( lastFrame ) );
-        Leap::Vector dp = hand.palmVelocity();
-        delta = glm::vec3( dp.x * METERS_PER_MILLIMETER, dp.y * METERS_PER_MILLIMETER, dp.z * METERS_PER_MILLIMETER);
+            // Check if the hand has any fingers
+            const Leap::FingerList fingers = hand.fingers();
+            if (!fingers.isEmpty()) {
+                // For every fingers in the list
+                for (int i = 0; i < fingers.count(); ++i) {
+                    // Reset the parent joint to the palmJoint for every finger traversal
+                    JointTracker* parentJointTracker = palmJoint;
+
+                    // surprisingly, Leap::Finger::Type start at 0 for thumb a until 4 for the pinky
+                    Index fingerIndex = handIndex + 1 + Index(fingers[i].type()) * FINGER_NUM_JOINTS;
+
+                    // let's update the finger's joints
+                    for ( int b = 0; b < FINGER_NUM_JOINTS; b++ ) {
+                        Leap::Bone::Type type = Leap::Bone::Type(b + Leap::Bone::TYPE_METACARPAL);
+                        Leap::Bone bone = fingers[i].bone( type );
+                        JointTracker* ljointTracker = editJointTracker( fingerIndex + b );
+                        if ( bone.isValid() ) {
+                            Leap::Vector bp = bone.nextJoint();
+
+                            ljointTracker->editAbsFrame().setTranslation( vec3FromLeapVector( bp ) );
+                            ljointTracker->editAbsFrame().setRotation(quatFromLeapBase( float(side), bone.basis() ) );
+                            ljointTracker->updateLocFromAbsTransform( parentJointTracker );
+                            ljointTracker->activeFrame();
+                        }
+                        parentJointTracker = ljointTracker;
+                    }
+                }
+            }
+        }
     }
+
     lastFrame = newFrameNb;
 
-    MyAvatar* avatar = Application::getInstance()->getAvatar();
-    Hand* hand = avatar->getHand();
 
-//    for ( int h = 0; h < frame.hands().count(); h++ )
-    if ( _hands.size() )
-    {
-
-        //  Set palm position and normal based on Hydra position/orientation
-        
-        // Either find a palm matching the sixense controller, or make a new one
-        PalmData* palm;
-        bool foundHand = false;
-        for (size_t j = 0; j < hand->getNumPalms(); j++) {
-            if (hand->getPalms()[j].getSixenseID() == 28) {
-                palm = &(hand->getPalms()[j]);
-                foundHand = true;
-            }
-        }
-        if (!foundHand) {
-            PalmData newPalm(hand);
-            hand->getPalms().push_back(newPalm);
-            palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
-            palm->setSixenseID(28);
-            qDebug("Found new LeapMotion hand, ID %i", 28);
-        }
-        
-        palm->setActive(true);
-        
-        //  Read controller buttons and joystick into the hand
-        //palm->setControllerButtons(data->buttons);
-        //palm->setTrigger(data->trigger);
-        //palm->setJoystick(data->joystick_x, data->joystick_y);
-
-        glm::vec3 position(_hands[0]);
-
-        // Transform the measured position into body frame.  
-        glm::vec3 neck = _leapBasePos;
-        // Zeroing y component of the "neck" effectively raises the measured position a little bit.
-        //neck.y = 0.f;
-        position = _leapBaseOri * (position - neck);
-
-        //  Rotation of Palm
-        glm::quat rotation(handOri[3], -handOri[0], handOri[1], -handOri[2]);
-        rotation = glm::angleAxis(PI, glm::vec3(0.f, 1.f, 0.f)) * _leapBaseOri * rotation;
-
-        //  Compute current velocity from position change
-        glm::vec3 rawVelocity;
-        if (deltaTime > 0.f) {
-           // rawVelocity = (position - palm->getRawPosition()) / deltaTime; 
-            rawVelocity = delta / deltaTime; 
-        } else {
-            rawVelocity = glm::vec3(0.0f);
-        }
-        palm->setRawVelocity(rawVelocity);   //  meters/sec
-
-        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-        //  no latency.
-        float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-        palm->setRawPosition(palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter));
-        palm->setRawRotation(safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter));
-        
-        // use the velocity to determine whether there's any movement (if the hand isn't new)
-      /*  const float MOVEMENT_DISTANCE_THRESHOLD = 0.003f;
-        _amountMoved += rawVelocity * deltaTime;
-        if (glm::length(_amountMoved) > MOVEMENT_DISTANCE_THRESHOLD && foundHand) {
-            _lastMovement = usecTimestampNow();
-            _amountMoved = glm::vec3(0.0f);
-        }*/
-        
-        // Store the one fingertip in the palm structure so we can track velocity
-    /*    const float FINGER_LENGTH = 0.3f;   //  meters
-        const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
-        const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
-        glm::vec3 oldTipPosition = palm->getTipRawPosition();
-        if (deltaTime > 0.f) {
-            palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
-        } else {
-            palm->setTipVelocity(glm::vec3(0.f));
-        }
-        palm->setTipPosition(newTipPosition);*/
-    }
-    else
-    {
-        // Either find a palm matching the sixense controller, or make a new one
-        PalmData* palm;
-        bool foundHand = false;
-        for (size_t j = 0; j < hand->getNumPalms(); j++) {
-            if (hand->getPalms()[j].getSixenseID() == 28) {
-                palm = &(hand->getPalms()[j]);
-                foundHand = true;
-            }
-        }
-        if (foundHand) {
-            palm->setRawPosition(palm->getRawPosition());
-            palm->setRawRotation(palm->getRawRotation());
-            palm->setActive(false);
-        }
-    }
-
-
- /*   if (numActiveControllers == 2) {
-        updateCalibration(controllers);
-    }
-    */
-
-   // }
 
     if ( false )
     {
@@ -411,31 +394,29 @@ void LeapMotionManager::update(float deltaTime) {
 #endif
 }
 
-void LeapMotionManager::reset() {
-#ifdef HAVE_LEAPMOTION
-    if (!_controller.isConnected()) {
-        return;
-    }
-  /*  connect(Application::getInstance(), SIGNAL(renderingOverlay()), SLOT(renderCalibrationCountdown()));
-    _calibrationCountdownStarted = QDateTime::currentDateTime();
-    */
-#endif
+void Leapmotion::reset() {
+   // By default we assume the _neckBase (in orb frame) is as high above the orb 
+    // as the "torso" is below it.
+    _leapBasePos = glm::vec3(0, -LEAP_Y, LEAP_Z);
+
+    glm::vec3 xAxis(1.f, 0.f, 0.f);
+    glm::vec3 yAxis(0.f, 1.f, 0.f);
+    glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
+    xAxis = glm::normalize(glm::cross(yAxis, zAxis));
+    _leapBaseOri = glm::inverse(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
 }
 
-void LeapMotionManager::renderCalibrationCountdown() {
+void Leapmotion::updateEnabled() {
+  /*  setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Visage) &&
+        !Menu::getInstance()->isOptionChecked(MenuOption::Faceplus) && 
+        !(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) &&
+            Application::getInstance()->getFaceshift()->isConnectedOrConnecting()));*/
+}
+
+void Leapmotion::setEnabled(bool enabled) {
 #ifdef HAVE_LEAPMOTION
-  /*  const int COUNTDOWN_SECONDS = 3;
-    int secondsRemaining = COUNTDOWN_SECONDS - _calibrationCountdownStarted.secsTo(QDateTime::currentDateTime());
-    if (secondsRemaining == 0) {
-        yei_tareSensors(_skeletalDevice);
-        Application::getInstance()->disconnect(this);
+    if (_enabled == enabled) {
         return;
     }
-    static TextRenderer textRenderer(MONO_FONT_FAMILY, 18, QFont::Bold, false, TextRenderer::OUTLINE_EFFECT, 2);
-    QByteArray text = "Assume T-Pose in " + QByteArray::number(secondsRemaining) + "...";
-    textRenderer.draw((Application::getInstance()->getGLWidget()->width() - textRenderer.computeWidth(text.constData())) / 2,
-        Application::getInstance()->getGLWidget()->height() / 2,
-        text);
-        */
-#endif  
+#endif
 }
