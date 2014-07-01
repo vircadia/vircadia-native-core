@@ -31,7 +31,7 @@ const int NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL = NETWORK_BUFFER_LENGTH_BYTE
 const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
                                                         / (float) SAMPLE_RATE) * 1000 * 1000);
 
-const short RING_BUFFER_LENGTH_FRAMES = 100;
+const short RING_BUFFER_LENGTH_FRAMES = 10;
 
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
@@ -71,10 +71,10 @@ public:
     bool isStarved() const { return _isStarved; }
     void setIsStarved(bool isStarved) { _isStarved = isStarved; }
     
-    int getResetCount() const { return _resetCount; } /// how many times has the ring buffer written past the end and reset
+    int getOverflowCount() const { return _overflowCount; } /// how many times has the ring buffer has overwritten old data
     bool hasStarted() const { return _hasStarted; }
     
-    void addSilentFrame(int numSilentSamples);
+    int addSilentFrame(int numSilentSamples);
 protected:
     // disallow copying of AudioRingBuffer objects
     AudioRingBuffer(const AudioRingBuffer&);
@@ -82,9 +82,10 @@ protected:
     
     int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
 
-    int _resetCount; /// how many times has the ring buffer written past the end and done a reset
+    int _overflowCount; /// how many times has the ring buffer has overwritten old data
     
     int _sampleCapacity;
+    bool _isFull;
     int _numFrameSamples;
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;

@@ -41,7 +41,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _oauthClientID(),
     _hostname(),
     _networkReplyUUIDMap(),
-    _sessionAuthenticationHash()
+    _sessionAuthenticationHash(),
+    _settingsManager()
 {
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
@@ -362,7 +363,7 @@ void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const Q
                 QString dashes = payloadKey.size() == 1 ? "-" : "--";
                 payloadStringList << QString("%1%2 %3").arg(dashes).arg(payloadKey).arg(jsonObject[payloadKey].toString());
             }
-
+            
             configAssignment->setPayload(payloadStringList.join(' ').toUtf8());
 
             addStaticAssignmentToAssignmentHash(configAssignment);
@@ -1162,12 +1163,13 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
     }
 
-    // didn't process the request, let the HTTPManager try and handle
-    return false;
+    // didn't process the request, let our DomainServerSettingsManager or HTTPManager handle
+    return _settingsManager.handleHTTPRequest(connection, url);
 }
 
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url) {
     const QString URI_OAUTH = "/oauth";
+    qDebug() << "HTTPS request received at" << url.toString();
     if (url.path() == URI_OAUTH) {
 
         QUrlQuery codeURLQuery(url);

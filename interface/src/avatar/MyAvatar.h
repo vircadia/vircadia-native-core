@@ -139,7 +139,10 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehaviorsFromMenu();
-
+    
+    glm::vec3 getLeftPalmPosition();
+    glm::vec3 getRightPalmPosition();
+    
 signals:
     void transformChanged();
 

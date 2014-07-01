@@ -135,7 +135,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     args->_elementsTouched++;
     // actually render it here...
     // we need to iterate the actual entityItems of the element
-    EntityTreeElement* entityTreeElement = (EntityTreeElement*)element;
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
     QList<EntityItem>& entityItems = entityTreeElement->getEntities();
 

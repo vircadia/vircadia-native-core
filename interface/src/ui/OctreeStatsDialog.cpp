@@ -365,13 +365,14 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             QString incomingPacketsString = locale.toString((uint)stats.getIncomingPackets());
                             QString incomingBytesString = locale.toString((uint)stats.getIncomingBytes());
                             QString incomingWastedBytesString = locale.toString((uint)stats.getIncomingWastedBytes());
-                            QString incomingOutOfOrderString = locale.toString((uint)stats.getIncomingOutOfOrder());
-                            QString incomingLateString = locale.toString((uint)stats.getIncomingLate());
-                            QString incomingReallyLateString = locale.toString((uint)stats.getIncomingReallyLate());
-                            QString incomingEarlyString = locale.toString((uint)stats.getIncomingEarly());
-                            QString incomingLikelyLostString = locale.toString((uint)stats.getIncomingLikelyLost());
-                            QString incomingRecovered = locale.toString((uint)stats.getIncomingRecovered());
-                            QString incomingDuplicateString = locale.toString((uint)stats.getIncomingPossibleDuplicate());
+                            const SequenceNumberStats& seqStats = stats.getIncomingOctreeSequenceNumberStats();
+                            QString incomingOutOfOrderString = locale.toString((uint)seqStats.getNumOutOfOrder());
+                            QString incomingLateString = locale.toString((uint)seqStats.getNumLate());
+                            QString incomingUnreasonableString = locale.toString((uint)seqStats.getNumUnreasonable());
+                            QString incomingEarlyString = locale.toString((uint)seqStats.getNumEarly());
+                            QString incomingLikelyLostString = locale.toString((uint)seqStats.getNumLost());
+                            QString incomingRecovered = locale.toString((uint)seqStats.getNumRecovered());
+                            QString incomingDuplicateString = locale.toString((uint)seqStats.getNumDuplicate());
                             
                             int clockSkewInMS = node->getClockSkewUsec() / (int)USECS_PER_MSEC;
                             QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
@@ -385,7 +386,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             serverDetails << "<br/>" << " Out of Order: " << qPrintable(incomingOutOfOrderString) <<
                                 "/ Early: " << qPrintable(incomingEarlyString) <<
                                 "/ Late: " << qPrintable(incomingLateString) <<
-                                "/ Really Late: " << qPrintable(incomingReallyLateString) <<
+                                "/ Unreasonable: " << qPrintable(incomingUnreasonableString) <<
                                 "/ Duplicate: " << qPrintable(incomingDuplicateString);
                             
                             serverDetails << "<br/>" <<

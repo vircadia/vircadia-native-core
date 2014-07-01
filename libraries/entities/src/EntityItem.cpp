@@ -1386,6 +1386,18 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
         properties.setProperty("isKnownID", (_id != UNKNOWN_MODEL_ID));
     }
 
+    // Sitting properties support
+    QScriptValue sittingPoints = engine->newObject();
+    for (int i = 0; i < _sittingPoints.size(); ++i) {
+        QScriptValue sittingPoint = engine->newObject();
+        sittingPoint.setProperty("name", _sittingPoints[i].name);
+        sittingPoint.setProperty("position", vec3toScriptValue(engine, _sittingPoints[i].position));
+        sittingPoint.setProperty("rotation", quatToScriptValue(engine, _sittingPoints[i].rotation));
+        sittingPoints.setProperty(i, sittingPoint);
+    }
+    sittingPoints.setProperty("length", _sittingPoints.size());
+    properties.setProperty("sittingPoints", sittingPoints);
+
     return properties;
 }
 
@@ -1610,6 +1622,7 @@ void EntityItemProperties::copyFromEntityItem(const EntityItem& modelItem) {
     _animationFrameIndex = modelItem.getAnimationFrameIndex();
     _animationFPS = modelItem.getAnimationFPS();
     _glowLevel = modelItem.getGlowLevel();
+    _sittingPoints = modelItem.getSittingPoints(); // sitting support
 
     _id = modelItem.getID();
     _idSet = true;

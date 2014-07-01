@@ -597,12 +597,12 @@ bool EntityTree::findInSphereOperation(OctreeElement* element, void* extraData) 
     return false;
 }
 
+// NOTE: assumes caller has handled locking
 void EntityTree::findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntitys) {
     FindAllNearPointArgs args = { center, radius };
-    lockForRead();
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInSphereOperation, &args);
-    unlock();
+
     // swap the two lists of model pointers instead of copy
     foundEntitys.swap(args.models);
 }
@@ -628,12 +628,11 @@ bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
     return false;
 }
 
+// NOTE: assumes caller has handled locking
 void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*> foundEntitys) {
     FindEntitysInCubeArgs args(cube);
-    lockForRead();
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInCubeOperation, &args);
-    unlock();
     // swap the two lists of model pointers instead of copy
     foundEntitys.swap(args._foundEntitys);
 }

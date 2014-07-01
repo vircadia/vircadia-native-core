@@ -350,6 +350,14 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
     return false;
 }
 
+// TODO: the old model code has support for sittingPoints... need to determine how to handle this...
+// for local editors, the old updateModels(id, properties) had this code...
+// if (found) {
+//     thisModel.setProperties(properties);
+//     if (_myTree->getGeometryForModel(thisModel)) {
+//         thisModel.setSittingPoints(_myTree->getGeometryForModel(thisModel)->sittingPoints);
+//     }
+// ...
 bool EntityTreeElement::updateEntity(const EntityItem& entity) {
     const bool wantDebug = false;
     if (wantDebug) {

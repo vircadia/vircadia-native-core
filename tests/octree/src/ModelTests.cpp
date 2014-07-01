@@ -25,7 +25,6 @@
 //#include "EntityTests.h"
 #include "ModelTests.h" // needs to be EntityTests.h soon
 
-
 void EntityTests::modelTreeTests(bool verbose) {
     bool extraVerbose = false;
     int testsTaken = 0;

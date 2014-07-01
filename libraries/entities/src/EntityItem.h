@@ -12,8 +12,9 @@
 #ifndef hifi_EntityItem_h
 #define hifi_EntityItem_h
 
-#include <glm/glm.hpp>
 #include <stdint.h>
+
+#include <glm/glm.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
@@ -23,6 +24,8 @@
 #include <OctreePacketData.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
+#include <FBXReader.h>
+
 
 class EntityItem;
 class EntityEditPacketSender;
@@ -161,6 +164,7 @@ private:
     float _animationFrameIndex;
     float _animationFPS;
     float _glowLevel;
+    QVector<SittingPoint> _sittingPoints;
 
     quint32 _id;
     bool _idSet;
@@ -277,6 +281,7 @@ public:
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
     const QString& getAnimationURL() const { return _animationURL; }
     float getGlowLevel() const { return _glowLevel; }
+    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
 
     EntityItemID getEntityItemID() const { return EntityItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_MODEL_ID); }
     EntityItemProperties getProperties() const;
@@ -320,6 +325,7 @@ public:
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
     void setAnimationFPS(float value) { _animationFPS = value; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
+    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
     
     void setProperties(const EntityItemProperties& properties, bool forceCopy = false);
 
@@ -376,6 +382,8 @@ protected:
     // model related items
     QString _modelURL;
     glm::quat _rotation;
+    
+    QVector<SittingPoint> _sittingPoints;
     
     float _glowLevel;
 

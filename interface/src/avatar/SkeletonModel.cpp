@@ -39,7 +39,6 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
     }
 
     clearShapes();
-    clearRagdollConstraintsAndPoints();
     if (_enableShapes) {
         buildShapes();
     }
@@ -505,8 +504,7 @@ void SkeletonModel::renderRagdoll() {
 
 // virtual
 void SkeletonModel::initRagdollPoints() {
-    assert(_ragdollPoints.size() == 0);
-    assert(_ragdollConstraints.size() == 0);
+    clearRagdollConstraintsAndPoints();
 
     // one point for each joint
     int numJoints = _jointStates.size();
@@ -637,12 +635,15 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
 
     // compute the default transforms and slam the ragdoll positions accordingly
     // (which puts the shapes where we want them)
-    transforms[0] = _jointStates[0].getTransform();
-    _ragdollPoints[0]._position = extractTranslation(transforms[0]);
-    _ragdollPoints[0]._lastPosition = _ragdollPoints[0]._position;
-    for (int i = 1; i < numJoints; i++) {
+    for (int i = 0; i < numJoints; i++) {
         const FBXJoint& joint = geometry.joints.at(i);
         int parentIndex = joint.parentIndex;
+        if (parentIndex == -1) {
+            transforms[i] = _jointStates[i].getTransform();
+            _ragdollPoints[i]._position = extractTranslation(transforms[i]);
+            _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
+            continue;
+        }
         assert(parentIndex != -1);
         
         glm::quat modifiedRotation = joint.preRotation * joint.rotation * joint.postRotation;    

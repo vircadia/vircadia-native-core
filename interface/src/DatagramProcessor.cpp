@@ -51,7 +51,10 @@ void DatagramProcessor::processDatagrams() {
                     QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
                                               Q_ARG(QByteArray, incomingPacket));
                     break;
-                    
+                case PacketTypeAudioStreamStats:
+                    QMetaObject::invokeMethod(&application->_audio, "parseAudioStreamStatsPacket", Qt::QueuedConnection,
+                        Q_ARG(QByteArray, incomingPacket));
+                    break;
                 case PacketTypeParticleAddResponse:
                     // this will keep creatorTokenIDs to IDs mapped correctly
                     Particle::handleAddParticleResponse(incomingPacket);
