@@ -9,12 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <iostream> // adebug
 #include <glm/gtx/norm.hpp>
 
 #include "AngularConstraint.h"
 #include "SharedUtil.h"
-#include "StreamUtils.h"    // adebug
 
 // helper function
 /// \param angle radian angle to be clamped within angleMin and angleMax
@@ -64,13 +62,13 @@ AngularConstraint* AngularConstraint::newAngularConstraint(const glm::vec3& minA
     } else if (numZeroes == 0) {
         // approximate the angular limits with a cone roller
         // we assume the roll is about z
-        glm::vec3 middleAngles = 0.5f * (maxAngles - minAngles);
+        glm::vec3 middleAngles = 0.5f * (maxAngles + minAngles);
         glm::quat yaw = glm::angleAxis(middleAngles[1], glm::vec3(0.0f, 1.0f, 0.0f));
         glm::quat pitch = glm::angleAxis(middleAngles[0], glm::vec3(1.0f, 0.0f, 0.0f));
         glm::vec3 coneAxis = pitch * yaw * glm::vec3(0.0f, 0.0f, 1.0f);
-        // the coneAngle is half of the average range of the two non-roll rotations
-        float coneAngle = 0.25f * (middleAngles[0] + middleAngles[1]);
-
+        // the coneAngle is half the average range of the two non-roll rotations
+        glm::vec3 range = maxAngles - minAngles;
+        float coneAngle = 0.25f * (range[0] + range[1]);
         return new ConeRollerConstraint(coneAngle, coneAxis, minAngles.z, maxAngles.z);
     }
     return NULL;
@@ -102,7 +100,6 @@ bool HingeConstraint::applyTo(glm::quat& rotation) const {
     float sign = (glm::dot(glm::cross(_forwardAxis, forward), _rotationAxis) > 0.0f ? 1.0f : -1.0f);
     //float angle = sign * acos(glm::dot(forward, _forwardAxis) / length);
     float angle = sign * acos(glm::dot(forward, _forwardAxis));
-//    std::cout << "adebug forward = " << forward << "  _forwardAxis = " << _forwardAxis << "  angle = " << angle << std::endl;  // adebug
     glm::quat newRotation = glm::angleAxis(clampAngle(angle, _minAngle, _maxAngle), _rotationAxis);
     if (fabsf(1.0f - glm::dot(newRotation, rotation)) > EPSILON * EPSILON) {
         rotation = newRotation;
@@ -125,49 +122,53 @@ bool ConeRollerConstraint::applyTo(glm::quat& rotation) const {
     glm::vec3 rotatedAxis = rotation * _coneAxis;
     glm::vec3 perpAxis = glm::cross(rotatedAxis, _coneAxis);
     float perpAxisLength = glm::length(perpAxis);
-
-    // enforce the cone
-    float angle = acosf(glm::dot(rotatedAxis, _coneAxis));
-    if (angle > _coneAngle && perpAxisLength > EPSILON) {
+    if (perpAxisLength > EPSILON) {
         perpAxis /= perpAxisLength;
-        rotation = glm::angleAxis(angle - _coneAngle, perpAxis) * rotation;
-        rotatedAxis = rotation * _coneAxis;
-        applied = true;
+        // enforce the cone
+        float angle = acosf(glm::dot(rotatedAxis, _coneAxis));
+        if (angle > _coneAngle) {
+            rotation = glm::angleAxis(angle - _coneAngle, perpAxis) * rotation;
+            rotatedAxis = rotation * _coneAxis;
+            applied = true;
+        }
     }
-
-    // enforce the roll
-    if (perpAxisLength < EPSILON) {
+    else {
+        // the rotation is 100% roll
         // there is no obvious perp axis so we must pick one
         perpAxis = rotatedAxis;
         // find the first non-zero element:
-        float value = 0.0f;
+        float iValue = 0.0f;
         int i = 0;
         for (i = 0; i < 3; ++i) {
             if (fabsf(perpAxis[i]) > EPSILON) {
-                value = perpAxis[i];
+                iValue = perpAxis[i];
                 break;
             }
         }
         assert(i != 3);
         // swap or negate the next element
         int j = (i + 1) % 3;
-        float value2 = perpAxis[j];
-        if (fabsf(value2 - value) > EPSILON) {
-            perpAxis[i] = value2;
-            perpAxis[j] = value;
+        float jValue = perpAxis[j];
+        if (fabsf(jValue - iValue) > EPSILON) {
+            perpAxis[i] = jValue;
+            perpAxis[j] = iValue;
         } else {
-            perpAxis[i] = -value;
+            perpAxis[i] = -iValue;
         }
         perpAxis = glm::cross(perpAxis, rotatedAxis);
         perpAxisLength = glm::length(perpAxis);
         assert(perpAxisLength > EPSILON);
+        perpAxis /= perpAxisLength;
     }
-    perpAxis /= perpAxisLength;
-    glm::vec3 rotatedPerpAxis = rotation * perpAxis;
-    float roll = angleBetween(rotatedPerpAxis, perpAxis);
+    // measure the roll
+    // NOTE: perpAxis is perpendicular to both _coneAxis and rotatedConeAxis, so we can 
+    // rotate it again and we'll end up with an something that has only been rolled.
+    glm::vec3 rolledPerpAxis = rotation * perpAxis;
+    float sign = glm::dot(rotatedAxis, glm::cross(perpAxis, rolledPerpAxis)) > 0.0f ? 1.0f : -1.0f;
+    float roll = sign * angleBetween(rolledPerpAxis, perpAxis);
     if (roll < _minRoll || roll > _maxRoll) {
-        float newRoll = clampAngle(roll, _minRoll, _maxRoll);
-        rotation = glm::angleAxis(newRoll - roll, rotatedAxis) * rotation;
+        float clampedRoll = clampAngle(roll, _minRoll, _maxRoll);
+        rotation = glm::angleAxis(clampedRoll - roll, rotatedAxis) * rotation;
         applied = true;
     }
     return applied;

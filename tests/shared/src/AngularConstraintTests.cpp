@@ -284,8 +284,191 @@ void AngularConstraintTests::testHingeConstraint() {
 }
 
 void AngularConstraintTests::testConeRollerConstraint() {
+    float minAngleX = -PI / 5.0f;
+    float minAngleY = -PI / 5.0f;
+    float minAngleZ = -PI / 8.0f;
+
+    float maxAngleX = PI / 4.0f;
+    float maxAngleY = PI / 3.0f;
+    float maxAngleZ = PI / 4.0f;
+
+    glm::vec3 minAngles(minAngleX, minAngleY, minAngleZ);
+    glm::vec3 maxAngles(maxAngleX, maxAngleY, maxAngleZ);
+    AngularConstraint* c = AngularConstraint::newAngularConstraint(minAngles, maxAngles);
+
+    float expectedConeAngle = 0.25 * (maxAngleX - minAngleX + maxAngleY - minAngleY);
+    glm::vec3 middleAngles = 0.5f * (maxAngles + minAngles);
+    glm::quat yaw = glm::angleAxis(middleAngles[1], glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::quat pitch = glm::angleAxis(middleAngles[0], glm::vec3(1.0f, 0.0f, 0.0f));
+    glm::vec3 expectedConeAxis = pitch * yaw * glm::vec3(0.0f, 0.0f, 1.0f);
+
+    glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+    glm::vec3 perpAxis = glm::normalize(xAxis - glm::dot(xAxis, expectedConeAxis) * expectedConeAxis);
+
+    if (!c) {
+        std::cout << __FILE__ << ":" << __LINE__
+            << " ERROR: newAngularConstraint() should make a constraint" << std::endl;
+    }
+    {   // test in middle of constraint
+        glm::vec3 angles(PI/20.0f, 0.0f, PI/10.0f);
+        glm::quat rotation(angles);
+
+        glm::quat newRotation = rotation;
+        bool constrained = c->applyTo(newRotation);
+        if (constrained) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should not applyTo()" << std::endl;
+        }
+        if (rotation != newRotation) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should not change rotation" << std::endl;
+        }
+    }
+    float deltaAngle = 0.001f;
+    {   // test just inside edge of cone 
+        glm::quat rotation = glm::angleAxis(expectedConeAngle - deltaAngle, perpAxis);
+    
+        glm::quat newRotation = rotation;
+        bool constrained = c->applyTo(newRotation);
+        if (constrained) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should not applyTo()" << std::endl;
+        }
+        if (rotation != newRotation) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should not change rotation" << std::endl;
+        }
+    }
+    {   // test just outside edge of cone
+        glm::quat rotation = glm::angleAxis(expectedConeAngle + deltaAngle, perpAxis);
+    
+        glm::quat newRotation = rotation;
+        bool constrained = c->applyTo(newRotation);
+        if (!constrained) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should applyTo()" << std::endl;
+        }
+        if (rotation == newRotation) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should change rotation" << std::endl;
+        }
+    }
+    {   // test just inside min edge of roll
+        glm::quat rotation = glm::angleAxis(minAngleZ + deltaAngle, expectedConeAxis);
+    
+        glm::quat newRotation = rotation;
+        bool constrained = c->applyTo(newRotation);
+        if (constrained) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should not applyTo()" << std::endl;
+        }
+        if (rotation != newRotation) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should not change rotation" << std::endl;
+        }
+    }
+    {   // test just inside max edge of roll
+        glm::quat rotation = glm::angleAxis(maxAngleZ - deltaAngle, expectedConeAxis);
+    
+        glm::quat newRotation = rotation;
+        bool constrained = c->applyTo(newRotation);
+        if (constrained) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should not applyTo()" << std::endl;
+        }
+        if (rotation != newRotation) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should not change rotation" << std::endl;
+        }
+    }
+    {   // test just outside min edge of roll
+        glm::quat rotation = glm::angleAxis(minAngleZ - deltaAngle, expectedConeAxis);
+    
+        glm::quat newRotation = rotation;
+        bool constrained = c->applyTo(newRotation);
+        if (!constrained) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should applyTo()" << std::endl;
+        }
+        if (rotation == newRotation) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should change rotation" << std::endl;
+        }
+        glm::quat expectedRotation = glm::angleAxis(minAngleZ, expectedConeAxis);
+        if (fabsf(1.0f - glm::dot(newRotation, expectedRotation)) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
+        }
+    }
+    {   // test just outside max edge of roll
+        glm::quat rotation = glm::angleAxis(maxAngleZ + deltaAngle, expectedConeAxis);
+    
+        glm::quat newRotation = rotation;
+        bool constrained = c->applyTo(newRotation);
+        if (!constrained) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should applyTo()" << std::endl;
+        }
+        if (rotation == newRotation) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should change rotation" << std::endl;
+        }
+        glm::quat expectedRotation = glm::angleAxis(maxAngleZ, expectedConeAxis);
+        if (fabsf(1.0f - glm::dot(newRotation, expectedRotation)) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
+        }
+    }
+    deltaAngle = 0.25f * expectedConeAngle;
+    {   // test far outside cone and min roll
+        glm::quat roll = glm::angleAxis(minAngleZ - deltaAngle, expectedConeAxis);
+        glm::quat pitchYaw = glm::angleAxis(expectedConeAngle + deltaAngle, perpAxis);
+        glm::quat rotation = pitchYaw * roll;
+    
+        glm::quat newRotation = rotation;
+        bool constrained = c->applyTo(newRotation);
+        if (!constrained) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should applyTo()" << std::endl;
+        }
+        if (rotation == newRotation) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should change rotation" << std::endl;
+        }
+        glm::quat expectedRoll = glm::angleAxis(minAngleZ, expectedConeAxis);
+        glm::quat expectedPitchYaw = glm::angleAxis(expectedConeAngle, perpAxis);
+        glm::quat expectedRotation = expectedPitchYaw * expectedRoll;
+        if (fabsf(1.0f - glm::dot(newRotation, expectedRotation)) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
+        }
+    }
+    {   // test far outside cone and max roll
+        glm::quat roll = glm::angleAxis(maxAngleZ + deltaAngle, expectedConeAxis);
+        glm::quat pitchYaw = glm::angleAxis(- expectedConeAngle - deltaAngle, perpAxis);
+        glm::quat rotation = pitchYaw * roll;
+    
+        glm::quat newRotation = rotation;
+        bool constrained = c->applyTo(newRotation);
+        if (!constrained) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should applyTo()" << std::endl;
+        }
+        if (rotation == newRotation) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: ConeRollerConstraint should change rotation" << std::endl;
+        }
+        glm::quat expectedRoll = glm::angleAxis(maxAngleZ, expectedConeAxis);
+        glm::quat expectedPitchYaw = glm::angleAxis(- expectedConeAngle, perpAxis);
+        glm::quat expectedRotation = expectedPitchYaw * expectedRoll;
+        if (fabsf(1.0f - glm::dot(newRotation, expectedRotation)) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
+        }
+    }
 }
 
 void AngularConstraintTests::runAllTests() {
     testHingeConstraint();
+    testConeRollerConstraint();
 }
