@@ -56,9 +56,14 @@ void UserLocation::handleRenameResponse(const QJsonObject& responseData) {
 
     qDebug() << responseData;
     QJsonValue status = responseData["status"];
-    if (status.isUndefined() || status.toString() != "success") {
+    if (!status.isUndefined() && status.toString() == "success") {
+        QString updatedName = responseData["data"].toObject()["name"].toString();
+        _name = updatedName;
+    } else {
         _name = _previousName;
-        qDebug() << "There was an error renaming location '" + _name + "'";
+        QString msg = "There was an error renaming location '" + _name + "'";
+        qDebug() << msg;
+        QMessageBox::warning(Application::getInstance()->getWindow(), "Error", msg);
     }
 
     emit updated(_name);
@@ -94,7 +99,9 @@ void UserLocation::handleDeleteResponse(const QJsonObject& responseData) {
     if (!status.isUndefined() && status.toString() == "success") {
         emit deleted(_name);
     } else {
-        qDebug() << "There was an error deleting location '" + _name + "'";
+        QString msg = "There was an error deleting location '" + _name + "'";
+        qDebug() << msg;
+        QMessageBox::warning(Application::getInstance()->getWindow(), "Error", msg);
     }
 }
 
