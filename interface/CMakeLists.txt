@@ -189,12 +189,16 @@ endif (FACEPLUS_FOUND AND NOT DISABLE_FACEPLUS)
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
   add_definitions(-DHAVE_LIBOVR)
   include_directories(SYSTEM "${LIBOVR_INCLUDE_DIRS}")
-  
+    
   if (APPLE OR UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
   endif ()
-  
-  target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
+    
+  if (WIN32)
+    target_link_libraries(${TARGET_NAME} optimized "${LIBOVR_RELEASE_LIBRARIES}" debug "${LIBOVR_DEBUG_LIBRARIES}")
+  else ()
+    target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
+  endif ()
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
 # and with PrioVR library

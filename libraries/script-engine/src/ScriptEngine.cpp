@@ -351,6 +351,7 @@ void ScriptEngine::run() {
         init();
     }
     _isRunning = true;
+    _isFinished = false;
     emit runningStateChanged();
 
     QScriptValue result = _engine.evaluate(_scriptContents);
@@ -461,12 +462,16 @@ void ScriptEngine::run() {
                         _numAvatarSoundSentBytes = 0;
                     }
                 }
-
+                
                 QByteArray audioPacket = byteArrayWithPopulatedHeader(silentFrame
                                                                       ? PacketTypeSilentAudioFrame
                                                                       : PacketTypeMicrophoneAudioNoEcho);
 
                 QDataStream packetStream(&audioPacket, QIODevice::Append);
+
+                // pack a placeholder value for sequence number for now, will be packed when destination node is known
+                int numPreSequenceNumberBytes = audioPacket.size();
+                packetStream << (quint16)0;
 
                 // use the orientation and position of this avatar for the source of this audio
                 packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
@@ -487,7 +492,19 @@ void ScriptEngine::run() {
                                               numAvailableSamples * sizeof(int16_t));
                 }
 
-                nodeList->broadcastToNodes(audioPacket, NodeSet() << NodeType::AudioMixer);
+                // write audio packet to AudioMixer nodes
+                NodeList* nodeList = NodeList::getInstance();
+                foreach(const SharedNodePointer& node, nodeList->getNodeHash()) {
+                    // only send to nodes of type AudioMixer
+                    if (node->getType() == NodeType::AudioMixer) {
+                        // pack sequence number
+                        quint16 sequence = _outgoingScriptAudioSequenceNumbers[node->getUUID()]++;
+                        memcpy(audioPacket.data() + numPreSequenceNumberBytes, &sequence, sizeof(quint16));
+
+                        // send audio packet
+                        nodeList->writeDatagram(audioPacket, node);
+                    }
+                }
             }
         }
 
@@ -662,4 +679,8 @@ void ScriptEngine::include(const QString& includeFile) {
         emit errorMessage("Uncaught exception at (" + includeFile + ") line" + QString::number(line) + ":" + result.toString());
         _engine.clearExceptions();
     }
+}
+
+void ScriptEngine::nodeKilled(SharedNodePointer node) {
+    _outgoingScriptAudioSequenceNumbers.remove(node->getUUID());
 }
