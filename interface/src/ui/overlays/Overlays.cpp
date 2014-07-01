@@ -10,14 +10,15 @@
 
 #include <Application.h>
 
+#include "BillboardOverlay.h"
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
+#include "LocalVoxelsOverlay.h"
+#include "ModelOverlay.h"
 #include "Overlays.h"
 #include "Sphere3DOverlay.h"
 #include "TextOverlay.h"
-#include "LocalVoxelsOverlay.h"
-#include "ModelOverlay.h"
 
 Overlays::Overlays() : _nextOverlayID(1) {
 }
@@ -159,6 +160,12 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         is3D = true;
     } else if (type == "model") {
         thisOverlay = new ModelOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
+        is3D = true;
+    } else if (type == "billboard") {
+        thisOverlay = new BillboardOverlay();
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);
         created = true;
