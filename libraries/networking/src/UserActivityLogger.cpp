@@ -70,24 +70,21 @@ void UserActivityLogger::launch(QString applicationVersion) {
     const QString ACTION_NAME = "launch";
     QJsonObject actionDetails;
     
-    QString APP_VERION = "application_version";
     QString OS_KEY = "os";
     QString VERSION_KEY = "version";
 #ifdef Q_OS_MAC
     actionDetails.insert(OS_KEY, QJsonValue(QString("osx")));
-    actionDetails.insert(VERSION_KEY, QJsonValue(QSysInfo::macVersion()));
 #elif Q_OS_LINUX
     actionDetails.insert(OS_KEY, QJsonValue(QString("linux")));
 #elif Q_OS_WIN
     actionDetails.insert(OS_KEY, QJsonValue(QString("windows")));
-    actionDetails.insert(VERSION_KEY, QJsonValue(QSysInfo::windowsVersion()));
 #elif Q_OS_UNIX
     actionDetails.insert(OS_KEY, QJsonValue(QString("unknown unix")));
 #else
     actionDetails.insert(OS_KEY, QJsonValue(QString("unknown system")));
 #endif
     
-    actionDetails.insert(APP_VERION, applicationVersion);
+    actionDetails.insert(VERSION_KEY, applicationVersion);
     
     logAction(ACTION_NAME, actionDetails);
 }
