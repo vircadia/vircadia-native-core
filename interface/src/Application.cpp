@@ -583,8 +583,9 @@ void Application::paintGL() {
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+        //Note, the camera distance is set in Camera::setMode() so we dont have to do it here.
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
-        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {

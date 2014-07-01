@@ -288,8 +288,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     glPushMatrix();
   
     glm::quat orientation;
-    glm::vec3 positionOffset;
-
+  
     //Render each eye into an fbo
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++) {
 
@@ -301,10 +300,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         orientation.y = eyeRenderPose[eye].Orientation.y;
         orientation.z = eyeRenderPose[eye].Orientation.z;
         orientation.w = eyeRenderPose[eye].Orientation.w;
-       
-        const float OCULUS_POSITION_SCALE = 0.2;
-        positionOffset = bodyOrientation * orientation * glm::vec3(eyeRenderPose[eye].Position.x, eyeRenderPose[eye].Position.y, eyeRenderPose[eye].Position.z) * OCULUS_POSITION_SCALE;
-
+        
         _camera->setTargetRotation(bodyOrientation * orientation);
         _camera->setTargetPosition(position);
         _camera->update(1.0f / Application::getInstance()->getFps());
