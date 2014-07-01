@@ -17,7 +17,7 @@
 #include "UserLocationsWindow.h"
 
 UserLocationsWindow::UserLocationsWindow(QWidget* parent) :
-    QWidget(parent, Qt::Window),
+    QDialog(parent),
     _ui(),
     _proxyModel(this),
     _userLocationsModel(this) {

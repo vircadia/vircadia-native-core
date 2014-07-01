@@ -15,7 +15,7 @@
 #include "ui_userLocationsWindow.h"
 #include "UserLocationsModel.h"
 
-class UserLocationsWindow : public QWidget {
+class UserLocationsWindow : public QDialog {
     Q_OBJECT
 public:
     UserLocationsWindow(QWidget* parent = NULL);
