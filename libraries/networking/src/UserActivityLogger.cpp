@@ -69,21 +69,7 @@ void UserActivityLogger::requestError(QNetworkReply::NetworkError error,const QS
 void UserActivityLogger::launch(QString applicationVersion) {
     const QString ACTION_NAME = "launch";
     QJsonObject actionDetails;
-    
-    QString OS_KEY = "os";
     QString VERSION_KEY = "version";
-#ifdef Q_OS_MAC
-    actionDetails.insert(OS_KEY, QJsonValue(QString("osx")));
-#elif Q_OS_LINUX
-    actionDetails.insert(OS_KEY, QJsonValue(QString("linux")));
-#elif Q_OS_WIN
-    actionDetails.insert(OS_KEY, QJsonValue(QString("windows")));
-#elif Q_OS_UNIX
-    actionDetails.insert(OS_KEY, QJsonValue(QString("unknown unix")));
-#else
-    actionDetails.insert(OS_KEY, QJsonValue(QString("unknown system")));
-#endif
-    
     actionDetails.insert(VERSION_KEY, applicationVersion);
     
     logAction(ACTION_NAME, actionDetails);
