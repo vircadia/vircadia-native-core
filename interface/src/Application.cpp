@@ -565,6 +565,16 @@ void Application::paintGL() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
+    const bool glowEnabled = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
+
+    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
+    // Otherwise, it must rebuild the FBOs
+    if (OculusManager::isConnected()) {
+        _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
+    } else {
+        _textureCache.setFrameBufferSize(_glWidget->size());
+    }
+
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
@@ -573,28 +583,16 @@ void Application::paintGL() {
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+        //Note, the camera distance is set in Camera::setMode() so we dont have to do it here.
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
+        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
-        glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
-        float headHeight = eyePosition.y - _myAvatar->getPosition().y;
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-    }
-
-    if (OculusManager::isConnected()) {
-        // Oculus in third person causes nausea, so only allow it if option is checked in dev menu
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::AllowOculusCameraModeChange) || _myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-            _myCamera.setDistance(0.0f);
-            _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
-            _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
-        }
-        _myCamera.setUpShift(0.0f);
-        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
+        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
     }
 
     // Update camera position
@@ -629,16 +627,32 @@ void Application::paintGL() {
         updateShadowMap();
     }
 
+    //If we aren't using the glow shader, we have to clear the color and depth buffer
+    if (!glowEnabled) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+
     if (OculusManager::isConnected()) {
-        OculusManager::display(whichCamera);
+        //When in mirror mode, use camera rotation. Otherwise, use body rotation
+        if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+            OculusManager::display(whichCamera.getRotation(), whichCamera.getPosition(), whichCamera);
+        } else {
+            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), whichCamera.getPosition(), whichCamera);
+        }
 
     } else if (TV3DManager::isConnected()) {
-        _glowEffect.prepare();
+        if (glowEnabled) {
+            _glowEffect.prepare();
+        }
         TV3DManager::display(whichCamera);
-        _glowEffect.render();
+        if (glowEnabled) {
+            _glowEffect.render();
+        }
 
     } else {
-        _glowEffect.prepare();
+        if (glowEnabled) {
+            _glowEffect.prepare();
+        }
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -646,7 +660,9 @@ void Application::paintGL() {
         displaySide(whichCamera);
         glPopMatrix();
 
-        _glowEffect.render();
+        if (glowEnabled) {
+            _glowEffect.render();
+        }
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);
@@ -3136,9 +3152,7 @@ void Application::resetSensors() {
     _faceshift.reset();
     _visage.reset();
 
-    if (OculusManager::isConnected()) {
-        OculusManager::reset();
-    }
+    OculusManager::reset();
 
     _prioVR.reset();
 
