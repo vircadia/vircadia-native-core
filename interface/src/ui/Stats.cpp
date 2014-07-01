@@ -286,11 +286,16 @@ void Stats::display(
             pingVoxel = totalPingVoxel/voxelServerCount;
         }
 
-        lines = _expanded ? 4 : 3;
+
+        Audio* audio = Application::getInstance()->getAudio();
+        const AudioStreamStats& audioMixerAvatarStreamStats = audio->getAudioMixerAvatarStreamStats();
+        const QHash<QUuid, AudioStreamStats>& audioMixerInjectedStreamStatsMap = audio->getAudioMixerInjectedStreamStatsMap();
+
+        lines = _expanded ? 10 + audioMixerInjectedStreamStatsMap.size(): 3;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
 
-        Audio* audio = Application::getInstance()->getAudio();
+        
 
         char audioJitter[30];
         sprintf(audioJitter,
@@ -299,10 +304,9 @@ void Stats::display(
                 (float) audio->getNetworkSampleRate() * 1000.f);
         drawText(30, glWidget->height() - 22, scale, rotation, font, audioJitter, color);
         
-                 
+        
         char audioPing[30];
         sprintf(audioPing, "Audio ping: %d", pingAudio);
-       
                  
         char avatarPing[30];
         sprintf(avatarPing, "Avatar ping: %d", pingAvatar);
@@ -322,12 +326,54 @@ void Stats::display(
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
+
+            char audioMixerStatsLabelString[] = "AudioMixer stats:";
+            char streamStatsFormatLabelString[] = "early/late/lost, jframes";
+            
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerStatsLabelString, color);
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, streamStatsFormatLabelString, color);
+
+
+            char downstreamLabelString[] = " Downstream:";
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamLabelString, color);
+
+            const SequenceNumberStats& downstreamAudioSequenceNumberStats = audio->getIncomingMixedAudioSequenceNumberStats();
+            char downstreamAudioStatsString[30];
+            sprintf(downstreamAudioStatsString, "  mix: %d/%d/%d, %d", downstreamAudioSequenceNumberStats.getNumEarly(),
+                downstreamAudioSequenceNumberStats.getNumLate(), downstreamAudioSequenceNumberStats.getNumLost(),
+                audio->getJitterBufferSamples() / NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
+            
+            char upstreamLabelString[] = " Upstream:";
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamLabelString, color);
+
+            char upstreamAudioStatsString[30];
+            sprintf(upstreamAudioStatsString, "  mic: %d/%d/%d, %d", audioMixerAvatarStreamStats._packetsEarly,
+                audioMixerAvatarStreamStats._packetsLate, audioMixerAvatarStreamStats._packetsLost,
+                audioMixerAvatarStreamStats._jitterBufferFrames);
+
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
+
+            foreach(AudioStreamStats injectedStreamStats, audioMixerInjectedStreamStatsMap) {
+                sprintf(upstreamAudioStatsString, "  inj: %d/%d/%d, %d", injectedStreamStats._packetsEarly,
+                    injectedStreamStats._packetsLate, injectedStreamStats._packetsLost, injectedStreamStats._jitterBufferFrames);
+                
+                verticalOffset += STATS_PELS_PER_LINE;
+                drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
+            }
         }
 
         verticalOffset = 0;
         horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + 2;
     }
-
+    
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 

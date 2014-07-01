@@ -856,7 +856,9 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     renderAttachments(renderMode);
     
     //  Render head so long as the camera isn't inside it
-    if (shouldRenderHead(Application::getInstance()->getCamera()->getPosition(), renderMode)) {
+    const Camera *camera = Application::getInstance()->getCamera();
+    const glm::vec3 cameraPos = camera->getPosition() + (camera->getRotation() * glm::vec3(0.0f, 0.0f, 1.0f)) * camera->getDistance();
+    if (shouldRenderHead(cameraPos, renderMode)) {
         getHead()->render(1.0f, modelRenderMode);
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
             renderHair();
@@ -920,9 +922,16 @@ void MyAvatar::updateOrientation(float deltaTime) {
         glm::vec3 angularVelocity(yaw - head->getBaseYaw(), pitch - head->getBasePitch(), roll - head->getBaseRoll());
         head->setAngularVelocity(angularVelocity);
         
-        head->setBaseYaw(yaw);
-        head->setBasePitch(pitch);
-        head->setBaseRoll(roll);
+        //Invert yaw and roll when in mirror mode
+        if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+            head->setBaseYaw(-yaw);
+            head->setBasePitch(pitch);
+            head->setBaseRoll(-roll);
+        } else {
+            head->setBaseYaw(yaw);
+            head->setBasePitch(pitch);
+            head->setBaseRoll(roll);
+        }
         
     }
 

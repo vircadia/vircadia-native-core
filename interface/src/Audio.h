@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "InterfaceConfig.h"
+#include "AudioStreamStats.h"
 
 #include <QAudio>
 #include <QAudioInput>
@@ -72,13 +73,17 @@ public:
 
     bool getProcessSpatialAudio() const { return _processSpatialAudio; }
 
+    const SequenceNumberStats& getIncomingMixedAudioSequenceNumberStats() const { return _incomingMixedAudioSequenceNumberStats; }
+
 public slots:
     void start();
     void stop();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
+    void parseAudioStreamStatsPacket(const QByteArray& packet);
     void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
     void handleAudioInput();
     void reset();
+    void resetIncomingMixedAudioSequenceNumberStats() { _incomingMixedAudioSequenceNumberStats.reset(); }
     void toggleMute();
     void toggleAudioNoiseReduction();
     void toggleToneInjection();
@@ -101,6 +106,9 @@ public slots:
 
     float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
+
+    const AudioStreamStats& getAudioMixerAvatarStreamStats() const { return _audioMixerAvatarStreamStats; }
+    const QHash<QUuid, AudioStreamStats>& getAudioMixerInjectedStreamStatsMap() const { return _audioMixerInjectedStreamStatsMap; }
 
 signals:
     bool muteToggled();
@@ -233,6 +241,11 @@ private:
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
 
+    AudioStreamStats _audioMixerAvatarStreamStats;
+    QHash<QUuid, AudioStreamStats> _audioMixerInjectedStreamStatsMap;
+
+    quint16 _outgoingAvatarAudioSequenceNumber;
+    SequenceNumberStats _incomingMixedAudioSequenceNumberStats;
 };
 
 
