@@ -286,6 +286,35 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         -MAX_LEAN, MAX_LEAN));
     head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
+
+    // Hand Tracker ?
+    {
+/*        HandTracker* tracker = Application::getInstance()->getActiveHandTracker();
+        if (tracker) {
+            Hand* hand = getHand();
+            if ( hand ) {
+                int numPalms = hand->getNumPalms();
+                numPalms = (numPalms < 2 ? numPalms: 2 ); // stick to 2 palms for now
+                for ( int palmNum = 0; palmNum < numPalms; palmNum++ ) {
+                    PalmData* palmData = &(hand->getPalms()[ palmNum ]);
+
+                    int handSide = HandTracker::SIDE_LEFT + palmNum;
+
+                    if ( tracker->isPalmActive( HandTracker::Side( handSide ) ) ) {
+                        palmData->setRawPosition( tracker->getPalmTranslation( HandTracker::Side( handSide ) ) );
+                        palmData->setRawRotation( tracker->getPalmRotation( HandTracker::Side( handSide ) ) );
+                        palmData->setActive( true );
+
+                        palmData->setSixenseID( ( (handSide == HandTracker::SIDE_LEFT) ? LEFT_HAND_INDEX : RIGHT_HAND_INDEX ) );
+                    } else {
+                        palmData->setActive( false );
+                        palmData->setSixenseID( -1 );
+                    }
+                }
+            }
+        }
+        */
+    }
 }
 
 void MyAvatar::moveWithLean() {

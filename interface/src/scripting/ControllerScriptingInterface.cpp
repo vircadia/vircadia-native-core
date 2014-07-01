@@ -13,6 +13,7 @@
 #include "Application.h"
 #include "devices/SixenseManager.h"
 #include "ControllerScriptingInterface.h"
+#include "devices/MotionTracker.h"
 
 ControllerScriptingInterface::ControllerScriptingInterface() :
     _mouseCaptured(false),
@@ -257,4 +258,74 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const { 
     QGLWidget* widget = Application::getInstance()->getGLWidget();
     return glm::vec2(widget->width(), widget->height()); 
+}
+
+AbstractInputController* ControllerScriptingInterface::createInputController( const QString& category, const QString& tracker )
+{
+    // This is where we retreive the Device Tracker category and then the sub tracker within it
+    auto icIt = _inputControllers.find( 0 );
+    if ( icIt != _inputControllers.end() ) {
+        return (*icIt).second;
+    } else {
+
+        // Look for matching category
+        int categoryID = 0;
+        MotionTracker* motionTracker = dynamic_cast< MotionTracker* > ( DeviceTracker::getDevice( categoryID ) );
+        if ( motionTracker )
+        {
+            int trackerID = motionTracker->findJointIndex( tracker.toStdString() );
+            if ( trackerID > 0 )
+            {
+                AbstractInputController* inputController = new InputController(categoryID,trackerID, this );
+
+                _inputControllers.insert( InputControllerMap::value_type( inputController->getKey(), inputController ) );
+
+                return inputController;
+            }
+        }
+        return 0;
+    }
+}
+
+void ControllerScriptingInterface::updateInputControllers()
+{
+    for ( auto it = _inputControllers.begin(); it != _inputControllers.end(); it++ ) {
+        (*it).second->update();
+    }
+
+}
+
+
+InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
+    AbstractInputController(),
+    _deviceTrackerId( deviceTrackerId ),
+    _subTrackerId( subTrackerId )
+{
+}
+
+void InputController::update()
+{
+    _isActive = false;
+
+    MotionTracker* motionTracker = dynamic_cast< MotionTracker*> ( DeviceTracker::getDevice( _deviceTrackerId ) );
+    if ( motionTracker ) {
+        if ( _subTrackerId < motionTracker->numJointTrackers() ) {
+            const MotionTracker::JointTracker* joint = motionTracker->getJointTracker( _subTrackerId );
+
+            if ( joint->isActive() ) {
+                joint->getAbsFrame().getTranslation( _eventCache.absTranslation );
+                joint->getAbsFrame().getRotation( _eventCache.absRotation );
+                joint->getLocFrame().getTranslation( _eventCache.locTranslation );
+                joint->getLocFrame().getRotation( _eventCache.locRotation );
+
+                _isActive = true;
+                emit spatialEvent(_eventCache);
+            }
+        }
+    }
+}
+
+
+InputController::Key InputController::getKey() const {
+    return (_deviceTrackerId  * 10000) + _subTrackerId;
 }
