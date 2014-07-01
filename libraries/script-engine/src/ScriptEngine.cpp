@@ -349,6 +349,7 @@ void ScriptEngine::run() {
         init();
     }
     _isRunning = true;
+    _isFinished = false;
     emit runningStateChanged();
 
     QScriptValue result = _engine.evaluate(_scriptContents);
