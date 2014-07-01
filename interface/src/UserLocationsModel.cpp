@@ -31,7 +31,7 @@ UserLocation::UserLocation(QString id, QString name, QString location) :
 }
 
 void UserLocation::requestRename(const QString& newName) {
-    if (!_updating) {
+    if (!_updating && newName.toLower() != _name) {
         _updating = true;
 
         JSONCallbackParameters callbackParams;
