@@ -3628,7 +3628,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 }
 
 void Application::scriptFinished(const QString& scriptName) {
-    QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptName);
+    const QString& scriptURLString = QUrl(scriptName).toString();
+    QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptURLString);
     if (it != _scriptEnginesHash.end()) {
         _scriptEnginesHash.erase(it);
         _runningScriptsWidget->scriptStopped(scriptName);
