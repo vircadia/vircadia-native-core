@@ -63,7 +63,16 @@ void UserLocation::handleRenameResponse(const QJsonObject& responseData) {
         _name = updatedName;
     } else {
         _name = _previousName;
+
         QString msg = "There was an error renaming location '" + _name + "'";
+
+        QJsonValue data = responseData["data"];
+        if (!data.isUndefined()) {
+            QJsonValue nameError = data.toObject()["name"];
+            if (!nameError.isUndefined()) {
+                msg += ": " + nameError.toString();
+            }
+        }
         qDebug() << msg;
         QMessageBox::warning(Application::getInstance()->getWindow(), "Error", msg);
     }
