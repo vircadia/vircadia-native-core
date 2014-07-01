@@ -45,7 +45,6 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
-#include "ui/UserLocationsWindow.h"
 #include "devices/OculusManager.h"
 
 
@@ -92,6 +91,7 @@ Menu::Menu() :
     _jsConsole(NULL),
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
+    _userLocationsWindow(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
@@ -168,9 +168,9 @@ Menu::Menu() :
                                   SLOT(nameLocation()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::MyLocations,
-                                  Qt::CTRL | Qt::Key_L,
+                                  Qt::CTRL | Qt::Key_K,
                                   this,
-                                  SLOT(showLocationList()));
+                                  SLOT(toggleLocationList()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoTo,
                                   Qt::Key_At,
@@ -1185,9 +1185,15 @@ void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse res
     msgBox.exec();
 }
 
-void Menu::showLocationList() {
-    UserLocationsWindow* window = new UserLocationsWindow();
-    window->show();
+void Menu::toggleLocationList() {
+    if (!_userLocationsWindow) {
+        _userLocationsWindow = new UserLocationsWindow();
+    }
+    if (_userLocationsWindow->isVisible()) {
+        _userLocationsWindow->hide();
+    } else {
+        _userLocationsWindow->show();
+    }
 }
 
 void Menu::nameLocation() {
