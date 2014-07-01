@@ -28,7 +28,7 @@ public:
 public slots:
     void logAction(QString action, QJsonObject details = QJsonObject(), JSONCallbackParameters params = JSONCallbackParameters());
     
-    void launch();
+    void launch(QString applicationVersion);
     void close(JSONCallbackParameters params = JSONCallbackParameters());
     void changedDisplayName(QString displayName);
     void changedModel(QString typeOfModel, QString modelURL);
