@@ -85,10 +85,11 @@ quint64 InterframeTimeGapStats::getWindowMaxGap() {
 }
 
 
-PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, 
+PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, int numFramesCapacity,
         bool isStereo, bool dynamicJitterBuffers) :
         
-    AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
+    AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+        numFramesCapacity),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
@@ -261,7 +262,7 @@ void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
             if (_desiredJitterBufferFrames < 1) {
                 _desiredJitterBufferFrames = 1;
             }
-            const int maxDesired = RING_BUFFER_LENGTH_FRAMES - 1;
+            const int maxDesired = _frameCapacity - 1;
             if (_desiredJitterBufferFrames > maxDesired) {
                 _desiredJitterBufferFrames = maxDesired;
             }

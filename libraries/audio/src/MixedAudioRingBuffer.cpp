@@ -11,8 +11,8 @@
 
 #include "MixedAudioRingBuffer.h"
 
-MixedAudioRingBuffer::MixedAudioRingBuffer(int numFrameSamples) :
-    AudioRingBuffer(numFrameSamples),
+MixedAudioRingBuffer::MixedAudioRingBuffer(int numFrameSamples, int numFramesCapacity) :
+    AudioRingBuffer(numFrameSamples, numFramesCapacity),
     _lastReadFrameAverageLoudness(0.0f)
 {
     

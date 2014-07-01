@@ -19,10 +19,11 @@
 #include "AudioRingBuffer.h"
 
 
-AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
+AudioRingBuffer::AudioRingBuffer(int numFrameSamples, int numFramesCapacity, bool randomAccessMode) :
     NodeData(),
     _overflowCount(0),
-    _sampleCapacity(numFrameSamples * RING_BUFFER_LENGTH_FRAMES),
+    _frameCapacity(numFramesCapacity),
+    _sampleCapacity(numFrameSamples * numFramesCapacity),
     _isFull(false),
     _numFrameSamples(numFrameSamples),
     _isStarved(true),
@@ -48,6 +49,8 @@ AudioRingBuffer::~AudioRingBuffer() {
 }
 
 void AudioRingBuffer::reset() {
+    _overflowCount = 0;
+    _isFull = false;
     _endOfLastWrite = _buffer;
     _nextOutput = _buffer;
     _isStarved = true;
@@ -55,13 +58,13 @@ void AudioRingBuffer::reset() {
 
 void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
     delete[] _buffer;
-    _sampleCapacity = numFrameSamples * RING_BUFFER_LENGTH_FRAMES;
+    _sampleCapacity = numFrameSamples * _frameCapacity;
+    _numFrameSamples = numFrameSamples;
     _buffer = new int16_t[_sampleCapacity];
     if (_randomAccessMode) {
         memset(_buffer, 0, _sampleCapacity * sizeof(int16_t));
     }
-    _nextOutput = _buffer;
-    _endOfLastWrite = _buffer;
+    reset();
 }
 
 int AudioRingBuffer::parseData(const QByteArray& packet) {

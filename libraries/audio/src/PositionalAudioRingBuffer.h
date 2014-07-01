@@ -50,7 +50,8 @@ public:
         Injector
     };
     
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false, bool dynamicJitterBuffers = false);
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, int numFramesCapacity,
+        bool isStereo = false, bool dynamicJitterBuffers = false);
     
     int parseData(const QByteArray& packet);
     int parsePositionalData(const QByteArray& positionalByteArray);

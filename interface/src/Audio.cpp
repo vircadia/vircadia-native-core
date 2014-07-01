@@ -48,6 +48,8 @@ static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_
 
 static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 
+static const int AUDIO_RING_BUFFER_CAPACITY_FRAMES = 10;
+
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
 
@@ -66,8 +68,8 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _loopbackOutputDevice(NULL),
     _proceduralAudioOutput(NULL),
     _proceduralOutputDevice(NULL),
-    _inputRingBuffer(0),
-    _ringBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL),
+    _inputRingBuffer(0, AUDIO_RING_BUFFER_CAPACITY_FRAMES),
+    _ringBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, AUDIO_RING_BUFFER_CAPACITY_FRAMES),
     _isStereoInput(false),
     _averagedLatency(0.0),
     _measuredJitter(0),

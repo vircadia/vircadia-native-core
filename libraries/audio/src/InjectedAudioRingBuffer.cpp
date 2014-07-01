@@ -19,8 +19,8 @@
 
 #include "InjectedAudioRingBuffer.h"
 
-InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier, bool dynamicJitterBuffer) :
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Injector, /* isStereo=*/ false , dynamicJitterBuffer),
+InjectedAudioRingBuffer::InjectedAudioRingBuffer(int numFramesCapacity, const QUuid& streamIdentifier, bool dynamicJitterBuffer) :
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Injector, numFramesCapacity, false, dynamicJitterBuffer),
     _streamIdentifier(streamIdentifier),
     _radius(0.0f),
     _attenuationRatio(0)

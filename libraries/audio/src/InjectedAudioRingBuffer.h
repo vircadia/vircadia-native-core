@@ -18,7 +18,7 @@
 
 class InjectedAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
-    InjectedAudioRingBuffer(const QUuid& streamIdentifier = QUuid(), bool dynamicJitterBuffer = false);
+    InjectedAudioRingBuffer(int numFramesCapacity, const QUuid& streamIdentifier = QUuid(), bool dynamicJitterBuffer = false);
     
     int parseData(const QByteArray& packet);
     
