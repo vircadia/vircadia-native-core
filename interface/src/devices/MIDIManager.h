@@ -24,6 +24,7 @@ class MIDIManager : public QObject {
     
     Q_PROPERTY(unsigned int NoteOn READ NoteOn)
     Q_PROPERTY(unsigned int NoteOff READ NoteOff)
+    Q_PROPERTY(unsigned int ModWheel READ ModWheel)
 public:
     static MIDIManager& getInstance();
     static void midiCallback(double deltaTime, std::vector<unsigned char>* message, void* userData);
@@ -35,6 +36,7 @@ public:
 public slots:
     unsigned int NoteOn() const { return 144; }
     unsigned int NoteOff() const { return 128; }
+    unsigned int ModWheel() const  { return 176; }
 signals:
     void midiEvent(const MIDIEvent& event);
     
