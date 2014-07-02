@@ -208,12 +208,14 @@ void Agent::run() {
         scriptURL = QUrl(_payload);
     }
    
-    NetworkAccessManager& networkManager = NetworkAccessManager::getInstance();
-    QNetworkReply *reply = networkManager.get(QNetworkRequest(scriptURL));
-    QNetworkDiskCache* cache = new QNetworkDiskCache(&networkManager);
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkReply *reply = networkAccessManager.get(QNetworkRequest(scriptURL));
+    QNetworkDiskCache* cache = new QNetworkDiskCache(&networkAccessManager);
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
-    networkManager.setCache(cache);
+    QMetaObject::invokeMethod(&networkAccessManager, "setCache",
+                              Qt::BlockingQueuedConnection,
+                              Q_ARG(QAbstractNetworkCache*, cache));
     
     qDebug() << "Downloading script at" << scriptURL.toString();
     

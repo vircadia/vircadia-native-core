@@ -317,7 +317,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkDiskCache* cache = new QNetworkDiskCache(&networkAccessManager);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
-    networkAccessManager.setCache(cache);
+    QMetaObject::invokeMethod(&networkAccessManager, "setCache",
+                              Qt::BlockingQueuedConnection,
+                              Q_ARG(QAbstractNetworkCache*, cache));
 
     ResourceCache::setRequestLimit(3);
 
