@@ -37,13 +37,15 @@ Q_DECLARE_METATYPE(JSONCallbackParameters)
 
 const QString ACCOUNTS_GROUP = "accounts";
 
-JSONCallbackParameters::JSONCallbackParameters() :
-    jsonCallbackReceiver(NULL),
-    jsonCallbackMethod(),
-    errorCallbackReceiver(NULL),
-    errorCallbackMethod(),
-    updateReciever(NULL),
-    updateSlot()
+JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, const QString& jsonCallbackMethod,
+                                               QObject* errorCallbackReceiver, const QString& errorCallbackMethod,
+                                               QObject* updateReceiver, const QString& updateSlot) :
+    jsonCallbackReceiver(jsonCallbackReceiver),
+    jsonCallbackMethod(jsonCallbackMethod),
+    errorCallbackReceiver(errorCallbackReceiver),
+    errorCallbackMethod(errorCallbackMethod),
+    updateReciever(updateReceiver),
+    updateSlot(updateSlot)
 {
 }
 
@@ -204,6 +206,9 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
                     }
                 }
 
+                break;
+            case QNetworkAccessManager::DeleteOperation:
+                networkReply = _networkAccessManager->sendCustomRequest(authenticatedRequest, "DELETE");
                 break;
             default:
                 // other methods not yet handled
