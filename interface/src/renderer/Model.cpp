@@ -561,8 +561,6 @@ bool Model::updateGeometry() {
 void Model::setJointStates(QVector<JointState> states) {
     _jointStates = states;
 
-    // compute an approximate bounding radius for broadphase collision queries
-    // against PhysicsSimulation boundaries
     int numJoints = _jointStates.size();
     float radius = 0.0f;
     for (int i = 0; i < numJoints; ++i) {
@@ -570,6 +568,7 @@ void Model::setJointStates(QVector<JointState> states) {
         if (distance > radius) {
             radius = distance;
         }
+        _jointStates[i].updateConstraint();
     }
     _boundingRadius = radius;
 }

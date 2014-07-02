@@ -23,11 +23,13 @@ class AngularConstraint;
 class JointState {
 public:
     JointState();
+    JointState(const JointState& other);
     ~JointState();
 
     void setFBXJoint(const FBXJoint* joint); 
     const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
 
+    void updateConstraint();
     void copyState(const JointState& state);
 
     void computeTransform(const glm::mat4& parentTransform);
@@ -64,7 +66,7 @@ private:
     glm::quat _rotation;  // joint- to model-frame
 
     const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
-    AngularConstraint* _constraint;
+    AngularConstraint* _constraint; // JointState owns its AngularConstraint
 };
 
 #endif // hifi_JointState_h

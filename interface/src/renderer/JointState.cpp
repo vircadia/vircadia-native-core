@@ -23,6 +23,15 @@ JointState::JointState() :
     _constraint(NULL) {
 }
 
+JointState::JointState(const JointState& other) : _constraint(NULL) {
+    _rotationInParentFrame = other._rotationInParentFrame;
+    _transform = other._transform;
+    _rotation = other._rotation;
+    _animationPriority = other._animationPriority;
+    _fbxJoint = other._fbxJoint;
+    // DO NOT copy _constraint
+}
+
 JointState::~JointState() {
     delete _constraint;
     _constraint = NULL;
@@ -33,6 +42,22 @@ void JointState::setFBXJoint(const FBXJoint* joint) {
     _rotationInParentFrame = joint->rotation;
     // NOTE: JointState does not own the FBXJoint to which it points.
     _fbxJoint = joint;
+    if (_constraint) {
+        delete _constraint;
+        _constraint = NULL;
+    }
+}
+
+void JointState::updateConstraint() {
+    if (_constraint) {
+        delete _constraint;
+        _constraint = NULL;
+    }
+    if (glm::distance2(glm::vec3(-PI), _fbxJoint->rotationMin) > EPSILON || 
+            glm::distance2(glm::vec3(PI), _fbxJoint->rotationMax) > EPSILON ) {
+        // this joint has rotation constraints
+        _constraint = AngularConstraint::newAngularConstraint(_fbxJoint->rotationMin, _fbxJoint->rotationMax);
+    }
 }
 
 void JointState::copyState(const JointState& state) {
@@ -40,7 +65,7 @@ void JointState::copyState(const JointState& state) {
     _transform = state._transform;
     _rotation = extractRotation(_transform);
     _animationPriority = state._animationPriority;
-    // DO NOT copy _fbxJoint
+    // DO NOT copy _fbxJoint or _constraint
 }
 
 void JointState::computeTransform(const glm::mat4& parentTransform) {
@@ -88,8 +113,7 @@ void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, floa
         return;
     }
     _animationPriority = priority;
-    if (!constrain || (_fbxJoint->rotationMin == glm::vec3(-PI, -PI, -PI) &&
-            _fbxJoint->rotationMax == glm::vec3(PI, PI, PI))) {
+    if (!constrain || _constraint == NULL) {
         // no constraints
         _rotationInParentFrame = _rotationInParentFrame * glm::inverse(_rotation) * delta * _rotation;
         _rotation = delta * _rotation;
