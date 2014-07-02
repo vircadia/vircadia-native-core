@@ -131,3 +131,19 @@ QNetworkReply* NetworkAccessManager::put(const QNetworkRequest & request, const 
     }
     return QNetworkAccessManager::put(request, data);
 }
+
+
+QNetworkReply* NetworkAccessManager::sendCustomRequest(const QNetworkRequest& request, const QByteArray& verb, QIODevice* data) {
+    if (QThread::currentThread() != thread()) {
+        QNetworkReply* result;
+        QMetaObject::invokeMethod(this,
+                                  "sendCustomRequest",
+                                  Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(QNetworkReply*, result),
+                                  Q_ARG(const QNetworkRequest, request),
+                                  Q_ARG(const QByteArray, verb),
+                                  Q_ARG(QIODevice*, data));
+        return result;
+    }
+    return QNetworkAccessManager::sendCustomRequest(request, verb, data);
+}

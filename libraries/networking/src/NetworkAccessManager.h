@@ -17,6 +17,8 @@
 #include <QNetworkProxy>
 
 /// Wrapper around QNetworkAccessManager wo that we only use one instance
+/// For any other method you should need, make sure to be on the right thread
+/// or call the method using QMetaObject::invokeMethod()
 class NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
@@ -30,6 +32,7 @@ public:
     Q_INVOKABLE QNetworkReply* put(const QNetworkRequest& request, QIODevice* data);
     Q_INVOKABLE QNetworkReply* put(const QNetworkRequest& request, QHttpMultiPart* multiPart);
     Q_INVOKABLE QNetworkReply* put(const QNetworkRequest& request, const QByteArray& data);
+    Q_INVOKABLE QNetworkReply* sendCustomRequest(const QNetworkRequest& request, const QByteArray& verb, QIODevice* data = 0);
     
 private:
     NetworkAccessManager();
