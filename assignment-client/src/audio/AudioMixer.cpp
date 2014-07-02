@@ -38,11 +38,11 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
 #include <QtCore/QTimer>
-#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
 #include <Logging.h>
+#include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <Node.h>
 #include <PacketHeaders.h>
@@ -482,8 +482,8 @@ void AudioMixer::run() {
 
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
     
-    // setup a QNetworkAccessManager to ask the domain-server for our settings
-    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
+    // setup a NetworkAccessManager to ask the domain-server for our settings
+    NetworkAccessManager& networkManager = NetworkAccessManager::getInstance();
     
     QUrl settingsJSONURL;
     settingsJSONURL.setScheme("http");
@@ -500,7 +500,7 @@ void AudioMixer::run() {
     qDebug() << "Requesting settings for assignment from domain-server at" << settingsJSONURL.toString();
     
     while (!reply || reply->error() != QNetworkReply::NoError) {
-        reply = networkManager->get(QNetworkRequest(settingsJSONURL));
+        reply = networkManager.get(QNetworkRequest(settingsJSONURL));
         
         QEventLoop loop;
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
