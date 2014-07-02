@@ -212,7 +212,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
         }
 
         return  false;
-    } else if (samplesAvailable() < (unsigned int)samplesPerFrame) { 
+    } else if (samplesAvailable() < samplesPerFrame) { 
         // if the buffer doesn't have a full frame of samples to take for mixing, it is starved
         _isStarved = true;
         
