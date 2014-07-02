@@ -1187,7 +1187,7 @@ void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse res
 
 void Menu::toggleLocationList() {
     if (!_userLocationsWindow) {
-        _userLocationsWindow = new UserLocationsWindow();
+        _userLocationsWindow = new UserLocationsWindow(Application::getInstance()->getWindow());
     }
     if (_userLocationsWindow->isVisible()) {
         _userLocationsWindow->hide();

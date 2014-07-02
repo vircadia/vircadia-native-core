@@ -52,6 +52,7 @@ class UserLocationsModel : public QAbstractListModel {
     Q_OBJECT
 public:
     UserLocationsModel(QObject* parent = NULL);
+    ~UserLocationsModel();
     
     virtual int rowCount(const QModelIndex& parent = QModelIndex()) const;
     virtual QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;

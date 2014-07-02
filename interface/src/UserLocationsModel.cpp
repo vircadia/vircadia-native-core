@@ -133,6 +133,11 @@ UserLocationsModel::UserLocationsModel(QObject* parent) :
     refresh();
 }
 
+UserLocationsModel::~UserLocationsModel() {
+    qDeleteAll(_locations);
+    _locations.clear();
+}
+
 void UserLocationsModel::update() {
     beginResetModel();
     endResetModel();
@@ -151,6 +156,7 @@ void UserLocationsModel::renameLocation(const QModelIndex& index, const QString&
 void UserLocationsModel::refresh() {
     if (!_updating) {
         beginResetModel();
+        qDeleteAll(_locations);
         _locations.clear();
         _updating = true;
         endResetModel();
