@@ -13,12 +13,23 @@
 #define hifi_NetworkAccessManager_h
 
 #include <QNetworkAccessManager>
+#include <QNetworkConfiguration>
+#include <QNetworkProxy>
 
+/// Wrapper around QNetworkAccessManager wo that we only use one instance
 class NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
     static NetworkAccessManager& getInstance();
     
+    Q_INVOKABLE QNetworkReply* get(const QNetworkRequest& request);
+    Q_INVOKABLE QNetworkReply* head(const QNetworkRequest& request);
+    Q_INVOKABLE QNetworkReply* post(const QNetworkRequest& request, QIODevice* data);
+    Q_INVOKABLE QNetworkReply* post(const QNetworkRequest& request, const QByteArray& data);
+    Q_INVOKABLE QNetworkReply* post(const QNetworkRequest& request, QHttpMultiPart* multiPart);
+    Q_INVOKABLE QNetworkReply* put(const QNetworkRequest& request, QIODevice* data);
+    Q_INVOKABLE QNetworkReply* put(const QNetworkRequest& request, QHttpMultiPart* multiPart);
+    Q_INVOKABLE QNetworkReply* put(const QNetworkRequest& request, const QByteArray& data);
     
 private:
     NetworkAccessManager();
