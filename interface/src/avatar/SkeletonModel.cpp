@@ -222,8 +222,7 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
         // lock hand to forearm by slamming its rotation (in parent-frame) to identity
         _jointStates[jointIndex].setRotationInParentFrame(glm::quat());
     } else {
-        setJointPosition(jointIndex, palmPosition, palmRotation, 
-                true, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
+        inverseKinematics(jointIndex, palmPosition, palmRotation, PALM_PRIORITY);
     }
 }
 
@@ -642,13 +641,15 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
 
     // compute the default transforms and slam the ragdoll positions accordingly
     // (which puts the shapes where we want them)
-    transforms[0] = _jointStates[0].getTransform();
-    _ragdollPoints[0]._position = extractTranslation(transforms[0]);
-    _ragdollPoints[0]._lastPosition = _ragdollPoints[0]._position;
-    for (int i = 1; i < numJoints; i++) {
+    for (int i = 0; i < numJoints; i++) {
         const FBXJoint& joint = geometry.joints.at(i);
         int parentIndex = joint.parentIndex;
-        assert(parentIndex != -1);
+        if (parentIndex == -1) {
+            transforms[i] = _jointStates[i].getTransform();
+            _ragdollPoints[i]._position = extractTranslation(transforms[i]);
+            _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
+            continue;
+        }
         
         glm::quat modifiedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
         transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 

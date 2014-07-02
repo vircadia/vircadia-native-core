@@ -1100,6 +1100,128 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const gl
     return true;
 }
 
+void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority) {
+    // NOTE: targetRotation is from bind- to model-frame
+
+    if (endIndex == -1 || _jointStates.isEmpty()) {
+        return;
+    }
+
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
+    if (freeLineage.isEmpty()) {
+        return;
+    }
+    int numFree = freeLineage.size();
+
+    // store and remember topmost parent transform
+    glm::mat4 topParentTransform;
+    {
+        int index = freeLineage.last();
+        const JointState& state = _jointStates.at(index);
+        const FBXJoint& joint = state.getFBXJoint();
+        int parentIndex = joint.parentIndex;
+        if (parentIndex == -1) {
+            const FBXGeometry& geometry = _geometry->getFBXGeometry();
+            topParentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+        } else {
+            topParentTransform = _jointStates[parentIndex].getTransform();
+        }
+    }
+
+    // this is a cyclic coordinate descent algorithm: see
+    // http://www.ryanjuckett.com/programming/animation/21-cyclic-coordinate-descent-in-2d
+
+    // keep track of the position of the end-effector
+    JointState& endState = _jointStates[endIndex];
+    glm::vec3 endPosition = endState.getPosition();
+    float distanceToGo = glm::distance(targetPosition, endPosition);
+
+    const int MAX_ITERATION_COUNT = 2;
+    const float ACCEPTABLE_IK_ERROR = 0.005f; // 5mm
+    int numIterations = 0;
+    do {
+        ++numIterations;
+        // moving up, rotate each free joint to get endPosition closer to target
+        for (int j = 1; j < numFree; j++) {
+            int nextIndex = freeLineage.at(j);
+            JointState& nextState = _jointStates[nextIndex];
+            FBXJoint nextJoint = nextState.getFBXJoint();
+            if (! nextJoint.isFree) {
+                continue;
+            }
+
+            glm::vec3 pivot = nextState.getPosition();
+            glm::vec3 leverArm = endPosition - pivot;
+            float leverLength = glm::length(leverArm);
+            if (leverLength < EPSILON) {
+                continue;
+            }
+            glm::quat deltaRotation = rotationBetween(leverArm, targetPosition - pivot);
+
+            /* DON'T REMOVE! This code provides the gravitational effect on the IK solution.
+            * It is commented out for the moment because we're blending the IK solution with 
+            * the default pose which provides similar stability, but we might want to use
+            * gravity again later.
+            
+            // We want to mix the shortest rotation with one that will pull the system down with gravity.
+            // So we compute a simplified center of mass, where each joint has a mass of 1.0 and we don't 
+            // bother averaging it because we only need direction.
+            if (j > 1) {
+
+                glm::vec3 centerOfMass(0.0f);
+                for (int k = 0; k < j; ++k) {
+                    int massIndex = freeLineage.at(k);
+                    centerOfMass += _jointStates[massIndex].getPosition() - pivot;
+                }
+                // the gravitational effect is a rotation that tends to align the two cross products
+                const glm::vec3 worldAlignment = glm::vec3(0.0f, -1.f, 0.0f);
+                glm::quat gravityDelta = rotationBetween(glm::cross(centerOfMass, leverArm),
+                    glm::cross(worldAlignment, leverArm));
+
+                float gravityAngle = glm::angle(gravityDelta);
+                const float MIN_GRAVITY_ANGLE = 0.1f;
+                float mixFactor = 0.5f;
+                if (gravityAngle < MIN_GRAVITY_ANGLE) {
+                    // the final rotation is a mix of the two
+                    mixFactor = 0.5f * gravityAngle / MIN_GRAVITY_ANGLE;
+                }
+                deltaRotation = safeMix(deltaRotation, gravityDelta, mixFactor);
+            }
+            */
+
+            // Apply the rotation, but use mixRotationDelta() which blends a bit of the default pose
+            // at in the process.  This provides stability to the IK solution and removes the necessity
+            // for the gravity effect.
+            glm::quat oldNextRotation = nextState.getRotation();
+            float mixFactor = 0.03f;
+            nextState.mixRotationDelta(deltaRotation, mixFactor, priority);
+
+            // measure the result of the rotation which may have been modified by
+            // blending and constraints
+            glm::quat actualDelta = nextState.getRotation() * glm::inverse(oldNextRotation);
+            endPosition = pivot + actualDelta * leverArm;
+        }
+
+        // recompute transforms from the top down
+        glm::mat4 parentTransform = topParentTransform;
+        for (int j = numFree - 1; j >= 0; --j) {
+            JointState& freeState = _jointStates[freeLineage.at(j)];
+            freeState.computeTransform(parentTransform);
+            parentTransform = freeState.getTransform();
+        }
+
+        // measure our success
+        endPosition = endState.getPosition();
+        distanceToGo = glm::distance(targetPosition, endPosition);
+    } while (numIterations < MAX_ITERATION_COUNT && distanceToGo < ACCEPTABLE_IK_ERROR);
+
+    // set final rotation of the end joint
+    endState.setRotationFromBindFrame(targetRotation, priority);
+     
+    _shapesAreDirty = !_shapes.isEmpty();
+}
+
 bool Model::restoreJointPosition(int jointIndex, float fraction, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
