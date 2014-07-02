@@ -43,7 +43,7 @@ public:
     ~AudioRingBuffer();
 
     void reset();
-    void resizeForFrameSize(qint64 numFrameSamples);
+    void resizeForFrameSize(int numFrameSamples);
     
     int getSampleCapacity() const { return _sampleCapacity; }
     
@@ -53,28 +53,28 @@ public:
     const int16_t* getNextOutput() const { return _nextOutput; }
     const int16_t* getBuffer() const { return _buffer; }
 
-    qint64 readSamples(int16_t* destination, qint64 maxSamples);
-    qint64 writeSamples(const int16_t* source, qint64 maxSamples);
+    int readSamples(int16_t* destination, int maxSamples);
+    int writeSamples(const int16_t* source, int maxSamples);
     
-    qint64 readData(char* data, qint64 maxSize);
-    qint64 writeData(const char* data, qint64 maxSize);
+    int readData(char* data, int maxSize);
+    int writeData(const char* data, int maxSize);
     
     int16_t& operator[](const int index);
     const int16_t& operator[] (const int index) const;
     
     void shiftReadPosition(unsigned int numSamples);
     
-    unsigned int samplesAvailable() const;
+    int samplesAvailable() const;
     
-    bool isNotStarvedOrHasMinimumSamples(unsigned int numRequiredSamples) const;
+    bool isNotStarvedOrHasMinimumSamples(int numRequiredSamples) const;
     
     bool isStarved() const { return _isStarved; }
     void setIsStarved(bool isStarved) { _isStarved = isStarved; }
     
-    int getResetCount() const { return _resetCount; } /// how many times has the ring buffer written past the end and reset
+    int getOverflowCount() const { return _overflowCount; } /// how many times has the ring buffer has overwritten old data
     bool hasStarted() const { return _hasStarted; }
     
-    void addSilentFrame(int numSilentSamples);
+    int addSilentFrame(int numSilentSamples);
 protected:
     // disallow copying of AudioRingBuffer objects
     AudioRingBuffer(const AudioRingBuffer&);
@@ -82,9 +82,10 @@ protected:
     
     int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
 
-    int _resetCount; /// how many times has the ring buffer written past the end and done a reset
+    int _overflowCount; /// how many times has the ring buffer has overwritten old data
     
     int _sampleCapacity;
+    bool _isFull;
     int _numFrameSamples;
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;

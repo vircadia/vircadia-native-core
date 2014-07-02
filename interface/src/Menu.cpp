@@ -332,6 +332,8 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, Qt::SHIFT | Qt::Key_A, true);
+
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true);
     addActionToQMenuAndActionHash(renderOptionsMenu,
                                   MenuOption::GlowMode,
                                   0,
@@ -400,7 +402,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
     QMenu* oculusOptionsMenu = developerMenu->addMenu("Oculus Options");
-    addCheckableActionToQMenuAndActionHash(oculusOptionsMenu, MenuOption::AllowOculusCameraModeChange, 0, false);
     addCheckableActionToQMenuAndActionHash(oculusOptionsMenu, MenuOption::DisplayOculusOverlays, 0, true);
 
     QMenu* sixenseOptionsMenu = developerMenu->addMenu("Sixense Options");

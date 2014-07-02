@@ -180,7 +180,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
             glBindTexture(GL_TEXTURE_2D, oldDiffusedFBO->texture());
             
             _diffuseProgram->bind();
-            QSize size = Application::getInstance()->getGLWidget()->size();
+            QSize size = primaryFBO->size();
             _diffuseProgram->setUniformValue(_diffusionScaleLocation, 1.0f / size.width(), 1.0f / size.height());
         
             renderFullscreenQuad();

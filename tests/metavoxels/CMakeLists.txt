@@ -27,6 +27,7 @@ include_glm(${TARGET_NAME} "${ROOT_DIR}")
 # link in the shared libraries
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(metavoxels ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 
 IF (WIN32)

@@ -16,13 +16,14 @@
 #include <QtCore/QDebug>
 
 #include "PacketHeaders.h"
-
 #include "AudioRingBuffer.h"
+
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
     NodeData(),
-    _resetCount(0),
+    _overflowCount(0),
     _sampleCapacity(numFrameSamples * RING_BUFFER_LENGTH_FRAMES),
+    _isFull(false),
     _numFrameSamples(numFrameSamples),
     _isStarved(true),
     _hasStarted(false),
@@ -52,7 +53,7 @@ void AudioRingBuffer::reset() {
     _isStarved = true;
 }
 
-void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
+void AudioRingBuffer::resizeForFrameSize(int numFrameSamples) {
     delete[] _buffer;
     _sampleCapacity = numFrameSamples * RING_BUFFER_LENGTH_FRAMES;
     _buffer = new int16_t[_sampleCapacity];
@@ -64,18 +65,19 @@ void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
 }
 
 int AudioRingBuffer::parseData(const QByteArray& packet) {
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    return writeData(packet.data() + numBytesPacketHeader, packet.size() - numBytesPacketHeader);
+    // skip packet header and sequence number
+    int numBytesBeforeAudioData = numBytesForPacketHeader(packet) + sizeof(quint16);
+    return writeData(packet.data() + numBytesBeforeAudioData, packet.size() - numBytesBeforeAudioData);
 }
 
-qint64 AudioRingBuffer::readSamples(int16_t* destination, qint64 maxSamples) {
+int AudioRingBuffer::readSamples(int16_t* destination, int maxSamples) {
     return readData((char*) destination, maxSamples * sizeof(int16_t));
 }
 
-qint64 AudioRingBuffer::readData(char *data, qint64 maxSize) {
+int AudioRingBuffer::readData(char *data, int maxSize) {
 
     // only copy up to the number of samples we have available
-    int numReadSamples = std::min((unsigned) (maxSize / sizeof(int16_t)), samplesAvailable());
+    int numReadSamples = std::min((int) (maxSize / sizeof(int16_t)), samplesAvailable());
 
     // If we're in random access mode, then we consider our number of available read samples slightly
     // differently. Namely, if anything has been written, we say we have as many samples as they ask for
@@ -109,27 +111,29 @@ qint64 AudioRingBuffer::readData(char *data, qint64 maxSize) {
 
     // push the position of _nextOutput by the number of samples read
     _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, numReadSamples);
+    if (numReadSamples > 0) {
+        _isFull = false;
+    }
 
     return numReadSamples * sizeof(int16_t);
 }
 
-qint64 AudioRingBuffer::writeSamples(const int16_t* source, qint64 maxSamples) {    
+int AudioRingBuffer::writeSamples(const int16_t* source, int maxSamples) {    
     return writeData((const char*) source, maxSamples * sizeof(int16_t));
 }
 
-qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
+int AudioRingBuffer::writeData(const char* data, int maxSize) {
     // make sure we have enough bytes left for this to be the right amount of audio
     // otherwise we should not copy that data, and leave the buffer pointers where they are
-
-    quint64 samplesToCopy = std::min((quint64)(maxSize / sizeof(int16_t)), (quint64)_sampleCapacity);
-
-    if (_hasStarted && samplesToCopy > _sampleCapacity - samplesAvailable()) {
-        // this read will cross the next output, so call us starved and reset the buffer
-        qDebug() << "Filled the ring buffer. Resetting.";
-        _endOfLastWrite = _buffer;
-        _nextOutput = _buffer;
-        _isStarved = true;
-        _resetCount++;
+    int samplesToCopy = std::min((int)(maxSize / sizeof(int16_t)), _sampleCapacity);
+    
+    int samplesRoomFor = _sampleCapacity - samplesAvailable();
+    if (samplesToCopy > samplesRoomFor) {
+        // there's not enough room for this write.  erase old data to make room for this new data
+        int samplesToDelete = samplesToCopy - samplesRoomFor;
+        _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
+        _overflowCount++;
+        qDebug() << "Overflowed ring buffer! Overwriting old data";
     }
     
     if (_endOfLastWrite + samplesToCopy <= _buffer + _sampleCapacity) {
@@ -141,7 +145,10 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
     }
 
     _endOfLastWrite = shiftedPositionAccomodatingWrap(_endOfLastWrite, samplesToCopy);
-    
+    if (samplesToCopy > 0 && _endOfLastWrite == _nextOutput) {
+        _isFull = true;
+    }
+
     return samplesToCopy * sizeof(int16_t);
 }
 
@@ -154,39 +161,54 @@ const int16_t& AudioRingBuffer::operator[] (const int index) const {
 }
 
 void AudioRingBuffer::shiftReadPosition(unsigned int numSamples) {
-    _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, numSamples);
-}
-
-unsigned int AudioRingBuffer::samplesAvailable() const {
-    if (!_endOfLastWrite) {
-        return 0;
-    } else {
-        int sampleDifference = _endOfLastWrite - _nextOutput;
-
-        if (sampleDifference < 0) {
-            sampleDifference += _sampleCapacity;
-        }
-
-        return sampleDifference;
+    if (numSamples > 0) {
+        _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, numSamples);
+        _isFull = false;
     }
 }
 
-void AudioRingBuffer::addSilentFrame(int numSilentSamples) {
+int AudioRingBuffer::samplesAvailable() const {
+    if (!_endOfLastWrite) {
+        return 0;
+    }
+    if (_isFull) {
+        return _sampleCapacity;
+    }
+
+    int sampleDifference = _endOfLastWrite - _nextOutput;
+    if (sampleDifference < 0) {
+        sampleDifference += _sampleCapacity;
+    }
+    return sampleDifference;
+}
+
+int AudioRingBuffer::addSilentFrame(int numSilentSamples) {
+
+    int samplesRoomFor = _sampleCapacity - samplesAvailable();
+    if (numSilentSamples > samplesRoomFor) {
+        // there's not enough room for this write. write as many silent samples as we have room for
+        numSilentSamples = samplesRoomFor;
+        qDebug() << "Dropping some silent samples to prevent ring buffer overflow";
+    }
+
     // memset zeroes into the buffer, accomodate a wrap around the end
     // push the _endOfLastWrite to the correct spot
     if (_endOfLastWrite + numSilentSamples <= _buffer + _sampleCapacity) {
         memset(_endOfLastWrite, 0, numSilentSamples * sizeof(int16_t));
-        _endOfLastWrite += numSilentSamples;
     } else {
         int numSamplesToEnd = (_buffer + _sampleCapacity) - _endOfLastWrite;
         memset(_endOfLastWrite, 0, numSamplesToEnd * sizeof(int16_t));
         memset(_buffer, 0, (numSilentSamples - numSamplesToEnd) * sizeof(int16_t));
-        
-        _endOfLastWrite = _buffer + (numSilentSamples - numSamplesToEnd);
     }
+    _endOfLastWrite = shiftedPositionAccomodatingWrap(_endOfLastWrite, numSilentSamples);
+    if (numSilentSamples > 0 && _nextOutput == _endOfLastWrite) {
+        _isFull = true;
+    }
+
+    return numSilentSamples * sizeof(int16_t);
 }
 
-bool AudioRingBuffer::isNotStarvedOrHasMinimumSamples(unsigned int numRequiredSamples) const {
+bool AudioRingBuffer::isNotStarvedOrHasMinimumSamples(int numRequiredSamples) const {
     if (!_isStarved) {
         return true;
     } else {
