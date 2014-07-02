@@ -1,5 +1,5 @@
 //
-//  UserLocationsWindow.h
+//  UserLocationsDialog.h
 //  interface/src/ui
 //
 //  Created by Ryan Huffman on 06/24/14.
@@ -9,16 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_UserLocationsWindow_h
-#define hifi_UserLocationsWindow_h
+#ifndef hifi_UserLocationsDialog_h
+#define hifi_UserLocationsDialog_h
 
-#include "ui_userLocationsWindow.h"
+#include "ui_userLocationsDialog.h"
 #include "UserLocationsModel.h"
 
-class UserLocationsWindow : public QDialog {
+class UserLocationsDialog : public QDialog {
     Q_OBJECT
 public:
-    UserLocationsWindow(QWidget* parent = NULL);
+    UserLocationsDialog(QWidget* parent = NULL);
 
 protected slots:
     void updateEnabled();
@@ -27,9 +27,9 @@ protected slots:
     void renameSelection();
 
 private:
-    Ui::UserLocationsWindow _ui;
+    Ui::UserLocationsDialog _ui;
     QSortFilterProxyModel _proxyModel;
     UserLocationsModel _userLocationsModel;
 };
 
-#endif // hifi_UserLocationsWindow_h
+#endif // hifi_UserLocationsDialog_h

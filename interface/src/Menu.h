@@ -29,7 +29,7 @@
 #include "ui/JSConsole.h"
 #include "ui/LoginDialog.h"
 #include "ui/ScriptEditorWindow.h"
-#include "ui/UserLocationsWindow.h"
+#include "ui/UserLocationsDialog.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -261,7 +261,7 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
-    UserLocationsWindow* _userLocationsWindow;
+    UserLocationsDialog* _userLocationsDialog;
     int _maxVoxels;
     float _voxelSizeScale;
     float _oculusUIAngularSize;

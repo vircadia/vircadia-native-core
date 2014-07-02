@@ -1,5 +1,5 @@
 //
-//  UserLocationsWindow.cpp
+//  UserLocationsDialog.cpp
 //  interface/src/ui
 //
 //  Created by Ryan Huffman on 06/24/14.
@@ -14,9 +14,9 @@
 #include <QPushButton>
 
 #include "Menu.h"
-#include "UserLocationsWindow.h"
+#include "UserLocationsDialog.h"
 
-UserLocationsWindow::UserLocationsWindow(QWidget* parent) :
+UserLocationsDialog::UserLocationsDialog(QWidget* parent) :
     QDialog(parent),
     _ui(),
     _proxyModel(this),
@@ -32,30 +32,30 @@ UserLocationsWindow::UserLocationsWindow(QWidget* parent) :
     _ui.locationsTreeView->sortByColumn(UserLocationsModel::NameColumn, Qt::AscendingOrder);
 
     connect(_ui.locationsTreeView->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, &UserLocationsWindow::updateEnabled);
-    connect(&_userLocationsModel, &UserLocationsModel::modelReset, this, &UserLocationsWindow::updateEnabled);
+            this, &UserLocationsDialog::updateEnabled);
+    connect(&_userLocationsModel, &UserLocationsModel::modelReset, this, &UserLocationsDialog::updateEnabled);
     connect(&_userLocationsModel, &UserLocationsModel::modelReset, &_proxyModel, &QSortFilterProxyModel::invalidate);
-    connect(_ui.locationsTreeView, &QTreeView::doubleClicked, this, &UserLocationsWindow::goToModelIndex);
+    connect(_ui.locationsTreeView, &QTreeView::doubleClicked, this, &UserLocationsDialog::goToModelIndex);
 
-    connect(_ui.deleteButton, &QPushButton::clicked, this, &UserLocationsWindow::deleteSelection);
-    connect(_ui.renameButton, &QPushButton::clicked, this, &UserLocationsWindow::renameSelection);
+    connect(_ui.deleteButton, &QPushButton::clicked, this, &UserLocationsDialog::deleteSelection);
+    connect(_ui.renameButton, &QPushButton::clicked, this, &UserLocationsDialog::renameSelection);
     connect(_ui.refreshButton, &QPushButton::clicked, &_userLocationsModel, &UserLocationsModel::refresh);
 
     this->setWindowTitle("My Locations");
 }
 
-void UserLocationsWindow::updateEnabled() {
+void UserLocationsDialog::updateEnabled() {
     bool enabled = _ui.locationsTreeView->selectionModel()->hasSelection();
     _ui.renameButton->setEnabled(enabled);
     _ui.deleteButton->setEnabled(enabled);
 }
 
-void UserLocationsWindow::goToModelIndex(const QModelIndex& index) {
+void UserLocationsDialog::goToModelIndex(const QModelIndex& index) {
     QVariant location = _proxyModel.data(index.sibling(index.row(), UserLocationsModel::LocationColumn));
     Menu::getInstance()->goToURL(location.toString());
 }
 
-void UserLocationsWindow::deleteSelection() {
+void UserLocationsDialog::deleteSelection() {
     QModelIndex selection = _ui.locationsTreeView->selectionModel()->currentIndex();
     selection = _proxyModel.mapToSource(selection);
     if (selection.isValid()) {
@@ -63,7 +63,7 @@ void UserLocationsWindow::deleteSelection() {
     }
 }
 
-void UserLocationsWindow::renameSelection() {
+void UserLocationsDialog::renameSelection() {
     QModelIndex selection = _ui.locationsTreeView->selectionModel()->currentIndex();
     selection = _proxyModel.mapToSource(selection);
     if (selection.isValid()) {

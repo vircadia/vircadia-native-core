@@ -91,7 +91,7 @@ Menu::Menu() :
     _jsConsole(NULL),
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
-    _userLocationsWindow(NULL),
+    _userLocationsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
@@ -1186,13 +1186,13 @@ void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse res
 }
 
 void Menu::toggleLocationList() {
-    if (!_userLocationsWindow) {
-        _userLocationsWindow = new UserLocationsWindow(Application::getInstance()->getWindow());
+    if (!_userLocationsDialog) {
+        _userLocationsDialog = new UserLocationsDialog(Application::getInstance()->getWindow());
     }
-    if (_userLocationsWindow->isVisible()) {
-        _userLocationsWindow->hide();
+    if (_userLocationsDialog->isVisible()) {
+        _userLocationsDialog->hide();
     } else {
-        _userLocationsWindow->show();
+        _userLocationsDialog->show();
     }
 }
 
