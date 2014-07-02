@@ -34,11 +34,7 @@ void UserLocation::requestRename(const QString& newName) {
     if (!_updating && newName.toLower() != _name) {
         _updating = true;
 
-        JSONCallbackParameters callbackParams;
-        callbackParams.jsonCallbackReceiver = this;
-        callbackParams.jsonCallbackMethod = "handleRenameResponse";
-        callbackParams.errorCallbackReceiver = this;
-        callbackParams.errorCallbackMethod = "handleRenameError";
+        JSONCallbackParameters callbackParams(this, "handleRenameResponse", this, "handleRenameError");
         QJsonObject jsonNameObject;
         jsonNameObject.insert("name", QJsonValue(newName));
         QJsonDocument jsonDocument(jsonNameObject);
@@ -93,11 +89,7 @@ void UserLocation::requestDelete() {
     if (!_updating) {
         _updating = true;
 
-        JSONCallbackParameters callbackParams;
-        callbackParams.jsonCallbackReceiver = this;
-        callbackParams.jsonCallbackMethod = "handleDeleteResponse";
-        callbackParams.errorCallbackReceiver = this;
-        callbackParams.errorCallbackMethod = "handleDeleteError";
+        JSONCallbackParameters callbackParams(this, "handleDeleteResponse", this, "handleDeleteError");
         AccountManager::getInstance().authenticatedRequest(PLACES_DELETE.arg(_id),
                                                            QNetworkAccessManager::DeleteOperation,
                                                            callbackParams);
@@ -160,9 +152,7 @@ void UserLocationsModel::refresh() {
         _updating = true;
         endResetModel();
 
-        JSONCallbackParameters callbackParams;
-        callbackParams.jsonCallbackReceiver = this;
-        callbackParams.jsonCallbackMethod = "handleLocationsResponse";
+        JSONCallbackParameters callbackParams(this, "handleLocationsResponse");
         AccountManager::getInstance().authenticatedRequest(PLACES_GET,
                                                            QNetworkAccessManager::GetOperation,
                                                            callbackParams);
