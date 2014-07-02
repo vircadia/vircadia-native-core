@@ -16,13 +16,13 @@
 
 #include <QGLWidget>
 #include <QImage>
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QRect>
 #include <QScriptValue>
 #include <QString>
 #include <QUrl>
 
+#include <NetworkAccessManager.h>
 #include <SharedUtil.h>
 
 #include "Overlay.h"
@@ -46,13 +46,12 @@ public:
     virtual void setProperties(const QScriptValue& properties);
 
 private slots:
-    void replyFinished(QNetworkReply* reply); // we actually want to hide this...
+    void replyFinished(); // we actually want to hide this...
 
 private:
 
     QUrl _imageURL;
     QImage _textureImage;
-    QNetworkAccessManager* _manager;
 
     GLuint _textureID;
     QRect _fromImage; // where from in the image to sample
