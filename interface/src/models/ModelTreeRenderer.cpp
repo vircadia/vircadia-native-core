@@ -135,7 +135,7 @@ void ModelTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) 
     args->_elementsTouched++;
     // actually render it here...
     // we need to iterate the actual modelItems of the element
-    ModelTreeElement* modelTreeElement = (ModelTreeElement*)element;
+    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
 
     QList<ModelItem>& modelItems = modelTreeElement->getModels();
 

@@ -10,13 +10,15 @@
 
 #include <Application.h>
 
+#include "BillboardOverlay.h"
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
+#include "LocalVoxelsOverlay.h"
+#include "ModelOverlay.h"
 #include "Overlays.h"
 #include "Sphere3DOverlay.h"
 #include "TextOverlay.h"
-#include "LocalVoxelsOverlay.h"
 
 Overlays::Overlays() : _nextOverlayID(1) {
 }
@@ -82,13 +84,13 @@ void Overlays::render3D() {
         return;
     }
     bool myAvatarComputed = false;
-    MyAvatar* avatar;
+    MyAvatar* avatar = NULL;
     glm::quat myAvatarRotation;
-    glm::vec3 myAvatarPosition;
-    float angle;
-    glm::vec3 axis;
-    float myAvatarScale;
-    
+    glm::vec3 myAvatarPosition(0.0f);
+    float angle = 0.0f;
+    glm::vec3 axis(0.0f, 1.0f, 0.0f);
+    float myAvatarScale = 1.0f;
+
     foreach(Overlay* thisOverlay, _overlays3D) {
         glPushMatrix();
         switch (thisOverlay->getAnchor()) {
@@ -152,6 +154,18 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         is3D = true;
     } else if (type == "localvoxels") {
         thisOverlay = new LocalVoxelsOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
+        is3D = true;
+    } else if (type == "model") {
+        thisOverlay = new ModelOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
+        is3D = true;
+    } else if (type == "billboard") {
+        thisOverlay = new BillboardOverlay();
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);
         created = true;

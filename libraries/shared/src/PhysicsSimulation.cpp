@@ -24,9 +24,6 @@ int MAX_ENTITIES_PER_SIMULATION = 64;
 int MAX_COLLISIONS_PER_SIMULATION = 256;
 
 
-const int NUM_SHAPE_BITS = 6;
-const int SHAPE_INDEX_MASK = (1 << (NUM_SHAPE_BITS + 1)) - 1;
-
 PhysicsSimulation::PhysicsSimulation() : _collisionList(MAX_COLLISIONS_PER_SIMULATION), 
         _numIterations(0), _numCollisions(0), _constraintError(0.0f), _stepTime(0) {
 }
