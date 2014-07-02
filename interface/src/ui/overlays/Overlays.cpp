@@ -84,13 +84,13 @@ void Overlays::render3D() {
         return;
     }
     bool myAvatarComputed = false;
-    MyAvatar* avatar;
+    MyAvatar* avatar = NULL;
     glm::quat myAvatarRotation;
-    glm::vec3 myAvatarPosition;
-    float angle;
-    glm::vec3 axis;
-    float myAvatarScale;
-    
+    glm::vec3 myAvatarPosition(0.0f);
+    float angle = 0.0f;
+    glm::vec3 axis(0.0f, 1.0f, 0.0f);
+    float myAvatarScale = 1.0f;
+
     foreach(Overlay* thisOverlay, _overlays3D) {
         glPushMatrix();
         switch (thisOverlay->getAnchor()) {

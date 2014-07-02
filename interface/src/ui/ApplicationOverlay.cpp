@@ -41,8 +41,7 @@ ApplicationOverlay::ApplicationOverlay() :
     _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
     _alpha(1.0f),
     _active(true),
-    _crosshairTexture(0)
-{
+    _crosshairTexture(0) {
 
     memset(_reticleActive, 0, sizeof(_reticleActive));
     memset(_magActive, 0, sizeof(_reticleActive));
