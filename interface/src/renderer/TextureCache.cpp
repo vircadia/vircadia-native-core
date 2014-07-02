@@ -28,10 +28,12 @@ TextureCache::TextureCache() :
     _permutationNormalTextureID(0),
     _whiteTextureID(0),
     _blueTextureID(0),
+    _primaryDepthTextureID(0),
     _primaryFramebufferObject(NULL),
     _secondaryFramebufferObject(NULL),
     _tertiaryFramebufferObject(NULL),
-    _shadowFramebufferObject(NULL)
+    _shadowFramebufferObject(NULL),
+    _frameBufferSize(100, 100)
 {
 }
 
@@ -46,9 +48,41 @@ TextureCache::~TextureCache() {
         glDeleteTextures(1, &_primaryDepthTextureID);
     }
     
-    delete _primaryFramebufferObject;
-    delete _secondaryFramebufferObject;
-    delete _tertiaryFramebufferObject;
+    if (_primaryFramebufferObject) {
+        delete _primaryFramebufferObject;
+    }
+
+    if (_secondaryFramebufferObject) {
+        delete _secondaryFramebufferObject;
+    }
+
+    if (_tertiaryFramebufferObject) {
+        delete _tertiaryFramebufferObject;
+    }
+}
+
+void TextureCache::setFrameBufferSize(QSize frameBufferSize) {
+    //If the size changed, we need to delete our FBOs
+    if (_frameBufferSize != frameBufferSize) {
+        _frameBufferSize = frameBufferSize;
+
+        if (_primaryFramebufferObject) {
+            delete _primaryFramebufferObject;
+            _primaryFramebufferObject = NULL;
+            glDeleteTextures(1, &_primaryDepthTextureID);
+            _primaryDepthTextureID = 0;
+        }
+
+        if (_secondaryFramebufferObject) {
+            delete _secondaryFramebufferObject;
+            _secondaryFramebufferObject = NULL;
+        }
+
+        if (_tertiaryFramebufferObject) {
+            delete _tertiaryFramebufferObject;
+            _tertiaryFramebufferObject = NULL;
+        }
+    }
 }
 
 // use fixed table of permutations. Could also make ordered list programmatically
@@ -164,13 +198,14 @@ QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool no
 }
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
+
     if (!_primaryFramebufferObject) {
         _primaryFramebufferObject = createFramebufferObject();
-        
+       
         glGenTextures(1, &_primaryDepthTextureID);
         glBindTexture(GL_TEXTURE_2D, _primaryDepthTextureID);
-        QSize size = Application::getInstance()->getGLWidget()->size();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, size.width(), size.height(),
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, _frameBufferSize.width(), _frameBufferSize.height(),
             0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -263,7 +298,7 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
 }
 
 QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
-    QOpenGLFramebufferObject* fbo = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
+    QOpenGLFramebufferObject* fbo = new QOpenGLFramebufferObject(_frameBufferSize);
     Application::getInstance()->getGLWidget()->installEventFilter(this);
     
     glBindTexture(GL_TEXTURE_2D, fbo->texture());

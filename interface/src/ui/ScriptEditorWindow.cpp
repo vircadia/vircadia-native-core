@@ -36,6 +36,8 @@ ScriptEditorWindow::ScriptEditorWindow() :
     _loadMenu(new QMenu),
     _saveMenu(new QMenu)
 {
+    setAttribute(Qt::WA_DeleteOnClose);
+
     _ScriptEditorWindowUI->setupUi(this);
     this->setWindowFlags(Qt::Tool);
     show();
@@ -140,6 +142,7 @@ ScriptEditorWidget* ScriptEditorWindow::addScriptEditorWidget(QString title) {
     connect(newScriptEditorWidget, &ScriptEditorWidget::scriptnameChanged, this, &ScriptEditorWindow::updateScriptNameOrStatus);
     connect(newScriptEditorWidget, &ScriptEditorWidget::scriptModified, this, &ScriptEditorWindow::updateScriptNameOrStatus);
     connect(newScriptEditorWidget, &ScriptEditorWidget::runningStateChanged, this, &ScriptEditorWindow::updateButtons);
+    connect(this, &ScriptEditorWindow::windowActivated, newScriptEditorWidget, &ScriptEditorWidget::onWindowActivated);
     _ScriptEditorWindowUI->tabWidget->addTab(newScriptEditorWidget, title);
     _ScriptEditorWindowUI->tabWidget->setCurrentWidget(newScriptEditorWidget);
     newScriptEditorWidget->setUpdatesEnabled(true);
@@ -216,3 +219,15 @@ void ScriptEditorWindow::terminateCurrentTab() {
         this->raise();
     }
 }
+
+bool ScriptEditorWindow::autoReloadScripts() {
+    return _ScriptEditorWindowUI->autoReloadCheckBox->isChecked();
+}
+
+bool ScriptEditorWindow::event(QEvent* event) {
+    if (event->type() == QEvent::WindowActivate) {
+        emit windowActivated();
+    }
+    return QWidget::event(event);
+}
+

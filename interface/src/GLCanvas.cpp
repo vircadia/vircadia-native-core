@@ -12,6 +12,7 @@
 #include "Application.h"
 
 #include "GLCanvas.h"
+#include "devices/OculusManager.h"
 #include <QMimeData>
 #include <QUrl>
 #include <QMainWindow>
@@ -41,8 +42,17 @@ void GLCanvas::initializeGL() {
 
 void GLCanvas::paintGL() {
     if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
+        //Need accurate frame timing for the oculus rift
+        if (OculusManager::isConnected()) {
+            OculusManager::beginFrameTiming();
+        }
+
         Application::getInstance()->paintGL();
         swapBuffers();
+
+        if (OculusManager::isConnected()) {
+            OculusManager::endFrameTiming();
+        }
     }
 }
 
@@ -102,8 +112,17 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
 void GLCanvas::throttleRender() {
     _frameTimer.start(_idleRenderInterval);
     if (!Application::getInstance()->getWindow()->isMinimized()) {
+        //Need accurate frame timing for the oculus rift
+        if (OculusManager::isConnected()) {
+            OculusManager::beginFrameTiming();
+        }
+
         Application::getInstance()->paintGL();
         swapBuffers();
+
+        if (OculusManager::isConnected()) {
+            OculusManager::endFrameTiming();
+        }
     }
 }
 

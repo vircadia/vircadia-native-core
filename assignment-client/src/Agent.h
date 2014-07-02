@@ -71,6 +71,8 @@ private:
     ModelTreeHeadlessViewer _modelViewer;
     
     MixedAudioRingBuffer _receivedAudioBuffer;
+    SequenceNumberStats _incomingMixedAudioSequenceNumberStats;
+
     AvatarHashMap _avatarHashMap;
 };
 

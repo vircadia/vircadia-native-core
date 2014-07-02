@@ -102,7 +102,9 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _samplesPerScope(NETWORK_SAMPLES_PER_FRAME * _framesPerScope),
     _scopeInput(0),
     _scopeOutputLeft(0),
-    _scopeOutputRight(0)
+    _scopeOutputRight(0),
+    _audioMixerAvatarStreamStats(),
+    _outgoingAvatarAudioSequenceNumber(0)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -118,6 +120,9 @@ void Audio::init(QGLWidget *parent) {
 
 void Audio::reset() {
     _ringBuffer.reset();
+    _outgoingAvatarAudioSequenceNumber = 0;
+    _audioMixerInjectedStreamStatsMap.clear();
+    _incomingMixedAudioSequenceNumberStats.reset();
 }
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
@@ -421,13 +426,13 @@ void Audio::handleAudioInput() {
     static char audioDataPacket[MAX_PACKET_SIZE];
 
     static int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMicrophoneAudioNoEcho);
-    static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
+    static int leadingBytes = numBytesPacketHeader + sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
 
     static int16_t* networkAudioSamples = (int16_t*) (audioDataPacket + leadingBytes);
 
     float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio(_numInputCallbackBytes);
 
-    unsigned int inputSamplesRequired = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio;
+    int inputSamplesRequired = (int)((float)NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
 
     QByteArray inputByteArray = _inputDevice->readAll();
     
@@ -653,6 +658,10 @@ void Audio::handleAudioInput() {
 
             char* currentPacketPtr = audioDataPacket + populatePacketHeader(audioDataPacket, packetType);
             
+            // pack sequence number
+            memcpy(currentPacketPtr, &_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
+            currentPacketPtr += sizeof(quint16);
+
             // set the mono/stereo byte
             *currentPacketPtr++ = isStereo;
 
@@ -665,6 +674,7 @@ void Audio::handleAudioInput() {
             currentPacketPtr += sizeof(headOrientation);
             
             nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
+            _outgoingAvatarAudioSequenceNumber++;
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(numAudioBytes + leadingBytes);
@@ -705,6 +715,36 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     }
 
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
+}
+
+void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
+
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    const char* dataAt = packet.constData() + numBytesPacketHeader;
+
+    // parse the appendFlag, clear injected audio stream stats if 0
+    quint8 appendFlag = *(reinterpret_cast<const quint16*>(dataAt));
+    dataAt += sizeof(quint8);
+    if (!appendFlag) {
+        _audioMixerInjectedStreamStatsMap.clear();
+    }
+
+    // parse the number of stream stats structs to follow
+    quint16 numStreamStats = *(reinterpret_cast<const quint16*>(dataAt));
+    dataAt += sizeof(quint16);
+
+    // parse the stream stats
+    AudioStreamStats streamStats;
+    for (quint16 i = 0; i < numStreamStats; i++) {
+        memcpy(&streamStats, dataAt, sizeof(AudioStreamStats));
+        dataAt += sizeof(AudioStreamStats);
+
+        if (streamStats._streamType == PositionalAudioRingBuffer::Microphone) {
+            _audioMixerAvatarStreamStats = streamStats;
+        } else {
+            _audioMixerInjectedStreamStatsMap[streamStats._streamIdentifier] = streamStats;
+        }
+    }
 }
 
 // NOTE: numSamples is the total number of single channel samples, since callers will always call this with stereo
@@ -806,6 +846,16 @@ void Audio::toggleStereoInput() {
 }
 
 void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
+
+    QUuid senderUUID = uuidFromPacketHeader(audioByteArray);
+
+    // parse sequence number for this packet
+    int numBytesPacketHeader = numBytesForPacketHeader(audioByteArray);
+    const char* sequenceAt = audioByteArray.constData() + numBytesPacketHeader;
+    quint16 sequence = *((quint16*)sequenceAt);
+    _incomingMixedAudioSequenceNumberStats.sequenceNumberReceived(sequence, senderUUID);
+
+    // parse audio data
     _ringBuffer.parseData(audioByteArray);
     
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
@@ -828,7 +878,8 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
         QByteArray outputBuffer;
         outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
         
-        int numSamplesNeededToStartPlayback = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2);
+        int numSamplesNeededToStartPlayback = std::min(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2),
+            _ringBuffer.getSampleCapacity());
         
         if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
             //  We are still waiting for enough samples to begin playback
@@ -845,6 +896,7 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
                 buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
 
                 _ringBuffer.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
+
                 // Accumulate direct transmission of audio from sender to receiver
                 if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
                     emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);

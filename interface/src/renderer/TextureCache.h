@@ -32,6 +32,9 @@ public:
     TextureCache();
     virtual ~TextureCache();
     
+    /// Sets the desired texture resolution for the framebuffer objects. 
+    void setFrameBufferSize(QSize frameBufferSize);
+
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
     /// the second, a set of random unit vectors to be used as noise gradients.
@@ -94,6 +97,8 @@ private:
     
     QOpenGLFramebufferObject* _shadowFramebufferObject;
     GLuint _shadowDepthTextureID;
+
+    QSize _frameBufferSize;
 };
 
 /// A simple object wrapper for an OpenGL texture.
