@@ -110,7 +110,7 @@ const int permutation[256] =
     222, 114,  67,  29,  24,  72, 243, 141, 128, 195,  78,  66, 215,  61, 156, 180
 };
 
-#define USE_CHRIS_NOISE 0
+#define USE_CHRIS_NOISE 1
 
 GLuint TextureCache::getPermutationNormalTextureID() {
     if (_permutationNormalTextureID == 0) {
@@ -119,7 +119,7 @@ GLuint TextureCache::getPermutationNormalTextureID() {
         
         // the first line consists of random permutation offsets
         unsigned char data[256 * 2 * 3];
-#if defined(USE_CHRIS_NOISE)
+#if (USE_CHRIS_NOISE==1)
         for (int i = 0; i < 256; i++) {
             data[3*i+0] = permutation[i];
             data[3*i+1] = permutation[i];
