@@ -12,6 +12,9 @@ set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 
+find_package(Qt5 COMPONENTS Script)
+include_directories(SYSTEM "${Qt5Script_INCLUDE_DIRS}")
+
 # set up the external glm library
 include("${MACRO_DIR}/IncludeGLM.cmake")
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
