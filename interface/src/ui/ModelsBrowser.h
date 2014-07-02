@@ -43,7 +43,7 @@ public slots:
     void exit();
     
 private slots:
-    void downloadFinished(QNetworkReply* reply);
+    void downloadFinished();
     
 private:
     bool _initiateExit;
