@@ -205,7 +205,7 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
 
                 break;
             case QNetworkAccessManager::DeleteOperation:
-                networkReply = _networkAccessManager->sendCustomRequest(authenticatedRequest, "DELETE");
+                networkReply = networkAccessManager.sendCustomRequest(authenticatedRequest, "DELETE");
                 break;
             default:
                 // other methods not yet handled
