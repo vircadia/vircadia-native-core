@@ -215,9 +215,9 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem& entityItem = entityItems[i];
         // render entityItem aspoints
-        AACube modelCube = entityItem.getAACube();
-        modelCube.scale(TREE_SCALE);
-        if (args->_viewFrustum->cubeInFrustum(modelCube) != ViewFrustum::OUTSIDE) {
+        AACube entityCube = entityItem.getAACube();
+        entityCube.scale(TREE_SCALE);
+        if (args->_viewFrustum->cubeInFrustum(entityCube) != ViewFrustum::OUTSIDE) {
             glm::vec3 position = entityItem.getPosition() * (float)TREE_SCALE;
             float radius = entityItem.getRadius() * (float)TREE_SCALE;
             float size = entityItem.getSize() * (float)TREE_SCALE;

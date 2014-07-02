@@ -1269,10 +1269,15 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
 }
 
 EntityItemProperties::EntityItemProperties() :
+
+    _id(UNKNOWN_ENTITY_ID),
+    _idSet(false),
+    _lastEdited(usecTimestampNow()),
+
     _position(0),
-    _color(),
     _radius(ENTITY_DEFAULT_RADIUS),
     _shouldBeDeleted(false),
+    _color(),
     _modelURL(""),
     _rotation(ENTITY_DEFAULT_ROTATION),
     _animationURL(""),
@@ -1281,14 +1286,11 @@ EntityItemProperties::EntityItemProperties() :
     _animationFPS(ENTITY_DEFAULT_ANIMATION_FPS),
     _glowLevel(0.0f),
 
-    _id(UNKNOWN_ENTITY_ID),
-    _idSet(false),
-    _lastEdited(usecTimestampNow()),
-
     _positionChanged(false),
-    _colorChanged(false),
     _radiusChanged(false),
     _shouldBeDeletedChanged(false),
+
+    _colorChanged(false),
     _modelURLChanged(false),
     _rotationChanged(false),
     _animationURLChanged(false),

@@ -112,29 +112,39 @@ public:
     void copyToEntityItem(EntityItem& entityItem, bool forceCopy = false) const;
     void copyFromEntityItem(const EntityItem& entityItem);
 
-    const glm::vec3& getPosition() const { return _position; }
-    xColor getColor() const { return _color; }
-    float getRadius() const { return _radius; }
-    bool getShouldBeDeleted() const { return _shouldBeDeleted; }
+    // editing related features supported by all entities
+    quint64 getLastEdited() const { return _lastEdited; }
+    uint16_t getChangedBits() const;
+
+    /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
+    void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
     
-    const QString& getModelURL() const { return _modelURL; }
+    glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
+    glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
+    void debugDump() const;
+
+    // properties of all entities
+    const glm::vec3& getPosition() const { return _position; }
+    float getRadius() const { return _radius; }
     const glm::quat& getRotation() const { return _rotation; }
+    bool getShouldBeDeleted() const { return _shouldBeDeleted; }
+
+    /// set position in meter units
+    void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
+    void setRadius(float value) { _radius = value; _radiusChanged = true; }
+    void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; _shouldBeDeletedChanged = true;  }
+
+    // properties we want to move to just models and particles
+    xColor getColor() const { return _color; }
+    const QString& getModelURL() const { return _modelURL; }
     const QString& getAnimationURL() const { return _animationURL; }
     float getAnimationFrameIndex() const { return _animationFrameIndex; }
     bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
     float getAnimationFPS() const { return _animationFPS; }
     float getGlowLevel() const { return _glowLevel; }
 
-    quint64 getLastEdited() const { return _lastEdited; }
-    uint16_t getChangedBits() const;
-
-    /// set position in meter units
-    void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
-    void setColor(const xColor& value) { _color = value; _colorChanged = true; }
-    void setRadius(float value) { _radius = value; _radiusChanged = true; }
-    void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; _shouldBeDeletedChanged = true;  }
-
     // model related properties
+    void setColor(const xColor& value) { _color = value; _colorChanged = true; }
     void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; _rotationChanged = true; }
     void setAnimationURL(const QString& url) { _animationURL = url; _animationURLChanged = true; }
@@ -142,21 +152,17 @@ public:
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
-    
-    /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
-    void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
-    
-    glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
-    glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
-
-    void debugDump() const;
 
 private:
+    quint32 _id;
+    bool _idSet;
+    quint64 _lastEdited;
+
     glm::vec3 _position;
-    xColor _color;
     float _radius;
     bool _shouldBeDeleted; /// to delete it
     
+    xColor _color;
     QString _modelURL;
     glm::quat _rotation;
     QString _animationURL;
@@ -166,15 +172,11 @@ private:
     float _glowLevel;
     QVector<SittingPoint> _sittingPoints;
 
-    quint32 _id;
-    bool _idSet;
-    quint64 _lastEdited;
-
     bool _positionChanged;
-    bool _colorChanged;
     bool _radiusChanged;
     bool _shouldBeDeletedChanged;
 
+    bool _colorChanged;
     bool _modelURLChanged;
     bool _rotationChanged;
     bool _animationURLChanged;
@@ -254,80 +256,29 @@ public:
 
     virtual ~EntityItem();
 
-    quint8 getType() const { return _type; }
-
-    /// get position in domain scale units (0.0 - 1.0)
-    const glm::vec3& getPosition() const { return _position; }
-
-    glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
-    glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
-
-    const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
-
-    /// get radius in domain scale units (0.0 - 1.0)
-    float getRadius() const { return _radius; }
-
-    /// get maximum dimension in domain scale units (0.0 - 1.0)
-    float getSize() const { return _radius * 2.0f; }
-
-    /// get maximum dimension in domain scale units (0.0 - 1.0)
-    AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); }
-    
-    // model related properties
-    bool hasModel() const { return !_modelURL.isEmpty(); }
-    const QString& getModelURL() const { return _modelURL; }
-    const glm::quat& getRotation() const { return _rotation; }
-    bool hasAnimation() const { return !_animationURL.isEmpty(); }
-    const QString& getAnimationURL() const { return _animationURL; }
-    float getGlowLevel() const { return _glowLevel; }
-    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
-
-    EntityItemID getEntityItemID() const { return EntityItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_ENTITY_ID); }
-    EntityItemProperties getProperties() const;
-
-    /// The last updated/simulated time of this model from the time perspective of the authoritative server/source
-    quint64 getLastUpdated() const { return _lastUpdated; }
-
-    /// The last edited time of this model from the time perspective of the authoritative server/source
-    quint64 getLastEdited() const { return _lastEdited; }
-    void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
-
-    /// how long ago was this model edited in seconds
-    float getEditedAgo() const { return static_cast<float>(usecTimestampNow() - _lastEdited) / static_cast<float>(USECS_PER_SECOND); }
+    // ID and EntityItemID related methods
     uint32_t getID() const { return _id; }
     void setID(uint32_t id) { _id = id; }
-    bool getShouldBeDeleted() const { return _shouldBeDeleted; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
+    void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
     bool isNewlyCreated() const { return _newlyCreated; }
     bool isKnownID() const { return getID() != UNKNOWN_ENTITY_ID; }
+    EntityItemID getEntityItemID() const { return EntityItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_ENTITY_ID); }
 
-    /// set position in domain scale units (0.0 - 1.0)
-    void setPosition(const glm::vec3& value) { _position = value; }
+    // these methods allow you to create models, and later edit them.
+    static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
+    static uint32_t getNextCreatorTokenID();
+    static void handleAddEntityResponse(const QByteArray& packet);
 
-    void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
-    void setColor(const xColor& value) {
-            _color[RED_INDEX] = value.red;
-            _color[GREEN_INDEX] = value.green;
-            _color[BLUE_INDEX] = value.blue;
-    }
-    /// set radius in domain scale units (0.0 - 1.0)
-    void setRadius(float value) { _radius = value; }
-
-    void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; }
-    void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
-    
-    // model related properties
-    void setModelURL(const QString& url) { _modelURL = url; }
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
-    void setAnimationURL(const QString& url) { _animationURL = url; }
-    void setAnimationFrameIndex(float value) { _animationFrameIndex = value; }
-    void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
-    void setAnimationFPS(float value) { _animationFPS = value; }
-    void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
-    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
-    
+    // methods for getting/setting all properties of an entity
+    EntityItemProperties getProperties() const;
     void setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+
+    quint64 getLastUpdated() const { return _lastUpdated; } /// Last simulated time of this entity universal usecs
+    quint64 getLastEdited() const { return _lastEdited; } /// Last edited time of this entity universal usecs
+    void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
+    float getEditedAgo() const /// Elapsed seconds since this entity was last edited
+        { return (float)(usecTimestampNow() - _lastEdited) / (float)USECS_PER_SECOND; }
 
     OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                                 EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;
@@ -344,19 +295,60 @@ public:
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
-    
     void update(const quint64& now);
-
     void debugDump() const;
 
     // similar to assignment/copy, but it handles keeping lifetime accurate
     void copyChangedProperties(const EntityItem& other);
 
-    // these methods allow you to create models, and later edit them.
-    static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
-    static uint32_t getNextCreatorTokenID();
-    static void handleAddEntityResponse(const QByteArray& packet);
 
+    // attributes applicable to all entity types
+    quint32 getType() const { return _type; }
+    const glm::vec3& getPosition() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
+    void setPosition(const glm::vec3& value) { _position = value; } /// set position in domain scale units (0.0 - 1.0)
+
+    float getRadius() const { return _radius; } /// get radius in domain scale units (0.0 - 1.0)
+    void setRadius(float value) { _radius = value; } /// set radius in domain scale units (0.0 - 1.0)
+
+    const glm::quat& getRotation() const { return _rotation; }
+    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
+
+    bool getShouldBeDeleted() const { return _shouldBeDeleted; }
+    void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; }
+    
+    // position, size, and bounds related helpers
+    float getSize() const { return _radius * 2.0f; } /// get maximum dimension in domain scale units (0.0 - 1.0)
+    glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
+    glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
+    AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); } /// AACube in domain scale units (0.0 - 1.0)
+
+    // TODO: Move these to subclasses, or other appropriate abstraction
+    // getters/setters applicable to models and particles
+    const rgbColor& getColor() const { return _color; }
+    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
+    bool hasModel() const { return !_modelURL.isEmpty(); }
+    const QString& getModelURL() const { return _modelURL; }
+    bool hasAnimation() const { return !_animationURL.isEmpty(); }
+    const QString& getAnimationURL() const { return _animationURL; }
+    float getGlowLevel() const { return _glowLevel; }
+    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
+
+    void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
+    void setColor(const xColor& value) {
+            _color[RED_INDEX] = value.red;
+            _color[GREEN_INDEX] = value.green;
+            _color[BLUE_INDEX] = value.blue;
+    }
+    
+    // model related properties
+    void setModelURL(const QString& url) { _modelURL = url; }
+    void setAnimationURL(const QString& url) { _animationURL = url; }
+    void setAnimationFrameIndex(float value) { _animationFrameIndex = value; }
+    void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
+    void setAnimationFPS(float value) { _animationFPS = value; }
+    void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
+    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
+    
     void mapJoints(const QStringList& modelJointNames);
     QVector<glm::quat> getAnimationFrame();
     bool jointsMapped() const { return _jointMappingCompleted; }
