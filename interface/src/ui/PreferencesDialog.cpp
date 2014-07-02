@@ -12,8 +12,9 @@
 
 #include "Application.h"
 #include "Menu.h"
-#include "PreferencesDialog.h"
 #include "ModelsBrowser.h"
+#include "PreferencesDialog.h"
+#include "UserActivityLogger.h"
 
 const int SCROLL_PANEL_BOTTOM_MARGIN = 30;
 const int OK_BUTTON_RIGHT_MARGIN = 30;
@@ -29,6 +30,7 @@ PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : F
     connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
     connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
     connect(ui.buttonBrowseLocation, &QPushButton::clicked, this, &PreferencesDialog::openSnapshotLocationBrowser);
+    connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked,
             Application::getInstance(), &Application::loadDefaultScripts);
 }
@@ -72,13 +74,32 @@ void PreferencesDialog::openBodyModelBrowser() {
 
 void PreferencesDialog::openSnapshotLocationBrowser() {
     setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
+    show();
+
     QString dir = QFileDialog::getExistingDirectory(this, tr("Snapshots Location"),
                                                     QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
                                                     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (!dir.isNull() && !dir.isEmpty()) {
         ui.snapshotLocationEdit->setText(dir);
     }
+
     setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    show();
+}
+
+void PreferencesDialog::openScriptsLocationBrowser() {
+    setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
+    show();
+
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Scripts Location"),
+                                                    ui.scriptsLocationEdit->text(),
+                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (!dir.isNull() && !dir.isEmpty()) {
+        ui.scriptsLocationEdit->setText(dir);
+    }
+
+    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    show();
 }
 
 void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
@@ -118,6 +139,8 @@ void PreferencesDialog::loadPreferences() {
 
     ui.snapshotLocationEdit->setText(menuInstance->getSnapshotsLocation());
 
+    ui.scriptsLocationEdit->setText(menuInstance->getScriptsLocation());
+
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
     
@@ -154,6 +177,7 @@ void PreferencesDialog::savePreferences() {
     QString displayNameStr(ui.displayNameEdit->text());
     if (displayNameStr != _displayNameString) {
         myAvatar->setDisplayName(displayNameStr);
+        UserActivityLogger::getInstance().changedDisplayName(displayNameStr);
         shouldDispatchIdentityPacket = true;
     }
     
@@ -161,6 +185,7 @@ void PreferencesDialog::savePreferences() {
     if (faceModelURL.toString() != _faceURLString) {
         // change the faceModelURL in the profile, it will also update this user's BlendFace
         myAvatar->setFaceModelURL(faceModelURL);
+        UserActivityLogger::getInstance().changedModel("head", faceModelURL.toString());
         shouldDispatchIdentityPacket = true;
     }
 
@@ -168,6 +193,7 @@ void PreferencesDialog::savePreferences() {
     if (skeletonModelURL.toString() != _skeletonURLString) {
         // change the skeletonModelURL in the profile, it will also update this user's Body
         myAvatar->setSkeletonModelURL(skeletonModelURL);
+        UserActivityLogger::getInstance().changedModel("skeleton", skeletonModelURL.toString());
         shouldDispatchIdentityPacket = true;
     }
     
@@ -178,6 +204,10 @@ void PreferencesDialog::savePreferences() {
 
     if (!ui.snapshotLocationEdit->text().isEmpty() && QDir(ui.snapshotLocationEdit->text()).exists()) {
         Menu::getInstance()->setSnapshotsLocation(ui.snapshotLocationEdit->text());
+    }
+
+    if (!ui.scriptsLocationEdit->text().isEmpty() && QDir(ui.scriptsLocationEdit->text()).exists()) {
+        Menu::getInstance()->setScriptsLocation(ui.scriptsLocationEdit->text());
     }
 
     myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());

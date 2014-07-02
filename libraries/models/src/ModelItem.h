@@ -12,8 +12,9 @@
 #ifndef hifi_ModelItem_h
 #define hifi_ModelItem_h
 
-#include <glm/glm.hpp>
 #include <stdint.h>
+
+#include <glm/glm.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
@@ -22,6 +23,8 @@
 #include <CollisionInfo.h>
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
+#include <FBXReader.h>
+
 
 class ModelItem;
 class ModelEditPacketSender;
@@ -122,7 +125,8 @@ private:
     float _animationFrameIndex;
     float _animationFPS;
     float _glowLevel;
-
+    QVector<SittingPoint> _sittingPoints;
+    
     uint32_t _id;
     bool _idSet;
     quint64 _lastEdited;
@@ -211,6 +215,7 @@ public:
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
     const QString& getAnimationURL() const { return _animationURL; }
     float getGlowLevel() const { return _glowLevel; }
+    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
 
     ModelItemID getModelItemID() const { return ModelItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_MODEL_ID); }
     ModelItemProperties getProperties() const;
@@ -254,6 +259,7 @@ public:
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
     void setAnimationFPS(float value) { _animationFPS = value; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
+    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
     
     void setProperties(const ModelItemProperties& properties);
 
@@ -299,6 +305,8 @@ protected:
     // model related items
     QString _modelURL;
     glm::quat _modelRotation;
+    
+    QVector<SittingPoint> _sittingPoints;
     
     float _glowLevel;
 

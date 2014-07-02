@@ -18,7 +18,7 @@ PlaneShape::PlaneShape(const glm::vec4& coefficients) :
     Shape(Shape::PLANE_SHAPE) {
     
     glm::vec3 normal = glm::vec3(coefficients);
-    _position = -normal * coefficients.w;
+    _translation = -normal * coefficients.w;
     
     float angle = acosf(glm::dot(normal, UNROTATED_NORMAL));
     if (angle > EPSILON) {
@@ -36,7 +36,7 @@ glm::vec3 PlaneShape::getNormal() const {
 
 glm::vec4 PlaneShape::getCoefficients() const {
     glm::vec3 normal = _rotation * UNROTATED_NORMAL;
-    return glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, _position));
+    return glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, _translation));
 }
 
 bool PlaneShape::findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const {
@@ -44,9 +44,9 @@ bool PlaneShape::findRayIntersection(const glm::vec3& rayStart, const glm::vec3&
     float denominator = glm::dot(n, rayDirection);
     if (fabsf(denominator) < EPSILON) {
         // line is parallel to plane
-        return glm::dot(_position - rayStart, n) < EPSILON;
+        return glm::dot(_translation - rayStart, n) < EPSILON;
     } else {
-        float d = glm::dot(_position - rayStart, n) / denominator;
+        float d = glm::dot(_translation - rayStart, n) / denominator;
         if (d > 0.0f) {
             // ray points toward plane
             distance = d;

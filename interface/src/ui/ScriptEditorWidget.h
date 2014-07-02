@@ -13,6 +13,7 @@
 #define hifi_ScriptEditorWidget_h
 
 #include <QDockWidget>
+
 #include "ScriptEngine.h"
 
 namespace Ui {
@@ -42,16 +43,22 @@ signals:
     void scriptnameChanged();
     void scriptModified();
 
+public slots:
+    void onWindowActivated();
+
 private slots:
     void onScriptError(const QString& message);
     void onScriptPrint(const QString& message);
     void onScriptModified();
-    void onScriptEnding();
+    void onScriptFinished(const QString& scriptName);
 
 private:
     Ui::ScriptEditorWidget* _scriptEditorWidgetUI;
     ScriptEngine* _scriptEngine;
     QString _currentScript;
+    QDateTime _currentScriptModified;
+    bool _isRestarting;
+    bool _isReloading;
 };
 
 #endif // hifi_ScriptEditorWidget_h

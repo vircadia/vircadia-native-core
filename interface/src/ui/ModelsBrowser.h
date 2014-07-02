@@ -74,9 +74,11 @@ public slots:
 private slots:
     void applyFilter(const QString& filter);
     void resizeView();
+    void enableSearchBar();
     
 private:
     ModelHandler* _handler;
+    QLineEdit* _searchBar;
     QTreeView _view;
 };
 
