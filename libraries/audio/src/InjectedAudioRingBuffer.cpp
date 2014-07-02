@@ -20,7 +20,7 @@
 #include "InjectedAudioRingBuffer.h"
 
 InjectedAudioRingBuffer::InjectedAudioRingBuffer(int numFramesCapacity, const QUuid& streamIdentifier, bool dynamicJitterBuffer) :
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Injector, numFramesCapacity, false, dynamicJitterBuffer),
+    PositionalAudioRingBuffer(numFramesCapacity, PositionalAudioRingBuffer::Injector, false, dynamicJitterBuffer),
     _streamIdentifier(streamIdentifier),
     _radius(0.0f),
     _attenuationRatio(0)

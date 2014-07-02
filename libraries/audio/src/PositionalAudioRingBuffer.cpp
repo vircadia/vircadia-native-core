@@ -85,7 +85,7 @@ quint64 InterframeTimeGapStats::getWindowMaxGap() {
 }
 
 
-PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, int numFramesCapacity,
+PositionalAudioRingBuffer::PositionalAudioRingBuffer(int numFramesCapacity, PositionalAudioRingBuffer::Type type,
         bool isStereo, bool dynamicJitterBuffers) :
         
     AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,

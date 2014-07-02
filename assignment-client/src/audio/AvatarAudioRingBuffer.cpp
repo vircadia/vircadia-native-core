@@ -14,7 +14,7 @@
 #include "AvatarAudioRingBuffer.h"
 
 AvatarAudioRingBuffer::AvatarAudioRingBuffer(int numFramesCapacity, bool isStereo, bool dynamicJitterBuffer) :
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone, numFramesCapacity, isStereo, dynamicJitterBuffer) {
+    PositionalAudioRingBuffer(numFramesCapacity, PositionalAudioRingBuffer::Microphone, isStereo, dynamicJitterBuffer) {
     
 }
 
