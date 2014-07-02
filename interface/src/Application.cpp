@@ -641,13 +641,8 @@ void Application::paintGL() {
         }
 
     } else if (TV3DManager::isConnected()) {
-        if (glowEnabled) {
-            _glowEffect.prepare();
-        }
+       
         TV3DManager::display(whichCamera);
-        if (glowEnabled) {
-            _glowEffect.render();
-        }
 
     } else {
         if (glowEnabled) {

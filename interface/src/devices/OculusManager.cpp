@@ -262,7 +262,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
     ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
 
-    // We only need to render the overlays to a texture once, then we just render the texture as a quad
+    // We only need to render the overlays to a texture once, then we just render the texture on the hemisphere
     // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
     applicationOverlay.renderOverlay(true);
     const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::DisplayOculusOverlays);
