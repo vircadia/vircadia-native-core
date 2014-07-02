@@ -60,6 +60,7 @@
 #include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
+#include <UserActivityLogger.h>
 #include <UUID.h>
 #include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
@@ -269,6 +270,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
+    UserActivityLogger::getInstance().launch(applicationVersion());
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
@@ -401,7 +403,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 }
 
 Application::~Application() {
-
+    int DELAY_TIME = 1000;
+    UserActivityLogger::getInstance().close(DELAY_TIME);
+    
     qInstallMessageHandler(NULL);
 
     // make sure we don't call the idle timer any more
@@ -3582,6 +3586,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
         _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        UserActivityLogger::getInstance().loadedScript(scriptURLString);
     }
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
