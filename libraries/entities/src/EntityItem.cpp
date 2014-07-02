@@ -55,7 +55,7 @@ uint32_t EntityItem::getIDfromCreatorTokenID(uint32_t creatorTokenID) {
     if (_tokenIDsToIDs.find(creatorTokenID) != _tokenIDsToIDs.end()) {
         return _tokenIDsToIDs[creatorTokenID];
     }
-    return UNKNOWN_MODEL_ID;
+    return UNKNOWN_ENTITY_ID;
 }
 
 uint32_t EntityItem::getNextCreatorTokenID() {
@@ -84,7 +84,7 @@ void EntityItem::handleAddEntityResponse(const QByteArray& packet) {
 EntityItem::EntityItem() {
     _type = EntityTypes::Base;
     rgbColor noColor = { 0, 0, 0 };
-    init(glm::vec3(0,0,0), 0, noColor, NEW_MODEL);
+    init(glm::vec3(0,0,0), 0, noColor, NEW_ENTITY);
 }
 
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
@@ -101,14 +101,14 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     rgbColor noColor = { 0, 0, 0 };
     memcpy(_color, noColor, sizeof(_color));
     _shouldBeDeleted = false;
-    _modelURL = MODEL_DEFAULT_MODEL_URL;
-    _rotation = MODEL_DEFAULT_MODEL_ROTATION;
+    _modelURL = ENTITY_DEFAULT_MODEL_URL;
+    _rotation = ENTITY_DEFAULT_ROTATION;
     
     // animation related
-    _animationURL = MODEL_DEFAULT_ANIMATION_URL;
+    _animationURL = ENTITY_DEFAULT_ANIMATION_URL;
     _animationIsPlaying = false;
     _animationFrameIndex = 0.0f;
-    _animationFPS = MODEL_DEFAULT_ANIMATION_FPS;
+    _animationFPS = ENTITY_DEFAULT_ANIMATION_FPS;
     _glowLevel = 0.0f;
 
     _jointMappingCompleted = false;
@@ -130,7 +130,7 @@ EntityItem::~EntityItem() {
 }
 
 void EntityItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t id) {
-    if (id == NEW_MODEL) {
+    if (id == NEW_ENTITY) {
         _id = _nextID;
         _nextID++;
     } else {
@@ -144,14 +144,14 @@ void EntityItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t
     _radius = radius;
     memcpy(_color, color, sizeof(_color));
     _shouldBeDeleted = false;
-    _modelURL = MODEL_DEFAULT_MODEL_URL;
-    _rotation = MODEL_DEFAULT_MODEL_ROTATION;
+    _modelURL = ENTITY_DEFAULT_MODEL_URL;
+    _rotation = ENTITY_DEFAULT_ROTATION;
 
     // animation related
-    _animationURL = MODEL_DEFAULT_ANIMATION_URL;
+    _animationURL = ENTITY_DEFAULT_ANIMATION_URL;
     _animationIsPlaying = false;
     _animationFrameIndex = 0.0f;
-    _animationFPS = MODEL_DEFAULT_ANIMATION_FPS;
+    _animationFPS = ENTITY_DEFAULT_ANIMATION_FPS;
     _glowLevel = 0.0f;
     _jointMappingCompleted = false;
     _lastAnimated = now;
@@ -554,7 +554,7 @@ int EntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* data, in
         dataAt += bytes;
         bytesRead += bytes;
 
-        if (args.bitstreamVersion >= VERSION_MODELS_HAVE_ANIMATION) {
+        if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ANIMATION) {
             // animationURL
             uint16_t animationURLLength;
             memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
@@ -594,14 +594,14 @@ EntityItemID EntityItem::readEntityItemIDFromBuffer(const unsigned char* data, i
         quint32 id = idCoder;
         result.id = id;
         result.isKnownID = true;
-        result.creatorTokenID = UNKNOWN_MODEL_TOKEN;
+        result.creatorTokenID = UNKNOWN_ENTITY_TOKEN;
     }
     return result;
 }
 
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
 
-    if (args.bitstreamVersion < VERSION_MODELS_SUPPORT_SPLIT_MTU) {
+    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
         return oldVersionReadEntityDataFromBuffer(data, bytesLeftToRead, args);
     }
 
@@ -631,7 +631,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += encodedID.size();
         bytesRead += encodedID.size();
         _id = idCoder;
-        _creatorTokenID = UNKNOWN_MODEL_TOKEN; // if we know the id, then we don't care about the creator token
+        _creatorTokenID = UNKNOWN_ENTITY_TOKEN; // if we know the id, then we don't care about the creator token
         _newlyCreated = false;
 
         // type
@@ -786,11 +786,11 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
         qDebug() << "EntityItem EntityItem::fromEditPacket() editID=" << editID;
     }
 
-    bool isNewEntityItem = (editID == NEW_MODEL);
+    bool isNewEntityItem = (editID == NEW_ENTITY);
 
     // special case for handling "new" modelItems
     if (isNewEntityItem) {
-        // If this is a NEW_MODEL, then we assume that there's an additional uint32_t creatorToken, that
+        // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
         uint32_t creatorTokenID;
         memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
@@ -801,7 +801,7 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
         newEntityItem._newlyCreated = true;
         valid = true;
     } else {
-        // look up the existing modelItem
+        // look up the existing entityItem
         const EntityItem* existingEntityItem = tree->findEntityByID(editID, true);
 
         // copy existing properties before over-writing with new properties
@@ -809,8 +809,8 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
             newEntityItem = *existingEntityItem;
             valid = true;
         } else {
-            // the user attempted to edit a modelItem that doesn't exist
-            qDebug() << "user attempted to edit a modelItem that doesn't exist... editID=" << editID;
+            // the user attempted to edit a entityItem that doesn't exist
+            qDebug() << "user attempted to edit a entityItem that doesn't exist... editID=" << editID;
             tree->debugDumpMap();
             valid = false;
             
@@ -844,35 +844,35 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
     }
 
     // radius
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_RADIUS) == MODEL_PACKET_CONTAINS_RADIUS)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_RADIUS) == ENTITY_PACKET_CONTAINS_RADIUS)) {
         memcpy(&newEntityItem._radius, dataAt, sizeof(newEntityItem._radius));
         dataAt += sizeof(newEntityItem._radius);
         processedBytes += sizeof(newEntityItem._radius);
     }
 
     // position
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_POSITION) == MODEL_PACKET_CONTAINS_POSITION)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_POSITION) == ENTITY_PACKET_CONTAINS_POSITION)) {
         memcpy(&newEntityItem._position, dataAt, sizeof(newEntityItem._position));
         dataAt += sizeof(newEntityItem._position);
         processedBytes += sizeof(newEntityItem._position);
     }
 
     // color
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_COLOR) == MODEL_PACKET_CONTAINS_COLOR)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_COLOR) == ENTITY_PACKET_CONTAINS_COLOR)) {
         memcpy(newEntityItem._color, dataAt, sizeof(newEntityItem._color));
         dataAt += sizeof(newEntityItem._color);
         processedBytes += sizeof(newEntityItem._color);
     }
 
     // shouldBeDeleted
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_SHOULDDIE) == MODEL_PACKET_CONTAINS_SHOULDDIE)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_SHOULDDIE) == ENTITY_PACKET_CONTAINS_SHOULDDIE)) {
         memcpy(&newEntityItem._shouldBeDeleted, dataAt, sizeof(newEntityItem._shouldBeDeleted));
         dataAt += sizeof(newEntityItem._shouldBeDeleted);
         processedBytes += sizeof(newEntityItem._shouldBeDeleted);
     }
 
     // modelURL
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_URL) == MODEL_PACKET_CONTAINS_MODEL_URL)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_MODEL_URL) == ENTITY_PACKET_CONTAINS_MODEL_URL)) {
         uint16_t modelURLLength;
         memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
         dataAt += sizeof(modelURLLength);
@@ -885,14 +885,14 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
 
     // modelRotation
     if (isNewEntityItem || ((packetContainsBits & 
-                    MODEL_PACKET_CONTAINS_MODEL_ROTATION) == MODEL_PACKET_CONTAINS_MODEL_ROTATION)) {
+                    ENTITY_PACKET_CONTAINS_ROTATION) == ENTITY_PACKET_CONTAINS_ROTATION)) {
         int bytes = unpackOrientationQuatFromBytes(dataAt, newEntityItem._rotation);
         dataAt += bytes;
         processedBytes += bytes;
     }
 
     // animationURL
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_ANIMATION_URL) == MODEL_PACKET_CONTAINS_ANIMATION_URL)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_ANIMATION_URL) == ENTITY_PACKET_CONTAINS_ANIMATION_URL)) {
         uint16_t animationURLLength;
         memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
         dataAt += sizeof(animationURLLength);
@@ -905,7 +905,7 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
 
     // animationIsPlaying
     if (isNewEntityItem || ((packetContainsBits & 
-                    MODEL_PACKET_CONTAINS_ANIMATION_PLAYING) == MODEL_PACKET_CONTAINS_ANIMATION_PLAYING)) {
+                    ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING) == ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING)) {
                     
         memcpy(&newEntityItem._animationIsPlaying, dataAt, sizeof(newEntityItem._animationIsPlaying));
         dataAt += sizeof(newEntityItem._animationIsPlaying);
@@ -914,7 +914,7 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
 
     // animationFrameIndex
     if (isNewEntityItem || ((packetContainsBits & 
-                    MODEL_PACKET_CONTAINS_ANIMATION_FRAME) == MODEL_PACKET_CONTAINS_ANIMATION_FRAME)) {
+                    ENTITY_PACKET_CONTAINS_ANIMATION_FRAME) == ENTITY_PACKET_CONTAINS_ANIMATION_FRAME)) {
                     
         memcpy(&newEntityItem._animationFrameIndex, dataAt, sizeof(newEntityItem._animationFrameIndex));
         dataAt += sizeof(newEntityItem._animationFrameIndex);
@@ -923,7 +923,7 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
 
     // animationFPS
     if (isNewEntityItem || ((packetContainsBits & 
-                    MODEL_PACKET_CONTAINS_ANIMATION_FPS) == MODEL_PACKET_CONTAINS_ANIMATION_FPS)) {
+                    ENTITY_PACKET_CONTAINS_ANIMATION_FPS) == ENTITY_PACKET_CONTAINS_ANIMATION_FPS)) {
                     
         memcpy(&newEntityItem._animationFPS, dataAt, sizeof(newEntityItem._animationFPS));
         dataAt += sizeof(newEntityItem._animationFPS);
@@ -957,15 +957,15 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     unsigned char* copyAt = bufferOut;
     sizeOut = 0;
 
-    // get the octal code for the modelItem
+    // get the octal code for the entityItem
 
     // this could be a problem if the caller doesn't include position....
     glm::vec3 rootPosition(0);
     float rootScale = 0.5f;
     unsigned char* octcode = pointToOctalCode(rootPosition.x, rootPosition.y, rootPosition.z, rootScale);
 
-    // TODO: Consider this old code... including the correct octree for where the modelItem will go matters for 
-    // modelItem servers with different jurisdictions, but for now, we'll send everything to the root, since the 
+    // TODO: Consider this old code... including the correct octree for where the entityItem will go matters for 
+    // entityItem servers with different jurisdictions, but for now, we'll send everything to the root, since the 
     // tree does the right thing...
     //
     //unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y,
@@ -980,7 +980,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     sizeOut += lengthOfOctcode;
 
     // Now add our edit content details...
-    bool isNewEntityItem = (id.id == NEW_MODEL);
+    bool isNewEntityItem = (id.id == NEW_ENTITY);
 
     // id
     memcpy(copyAt, &id.id, sizeof(id.id));
@@ -989,7 +989,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
 
     // special case for handling "new" modelItems
     if (isNewEntityItem) {
-        // If this is a NEW_MODEL, then we assume that there's an additional uint32_t creatorToken, that
+        // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
         memcpy(copyAt, &id.creatorTokenID, sizeof(id.creatorTokenID));
         copyAt += sizeof(id.creatorTokenID);
@@ -1002,7 +1002,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     copyAt += sizeof(lastEdited);
     sizeOut += sizeof(lastEdited);
     
-    // For new modelItems, all remaining items are mandatory, for an edited modelItem, All of the remaining items are
+    // For new modelItems, all remaining items are mandatory, for an edited entityItem, All of the remaining items are
     // optional, and may or may not be included based on their included values in the properties included bits
     uint16_t packetContainsBits = properties.getChangedBits();
     if (!isNewEntityItem) {
@@ -1012,7 +1012,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     }
 
     // radius
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_RADIUS) == MODEL_PACKET_CONTAINS_RADIUS)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_RADIUS) == ENTITY_PACKET_CONTAINS_RADIUS)) {
         float radius = properties.getRadius() / (float) TREE_SCALE;
         memcpy(copyAt, &radius, sizeof(radius));
         copyAt += sizeof(radius);
@@ -1020,7 +1020,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     }
 
     // position
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_POSITION) == MODEL_PACKET_CONTAINS_POSITION)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_POSITION) == ENTITY_PACKET_CONTAINS_POSITION)) {
         glm::vec3 position = properties.getPosition() / (float)TREE_SCALE;
         memcpy(copyAt, &position, sizeof(position));
         copyAt += sizeof(position);
@@ -1028,7 +1028,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     }
 
     // color
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_COLOR) == MODEL_PACKET_CONTAINS_COLOR)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_COLOR) == ENTITY_PACKET_CONTAINS_COLOR)) {
         rgbColor color = { properties.getColor().red, properties.getColor().green, properties.getColor().blue };
         memcpy(copyAt, color, sizeof(color));
         copyAt += sizeof(color);
@@ -1036,7 +1036,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     }
 
     // shoulDie
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_SHOULDDIE) == MODEL_PACKET_CONTAINS_SHOULDDIE)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_SHOULDDIE) == ENTITY_PACKET_CONTAINS_SHOULDDIE)) {
         bool shouldBeDeleted = properties.getShouldBeDeleted();
         memcpy(copyAt, &shouldBeDeleted, sizeof(shouldBeDeleted));
         copyAt += sizeof(shouldBeDeleted);
@@ -1044,7 +1044,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     }
 
     // modelURL
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_URL) == MODEL_PACKET_CONTAINS_MODEL_URL)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_MODEL_URL) == ENTITY_PACKET_CONTAINS_MODEL_URL)) {
         uint16_t urlLength = properties.getModelURL().size() + 1;
         memcpy(copyAt, &urlLength, sizeof(urlLength));
         copyAt += sizeof(urlLength);
@@ -1055,14 +1055,14 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     }
 
     // modelRotation
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_MODEL_ROTATION) == MODEL_PACKET_CONTAINS_MODEL_ROTATION)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_ROTATION) == ENTITY_PACKET_CONTAINS_ROTATION)) {
         int bytes = packOrientationQuatToBytes(copyAt, properties.getRotation());
         copyAt += bytes;
         sizeOut += bytes;
     }
 
     // animationURL
-    if (isNewEntityItem || ((packetContainsBits & MODEL_PACKET_CONTAINS_ANIMATION_URL) == MODEL_PACKET_CONTAINS_ANIMATION_URL)) {
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_ANIMATION_URL) == ENTITY_PACKET_CONTAINS_ANIMATION_URL)) {
         uint16_t urlLength = properties.getAnimationURL().size() + 1;
         memcpy(copyAt, &urlLength, sizeof(urlLength));
         copyAt += sizeof(urlLength);
@@ -1074,7 +1074,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
 
     // animationIsPlaying
     if (isNewEntityItem || ((packetContainsBits & 
-                    MODEL_PACKET_CONTAINS_ANIMATION_PLAYING) == MODEL_PACKET_CONTAINS_ANIMATION_PLAYING)) {
+                    ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING) == ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING)) {
                     
         bool animationIsPlaying = properties.getAnimationIsPlaying();
         memcpy(copyAt, &animationIsPlaying, sizeof(animationIsPlaying));
@@ -1084,7 +1084,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
 
     // animationFrameIndex
     if (isNewEntityItem || ((packetContainsBits & 
-                    MODEL_PACKET_CONTAINS_ANIMATION_FRAME) == MODEL_PACKET_CONTAINS_ANIMATION_FRAME)) {
+                    ENTITY_PACKET_CONTAINS_ANIMATION_FRAME) == ENTITY_PACKET_CONTAINS_ANIMATION_FRAME)) {
                     
         float animationFrameIndex = properties.getAnimationFrameIndex();
         memcpy(copyAt, &animationFrameIndex, sizeof(animationFrameIndex));
@@ -1094,7 +1094,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
 
     // animationFPS
     if (isNewEntityItem || ((packetContainsBits & 
-                    MODEL_PACKET_CONTAINS_ANIMATION_FPS) == MODEL_PACKET_CONTAINS_ANIMATION_FPS)) {
+                    ENTITY_PACKET_CONTAINS_ANIMATION_FPS) == ENTITY_PACKET_CONTAINS_ANIMATION_FPS)) {
                     
         float animationFPS = properties.getAnimationFPS();
         memcpy(copyAt, &animationFPS, sizeof(animationFPS));
@@ -1127,8 +1127,8 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ss
     memcpy(&id, dataAt, sizeof(id));
     dataAt += sizeof(id);
     // special case for handling "new" modelItems
-    if (id == NEW_MODEL) {
-        // If this is a NEW_MODEL, then we assume that there's an additional uint32_t creatorToken, that
+    if (id == NEW_ENTITY) {
+        // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
         dataAt += sizeof(uint32_t);
     }
@@ -1271,17 +1271,17 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
 EntityItemProperties::EntityItemProperties() :
     _position(0),
     _color(),
-    _radius(MODEL_DEFAULT_RADIUS),
+    _radius(ENTITY_DEFAULT_RADIUS),
     _shouldBeDeleted(false),
     _modelURL(""),
-    _rotation(MODEL_DEFAULT_MODEL_ROTATION),
+    _rotation(ENTITY_DEFAULT_ROTATION),
     _animationURL(""),
     _animationIsPlaying(false),
     _animationFrameIndex(0.0),
-    _animationFPS(MODEL_DEFAULT_ANIMATION_FPS),
+    _animationFPS(ENTITY_DEFAULT_ANIMATION_FPS),
     _glowLevel(0.0f),
 
-    _id(UNKNOWN_MODEL_ID),
+    _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
     _lastEdited(usecTimestampNow()),
 
@@ -1314,43 +1314,43 @@ void EntityItemProperties::debugDump() const {
 uint16_t EntityItemProperties::getChangedBits() const {
     uint16_t changedBits = 0;
     if (_radiusChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_RADIUS;
+        changedBits += ENTITY_PACKET_CONTAINS_RADIUS;
     }
 
     if (_positionChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_POSITION;
+        changedBits += ENTITY_PACKET_CONTAINS_POSITION;
     }
 
     if (_colorChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_COLOR;
+        changedBits += ENTITY_PACKET_CONTAINS_COLOR;
     }
 
     if (_shouldBeDeletedChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_SHOULDDIE;
+        changedBits += ENTITY_PACKET_CONTAINS_SHOULDDIE;
     }
 
     if (_modelURLChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_MODEL_URL;
+        changedBits += ENTITY_PACKET_CONTAINS_MODEL_URL;
     }
 
     if (_rotationChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_MODEL_ROTATION;
+        changedBits += ENTITY_PACKET_CONTAINS_ROTATION;
     }
 
     if (_animationURLChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_ANIMATION_URL;
+        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_URL;
     }
 
     if (_animationIsPlayingChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_ANIMATION_PLAYING;
+        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING;
     }
 
     if (_animationFrameIndexChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_ANIMATION_FRAME;
+        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_FRAME;
     }
 
     if (_animationFPSChanged) {
-        changedBits += MODEL_PACKET_CONTAINS_ANIMATION_FPS;
+        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_FPS;
     }
 
     return changedBits;
@@ -1383,7 +1383,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
 
     if (_idSet) {
         properties.setProperty("id", _id);
-        properties.setProperty("isKnownID", (_id != UNKNOWN_MODEL_ID));
+        properties.setProperty("isKnownID", (_id != UNKNOWN_ENTITY_ID));
     }
 
     // Sitting properties support
@@ -1541,60 +1541,60 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue &object) {
     _lastEdited = usecTimestampNow();
 }
 
-void EntityItemProperties::copyToEntityItem(EntityItem& modelItem, bool forceCopy) const {
+void EntityItemProperties::copyToEntityItem(EntityItem& entityItem, bool forceCopy) const {
     bool somethingChanged = false;
     if (_positionChanged || forceCopy) {
-        modelItem.setPosition(_position / (float) TREE_SCALE);
+        entityItem.setPosition(_position / (float) TREE_SCALE);
         somethingChanged = true;
     }
 
     if (_colorChanged || forceCopy) {
-        modelItem.setColor(_color);
+        entityItem.setColor(_color);
         somethingChanged = true;
     }
 
     if (_radiusChanged || forceCopy) {
-        modelItem.setRadius(_radius / (float) TREE_SCALE);
+        entityItem.setRadius(_radius / (float) TREE_SCALE);
         somethingChanged = true;
     }
 
     if (_shouldBeDeletedChanged || forceCopy) {
-        modelItem.setShouldBeDeleted(_shouldBeDeleted);
+        entityItem.setShouldBeDeleted(_shouldBeDeleted);
         somethingChanged = true;
     }
 
     if (_modelURLChanged || forceCopy) {
-        modelItem.setModelURL(_modelURL);
+        entityItem.setModelURL(_modelURL);
         somethingChanged = true;
     }
 
     if (_rotationChanged || forceCopy) {
-        modelItem.setRotation(_rotation);
+        entityItem.setRotation(_rotation);
         somethingChanged = true;
     }
 
     if (_animationURLChanged || forceCopy) {
-        modelItem.setAnimationURL(_animationURL);
+        entityItem.setAnimationURL(_animationURL);
         somethingChanged = true;
     }
 
     if (_animationIsPlayingChanged || forceCopy) {
-        modelItem.setAnimationIsPlaying(_animationIsPlaying);
+        entityItem.setAnimationIsPlaying(_animationIsPlaying);
         somethingChanged = true;
     }
 
     if (_animationFrameIndexChanged || forceCopy) {
-        modelItem.setAnimationFrameIndex(_animationFrameIndex);
+        entityItem.setAnimationFrameIndex(_animationFrameIndex);
         somethingChanged = true;
     }
     
     if (_animationFPSChanged || forceCopy) {
-        modelItem.setAnimationFPS(_animationFPS);
+        entityItem.setAnimationFPS(_animationFPS);
         somethingChanged = true;
     }
     
     if (_glowLevelChanged || forceCopy) {
-        modelItem.setGlowLevel(_glowLevel);
+        entityItem.setGlowLevel(_glowLevel);
         somethingChanged = true;
     }
 
@@ -1606,25 +1606,25 @@ void EntityItemProperties::copyToEntityItem(EntityItem& modelItem, bool forceCop
             qDebug() << "EntityItemProperties::copyToEntityItem() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " _lastEdited=" << _lastEdited;
         }
-        modelItem.setLastEdited(_lastEdited);
+        entityItem.setLastEdited(_lastEdited);
     }
 }
 
-void EntityItemProperties::copyFromEntityItem(const EntityItem& modelItem) {
-    _position = modelItem.getPosition() * (float) TREE_SCALE;
-    _color = modelItem.getXColor();
-    _radius = modelItem.getRadius() * (float) TREE_SCALE;
-    _shouldBeDeleted = modelItem.getShouldBeDeleted();
-    _modelURL = modelItem.getModelURL();
-    _rotation = modelItem.getRotation();
-    _animationURL = modelItem.getAnimationURL();
-    _animationIsPlaying = modelItem.getAnimationIsPlaying();
-    _animationFrameIndex = modelItem.getAnimationFrameIndex();
-    _animationFPS = modelItem.getAnimationFPS();
-    _glowLevel = modelItem.getGlowLevel();
-    _sittingPoints = modelItem.getSittingPoints(); // sitting support
+void EntityItemProperties::copyFromEntityItem(const EntityItem& entityItem) {
+    _position = entityItem.getPosition() * (float) TREE_SCALE;
+    _color = entityItem.getXColor();
+    _radius = entityItem.getRadius() * (float) TREE_SCALE;
+    _shouldBeDeleted = entityItem.getShouldBeDeleted();
+    _modelURL = entityItem.getModelURL();
+    _rotation = entityItem.getRotation();
+    _animationURL = entityItem.getAnimationURL();
+    _animationIsPlaying = entityItem.getAnimationIsPlaying();
+    _animationFrameIndex = entityItem.getAnimationFrameIndex();
+    _animationFPS = entityItem.getAnimationFPS();
+    _glowLevel = entityItem.getGlowLevel();
+    _sittingPoints = entityItem.getSittingPoints(); // sitting support
 
-    _id = modelItem.getID();
+    _id = entityItem.getID();
     _idSet = true;
 
     _positionChanged = false;

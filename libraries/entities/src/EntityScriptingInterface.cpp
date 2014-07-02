@@ -29,7 +29,7 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
     // The application will keep track of creatorTokenID
     uint32_t creatorTokenID = EntityItem::getNextCreatorTokenID();
 
-    EntityItemID id(NEW_MODEL, creatorTokenID, false );
+    EntityItemID id(NEW_ENTITY, creatorTokenID, false );
 
     // queue the packet
     queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
@@ -49,7 +49,7 @@ EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
 
     if (!entityID.isKnownID) {
         actualID = EntityItem::getIDfromCreatorTokenID(entityID.creatorTokenID);
-        if (actualID == UNKNOWN_MODEL_ID) {
+        if (actualID == UNKNOWN_ENTITY_ID) {
             return entityID; // bailing early
         }
         
@@ -92,7 +92,7 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     }
 
     // if at this point, we know the id, send the update to the model server
-    if (actualID != UNKNOWN_MODEL_ID) {
+    if (actualID != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID;
         entityID.isKnownID = true;
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
@@ -109,9 +109,9 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
 }
 
 
-// TODO: This deleteEntity() method uses the PacketType_MODEL_ADD_OR_EDIT message to send
+// TODO: This deleteEntity() method uses the PacketTypeEntityAddOrEdit message to send
 // a changed model with a shouldDie() property set to true. This works and is currently the only
-// way to tell the model server to delete a model. But we should change this to use the PacketType_MODEL_ERASE
+// way to tell the model server to delete a model. But we should change this to use the PacketTypeEntityErase
 // message which takes a list of model id's to delete.
 void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
 
@@ -127,7 +127,7 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     }
 
     // if at this point, we know the id, send the update to the model server
-    if (actualID != UNKNOWN_MODEL_ID) {
+    if (actualID != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID;
         entityID.isKnownID = true;
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
@@ -142,7 +142,7 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
 }
 
 EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
-    EntityItemID result(UNKNOWN_MODEL_ID, UNKNOWN_MODEL_TOKEN, false);
+    EntityItemID result(UNKNOWN_ENTITY_ID, UNKNOWN_ENTITY_TOKEN, false);
     if (_entityTree) {
         _entityTree->lockForRead();
         const EntityItem* closestEntity = _entityTree->findClosestEntity(center/(float)TREE_SCALE, 
@@ -166,7 +166,7 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
         _entityTree->unlock();
 
         foreach (const EntityItem* model, models) {
-            EntityItemID thisEntityItemID(model->getID(), UNKNOWN_MODEL_TOKEN, true);
+            EntityItemID thisEntityItemID(model->getID(), UNKNOWN_ENTITY_TOKEN, true);
             result << thisEntityItemID;
         }
     }

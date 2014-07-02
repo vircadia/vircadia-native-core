@@ -1,6 +1,6 @@
 //
 //  EntityTreeElement.cpp
-//  libraries/models/src
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -51,8 +51,8 @@ EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {
 }
 
 
-// TODO: This will attempt to store as many models as will fit in the packetData, if an individual model won't
-// fit, but some models did fit, then the element outputs what can fit. Once the general Octree::encodeXXX()
+// TODO: This will attempt to store as many entities as will fit in the packetData, if an individual entity won't
+// fit, but some entities did fit, then the element outputs what can fit. Once the general Octree::encodeXXX()
 // process supports partial encoding of an octree element, this will need to be updated to handle spanning its
 // contents across multiple packets.
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData, 
@@ -62,35 +62,35 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     
     // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
-    EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData = NULL;
+    EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData = NULL;
     bool hadElementExtraData = false;
     if (extraEncodeData && extraEncodeData->contains(this)) {
-        modelTreeElementExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+        entityTreeElementExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
         hadElementExtraData = true;
     } else {
         // if there wasn't one already, then create one
-        modelTreeElementExtraEncodeData = new EntityTreeElementExtraEncodeData();
+        entityTreeElementExtraEncodeData = new EntityTreeElementExtraEncodeData();
     }
 
     LevelDetails elementLevel = packetData->startLevel();
 
-    // write our models out... first determine which of the models are in view based on our params
+    // write our entities out... first determine which of the entities are in view based on our params
     uint16_t numberOfEntities = 0;
     uint16_t actualNumberOfEntities = 0;
     QVector<uint16_t> indexesOfEntitiesToInclude;
 
     for (uint16_t i = 0; i < _entityItems->size(); i++) {
-        const EntityItem& model = (*_entityItems)[i];
+        const EntityItem& entity = (*_entityItems)[i];
         bool includeThisEntity = true;
         
         if (hadElementExtraData) {
-            includeThisEntity = modelTreeElementExtraEncodeData->includedItems.contains(model.getEntityItemID());
+            includeThisEntity = entityTreeElementExtraEncodeData->includedItems.contains(entity.getEntityItemID());
         }
         
         if (includeThisEntity && params.viewFrustum) {
-            AACube modelCube = model.getAACube();
-            modelCube.scale(TREE_SCALE);
-            if (params.viewFrustum->cubeInFrustum(modelCube) == ViewFrustum::OUTSIDE) {
+            AACube entityCube = entity.getAACube();
+            entityCube.scale(TREE_SCALE);
+            if (params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                 includeThisEntity = false; // out of view, don't include it
             }
         }
@@ -106,30 +106,30 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
     if (successAppendEntityCount) {
         foreach (uint16_t i, indexesOfEntitiesToInclude) {
-            const EntityItem& model = (*_entityItems)[i];
+            const EntityItem& entity = (*_entityItems)[i];
             
-            LevelDetails modelLevel = packetData->startLevel();
+            LevelDetails entityLevel = packetData->startLevel();
     
-            OctreeElement::AppendState appendEntityState = model.appendEntityData(packetData, params, modelTreeElementExtraEncodeData);
+            OctreeElement::AppendState appendEntityState = entity.appendEntityData(packetData, params, entityTreeElementExtraEncodeData);
 
-            // If none of this model data was able to be appended, then discard it
-            // and don't include it in our model count
+            // If none of this entity data was able to be appended, then discard it
+            // and don't include it in our entity count
             if (appendEntityState == OctreeElement::NONE) {
-                packetData->discardLevel(modelLevel);
+                packetData->discardLevel(entityLevel);
             } else {
                 // If either ALL or some of it got appended, then end the level (commit it)
-                // and include the model in our final count of models
-                packetData->endLevel(modelLevel);
+                // and include the entity in our final count of entities
+                packetData->endLevel(entityLevel);
                 actualNumberOfEntities++;
             }
             
-            // If the model item got completely appended, then we can remove it from the extra encode data
+            // If the entity item got completely appended, then we can remove it from the extra encode data
             if (appendEntityState == OctreeElement::COMPLETED) {
-                modelTreeElementExtraEncodeData->includedItems.remove(model.getEntityItemID());
+                entityTreeElementExtraEncodeData->includedItems.remove(entity.getEntityItemID());
             }
 
-            // If any part of the model items didn't fit, then the element is considered partial
-            // NOTE: if the model item didn't fit or only partially fit, then the model item should have
+            // If any part of the entity items didn't fit, then the element is considered partial
+            // NOTE: if the entity item didn't fit or only partially fit, then the entity item should have
             // added itself to the extra encode data.
             if (appendEntityState != OctreeElement::COMPLETED) {
                 appendElementState = OctreeElement::PARTIAL;
@@ -137,32 +137,32 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         }
     }
     
-    // If we were provided with extraEncodeData, and we allocated and/or got modelTreeElementExtraEncodeData
+    // If we were provided with extraEncodeData, and we allocated and/or got entityTreeElementExtraEncodeData
     // then we need to do some additional processing, namely make sure our extraEncodeData is up to date for
     // this octree element.
-    if (extraEncodeData && modelTreeElementExtraEncodeData) {
+    if (extraEncodeData && entityTreeElementExtraEncodeData) {
 
         // If after processing we have some includedItems left in it, then make sure we re-add it back to our map
-        if (modelTreeElementExtraEncodeData->includedItems.size()) {
-            extraEncodeData->insert(this, modelTreeElementExtraEncodeData);
+        if (entityTreeElementExtraEncodeData->includedItems.size()) {
+            extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
         } else {
             // otherwise, clean things up...
             extraEncodeData->remove(this);
-            delete modelTreeElementExtraEncodeData;
+            delete entityTreeElementExtraEncodeData;
         }
     }
 
-    // Determine if no models at all were able to fit    
+    // Determine if no entities at all were able to fit    
     bool noEntitiesFit = (numberOfEntities > 0 && actualNumberOfEntities == 0);
     
-    // If we wrote fewer models than we expected, update the number of models in our packet
+    // If we wrote fewer entities than we expected, update the number of entities in our packet
     bool successUpdateEntityCount = true;
     if (!noEntitiesFit && numberOfEntities != actualNumberOfEntities) {
         successUpdateEntityCount = packetData->updatePriorBytes(numberOfEntitiesOffset,
                                             (const unsigned char*)&actualNumberOfEntities, sizeof(actualNumberOfEntities));
     }
 
-    // If we weren't able to update our model count, or we couldn't fit any models, then
+    // If we weren't able to update our entity count, or we couldn't fit any entities, then
     // we should discard our element and return a result of NONE
     if (!successUpdateEntityCount || noEntitiesFit) {
         packetData->discardLevel(elementLevel);
@@ -174,15 +174,15 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     return appendElementState;
 }
 
-bool EntityTreeElement::containsEntityBounds(const EntityItem& model) const {
-    glm::vec3 clampedMin = glm::clamp(model.getMinimumPoint(), 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(model.getMaximumPoint(), 0.0f, 1.0f);
+bool EntityTreeElement::containsEntityBounds(const EntityItem& entity) const {
+    glm::vec3 clampedMin = glm::clamp(entity.getMinimumPoint(), 0.0f, 1.0f);
+    glm::vec3 clampedMax = glm::clamp(entity.getMaximumPoint(), 0.0f, 1.0f);
     return _cube.contains(clampedMin) && _cube.contains(clampedMax);
 }
 
-bool EntityTreeElement::bestFitEntityBounds(const EntityItem& model) const {
-    glm::vec3 clampedMin = glm::clamp(model.getMinimumPoint(), 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(model.getMaximumPoint(), 0.0f, 1.0f);
+bool EntityTreeElement::bestFitEntityBounds(const EntityItem& entity) const {
+    glm::vec3 clampedMin = glm::clamp(entity.getMinimumPoint(), 0.0f, 1.0f);
+    glm::vec3 clampedMax = glm::clamp(entity.getMaximumPoint(), 0.0f, 1.0f);
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
         int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
         int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
@@ -192,7 +192,7 @@ bool EntityTreeElement::bestFitEntityBounds(const EntityItem& model) const {
             return true;
         }
         // If I contain both the minimum and maximum point, but two different children of mine
-        // contain those points, then I am the best fit for that model
+        // contain those points, then I am the best fit for that entity
         if (childForMinimumPoint != childForMaximumPoint) {
             return true;
         }
@@ -202,24 +202,24 @@ bool EntityTreeElement::bestFitEntityBounds(const EntityItem& model) const {
 
 void EntityTreeElement::update(EntityTreeUpdateArgs& args) {
     args._totalElements++;
-    // update our contained models
-    QList<EntityItem>::iterator modelItr = _entityItems->begin();
-    while(modelItr != _entityItems->end()) {
-        EntityItem& model = (*modelItr);
+    // update our contained entities
+    QList<EntityItem>::iterator entityItr = _entityItems->begin();
+    while(entityItr != _entityItems->end()) {
+        EntityItem& entity = (*entityItr);
         args._totalItems++;
         
         // TODO: this _lastChanged isn't actually changing because we're not marking this element as changed.
         // how do we want to handle this??? We really only want to consider an element changed when it is
         // edited... not just animated...
-        model.update(_lastChanged);
+        entity.update(_lastChanged);
 
-        // If the model wants to die, or if it's left our bounding box, then move it
-        // into the arguments moving models. These will be added back or deleted completely
-        if (model.getShouldBeDeleted() || !bestFitEntityBounds(model)) {
-            args._movingEntities.push_back(model);
+        // If the entity wants to die, or if it's left our bounding box, then move it
+        // into the arguments moving entities. These will be added back or deleted completely
+        if (entity.getShouldBeDeleted() || !bestFitEntityBounds(entity)) {
+            args._movingEntities.push_back(entity);
 
-            // erase this model
-            modelItr = _entityItems->erase(modelItr);
+            // erase this entity
+            entityItr = _entityItems->erase(entityItr);
 
             args._movingItems++;
             
@@ -227,11 +227,11 @@ void EntityTreeElement::update(EntityTreeUpdateArgs& args) {
             markWithChangedTime();
 
             // TODO: is this a good place to change the containing element map???
-            qDebug() << "EntityTreeElement::update()... calling _myTree->setContainingElement(model.getEntityItemID(), NULL); ********";
-            _myTree->setContainingElement(model.getEntityItemID(), NULL);
+            qDebug() << "EntityTreeElement::update()... calling _myTree->setContainingElement(entity.getEntityItemID(), NULL); ********";
+            _myTree->setContainingElement(entity.getEntityItemID(), NULL);
 
         } else {
-            ++modelItr;
+            ++entityItr;
         }
     }
 }
@@ -240,7 +240,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject) {
 
-    // only called if we do intersect our bounding cube, but find if we actually intersect with models...
+    // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     
     QList<EntityItem>::iterator entityItr = _entityItems->begin();
     QList<EntityItem>::const_iterator entityEnd = _entityItems->end();
@@ -350,7 +350,7 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
     return false;
 }
 
-// TODO: the old model code has support for sittingPoints... need to determine how to handle this...
+// TODO: the old entity code has support for sittingPoints... need to determine how to handle this...
 // for local editors, the old updateModels(id, properties) had this code...
 // if (found) {
 //     thisModel.setProperties(properties);
@@ -368,7 +368,7 @@ bool EntityTreeElement::updateEntity(const EntityItem& entity) {
     
     // NOTE: this method must first lookup the entity by ID, hence it is O(N)
     // and "entity is not found" is worst-case (full N) but maybe we don't care?
-    // (guaranteed that num entitys per elemen is small?)
+    // (guaranteed that num entities per elemen is small?)
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem& thisEntity = (*_entityItems)[i];
@@ -437,9 +437,9 @@ void EntityTreeElement::updateEntityItemID(FindAndUpdateEntityItemIDArgs* args) 
             }
         }
         
-        // if we're in an isViewing tree, we also need to look for an kill any viewed entitys
+        // if we're in an isViewing tree, we also need to look for an kill any viewed entities
         if (!args->viewedEntityFound && args->isViewing) {
-            if (thisEntity.getCreatorTokenID() == UNKNOWN_MODEL_TOKEN && thisEntity.getID() == args->entityID) {
+            if (thisEntity.getCreatorTokenID() == UNKNOWN_ENTITY_TOKEN && thisEntity.getID() == args->entityID) {
 
                 if (wantDebug) {
                     qDebug() << "EntityTreeElement::updateEntityItemID()... VIEWED entity FOUND??? "
@@ -502,7 +502,7 @@ void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& fou
 }
 
 const EntityItem* EntityTreeElement::getEntityWithID(uint32_t id) const {
-    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num entitys per elemen is small?)
+    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num entities per elemen is small?)
     const EntityItem* foundEntity = NULL;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
@@ -515,7 +515,7 @@ const EntityItem* EntityTreeElement::getEntityWithID(uint32_t id) const {
 }
 
 const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) const {
-    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num entitys per elemen is small?)
+    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num entities per elemen is small?)
     const EntityItem* foundEntity = NULL;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
@@ -571,7 +571,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
     int expectedBytesPerEntity = EntityItem::expectedBytes();
 
     if (bytesLeftToRead >= (int)sizeof(numberOfEntities)) {
-        // read our entitys in....
+        // read our entities in....
         numberOfEntities = *(uint16_t*)dataAt;
 
         dataAt += sizeof(numberOfEntities);

@@ -38,27 +38,27 @@ class VoxelEditPacketSender;
 class VoxelsScriptingInterface;
 struct VoxelDetail;
 
-const uint32_t NEW_MODEL = 0xFFFFFFFF;
-const uint32_t UNKNOWN_MODEL_TOKEN = 0xFFFFFFFF;
-const uint32_t UNKNOWN_MODEL_ID = 0xFFFFFFFF;
+const uint32_t NEW_ENTITY = 0xFFFFFFFF;
+const uint32_t UNKNOWN_ENTITY_TOKEN = 0xFFFFFFFF;
+const uint32_t UNKNOWN_ENTITY_ID = 0xFFFFFFFF;
 
-const uint16_t MODEL_PACKET_CONTAINS_RADIUS = 1;
-const uint16_t MODEL_PACKET_CONTAINS_POSITION = 2;
-const uint16_t MODEL_PACKET_CONTAINS_COLOR = 4;
-const uint16_t MODEL_PACKET_CONTAINS_SHOULDDIE = 8;
-const uint16_t MODEL_PACKET_CONTAINS_MODEL_URL = 16;
-const uint16_t MODEL_PACKET_CONTAINS_MODEL_ROTATION = 32;
-const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_URL = 64;
-const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_PLAYING = 128;
-const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_FRAME = 256;
-const uint16_t MODEL_PACKET_CONTAINS_ANIMATION_FPS = 512;
+const uint16_t ENTITY_PACKET_CONTAINS_RADIUS = 1;
+const uint16_t ENTITY_PACKET_CONTAINS_POSITION = 2;
+const uint16_t ENTITY_PACKET_CONTAINS_COLOR = 4;
+const uint16_t ENTITY_PACKET_CONTAINS_SHOULDDIE = 8;
+const uint16_t ENTITY_PACKET_CONTAINS_MODEL_URL = 16;
+const uint16_t ENTITY_PACKET_CONTAINS_ROTATION = 32;
+const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_URL = 64;
+const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING = 128;
+const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_FRAME = 256;
+const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_FPS = 512;
 
-const float MODEL_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
-const float MINIMUM_MODEL_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
-const QString MODEL_DEFAULT_MODEL_URL("");
-const glm::quat MODEL_DEFAULT_MODEL_ROTATION;
-const QString MODEL_DEFAULT_ANIMATION_URL("");
-const float MODEL_DEFAULT_ANIMATION_FPS = 30.0f;
+const float ENTITY_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
+const float ENTITY_MINIMUM_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
+const QString ENTITY_DEFAULT_MODEL_URL("");
+const glm::quat ENTITY_DEFAULT_ROTATION;
+const QString ENTITY_DEFAULT_ANIMATION_URL("");
+const float ENTITY_DEFAULT_ANIMATION_FPS = 30.0f;
 
 // PropertyFlags support
 
@@ -98,9 +98,9 @@ enum EntityPropertyList {
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 
 
-/// A collection of properties of a model item used in the scripting API. Translates between the actual properties of a model
-/// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
-/// model item properties via JavaScript hashes/QScriptValues
+/// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
+/// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
+/// set of entity item properties via JavaScript hashes/QScriptValues
 /// all units for position, radius, etc are in meter units
 class EntityItemProperties {
 public:
@@ -109,8 +109,8 @@ public:
     QScriptValue copyToScriptValue(QScriptEngine* engine) const;
     void copyFromScriptValue(const QScriptValue& object);
 
-    void copyToEntityItem(EntityItem& modelItem, bool forceCopy = false) const;
-    void copyFromEntityItem(const EntityItem& modelItem);
+    void copyToEntityItem(EntityItem& entityItem, bool forceCopy = false) const;
+    void copyFromEntityItem(const EntityItem& entityItem);
 
     const glm::vec3& getPosition() const { return _position; }
     xColor getColor() const { return _color; }
@@ -144,7 +144,7 @@ public:
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     
     /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
-    void setIsUnknownID() { _id = UNKNOWN_MODEL_ID; _idSet = true; }
+    void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
     
     glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
     glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
@@ -195,13 +195,13 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
 class EntityItemID {
 public:
     EntityItemID() :
-            id(NEW_MODEL), creatorTokenID(UNKNOWN_MODEL_TOKEN), isKnownID(false) { };
+            id(NEW_ENTITY), creatorTokenID(UNKNOWN_ENTITY_TOKEN), isKnownID(false) { };
 
     EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID) :
             id(id), creatorTokenID(creatorTokenID), isKnownID(isKnownID) { };
 
     EntityItemID(uint32_t id) :
-            id(id), creatorTokenID(UNKNOWN_MODEL_TOKEN), isKnownID(true) { };
+            id(id), creatorTokenID(UNKNOWN_ENTITY_TOKEN), isKnownID(true) { };
 
     uint32_t id;
     uint32_t creatorTokenID;
@@ -213,7 +213,7 @@ inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
 }
 
 inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
-    if (a.id == UNKNOWN_MODEL_ID && b.id == UNKNOWN_MODEL_ID) {
+    if (a.id == UNKNOWN_ENTITY_ID && b.id == UNKNOWN_ENTITY_ID) {
         return a.creatorTokenID == b.creatorTokenID;
     }
     return a.id == b.id;
@@ -221,7 +221,7 @@ inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
 
 inline uint qHash(const EntityItemID& a, uint seed) {
     qint64 temp;
-    if (a.id == UNKNOWN_MODEL_ID) {
+    if (a.id == UNKNOWN_ENTITY_ID) {
         temp = -a.creatorTokenID;
     } else {
         temp = a.id;
@@ -283,7 +283,7 @@ public:
     float getGlowLevel() const { return _glowLevel; }
     QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
 
-    EntityItemID getEntityItemID() const { return EntityItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_MODEL_ID); }
+    EntityItemID getEntityItemID() const { return EntityItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_ENTITY_ID); }
     EntityItemProperties getProperties() const;
 
     /// The last updated/simulated time of this model from the time perspective of the authoritative server/source
@@ -300,7 +300,7 @@ public:
     bool getShouldBeDeleted() const { return _shouldBeDeleted; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     bool isNewlyCreated() const { return _newlyCreated; }
-    bool isKnownID() const { return getID() != UNKNOWN_MODEL_ID; }
+    bool isKnownID() const { return getID() != UNKNOWN_ENTITY_ID; }
 
     /// set position in domain scale units (0.0 - 1.0)
     void setPosition(const glm::vec3& value) { _position = value; }
@@ -369,7 +369,7 @@ public:
 
 protected:
     void initFromEntityItemID(const EntityItemID& entityItemID);
-    virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_MODEL);
+    virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_ENTITY);
 
     glm::vec3 _position;
     rgbColor _color;

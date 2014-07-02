@@ -218,59 +218,59 @@ void EntityTree::storeEntity(const EntityItem& model, const SharedNodePointer& s
 
 }
 
-void EntityTree::updateEntity(const EntityItemID& modelID, const EntityItemProperties& properties) {
-    EntityItem updateItem(modelID);
+void EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItem updateItem(entityID);
 
     bool wantDebug = false;
     if (wantDebug) {    
-        qDebug() << "EntityTree::updateEntity(modelID, properties) line:" << __LINE__ << "updateItem:";
+        qDebug() << "EntityTree::updateEntity(entityID, properties) line:" << __LINE__ << "updateItem:";
         updateItem.debugDump();
     }
     
     // since the properties might not be complete, they may only contain some values,
     // we need to first see if we already have the model in our tree, and make a copy of
     // its existing properties first
-    EntityTreeElement* containingElement = getContainingElement(modelID);
+    EntityTreeElement* containingElement = getContainingElement(entityID);
 
     if (wantDebug) {    
-        qDebug() << "EntityTree::updateEntity(modelID, properties) containingElement=" << containingElement;
+        qDebug() << "EntityTree::updateEntity(entityID, properties) containingElement=" << containingElement;
     }
 
     if (containingElement) {
-        const EntityItem* oldEntity = containingElement->getEntityWithEntityItemID(modelID);
+        const EntityItem* oldEntity = containingElement->getEntityWithEntityItemID(entityID);
         if (oldEntity) {
             EntityItemProperties oldProps = oldEntity->getProperties();
             if (wantDebug) {    
-                qDebug() << "EntityTree::updateEntity(modelID, properties) ********** COPY PROPERTIES FROM oldEntity=" << oldEntity << "*******************";
-                qDebug() << "EntityTree::updateEntity(modelID, properties) oldEntity=" << oldEntity;
+                qDebug() << "EntityTree::updateEntity(entityID, properties) ********** COPY PROPERTIES FROM oldEntity=" << oldEntity << "*******************";
+                qDebug() << "EntityTree::updateEntity(entityID, properties) oldEntity=" << oldEntity;
                 oldProps.debugDump();
-                qDebug() << "EntityTree::updateEntity(modelID, properties) line:" << __LINE__ << "about to call updateItem.setProperties(oldProps);";
+                qDebug() << "EntityTree::updateEntity(entityID, properties) line:" << __LINE__ << "about to call updateItem.setProperties(oldProps);";
             }
             updateItem.setProperties(oldProps, true); // force copy
 
             if (wantDebug) {    
-                qDebug() << "EntityTree::updateEntity(modelID, properties) line:" << __LINE__ << "updateItem:";
+                qDebug() << "EntityTree::updateEntity(entityID, properties) line:" << __LINE__ << "updateItem:";
                 updateItem.debugDump();
             }
 
         } else {
             if (wantDebug) {    
-                qDebug() << "EntityTree::updateEntity(modelID, properties) WAIT WHAT!!! COULDN'T FIND oldEntity=" << oldEntity;
+                qDebug() << "EntityTree::updateEntity(entityID, properties) WAIT WHAT!!! COULDN'T FIND oldEntity=" << oldEntity;
             }
         }
     }
     updateItem.setProperties(properties);
 
     if (wantDebug) {    
-        qDebug() << "EntityTree::updateEntity(modelID, properties) line:" << __LINE__ << "updateItem:";
+        qDebug() << "EntityTree::updateEntity(entityID, properties) line:" << __LINE__ << "updateItem:";
         updateItem.debugDump();
     }
 
     storeEntity(updateItem);
 }
 
-void EntityTree::addEntity(const EntityItemID& modelID, const EntityItemProperties& properties) {
-    EntityItem updateItem(modelID, properties);
+void EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItem updateItem(entityID, properties);
     storeEntity(updateItem);
 }
 
@@ -413,18 +413,18 @@ bool DeleteEntityOperator::PostRecursion(OctreeElement* element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-void EntityTree::deleteEntity(const EntityItemID& modelID) {
+void EntityTree::deleteEntity(const EntityItemID& entityID) {
     // NOTE: callers must lock the tree before using this method
 
     // First, look for the existing model in the tree..
-    DeleteEntityOperator theOperator(this, modelID);
+    DeleteEntityOperator theOperator(this, entityID);
 
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
 
     bool wantDebug = false;
     if (wantDebug) {
-        EntityTreeElement* containingElement = getContainingElement(modelID);
+        EntityTreeElement* containingElement = getContainingElement(entityID);
         qDebug() << "EntityTree::storeEntity().... after store... containingElement=" << containingElement;
     }
 }
@@ -433,9 +433,9 @@ void EntityTree::deleteEntitys(QSet<EntityItemID> modelIDs) {
     // NOTE: callers must lock the tree before using this method
 
     DeleteEntityOperator theOperator(this);
-    foreach(const EntityItemID& modelID, modelIDs) {
+    foreach(const EntityItemID& entityID, modelIDs) {
         // First, look for the existing model in the tree..
-        theOperator.modelToDelete(modelID);
+        theOperator.modelToDelete(entityID);
     }
 
     recurseTreeWithOperator(&theOperator);
@@ -443,8 +443,8 @@ void EntityTree::deleteEntitys(QSet<EntityItemID> modelIDs) {
 
     bool wantDebug = false;
     if (wantDebug) {
-        foreach(const EntityItemID& modelID, modelIDs) {
-            EntityTreeElement* containingElement = getContainingElement(modelID);
+        foreach(const EntityItemID& entityID, modelIDs) {
+            EntityTreeElement* containingElement = getContainingElement(entityID);
             qDebug() << "EntityTree::storeEntity().... after store... containingElement=" << containingElement;
         }
     }
@@ -487,19 +487,19 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
     dataAt += sizeof(creatorTokenID);
 
-    uint32_t modelID;
-    memcpy(&modelID, dataAt, sizeof(modelID));
-    dataAt += sizeof(modelID);
+    uint32_t entityID;
+    memcpy(&entityID, dataAt, sizeof(entityID));
+    dataAt += sizeof(entityID);
 
     if (wantDebug) {
         qDebug() << "    creatorTokenID=" << creatorTokenID;
-        qDebug() << "    modelID=" << modelID;
+        qDebug() << "    entityID=" << entityID;
     }
 
     // update models in our tree
     bool assumeEntityFound = !getIsViewing(); // if we're not a viewing tree, then we don't have to find the actual model
     FindAndUpdateEntityItemIDArgs args = { 
-        modelID, 
+        entityID, 
         creatorTokenID, 
         false, 
         assumeEntityFound,
@@ -507,7 +507,7 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     };
     
     if (wantDebug) {
-        qDebug() << "looking for creatorTokenID=" << creatorTokenID << " modelID=" << modelID 
+        qDebug() << "looking for creatorTokenID=" << creatorTokenID << " entityID=" << entityID 
                 << " getIsViewing()=" << getIsViewing();
     }
     lockForWrite();
@@ -638,24 +638,24 @@ void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*> foundEnti
 }
 
 const EntityItem* EntityTree::findEntityByID(uint32_t id, bool alreadyLocked) const {
-    EntityItemID modelID(id);
+    EntityItemID entityID(id);
 
     bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "EntityTree::findEntityByID()...";
         qDebug() << "    id=" << id;
-        qDebug() << "    modelID=" << modelID;
+        qDebug() << "    entityID=" << entityID;
         qDebug() << "_modelToElementMap=" << _modelToElementMap;
     }
 
-    return findEntityByEntityItemID(modelID);
+    return findEntityByEntityItemID(entityID);
 }
 
-const EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& modelID) const {
+const EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) const {
     const EntityItem* foundEntity = NULL;
-    EntityTreeElement* containingElement = getContainingElement(modelID);
+    EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
-        foundEntity = containingElement->getEntityWithEntityItemID(modelID);
+        foundEntity = containingElement->getEntityWithEntityItemID(entityID);
     }
     return foundEntity;
 }
@@ -829,10 +829,10 @@ bool EntityTree::encodeEntitysDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber
 
             // if the timestamp is more recent then out last sent time, include it
             if (iterator.key() > sinceTime) {
-                uint32_t modelID = values.at(valueItem);
-                memcpy(copyAt, &modelID, sizeof(modelID));
-                copyAt += sizeof(modelID);
-                outputLength += sizeof(modelID);
+                uint32_t entityID = values.at(valueItem);
+                memcpy(copyAt, &entityID, sizeof(entityID));
+                copyAt += sizeof(entityID);
+                outputLength += sizeof(entityID);
                 numberOfIds++;
 
                 // check to make sure we have room for one more id...
@@ -916,12 +916,12 @@ void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Shar
                 break; // bail to prevent buffer overflow
             }
 
-            uint32_t modelID = 0; // placeholder for now
-            memcpy(&modelID, dataAt, sizeof(modelID));
-            dataAt += sizeof(modelID);
-            processedBytes += sizeof(modelID);
+            uint32_t entityID = 0; // placeholder for now
+            memcpy(&entityID, dataAt, sizeof(entityID));
+            dataAt += sizeof(entityID);
+            processedBytes += sizeof(entityID);
             
-            EntityItemID entityItemID(modelID);
+            EntityItemID entityItemID(entityID);
             modelItemIDsToDelete << entityItemID;
         }
         deleteEntitys(modelItemIDsToDelete);

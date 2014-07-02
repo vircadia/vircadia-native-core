@@ -75,7 +75,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeParticleErase:
             return 1;
         case PacketTypeEntityData:
-            return VERSION_MODELS_SUPPORT_SPLIT_MTU;
+            return VERSION_ENTITIES_SUPPORT_SPLIT_MTU;
         case PacketTypeEntityErase:
             return 1;
         default:

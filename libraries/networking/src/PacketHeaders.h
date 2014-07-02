@@ -111,8 +111,8 @@ PacketType packetTypeForPacket(const char* packet);
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 
-const PacketVersion VERSION_MODELS_HAVE_ANIMATION = 1;
+const PacketVersion VERSION_ENTITIES_HAVE_ANIMATION = 1;
 const PacketVersion VERSION_ROOT_ELEMENT_HAS_DATA = 2;
-const PacketVersion VERSION_MODELS_SUPPORT_SPLIT_MTU = 3;
+const PacketVersion VERSION_ENTITIES_SUPPORT_SPLIT_MTU = 3;
 
 #endif // hifi_PacketHeaders_h
