@@ -56,7 +56,6 @@ void UserLocation::requestRename(const QString& newName) {
 void UserLocation::handleRenameResponse(const QJsonObject& responseData) {
     _updating = false;
 
-    qDebug() << responseData;
     QJsonValue status = responseData["status"];
     if (!status.isUndefined() && status.toString() == "success") {
         QString updatedName = responseData["data"].toObject()["name"].toString();
