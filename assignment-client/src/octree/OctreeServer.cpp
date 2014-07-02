@@ -10,7 +10,6 @@
 //
 
 #include <QJsonObject>
-#include <QNetworkAccessManager>
 #include <QTimer>
 #include <QUuid>
 
