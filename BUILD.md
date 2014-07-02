@@ -63,7 +63,7 @@ If `libgnutls28-dev` 3.2.12 or higher is available via your package manager, it 
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
     brew tap highfidelity/homebrew-formulas
-    brew install cmake glm zlib gnutls
+    brew install cmake glm gnutls
     brew install highfidelity/formulas/qt5
     brew link qt5 --force
     brew install highfidelity/formulas/qxmpp

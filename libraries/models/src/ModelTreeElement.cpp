@@ -330,6 +330,9 @@ bool ModelTreeElement::updateModel(const ModelItemID& modelID, const ModelItemPr
         }
         if (found) {
             thisModel.setProperties(properties);
+            if (_myTree->getGeometryForModel(thisModel)) {
+                thisModel.setSittingPoints(_myTree->getGeometryForModel(thisModel)->sittingPoints);
+            }
             markWithChangedTime(); // mark our element as changed..
             const bool wantDebug = false;
             if (wantDebug) {

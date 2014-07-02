@@ -17,6 +17,8 @@
 #include <PositionalAudioRingBuffer.h>
 
 #include "AvatarAudioRingBuffer.h"
+#include "AudioStreamStats.h"
+#include "SequenceNumberStats.h"
 
 class AudioMixerClientData : public NodeData {
 public:
@@ -27,11 +29,23 @@ public:
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
     
     int parseData(const QByteArray& packet);
-    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples,
-                                     AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
+    void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
     void pushBuffersAfterFrameSend();
+
+    AudioStreamStats getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer) const;
+    QString getAudioStreamStatsString() const;
+    
+    void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) const;
+    
+    void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
+    quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
+
 private:
     QList<PositionalAudioRingBuffer*> _ringBuffers;
+
+    quint16 _outgoingMixedAudioSequenceNumber;
+    SequenceNumberStats _incomingAvatarAudioSequenceNumberStats;
+    QHash<QUuid, SequenceNumberStats> _incomingInjectedAudioSequenceNumberStatsMap;
 };
 
 #endif // hifi_AudioMixerClientData_h

@@ -39,7 +39,6 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
     }
 
     clearShapes();
-    clearRagdollConstraintsAndPoints();
     if (_enableShapes) {
         buildShapes();
     }
@@ -504,8 +503,7 @@ void SkeletonModel::renderRagdoll() {
 
 // virtual
 void SkeletonModel::initRagdollPoints() {
-    assert(_ragdollPoints.size() == 0);
-    assert(_ragdollConstraints.size() == 0);
+    clearRagdollConstraintsAndPoints();
 
     // one point for each joint
     int numJoints = _jointStates.size();

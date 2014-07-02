@@ -71,17 +71,21 @@ public:
     bool isStarved() const { return _isStarved; }
     void setIsStarved(bool isStarved) { _isStarved = isStarved; }
     
+    int getOverflowCount() const { return _overflowCount; } /// how many times has the ring buffer has overwritten old data
     bool hasStarted() const { return _hasStarted; }
     
-    void addSilentFrame(int numSilentSamples);
+    int addSilentFrame(int numSilentSamples);
 protected:
     // disallow copying of AudioRingBuffer objects
     AudioRingBuffer(const AudioRingBuffer&);
     AudioRingBuffer& operator= (const AudioRingBuffer&);
     
     int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
+
+    int _overflowCount; /// how many times has the ring buffer has overwritten old data
     
     int _sampleCapacity;
+    bool _isFull;
     int _numFrameSamples;
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;

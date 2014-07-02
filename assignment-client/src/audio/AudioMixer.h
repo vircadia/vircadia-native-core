@@ -34,6 +34,9 @@ public slots:
     void readPendingDatagrams();
     
     void sendStatsPacket();
+
+    static bool getUseDynamicJitterBuffers() { return _useDynamicJitterBuffers; }
+
 private:
     /// adds one buffer to the mix for a listening node
     void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -54,6 +57,9 @@ private:
     int _sumMixes;
     AABox* _sourceUnattenuatedZone;
     AABox* _listenerUnattenuatedZone;
+    static bool _useDynamicJitterBuffers;
+
+    quint64 _lastSendAudioStreamStatsTime;
 };
 
 #endif // hifi_AudioMixer_h
