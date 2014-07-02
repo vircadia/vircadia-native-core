@@ -281,6 +281,7 @@ void AngularConstraintTests::testHingeConstraint() {
                 << " ERROR: HingeConstraint rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
         }
     }
+    delete c;
 }
 
 void AngularConstraintTests::testConeRollerConstraint() {
@@ -466,6 +467,7 @@ void AngularConstraintTests::testConeRollerConstraint() {
                 << " ERROR: rotation = " << newRotation << " but expected " << expectedRotation << std::endl;
         }
     }
+    delete c;
 }
 
 void AngularConstraintTests::runAllTests() {
