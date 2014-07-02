@@ -1130,7 +1130,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     _lastMouseMove = usecTimestampNow();
 
-    if (_mouseHidden && showMouse && !OculusManager::isConnected()) {
+    if (_mouseHidden && showMouse && !OculusManager::isConnected() && !TV3DManager::isConnected()) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;

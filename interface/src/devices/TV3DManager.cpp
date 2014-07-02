@@ -124,9 +124,6 @@ void TV3DManager::display(Camera& whichCamera) {
         GLfloat fov = atan(1.0f / cotangent);
         glTranslatef(_leftEye.modelTranslation, 0.0, 0.0); // translate to cancel parallax
 
-
-        printf("FOV %f\n", fov);
-
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         Application::getInstance()->displaySide(whichCamera);
@@ -152,8 +149,6 @@ void TV3DManager::display(Camera& whichCamera) {
         GLfloat cotangent = p[1][1];
         GLfloat fov = atan(1.0f / cotangent);
         glTranslatef(_rightEye.modelTranslation, 0.0, 0.0); // translate to cancel parallax
-
-        printf("FOV %f\n", fov);
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();

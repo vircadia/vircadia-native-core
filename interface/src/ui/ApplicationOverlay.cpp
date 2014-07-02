@@ -335,15 +335,17 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     glColor4f(1.0f, 1.0f, 1.0f, _alpha);
 
     //Render
+ //   fov -= RADIANS_PER_DEGREE * 2.5f; //reduce by 5 degrees so it fits in the view
     const GLfloat distance = 1.0f;
 
-    const GLfloat halfQuadHeight = atan(fov) * distance;
+    const GLfloat halfQuadHeight = distance * tan(fov);
     const GLfloat halfQuadWidth = halfQuadHeight * aspectRatio;
     const GLfloat quadWidth = halfQuadWidth * 2.0f;
     const GLfloat quadHeight = halfQuadHeight * 2.0f;
 
-    const GLfloat x = -halfQuadWidth;
-    const GLfloat y = -halfQuadHeight;
+    GLfloat x = -halfQuadWidth;
+    GLfloat y = -halfQuadHeight;
+    glDisable(GL_DEPTH_TEST);
 
     glBegin(GL_QUADS);
 
@@ -353,6 +355,32 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     glTexCoord2f(0.0f, 0.0f); glVertex3f(x, y, -distance);
 
     glEnd();
+
+    if (_crosshairTexture == 0) {
+        _crosshairTexture = Application::getInstance()->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/sixense-reticle.png"));
+    }
+
+    //draw the mouse pointer
+    glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
+
+    const float reticleSize = 40.0f / application->getGLWidget()->width() * quadWidth;
+    x -= reticleSize / 2.0f;
+    y += reticleSize / 2.0f;
+    const float mouseX = (application->getMouseX() / (float)application->getGLWidget()->width()) * quadWidth;
+    const float mouseY = (1.0 - (application->getMouseY() / (float)application->getGLWidget()->height())) * quadHeight;
+
+    glBegin(GL_QUADS);
+
+    glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
+
+    glTexCoord2d(0.0f, 0.0f); glVertex3f(x + mouseX, y + mouseY, -distance);
+    glTexCoord2d(1.0f, 0.0f); glVertex3f(x + mouseX + reticleSize, y + mouseY, -distance);
+    glTexCoord2d(1.0f, 1.0f); glVertex3f(x + mouseX + reticleSize, y + mouseY - reticleSize, -distance);
+    glTexCoord2d(0.0f, 1.0f); glVertex3f(x + mouseX, y + mouseY - reticleSize, -distance);
+
+    glEnd();
+
+    glEnable(GL_DEPTH_TEST);
 
     glPopMatrix();
 
