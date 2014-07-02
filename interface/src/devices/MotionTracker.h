@@ -30,7 +30,7 @@ public:
     public:
         Frame();
 
-        glm::mat4x3 _transform;
+        glm::mat4 _transform;
 
         void setRotation( const glm::quat& rotation );
         void getRotation( glm::quat& rotation ) const;

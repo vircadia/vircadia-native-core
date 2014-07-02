@@ -249,14 +249,26 @@ void Leapmotion::init() {
 glm::quat quatFromLeapBase( float sideSign, const Leap::Matrix& basis ) {
 
     glm::vec3 xAxis = glm::normalize( sideSign * glm::vec3( basis.xBasis.x, basis.xBasis.y, basis.xBasis.z) );
-    glm::vec3 yAxis = glm::normalize( glm::vec3( basis.yBasis.x, basis.yBasis.y, basis.yBasis.z) );
-    glm::vec3 zAxis = glm::normalize( glm::vec3( basis.zBasis.x, basis.zBasis.y, basis.zBasis.z) );
-
-    glm::quat orientation = /* glm::inverse*/ (glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
-
+    glm::vec3 yAxis = glm::normalize( sideSign * glm::vec3( basis.yBasis.x, basis.yBasis.y, basis.yBasis.z) );
+    glm::vec3 zAxis = glm::normalize( sideSign * glm::vec3( basis.zBasis.x, basis.zBasis.y, basis.zBasis.z) );
+    zAxis = glm::normalize( glm::cross( xAxis, yAxis ) );
+    yAxis = glm::normalize( glm::cross( zAxis, xAxis ) );
+    glm::quat orientation = /*glm::inverse*/(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
+  //  orientation = glm::normalize( orientation );
+    return glm::quat();
     return orientation;
 }
+glm::quat quatFromLeapBase( float sideSign, const Leap::Vector& dir, const Leap::Vector& normal ) {
 
+    glm::vec3 xAxis = glm::normalize( sideSign * glm::vec3( dir.x, dir.y, dir.z) );
+    glm::vec3 yAxis = glm::normalize( -glm::vec3( normal.x, normal.y, normal.z) );
+    glm::vec3 zAxis = glm::normalize( glm::cross( xAxis, yAxis ) );
+  //  yAxis = glm::normalize( glm::cross( zAxis, xAxis ) );
+    glm::quat orientation = /*glm::inverse*/(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
+  //  orientation = glm::normalize( orientation );
+   // return glm::quat();
+    return orientation;
+}
 glm::vec3 vec3FromLeapVector( const Leap::Vector& vec ) {
     return glm::vec3( vec.x * METERS_PER_MILLIMETER, vec.y * METERS_PER_MILLIMETER, vec.z * METERS_PER_MILLIMETER );
 }
@@ -295,7 +307,8 @@ void Leapmotion::update() {
             Index handIndex = 1 + ((1 - side)/2) * HAND_NUM_JOINTS;
 
             glm::vec3 pos = vec3FromLeapVector(hand.palmPosition());
-            glm::quat ori = quatFromLeapBase(float(side), hand.basis() );
+           // glm::quat ori = quatFromLeapBase(float(side), hand.basis() );
+            glm::quat ori = quatFromLeapBase(float(side), hand.direction(), hand.palmNormal() );
 
             JointTracker* palmJoint = editJointTracker( handIndex );
             palmJoint->editLocFrame().setTranslation( pos );
@@ -332,6 +345,7 @@ void Leapmotion::update() {
 
                             ljointTracker->editAbsFrame().setTranslation( vec3FromLeapVector( bp ) );
                             ljointTracker->editAbsFrame().setRotation(quatFromLeapBase( float(side), bone.basis() ) );
+                          //  ljointTracker->editAbsFrame().setRotation(quatFromLeapBase( float(side), bone.direction(), bone.basis() ) );
                             ljointTracker->updateLocFromAbsTransform( parentJointTracker );
                             ljointTracker->activeFrame();
                         }

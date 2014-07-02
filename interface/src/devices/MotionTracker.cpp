@@ -150,7 +150,8 @@ MotionTracker::JointTracker::JointTracker( const JointTracker& tracker ) :
 void MotionTracker::JointTracker::updateAbsFromLocTransform(const JointTracker* parentJoint)
 {
     if ( parentJoint ) {
-        editAbsFrame()._transform = glm::mult( parentJoint->getAbsFrame()._transform, getLocFrame()._transform );
+        //editAbsFrame()._transform = glm::mult( parentJoint->getAbsFrame()._transform, getLocFrame()._transform );
+        editAbsFrame()._transform = ( parentJoint->getAbsFrame()._transform * getLocFrame()._transform );
     } else {
         editAbsFrame()._transform = getLocFrame()._transform;
     }
@@ -159,8 +160,10 @@ void MotionTracker::JointTracker::updateAbsFromLocTransform(const JointTracker* 
 void MotionTracker::JointTracker::updateLocFromAbsTransform(const JointTracker* parentJoint)
 {
     if ( parentJoint ) {
-        glm::mat4 ip = glm::inverse( glm::mat4( parentJoint->getAbsFrame()._transform ) );
-        editLocFrame()._transform = glm::mult( ip, getAbsFrame()._transform );
+      //  glm::mat4 ip = glm::inverse( glm::mat4( parentJoint->getAbsFrame()._transform ) );
+        glm::mat4 ip = glm::inverse( parentJoint->getAbsFrame()._transform );
+       // editLocFrame()._transform = glm::mult( ip, getAbsFrame()._transform );
+        editLocFrame()._transform = ( ip * getAbsFrame()._transform );
     } else {
         editLocFrame()._transform = getAbsFrame()._transform;
     }
@@ -178,23 +181,24 @@ MotionTracker::Frame::Frame() :
 void MotionTracker::Frame::setRotation( const glm::quat& rotation )
 {
     glm::mat3x3 rot = glm::mat3_cast( rotation );
-    _transform[0] = rot[0];
-    _transform[1] = rot[1];
-    _transform[2] = rot[2];
+    _transform[0] = glm::vec4( rot[0], 0.f );
+    _transform[1] = glm::vec4( rot[1], 0.f );
+    _transform[2] = glm::vec4( rot[2], 0.f );
 }
 
 void MotionTracker::Frame::getRotation( glm::quat& rotation ) const
 {
-    rotation = glm::quat_cast( glm::mat3( _transform[0], _transform[1], _transform[2] ) );
+   // rotation = glm::quat_cast( glm::mat3( _transform[0], _transform[1], _transform[2] ) );
+    rotation = glm::quat_cast(  _transform );
 }
 
 void MotionTracker::Frame::setTranslation( const glm::vec3& translation )
 {
-    _transform[3] = translation;
+    _transform[3] = glm::vec4( translation, 1.f );
 }
 
 void MotionTracker::Frame::getTranslation( glm::vec3& translation ) const
 {
-    translation = _transform[3];
+    translation = glm::vec3( _transform[3] );
 }
 

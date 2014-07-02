@@ -28,13 +28,14 @@ function quatToString( q ) {
 }
 
 function printSpatialEvent( label, spatialEvent ) {
-  /*  var dataString = label + " " +
-         vec3ToString( spatialEvent.locTranslation ) + " " +
-         quatToString( spatialEvent.locRotation ) + " " +
-         vec3ToString( spatialEvent.absTranslation ) + " " +
-         quatToString( spatialEvent.absRotation );
-  //  print( dataString )
-  */;
+    if ( label == "RightHand" ) {
+        var dataString = label + " " +
+             /*vec3ToString( spatialEvent.locTranslation ) + " " +
+             quatToString( spatialEvent.locRotation ) + " " +*/
+             vec3ToString( spatialEvent.absTranslation ) + " " +
+             quatToString( spatialEvent.absRotation );
+        print( dataString );
+    }
 }
 
 function avatarToWorld( apos ) {
@@ -141,7 +142,7 @@ function onSpatialEventHandler( jointName, look ) {
     var _look = look;
     return (function( spatialEvent ) {
         MyAvatar.setJointData(_jointName, spatialEvent.absRotation);
-        updateJointParticle(_jointName, avatarToWorld( spatialEvent.absTranslation ), _look );
+        updateJointParticle(_jointName, avatarToWorld( spatialEvent.absTranslation ), _look );       
         printSpatialEvent(_jointName, spatialEvent );
     });
 }
@@ -174,6 +175,10 @@ Script.update.connect(function(deltaTime) {
             }
         }
     }
+
+    // simple test
+   // MyAvatar.setJointData("LeftArm", jointControllers[6].c.getLocRotation());
+   // MyAvatar.setJointData("LeftForeArm", jointControllers[7].c.getLocRotation());
  
 });
 
