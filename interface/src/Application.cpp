@@ -32,7 +32,6 @@
 #include <QKeyEvent>
 #include <QMenuBar>
 #include <QMouseEvent>
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
@@ -53,17 +52,18 @@
 
 #include <AccountManager.h>
 #include <AudioInjector.h>
+#include <LocalVoxelsList.h>
 #include <Logging.h>
 #include <ModelsScriptingInterface.h>
+#include <NetworkAccessManager.h>
 #include <OctalCode.h>
+#include <OctreeSceneStats.h>
 #include <PacketHeaders.h>
 #include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
-#include <OctreeSceneStats.h>
-#include <LocalVoxelsList.h>
 
 #include "Application.h"
 #include "InterfaceVersion.h"
@@ -314,12 +314,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
-    _networkAccessManager = new QNetworkAccessManager(this);
-    QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkDiskCache* cache = new QNetworkDiskCache(&networkAccessManager);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
-    _networkAccessManager->setCache(cache);
+    networkAccessManager.setCache(cache);
 
-    ResourceCache::setNetworkAccessManager(_networkAccessManager);
     ResourceCache::setRequestLimit(3);
 
     _window->setCentralWidget(_glWidget);
@@ -441,8 +440,6 @@ Application::~Application() {
     _myAvatar = NULL;
 
     delete _glWidget;
-
-    AccountManager::getInstance().destroy();
 }
 
 void Application::saveSettings() {
@@ -3802,7 +3799,8 @@ void Application::initAvatarAndViewFrustum() {
 void Application::checkVersion() {
     QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
     latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    connect(Application::getInstance()->getNetworkAccessManager()->get(latestVersionRequest), SIGNAL(finished()), SLOT(parseVersionXml()));
+    QNetworkReply* reply = NetworkAccessManager::getInstance().get(latestVersionRequest);
+    connect(reply, SIGNAL(finished()), SLOT(parseVersionXml()));
 }
 
 void Application::parseVersionXml() {
