@@ -181,7 +181,9 @@ void UserLocationsModel::handleLocationsResponse(const QJsonObject& responseData
             QJsonObject location = (*it).toObject();
             QJsonObject address = location["address"].toObject();
             UserLocation* userLocation = new UserLocation(location["id"].toString(), location["name"].toString(),
-                              "hifi://" + address["domain"].toString() + "/" + address["position"].toString() + "/" + address["orientation"].toString());
+                              "hifi://" + address["domain"].toString()
+                              + "/" + address["position"].toString()
+                              + "/" + address["orientation"].toString());
             _locations.append(userLocation);
             connect(userLocation, &UserLocation::deleted, this, &UserLocationsModel::removeLocation);
             connect(userLocation, &UserLocation::updated, this, &UserLocationsModel::update);
