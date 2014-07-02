@@ -100,6 +100,8 @@ public slots:
     void include(const QString& includeFile);
     void print(const QString& message);
 
+    void nodeKilled(SharedNodePointer node);
+
 signals:
     void update(float deltaTime);
     void scriptEnding();
@@ -146,6 +148,7 @@ private:
     ScriptUUID _uuidLibrary;
     AnimationCache _animationCache;
 
+    QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 };
 
 #endif // hifi_ScriptEngine_h

@@ -117,7 +117,7 @@ void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& send
     // if we didn't find it in the tree, then store it...
     if (!theOperator.wasFound()) {
         AACube modelCube = model.getAACube();
-        ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementContaining(model.getAACube());
+        ModelTreeElement* element = static_cast<ModelTreeElement*>(getOrCreateChildElementContaining(model.getAACube()));
         element->storeModel(model);
         
         // In the case where we stored it, we also need to mark the entire "path" down to the model as

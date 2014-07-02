@@ -38,6 +38,9 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
 #include <QtCore/QTimer>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
 
 #include <Logging.h>
 #include <NodeList.h>
@@ -75,7 +78,8 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _sumListeners(0),
     _sumMixes(0),
     _sourceUnattenuatedZone(NULL),
-    _listenerUnattenuatedZone(NULL)
+    _listenerUnattenuatedZone(NULL),
+    _lastSendAudioStreamStatsTime(usecTimestampNow())
 {
     
 }
@@ -448,7 +452,7 @@ void AudioMixer::sendStatsPacket() {
         AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
             QString property = "jitterStats." + node->getUUID().toString();
-            QString value = clientData->getJitterBufferStats();
+            QString value = clientData->getAudioStreamStatsString();
             statsObject2[qPrintable(property)] = value;
             somethingToSend = true;
             sizeOfStats += property.size() + value.size();
@@ -478,47 +482,88 @@ void AudioMixer::run() {
 
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
     
-    // check the payload to see if we have any unattenuated zones
-    const QString UNATTENUATED_ZONE_REGEX_STRING = "--unattenuated-zone ([\\d.,-]+)";
-    QRegExp unattenuatedZoneMatch(UNATTENUATED_ZONE_REGEX_STRING);
+    // setup a QNetworkAccessManager to ask the domain-server for our settings
+    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
     
-    if (unattenuatedZoneMatch.indexIn(_payload) != -1) {
-        QString unattenuatedZoneString = unattenuatedZoneMatch.cap(1);
-        QStringList zoneStringList = unattenuatedZoneString.split(',');
+    QUrl settingsJSONURL;
+    settingsJSONURL.setScheme("http");
+    settingsJSONURL.setHost(nodeList->getDomainHandler().getHostname());
+    settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
+    settingsJSONURL.setPath("/settings.json");
+    settingsJSONURL.setQuery(QString("type=%1").arg(_type));
+    
+    QNetworkReply *reply = NULL;
+    
+    int failedAttempts = 0;
+    const int MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS = 5;
+    
+    qDebug() << "Requesting settings for assignment from domain-server at" << settingsJSONURL.toString();
+    
+    while (!reply || reply->error() != QNetworkReply::NoError) {
+        reply = networkManager->get(QNetworkRequest(settingsJSONURL));
         
-        glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
-        glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
-     
-        glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
-        glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
+        QEventLoop loop;
+        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
         
-        _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
-        _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
+        loop.exec();
         
-        glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
-        glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
+        ++failedAttempts;
         
-        qDebug() << "There is an unattenuated zone with source center at"
-            << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
-        qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
-            << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
+        if (failedAttempts == MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS) {
+            qDebug() << "Failed to get settings from domain-server. Bailing on assignment.";
+            setFinished(true);
+            return;
+        }
     }
-
-    // check the payload to see if we have asked for dynamicJitterBuffer support
-    const QString DYNAMIC_JITTER_BUFFER_REGEX_STRING = "--dynamicJitterBuffer";
-    QRegExp dynamicJitterBufferMatch(DYNAMIC_JITTER_BUFFER_REGEX_STRING);
-    if (dynamicJitterBufferMatch.indexIn(_payload) != -1) {
-        qDebug() << "Enable dynamic jitter buffers.";
-        _useDynamicJitterBuffers = true;
-    } else {
-        qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
+    
+    QJsonObject settingsObject = QJsonDocument::fromJson(reply->readAll()).object();
+    
+    // check the settings object to see if we have anything we can parse out
+    const QString AUDIO_GROUP_KEY = "audio";
+    
+    if (settingsObject.contains(AUDIO_GROUP_KEY)) {
+        QJsonObject audioGroupObject = settingsObject[AUDIO_GROUP_KEY].toObject();
+        
+        const QString UNATTENUATED_ZONE_KEY = "unattenuated-zone";
+        
+        QString unattenuatedZoneString = audioGroupObject[UNATTENUATED_ZONE_KEY].toString();
+        if (!unattenuatedZoneString.isEmpty()) {
+            QStringList zoneStringList = unattenuatedZoneString.split(',');
+            
+            glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
+            glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
+            
+            glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
+            glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
+            
+            _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
+            _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
+            
+            glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
+            glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
+            
+            qDebug() << "There is an unattenuated zone with source center at"
+            << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
+            qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
+            << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
+        }
+        
+        // check the payload to see if we have asked for dynamicJitterBuffer support
+        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic-jitter-buffer";
+        bool shouldUseDynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
+        if (shouldUseDynamicJitterBuffers) {
+            qDebug() << "Enable dynamic jitter buffers.";
+            _useDynamicJitterBuffers = true;
+        } else {
+            qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
+        }
     }
     
     int nextFrame = 0;
     QElapsedTimer timer;
     timer.start();
     
-    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO
+    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO + sizeof(quint16)
                                      + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
     
     int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
@@ -587,20 +632,50 @@ void AudioMixer::run() {
             ++framesSinceCutoffEvent;
         }
         
+
+        const quint64 TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS = 1 * USECS_PER_SECOND;
+        
+        bool sendAudioStreamStats = false;
+        quint64 now = usecTimestampNow();
+        if (now - _lastSendAudioStreamStatsTime > TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS) {
+            _lastSendAudioStreamStatsTime = now;
+            sendAudioStreamStats = true;
+        }
+
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
+
+                AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
+
                 prepareMixForListeningNode(node.data());
                 
+                // pack header
                 int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
+                char* dataAt = clientMixBuffer + numBytesPacketHeader;
 
-                memcpy(clientMixBuffer + numBytesPacketHeader, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                nodeList->writeDatagram(clientMixBuffer, NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader, node);
+                // pack sequence number
+                quint16 sequence = nodeData->getOutgoingSequenceNumber();
+                memcpy(dataAt, &sequence, sizeof(quint16));
+                dataAt += sizeof(quint16);
+
+                // pack mixed audio samples
+                memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+
+                // send mixed audio packet
+                nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
+                nodeData->incrementOutgoingMixedAudioSequenceNumber();
                 
+                // send an audio stream stats packet if it's time
+                if (sendAudioStreamStats) {
+                    nodeData->sendAudioStreamStatsPackets(node);
+                }
+
                 ++_sumListeners;
             }
         }
-
+        
         // push forward the next output pointers for any audio buffers we used
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {

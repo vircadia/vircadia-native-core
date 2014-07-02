@@ -38,6 +38,9 @@ int InjectedAudioRingBuffer::parseData(const QByteArray& packet) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     
+    // push past the sequence number
+    packetStream.skipRawData(sizeof(quint16));
+
     // push past the stream identifier
     packetStream.skipRawData(NUM_BYTES_RFC4122_UUID);
     

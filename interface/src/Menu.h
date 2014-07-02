@@ -102,6 +102,9 @@ public:
     QString getSnapshotsLocation() const;
     void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; }
 
+    const QString& getScriptsLocation() const { return _scriptsLocation; }
+    void setScriptsLocation(const QString& scriptsLocation);
+
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -155,6 +158,9 @@ public:
     void static goToOrientation(QString orientation);
     void static goToDomain(const QString newDomain);
     void static goTo(QString destination);
+
+signals:
+    void scriptLocationChanged(const QString& newPath);
 
 public slots:
 
@@ -283,12 +289,12 @@ private:
     QPointer<LoginDialog> _loginDialog;
     QAction* _chatAction;
     QString _snapshotsLocation;
+    QString _scriptsLocation;
 };
 
 namespace MenuOption {
     const QString AboutApp = "About Interface";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
-    const QString AllowOculusCameraModeChange = "Allow Oculus Camera Mode Change (Nausea)";
     const QString AlternateIK = "Alternate IK";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Animations = "Animations...";
@@ -319,6 +325,7 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BuckyBalls = "Bucky Balls";
+    const QString StringHair = "String Hair";
     const QString CascadedShadows = "Cascaded";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
@@ -344,6 +351,7 @@ namespace MenuOption {
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
+    const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableVRMode = "Enable VR Mode";
     const QString ExpandMiscAvatarTiming = "Expand Misc MyAvatar Timing";

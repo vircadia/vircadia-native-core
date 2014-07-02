@@ -1897,7 +1897,20 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         geometry.attachments.append(attachment);
     }
-
+    
+    // Add sitting points
+    QVariantHash sittingPoints = mapping.value("sit").toHash();
+    for (QVariantHash::const_iterator it = sittingPoints.constBegin(); it != sittingPoints.constEnd(); it++) {
+        SittingPoint sittingPoint;
+        sittingPoint.name = it.key();
+        
+        QVariantList properties = it->toList();
+        sittingPoint.position = parseVec3(properties.at(0).toString());
+        sittingPoint.rotation = glm::quat(glm::radians(parseVec3(properties.at(1).toString())));
+        
+        geometry.sittingPoints.append(sittingPoint);
+    }
+    
     return geometry;
 }
 

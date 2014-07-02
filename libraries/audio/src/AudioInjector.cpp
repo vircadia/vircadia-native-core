@@ -61,6 +61,11 @@ void AudioInjector::injectAudio() {
         QByteArray injectAudioPacket = byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
         QDataStream packetStream(&injectAudioPacket, QIODevice::Append);
         
+        // pack some placeholder sequence number for now
+        int numPreSequenceNumberBytes = injectAudioPacket.size();
+        packetStream << (quint16)0;
+
+        // pack stream identifier (a generated UUID)
         packetStream << QUuid::createUuid();
         
         // pack the flag for loopback
@@ -91,6 +96,7 @@ void AudioInjector::injectAudio() {
         bool shouldLoop = _options.getLoop();
         
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
+        quint16 outgoingInjectedAudioSequenceNumber = 0;
         while (currentSendPosition < soundByteArray.size() && !_shouldStop) {
             
             int bytesToCopy = std::min(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
@@ -98,6 +104,9 @@ void AudioInjector::injectAudio() {
             
             // resize the QByteArray to the right size
             injectAudioPacket.resize(numPreAudioDataBytes + bytesToCopy);
+
+            // pack the sequence number
+            memcpy(injectAudioPacket.data() + numPreSequenceNumberBytes, &outgoingInjectedAudioSequenceNumber, sizeof(quint16));
             
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
             memcpy(injectAudioPacket.data() + numPreAudioDataBytes, soundByteArray.data() + currentSendPosition, bytesToCopy);
@@ -107,6 +116,7 @@ void AudioInjector::injectAudio() {
             
             // send off this audio packet
             nodeList->writeDatagram(injectAudioPacket, audioMixer);
+            outgoingInjectedAudioSequenceNumber++;
             
             currentSendPosition += bytesToCopy;
             

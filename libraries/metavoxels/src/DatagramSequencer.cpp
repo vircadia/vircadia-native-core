@@ -23,6 +23,9 @@ const int MAX_DATAGRAM_SIZE = MAX_PACKET_SIZE;
 
 const int DEFAULT_MAX_PACKET_SIZE = 3000;
 
+// the default slow-start threshold, which will be lowered quickly when we first encounter packet loss
+const float DEFAULT_SLOW_START_THRESHOLD = 1000.0f;
+
 DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader, QObject* parent) :
     QObject(parent),
     _outgoingPacketStream(&_outgoingPacketData, QIODevice::WriteOnly),
@@ -37,7 +40,12 @@ DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader, QObject* 
     _incomingPacketStream(&_incomingPacketData, QIODevice::ReadOnly),
     _inputStream(_incomingPacketStream),
     _receivedHighPriorityMessages(0),
-    _maxPacketSize(DEFAULT_MAX_PACKET_SIZE) {
+    _maxPacketSize(DEFAULT_MAX_PACKET_SIZE),
+    _packetsPerGroup(1.0f),
+    _packetsToWrite(0.0f),
+    _slowStartThreshold(DEFAULT_SLOW_START_THRESHOLD),
+    _packetRateIncreasePacketNumber(0),
+    _packetRateDecreasePacketNumber(0) {
 
     _outgoingPacketStream.setByteOrder(QDataStream::LittleEndian);
     _incomingDatagramStream.setByteOrder(QDataStream::LittleEndian);
@@ -71,6 +79,33 @@ ReliableChannel* DatagramSequencer::getReliableInputChannel(int index) {
     return channel;
 }
 
+int DatagramSequencer::startPacketGroup(int desiredPackets) {
+    // figure out how much data we have enqueued and increase the number of packets desired
+    int totalAvailable = 0;
+    foreach (ReliableChannel* channel, _reliableOutputChannels) {
+        totalAvailable += channel->getBytesAvailable();
+    }
+    desiredPackets += (totalAvailable / _maxPacketSize);
+
+    // increment our packet counter and subtract/return the integer portion
+    _packetsToWrite += _packetsPerGroup;
+    int wholePackets = (int)_packetsToWrite;
+    _packetsToWrite -= wholePackets;
+    wholePackets = qMin(wholePackets, desiredPackets);
+    
+    // if we don't want to send any more, push out the rate increase number past the group
+    if (desiredPackets <= _packetsPerGroup) {
+        _packetRateIncreasePacketNumber = _outgoingPacketNumber + wholePackets + 1;
+    }
+    
+    // likewise, if we're only sending one packet, don't let its loss cause rate decrease
+    if (wholePackets == 1) {
+        _packetRateDecreasePacketNumber = _outgoingPacketNumber + 2;
+    }
+    
+    return wholePackets;
+}
+
 Bitstream& DatagramSequencer::startPacket() {
     // start with the list of acknowledgements
     _outgoingPacketStream << (quint32)_receiveRecords.size();
@@ -102,6 +137,12 @@ void DatagramSequencer::endPacket() {
     }
     
     sendPacket(QByteArray::fromRawData(_outgoingPacketData.constData(), _outgoingPacketStream.device()->pos()), spans);
+    _outgoingPacketStream.device()->seek(0);
+}
+
+void DatagramSequencer::cancelPacket() {
+    _outputStream.reset();
+    _outputStream.getAndResetWriteMappings();
     _outgoingPacketStream.device()->seek(0);
 }
 
@@ -172,7 +213,10 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         if (index < 0 || index >= _sendRecords.size()) {
             continue;
         }
-        QList<SendRecord>::iterator it = _sendRecords.begin() + index;
+        QList<SendRecord>::iterator it = _sendRecords.begin();
+        for (int i = 0; i < index; i++) {
+            sendRecordLost(*it++);
+        }
         sendRecordAcknowledged(*it);
         emit sendAcknowledged(index);
         _sendRecords.erase(_sendRecords.begin(), it + 1);
@@ -252,6 +296,28 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     // acknowledge the received spans
     foreach (const ChannelSpan& span, record.spans) {
         getReliableOutputChannel(span.channel)->spanAcknowledged(span);
+    }
+    
+    // increase the packet rate with every ack until we pass the slow start threshold; then, every round trip
+    if (record.packetNumber >= _packetRateIncreasePacketNumber) {
+        if (_packetsPerGroup >= _slowStartThreshold) {
+            _packetRateIncreasePacketNumber = _outgoingPacketNumber + 1;
+        }
+        _packetsPerGroup += 1.0f;
+    }
+}
+
+void DatagramSequencer::sendRecordLost(const SendRecord& record) {
+    // notify the channels of their lost spans
+    foreach (const ChannelSpan& span, record.spans) {
+        getReliableOutputChannel(span.channel)->spanLost(record.packetNumber, _outgoingPacketNumber + 1);
+    }
+    
+    // halve the rate and remember as threshold
+    if (record.packetNumber >= _packetRateDecreasePacketNumber) {
+        _packetsPerGroup = qMax(_packetsPerGroup * 0.5f, 1.0f);
+        _slowStartThreshold = _packetsPerGroup;
+        _packetRateDecreasePacketNumber = _outgoingPacketNumber + 1;
     }
 }
 
@@ -520,7 +586,9 @@ int SpanList::set(int offset, int length) {
 
     // look for an intersection within the list
     int position = 0;
-    for (QList<Span>::iterator it = _spans.begin(); it != _spans.end(); it++) {
+    for (int i = 0; i < _spans.size(); i++) {
+        QList<Span>::iterator it = _spans.begin() + i;
+    
         // if we intersect the unset portion, contract it
         position += it->unset;
         if (offset <= position) {
@@ -530,16 +598,20 @@ int SpanList::set(int offset, int length) {
             // if we continue into the set portion, expand it and consume following spans
             int extra = offset + length - position;
             if (extra >= 0) {
-                int amount = setSpans(it + 1, extra);
-                it->set += amount;
-                _totalSet += amount;
-            
+                extra -= it->set;
+                it->set += remove;
+                _totalSet += remove;
+                if (extra > 0) {
+                    int amount = setSpans(it + 1, extra);
+                    _spans[i].set += amount;
+                    _totalSet += amount;
+                }
             // otherwise, insert a new span
             } else {        
-                Span span = { it->unset, length + extra };
-                _spans.insert(it, span);
+                Span span = { it->unset, length };
                 it->unset = -extra;
-                _totalSet += span.set;
+                _spans.insert(it, span);
+                _totalSet += length;
             }
             return 0;
         }
@@ -548,9 +620,11 @@ int SpanList::set(int offset, int length) {
         position += it->set;
         if (offset <= position) {
             int extra = offset + length - position;
-            int amount = setSpans(it + 1, extra);
-            it->set += amount;
-            _totalSet += amount;
+            if (extra > 0) {
+                int amount = setSpans(it + 1, extra);
+                _spans[i].set += amount;
+                _totalSet += amount;
+            }
             return 0;
         }
     }
@@ -619,6 +693,7 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
     _priority(1.0f),
     _offset(0),
     _writePosition(0),
+    _writePositionResetPacketNumber(0),
     _messagesEnabled(true) {
     
     _buffer.open(output ? QIODevice::WriteOnly : QIODevice::ReadOnly);
@@ -629,67 +704,76 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
 }
 
 void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans) {
-    // find out how many spans we want to write
-    int spanCount = 0;
-    int remainingBytes = bytes;
-    bool first = true;
-    while (remainingBytes > 0) {
-        int position = 0;
-        foreach (const SpanList::Span& span, _acknowledged.getSpans()) {
-            if (remainingBytes <= 0) {
-                break;
-            }
-            spanCount++;
-            remainingBytes -= getBytesToWrite(first, qMin(remainingBytes, span.unset));
-            position += (span.unset + span.set);
-        }
-        int leftover = _buffer.pos() - position;
-        if (remainingBytes > 0 && leftover > 0) {
-            spanCount++;
-            remainingBytes -= getBytesToWrite(first, qMin(remainingBytes, leftover));
-        }
+    if (bytes == 0) {
+        out << (quint32)0;
+        return;
     }
-    
-    // write the count and the spans
-    out << (quint32)spanCount;
-    remainingBytes = bytes;
-    first = true;
-    while (remainingBytes > 0) {
+    _writePosition %= _buffer.pos();
+    while (bytes > 0) {
         int position = 0;
-        foreach (const SpanList::Span& span, _acknowledged.getSpans()) {
-            if (remainingBytes <= 0) {
-                break;
+        for (int i = 0; i < _acknowledged.getSpans().size(); i++) {
+            const SpanList::Span& span = _acknowledged.getSpans().at(i);
+            position += span.unset;
+            if (_writePosition < position) {
+                int start = qMax(position - span.unset, _writePosition);
+                int length = qMin(bytes, position - start);
+                writeSpan(out, start, length, spans);
+                writeFullSpans(out, bytes - length, i + 1, position + span.set, spans);
+                out << (quint32)0;
+                return;
             }
-            remainingBytes -= writeSpan(out, first, position, qMin(remainingBytes, span.unset), spans);
-            position += (span.unset + span.set);
+            position += span.set;
         }
         int leftover = _buffer.pos() - position;
-        if (remainingBytes > 0 && leftover > 0) {
-            remainingBytes -= writeSpan(out, first, position, qMin(remainingBytes, leftover), spans);
+        position = _buffer.pos();
+        
+        if (_writePosition < position && leftover > 0) {
+            int start = qMax(position - leftover, _writePosition);
+            int length = qMin(bytes, position - start);
+            writeSpan(out, start, length, spans);
+            writeFullSpans(out, bytes - length, 0, 0, spans);
+            out << (quint32)0;
+            return;
+        }
+        _writePosition = 0;
+    }
+}
+
+void ReliableChannel::writeFullSpans(QDataStream& out, int bytes, int startingIndex, int position,
+        QVector<DatagramSequencer::ChannelSpan>& spans) {
+    int expandedSize = _acknowledged.getSpans().size() + 1;
+    for (int i = 0; i < expandedSize; i++) {
+        if (bytes == 0) {
+            return;
+        }
+        int index = (startingIndex + i) % expandedSize;
+        if (index == _acknowledged.getSpans().size()) {
+            int leftover = _buffer.pos() - position;
+            if (leftover > 0) {
+                int length = qMin(leftover, bytes);
+                writeSpan(out, position, length, spans);
+                bytes -= length;
+            }
+            position = 0;
+            
+        } else {
+            const SpanList::Span& span = _acknowledged.getSpans().at(index);
+            int length = qMin(span.unset, bytes);
+            writeSpan(out, position, length, spans);
+            bytes -= length;
+            position += (span.unset + span.set);
         }
     }
 }
 
-int ReliableChannel::getBytesToWrite(bool& first, int length) const {
-    if (first) {
-        first = false;
-        return length - (_writePosition % length);
-    }
-    return length;
-}
-
-int ReliableChannel::writeSpan(QDataStream& out, bool& first, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans) {
-    if (first) {
-        first = false;
-        position = _writePosition % length;
-        length -= position;
-        _writePosition += length;
-    }
+int ReliableChannel::writeSpan(QDataStream& out, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans) {
     DatagramSequencer::ChannelSpan span = { _index, _offset + position, length };
     spans.append(span);
-    out << (quint32)span.offset;
     out << (quint32)length;
+    out << (quint32)span.offset;
     _buffer.writeToStream(position, length, out);
+    _writePosition = position + length;
+    
     return length;
 }
 
@@ -700,17 +784,28 @@ void ReliableChannel::spanAcknowledged(const DatagramSequencer::ChannelSpan& spa
         _buffer.seek(_buffer.size());
         
         _offset += advancement;
-        _writePosition = qMax(_writePosition - advancement, 0);
-    } 
+        _writePosition = qMax(_writePosition - advancement, 0);   
+    }
+}
+
+void ReliableChannel::spanLost(int packetNumber, int nextOutgoingPacketNumber) {
+    // reset the write position up to once each round trip time
+    if (packetNumber >= _writePositionResetPacketNumber) {
+        _writePosition = 0;
+        _writePositionResetPacketNumber = nextOutgoingPacketNumber;
+    }
 }
 
 void ReliableChannel::readData(QDataStream& in) {
-    quint32 segments;
-    in >> segments;
     bool readSome = false;
-    for (quint32 i = 0; i < segments; i++) {
-        quint32 offset, size;
-        in >> offset >> size;
+    forever {
+        quint32 size;
+        in >> size;
+        if (size == 0) {
+            break;
+        }
+        quint32 offset;
+        in >> offset;
         
         int position = offset - _offset;
         int end = position + size;

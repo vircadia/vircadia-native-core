@@ -1414,8 +1414,10 @@ Bitstream& Bitstream::operator<(const SharedObjectPointer& object) {
     *this << object->getOriginID();
     QPointer<SharedObject> reference = _sharedObjectReferences.value(object->getOriginID());
     if (reference) {
+        *this << true;
         writeRawDelta((const QObject*)object.data(), (const QObject*)reference.data());
     } else {
+        *this << false;
         *this << (QObject*)object.data();
     }
     return *this;
@@ -1430,19 +1432,27 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
     }
     int originID;
     *this >> originID;
+    bool delta;
+    *this >> delta;
     QPointer<SharedObject> reference = _sharedObjectReferences.value(originID);
     QPointer<SharedObject>& pointer = _weakSharedObjectHash[id];
     if (pointer) {
         ObjectStreamerPointer objectStreamer;
         _objectStreamerStreamer >> objectStreamer;
-        if (reference) {
+        if (delta) {
+            if (!reference) {
+                qWarning() << "Delta without reference" << id << originID;
+            }
             objectStreamer->readRawDelta(*this, reference.data(), pointer.data());
         } else {
             objectStreamer->read(*this, pointer.data());
         }
     } else {
         QObject* rawObject; 
-        if (reference) {
+        if (delta) {
+            if (!reference) {
+                qWarning() << "Delta without reference" << id << originID;
+            }
             readRawDelta(rawObject, (const QObject*)reference.data());
         } else {
             *this >> rawObject;
