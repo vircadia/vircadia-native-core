@@ -58,7 +58,6 @@ private:
     bool _readyToSend;
     
     QHttpMultiPart* _dataMultiPart;
-    QNetworkAccessManager _networkAccessManager;
     
     int _numberOfChecks;
     QTimer _timer;

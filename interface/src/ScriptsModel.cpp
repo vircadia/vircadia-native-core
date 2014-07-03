@@ -11,14 +11,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QNetworkAccessManager>
 #include <QUrl>
 #include <QUrlQuery>
 #include <QXmlStreamReader>
 
-#include "ScriptsModel.h"
+#include <NetworkAccessManager.h>
+
 #include "Menu.h"
 
+#include "ScriptsModel.h"
 
 static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
 static const QString PUBLIC_URL = "http://public.highfidelity.io";
@@ -113,14 +114,15 @@ void ScriptsModel::requestRemoteFiles(QString marker) {
     }
     url.setQuery(query);
 
-    QNetworkAccessManager* accessManager = new QNetworkAccessManager(this);
-    connect(accessManager, SIGNAL(finished(QNetworkReply*)), SLOT(downloadFinished(QNetworkReply*)));
-
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest request(url);
-    accessManager->get(request);
+    QNetworkReply* reply = networkAccessManager.get(request);
+    connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
+
 }
 
-void ScriptsModel::downloadFinished(QNetworkReply* reply) {
+void ScriptsModel::downloadFinished() {
+    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
     bool finished = true;
 
     if (reply->error() == QNetworkReply::NoError) {
