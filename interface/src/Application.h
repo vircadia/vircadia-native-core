@@ -97,7 +97,6 @@ class QActionGroup;
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;
-class QNetworkAccessManager;
 class QSettings;
 class QWheelEvent;
 
@@ -236,7 +235,6 @@ public:
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
-    QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
@@ -423,7 +421,6 @@ private:
     QThread* _nodeThread;
     DatagramProcessor _datagramProcessor;
 
-    QNetworkAccessManager* _networkAccessManager;
     QMutex _settingsMutex;
     QSettings* _settings;
     int _numChangedSettings;

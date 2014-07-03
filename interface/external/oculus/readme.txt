@@ -10,4 +10,7 @@ You can download the Oculus SDK from https://developer.oculusvr.com/ (account cr
    You may optionally choose to copy the SDK folders to a location outside the repository (so you can re-use with different checkouts and different projects). 
    If so our CMake find module expects you to set the ENV variable 'HIFI_LIB_DIR' to a directory containing a subfolder 'oculus' that contains the three folders mentioned above.
 
+   NOTE: For Windows users, you should copy libovr.lib and libovrd.lib from the \oculus\Lib\Win32\VS2010 directory to the \oculus\Lib\Win32\ directory.
+
 2. Clear your build directory, run cmake and build, and you should be all set.
+

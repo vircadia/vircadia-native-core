@@ -103,8 +103,6 @@ private:
     
     bool _isUsingDTLS;
     
-    QNetworkAccessManager* _networkAccessManager;
-    
     QUrl _oauthProviderURL;
     QString _oauthClientID;
     QString _oauthClientSecret;

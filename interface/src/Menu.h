@@ -29,6 +29,7 @@
 #include "ui/JSConsole.h"
 #include "ui/LoginDialog.h"
 #include "ui/ScriptEditorWindow.h"
+#include "ui/UserLocationsDialog.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -199,6 +200,7 @@ private slots:
     void goToDomainDialog();
     void goToLocation();
     void nameLocation();
+    void toggleLocationList();
     void bandwidthDetailsClosed();
     void octreeStatsDetailsClosed();
     void lodToolsClosed();
@@ -265,6 +267,7 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
+    UserLocationsDialog* _userLocationsDialog;
     int _maxVoxels;
     float _voxelSizeScale;
     float _oculusUIAngularSize;
@@ -395,6 +398,7 @@ namespace MenuOption {
     const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
+    const QString MyLocations = "My Locations...";
     const QString NameLocation = "Name this location";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString OctreeStats = "Voxel and Particle Statistics";

@@ -15,14 +15,17 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
-#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
+
+#include "NetworkAccessManager.h"
 
 #include "DataServerAccountInfo.h"
 
 class JSONCallbackParameters {
 public:
-    JSONCallbackParameters();
+    JSONCallbackParameters(QObject* jsonCallbackReceiver = NULL, const QString& jsonCallbackMethod = QString(),
+                           QObject* errorCallbackReceiver = NULL, const QString& errorCallbackMethod = QString(),
+                           QObject* updateReceiver = NULL, const QString& updateSlot = QString());
 
     bool isEmpty() const { return !jsonCallbackReceiver && !errorCallbackReceiver; }
 
@@ -58,8 +61,6 @@ public:
 
     const DataServerAccountInfo& getAccountInfo() const { return _accountInfo; }
 
-    void destroy() { delete _networkAccessManager; }
-
 public slots:
     void requestAccessTokenFinished();
     void requestProfileFinished();
@@ -93,7 +94,6 @@ private:
                                     QHttpMultiPart* dataMultiPart);
 
     QUrl _authURL;
-    QNetworkAccessManager* _networkAccessManager;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
 
     DataServerAccountInfo _accountInfo;
