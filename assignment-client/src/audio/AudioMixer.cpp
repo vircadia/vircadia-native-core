@@ -166,12 +166,18 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
                 
                 glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
                 
-                // calculate the distance coefficient using the distance to this node
-                float distanceCoefficient = 1 - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
-                                                 * ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE);
-                
-                // multiply the current attenuation coefficient by the distance coefficient
-                attenuationCoefficient *= distanceCoefficient;
+                if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
+                    // calculate the distance coefficient using the distance to this node
+                    float distanceCoefficient = 1 - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
+                                                     * ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE);
+                    
+                    if (distanceCoefficient < 0) {
+                        distanceCoefficient = 0;
+                    }
+                    
+                    // multiply the current attenuation coefficient by the distance coefficient
+                    attenuationCoefficient *= distanceCoefficient;
+                }
                 
                 // project the rotated source position vector onto the XZ plane
                 rotatedSourcePosition.y = 0.0f;
