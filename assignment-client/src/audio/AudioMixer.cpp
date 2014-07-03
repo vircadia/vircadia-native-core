@@ -99,6 +99,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     bool shouldAttenuate = (bufferToAdd != listeningNodeBuffer);
     
     if (shouldAttenuate) {
+        
         // if the two buffer pointers do not match then these are different buffers
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
         
