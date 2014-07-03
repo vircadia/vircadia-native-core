@@ -2184,11 +2184,11 @@ int Application::sendNackPackets() {
                 _octreeSceneStatsLock.unlock();
                 continue;
             }
-            OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
 
-            // make copy of missing sequence numbers from stats
-            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers =
-                stats.getIncomingOctreeSequenceNumberStats().getMissingSet();
+            // get sequence number stats of node, prune its missing set, and make a copy of the missing set
+            SequenceNumberStats& sequenceNumberStats = _octreeServerSceneStats[nodeUUID].getIncomingOctreeSequenceNumberStats();
+            sequenceNumberStats.pruneMissingSet();
+            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = sequenceNumberStats.getMissingSet();
 
             _octreeSceneStatsLock.unlock();
 

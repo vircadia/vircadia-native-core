@@ -15,13 +15,15 @@
 #include "SharedUtil.h"
 #include <quuid.h>
 
+const int MAX_REASONABLE_SEQUENCE_GAP = 1000;
+
 class SequenceNumberStats {
 public:
     SequenceNumberStats();
 
     void reset();
-
     void sequenceNumberReceived(quint16 incoming, QUuid senderUUID = QUuid(), const bool wantExtraDebugging = false);
+    void pruneMissingSet(const bool wantExtraDebugging = false);
 
     quint32 getNumReceived() const { return _numReceived; }
     quint32 getNumUnreasonable() const { return _numUnreasonable; }
@@ -34,8 +36,6 @@ public:
     const QSet<quint16>& getMissingSet() const { return _missingSet; }
 
 private:
-    void pruneMissingSet(const bool wantExtraDebugging);
-
     quint16 _lastReceived;
     QSet<quint16> _missingSet;
 
