@@ -634,6 +634,10 @@ void Application::paintGL() {
     //If we aren't using the glow shader, we have to clear the color and depth buffer
     if (!glowEnabled) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    } else if (OculusManager::isConnected()) {
+        //Clear the color buffer to ensure that there isnt any residual color
+        //Left over from when OR was not connected.
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     if (OculusManager::isConnected()) {
