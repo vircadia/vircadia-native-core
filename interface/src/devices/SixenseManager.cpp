@@ -78,6 +78,7 @@ void SixenseManager::update(float deltaTime) {
         for (std::vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
             it->setActive(false);
         }
+        _lastMovement = usecTimestampNow();
     }
 
     if (sixenseGetNumActiveControllers() == 0) {
