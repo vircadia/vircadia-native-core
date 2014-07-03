@@ -18,15 +18,19 @@
 
 #include <FBXReader.h>
 
+class AngularConstraint;
+
 class JointState {
 public:
     JointState();
-
-    void copyState(const JointState& state);
+    JointState(const JointState& other);
+    ~JointState();
 
     void setFBXJoint(const FBXJoint* joint); 
     const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
 
+    void updateConstraint();
+    void copyState(const JointState& state);
 
     void computeTransform(const glm::mat4& parentTransform);
 
@@ -64,7 +68,7 @@ public:
     /// \param rotation is from bind- to model-frame
     /// computes and sets new _rotationInParentFrame
     /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
-    void setRotationFromBindFrame(const glm::quat& rotation, float priority);
+    void setRotationFromBindFrame(const glm::quat& rotation, float priority, bool constrain = false);
 
     void setRotationInParentFrame(const glm::quat& targetRotation);
     const glm::quat& getRotationInParentFrame() const { return _rotationInParentFrame; }
@@ -95,7 +99,7 @@ private:
     glm::quat _visibleRotationInParentFrame;
 
     const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
-    bool _isConstrained;
+    AngularConstraint* _constraint; // JointState owns its AngularConstraint
 };
 
 #endif // hifi_JointState_h

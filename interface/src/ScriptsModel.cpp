@@ -31,8 +31,6 @@ static const QString IS_TRUNCATED_NAME = "IsTruncated";
 static const QString CONTAINER_NAME = "Contents";
 static const QString KEY_NAME = "Key";
 
-static const int SCRIPT_PATH = Qt::UserRole;
-
 ScriptItem::ScriptItem(const QString& filename, const QString& fullPath) :
     _filename(filename),
     _fullPath(fullPath) {
