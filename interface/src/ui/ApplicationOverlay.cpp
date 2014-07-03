@@ -335,7 +335,6 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     glColor4f(1.0f, 1.0f, 1.0f, _alpha);
 
     //Render
- //   fov -= RADIANS_PER_DEGREE * 2.5f; //reduce by 5 degrees so it fits in the view
     const GLfloat distance = 1.0f;
 
     const GLfloat halfQuadHeight = distance * tan(fov);
