@@ -19,10 +19,11 @@
 #include "AudioRingBuffer.h"
 
 
-AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode) :
+AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode, int numFramesCapacity) :
     NodeData(),
     _overflowCount(0),
-    _sampleCapacity(numFrameSamples * RING_BUFFER_LENGTH_FRAMES),
+    _frameCapacity(numFramesCapacity),
+    _sampleCapacity(numFrameSamples * numFramesCapacity),
     _isFull(false),
     _numFrameSamples(numFrameSamples),
     _isStarved(true),
@@ -48,20 +49,22 @@ AudioRingBuffer::~AudioRingBuffer() {
 }
 
 void AudioRingBuffer::reset() {
+    _overflowCount = 0;
+    _isFull = false;
     _endOfLastWrite = _buffer;
     _nextOutput = _buffer;
     _isStarved = true;
 }
 
-void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
+void AudioRingBuffer::resizeForFrameSize(int numFrameSamples) {
     delete[] _buffer;
-    _sampleCapacity = numFrameSamples * RING_BUFFER_LENGTH_FRAMES;
+    _sampleCapacity = numFrameSamples * _frameCapacity;
+    _numFrameSamples = numFrameSamples;
     _buffer = new int16_t[_sampleCapacity];
     if (_randomAccessMode) {
         memset(_buffer, 0, _sampleCapacity * sizeof(int16_t));
     }
-    _nextOutput = _buffer;
-    _endOfLastWrite = _buffer;
+    reset();
 }
 
 int AudioRingBuffer::parseData(const QByteArray& packet) {
@@ -70,14 +73,14 @@ int AudioRingBuffer::parseData(const QByteArray& packet) {
     return writeData(packet.data() + numBytesBeforeAudioData, packet.size() - numBytesBeforeAudioData);
 }
 
-qint64 AudioRingBuffer::readSamples(int16_t* destination, qint64 maxSamples) {
+int AudioRingBuffer::readSamples(int16_t* destination, int maxSamples) {
     return readData((char*) destination, maxSamples * sizeof(int16_t));
 }
 
-qint64 AudioRingBuffer::readData(char *data, qint64 maxSize) {
+int AudioRingBuffer::readData(char *data, int maxSize) {
 
     // only copy up to the number of samples we have available
-    int numReadSamples = std::min((unsigned) (maxSize / sizeof(int16_t)), samplesAvailable());
+    int numReadSamples = std::min((int) (maxSize / sizeof(int16_t)), samplesAvailable());
 
     // If we're in random access mode, then we consider our number of available read samples slightly
     // differently. Namely, if anything has been written, we say we have as many samples as they ask for
@@ -118,14 +121,14 @@ qint64 AudioRingBuffer::readData(char *data, qint64 maxSize) {
     return numReadSamples * sizeof(int16_t);
 }
 
-qint64 AudioRingBuffer::writeSamples(const int16_t* source, qint64 maxSamples) {    
+int AudioRingBuffer::writeSamples(const int16_t* source, int maxSamples) {    
     return writeData((const char*) source, maxSamples * sizeof(int16_t));
 }
 
-qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
+int AudioRingBuffer::writeData(const char* data, int maxSize) {
     // make sure we have enough bytes left for this to be the right amount of audio
     // otherwise we should not copy that data, and leave the buffer pointers where they are
-    int samplesToCopy = std::min((quint64)(maxSize / sizeof(int16_t)), (quint64)_sampleCapacity);
+    int samplesToCopy = std::min((int)(maxSize / sizeof(int16_t)), _sampleCapacity);
     
     int samplesRoomFor = _sampleCapacity - samplesAvailable();
     if (samplesToCopy > samplesRoomFor) {
@@ -167,7 +170,7 @@ void AudioRingBuffer::shiftReadPosition(unsigned int numSamples) {
     }
 }
 
-unsigned int AudioRingBuffer::samplesAvailable() const {
+int AudioRingBuffer::samplesAvailable() const {
     if (!_endOfLastWrite) {
         return 0;
     }
@@ -208,7 +211,7 @@ int AudioRingBuffer::addSilentFrame(int numSilentSamples) {
     return numSilentSamples * sizeof(int16_t);
 }
 
-bool AudioRingBuffer::isNotStarvedOrHasMinimumSamples(unsigned int numRequiredSamples) const {
+bool AudioRingBuffer::isNotStarvedOrHasMinimumSamples(int numRequiredSamples) const {
     if (!_isStarved) {
         return true;
     } else {

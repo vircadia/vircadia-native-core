@@ -29,6 +29,7 @@ public:
     void renderOverlay(bool renderToTexture = false);
     void displayOverlayTexture();
     void displayOverlayTextureOculus(Camera& whichCamera);
+    void displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov);
     void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
     void getClickLocation(int &x, int &y) const;
 

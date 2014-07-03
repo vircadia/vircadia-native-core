@@ -93,6 +93,8 @@ public:
     /// Retrieve the positions of up to two eye meshes.
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
+
+    virtual void updateVisibleJointStates();
     
     // virtual overrride from Ragdoll
     virtual void stepRagdollForward(float deltaTime);
@@ -104,7 +106,7 @@ public:
     float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
     const CapsuleShape& getBoundingShape() const { return _boundingShape; }
 
-    void resetShapePositions(); // DEBUG method
+    void resetShapePositionsToDefaultPose(); // DEBUG method
 
     void renderRagdoll();
 protected:

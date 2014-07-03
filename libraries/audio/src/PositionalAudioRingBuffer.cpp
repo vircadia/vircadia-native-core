@@ -85,10 +85,10 @@ quint64 InterframeTimeGapStats::getWindowMaxGap() {
 }
 
 
-PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, 
-        bool isStereo, bool dynamicJitterBuffers) :
+PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo, bool dynamicJitterBuffers) :
         
-    AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
+    AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+                    false, AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
@@ -98,7 +98,7 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _isStereo(isStereo),
     _listenerUnattenuatedZone(NULL),
     _desiredJitterBufferFrames(1),
-    _currentJitterBufferFrames(0),
+    _currentJitterBufferFrames(-1),
     _dynamicJitterBuffers(dynamicJitterBuffers)
 {
 }
@@ -212,12 +212,12 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
         }
 
         return  false;
-    } else if (samplesAvailable() < (unsigned int)samplesPerFrame) { 
+    } else if (samplesAvailable() < samplesPerFrame) { 
         // if the buffer doesn't have a full frame of samples to take for mixing, it is starved
         _isStarved = true;
         
-        // set to 0 to indicate the jitter buffer is starved
-        _currentJitterBufferFrames = 0;
+        // set to -1 to indicate the jitter buffer is starved
+        _currentJitterBufferFrames = -1;
         
         // reset our _shouldOutputStarveDebug to true so the next is printed
         _shouldOutputStarveDebug = true;
@@ -261,7 +261,7 @@ void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
             if (_desiredJitterBufferFrames < 1) {
                 _desiredJitterBufferFrames = 1;
             }
-            const int maxDesired = RING_BUFFER_LENGTH_FRAMES - 1;
+            const int maxDesired = _frameCapacity - 1;
             if (_desiredJitterBufferFrames > maxDesired) {
                 _desiredJitterBufferFrames = maxDesired;
             }

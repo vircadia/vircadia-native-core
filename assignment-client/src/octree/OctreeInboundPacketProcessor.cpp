@@ -216,9 +216,13 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         }
 
         const SharedNodePointer& destinationNode = NodeList::getInstance()->getNodeHash().value(nodeUUID);
-        const QSet<unsigned short int>& missingSequenceNumbers = nodeStats.getIncomingEditSequenceNumberStats().getMissingSet();
+
+        // retrieve sequence number stats of node, prune its missing set
+        SequenceNumberStats& sequenceNumberStats = nodeStats.getIncomingEditSequenceNumberStats();
+        sequenceNumberStats.pruneMissingSet();
         
         // construct nack packet(s) for this node
+        const QSet<unsigned short int>& missingSequenceNumbers = sequenceNumberStats.getMissingSet();
         int numSequenceNumbersAvailable = missingSequenceNumbers.size();
         QSet<unsigned short int>::const_iterator missingSequenceNumberIterator = missingSequenceNumbers.constBegin();
         while (numSequenceNumbersAvailable > 0) {

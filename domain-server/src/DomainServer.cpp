@@ -51,8 +51,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
 
-    _networkAccessManager = new QNetworkAccessManager(this);
-
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupAssignmentPayment()) {
         // we either read a certificate and private key or were not passed one
         // and completed login or did not need to
@@ -1196,7 +1194,7 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
             QNetworkRequest tokenRequest(tokenRequestUrl);
             tokenRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-            QNetworkReply* tokenReply = _networkAccessManager->post(tokenRequest, tokenPostBody.toLocal8Bit());
+            QNetworkReply* tokenReply = NetworkAccessManager::getInstance().post(tokenRequest, tokenPostBody.toLocal8Bit());
 
             qDebug() << "Requesting a token for user with session UUID" << uuidStringWithoutCurlyBraces(stateUUID);
 
@@ -1233,7 +1231,7 @@ void DomainServer::handleTokenRequestFinished() {
         profileURL.setPath("/api/v1/users/profile");
         profileURL.setQuery(QString("%1=%2").arg(OAUTH_JSON_ACCESS_TOKEN_KEY, accessToken));
 
-        QNetworkReply* profileReply = _networkAccessManager->get(QNetworkRequest(profileURL));
+        QNetworkReply* profileReply = NetworkAccessManager::getInstance().get(QNetworkRequest(profileURL));
 
         qDebug() << "Requesting access token for user with session UUID" << uuidStringWithoutCurlyBraces(matchingSessionUUID);
 

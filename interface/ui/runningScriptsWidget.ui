@@ -137,7 +137,7 @@ background: transparent;</string>
         <property name="font">
          <font>
           <family>Helvetica,Arial,sans-serif</family>
-          <pointsize>16</pointsize>
+          <pointsize>-1</pointsize>
           <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
@@ -326,9 +326,6 @@ padding-top: 3px;</string>
         <property name="layoutDirection">
          <enum>Qt::LeftToRight</enum>
         </property>
-        <property name="styleSheet">
-         <string notr="true">margin: 0;</string>
-        </property>
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
         </property>
@@ -336,7 +333,7 @@ padding-top: 3px;</string>
          <number>0</number>
         </property>
         <property name="verticalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOn</enum>
+         <enum>Qt::ScrollBarAsNeeded</enum>
         </property>
         <property name="horizontalScrollBarPolicy">
          <enum>Qt::ScrollBarAlwaysOff</enum>
@@ -352,7 +349,7 @@ padding-top: 3px;</string>
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>269</width>
+           <width>284</width>
            <height>16</height>
           </rect>
          </property>
@@ -460,7 +457,6 @@ font: bold 16px;</string>
          <string notr="true">background: transparent;
 font-size: 14px;</string>
         </property>
-        <zorder>runningScriptsList</zorder>
        </widget>
       </item>
      </layout>
@@ -627,10 +623,10 @@ QListView::item {
          <enum>QFrame::Plain</enum>
         </property>
         <property name="verticalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOff</enum>
+         <enum>Qt::ScrollBarAlwaysOn</enum>
         </property>
         <property name="horizontalScrollBarPolicy">
-         <enum>Qt::ScrollBarAsNeeded</enum>
+         <enum>Qt::ScrollBarAlwaysOff</enum>
         </property>
        </widget>
       </item>

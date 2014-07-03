@@ -42,7 +42,7 @@ OctreeQueryNode::OctreeQueryNode() :
     _lastRootTimestamp(0),
     _myPacketType(PacketTypeUnknown),
     _isShuttingDown(false),
-    _sentPacketHistory(1000)
+    _sentPacketHistory()
 {
 }
 

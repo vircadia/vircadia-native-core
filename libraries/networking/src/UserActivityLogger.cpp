@@ -83,17 +83,10 @@ void UserActivityLogger::close(int delayTime) {
     
     // In order to get the end of the session, we need to give the account manager enough time to send the packet.
     QEventLoop loop;
-    // Here we connect the callbacks to stop the event loop
-    JSONCallbackParameters params;
-    params.jsonCallbackReceiver = &loop;
-    params.errorCallbackReceiver = &loop;
-    params.jsonCallbackMethod = "quit";
-    params.errorCallbackMethod = "quit";
-    // In case something goes wrong, we also setup a timer so that the delai is not greater than delayTime
     QTimer timer;
     connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
     // Now we can log it
-    logAction(ACTION_NAME, QJsonObject(), params);
+    logAction(ACTION_NAME, QJsonObject());
     timer.start(delayTime);
     loop.exec();
 }

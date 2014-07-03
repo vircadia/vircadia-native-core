@@ -12,6 +12,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME audio)
 
+find_package(Qt5 COMPONENTS Script)
+include_directories(SYSTEM "${Qt5Script_INCLUDE_DIRS}")
+
 # set up the external glm library
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})

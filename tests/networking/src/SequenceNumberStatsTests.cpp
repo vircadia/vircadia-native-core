@@ -23,7 +23,7 @@ void SequenceNumberStatsTests::runAllTests() {
     pruneTest();
 }
 
-const int UINT16_RANGE = std::numeric_limits<quint16>::max() + 1;
+const quint32 UINT16_RANGE = std::numeric_limits<quint16>::max() + 1;
 
 
 void SequenceNumberStatsTests::rolloverTest() {
@@ -34,7 +34,7 @@ void SequenceNumberStatsTests::rolloverTest() {
     quint16 seq = 79;   // start on some random number
 
     for (int R = 0; R < 2; R++) {
-        for (int i = 0; i < 3 * UINT16_RANGE; i++) {
+        for (quint32 i = 0; i < 3 * UINT16_RANGE; i++) {
             stats.sequenceNumberReceived(seq);
             seq = seq + (quint16)1;
 
@@ -53,12 +53,12 @@ void SequenceNumberStatsTests::earlyLateTest() {
 
     SequenceNumberStats stats;
     quint16 seq = 65530;
-    int numSent = 0;
+    quint32 numSent = 0;
 
-    int numEarly = 0;
-    int numLate = 0;
-    int numLost = 0;
-    int numRecovered = 0;
+    quint32 numEarly = 0;
+    quint32 numLate = 0;
+    quint32 numLost = 0;
+    quint32 numRecovered = 0;
 
     for (int R = 0; R < 2; R++) {
         for (int T = 0; T < 10000; T++) {
@@ -115,6 +115,11 @@ void SequenceNumberStatsTests::earlyLateTest() {
             }
         }
         stats.reset();
+        numSent = 0;
+        numEarly = 0;
+        numLate = 0;
+        numLost = 0;
+        numRecovered = 0;
     }
 }
 
@@ -122,12 +127,12 @@ void SequenceNumberStatsTests::duplicateTest() {
 
     SequenceNumberStats stats;
     quint16 seq = 12345;
-    int numSent = 0;
+    quint32 numSent = 0;
 
-    int numDuplicate = 0;
-    int numEarly = 0;
-    int numLate = 0;
-    int numLost = 0;
+    quint32 numDuplicate = 0;
+    quint32 numEarly = 0;
+    quint32 numLate = 0;
+    quint32 numLost = 0;
 
     for (int R = 0; R < 2; R++) {
         for (int T = 0; T < 10000; T++) {
@@ -203,6 +208,11 @@ void SequenceNumberStatsTests::duplicateTest() {
             }
         }
         stats.reset();
+        numSent = 0;
+        numDuplicate = 0;
+        numEarly = 0;
+        numLate = 0;
+        numLost = 0;
     }
 }
 
@@ -210,10 +220,10 @@ void SequenceNumberStatsTests::pruneTest() {
     
     SequenceNumberStats stats;
     quint16 seq = 54321;
-    int numSent = 0;
+    quint32 numSent = 0;
 
-    int numEarly = 0;
-    int numLost = 0;
+    quint32 numEarly = 0;
+    quint32 numLost = 0;
 
     for (int R = 0; R < 2; R++) {
         for (int T = 0; T < 1000; T++) {
@@ -263,5 +273,8 @@ void SequenceNumberStatsTests::pruneTest() {
             }
         }
         stats.reset();
+        numSent = 0;
+        numEarly = 0;
+        numLost = 0;
     }
 }

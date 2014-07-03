@@ -102,7 +102,6 @@ enum KeyState {
 const glm::vec3 vec3Zero(0.0f);
 
 class QDataStream;
-class QNetworkAccessManager;
 
 class AttachmentData;
 class JointData;
@@ -269,8 +268,6 @@ public:
     QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
      
     virtual float getBoundingRadius() const { return 1.f; }
-    
-    static void setNetworkAccessManager(QNetworkAccessManager* sharedAccessManager) { networkAccessManager = sharedAccessManager; }
 
 public slots:
     void sendIdentityPacket();
@@ -323,8 +320,6 @@ protected:
     
     QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _jointNames; ///< in order of depth-first traversal
-    
-    static QNetworkAccessManager* networkAccessManager;
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
     
