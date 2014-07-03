@@ -399,18 +399,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 }
 
 Application::~Application() {
+    qInstallMessageHandler(NULL);
+    
+    saveSettings();
+    storeSizeAndPosition();
+    saveScripts();
+    
     int DELAY_TIME = 1000;
     UserActivityLogger::getInstance().close(DELAY_TIME);
     
-    qInstallMessageHandler(NULL);
-
     // make sure we don't call the idle timer any more
     delete idleTimer;
-
+    
     _sharedVoxelSystem.changeTree(new VoxelTree);
-
-    saveSettings();
-
     delete _voxelImporter;
 
     // let the avatar mixer know we're out
@@ -433,8 +434,6 @@ Application::~Application() {
     _particleEditSender.terminate();
     _modelEditSender.terminate();
 
-    storeSizeAndPosition();
-    saveScripts();
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
