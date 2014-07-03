@@ -357,11 +357,7 @@ public:
     void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(_frameIndex, _firstFrame, _lastFrame); }
     float getFrameIndex() const { return _frameIndex; }
 
-    AnimationDetails getAnimationDetails() const {
-        AnimationDetails details(_role, _url, _fps, _priority, _loop, _hold,
-                            _startAutomatically, _firstFrame, _lastFrame, _running, _frameIndex);
-        return details;
-    }
+    AnimationDetails getAnimationDetails() const;
 
 signals:
     
