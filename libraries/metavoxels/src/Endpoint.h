@@ -37,6 +37,10 @@ protected slots:
 
     virtual void sendDatagram(const QByteArray& data);
     virtual void readMessage(Bitstream& in);
+    virtual void handleMessage(const QVariant& message, Bitstream& in); 
+    
+    void recordSend();
+    void recordReceive();
     
     void clearSendRecordsBefore(int index);
     void clearReceiveRecordsBefore(int index);
@@ -44,7 +48,6 @@ protected slots:
 protected:
 
     virtual void writeUpdateMessage(Bitstream& out);
-    virtual void handleMessage(const QVariant& message, Bitstream& in); 
     
     virtual PacketRecord* maybeCreateSendRecord() const;
     virtual PacketRecord* maybeCreateReceiveRecord() const;

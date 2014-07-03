@@ -646,11 +646,14 @@ TestEndpoint::TestEndpoint(Mode mode) :
     Endpoint(SharedNodePointer(), new TestSendRecord(), new TestReceiveRecord()),
     _mode(mode),
     _highPriorityMessagesToSend(0.0f),
-    _reliableMessagesToSend(0.0f) {
+    _reliableMessagesToSend(0.0f),
+    _reliableDeltaReceivedOffset(0) {
     
     connect(&_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)),
         SLOT(handleHighPriorityMessage(const QVariant&)));
-    
+    connect(_sequencer.getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&, Bitstream&)),
+        SLOT(handleReliableMessage(const QVariant&, Bitstream&)));
+        
     if (mode == METAVOXEL_CLIENT_MODE) {
         _lod = MetavoxelLOD(glm::vec3(), 0.01f);
         return;
@@ -663,18 +666,15 @@ TestEndpoint::TestEndpoint(Mode mode) :
         _data.guide(visitor);
         qDebug() << "Created" << visitor.leafCount << "base leaves";
         
-        _data.insert(AttributeRegistry::getInstance()->getSpannersAttribute(), new Sphere());
+        //_data.insert(AttributeRegistry::getInstance()->getSpannersAttribute(), new Sphere());
         
         _sphere = new Sphere();
         static_cast<Transformable*>(_sphere.data())->setScale(0.01f);
-        _data.insert(AttributeRegistry::getInstance()->getSpannersAttribute(), _sphere);
+        //_data.insert(AttributeRegistry::getInstance()->getSpannersAttribute(), _sphere);
         return;
     }
     // create the object that represents out delta-encoded state
     _localState = new TestSharedObjectA();
-    
-    connect(_sequencer.getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&)),
-        SLOT(handleReliableMessage(const QVariant&)));
     
     ReliableChannel* secondInput = _sequencer.getReliableInputChannel(1);
     secondInput->setMessagesEnabled(false);
@@ -867,9 +867,6 @@ bool TestEndpoint::simulate(int iterationNumber) {
             
             maxDatagramsPerPacket = qMax(maxDatagramsPerPacket, datagramsSent - oldDatagramsSent);
             maxBytesPerPacket = qMax(maxBytesPerPacket, bytesSent - oldBytesSent);
-            
-            // record the send
-            _sendRecords.append(maybeCreateSendRecord());
         }
         return false;
         
@@ -880,9 +877,6 @@ bool TestEndpoint::simulate(int iterationNumber) {
         out << QVariant::fromValue(state);
         _sequencer.endPacket();
         
-        // record the send
-        _sendRecords.append(maybeCreateSendRecord());
-
     } else if (_mode == METAVOXEL_SERVER_MODE) {
         // make a random change
         MutateVisitor visitor;
@@ -899,7 +893,7 @@ bool TestEndpoint::simulate(int iterationNumber) {
                 newSphere->setTranslation(newSphere->getTranslation() + glm::vec3(randFloatInRange(-0.01f, 0.01f),
                     randFloatInRange(-0.01f, 0.01f), randFloatInRange(-0.01f, 0.01f)));
             }
-            _data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), oldSphere, _sphere);
+            //_data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), oldSphere, _sphere);
             spannerMutationsPerformed++;
         }
         
@@ -907,15 +901,43 @@ bool TestEndpoint::simulate(int iterationNumber) {
         if (!_lod.isValid()) {
             return false;
         }
+        // if we're sending a reliable delta, wait until it's acknowledged
+        if (_reliableDeltaReceivedOffset > 0) {
+            if (_sequencer.getReliableOutputChannel()->getOffset() < _reliableDeltaReceivedOffset) {
+                Bitstream& out = _sequencer.startPacket();
+                out << QVariant();
+                _sequencer.endPacket();
+                return false;
+            }
+            _reliableDeltaReceivedOffset = 0;
+            _reliableDeltaData = MetavoxelData();
+        }
         Bitstream& out = _sequencer.startPacket();
         out << QVariant::fromValue(MetavoxelDeltaMessage());
         PacketRecord* sendRecord = getLastAcknowledgedSendRecord();
-        _data.writeDelta(sendRecord->getData(), sendRecord->getLOD(), out, _lod);
-        _sequencer.endPacket();
-       
-        // record the send
-        _sendRecords.append(maybeCreateSendRecord());
-         
+        out.setBytesRemaining(_sequencer.getMaxPacketSize());
+        try {
+            _data.writeDelta(sendRecord->getData(), sendRecord->getLOD(), out, _lod);
+            _sequencer.endPacket();
+            
+        } catch (const ByteLimitExceededException& exception) {
+            _sequencer.cancelPacket();
+            
+            // we need to send the delta on the reliable channel
+            ReliableChannel* channel = _sequencer.getReliableOutputChannel();
+            channel->startMessage();
+            channel->getBitstream() << QVariant::fromValue(MetavoxelDeltaMessage());
+            _data.writeDelta(sendRecord->getData(), sendRecord->getLOD(), channel->getBitstream(), _lod);
+            channel->endMessage();
+            
+            _reliableDeltaReceivedOffset = channel->getBytesWritten();
+            _reliableDeltaData = _data;
+            _reliableDeltaLOD = _lod;
+            
+            Bitstream& out = _sequencer.startPacket();
+            out << QVariant();
+            _sequencer.endPacket();
+        }
     } else {
         // enqueue some number of high priority messages
         const float MIN_HIGH_PRIORITY_MESSAGES = 0.0f;
@@ -957,9 +979,6 @@ bool TestEndpoint::simulate(int iterationNumber) {
             qDebug() << message;
             return true;
         }
-    
-        // record the send
-        _sendRecords.append(maybeCreateSendRecord());
     }
     maxDatagramsPerPacket = qMax(maxDatagramsPerPacket, datagramsSent - oldDatagramsSent);
     maxBytesPerPacket = qMax(maxBytesPerPacket, bytesSent - oldBytesSent);
@@ -995,7 +1014,7 @@ void TestEndpoint::sendDatagram(const QByteArray& datagram) {
     // some are received out of order
     const float REORDER_PROBABILITY = 0.1f;
     if (randFloat() < REORDER_PROBABILITY * probabilityMultiplier) {
-        const int MIN_DELAY = 1;
+        const int MIN_DELAY = 2;
         const int MAX_DELAY = 5;
         // have to copy the datagram; the one we're passed is a reference to a shared buffer
         _delayedDatagrams.append(ByteArrayIntPair(QByteArray(datagram.constData(), datagram.size()),
@@ -1008,57 +1027,31 @@ void TestEndpoint::sendDatagram(const QByteArray& datagram) {
         }
     }
     
-    _other->parseData(datagram);
+    _delayedDatagrams.append(ByteArrayIntPair(QByteArray(datagram.constData(), datagram.size()), 1));
 }
 
 void TestEndpoint::readMessage(Bitstream& in) {
     if (_mode == CONGESTION_MODE) {
         QVariant message;
         in >> message;
-        
-        // record the receipt
-        _receiveRecords.append(maybeCreateReceiveRecord());
         return;
     }
     if (_mode == METAVOXEL_CLIENT_MODE) {
         QVariant message;
         in >> message;
         handleMessage(message, in);
-    
-        // deep-compare data to sent version
-        int packetNumber = _sequencer.getIncomingPacketNumber();
-        foreach (PacketRecord* record, _other->_sendRecords) {
-            TestSendRecord* sendRecord = static_cast<TestSendRecord*>(record);
-            if (sendRecord->getPacketNumber() == packetNumber) {
-                if (!sendRecord->getData().deepEquals(_data, getLastAcknowledgedSendRecord()->getLOD())) {
-                    qDebug() << "Sent/received metavoxel data mismatch.";
-                    exit(true);
-                }
-                break;
-            }
-        }
-        
-        // record the receipt
-        _receiveRecords.append(maybeCreateReceiveRecord());
         return;
     }
     if (_mode == METAVOXEL_SERVER_MODE) {
         QVariant message;
         in >> message;
         handleMessage(message, in);
-        
-        // record the receipt
-        _receiveRecords.append(maybeCreateReceiveRecord());
         return;
     }
-
     SequencedTestMessage message;
     in >> message;
     
     _remoteState = message.state;
-    
-    // record the receipt
-    _receiveRecords.append(maybeCreateReceiveRecord());
     
     for (QList<SequencedTestMessage>::iterator it = _other->_unreliableMessagesSent.begin();
             it != _other->_unreliableMessagesSent.end(); it++) {
@@ -1089,6 +1082,7 @@ void TestEndpoint::handleMessage(const QVariant& message, Bitstream& in) {
     } else if (userType == MetavoxelDeltaMessage::Type) {
         PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
         _data.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in, getLastAcknowledgedSendRecord()->getLOD());
+        compareMetavoxelData();
     
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {
@@ -1098,6 +1092,9 @@ void TestEndpoint::handleMessage(const QVariant& message, Bitstream& in) {
 }
 
 PacketRecord* TestEndpoint::maybeCreateSendRecord() const {
+    if (_reliableDeltaReceivedOffset > 0) {
+        return new TestSendRecord(_reliableDeltaLOD, _reliableDeltaData, _localState, _sequencer.getOutgoingPacketNumber());
+    }
     return new TestSendRecord(_lod, (_mode == METAVOXEL_CLIENT_MODE) ? MetavoxelData() : _data,
         _localState, _sequencer.getOutgoingPacketNumber());
 }
@@ -1121,7 +1118,13 @@ void TestEndpoint::handleHighPriorityMessage(const QVariant& message) {
     highPriorityMessagesReceived++;
 }
 
-void TestEndpoint::handleReliableMessage(const QVariant& message) {
+void TestEndpoint::handleReliableMessage(const QVariant& message, Bitstream& in) {
+    if (message.userType() == MetavoxelDeltaMessage::Type) {
+        PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
+        _data.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in, getLastAcknowledgedSendRecord()->getLOD());
+        compareMetavoxelData();
+        return;
+    }
     if (message.userType() == ClearSharedObjectMessage::Type ||
             message.userType() == ClearMainChannelSharedObjectMessage::Type) {
         return;
@@ -1148,6 +1151,23 @@ void TestEndpoint::readReliableChannel() {
         throw QString("Sent/received streamed data mismatch.");
     }
     streamedBytesReceived += bytes.size();
+}
+
+void TestEndpoint::compareMetavoxelData() {
+    // deep-compare data to sent version
+    int packetNumber = _sequencer.getIncomingPacketNumber();
+    foreach (PacketRecord* record, _other->_sendRecords) {
+        TestSendRecord* sendRecord = static_cast<TestSendRecord*>(record);
+        if (sendRecord->getPacketNumber() == packetNumber) {
+            if (!sendRecord->getData().deepEquals(_data, getLastAcknowledgedSendRecord()->getLOD())) {
+                qDebug() << "Sent/received metavoxel data mismatch.";
+                exit(true);
+            }
+            return;
+        }
+    }
+    qDebug() << "Received metavoxel data with no corresponding send." << packetNumber;
+    exit(true);
 }
 
 TestSharedObjectA::TestSharedObjectA(float foo, TestEnum baz, TestFlags bong) :

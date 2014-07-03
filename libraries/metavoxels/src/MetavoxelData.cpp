@@ -681,6 +681,12 @@ void MetavoxelStreamState::setMinimum(const glm::vec3& lastMinimum, int index) {
     minimum = getNextMinimum(lastMinimum, size, index);
 }
 
+void MetavoxelStreamState::checkByteLimitExceeded() {
+    if (stream.getBytesRemaining() < 0) {
+        throw ByteLimitExceededException();
+    }
+}
+
 MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue, const MetavoxelNode* copyChildren) :
         _referenceCount(1) {
 
@@ -772,11 +778,13 @@ void MetavoxelNode::read(MetavoxelStreamState& state) {
 void MetavoxelNode::write(MetavoxelStreamState& state) const {
     if (!state.shouldSubdivide()) {
         state.attribute->write(state.stream, _attributeValue, true);
+        state.checkByteLimitExceeded();
         return;
     }
     bool leaf = isLeaf();
     state.stream << leaf;
     state.attribute->write(state.stream, _attributeValue, leaf);
+    state.checkByteLimitExceeded();
     if (!leaf) {
         MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
             state.stream, state.lod, state.referenceLOD };
@@ -830,11 +838,13 @@ void MetavoxelNode::readDelta(const MetavoxelNode& reference, MetavoxelStreamSta
 void MetavoxelNode::writeDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const {
     if (!state.shouldSubdivide()) {
         state.attribute->writeDelta(state.stream, _attributeValue, reference._attributeValue, true);
+        state.checkByteLimitExceeded();
         return;    
     }
     bool leaf = isLeaf();
     state.stream << leaf;
     state.attribute->writeDelta(state.stream, _attributeValue, reference._attributeValue, leaf);
+    state.checkByteLimitExceeded();
     if (!leaf) {
         MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
             state.stream, state.lod, state.referenceLOD };
@@ -897,6 +907,7 @@ void MetavoxelNode::writeSubdivision(MetavoxelStreamState& state) const {
     bool subdivideReference = state.shouldSubdivideReference();
     if (!subdivideReference) {
         state.stream << leaf;
+        state.checkByteLimitExceeded();
     }
     if (!leaf) {
         MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
@@ -921,6 +932,7 @@ void MetavoxelNode::writeSpanners(MetavoxelStreamState& state) const {
     foreach (const SharedObjectPointer& object, decodeInline<SharedObjectSet>(_attributeValue)) {
         if (static_cast<Spanner*>(object.data())->testAndSetVisited()) {
             state.stream << object;
+            state.checkByteLimitExceeded();
         }
     }
     if (!state.shouldSubdivide() || isLeaf()) {
@@ -940,11 +952,13 @@ void MetavoxelNode::writeSpannerDelta(const MetavoxelNode& reference, MetavoxelS
     foreach (const SharedObjectPointer& object, oldSet) {
         if (static_cast<Spanner*>(object.data())->testAndSetVisited() && !newSet.contains(object)) {
             state.stream << object;
+            state.checkByteLimitExceeded();
         }
     }
     foreach (const SharedObjectPointer& object, newSet) {
         if (static_cast<Spanner*>(object.data())->testAndSetVisited() && !oldSet.contains(object)) {
             state.stream << object;
+            state.checkByteLimitExceeded();
         }
     }
     if (isLeaf() || !state.shouldSubdivide()) {

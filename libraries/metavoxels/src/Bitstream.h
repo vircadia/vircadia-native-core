@@ -329,6 +329,12 @@ public:
     /// Resets to the initial state.
     void reset();
 
+    /// Sets the number of "bytes remaining," which will be decremented with each byte written.
+    void setBytesRemaining(int bytesRemaining) { _bytesRemaining = bytesRemaining; }
+    
+    /// Returns the number of bytes remaining.
+    int getBytesRemaining() const { return _bytesRemaining; }
+
     /// Returns the set of transient mappings gathered during writing and resets them.
     WriteMappings getAndResetWriteMappings();
 
@@ -508,6 +514,7 @@ private:
     QDataStream& _underlying;
     quint8 _byte;
     int _position;
+    int _bytesRemaining;
 
     MetadataType _metadataType;
     GenericsMode _genericsMode;
@@ -822,6 +829,19 @@ template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& 
     }
     return *this;
 }
+
+/// Thrown for unrecoverable errors.
+class BitstreamException {
+public:
+    
+    BitstreamException(const QString& description);
+
+    const QString& getDescription() const { return _description; }
+
+private:
+    
+    QString _description;
+};
 
 /// Provides a means of writing Bitstream-able data to JSON rather than the usual binary format in a manner that allows it to
 /// be manipulated and re-read, converted to binary, etc.  To use, create a JSONWriter, stream values in using the << operator,

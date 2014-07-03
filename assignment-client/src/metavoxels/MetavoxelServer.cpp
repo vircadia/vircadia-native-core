@@ -94,8 +94,8 @@ MetavoxelSession::MetavoxelSession(const SharedNodePointer& node, MetavoxelServe
     _server(server) {
     
     connect(&_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)), SLOT(handleMessage(const QVariant&)));
-    connect(_sequencer.getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&)),
-        SLOT(handleMessage(const QVariant&)));
+    connect(_sequencer.getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&, Bitstream&)),
+        SLOT(handleMessage(const QVariant&, Bitstream&)));
 }
 
 void MetavoxelSession::update() {

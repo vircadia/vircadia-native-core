@@ -253,6 +253,8 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     // record the receipt
     ReceiveRecord record = { _incomingPacketNumber, _inputStream.getAndResetReadMappings(), newHighPriorityMessages };
     _receiveRecords.append(record);
+    
+    emit receiveRecorded();
 }
 
 void DatagramSequencer::sendClearSharedObjectMessage(int id) {
@@ -363,6 +365,8 @@ void DatagramSequencer::sendPacket(const QByteArray& packet, const QVector<Chann
     SendRecord record = { _outgoingPacketNumber, _receiveRecords.isEmpty() ? 0 : _receiveRecords.last().packetNumber,
         _outputStream.getAndResetWriteMappings(), spans };
     _sendRecords.append(record);
+    
+    emit sendRecorded();
     
     // write the sequence number and size, which are the same between all fragments
     _outgoingDatagramBuffer.seek(_datagramHeaderSize);
@@ -658,16 +662,24 @@ int ReliableChannel::getBytesAvailable() const {
     return _buffer.size() - _acknowledged.getTotalSet();
 }
 
-void ReliableChannel::sendMessage(const QVariant& message) {
-    // write a placeholder for the length, then fill it in when we know what it is
-    int placeholder = _buffer.pos();
-    _dataStream << (quint32)0;    
-    _bitstream << message;
+void ReliableChannel::startMessage() {
+    // write a placeholder for the length; we'll fill it in when we know what it is
+    _messageLengthPlaceholder = _buffer.pos();
+    _dataStream << (quint32)0;
+}
+
+void ReliableChannel::endMessage() {
     _bitstream.flush();
     _bitstream.persistAndResetWriteMappings();
     
-    quint32 length = _buffer.pos() - placeholder;
-    _buffer.writeBytes(placeholder, sizeof(quint32), (const char*)&length);
+    quint32 length = _buffer.pos() - _messageLengthPlaceholder;
+    _buffer.writeBytes(_messageLengthPlaceholder, sizeof(quint32), (const char*)&length);
+}
+
+void ReliableChannel::sendMessage(const QVariant& message) {
+    startMessage();
+    _bitstream << message;
+    endMessage();
 }
 
 void ReliableChannel::sendClearSharedObjectMessage(int id) {
@@ -675,7 +687,7 @@ void ReliableChannel::sendClearSharedObjectMessage(int id) {
     sendMessage(QVariant::fromValue(message));
 }
 
-void ReliableChannel::handleMessage(const QVariant& message) {
+void ReliableChannel::handleMessage(const QVariant& message, Bitstream& in) {
     if (message.userType() == ClearSharedObjectMessage::Type) {
         _bitstream.clearSharedObject(message.value<ClearSharedObjectMessage>().id);
     
@@ -700,7 +712,7 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
     _dataStream.setByteOrder(QDataStream::LittleEndian);
     
     connect(&_bitstream, SIGNAL(sharedObjectCleared(int)), SLOT(sendClearSharedObjectMessage(int)));
-    connect(this, SIGNAL(receivedMessage(const QVariant&)), SLOT(handleMessage(const QVariant&)));
+    connect(this, SIGNAL(receivedMessage(const QVariant&, Bitstream&)), SLOT(handleMessage(const QVariant&, Bitstream&)));
 }
 
 void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans) {
@@ -843,9 +855,9 @@ void ReliableChannel::readData(QDataStream& in) {
                     _dataStream.skipRawData(sizeof(quint32));
                     QVariant message;
                     _bitstream >> message;
+                    emit receivedMessage(message, _bitstream);
                     _bitstream.reset();
                     _bitstream.persistAndResetReadMappings();
-                    emit receivedMessage(message);
                     continue;
                 }
             }

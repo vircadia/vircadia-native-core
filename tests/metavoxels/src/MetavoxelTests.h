@@ -64,10 +64,12 @@ protected:
 private slots:
    
     void handleHighPriorityMessage(const QVariant& message);
-    void handleReliableMessage(const QVariant& message);
+    void handleReliableMessage(const QVariant& message, Bitstream& in);
     void readReliableChannel();
 
 private:
+    
+    void compareMetavoxelData();
     
     Mode _mode;
     
@@ -94,6 +96,10 @@ private:
     float _reliableMessagesToSend;
     QVariantList _reliableMessagesSent;
     CircularBuffer _dataStreamed;
+    
+    int _reliableDeltaReceivedOffset;
+    MetavoxelData _reliableDeltaData;
+    MetavoxelLOD _reliableDeltaLOD;
 };
 
 /// A simple shared object.

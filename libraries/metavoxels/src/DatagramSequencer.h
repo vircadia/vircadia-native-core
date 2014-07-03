@@ -126,8 +126,14 @@ signals:
     /// Emitted when a packet is available to read.
     void readyToRead(Bitstream& input);
     
-    /// Emitted when we've received a high-priority message
+    /// Emitted when we've received a high-priority message.
     void receivedHighPriorityMessage(const QVariant& data);
+    
+    /// Emitted when we've recorded the transmission of a packet.
+    void sendRecorded();
+    
+    /// Emitted when we've recorded the receipt of a packet (that is, at the end of packet processing).
+    void receiveRecorded();
     
     /// Emitted when a sent packet has been acknowledged by the remote side.
     /// \param index the index of the packet in our list of send records
@@ -336,22 +342,36 @@ public:
     /// Returns the number of bytes available to read from this channel.
     int getBytesAvailable() const;
 
+    /// Returns the offset, which represents the total number of bytes acknowledged
+    /// (on the write end) or received completely (on the read end).
+    int getOffset() const { return _offset; }
+
+    /// Returns the total number of bytes written to this channel.
+    int getBytesWritten() const { return _offset + _buffer.pos(); }
+
     /// Sets whether we expect to write/read framed messages.
     void setMessagesEnabled(bool enabled) { _messagesEnabled = enabled; }
     bool getMessagesEnabled() const { return _messagesEnabled; }
 
-    /// Sends a framed message on this channel.
+    /// Starts a framed message on this channel.
+    void startMessage();
+    
+    /// Ends a framed message on this channel.
+    void endMessage();
+
+    /// Sends a framed message on this channel (convenience function that calls startMessage,
+    /// writes the message to the bitstream, then calls endMessage).
     void sendMessage(const QVariant& message);
 
 signals:
 
     /// Fired when a framed message has been received on this channel.
-    void receivedMessage(const QVariant& message);
+    void receivedMessage(const QVariant& message, Bitstream& in);
 
 private slots:
 
     void sendClearSharedObjectMessage(int id);
-    void handleMessage(const QVariant& message);
+    void handleMessage(const QVariant& message, Bitstream& in);
     
 private:
     
@@ -381,6 +401,7 @@ private:
     int _writePositionResetPacketNumber;
     SpanList _acknowledged;
     bool _messagesEnabled;
+    int _messageLengthPlaceholder;
 };
 
 #endif // hifi_DatagramSequencer_h
