@@ -175,14 +175,30 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 }
 
 bool EntityTreeElement::containsEntityBounds(const EntityItem* entity) const {
-    glm::vec3 clampedMin = glm::clamp(entity->getMinimumPoint(), 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(entity->getMaximumPoint(), 0.0f, 1.0f);
-    return _cube.contains(clampedMin) && _cube.contains(clampedMax);
+    return containsBounds(entity->getMinimumPoint(), entity->getMaximumPoint());
 }
 
 bool EntityTreeElement::bestFitEntityBounds(const EntityItem* entity) const {
-    glm::vec3 clampedMin = glm::clamp(entity->getMinimumPoint(), 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(entity->getMaximumPoint(), 0.0f, 1.0f);
+    return bestFitBounds(entity->getMinimumPoint(), entity->getMaximumPoint());
+}
+
+bool EntityTreeElement::containsBounds(const EntityItemProperties& properties) const {
+    return containsBounds(properties.getMinimumPoint(), properties.getMaximumPoint());
+}
+
+bool EntityTreeElement::bestFitBounds(const EntityItemProperties& properties) const {
+    return bestFitBounds(properties.getMinimumPoint(), properties.getMaximumPoint());
+}
+
+bool EntityTreeElement::containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
+    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
+    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
+    return _cube.contains(clampedMin) && _cube.contains(clampedMax);
+}
+
+bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
+    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
+    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
         int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
         int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
@@ -199,6 +215,7 @@ bool EntityTreeElement::bestFitEntityBounds(const EntityItem* entity) const {
     }
     return false;
 }
+
 
 void EntityTreeElement::update(EntityTreeUpdateArgs& args) {
     args._totalElements++;
@@ -246,7 +263,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
     QList<EntityItem*>::const_iterator entityEnd = _entityItems->end();
     bool somethingIntersected = false;
     while(entityItr != entityEnd) {
-        EntityItem& entity = (*entityItr);
+        EntityItem* entity = (*entityItr);
         
         AACube entityCube = entity.getAACube();
         float localDistance;
@@ -371,14 +388,14 @@ bool EntityTreeElement::updateEntity(const EntityItem& entity) {
     // (guaranteed that num entities per elemen is small?)
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem& thisEntity = (*_entityItems)[i];
-        if (thisEntity.getID() == entity.getID()) {
+        EntityItem* thisEntity = (*_entityItems)[i];
+        if (thisEntity->getID() == entity.getID()) {
             if (wantDebug) {
                 qDebug() << "found entity with id";
             }
-            int difference = thisEntity.getLastUpdated() - entity.getLastUpdated();
-            bool changedOnServer = thisEntity.getLastEdited() <= entity.getLastEdited();
-            bool localOlder = thisEntity.getLastUpdated() < entity.getLastUpdated();
+            int difference = thisEntity->getLastUpdated() - entity.getLastUpdated();
+            bool changedOnServer = thisEntity->getLastEdited() <= entity.getLastEdited();
+            bool localOlder = thisEntity->getLastUpdated() < entity.getLastUpdated();
             if (changedOnServer || localOlder) {
                 if (wantDebug) {
                     qDebug("local entity [id:%d] %s and %s than server entity by %d, entity.isNewlyCreated()=%s",
@@ -387,7 +404,7 @@ bool EntityTreeElement::updateEntity(const EntityItem& entity) {
                             difference, debug::valueOf(entity.isNewlyCreated()) );
                 }
                 
-                thisEntity.copyChangedProperties(entity);
+                thisEntity->copyChangedProperties(entity);
                 markWithChangedTime();
                 
                 // seems like we shouldn't need this
@@ -421,30 +438,30 @@ void EntityTreeElement::updateEntityItemID(FindAndUpdateEntityItemIDArgs* args) 
     bool wantDebug = false;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem& thisEntity = (*_entityItems)[i];
+        EntityItem* thisEntity = (*_entityItems)[i];
         
         if (!args->creatorTokenFound) {
             // first, we're looking for matching creatorTokenIDs, if we find that, then we fix it to know the actual ID
-            if (thisEntity.getCreatorTokenID() == args->creatorTokenID) {
+            if (thisEntity->getCreatorTokenID() == args->creatorTokenID) {
                 if (wantDebug) {
                     qDebug() << "EntityTreeElement::updateEntityItemID()... found the entity... updating it's ID... "
                         << "creatorTokenID=" << args->creatorTokenID
                         << "entityID=" << args->entityID;
                 }
 
-                thisEntity.setID(args->entityID);
+                thisEntity->setID(args->entityID);
                 args->creatorTokenFound = true;
             }
         }
         
         // if we're in an isViewing tree, we also need to look for an kill any viewed entities
         if (!args->viewedEntityFound && args->isViewing) {
-            if (thisEntity.getCreatorTokenID() == UNKNOWN_ENTITY_TOKEN && thisEntity.getID() == args->entityID) {
+            if (thisEntity->getCreatorTokenID() == UNKNOWN_ENTITY_TOKEN && thisEntity->getID() == args->entityID) {
 
                 if (wantDebug) {
                     qDebug() << "EntityTreeElement::updateEntityItemID()... VIEWED entity FOUND??? "
                         << "args->creatorTokenID=" << args->creatorTokenID
-                        << "thisEntity.getCreatorTokenID()=" << thisEntity.getCreatorTokenID()
+                        << "thisEntity->getCreatorTokenID()=" << thisEntity->getCreatorTokenID()
                         << "args->entityID=" << args->entityID;
                 }
 
@@ -464,7 +481,7 @@ const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const 
     float closestEntityDistance = FLT_MAX;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        float distanceToEntity = glm::distance(position, (*_entityItems)[i].getPosition());
+        float distanceToEntity = glm::distance(position, (*_entityItems)[i]->getPosition());
         if (distanceToEntity < closestEntityDistance) {
             closestEntity = &(*_entityItems)[i];
         }
@@ -506,8 +523,8 @@ const EntityItem* EntityTreeElement::getEntityWithID(uint32_t id) const {
     const EntityItem* foundEntity = NULL;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        if ((*_entityItems)[i].getID() == id) {
-            foundEntity = &(*_entityItems)[i];
+        if ((*_entityItems)[i]->getID() == id) {
+            foundEntity = (*_entityItems)[i];
             break;
         }
     }
@@ -515,12 +532,23 @@ const EntityItem* EntityTreeElement::getEntityWithID(uint32_t id) const {
 }
 
 const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) const {
-    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num entities per elemen is small?)
     const EntityItem* foundEntity = NULL;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        if ((*_entityItems)[i].getEntityItemID() == id) {
-            foundEntity = &(*_entityItems)[i];
+        if ((*_entityItems)[i]->getEntityItemID() == id) {
+            foundEntity = (*_entityItems)[i];
+            break;
+        }
+    }
+    return foundEntity;
+}
+
+EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) {
+    EntityItem* foundEntity = NULL;
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
+        if ((*_entityItems)[i]->getEntityItemID() == id) {
+            foundEntity = (*_entityItems)[i];
             break;
         }
     }
@@ -531,7 +559,7 @@ bool EntityTreeElement::removeEntityWithID(uint32_t id) {
     bool foundEntity = false;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        if ((*_entityItems)[i].getID() == id) {
+        if ((*_entityItems)[i]->getID() == id) {
             foundEntity = true;
             _entityItems->removeAt(i);
             
@@ -545,7 +573,7 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     bool foundEntity = false;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        if ((*_entityItems)[i].getEntityItemID() == id) {
+        if ((*_entityItems)[i]->getEntityItemID() == id) {
             foundEntity = true;
             _entityItems->removeAt(i);
             break;

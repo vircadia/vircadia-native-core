@@ -139,11 +139,19 @@ public:
     const EntityItem* getEntityWithID(uint32_t id) const;
     const EntityItem* getEntityWithEntityItemID(const EntityItemID& id) const;
 
+    EntityItem* getEntityWithEntityItemID(const EntityItemID& id);
+
     bool removeEntityWithID(uint32_t id);
     bool removeEntityWithEntityItemID(const EntityItemID& id);
 
     bool containsEntityBounds(const EntityItem* entity) const;
     bool bestFitEntityBounds(const EntityItem* entity) const;
+
+    bool containsBounds(const EntityItemProperties& properties) const;
+    bool bestFitBounds(const EntityItemProperties& properties) const;
+
+    bool containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const;
+    bool bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const;
 
 protected:
     virtual void init(unsigned char * octalCode);

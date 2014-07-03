@@ -42,6 +42,11 @@ bool EntityTypes::registerEntityTypeName(EntityType_t entityType, const QString&
     return true;
 }
 
+EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return new EntityItem(entityID, properties); // for now, needs to support registration of constructor
+}
+
+
 bool registered = EntityTypes::registerEntityTypeName(EntityTypes::Base, "Base")
                     && EntityTypes::registerEntityTypeName(EntityTypes::Model, "Model"); // TODO: move this to model subclass
 

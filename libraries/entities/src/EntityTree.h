@@ -50,6 +50,8 @@ public:
     virtual bool rootElementHasData() const { return true; }
     virtual void update();
 
+    EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
+
     void storeEntity(const EntityItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
     void updateEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
     void addEntity(const EntityItemID& modelID, const EntityItemProperties& properties);

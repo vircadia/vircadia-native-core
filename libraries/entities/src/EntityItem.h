@@ -30,6 +30,7 @@
 
 
 class EntityItem;
+class EntityItemID;
 class EntityEditPacketSender;
 class EntityItemProperties;
 class EntitysScriptingInterface;
@@ -73,7 +74,8 @@ public:
     } EntityType_t;
 
     static const QString& getEntityTypeName(EntityType_t entityType);
-    static bool registerEntityTypeName(EntityType_t entityType, const QString& name);
+    static bool registerEntityType(EntityType_t entityType, const QString& name);
+    static EntityItem* constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
 private:
     static QHash<EntityType_t, QString> _typeNameHash;
 };
@@ -122,11 +124,14 @@ public:
     
     glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
     glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
+    AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); } /// AACube in domain scale units (0.0 - 1.0)
     void debugDump() const;
 
     // properties of all entities
+    EntityTypes::EntityType_t getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     float getRadius() const { return _radius; }
+    glm::vec3 getSize() const { return glm::vec3(_radius, _radius, _radius) * 2.0f; }
     const glm::quat& getRotation() const { return _rotation; }
     bool getShouldBeDeleted() const { return _shouldBeDeleted; }
 
@@ -134,6 +139,9 @@ public:
     void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
     void setRadius(float value) { _radius = value; _radiusChanged = true; }
     void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; _shouldBeDeletedChanged = true;  }
+    
+    // NOTE: how do we handle _defaultSettings???
+    bool containsBoundsProperties() const { return (_positionChanged || _radiusChanged); }
 
 #if 0 // def HIDE_SUBCLASS_METHODS
     // properties we want to move to just models and particles
@@ -161,6 +169,7 @@ private:
     bool _idSet;
     quint64 _lastEdited;
 
+    EntityTypes::EntityType_t _type;
     glm::vec3 _position;
     float _radius;
     glm::quat _rotation;
@@ -311,7 +320,7 @@ public:
 
 
     // attributes applicable to all entity types
-    quint32 getType() const { return _type; }
+    EntityTypes::EntityType_t getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
     void setPosition(const glm::vec3& value) { _position = value; } /// set position in domain scale units (0.0 - 1.0)
 
@@ -378,7 +387,7 @@ protected:
     static std::map<uint32_t,uint32_t> _tokenIDsToIDs;
 
     quint32 _id;
-    quint32 _type;
+    EntityTypes::EntityType_t _type;
     uint32_t _creatorTokenID;
     bool _newlyCreated;
     quint64 _lastUpdated;
