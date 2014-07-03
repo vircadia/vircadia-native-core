@@ -112,6 +112,8 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
             }
             _numLate++;
 
+            // do not update _lastReceived; it shouldn't become smaller
+
             // remove this from missing sequence number if it's in there
             if (_missingSet.remove(incoming)) {
                 if (wantExtraDebugging) {
@@ -125,8 +127,6 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
                 }
                 _numDuplicate++;
             }
-
-            // do not update _incomingLastSequence; it shouldn't become smaller
         }
     }
 }
