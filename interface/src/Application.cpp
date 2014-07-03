@@ -398,9 +398,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _trayIcon->show();
     
+#ifdef HAVE_RTMIDI
     // setup the MIDIManager
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
     midiManagerInstance.openDefaultPort();
+#endif
 }
 
 Application::~Application() {
@@ -3630,7 +3632,10 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
+    
+#ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
+#endif
 
     QThread* workerThread = new QThread(this);
 

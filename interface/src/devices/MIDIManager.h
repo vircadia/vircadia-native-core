@@ -12,6 +12,8 @@
 #ifndef hifi_MIDIManager_h
 #define hifi_MIDIManager_h
 
+#ifdef HAVE_RTMIDI
+
 #include <QtCore/QObject>
 #include <QtScript/QScriptEngine>
 
@@ -47,5 +49,8 @@ private:
     RtMidiIn* _midiInput;
 };
 
+#endif
+
 
 #endif // hifi_MIDIManager_h
+

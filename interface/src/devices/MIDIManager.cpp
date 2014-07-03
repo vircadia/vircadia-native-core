@@ -13,6 +13,8 @@
 
 #include "MIDIManager.h"
 
+#ifdef HAVE_RTMIDI
+
 MIDIManager& MIDIManager::getInstance() {
     static MIDIManager sharedInstance;
     return sharedInstance;
@@ -62,3 +64,5 @@ void MIDIManager::openDefaultPort() {
         }
     }
 }
+
+#endif
