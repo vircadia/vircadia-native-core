@@ -102,3 +102,27 @@ void Animation::downloadFinished(QNetworkReply* reply) {
     QThreadPool::globalInstance()->start(new AnimationReader(_self, reply));
 }
 
+
+QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& details) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("role", details.role);
+    obj.setProperty("url", details.url.toString());
+    obj.setProperty("fps", details.fps);
+    obj.setProperty("priority", details.priority);
+    obj.setProperty("loop", details.loop);
+    obj.setProperty("hold", details.hold);
+    obj.setProperty("startAutomatically", details.startAutomatically);
+    obj.setProperty("firstFrame", details.firstFrame);
+    obj.setProperty("lastFrame", details.lastFrame);
+    obj.setProperty("running", details.running);
+    obj.setProperty("frameIndex", details.frameIndex);
+
+
+
+    return obj;
+}
+
+void animationDetailsFromScriptValue(const QScriptValue& object, AnimationDetails& details) {
+    // nothing for now...
+}
+
