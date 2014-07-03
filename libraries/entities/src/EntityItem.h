@@ -124,14 +124,15 @@ public:
     
     glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
     glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
-    AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); } /// AACube in domain scale units (0.0 - 1.0)
+    AACube getAACube() const { return AACube(getMinimumPoint(), getMaxDimension()); } /// AACube in domain scale units (0.0 - 1.0)
     void debugDump() const;
 
     // properties of all entities
     EntityTypes::EntityType_t getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     float getRadius() const { return _radius; }
-    glm::vec3 getSize() const { return glm::vec3(_radius, _radius, _radius) * 2.0f; }
+    float getMaxDimension() const { return _radius * 2.0f; }
+    glm::vec3 getDimensions() const { return glm::vec3(_radius, _radius, _radius) * 2.0f; }
     const glm::quat& getRotation() const { return _rotation; }
     bool getShouldBeDeleted() const { return _shouldBeDeleted; }
 

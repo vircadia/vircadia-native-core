@@ -190,6 +190,14 @@ bool EntityTreeElement::bestFitBounds(const EntityItemProperties& properties) co
     return bestFitBounds(properties.getMinimumPoint(), properties.getMaximumPoint());
 }
 
+bool EntityTreeElement::containsBounds(const AACube& bounds) const {
+    return containsBounds(bounds.getMinimumPoint(), bounds.getMaximumPoint());
+}
+
+bool EntityTreeElement::bestFitBounds(const AACube& bounds) const {
+    return bestFitBounds(bounds.getMinimumPoint(), bounds.getMaximumPoint());
+}
+
 bool EntityTreeElement::containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
     glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
     glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
@@ -265,13 +273,13 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
     while(entityItr != entityEnd) {
         EntityItem* entity = (*entityItr);
         
-        AACube entityCube = entity.getAACube();
+        AACube entityCube = entity->getAACube();
         float localDistance;
         BoxFace localFace;
 
         // if the ray doesn't intersect with our cube, we can stop searching!
         if (entityCube.findRayIntersection(origin, direction, localDistance, localFace)) {
-            const FBXGeometry* fbxGeometry = _myTree->getGeometryForEntity(entity);
+            const FBXGeometry* fbxGeometry = _myTree->getGeometryForEntity(*entity);
             if (fbxGeometry && fbxGeometry->meshExtents.isValid()) {
                 Extents extents = fbxGeometry->meshExtents;
 
@@ -284,7 +292,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 // size is our "target size in world space"
                 // we need to set our entity scale so that the extents of the mesh, fit in a cube that size...
                 float maxDimension = glm::distance(extents.maximum, extents.minimum);
-                float scale = entity.getSize() / maxDimension;
+                float scale = entity->getSize() / maxDimension;
 
                 glm::vec3 halfDimensions = (extents.maximum - extents.minimum) * 0.5f;
                 glm::vec3 offset = -extents.minimum - halfDimensions;
@@ -297,10 +305,10 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 
                 Extents rotatedExtents = extents;
 
-                calculateRotatedExtents(rotatedExtents, entity.getRotation());
+                calculateRotatedExtents(rotatedExtents, entity->getRotation());
 
-                rotatedExtents.minimum += entity.getPosition();
-                rotatedExtents.maximum += entity.getPosition();
+                rotatedExtents.minimum += entity->getPosition();
+                rotatedExtents.maximum += entity->getPosition();
 
 
                 AABox rotatedExtentsBox(rotatedExtents.minimum, (rotatedExtents.maximum - rotatedExtents.minimum));
@@ -309,8 +317,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 if (rotatedExtentsBox.findRayIntersection(origin, direction, localDistance, localFace)) {
                 
                     // extents is the entity relative, scaled, centered extents of the entity
-                    glm::mat4 rotation = glm::mat4_cast(entity.getRotation());
-                    glm::mat4 translation = glm::translate(entity.getPosition());
+                    glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
+                    glm::mat4 translation = glm::translate(entity->getPosition());
                     glm::mat4 entityToWorldMatrix = translation * rotation;
                     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -348,9 +356,9 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
     QList<EntityItem*>::iterator entityItr = _entityItems->begin();
     QList<EntityItem*>::const_iterator entityEnd = _entityItems->end();
     while(entityItr != entityEnd) {
-        EntityItem& entity = (*entityItr);
-        glm::vec3 entityCenter = entity.getPosition();
-        float entityRadius = entity.getRadius();
+        EntityItem* entity = (*entityItr);
+        glm::vec3 entityCenter = entity->getPosition();
+        float entityRadius = entity->getRadius();
 
         // don't penetrate yourself
         if (entityCenter == center && entityRadius == radius) {
@@ -359,12 +367,47 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
 
         if (findSphereSpherePenetration(center, radius, entityCenter, entityRadius, penetration)) {
             // return true on first valid entity penetration
-            *penetratedObject = (void*)(&entity);
+            *penetratedObject = (void*)(entity);
             return true;
         }
         ++entityItr;
     }
     return false;
+}
+
+
+// TODO... how do we handle older/newer with this interface?
+bool EntityTreeElement::addOrUpdateEntity(EntityItem* entity, const EntityItemProperties& properties) {
+    const bool wantDebug = false;
+    if (wantDebug) {
+        EntityItemID entityItemID = entity->getEntityItemID();
+        qDebug() << "EntityTreeElement::updateEntity(entity) entityID.id="
+                        << entityItemID.id << "creatorTokenID=" << entityItemID.creatorTokenID;
+    }
+    
+    // NOTE: this method must first lookup the entity by ID, hence it is O(N)
+    // and "entity is not found" is worst-case (full N) but maybe we don't care?
+    // (guaranteed that num entities per elemen is small?)
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
+        EntityItem* thisEntity = (*_entityItems)[i];
+        if (thisEntity == entity) {
+            if (wantDebug) {
+                qDebug() << "found the entity";
+            }
+            thisEntity->setProperties(properties);
+            markWithChangedTime();
+            return true;
+        }
+    }
+    
+    // If we didn't find the entity here, then let's check to see if we should add it...
+    _entityItems->push_back(entity);
+    markWithChangedTime();
+    // Since we're adding this item to this element, we need to let the tree know about it
+    _myTree->setContainingElement(entity->getEntityItemID(), this);
+
+    return true;
 }
 
 // TODO: the old entity code has support for sittingPoints... need to determine how to handle this...
@@ -375,6 +418,7 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
 //         thisModel.setSittingPoints(_myTree->getGeometryForModel(thisModel)->sittingPoints);
 //     }
 // ...
+#if 0
 bool EntityTreeElement::updateEntity(const EntityItem& entity) {
     const bool wantDebug = false;
     if (wantDebug) {
@@ -433,6 +477,7 @@ bool EntityTreeElement::updateEntity(const EntityItem& entity) {
     
     return false;
 }
+#endif
 
 void EntityTreeElement::updateEntityItemID(FindAndUpdateEntityItemIDArgs* args) {
     bool wantDebug = false;
@@ -483,7 +528,7 @@ const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const 
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         float distanceToEntity = glm::distance(position, (*_entityItems)[i]->getPosition());
         if (distanceToEntity < closestEntityDistance) {
-            closestEntity = &(*_entityItems)[i];
+            closestEntity = (*_entityItems)[i];
         }
     }
     return closestEntity;
@@ -492,7 +537,7 @@ const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const 
 void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searchRadius, QVector<const EntityItem*>& foundEntities) const {
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        const EntityItem* entity = &(*_entityItems)[i];
+        const EntityItem* entity = (*_entityItems)[i];
         float distance = glm::length(entity->getPosition() - searchPosition);
         if (distance < searchRadius + entity->getRadius()) {
             foundEntities.push_back(entity);
@@ -581,6 +626,20 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     }
     return foundEntity;
 }
+
+bool EntityTreeElement::removeEntityItem(const EntityItem* entity) {
+    bool foundEntity = false;
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
+        if ((*_entityItems)[i] == entity) {
+            foundEntity = true;
+            _entityItems->removeAt(i);
+            break;
+        }
+    }
+    return foundEntity;
+}
+
 
 int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {

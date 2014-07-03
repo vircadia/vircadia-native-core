@@ -121,6 +121,9 @@ public:
     void setTree(EntityTree* tree) { _myTree = tree; }
 
     bool updateEntity(const EntityItem& entity);
+    bool addOrUpdateEntity(EntityItem* entity, const EntityItemProperties& properties);
+
+
     void updateEntityItemID(FindAndUpdateEntityItemIDArgs* args);
 
     const EntityItem* getClosestEntity(glm::vec3 position) const;
@@ -143,12 +146,16 @@ public:
 
     bool removeEntityWithID(uint32_t id);
     bool removeEntityWithEntityItemID(const EntityItemID& id);
+    bool removeEntityItem(const EntityItem* entity);
 
     bool containsEntityBounds(const EntityItem* entity) const;
     bool bestFitEntityBounds(const EntityItem* entity) const;
 
     bool containsBounds(const EntityItemProperties& properties) const;
     bool bestFitBounds(const EntityItemProperties& properties) const;
+
+    bool containsBounds(const AACube& bounds) const;
+    bool bestFitBounds(const AACube& bounds) const;
 
     bool containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const;
     bool bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const;

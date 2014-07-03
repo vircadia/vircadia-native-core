@@ -42,6 +42,11 @@ public:
     glm::vec3 calcCenter() const;
     glm::vec3 calcTopFarLeft() const;
     glm::vec3 getVertex(BoxVertex vertex) const;
+
+    const glm::vec3& getMinimumPoint() const { return _corner; }
+    glm::vec3 getMaximumPoint() const { return calcTopFarLeft(); }
+
+
     bool contains(const glm::vec3& point) const;
     bool contains(const AABox& otherBox) const;
     bool touches(const AABox& otherBox) const;

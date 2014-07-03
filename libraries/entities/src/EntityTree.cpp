@@ -242,20 +242,23 @@ EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, cons
 class UpdateEntityOperator : public RecurseOctreeOperator {
 public:
     UpdateEntityOperator(EntityTree* tree, EntityTreeElement* containingElement, 
-                            EntityItem* oldEntity, const EntityItemProperties& properties);
+                            EntityItem* existingEntity, const EntityItemProperties& properties);
+                            
     virtual bool PreRecursion(OctreeElement* element);
     virtual bool PostRecursion(OctreeElement* element);
     virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex);
 private:
     EntityTree* _tree;
-    const EntityItem* _newEntity;
-    const EntityItem* _oldEntity;
+    const EntityItem* _existingEntity;
     EntityTreeElement* _containingElement;
+    EntityItemID _entityItemID;
     bool _foundOld;
     bool _foundNew;
+    bool _removeOld;
     quint64 _changeTime;
-    AABox _oldEntityCube;
-    AABox _newEntityCube;
+
+    AACube _oldEntityCube;
+    AACube _newEntityCube;
 
     bool subTreeContainsOldEntity(OctreeElement* element);
     bool subTreeContainsNewEntity(OctreeElement* element);
@@ -263,20 +266,21 @@ private:
 
 UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree, 
                         EntityTreeElement* containingElement, 
-                        EntityItem* oldEntity, 
+                        EntityItem* existingEntity, 
                         const EntityItemProperties& properties) :
     _tree(tree),
-    _newEntity(NULL),
-    _oldEntity(oldEntity),
+    _existingEntity(existingEntity),
     _containingElement(containingElement),
+    _entityItemID(existingEntity->getEntityItemID()),
     _foundOld(false),
     _foundNew(false),
+    _removeOld(false),
     _changeTime(usecTimestampNow())
 {
     // caller must have verified existence of containingElement and oldEntity
-    assert(_containingElement && _oldEntity);
+    assert(_containingElement && _existingEntity);
 
-    _oldEntityCube = _oldEntity->getAACube();
+    _oldEntityCube = _existingEntity->getAACube();
 
     // If our new properties don't have bounds details (no change to position, etc) or if this containing element would 
     // be the best fit for our new properties, then just do the new portion of the store pass, since the change path will 
@@ -285,34 +289,24 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
         _foundOld = true;
         _newEntityCube = _oldEntityCube;
     } else {
-        _newEntityCube = _oldEntity->getAACube();
+        _newEntityCube = properties.getAACube();
+        _removeOld = true; // our properties are going to move us, so remember this for later processing
     }
 
 }
 
 // does this model tree element contain the old model
 bool UpdateEntityOperator::subTreeContainsOldEntity(OctreeElement* element) {
-    bool containsEntity = false;
-
-    // If we don't have an old model, then we don't contain the model, otherwise
-    // check the bounds
-    if (_oldEntity) {
-        AACube elementCube = element->getAACube();
-        AACube modelCube = _oldEntity->getAACube();
-        containsEntity = elementCube.contains(modelCube);
-    }
-    return containsEntity;
+    return element->getAACube().contains(_oldEntityCube);
 }
 
 bool UpdateEntityOperator::subTreeContainsNewEntity(OctreeElement* element) {
-    AACube elementCube = element->getAACube();
-    AACube modelCube = _newEntity.getAACube();
-    return elementCube.contains(modelCube);
+    return element->getAACube().contains(_newEntityCube);
 }
 
 
 bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
-    EntityTreeElement* modelTreeElement = static_cast<EntityTreeElement*>(element);
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
     // path of the tree. For this operation, we want to recurse the branch of the tree if
@@ -331,19 +325,19 @@ bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
         
         // If this is the element we're looking for, then ask it to remove the old model
         // and we can stop searching.
-        if (modelTreeElement == _containingElement) {
+        if (entityTreeElement == _containingElement) {
         
             // If the containgElement IS NOT the best fit for the new model properties
             // then we need to remove it, and the updateEntity below will store it in the
             // correct element.
-            if (!_containingElement->bestFitEntityBounds(&_newEntity)) {
-                modelTreeElement->removeEntityWithEntityItemID(_newEntity.getEntityItemID());
+            if (!_removeOld) {
+                entityTreeElement->removeEntityItem(_existingEntity); // NOTE: only removes the entity, doesn't delete it
                 
                 // If we haven't yet found the new location, then we need to 
                 // make sure to remove our model to element map, because for
                 // now we're not in that map
                 if (!_foundNew) {
-                    _tree->setContainingElement(_newEntity.getEntityItemID(), NULL);
+                    _tree->setContainingElement(_entityItemID, NULL);
                 }
             }
             _foundOld = true;
@@ -357,15 +351,19 @@ bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
     // model, then we need to keep searching.
     if (!_foundNew && subTreeContainsNewEntity(element)) {
     
-        // Note: updateEntity() will only operate on correctly found models and/or add them
-        // to the element if they SHOULD be stored there.
-        if (modelTreeElement->updateEntity(_newEntity)) {
-            //qDebug() << "UpdateEntityOperator::PreRecursion()... model was updated!";
-            _foundNew = true;
-            // NOTE: don't change the keepSearching here, if it came in here
-            // false then we stay false, if it came in here true, then it
-            // means we're still searching for our old model and this branch
-            // contains our old model. In which case we want to keep searching.
+        // If this element is the best fit for the new entity properties, then add/or update it
+        if (entityTreeElement->bestFitBounds(_newEntityCube)) {
+
+            if (entityTreeElement->addOrUpdateEntity(_existingEntity, properties)) {
+
+                //qDebug() << "UpdateEntityOperator::PreRecursion()... model was updated!";
+                _foundNew = true;
+                // NOTE: don't change the keepSearching here, if it came in here
+                // false then we stay false, if it came in here true, then it
+                // means we're still searching for our old model and this branch
+                // contains our old model. In which case we want to keep searching.
+            }
+        }
             
         } else {
             keepSearching = true;
