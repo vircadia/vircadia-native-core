@@ -588,13 +588,17 @@ void Application::paintGL() {
         //Note, the camera distance is set in Camera::setMode() so we dont have to do it here.
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation());
+        if (OculusManager::isConnected()) {
+            _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation());
+        } else {
+            _myCamera.setTargetRotation(_myAvatar->getHead()->getOrientation());
+        }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition() + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0));
     }
 
     // Update camera position
@@ -632,6 +636,10 @@ void Application::paintGL() {
     //If we aren't using the glow shader, we have to clear the color and depth buffer
     if (!glowEnabled) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    } else if (OculusManager::isConnected()) {
+        //Clear the color buffer to ensure that there isnt any residual color
+        //Left over from when OR was not connected.
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     if (OculusManager::isConnected()) {
@@ -643,13 +651,8 @@ void Application::paintGL() {
         }
 
     } else if (TV3DManager::isConnected()) {
-        if (glowEnabled) {
-            _glowEffect.prepare();
-        }
+       
         TV3DManager::display(whichCamera);
-        if (glowEnabled) {
-            _glowEffect.render();
-        }
 
     } else {
         if (glowEnabled) {
@@ -1137,7 +1140,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     _lastMouseMove = usecTimestampNow();
 
-    if (_mouseHidden && showMouse && !OculusManager::isConnected()) {
+    if (_mouseHidden && showMouse && !OculusManager::isConnected() && !TV3DManager::isConnected()) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;
