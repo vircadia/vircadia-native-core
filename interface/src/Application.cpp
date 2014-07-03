@@ -2778,6 +2778,11 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("paintGL/displaySide/renderAvatars");
+
+        if (1 || OculusManager::isConnected()) {
+            OculusManager::renderLaserPointer();
+        }
+
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
     }
 

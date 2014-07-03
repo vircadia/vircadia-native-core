@@ -455,3 +455,31 @@ QSize OculusManager::getRenderTargetSize() {
 #endif
 }
 
+void OculusManager::renderLaserPointer() {
+#ifdef HAVE_LIBOVR
+    const float PALM_TIP_ROD_RADIUS = 0.009f;
+
+    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+
+    //If the Oculus is enabled, we will draw a blue cursor ray
+   
+    // Draw the palm ball and disk
+    for (size_t i = 0; i < myAvatar->getHand()->getNumPalms(); ++i) {
+        PalmData& palm = myAvatar->getHand()->getPalms()[i];
+        if (palm.isActive()) {
+            glColor4f(0, 1, 1, 1);
+            glm::vec3 tip = getLaserPointerTipPosition(&palm);
+            glm::vec3 root = palm.getPosition();
+            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS);
+        }
+    }
+#endif
+}
+
+glm::vec3 OculusManager::getLaserPointerTipPosition(const PalmData* palm) {
+#ifdef HAVE_LIBOVR
+    const float PALM_TIP_ROD_LENGTH_MULT = 2.0f;
+    return (palm->getTipPosition() - palm->getPosition()) * PALM_TIP_ROD_LENGTH_MULT;
+#endif
+    return glm::vec3(0.0f);
+}

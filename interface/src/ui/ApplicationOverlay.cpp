@@ -277,7 +277,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glColor4f(1.0f, 1.0f, 1.0f, _alpha);
 
     renderTexturedHemisphere();
-   
+
     renderControllerPointersOculus();
 
     glPopMatrix();
@@ -560,7 +560,26 @@ void ApplicationOverlay::renderControllerPointers() {
     }
 }
 
+bool findSphereIntersection(const glm::vec3 &start, const glm::vec3 &end, const glm::vec3 &spos, const float r, glm::vec3 &result) {
+    double a = pow(end.x - start.x, 2) + pow(end.y - start.y, 2) + pow(end.z - start.z, 2);
+    double b = 2.0f * ((end.x - start.x) * (start.x - spos.x) + (end.y - start.x) * (start.y - spos.y) + (end.z - start.z) * (start.z - spos.z));
+    double c = pow(start.x - spos.x, 2) + pow(start.y - spos.y, 2) + pow(start.z - spos.z, 2) - r*r;
+
+    double delta = b * b - 4.0 * a * c;
+    printf("Intersection Delta %lf\n", delta);
+
+    if (delta == 0) {
+        float d = -b / (2.0 * a);
+        result = start + d * (end - start);
+    } else {
+        return false;
+    }
+}
+
 void ApplicationOverlay::renderControllerPointersOculus() {
+
+    const bool useLaser = true; 
+
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
 
@@ -573,54 +592,99 @@ void ApplicationOverlay::renderControllerPointersOculus() {
     glDisable(GL_DEPTH_TEST);
     
     for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
+        if (i > 0 && useLaser) {
+            MyAvatar* myAvatar = application->getAvatar();
+            PalmData& palm = myAvatar->getHand()->getPalms()[i];
+            if (palm.isActive()) {
+               
+                glm::vec3 tip = OculusManager::getLaserPointerTipPosition(&palm);
+                glm::vec3 result;
 
-        //Dont render the reticle if its inactive
-        if (!_reticleActive[i]) {
-            continue;
+                if (findSphereIntersection(myAvatar->getHead()->calculateAverageEyePosition(),
+                    tip, glm::vec3(0, 0, 0), 1, result)){
+                    printf("Intersection Found: ");
+                    printVector(result);
+                }
+
+
+                //float lX = sin((newULeft - 0.5f) * _textureFov);
+                //float rX = sin((newURight - 0.5f) * _textureFov);
+                //float bY = sin((newVBottom - 0.5f) * _textureFov);
+                //float tY = sin((newVTop - 0.5f) * _textureFov);
+
+                //float dist;
+                ////Bottom Left
+                //dist = sqrt(lX * lX + bY * bY);
+                //float blZ = sqrt(1.0f - dist * dist);
+                ////Top Left
+                //dist = sqrt(lX * lX + tY * tY);
+                //float tlZ = sqrt(1.0f - dist * dist);
+                ////Bottom Right
+                //dist = sqrt(rX * rX + bY * bY);
+                //float brZ = sqrt(1.0f - dist * dist);
+                ////Top Right
+                //dist = sqrt(rX * rX + tY * tY);
+                //float trZ = sqrt(1.0f - dist * dist);
+
+                //glBegin(GL_QUADS);
+
+                //glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
+
+                //glTexCoord2f(0.0f, 0.0f); glVertex3f(lX, tY, -tlZ);
+                //glTexCoord2f(1.0f, 0.0f); glVertex3f(rX, tY, -trZ);
+                //glTexCoord2f(1.0f, 1.0f); glVertex3f(rX, bY, -brZ);
+                //glTexCoord2f(0.0f, 1.0f); glVertex3f(lX, bY, -blZ);
+
+                //glEnd();
+            }
+        } else {
+            //Dont render the reticle if its inactive
+            if (!_reticleActive[i]) {
+                continue;
+            }
+
+            float mouseX = (float)_mouseX[i];
+            float mouseY = (float)_mouseY[i];
+            mouseX -= reticleSize / 2;
+            mouseY += reticleSize / 2;
+
+            //Get new UV coordinates from our magnification window
+            float newULeft = mouseX / widgetWidth;
+            float newURight = (mouseX + reticleSize) / widgetWidth;
+            float newVBottom = 1.0 - mouseY / widgetHeight;
+            float newVTop = 1.0 - (mouseY - reticleSize) / widgetHeight;
+
+            // Project our position onto the hemisphere using the UV coordinates
+            float lX = sin((newULeft - 0.5f) * _textureFov);
+            float rX = sin((newURight - 0.5f) * _textureFov);
+            float bY = sin((newVBottom - 0.5f) * _textureFov);
+            float tY = sin((newVTop - 0.5f) * _textureFov);
+
+            float dist;
+            //Bottom Left
+            dist = sqrt(lX * lX + bY * bY);
+            float blZ = sqrt(1.0f - dist * dist);
+            //Top Left
+            dist = sqrt(lX * lX + tY * tY);
+            float tlZ = sqrt(1.0f - dist * dist);
+            //Bottom Right
+            dist = sqrt(rX * rX + bY * bY);
+            float brZ = sqrt(1.0f - dist * dist);
+            //Top Right
+            dist = sqrt(rX * rX + tY * tY);
+            float trZ = sqrt(1.0f - dist * dist);
+
+            glBegin(GL_QUADS);
+
+            glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
+
+            glTexCoord2f(0.0f, 0.0f); glVertex3f(lX, tY, -tlZ);
+            glTexCoord2f(1.0f, 0.0f); glVertex3f(rX, tY, -trZ);
+            glTexCoord2f(1.0f, 1.0f); glVertex3f(rX, bY, -brZ);
+            glTexCoord2f(0.0f, 1.0f); glVertex3f(lX, bY, -blZ);
+
+            glEnd();
         }
-
-        float mouseX = (float)_mouseX[i];
-        float mouseY = (float)_mouseY[i];
-        mouseX -= reticleSize / 2;
-        mouseY += reticleSize / 2;
-      
-        //Get new UV coordinates from our magnification window
-        float newULeft = mouseX / widgetWidth;
-        float newURight = (mouseX + reticleSize) / widgetWidth;
-        float newVBottom = 1.0 - mouseY / widgetHeight;
-        float newVTop = 1.0 - (mouseY - reticleSize) / widgetHeight;
-
-        // Project our position onto the hemisphere using the UV coordinates
-        float lX = sin((newULeft - 0.5f) * _textureFov);
-        float rX = sin((newURight - 0.5f) * _textureFov);
-        float bY = sin((newVBottom - 0.5f) * _textureFov);
-        float tY = sin((newVTop - 0.5f) * _textureFov);
-
-        float dist;
-        //Bottom Left
-        dist = sqrt(lX * lX + bY * bY);
-        float blZ = sqrt(1.0f - dist * dist);
-        //Top Left
-        dist = sqrt(lX * lX + tY * tY);
-        float tlZ = sqrt(1.0f - dist * dist);
-        //Bottom Right
-        dist = sqrt(rX * rX + bY * bY);
-        float brZ = sqrt(1.0f - dist * dist);
-        //Top Right
-        dist = sqrt(rX * rX + tY * tY);
-        float trZ = sqrt(1.0f - dist * dist);
-
-        glBegin(GL_QUADS);
-
-        glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
-            
-        glTexCoord2f(0.0f, 0.0f); glVertex3f(lX, tY, -tlZ);
-        glTexCoord2f(1.0f, 0.0f); glVertex3f(rX, tY, -trZ);
-        glTexCoord2f(1.0f, 1.0f); glVertex3f(rX, bY, -brZ);
-        glTexCoord2f(0.0f, 1.0f); glVertex3f(lX, bY, -blZ);
-
-        glEnd();
-        
     }
     glEnable(GL_DEPTH_TEST);
 }
