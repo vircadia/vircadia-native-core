@@ -94,6 +94,7 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
 
             _numEarly++;
             _numLost += (incomingInt - expectedInt);
+            _lastReceived = incoming;
 
             // add all sequence numbers that were skipped to the missing sequence numbers list
             for (int missingInt = expectedInt; missingInt < incomingInt; missingInt++) {
@@ -105,8 +106,6 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
             if (_missingSet.size() > MAX_REASONABLE_SEQUENCE_GAP) {
                 pruneMissingSet(wantExtraDebugging);
             }
-
-            _lastReceived = incoming;
         } else { // late
             if (wantExtraDebugging) {
                 qDebug() << "this packet is later than expected...";
