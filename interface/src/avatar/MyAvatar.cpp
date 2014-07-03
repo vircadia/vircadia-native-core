@@ -554,6 +554,40 @@ void MyAvatar::stopAnimation(const QString& url) {
     }
 }
 
+AnimationDetails MyAvatar::getAnimationDetailsByRole(const QString& role) {
+    AnimationDetails result;
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "getAnimationDetailsByRole", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(AnimationDetails, result), 
+            Q_ARG(const QString&, role));
+        return result;
+    }
+    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
+        if (handle->getRole() == role) {
+            result = handle->getAnimationDetails();
+            break;
+        }
+    }
+    return result;
+}
+
+AnimationDetails MyAvatar::getAnimationDetails(const QString& url) {
+    AnimationDetails result;
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "getAnimationDetails", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(AnimationDetails, result), 
+            Q_ARG(const QString&, url));
+        return result;
+    }
+    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
+        if (handle->getURL() == url) {
+            result = handle->getAnimationDetails();
+            break;
+        }
+    }
+    return result;
+}
+
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
 

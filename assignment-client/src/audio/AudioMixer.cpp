@@ -38,11 +38,11 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
 #include <QtCore/QTimer>
-#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
 #include <Logging.h>
+#include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <Node.h>
 #include <PacketHeaders.h>
@@ -89,6 +89,9 @@ AudioMixer::~AudioMixer() {
     delete _listenerUnattenuatedZone;
 }
 
+const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
+const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
+
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
                                                           AvatarAudioRingBuffer* listeningNodeBuffer) {
     float bearingRelativeAngleToSource = 0.0f;
@@ -99,6 +102,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     bool shouldAttenuate = (bufferToAdd != listeningNodeBuffer);
     
     if (shouldAttenuate) {
+        
         // if the two buffer pointers do not match then these are different buffers
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
         
@@ -162,19 +166,18 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
                 
                 glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
                 
-                const float DISTANCE_SCALE = 2.5f;
-                const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
-                const float DISTANCE_LOG_BASE = 2.5f;
-                const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
-                
-                // calculate the distance coefficient using the distance to this node
-                float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
-                                                 DISTANCE_SCALE_LOG +
-                                                 (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
-                distanceCoefficient = std::min(1.0f, distanceCoefficient);
-                
-                // multiply the current attenuation coefficient by the distance coefficient
-                attenuationCoefficient *= distanceCoefficient;
+                if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
+                    // calculate the distance coefficient using the distance to this node
+                    float distanceCoefficient = 1 - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
+                                                     * ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE);
+                    
+                    if (distanceCoefficient < 0) {
+                        distanceCoefficient = 0;
+                    }
+                    
+                    // multiply the current attenuation coefficient by the distance coefficient
+                    attenuationCoefficient *= distanceCoefficient;
+                }
                 
                 // project the rotated source position vector onto the XZ plane
                 rotatedSourcePosition.y = 0.0f;
@@ -482,8 +485,8 @@ void AudioMixer::run() {
 
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
     
-    // setup a QNetworkAccessManager to ask the domain-server for our settings
-    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
+    // setup a NetworkAccessManager to ask the domain-server for our settings
+    NetworkAccessManager& networkManager = NetworkAccessManager::getInstance();
     
     QUrl settingsJSONURL;
     settingsJSONURL.setScheme("http");
@@ -500,7 +503,7 @@ void AudioMixer::run() {
     qDebug() << "Requesting settings for assignment from domain-server at" << settingsJSONURL.toString();
     
     while (!reply || reply->error() != QNetworkReply::NoError) {
-        reply = networkManager->get(QNetworkRequest(settingsJSONURL));
+        reply = networkManager.get(QNetworkRequest(settingsJSONURL));
         
         QEventLoop loop;
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));

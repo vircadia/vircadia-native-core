@@ -36,9 +36,12 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     
     // load the existing config file to get the current values
     QFile configFile(QCoreApplication::applicationDirPath() + SETTINGS_CONFIG_FILE_RELATIVE_PATH);
-    configFile.open(QIODevice::ReadOnly);
     
-    _settingsMap = QJsonDocument::fromJson(configFile.readAll()).toVariant().toMap();
+    if (configFile.exists()) {
+        configFile.open(QIODevice::ReadOnly);
+        
+        _settingsMap = QJsonDocument::fromJson(configFile.readAll()).toVariant().toMap();
+    }
 }
 
 const QString DESCRIPTION_SETTINGS_KEY = "settings";

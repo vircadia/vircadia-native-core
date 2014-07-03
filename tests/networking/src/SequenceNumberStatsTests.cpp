@@ -115,6 +115,11 @@ void SequenceNumberStatsTests::earlyLateTest() {
             }
         }
         stats.reset();
+        numSent = 0;
+        numEarly = 0;
+        numLate = 0;
+        numLost = 0;
+        numRecovered = 0;
     }
 }
 
@@ -203,6 +208,11 @@ void SequenceNumberStatsTests::duplicateTest() {
             }
         }
         stats.reset();
+        numSent = 0;
+        numDuplicate = 0;
+        numEarly = 0;
+        numLate = 0;
+        numLost = 0;
     }
 }
 
@@ -263,5 +273,8 @@ void SequenceNumberStatsTests::pruneTest() {
             }
         }
         stats.reset();
+        numSent = 0;
+        numEarly = 0;
+        numLost = 0;
     }
 }

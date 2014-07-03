@@ -168,6 +168,7 @@ public:
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
     
     const SequenceNumberStats& getIncomingOctreeSequenceNumberStats() const { return _incomingOctreeSequenceNumberStats; }
+    SequenceNumberStats& getIncomingOctreeSequenceNumberStats() { return _incomingOctreeSequenceNumberStats; }
 
 private:
 

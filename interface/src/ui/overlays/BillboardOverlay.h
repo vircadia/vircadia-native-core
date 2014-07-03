@@ -27,12 +27,11 @@ public:
     virtual void setProperties(const QScriptValue& properties);
 
 private slots:
-    void replyFinished(QNetworkReply* reply);
+    void replyFinished();
 
 private:
     void setBillboardURL(const QUrl url);
     
-    QNetworkAccessManager* _manager;
     QUrl _url;
     QByteArray _billboard;
     QSize _size;
