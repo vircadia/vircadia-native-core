@@ -349,7 +349,6 @@ namespace MenuOption {
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
-    const QString DisplayOculusOverlays = "Display Oculus Overlays";
     const QString DisplayTimingDetails = "Display Timing Details";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
@@ -438,6 +437,7 @@ namespace MenuOption {
     const QString UploadAttachment = "Upload Attachment Model";
     const QString UploadHead = "Upload Head Model";
     const QString UploadSkeleton = "Upload Skeleton Model";
+    const QString UserInterface = "UserInterface";
     const QString Visage = "Visage";
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString Voxels = "Voxels";
