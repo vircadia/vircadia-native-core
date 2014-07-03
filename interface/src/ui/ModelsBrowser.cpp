@@ -214,7 +214,7 @@ void ModelHandler::update() {
         NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest request(url);
         QNetworkReply* reply = networkAccessManager.head(request);
-        connect(reply, SIGNAL(finished()), SLOT(processCheck()));
+        connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
     }
     _lock.unlock();
 }
@@ -266,7 +266,7 @@ void ModelHandler::queryNewFiles(QString marker) {
     NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest request(url);
     QNetworkReply* reply = networkAccessManager.get(request);
-    connect(reply, SIGNAL(finished()), SLOT(processCheck()));
+    connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
             
 }
 
