@@ -51,7 +51,10 @@ void DatagramProcessor::processDatagrams() {
                     QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
                                               Q_ARG(QByteArray, incomingPacket));
                     break;
-                    
+                case PacketTypeAudioStreamStats:
+                    QMetaObject::invokeMethod(&application->_audio, "parseAudioStreamStatsPacket", Qt::QueuedConnection,
+                        Q_ARG(QByteArray, incomingPacket));
+                    break;
                 case PacketTypeParticleAddResponse:
                     // this will keep creatorTokenIDs to IDs mapped correctly
                     Particle::handleAddParticleResponse(incomingPacket);
@@ -146,13 +149,19 @@ void DatagramProcessor::processDatagrams() {
                     break;
                 }
                 case PacketTypeVoxelEditNack:
-                    application->_voxelEditSender.processNackPacket(incomingPacket);
+                    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
+                        application->_voxelEditSender.processNackPacket(incomingPacket);
+                    }
                     break;
                 case PacketTypeParticleEditNack:
-                    application->_particleEditSender.processNackPacket(incomingPacket);
+                    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
+                        application->_particleEditSender.processNackPacket(incomingPacket);
+                    }
                     break;
                 case PacketTypeModelEditNack:
-                    application->_modelEditSender.processNackPacket(incomingPacket);
+                    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
+                        application->_modelEditSender.processNackPacket(incomingPacket);
+                    }
                     break;
                 default:
                     nodeList->processNodeData(senderSockAddr, incomingPacket);

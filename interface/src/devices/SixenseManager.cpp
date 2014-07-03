@@ -13,6 +13,7 @@
 
 #include "Application.h"
 #include "SixenseManager.h"
+#include "UserActivityLogger.h"
 
 #ifdef HAVE_SIXENSE
 const int CALIBRATION_STATE_IDLE = 0;
@@ -39,6 +40,7 @@ SixenseManager::SixenseManager() {
 
     sixenseInit();
 #endif
+    _hydrasConnected = false;
     _triggerPressed[0] = false;
     _bumperPressed[0] = false;
     _oldX[0] = -1;
@@ -69,8 +71,22 @@ void SixenseManager::setFilter(bool filter) {
 
 void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
+    // if the controllers haven't been moved in a while, disable
+    const unsigned int MOVEMENT_DISABLE_SECONDS = 3;
+    if (usecTimestampNow() - _lastMovement > (MOVEMENT_DISABLE_SECONDS * USECS_PER_SECOND)) {
+        Hand* hand = Application::getInstance()->getAvatar()->getHand();
+        for (std::vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
+            it->setActive(false);
+        }
+        _lastMovement = usecTimestampNow();
+    }
+
     if (sixenseGetNumActiveControllers() == 0) {
+        _hydrasConnected = false;
         return;
+    } else if (!_hydrasConnected) {
+        _hydrasConnected = true;
+        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
     }
     MyAvatar* avatar = Application::getInstance()->getAvatar();
     Hand* hand = avatar->getHand();
@@ -148,6 +164,11 @@ void SixenseManager::update(float deltaTime) {
         //  no latency.
         float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
         palm->setRawPosition(palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter));
+
+        // adjustment for hydra controllers fit into hands
+        float sign = (i == 0) ? -1.0f : 1.0f;
+        rotation *= glm::angleAxis(sign * PI/4.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+
         palm->setRawRotation(safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter));
         
         // use the velocity to determine whether there's any movement (if the hand isn't new)
@@ -173,14 +194,6 @@ void SixenseManager::update(float deltaTime) {
 
     if (numActiveControllers == 2) {
         updateCalibration(controllers);
-    }
-
-    // if the controllers haven't been moved in a while, disable
-    const unsigned int MOVEMENT_DISABLE_SECONDS = 3;
-    if (usecTimestampNow() - _lastMovement > (MOVEMENT_DISABLE_SECONDS * USECS_PER_SECOND)) {
-        for (std::vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
-            it->setActive(false);
-        }
     }
 #endif  // HAVE_SIXENSE
 }

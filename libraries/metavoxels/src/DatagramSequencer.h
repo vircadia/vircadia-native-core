@@ -111,6 +111,9 @@ public:
     /// Sends the packet currently being written. 
     void endPacket();
     
+    /// Cancels the packet currently being written.
+    void cancelPacket();
+    
     /// Processes a datagram received from the other party, emitting readyToRead when the entire packet
     /// has been successfully assembled.
     Q_INVOKABLE void receivedDatagram(const QByteArray& datagram);

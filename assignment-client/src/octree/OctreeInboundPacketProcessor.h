@@ -14,9 +14,10 @@
 #ifndef hifi_OctreeInboundPacketProcessor_h
 #define hifi_OctreeInboundPacketProcessor_h
 
-#include <map>
-
 #include <ReceivedPacketProcessor.h>
+
+#include "SequenceNumberStats.h"
+
 class OctreeServer;
 
 class SingleSenderStats {
@@ -32,7 +33,9 @@ public:
                 { return _totalElementsInPacket == 0 ? 0 : _totalProcessTime / _totalElementsInPacket; }
     quint64 getAverageLockWaitTimePerElement() const 
                 { return _totalElementsInPacket == 0 ? 0 : _totalLockWaitTime / _totalElementsInPacket; }
-    const QSet<unsigned short int>& getMissingSequenceNumbers() const { return _missingSequenceNumbers; }
+    
+    const SequenceNumberStats& getIncomingEditSequenceNumberStats() const { return _incomingEditSequenceNumberStats; }
+    SequenceNumberStats& getIncomingEditSequenceNumberStats() { return _incomingEditSequenceNumberStats; }
 
     void trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
         int editsInPacket, quint64 processTime, quint64 lockWaitTime);
@@ -42,9 +45,7 @@ public:
     quint64 _totalLockWaitTime;
     quint64 _totalElementsInPacket;
     quint64 _totalPackets;
-
-    unsigned short int _incomingLastSequence;
-    QSet<unsigned short int> _missingSequenceNumbers;
+    SequenceNumberStats _incomingEditSequenceNumberStats;
 };
 
 typedef QHash<QUuid, SingleSenderStats> NodeToSenderStatsMap;
@@ -73,6 +74,8 @@ public:
 
     NodeToSenderStatsMap& getSingleSenderStats() { return _singleSenderStats; }
 
+    void shuttingDown() { _shuttingDown = true;}
+
 protected:
 
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
@@ -100,5 +103,6 @@ private:
     NodeToSenderStatsMap _singleSenderStats;
 
     quint64 _lastNackTime;
+    bool _shuttingDown;
 };
 #endif // hifi_OctreeInboundPacketProcessor_h

@@ -16,6 +16,8 @@
 #include <QTimer>
 #include <QtDebug>
 
+#include "NetworkAccessManager.h"
+
 #include "ResourceCache.h"
 
 ResourceCache::ResourceCache(QObject* parent) :
@@ -102,8 +104,6 @@ void ResourceCache::requestCompleted(Resource* resource) {
         attemptRequest(_pendingRequests.takeAt(highestIndex));
     }
 }
-
-QNetworkAccessManager* ResourceCache::_networkAccessManager = NULL;
 
 const int DEFAULT_REQUEST_LIMIT = 10;
 int ResourceCache::_requestLimit = DEFAULT_REQUEST_LIMIT;
@@ -219,7 +219,7 @@ void Resource::init() {
     if (_url.isEmpty()) {
         _startedLoading = _loaded = true;
         
-    } else if (!(_url.isValid() && ResourceCache::getNetworkAccessManager())) {
+    } else if (!(_url.isValid())) {
         _startedLoading = _failedToLoad = true;
     }
 }
@@ -272,7 +272,7 @@ void Resource::handleReplyTimeout() {
 }
 
 void Resource::makeRequest() {
-    _reply = ResourceCache::getNetworkAccessManager()->get(_request);
+    _reply = NetworkAccessManager::getInstance().get(_request);
     
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));

@@ -14,6 +14,8 @@
 
 #include <QEventLoop>
 
+#include <NetworkAccessManager.h>
+
 #include "XMLHttpRequestClass.h"
 
 XMLHttpRequestClass::XMLHttpRequestClass(QScriptEngine* engine) :
@@ -22,7 +24,6 @@ XMLHttpRequestClass::XMLHttpRequestClass(QScriptEngine* engine) :
     _url(),
     _method(""),
     _responseType(""),
-    _manager(this),
     _request(),
     _reply(NULL),
     _sendData(NULL),
@@ -161,7 +162,7 @@ void XMLHttpRequestClass::send(const QString& data) {
 }
 
 void XMLHttpRequestClass::doSend() {
-    _reply = _manager.sendCustomRequest(_request, _method.toLatin1(), _sendData);
+    _reply = NetworkAccessManager::getInstance().sendCustomRequest(_request, _method.toLatin1(), _sendData);
 
     connectToReply(_reply);
 

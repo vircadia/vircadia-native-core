@@ -20,7 +20,7 @@
 #include "InjectedAudioRingBuffer.h"
 
 InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier, bool dynamicJitterBuffer) :
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Injector, /* isStereo=*/ false , dynamicJitterBuffer),
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Injector, false, dynamicJitterBuffer),
     _streamIdentifier(streamIdentifier),
     _radius(0.0f),
     _attenuationRatio(0)
@@ -38,6 +38,9 @@ int InjectedAudioRingBuffer::parseData(const QByteArray& packet) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     
+    // push past the sequence number
+    packetStream.skipRawData(sizeof(quint16));
+
     // push past the stream identifier
     packetStream.skipRawData(NUM_BYTES_RFC4122_UUID);
     

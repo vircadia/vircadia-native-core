@@ -10,7 +10,6 @@
 //
 
 #include <QJsonObject>
-#include <QNetworkAccessManager>
 #include <QTimer>
 #include <QUuid>
 
@@ -1097,6 +1096,8 @@ void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
 
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
+    qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
+    _octreeInboundPacketProcessor->shuttingDown();
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);

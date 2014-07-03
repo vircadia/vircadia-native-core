@@ -58,6 +58,8 @@ private:
     AABox* _sourceUnattenuatedZone;
     AABox* _listenerUnattenuatedZone;
     static bool _useDynamicJitterBuffers;
+
+    quint64 _lastSendAudioStreamStatsTime;
 };
 
 #endif // hifi_AudioMixer_h

@@ -140,6 +140,12 @@ void DatagramSequencer::endPacket() {
     _outgoingPacketStream.device()->seek(0);
 }
 
+void DatagramSequencer::cancelPacket() {
+    _outputStream.reset();
+    _outputStream.getAndResetWriteMappings();
+    _outgoingPacketStream.device()->seek(0);
+}
+
 /// Simple RAII-style object to keep a device open when in scope.
 class QIODeviceOpener {
 public:

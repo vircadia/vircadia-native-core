@@ -32,7 +32,6 @@
 #include <QKeyEvent>
 #include <QMenuBar>
 #include <QMouseEvent>
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
@@ -53,22 +52,25 @@
 
 #include <AccountManager.h>
 #include <AudioInjector.h>
+#include <LocalVoxelsList.h>
 #include <Logging.h>
 #include <ModelsScriptingInterface.h>
+#include <NetworkAccessManager.h>
 #include <OctalCode.h>
+#include <OctreeSceneStats.h>
 #include <PacketHeaders.h>
 #include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
+#include <UserActivityLogger.h>
 #include <UUID.h>
-#include <OctreeSceneStats.h>
-#include <LocalVoxelsList.h>
 
 #include "Application.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
 #include "Util.h"
+#include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
@@ -268,6 +270,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
+    UserActivityLogger::getInstance().launch(applicationVersion());
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
@@ -312,12 +315,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
-    _networkAccessManager = new QNetworkAccessManager(this);
-    QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    
+    // Make sure cache on same thread than its parent (NetworkAccessManager)
+    QNetworkDiskCache* cache = new QNetworkDiskCache();
+    cache->moveToThread(networkAccessManager.thread());
+    cache->setParent(&networkAccessManager);
+    
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
-    _networkAccessManager->setCache(cache);
+    networkAccessManager.setCache(cache);
 
-    ResourceCache::setNetworkAccessManager(_networkAccessManager);
     ResourceCache::setRequestLimit(3);
 
     _window->setCentralWidget(_glWidget);
@@ -393,19 +400,28 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig();
 
     _trayIcon->show();
+    
+#ifdef HAVE_RTMIDI
+    // setup the MIDIManager
+    MIDIManager& midiManagerInstance = MIDIManager::getInstance();
+    midiManagerInstance.openDefaultPort();
+#endif
 }
 
 Application::~Application() {
-
     qInstallMessageHandler(NULL);
-
+    
+    saveSettings();
+    storeSizeAndPosition();
+    saveScripts();
+    
+    int DELAY_TIME = 1000;
+    UserActivityLogger::getInstance().close(DELAY_TIME);
+    
     // make sure we don't call the idle timer any more
     delete idleTimer;
-
+    
     _sharedVoxelSystem.changeTree(new VoxelTree);
-
-    saveSettings();
-
     delete _voxelImporter;
 
     // let the avatar mixer know we're out
@@ -428,8 +444,6 @@ Application::~Application() {
     _particleEditSender.terminate();
     _modelEditSender.terminate();
 
-    storeSizeAndPosition();
-    saveScripts();
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
@@ -437,8 +451,6 @@ Application::~Application() {
     _myAvatar = NULL;
 
     delete _glWidget;
-
-    AccountManager::getInstance().destroy();
 }
 
 void Application::saveSettings() {
@@ -2182,10 +2194,11 @@ int Application::sendNackPackets() {
                 _octreeSceneStatsLock.unlock();
                 continue;
             }
-            OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
 
-            // make copy of missing sequence numbers from stats
-            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = stats.getMissingSequenceNumbers();
+            // get sequence number stats of node, prune its missing set, and make a copy of the missing set
+            SequenceNumberStats& sequenceNumberStats = _octreeServerSceneStats[nodeUUID].getIncomingOctreeSequenceNumberStats();
+            sequenceNumberStats.pruneMissingSet();
+            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = sequenceNumberStats.getMissingSet();
 
             _octreeSceneStatsLock.unlock();
 
@@ -3312,6 +3325,10 @@ void Application::nodeKilled(SharedNodePointer node) {
     _particleEditSender.nodeKilled(node);
     _modelEditSender.nodeKilled(node);
 
+    if (node->getType() == NodeType::AudioMixer) {
+        QMetaObject::invokeMethod(&_audio, "resetIncomingMixedAudioSequenceNumberStats");
+    }
+
     if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
@@ -3580,6 +3597,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
         _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        UserActivityLogger::getInstance().loadedScript(scriptURLString);
     }
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
@@ -3622,6 +3640,10 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
+    
+#ifdef HAVE_RTMIDI
+    scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
+#endif
 
     QThread* workerThread = new QThread(this);
 
@@ -3634,6 +3656,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
+
+    NodeList* nodeList = NodeList::getInstance();
+    connect(nodeList, &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
 
     scriptEngine->moveToThread(workerThread);
 
@@ -3650,7 +3675,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 }
 
 void Application::scriptFinished(const QString& scriptName) {
-    QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptName);
+    const QString& scriptURLString = QUrl(scriptName).toString();
+    QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptURLString);
     if (it != _scriptEnginesHash.end()) {
         _scriptEnginesHash.erase(it);
         _runningScriptsWidget->scriptStopped(scriptName);
@@ -3796,7 +3822,8 @@ void Application::initAvatarAndViewFrustum() {
 void Application::checkVersion() {
     QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
     latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    connect(Application::getInstance()->getNetworkAccessManager()->get(latestVersionRequest), SIGNAL(finished()), SLOT(parseVersionXml()));
+    QNetworkReply* reply = NetworkAccessManager::getInstance().get(latestVersionRequest);
+    connect(reply, SIGNAL(finished()), SLOT(parseVersionXml()));
 }
 
 void Application::parseVersionXml() {

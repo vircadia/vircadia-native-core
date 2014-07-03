@@ -29,6 +29,7 @@
 #include <QVBoxLayout>
 
 #include <AttributeRegistry.h>
+#include <MetavoxelMessages.h>
 
 #include "Application.h"
 #include "MetavoxelEditor.h"

@@ -11,6 +11,7 @@
 
 #include "NodeList.h"
 #include "PacketHeaders.h"
+#include "UserActivityLogger.h"
 
 #include "DomainHandler.h"
 
@@ -83,6 +84,7 @@ void DomainHandler::setHostname(const QString& hostname) {
         qDebug("Looking up DS hostname %s.", _hostname.toLocal8Bit().constData());
         QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
         
+        UserActivityLogger::getInstance().changedDomain(_hostname);
         emit hostnameChanged(_hostname);
     }
 }

@@ -17,6 +17,7 @@
 #include <QOpenGLFramebufferObject>
 
 #include <glm/glm.hpp>
+#include <UserActivityLogger.h>
 
 #include "Application.h"
 
@@ -61,6 +62,9 @@ void OculusManager::connect() {
 
     _ovrHmd = ovrHmd_Create(0);
     if (_ovrHmd) {
+        if (!_isConnected) {
+            UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
+        }
         _isConnected = true;
       
         ovrHmd_GetDesc(_ovrHmd, &_ovrHmdDesc);

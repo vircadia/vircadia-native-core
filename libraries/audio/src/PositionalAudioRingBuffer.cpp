@@ -85,10 +85,10 @@ quint64 InterframeTimeGapStats::getWindowMaxGap() {
 }
 
 
-PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, 
-        bool isStereo, bool dynamicJitterBuffers) :
+PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo, bool dynamicJitterBuffers) :
         
-    AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
+    AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+                    false, AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
@@ -98,7 +98,7 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _isStereo(isStereo),
     _listenerUnattenuatedZone(NULL),
     _desiredJitterBufferFrames(1),
-    _currentJitterBufferFrames(0),
+    _currentJitterBufferFrames(-1),
     _dynamicJitterBuffers(dynamicJitterBuffers)
 {
 }
@@ -107,6 +107,9 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
     
     // skip the packet header (includes the source UUID)
     int readBytes = numBytesForPacketHeader(packet);
+
+    // skip the sequence number
+    readBytes += sizeof(quint16);
     
     // hop over the channel flag that has already been read in AudioMixerClientData
     readBytes += sizeof(quint8);
@@ -203,18 +206,18 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     if (!isNotStarvedOrHasMinimumSamples(samplesPerFrame + desiredJitterBufferSamples)) {
         // if the buffer was starved, allow it to accrue at least the desired number of
         // jitter buffer frames before we start taking frames from it for mixing
-
+        
         if (_shouldOutputStarveDebug) {
             _shouldOutputStarveDebug = false;
         }
 
         return  false;
-    } else if (samplesAvailable() < (unsigned int)samplesPerFrame) { 
+    } else if (samplesAvailable() < samplesPerFrame) { 
         // if the buffer doesn't have a full frame of samples to take for mixing, it is starved
         _isStarved = true;
         
-        // set to 0 to indicate the jitter buffer is starved
-        _currentJitterBufferFrames = 0;
+        // set to -1 to indicate the jitter buffer is starved
+        _currentJitterBufferFrames = -1;
         
         // reset our _shouldOutputStarveDebug to true so the next is printed
         _shouldOutputStarveDebug = true;
@@ -253,12 +256,12 @@ void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
             _desiredJitterBufferFrames = 1; // HACK to see if this fixes the audio silence
         } else {
             const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
-         
+            
             _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
             if (_desiredJitterBufferFrames < 1) {
                 _desiredJitterBufferFrames = 1;
             }
-            const int maxDesired = RING_BUFFER_LENGTH_FRAMES - 1;
+            const int maxDesired = _frameCapacity - 1;
             if (_desiredJitterBufferFrames > maxDesired) {
                 _desiredJitterBufferFrames = maxDesired;
             }
