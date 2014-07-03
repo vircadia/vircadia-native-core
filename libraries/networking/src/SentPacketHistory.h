@@ -15,10 +15,12 @@
 #include <qbytearray.h>
 #include <qvector.h>
 
+#include "SequenceNumberStats.h"
+
 class SentPacketHistory {
 
 public:
-    SentPacketHistory(int size = 1000);
+    SentPacketHistory(int size = MAX_REASONABLE_SEQUENCE_GAP);
 
     void packetSent(uint16_t sequenceNumber, const QByteArray& packet);
     const QByteArray* getPacket(uint16_t sequenceNumber) const;

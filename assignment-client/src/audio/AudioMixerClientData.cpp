@@ -101,8 +101,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         if (!matchingInjectedRingBuffer) {
             // we don't have a matching injected audio ring buffer, so add it
-            matchingInjectedRingBuffer = new InjectedAudioRingBuffer(streamIdentifier, 
-                                                    AudioMixer::getUseDynamicJitterBuffers());
+            matchingInjectedRingBuffer = new InjectedAudioRingBuffer(streamIdentifier, AudioMixer::getUseDynamicJitterBuffers());
             _ringBuffers.push_back(matchingInjectedRingBuffer);
         }
 
