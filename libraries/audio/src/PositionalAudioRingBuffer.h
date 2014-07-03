@@ -105,6 +105,11 @@ protected:
     int _desiredJitterBufferFrames;
     int _currentJitterBufferFrames;
     bool _dynamicJitterBuffers;
+
+    // extra stats
+    int _starveCount;
+    int _silentFramesDropped;
+
 };
 
 #endif // hifi_PositionalAudioRingBuffer_h

@@ -88,7 +88,7 @@ quint64 InterframeTimeGapStats::getWindowMaxGap() {
 PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo, bool dynamicJitterBuffers) :
         
     AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-                    AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY),
+                    false, AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
@@ -98,7 +98,7 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _isStereo(isStereo),
     _listenerUnattenuatedZone(NULL),
     _desiredJitterBufferFrames(1),
-    _currentJitterBufferFrames(0),
+    _currentJitterBufferFrames(-1),
     _dynamicJitterBuffers(dynamicJitterBuffers)
 {
 }
@@ -216,8 +216,8 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
         // if the buffer doesn't have a full frame of samples to take for mixing, it is starved
         _isStarved = true;
         
-        // set to 0 to indicate the jitter buffer is starved
-        _currentJitterBufferFrames = 0;
+        // set to -1 to indicate the jitter buffer is starved
+        _currentJitterBufferFrames = -1;
         
         // reset our _shouldOutputStarveDebug to true so the next is printed
         _shouldOutputStarveDebug = true;
