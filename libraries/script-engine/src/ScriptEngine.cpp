@@ -13,7 +13,6 @@
 #include <QtCore/QEventLoop>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
-#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 #include <QScriptEngine>
@@ -23,6 +22,7 @@
 #include <AvatarData.h>
 #include <CollisionInfo.h>
 #include <ModelsScriptingInterface.h>
+#include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <ParticlesScriptingInterface.h>
@@ -142,8 +142,8 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
                 emit errorMessage("ERROR Loading file:" + fileName);
             }
         } else {
-            QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
-            QNetworkReply* reply = networkManager->get(QNetworkRequest(url));
+            NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
             qDebug() << "Downloading included script at" << url;
             QEventLoop loop;
             QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
@@ -648,8 +648,8 @@ void ScriptEngine::include(const QString& includeFile) {
     QString includeContents;
 
     if (url.scheme() == "http" || url.scheme() == "ftp") {
-        QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
-        QNetworkReply* reply = networkManager->get(QNetworkRequest(url));
+        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
         qDebug() << "Downloading included script at" << includeFile;
         QEventLoop loop;
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));

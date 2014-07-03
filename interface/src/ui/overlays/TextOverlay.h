@@ -16,7 +16,6 @@
 
 #include <QGLWidget>
 #include <QImage>
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QRect>
 #include <QScriptValue>

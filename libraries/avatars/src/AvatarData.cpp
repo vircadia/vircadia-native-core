@@ -16,10 +16,10 @@
 #include <QtCore/QDataStream>
 #include <QtCore/QThread>
 #include <QtCore/QUuid>
-#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
+#include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -32,8 +32,6 @@
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
 using namespace std;
-
-QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
 
 AvatarData::AvatarData() :
     _sessionUUID(),
@@ -751,18 +749,15 @@ void AvatarData::setBillboard(const QByteArray& billboard) {
 void AvatarData::setBillboardFromURL(const QString &billboardURL) {
     _billboardURL = billboardURL;
     
-    if (AvatarData::networkAccessManager) {
-        qDebug() << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
-        
-        QNetworkRequest billboardRequest;
-        billboardRequest.setUrl(QUrl(billboardURL));
-        
-        QNetworkReply* networkReply = AvatarData::networkAccessManager->get(billboardRequest);
-        connect(networkReply, SIGNAL(finished()), this, SLOT(setBillboardFromNetworkReply()));
-        
-    } else {
-        qDebug() << "Billboard PNG download requested but no network access manager is available.";
-    }
+    
+    qDebug() << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
+    
+    QNetworkRequest billboardRequest;
+    billboardRequest.setUrl(QUrl(billboardURL));
+    
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkReply* networkReply = networkAccessManager.get(billboardRequest);
+    connect(networkReply, SIGNAL(finished()), this, SLOT(setBillboardFromNetworkReply()));
 }
 
 void AvatarData::setBillboardFromNetworkReply() {
@@ -839,8 +834,9 @@ void AvatarData::updateJointMappings() {
     _jointIndices.clear();
     _jointNames.clear();
     
-    if (networkAccessManager && _skeletonModelURL.fileName().toLower().endsWith(".fst")) {
-        QNetworkReply* networkReply = networkAccessManager->get(QNetworkRequest(_skeletonModelURL));
+    if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
+        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkReply* networkReply = networkAccessManager.get(QNetworkRequest(_skeletonModelURL));
         connect(networkReply, SIGNAL(finished()), this, SLOT(setJointMappingsFromNetworkReply()));
     }
 }

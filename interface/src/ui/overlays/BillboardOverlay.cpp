@@ -14,8 +14,7 @@
 #include "BillboardOverlay.h"
 
 BillboardOverlay::BillboardOverlay()
-: _manager(NULL),
-  _scale(1.0f),
+: _scale(1.0f),
   _isFacingAvatar(true) {
 }
 
@@ -119,18 +118,13 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
-// TODO: handle setting image multiple times, how do we manage releasing the bound texture?
 void BillboardOverlay::setBillboardURL(const QUrl url) {
-    // TODO: are we creating too many QNetworkAccessManager() when multiple calls to setImageURL are made?
-    _manager->deleteLater();
-    _manager = new QNetworkAccessManager();
-    connect(_manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinished(QNetworkReply*)));
-    _manager->get(QNetworkRequest(url));
+    QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(url));
+    connect(reply, &QNetworkReply::finished, this, &BillboardOverlay::replyFinished);
 }
 
-void BillboardOverlay::replyFinished(QNetworkReply* reply) {
+void BillboardOverlay::replyFinished() {
     // replace our byte array with the downloaded data
+    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
     _billboard = reply->readAll();
-    _manager->deleteLater();
-    _manager = NULL;
 }

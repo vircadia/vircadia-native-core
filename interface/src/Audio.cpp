@@ -432,7 +432,7 @@ void Audio::handleAudioInput() {
 
     float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio(_numInputCallbackBytes);
 
-    unsigned int inputSamplesRequired = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio;
+    int inputSamplesRequired = (int)((float)NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
 
     QByteArray inputByteArray = _inputDevice->readAll();
     
@@ -1379,8 +1379,10 @@ bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
     
     // cleanup any previously initialized device
     if (_audioInput) {
+        // The call to stop() causes _inputDevice to be destructed.
+        // That in turn causes it to be disconnected (see for example
+        // http://stackoverflow.com/questions/9264750/qt-signals-and-slots-object-disconnect).
         _audioInput->stop();
-        disconnect(_inputDevice);
         _inputDevice = NULL;
 
         delete _audioInput;
