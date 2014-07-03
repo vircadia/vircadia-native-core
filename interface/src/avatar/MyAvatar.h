@@ -83,6 +83,9 @@ public:
     
     /// Stops an animation identified by its role.
     Q_INVOKABLE void stopAnimationByRole(const QString& role);
+
+    Q_INVOKABLE AnimationDetails getAnimationDetailsByRole(const QString& role);
+    Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     
     // get/set avatar data
     void saveData(QSettings* settings);
