@@ -91,6 +91,7 @@ AudioMixer::~AudioMixer() {
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
+const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
                                                           AvatarAudioRingBuffer* listeningNodeBuffer) {
@@ -128,7 +129,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             attenuationCoefficient *= reinterpret_cast<InjectedAudioRingBuffer*>(bufferToAdd)->getAttenuationRatio();
         }
         
-        shouldAttenuate = (relativePosition != glm::vec3(0.0f, 0.0f, 0.0f));
+        shouldAttenuate = shouldAttenuate && distanceBetween > ATTENUATION_EPSILON_DISTANCE;
         
         if (shouldAttenuate) {
             glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
