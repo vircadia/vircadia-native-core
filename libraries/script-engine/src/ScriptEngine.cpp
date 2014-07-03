@@ -471,7 +471,10 @@ void ScriptEngine::run() {
 
                 // pack a placeholder value for sequence number for now, will be packed when destination node is known
                 int numPreSequenceNumberBytes = audioPacket.size();
-                packetStream << (quint16)0;
+                packetStream << (quint16) 0;
+                
+                // assume scripted avatar audio is mono and set channel flag to zero
+                packetStream << (quint8) 0;
 
                 // use the orientation and position of this avatar for the source of this audio
                 packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));

@@ -8,9 +8,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AngularConstraintTests.h"
 #include "MovingPercentileTests.h"
 
 int main(int argc, char** argv) {
     MovingPercentileTests::runAllTests();
+    AngularConstraintTests::runAllTests();
     return 0;
 }

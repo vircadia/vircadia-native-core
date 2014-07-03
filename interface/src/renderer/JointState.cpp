@@ -11,6 +11,8 @@
 
 #include <glm/gtx/norm.hpp>
 
+#include <AngularConstraint.h>
+//#include <GeometryUtil.h>
 #include <SharedUtil.h>
 
 #include "JointState.h"
@@ -18,7 +20,48 @@
 JointState::JointState() :
     _animationPriority(0.0f),
     _fbxJoint(NULL),
-    _isConstrained(false) {
+    _constraint(NULL) {
+}
+
+JointState::JointState(const JointState& other) : _constraint(NULL) {
+    _transform = other._transform;
+    _rotation = other._rotation;
+    _rotationInParentFrame = other._rotationInParentFrame;
+    _animationPriority = other._animationPriority;
+    _fbxJoint = other._fbxJoint;
+    // DO NOT copy _constraint
+}
+
+JointState::~JointState() {
+    delete _constraint;
+    _constraint = NULL;
+    if (_constraint) {
+        delete _constraint;
+        _constraint = NULL;
+    }
+}
+
+void JointState::setFBXJoint(const FBXJoint* joint) {
+    assert(joint != NULL);
+    _rotationInParentFrame = joint->rotation;
+    // NOTE: JointState does not own the FBXJoint to which it points.
+    _fbxJoint = joint;
+    if (_constraint) {
+        delete _constraint;
+        _constraint = NULL;
+    }
+}
+
+void JointState::updateConstraint() {
+    if (_constraint) {
+        delete _constraint;
+        _constraint = NULL;
+    }
+    if (glm::distance2(glm::vec3(-PI), _fbxJoint->rotationMin) > EPSILON || 
+            glm::distance2(glm::vec3(PI), _fbxJoint->rotationMax) > EPSILON ) {
+        // this joint has rotation constraints
+        _constraint = AngularConstraint::newAngularConstraint(_fbxJoint->rotationMin, _fbxJoint->rotationMax);
+    }
 }
 
 void JointState::copyState(const JointState& state) {
@@ -30,18 +73,7 @@ void JointState::copyState(const JointState& state) {
     _visibleTransform = state._visibleTransform;
     _visibleRotation = extractRotation(_visibleTransform);
     _visibleRotationInParentFrame = state._visibleRotationInParentFrame;
-    // DO NOT copy _fbxJoint
-}
-
-void JointState::setFBXJoint(const FBXJoint* joint) {
-    assert(joint != NULL);
-    _rotationInParentFrame = joint->rotation;
-    // NOTE: JointState does not own the FBXJoint to which it points.
-    _fbxJoint = joint;
-    // precompute whether there are any constraints or not
-    float distanceMin = glm::distance(_fbxJoint->rotationMin, glm::vec3(-PI));
-    float distanceMax = glm::distance(_fbxJoint->rotationMax, glm::vec3(PI));
-    _isConstrained = distanceMin > EPSILON || distanceMax > EPSILON;
+    // DO NOT copy _fbxJoint or _constraint
 }
 
 void JointState::computeTransform(const glm::mat4& parentTransform) {
@@ -70,11 +102,15 @@ void JointState::restoreRotation(float fraction, float priority) {
     }
 }
 
-void JointState::setRotationFromBindFrame(const glm::quat& rotation, float priority) {
+void JointState::setRotationFromBindFrame(const glm::quat& rotation, float priority, bool constrain) {
     // rotation is from bind- to model-frame
     assert(_fbxJoint != NULL);
     if (priority >= _animationPriority) {
-        setRotationInParentFrame(_rotationInParentFrame * glm::inverse(_rotation) * rotation * glm::inverse(_fbxJoint->inverseBindRotation));
+        glm::quat targetRotation = _rotationInParentFrame * glm::inverse(_rotation) * rotation * glm::inverse(_fbxJoint->inverseBindRotation);
+        if (constrain && _constraint) {
+            _constraint->softClamp(targetRotation, _rotationInParentFrame, 0.5f);
+        }
+        setRotationInParentFrame(targetRotation);
         _animationPriority = priority;
     }
 }
@@ -99,7 +135,7 @@ void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, floa
         return;
     }
     _animationPriority = priority;
-    if (!constrain || !_isConstrained) {
+    if (!constrain || _constraint == NULL) {
         // no constraints
         _rotationInParentFrame = _rotationInParentFrame * glm::inverse(_rotation) * delta * _rotation;
         _rotation = delta * _rotation;
@@ -122,9 +158,11 @@ void JointState::mixRotationDelta(const glm::quat& delta, float mixFactor, float
     if (mixFactor > 0.0f && mixFactor <= 1.0f) {
         targetRotation = safeMix(targetRotation, _fbxJoint->rotation, mixFactor);
     }
+    if (_constraint) {
+        _constraint->softClamp(targetRotation, _rotationInParentFrame, 0.5f);
+    }
     setRotationInParentFrame(targetRotation);
 }
-
 
 glm::quat JointState::computeParentRotation() const {
     // R = Rp * Rpre * r * Rpost
