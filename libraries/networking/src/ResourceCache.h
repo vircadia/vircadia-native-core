@@ -22,7 +22,6 @@
 #include <QUrl>
 #include <QWeakPointer>
 
-class QNetworkAccessManager;
 class QNetworkReply;
 class QTimer;
 
@@ -33,10 +32,6 @@ class ResourceCache : public QObject {
     Q_OBJECT
     
 public:
-
-    static void setNetworkAccessManager(QNetworkAccessManager* manager) { _networkAccessManager = manager; }
-    static QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
-
     static void setRequestLimit(int limit) { _requestLimit = limit; }
     static int getRequestLimit() { return _requestLimit; }
 
@@ -76,7 +71,6 @@ private:
     QHash<QUrl, QWeakPointer<Resource> > _resources;
     int _lastLRUKey;
     
-    static QNetworkAccessManager* _networkAccessManager;
     static int _requestLimit;
     static QList<QPointer<Resource> > _pendingRequests;
     static QList<Resource*> _loadingRequests;
