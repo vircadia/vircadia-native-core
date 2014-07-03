@@ -36,10 +36,10 @@ void AngularConstraintTests::testHingeConstraint() {
         glm::quat rotation = glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should not applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should not clamp()" << std::endl;
         }
         if (rotation != newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -51,10 +51,10 @@ void AngularConstraintTests::testHingeConstraint() {
         glm::quat rotation = glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should not applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should not clamp()" << std::endl;
         }
         if (rotation != newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -66,10 +66,10 @@ void AngularConstraintTests::testHingeConstraint() {
         glm::quat rotation = glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should not applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should not clamp()" << std::endl;
         }
         if (rotation != newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -81,10 +81,10 @@ void AngularConstraintTests::testHingeConstraint() {
         glm::quat rotation = glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -102,10 +102,10 @@ void AngularConstraintTests::testHingeConstraint() {
         glm::quat rotation = glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -123,10 +123,10 @@ void AngularConstraintTests::testHingeConstraint() {
         glm::quat rotation = glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -144,10 +144,10 @@ void AngularConstraintTests::testHingeConstraint() {
         glm::quat rotation = glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -169,10 +169,10 @@ void AngularConstraintTests::testHingeConstraint() {
         glm::quat rotation = offRotation * glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -193,10 +193,10 @@ void AngularConstraintTests::testHingeConstraint() {
         rotation = offRotation * glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -217,10 +217,10 @@ void AngularConstraintTests::testHingeConstraint() {
         rotation = offRotation * glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -241,10 +241,10 @@ void AngularConstraintTests::testHingeConstraint() {
         rotation = offRotation * glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -265,10 +265,10 @@ void AngularConstraintTests::testHingeConstraint() {
         rotation = offRotation * glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: HingeConstraint should applyTo()" << std::endl;
+                << " ERROR: HingeConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -315,10 +315,10 @@ void AngularConstraintTests::testConeRollerConstraint() {
         glm::quat rotation(angles);
 
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not applyTo()" << std::endl;
+                << " ERROR: ConeRollerConstraint should not clamp()" << std::endl;
         }
         if (rotation != newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -330,10 +330,10 @@ void AngularConstraintTests::testConeRollerConstraint() {
         glm::quat rotation = glm::angleAxis(expectedConeAngle - deltaAngle, perpAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not applyTo()" << std::endl;
+                << " ERROR: ConeRollerConstraint should not clamp()" << std::endl;
         }
         if (rotation != newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -344,10 +344,10 @@ void AngularConstraintTests::testConeRollerConstraint() {
         glm::quat rotation = glm::angleAxis(expectedConeAngle + deltaAngle, perpAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should applyTo()" << std::endl;
+                << " ERROR: ConeRollerConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -358,10 +358,10 @@ void AngularConstraintTests::testConeRollerConstraint() {
         glm::quat rotation = glm::angleAxis(minAngleZ + deltaAngle, expectedConeAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not applyTo()" << std::endl;
+                << " ERROR: ConeRollerConstraint should not clamp()" << std::endl;
         }
         if (rotation != newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -372,10 +372,10 @@ void AngularConstraintTests::testConeRollerConstraint() {
         glm::quat rotation = glm::angleAxis(maxAngleZ - deltaAngle, expectedConeAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should not applyTo()" << std::endl;
+                << " ERROR: ConeRollerConstraint should not clamp()" << std::endl;
         }
         if (rotation != newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -386,10 +386,10 @@ void AngularConstraintTests::testConeRollerConstraint() {
         glm::quat rotation = glm::angleAxis(minAngleZ - deltaAngle, expectedConeAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should applyTo()" << std::endl;
+                << " ERROR: ConeRollerConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -405,10 +405,10 @@ void AngularConstraintTests::testConeRollerConstraint() {
         glm::quat rotation = glm::angleAxis(maxAngleZ + deltaAngle, expectedConeAxis);
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should applyTo()" << std::endl;
+                << " ERROR: ConeRollerConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -427,10 +427,10 @@ void AngularConstraintTests::testConeRollerConstraint() {
         glm::quat rotation = pitchYaw * roll;
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should applyTo()" << std::endl;
+                << " ERROR: ConeRollerConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -450,10 +450,10 @@ void AngularConstraintTests::testConeRollerConstraint() {
         glm::quat rotation = pitchYaw * roll;
     
         glm::quat newRotation = rotation;
-        bool constrained = c->applyTo(newRotation);
+        bool constrained = c->clamp(newRotation);
         if (!constrained) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: ConeRollerConstraint should applyTo()" << std::endl;
+                << " ERROR: ConeRollerConstraint should clamp()" << std::endl;
         }
         if (rotation == newRotation) {
             std::cout << __FILE__ << ":" << __LINE__

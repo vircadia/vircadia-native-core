@@ -24,14 +24,16 @@ public:
 
     AngularConstraint() {}
     virtual ~AngularConstraint() {}
-    virtual bool applyTo(glm::quat& rotation) const = 0;
+    virtual bool clamp(glm::quat& rotation) const = 0;
+    virtual bool softClamp(glm::quat& targetRotation, const glm::quat& oldRotation, float mixFraction);
 protected:
 };
 
 class HingeConstraint : public AngularConstraint {
 public:
     HingeConstraint(const glm::vec3& forwardAxis, const glm::vec3& rotationAxis, float minAngle, float maxAngle);
-    virtual bool applyTo(glm::quat& rotation) const;
+    virtual bool clamp(glm::quat& rotation) const;
+    virtual bool softClamp(glm::quat& targetRotation, const glm::quat& oldRotation, float mixFraction);
 protected:
     glm::vec3 _forwardAxis;
     glm::vec3 _rotationAxis;
@@ -42,7 +44,7 @@ protected:
 class ConeRollerConstraint : public AngularConstraint {
 public:
     ConeRollerConstraint(float coneAngle, const glm::vec3& coneAxis, float minRoll, float maxRoll);
-    virtual bool applyTo(glm::quat& rotation) const;
+    virtual bool clamp(glm::quat& rotation) const;
 private:
     float _coneAngle;
     glm::vec3 _coneAxis;

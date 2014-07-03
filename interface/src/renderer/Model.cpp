@@ -1216,7 +1216,7 @@ void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm:
     } while (numIterations < MAX_ITERATION_COUNT && distanceToGo < ACCEPTABLE_IK_ERROR);
 
     // set final rotation of the end joint
-    endState.setRotationFromBindFrame(targetRotation, priority);
+    endState.setRotationFromBindFrame(targetRotation, priority, true);
      
     _shapesAreDirty = !_shapes.isEmpty();
 }

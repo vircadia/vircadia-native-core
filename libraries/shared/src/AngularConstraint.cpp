@@ -74,6 +74,26 @@ AngularConstraint* AngularConstraint::newAngularConstraint(const glm::vec3& minA
     return NULL;
 }
 
+bool AngularConstraint::softClamp(glm::quat& targetRotation, const glm::quat& oldRotation, float mixFraction) {
+    glm::quat clampedTarget = targetRotation;
+    bool clamped = clamp(clampedTarget);
+    if (clamped) {
+        // check if oldRotation is also clamped
+        glm::quat clampedOld = oldRotation;
+        bool clamped2 = clamp(clampedOld);
+        if (clamped2) {
+            // oldRotation is already beyond the constraint
+            // we clamp again midway between targetRotation and clamped oldPosition
+            clampedTarget = glm::shortMix(clampedOld, targetRotation, mixFraction);
+            // and then clamp that
+            clamp(clampedTarget);
+        }
+        // finally we mix targetRotation with the clampedTarget
+        targetRotation = glm::shortMix(clampedTarget, targetRotation, mixFraction);
+    }
+    return clamped;
+}
+
 HingeConstraint::HingeConstraint(const glm::vec3& forwardAxis, const glm::vec3& rotationAxis, float minAngle, float maxAngle)
         : _minAngle(minAngle), _maxAngle(maxAngle) {
     assert(_minAngle < _maxAngle);
@@ -87,7 +107,7 @@ HingeConstraint::HingeConstraint(const glm::vec3& forwardAxis, const glm::vec3& 
 }
 
 // virtual 
-bool HingeConstraint::applyTo(glm::quat& rotation) const {
+bool HingeConstraint::clamp(glm::quat& rotation) const {
     glm::vec3 forward = rotation * _forwardAxis;
     forward -= glm::dot(forward, _rotationAxis) * _rotationAxis;
     float length = glm::length(forward);
@@ -108,6 +128,11 @@ bool HingeConstraint::applyTo(glm::quat& rotation) const {
     return false;
 }
 
+bool HingeConstraint::softClamp(glm::quat& targetRotation, const glm::quat& oldRotation, float mixFraction) {
+    // the hinge works best without a soft clamp
+    return clamp(targetRotation);
+}
+
 ConeRollerConstraint::ConeRollerConstraint(float coneAngle, const glm::vec3& coneAxis, float minRoll, float maxRoll)
         : _coneAngle(coneAngle), _minRoll(minRoll), _maxRoll(maxRoll) {
     assert(_maxRoll >= _minRoll);
@@ -117,7 +142,7 @@ ConeRollerConstraint::ConeRollerConstraint(float coneAngle, const glm::vec3& con
 }
 
 // virtual 
-bool ConeRollerConstraint::applyTo(glm::quat& rotation) const {
+bool ConeRollerConstraint::clamp(glm::quat& rotation) const {
     bool applied = false;
     glm::vec3 rotatedAxis = rotation * _coneAxis;
     glm::vec3 perpAxis = glm::cross(rotatedAxis, _coneAxis);
@@ -131,8 +156,7 @@ bool ConeRollerConstraint::applyTo(glm::quat& rotation) const {
             rotatedAxis = rotation * _coneAxis;
             applied = true;
         }
-    }
-    else {
+    } else {
         // the rotation is 100% roll
         // there is no obvious perp axis so we must pick one
         perpAxis = rotatedAxis;
@@ -168,7 +192,7 @@ bool ConeRollerConstraint::applyTo(glm::quat& rotation) const {
     float roll = sign * angleBetween(rolledPerpAxis, perpAxis);
     if (roll < _minRoll || roll > _maxRoll) {
         float clampedRoll = clampAngle(roll, _minRoll, _maxRoll);
-        rotation = glm::angleAxis(clampedRoll - roll, rotatedAxis) * rotation;
+        rotation = glm::normalize(glm::angleAxis(clampedRoll - roll, rotatedAxis) * rotation);
         applied = true;
     }
     return applied;

@@ -24,9 +24,9 @@ JointState::JointState() :
 }
 
 JointState::JointState(const JointState& other) : _constraint(NULL) {
-    _rotationInParentFrame = other._rotationInParentFrame;
     _transform = other._transform;
     _rotation = other._rotation;
+    _rotationInParentFrame = other._rotationInParentFrame;
     _animationPriority = other._animationPriority;
     _fbxJoint = other._fbxJoint;
     // DO NOT copy _constraint
@@ -102,11 +102,15 @@ void JointState::restoreRotation(float fraction, float priority) {
     }
 }
 
-void JointState::setRotationFromBindFrame(const glm::quat& rotation, float priority) {
+void JointState::setRotationFromBindFrame(const glm::quat& rotation, float priority, bool constrain) {
     // rotation is from bind- to model-frame
     assert(_fbxJoint != NULL);
     if (priority >= _animationPriority) {
-        setRotationInParentFrame(_rotationInParentFrame * glm::inverse(_rotation) * rotation * glm::inverse(_fbxJoint->inverseBindRotation));
+        glm::quat targetRotation = _rotationInParentFrame * glm::inverse(_rotation) * rotation * glm::inverse(_fbxJoint->inverseBindRotation);
+        if (constrain && _constraint) {
+            _constraint->softClamp(targetRotation, _rotationInParentFrame, 0.5f);
+        }
+        setRotationInParentFrame(targetRotation);
         _animationPriority = priority;
     }
 }
@@ -153,6 +157,9 @@ void JointState::mixRotationDelta(const glm::quat& delta, float mixFactor, float
     glm::quat targetRotation = _rotationInParentFrame * glm::inverse(_rotation) * delta * _rotation;
     if (mixFactor > 0.0f && mixFactor <= 1.0f) {
         targetRotation = safeMix(targetRotation, _fbxJoint->rotation, mixFactor);
+    }
+    if (_constraint) {
+        _constraint->softClamp(targetRotation, _rotationInParentFrame, 0.5f);
     }
     setRotationInParentFrame(targetRotation);
 }

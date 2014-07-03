@@ -68,7 +68,7 @@ public:
     /// \param rotation is from bind- to model-frame
     /// computes and sets new _rotationInParentFrame
     /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
-    void setRotationFromBindFrame(const glm::quat& rotation, float priority);
+    void setRotationFromBindFrame(const glm::quat& rotation, float priority, bool constrain = false);
 
     void setRotationInParentFrame(const glm::quat& targetRotation);
     const glm::quat& getRotationInParentFrame() const { return _rotationInParentFrame; }
