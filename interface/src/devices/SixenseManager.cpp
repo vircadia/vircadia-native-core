@@ -71,6 +71,15 @@ void SixenseManager::setFilter(bool filter) {
 
 void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
+    // if the controllers haven't been moved in a while, disable
+    const unsigned int MOVEMENT_DISABLE_SECONDS = 3;
+    if (usecTimestampNow() - _lastMovement > (MOVEMENT_DISABLE_SECONDS * USECS_PER_SECOND)) {
+        Hand* hand = Application::getInstance()->getAvatar()->getHand();
+        for (std::vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
+            it->setActive(false);
+        }
+    }
+
     if (sixenseGetNumActiveControllers() == 0) {
         _hydrasConnected = false;
         return;
@@ -184,14 +193,6 @@ void SixenseManager::update(float deltaTime) {
 
     if (numActiveControllers == 2) {
         updateCalibration(controllers);
-    }
-
-    // if the controllers haven't been moved in a while, disable
-    const unsigned int MOVEMENT_DISABLE_SECONDS = 3;
-    if (usecTimestampNow() - _lastMovement > (MOVEMENT_DISABLE_SECONDS * USECS_PER_SECOND)) {
-        for (std::vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
-            it->setActive(false);
-        }
     }
 #endif  // HAVE_SIXENSE
 }
