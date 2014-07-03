@@ -40,7 +40,7 @@ public:
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node);
     virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent);
 
-    virtual void modelCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode);
+    virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
 public slots:
     void pruneDeletedEntitys();

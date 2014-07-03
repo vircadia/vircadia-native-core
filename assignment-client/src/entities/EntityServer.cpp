@@ -46,7 +46,7 @@ void EntityServer::beforeRun() {
     pruneDeletedEntitysTimer->start(PRUNE_DELETED_MODELS_INTERVAL_MSECS);
 }
 
-void EntityServer::modelCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
+void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
     unsigned char outputBuffer[MAX_PACKET_SIZE];
     unsigned char* copyAt = outputBuffer;
 

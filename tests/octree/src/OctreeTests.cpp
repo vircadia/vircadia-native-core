@@ -1270,6 +1270,8 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
 }
 
 void OctreeTests::modelItemTests(bool verbose) {
+    
+#ifdef HIDE_SUBCLASS_METHODS
 
     //verbose = true;
     EntityTreeElementExtraEncodeData modelTreeElementExtraEncodeData;
@@ -1434,6 +1436,8 @@ void OctreeTests::modelItemTests(bool verbose) {
     if (verbose) {
         qDebug() << "******************************************************************************************";
     }
+    
+#endif 
 }
 
 

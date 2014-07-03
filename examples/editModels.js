@@ -112,7 +112,7 @@ function controller(wichSide) {
     this.positionAtGrab;
     this.rotationAtGrab;
     this.modelPositionAtGrab;
-    this.modelRotationAtGrab;
+    this.rotationAtGrab;
     
     this.jointsIntersectingFromStart = [];
     
@@ -168,13 +168,13 @@ function controller(wichSide) {
             this.modelURL = properties.modelURL;
         
             this.oldModelPosition = properties.position;
-            this.oldModelRotation = properties.modelRotation;
+            this.oldModelRotation = properties.rotation;
             this.oldModelRadius = properties.radius;
             
             this.positionAtGrab = this.palmPosition;
             this.rotationAtGrab = this.rotation;
             this.modelPositionAtGrab = properties.position;
-            this.modelRotationAtGrab = properties.modelRotation;
+            this.rotationAtGrab = properties.rotation;
             
             this.jointsIntersectingFromStart = [];
             for (var i = 0; i < jointList.length; i++) {
@@ -394,13 +394,13 @@ function controller(wichSide) {
                     newRotation = Quat.multiply(this.rotation,
                                                 Quat.inverse(this.rotationAtGrab));
                     newRotation = Quat.multiply(newRotation,
-                                                this.modelRotationAtGrab);
+                                                this.rotationAtGrab);
                     break;
             }
             
             Entities.editEntity(this.entityID, {
                              position: newPosition,
-                             modelRotation: newRotation
+                             rotation: newRotation
                              });
             
             this.oldModelRotation = newRotation;
@@ -499,7 +499,7 @@ function controller(wichSide) {
                 newProperties = {
                 position: Vec3.sum(MyAvatar.getJointPosition(attachments[attachmentIndex].jointName),
                                    Vec3.multiplyQbyV(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName), attachments[attachmentIndex].translation)),
-                modelRotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
+                rotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
                                              attachments[attachmentIndex].rotation),
                 radius: attachments[attachmentIndex].scale / 2.0,
                 modelURL: attachments[attachmentIndex].modelURL
@@ -610,18 +610,18 @@ function moveModels() {
                 leftController.positionAtGrab = leftController.palmPosition;
                 leftController.rotationAtGrab = leftController.rotation;
                 leftController.modelPositionAtGrab = leftController.oldModelPosition;
-                leftController.modelRotationAtGrab = rotation;
+                leftController.rotationAtGrab = rotation;
                 
                 rightController.positionAtGrab = rightController.palmPosition;
                 rightController.rotationAtGrab = rightController.rotation;
                 rightController.modelPositionAtGrab = rightController.oldModelPosition;
-                rightController.modelRotationAtGrab = rotation;
+                rightController.rotationAtGrab = rotation;
                 break;
         }
         
         Entities.editEntity(leftController.entityID, {
                          position: newPosition,
-                         modelRotation: rotation,
+                         rotation: rotation,
                          radius: leftController.oldModelRadius * ratio
                          });
         
@@ -740,7 +740,7 @@ function Tooltip() {
         Overlays.editOverlay(this.textOverlay, { visible: doShow });
     }
     this.updateText = function(properties) {
-        var angles = Quat.safeEulerAngles(properties.modelRotation);
+        var angles = Quat.safeEulerAngles(properties.rotation);
         var text = "Model Properties:\n"
         text += "x: " + properties.position.x.toFixed(this.decimals) + "\n"
         text += "y: " + properties.position.y.toFixed(this.decimals) + "\n"
@@ -865,10 +865,10 @@ function mousePressEvent(event) {
         z: selectedEntityProperties.position.z,
         };
         selectedEntityProperties.oldRotation = {
-        x: selectedEntityProperties.modelRotation.x,
-        y: selectedEntityProperties.modelRotation.y,
-        z: selectedEntityProperties.modelRotation.z,
-        w: selectedEntityProperties.modelRotation.w,
+        x: selectedEntityProperties.rotation.x,
+        y: selectedEntityProperties.rotation.y,
+        z: selectedEntityProperties.rotation.z,
+        w: selectedEntityProperties.rotation.w,
         };
         selectedEntityProperties.glowLevel = 0.0;
         
@@ -928,10 +928,10 @@ function mouseMoveEvent(event)  {
         z: selectedEntityProperties.position.z,
         };
         selectedEntityProperties.oldRotation = {
-        x: selectedEntityProperties.modelRotation.x,
-        y: selectedEntityProperties.modelRotation.y,
-        z: selectedEntityProperties.modelRotation.z,
-        w: selectedEntityProperties.modelRotation.w,
+        x: selectedEntityProperties.rotation.x,
+        y: selectedEntityProperties.rotation.y,
+        z: selectedEntityProperties.rotation.z,
+        w: selectedEntityProperties.rotation.w,
         };
         orientation = MyAvatar.orientation;
         intersection = rayPlaneIntersection(pickRay,
@@ -977,10 +977,10 @@ function mouseMoveEvent(event)  {
         case 3:
             // Let's rotate
             if (somethingChanged) {
-                selectedEntityProperties.oldRotation.x = selectedEntityProperties.modelRotation.x;
-                selectedEntityProperties.oldRotation.y = selectedEntityProperties.modelRotation.y;
-                selectedEntityProperties.oldRotation.z = selectedEntityProperties.modelRotation.z;
-                selectedEntityProperties.oldRotation.w = selectedEntityProperties.modelRotation.w;
+                selectedEntityProperties.oldRotation.x = selectedEntityProperties.rotation.x;
+                selectedEntityProperties.oldRotation.y = selectedEntityProperties.rotation.y;
+                selectedEntityProperties.oldRotation.z = selectedEntityProperties.rotation.z;
+                selectedEntityProperties.oldRotation.w = selectedEntityProperties.rotation.w;
                 mouseLastPosition.x = event.x;
                 mouseLastPosition.y = event.y;
                 somethingChanged = false;
@@ -994,7 +994,7 @@ function mouseMoveEvent(event)  {
             var rotationAxis = (!zIsPressed && xIsPressed) ? { x: 1, y: 0, z: 0 } :
                                (!zIsPressed && !xIsPressed) ? { x: 0, y: 1, z: 0 } :
                                                               { x: 0, y: 0, z: 1 };
-            rotationAxis = Vec3.multiplyQbyV(selectedEntityProperties.modelRotation, rotationAxis);
+            rotationAxis = Vec3.multiplyQbyV(selectedEntityProperties.rotation, rotationAxis);
             var orthogonalAxis = Vec3.cross(cameraForward, rotationAxis);
             var mouseDelta = { x: event.x - mouseLastPosition
                 .x, y: mouseLastPosition.y - event.y, z: 0 };
@@ -1013,10 +1013,10 @@ function mouseMoveEvent(event)  {
                                                 });
             rotation = Quat.multiply(selectedEntityProperties.oldRotation, rotation);
             
-            selectedEntityProperties.modelRotation.x = rotation.x;
-            selectedEntityProperties.modelRotation.y = rotation.y;
-            selectedEntityProperties.modelRotation.z = rotation.z;
-            selectedEntityProperties.modelRotation.w = rotation.w;
+            selectedEntityProperties.rotation.x = rotation.x;
+            selectedEntityProperties.rotation.y = rotation.y;
+            selectedEntityProperties.rotation.z = rotation.z;
+            selectedEntityProperties.rotation.w = rotation.w;
             break;
     }
     
@@ -1163,7 +1163,7 @@ Controller.keyPressEvent.connect(function(event) {
                                  
     // resets model orientation when holding with mouse
     if (event.text == "r" && entitySelected) {
-        selectedEntityProperties.modelRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 0 });
+        selectedEntityProperties.rotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 0 });
         Entities.editEntity(selectedEntityID, selectedEntityProperties);
         tooltip.updateText(selectedEntityProperties);
         somethingChanged = true;

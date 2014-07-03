@@ -200,7 +200,7 @@ function checkControllerSide(whichSide) {
                                            y: modelPosition.y, 
                                            z: modelPosition.z }, 
                                 radius: modelRadius,
-                                modelRotation: palmRotation,
+                                rotation: palmRotation,
                               };
 
             debugPrint(">>>>>>>>>>>> EDIT MODEL.... modelRadius=" +modelRadius);
@@ -225,7 +225,7 @@ function checkControllerSide(whichSide) {
                                        y: modelPosition.y, 
                                        z: modelPosition.z }, 
                 radius: modelRadius,
-                modelRotation: palmRotation,
+                rotation: palmRotation,
                 modelURL: modelURLs[currentModelURL]
             };
             
@@ -277,7 +277,7 @@ function checkControllerSide(whichSide) {
                                            y: modelPosition.y, 
                                            z: modelPosition.z }, 
                                radius: modelRadius,
-                               modelRotation: palmRotation,
+                               rotation: palmRotation,
                              };
 
             debugPrint(">>>>>>>>>>>> EDIT MODEL.... modelRadius=" +modelRadius);

@@ -38,7 +38,7 @@ var originalProperties = {
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
     
-    modelRotation: rotation
+    rotation: rotation
 };
 
 var positionDelta = { x: 0, y: 0, z: 0 };

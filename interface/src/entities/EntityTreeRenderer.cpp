@@ -79,6 +79,7 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem& en
 Model* EntityTreeRenderer::getModel(const EntityItem& entityItem) {
     Model* model = NULL;
 
+#ifdef HIDE_SUBCLASS_METHODS
     if (entityItem.isKnownID()) {
         if (_knownEntityItemModels.find(entityItem.getID()) != _knownEntityItemModels.end()) {
             model = _knownEntityItemModels[entityItem.getID()];
@@ -128,6 +129,7 @@ Model* EntityTreeRenderer::getModel(const EntityItem& entityItem) {
             _unknownEntityItemModels[entityItem.getCreatorTokenID()] = model;
         }
     }
+#endif
     return model;
 }
 
@@ -137,7 +139,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     // we need to iterate the actual entityItems of the element
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
-    QList<EntityItem>& entityItems = entityTreeElement->getEntities();
+    QList<EntityItem*>& entityItems = entityTreeElement->getEntities();
 
     uint16_t numberOfEntities = entityItems.size();
     
@@ -222,11 +224,16 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
             float radius = entityItem.getRadius() * (float)TREE_SCALE;
             float size = entityItem.getSize() * (float)TREE_SCALE;
 
+#ifdef HIDE_SUBCLASS_METHODS
             bool drawAsModel = entityItem.hasModel();
+#else
+            bool drawAsModel = false;
+#endif
 
             args->_itemsRendered++;
 
             if (drawAsModel) {
+#ifdef HIDE_SUBCLASS_METHODS
                 glPushMatrix();
                 {
                     const float alpha = 1.0f;
@@ -341,6 +348,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                     }
                 }
                 glPopMatrix();
+#endif
             } else {
                 //glColor3ub(entityItem.getColor()[RED_INDEX],entityItem.getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
                 glColor3f(1.0f, 0.0f, 0.0f);

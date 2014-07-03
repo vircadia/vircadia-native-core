@@ -29,7 +29,7 @@ public:
             _movingItems(0)
     { }
     
-    QList<EntityItem> _movingEntities;
+    QList<EntityItem*> _movingEntities;
     int _totalElements;
     int _totalItems;
     int _movingItems;
@@ -113,8 +113,8 @@ public:
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const;
 
-    const QList<EntityItem>& getEntities() const { return *_entityItems; }
-    QList<EntityItem>& getEntities() { return *_entityItems; }
+    const QList<EntityItem*>& getEntities() const { return *_entityItems; }
+    QList<EntityItem*>& getEntities() { return *_entityItems; }
     bool hasEntities() const { return _entityItems ? _entityItems->size() > 0 : false; }
 
     void update(EntityTreeUpdateArgs& args);
@@ -142,13 +142,13 @@ public:
     bool removeEntityWithID(uint32_t id);
     bool removeEntityWithEntityItemID(const EntityItemID& id);
 
-    bool containsEntityBounds(const EntityItem& entity) const;
-    bool bestFitEntityBounds(const EntityItem& entity) const;
+    bool containsEntityBounds(const EntityItem* entity) const;
+    bool bestFitEntityBounds(const EntityItem* entity) const;
 
 protected:
     virtual void init(unsigned char * octalCode);
     EntityTree* _myTree;
-    QList<EntityItem>* _entityItems;
+    QList<EntityItem*>* _entityItems;
 };
 
 #endif // hifi_EntityTreeElement_h

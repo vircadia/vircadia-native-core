@@ -17,7 +17,7 @@
 
 class NewlyCreatedEntityHook {
 public:
-    virtual void modelCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) = 0;
+    virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) = 0;
 };
 
 class EntityItemFBXService {

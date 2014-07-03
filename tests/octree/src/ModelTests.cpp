@@ -26,6 +26,7 @@
 #include "ModelTests.h" // needs to be EntityTests.h soon
 
 void EntityTests::modelTreeTests(bool verbose) {
+#ifdef HIDE_SUBCLASS_METHODS
     bool extraVerbose = false;
     int testsTaken = 0;
     int testsPassed = 0;
@@ -60,7 +61,7 @@ void EntityTests::modelTreeTests(bool verbose) {
         
         properties.setPosition(positionAtCenterInMeters);
         properties.setRadius(halfMeter);
-        properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
+//properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
 
         tree.addEntity(modelID, properties);
         
@@ -264,7 +265,7 @@ void EntityTests::modelTreeTests(bool verbose) {
 
             properties.setPosition(randomPositionInMeters);
             properties.setRadius(halfMeter);
-            properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
+//properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
 
             if (extraVerbose) {
                 qDebug() << "iteration:" << i
@@ -508,6 +509,7 @@ void EntityTests::modelTreeTests(bool verbose) {
     if (verbose) {
         qDebug() << "******************************************************************************************";
     }
+#endif
 }
 
 

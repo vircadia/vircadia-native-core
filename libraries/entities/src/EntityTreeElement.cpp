@@ -40,7 +40,7 @@ OctreeElement* EntityTreeElement::createNewElement(unsigned char* octalCode) {
 
 void EntityTreeElement::init(unsigned char* octalCode) {
     OctreeElement::init(octalCode);
-    _entityItems = new QList<EntityItem>;
+    _entityItems = new QList<EntityItem*>;
     _voxelMemoryUsage += sizeof(EntityTreeElement);
 }
 
@@ -80,15 +80,15 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     QVector<uint16_t> indexesOfEntitiesToInclude;
 
     for (uint16_t i = 0; i < _entityItems->size(); i++) {
-        const EntityItem& entity = (*_entityItems)[i];
+        EntityItem* entity = (*_entityItems)[i];
         bool includeThisEntity = true;
         
         if (hadElementExtraData) {
-            includeThisEntity = entityTreeElementExtraEncodeData->includedItems.contains(entity.getEntityItemID());
+            includeThisEntity = entityTreeElementExtraEncodeData->includedItems.contains(entity->getEntityItemID());
         }
         
         if (includeThisEntity && params.viewFrustum) {
-            AACube entityCube = entity.getAACube();
+            AACube entityCube = entity->getAACube();
             entityCube.scale(TREE_SCALE);
             if (params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                 includeThisEntity = false; // out of view, don't include it
@@ -106,11 +106,11 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
     if (successAppendEntityCount) {
         foreach (uint16_t i, indexesOfEntitiesToInclude) {
-            const EntityItem& entity = (*_entityItems)[i];
+            EntityItem* entity = (*_entityItems)[i];
             
             LevelDetails entityLevel = packetData->startLevel();
     
-            OctreeElement::AppendState appendEntityState = entity.appendEntityData(packetData, params, entityTreeElementExtraEncodeData);
+            OctreeElement::AppendState appendEntityState = entity->appendEntityData(packetData, params, entityTreeElementExtraEncodeData);
 
             // If none of this entity data was able to be appended, then discard it
             // and don't include it in our entity count
@@ -125,7 +125,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
             
             // If the entity item got completely appended, then we can remove it from the extra encode data
             if (appendEntityState == OctreeElement::COMPLETED) {
-                entityTreeElementExtraEncodeData->includedItems.remove(entity.getEntityItemID());
+                entityTreeElementExtraEncodeData->includedItems.remove(entity->getEntityItemID());
             }
 
             // If any part of the entity items didn't fit, then the element is considered partial
@@ -174,15 +174,15 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     return appendElementState;
 }
 
-bool EntityTreeElement::containsEntityBounds(const EntityItem& entity) const {
-    glm::vec3 clampedMin = glm::clamp(entity.getMinimumPoint(), 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(entity.getMaximumPoint(), 0.0f, 1.0f);
+bool EntityTreeElement::containsEntityBounds(const EntityItem* entity) const {
+    glm::vec3 clampedMin = glm::clamp(entity->getMinimumPoint(), 0.0f, 1.0f);
+    glm::vec3 clampedMax = glm::clamp(entity->getMaximumPoint(), 0.0f, 1.0f);
     return _cube.contains(clampedMin) && _cube.contains(clampedMax);
 }
 
-bool EntityTreeElement::bestFitEntityBounds(const EntityItem& entity) const {
-    glm::vec3 clampedMin = glm::clamp(entity.getMinimumPoint(), 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(entity.getMaximumPoint(), 0.0f, 1.0f);
+bool EntityTreeElement::bestFitEntityBounds(const EntityItem* entity) const {
+    glm::vec3 clampedMin = glm::clamp(entity->getMinimumPoint(), 0.0f, 1.0f);
+    glm::vec3 clampedMax = glm::clamp(entity->getMaximumPoint(), 0.0f, 1.0f);
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
         int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
         int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
@@ -203,19 +203,19 @@ bool EntityTreeElement::bestFitEntityBounds(const EntityItem& entity) const {
 void EntityTreeElement::update(EntityTreeUpdateArgs& args) {
     args._totalElements++;
     // update our contained entities
-    QList<EntityItem>::iterator entityItr = _entityItems->begin();
+    QList<EntityItem*>::iterator entityItr = _entityItems->begin();
     while(entityItr != _entityItems->end()) {
-        EntityItem& entity = (*entityItr);
+        EntityItem* entity = (*entityItr);
         args._totalItems++;
         
         // TODO: this _lastChanged isn't actually changing because we're not marking this element as changed.
         // how do we want to handle this??? We really only want to consider an element changed when it is
         // edited... not just animated...
-        entity.update(_lastChanged);
+        entity->update(_lastChanged);
 
         // If the entity wants to die, or if it's left our bounding box, then move it
         // into the arguments moving entities. These will be added back or deleted completely
-        if (entity.getShouldBeDeleted() || !bestFitEntityBounds(entity)) {
+        if (entity->getShouldBeDeleted() || !bestFitEntityBounds(entity)) {
             args._movingEntities.push_back(entity);
 
             // erase this entity
@@ -228,7 +228,7 @@ void EntityTreeElement::update(EntityTreeUpdateArgs& args) {
 
             // TODO: is this a good place to change the containing element map???
             qDebug() << "EntityTreeElement::update()... calling _myTree->setContainingElement(entity.getEntityItemID(), NULL); ********";
-            _myTree->setContainingElement(entity.getEntityItemID(), NULL);
+            _myTree->setContainingElement(entity->getEntityItemID(), NULL);
 
         } else {
             ++entityItr;
@@ -242,8 +242,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     
-    QList<EntityItem>::iterator entityItr = _entityItems->begin();
-    QList<EntityItem>::const_iterator entityEnd = _entityItems->end();
+    QList<EntityItem*>::iterator entityItr = _entityItems->begin();
+    QList<EntityItem*>::const_iterator entityEnd = _entityItems->end();
     bool somethingIntersected = false;
     while(entityItr != entityEnd) {
         EntityItem& entity = (*entityItr);
@@ -328,8 +328,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
 
 bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                                     glm::vec3& penetration, void** penetratedObject) const {
-    QList<EntityItem>::iterator entityItr = _entityItems->begin();
-    QList<EntityItem>::const_iterator entityEnd = _entityItems->end();
+    QList<EntityItem*>::iterator entityItr = _entityItems->begin();
+    QList<EntityItem*>::const_iterator entityEnd = _entityItems->end();
     while(entityItr != entityEnd) {
         EntityItem& entity = (*entityItr);
         glm::vec3 entityCenter = entity.getPosition();
@@ -484,11 +484,11 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
 }
 
 void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& foundEntities) {
-    QList<EntityItem>::iterator entityItr = _entityItems->begin();
-    QList<EntityItem>::iterator entityEnd = _entityItems->end();
+    QList<EntityItem*>::iterator entityItr = _entityItems->begin();
+    QList<EntityItem*>::iterator entityEnd = _entityItems->end();
     AACube entityCube;
     while(entityItr != entityEnd) {
-        EntityItem* entity = &(*entityItr);
+        EntityItem* entity = (*entityItr);
         float radius = entity->getRadius();
         // NOTE: we actually do cube-cube collision queries here, which is sloppy but good enough for now
         // TODO: decide whether to replace entityCube-cube query with sphere-cube (requires a square root

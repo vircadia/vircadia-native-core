@@ -76,7 +76,7 @@ StoreEntityOperator::StoreEntityOperator(EntityTree* tree, const EntityItem& sea
         
         // If this containing element would be the best fit for our new model, then just do the new
         // portion of the store pass, since the change path will be the same for both parts of the update
-        if (_containingElement->bestFitEntityBounds(_newEntity)) {
+        if (_containingElement->bestFitEntityBounds(&_newEntity)) {
             _foundOld = true;
         }
     } else {
@@ -132,7 +132,7 @@ bool StoreEntityOperator::PreRecursion(OctreeElement* element) {
             // If the containgElement IS NOT the best fit for the new model properties
             // then we need to remove it, and the updateEntity below will store it in the
             // correct element.
-            if (!_containingElement->bestFitEntityBounds(_newEntity)) {
+            if (!_containingElement->bestFitEntityBounds(&_newEntity)) {
                 modelTreeElement->removeEntityWithEntityItemID(_newEntity.getEntityItemID());
                 
                 // If we haven't yet found the new location, then we need to 
@@ -689,7 +689,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
 void EntityTree::notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
     _newlyCreatedHooksLock.lockForRead();
     for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
-        _newlyCreatedHooks[i]->modelCreated(newEntity, senderNode);
+        _newlyCreatedHooks[i]->entityCreated(newEntity, senderNode);
     }
     _newlyCreatedHooksLock.unlock();
 }
@@ -742,15 +742,15 @@ void EntityTree::update() {
     int movingEntitys = args._movingEntities.size();
     
     for (int i = 0; i < movingEntitys; i++) {
-        bool shouldDie = args._movingEntities[i].getShouldBeDeleted();
+        bool shouldDie = args._movingEntities[i]->getShouldBeDeleted();
 
         // if the particle is still inside our total bounds, then re-add it
         AACube treeBounds = getRoot()->getAACube();
 
-        if (!shouldDie && treeBounds.contains(args._movingEntities[i].getPosition())) {
-            storeEntity(args._movingEntities[i]);
+        if (!shouldDie && treeBounds.contains(args._movingEntities[i]->getPosition())) {
+            storeEntity(*args._movingEntities[i]);
         } else {
-            uint32_t entityItemID = args._movingEntities[i].getID();
+            uint32_t entityItemID = args._movingEntities[i]->getID();
             quint64 deletedAt = usecTimestampNow();
             _recentlyDeletedEntitysLock.lockForWrite();
             _recentlyDeletedEntityItemIDs.insert(deletedAt, entityItemID);

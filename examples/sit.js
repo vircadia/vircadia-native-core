@@ -151,11 +151,11 @@ function standUp() {
 var models = new Object();
 function SeatIndicator(modelProperties, seatIndex) {
     this.position =  Vec3.sum(modelProperties.position,
-                              Vec3.multiply(Vec3.multiplyQbyV(modelProperties.modelRotation,
+                              Vec3.multiply(Vec3.multiplyQbyV(modelProperties.rotation,
                                                               modelProperties.sittingPoints[seatIndex].position),
                                             modelProperties.radius));
                               
-    this.orientation = Quat.multiply(modelProperties.modelRotation,
+    this.orientation = Quat.multiply(modelProperties.rotation,
                                      modelProperties.sittingPoints[seatIndex].rotation);
     this.scale = MyAvatar.scale / 12;
     
@@ -230,9 +230,9 @@ Controller.mousePressEvent.connect(function(event) {
            
            if (properties.sittingPoints.length > 0) {
                 print("Available seats, going to the first one: " + properties.sittingPoints[0].name);
-                seat.position = Vec3.sum(properties.position, Vec3.multiplyQbyV(properties.modelRotation, properties.sittingPoints[0].position));
+                seat.position = Vec3.sum(properties.position, Vec3.multiplyQbyV(properties.rotation, properties.sittingPoints[0].position));
                 Vec3.print("Seat position: ", seat.position);
-                seat.rotation = Quat.multiply(properties.modelRotation, properties.sittingPoints[0].rotation);
+                seat.rotation = Quat.multiply(properties.rotation, properties.sittingPoints[0].rotation);
                 Quat.print("Seat rotation: ", seat.rotation);
                                    
                 passedTime = 0.0;

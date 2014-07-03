@@ -12,6 +12,8 @@
 #ifndef hifi_EntityItem_h
 #define hifi_EntityItem_h
 
+#define HIDE_SUBCLASS_METHODS 1
+
 #include <stdint.h>
 
 #include <glm/glm.hpp>
@@ -83,10 +85,10 @@ enum EntityPropertyList {
     PROP_VISIBLE,
     PROP_POSITION,
     PROP_RADIUS,
-    PROP_MODEL_URL,
     PROP_ROTATION,
-    PROP_COLOR,
     PROP_SCRIPT,
+    PROP_MODEL_URL,
+    PROP_COLOR,
     PROP_ANIMATION_URL,
     PROP_ANIMATION_FPS,
     PROP_ANIMATION_FRAME_INDEX,
@@ -103,14 +105,13 @@ typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 /// set of entity item properties via JavaScript hashes/QScriptValues
 /// all units for position, radius, etc are in meter units
 class EntityItemProperties {
+    friend class EntityItem; // TODO: consider removing this friend relationship and have EntityItem use public methods
 public:
     EntityItemProperties();
+    virtual ~EntityItemProperties() { };
 
-    QScriptValue copyToScriptValue(QScriptEngine* engine) const;
-    void copyFromScriptValue(const QScriptValue& object);
-
-    void copyToEntityItem(EntityItem& entityItem, bool forceCopy = false) const;
-    void copyFromEntityItem(const EntityItem& entityItem);
+    virtual QScriptValue copyToScriptValue(QScriptEngine* engine) const;
+    virtual void copyFromScriptValue(const QScriptValue& object);
 
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
@@ -134,6 +135,7 @@ public:
     void setRadius(float value) { _radius = value; _radiusChanged = true; }
     void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; _shouldBeDeletedChanged = true;  }
 
+#if 0 // def HIDE_SUBCLASS_METHODS
     // properties we want to move to just models and particles
     xColor getColor() const { return _color; }
     const QString& getModelURL() const { return _modelURL; }
@@ -152,6 +154,7 @@ public:
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
+#endif
 
 private:
     quint32 _id;
@@ -160,11 +163,17 @@ private:
 
     glm::vec3 _position;
     float _radius;
-    bool _shouldBeDeleted; /// to delete it
+    glm::quat _rotation;
+    bool _shouldBeDeleted;
+
+    bool _positionChanged;
+    bool _radiusChanged;
+    bool _rotationChanged;
+    bool _shouldBeDeletedChanged;
     
+#if 0 // def HIDE_SUBCLASS_METHODS
     xColor _color;
     QString _modelURL;
-    glm::quat _rotation;
     QString _animationURL;
     bool _animationIsPlaying;
     float _animationFrameIndex;
@@ -172,18 +181,15 @@ private:
     float _glowLevel;
     QVector<SittingPoint> _sittingPoints;
 
-    bool _positionChanged;
-    bool _radiusChanged;
-    bool _shouldBeDeletedChanged;
-
     bool _colorChanged;
     bool _modelURLChanged;
-    bool _rotationChanged;
     bool _animationURLChanged;
     bool _animationIsPlayingChanged;
     bool _animationFrameIndexChanged;
     bool _animationFPSChanged;
     bool _glowLevelChanged;
+#endif
+
     bool _defaultSettings;
 };
 Q_DECLARE_METATYPE(EntityItemProperties);
@@ -252,9 +258,11 @@ public:
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     /// creates an NEW model from an model add or edit message data buffer
-    static EntityItem fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid);
+    static EntityItem* fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid);
 
     virtual ~EntityItem();
+    
+    virtual void somePureVirtualFunction() = 0;
 
     // ID and EntityItemID related methods
     uint32_t getID() const { return _id; }
@@ -324,6 +332,7 @@ public:
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
+#ifdef HIDE_SUBCLASS_METHODS    
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
     bool hasModel() const { return !_modelURL.isEmpty(); }
@@ -356,6 +365,7 @@ public:
     bool getAnimationIsPlaying() const { return _animationIsPlaying; }
     float getAnimationFrameIndex() const { return _animationFrameIndex; }
     float getAnimationFPS() const { return _animationFPS; }
+#endif
     
     static void cleanupLoadedAnimations();
 
@@ -363,46 +373,40 @@ protected:
     void initFromEntityItemID(const EntityItemID& entityItemID);
     virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_ENTITY);
 
-    glm::vec3 _position;
-    rgbColor _color;
-    float _radius;
-    quint32 _id;
     static quint32 _nextID;
-    bool _shouldBeDeleted;
+    static uint32_t _nextCreatorTokenID; /// used by the static interfaces for creator token ids
+    static std::map<uint32_t,uint32_t> _tokenIDsToIDs;
+
+    quint32 _id;
     quint32 _type;
-
-    // model related items
-    QString _modelURL;
-    glm::quat _rotation;
-    
-    QVector<SittingPoint> _sittingPoints;
-    
-    float _glowLevel;
-
     uint32_t _creatorTokenID;
     bool _newlyCreated;
-
     quint64 _lastUpdated;
     quint64 _lastEdited;
-    quint64 _lastAnimated;
 
+    glm::vec3 _position;
+    float _radius;
+    glm::quat _rotation;
+    bool _shouldBeDeleted;
+    
+#ifdef HIDE_SUBCLASS_METHODS
+    rgbColor _color;
+    QString _modelURL;
+    QVector<SittingPoint> _sittingPoints;
+    float _glowLevel;
+
+    quint64 _lastAnimated;
     QString _animationURL;
     float _animationFrameIndex; // we keep this as a float and round to int only when we need the exact index
     bool _animationIsPlaying;
     float _animationFPS;
-    
     bool _jointMappingCompleted;
     QVector<int> _jointMapping;
     
-
-    // used by the static interfaces for creator token ids
-    static uint32_t _nextCreatorTokenID;
-    static std::map<uint32_t,uint32_t> _tokenIDsToIDs;
-
-
     static Animation* getAnimation(const QString& url);
     static QMap<QString, AnimationPointer> _loadedAnimations;
     static AnimationCache _animationCache;
+#endif
 
 };
 

@@ -98,12 +98,15 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 
     _position = glm::vec3(0,0,0);
     _radius = 0;
+    _rotation = ENTITY_DEFAULT_ROTATION;
+    _shouldBeDeleted = false;
+    
+
+#ifdef HIDE_SUBCLASS_METHODS
     rgbColor noColor = { 0, 0, 0 };
     memcpy(_color, noColor, sizeof(_color));
-    _shouldBeDeleted = false;
     _modelURL = ENTITY_DEFAULT_MODEL_URL;
-    _rotation = ENTITY_DEFAULT_ROTATION;
-    
+
     // animation related
     _animationURL = ENTITY_DEFAULT_ANIMATION_URL;
     _animationIsPlaying = false;
@@ -113,6 +116,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 
     _jointMappingCompleted = false;
     _lastAnimated = now;
+#endif
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
@@ -139,14 +143,15 @@ void EntityItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t
     quint64 now = usecTimestampNow();
     _lastEdited = now;
     _lastUpdated = now;
-
     _position = position;
     _radius = radius;
-    memcpy(_color, color, sizeof(_color));
-    _shouldBeDeleted = false;
-    _modelURL = ENTITY_DEFAULT_MODEL_URL;
     _rotation = ENTITY_DEFAULT_ROTATION;
+    _shouldBeDeleted = false;
 
+
+#ifdef HIDE_SUBCLASS_METHODS
+    memcpy(_color, color, sizeof(_color));
+    _modelURL = ENTITY_DEFAULT_MODEL_URL;
     // animation related
     _animationURL = ENTITY_DEFAULT_ANIMATION_URL;
     _animationIsPlaying = false;
@@ -155,6 +160,7 @@ void EntityItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t
     _glowLevel = 0.0f;
     _jointMappingCompleted = false;
     _lastAnimated = now;
+#endif
 }
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
@@ -274,26 +280,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
             propertiesDidntFit -= PROP_RADIUS;
         }
 
-        // PROP_MODEL_URL
-        if (requestedProperties.getHasProperty(PROP_MODEL_URL)) {
-            //qDebug() << "PROP_MODEL_URL requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getModelURL());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_MODEL_URL;
-                propertiesDidntFit -= PROP_MODEL_URL;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_MODEL_URL didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_MODEL_URL NOT requested...";
-            propertiesDidntFit -= PROP_MODEL_URL;
-        }
-
         // PROP_ROTATION
         if (requestedProperties.getHasProperty(PROP_ROTATION)) {
             //qDebug() << "PROP_ROTATION requested...";
@@ -314,6 +300,31 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
             propertiesDidntFit -= PROP_ROTATION;
         }
 
+        // PROP_SHOULD_BE_DELETED
+        if (requestedProperties.getHasProperty(PROP_SHOULD_BE_DELETED)) {
+            //qDebug() << "PROP_SHOULD_BE_DELETED requested...";
+            LevelDetails propertyLevel = packetData->startLevel();
+            successPropertyFits = packetData->appendValue(getShouldBeDeleted());
+            if (successPropertyFits) {
+                propertyFlags |= PROP_SHOULD_BE_DELETED;
+                propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
+                propertyCount++;
+                packetData->endLevel(propertyLevel);
+            } else {
+                //qDebug() << "PROP_SHOULD_BE_DELETED didn't fit...";
+                packetData->discardLevel(propertyLevel);
+                appendState = OctreeElement::PARTIAL;
+            }
+        } else {
+            //qDebug() << "PROP_SHOULD_BE_DELETED NOT requested...";
+            propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
+        }
+
+        // PROP_SCRIPT
+        //     script would go here...
+        
+
+#ifdef HIDE_SUBCLASS_METHODS    
         // PROP_COLOR
         if (requestedProperties.getHasProperty(PROP_COLOR)) {
             //qDebug() << "PROP_COLOR requested...";
@@ -334,9 +345,26 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
             propertiesDidntFit -= PROP_COLOR;
         }
 
-        // PROP_SCRIPT
-        //     script would go here...
-        
+        // PROP_MODEL_URL
+        if (requestedProperties.getHasProperty(PROP_MODEL_URL)) {
+            //qDebug() << "PROP_MODEL_URL requested...";
+            LevelDetails propertyLevel = packetData->startLevel();
+            successPropertyFits = packetData->appendValue(getModelURL());
+            if (successPropertyFits) {
+                propertyFlags |= PROP_MODEL_URL;
+                propertiesDidntFit -= PROP_MODEL_URL;
+                propertyCount++;
+                packetData->endLevel(propertyLevel);
+            } else {
+                //qDebug() << "PROP_MODEL_URL didn't fit...";
+                packetData->discardLevel(propertyLevel);
+                appendState = OctreeElement::PARTIAL;
+            }
+        } else {
+            //qDebug() << "PROP_MODEL_URL NOT requested...";
+            propertiesDidntFit -= PROP_MODEL_URL;
+        }
+
         // PROP_ANIMATION_URL
         if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
             //qDebug() << "PROP_ANIMATION_URL requested...";
@@ -417,25 +445,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
             propertiesDidntFit -= PROP_ANIMATION_PLAYING;
         }
 
-        // PROP_SHOULD_BE_DELETED
-        if (requestedProperties.getHasProperty(PROP_SHOULD_BE_DELETED)) {
-            //qDebug() << "PROP_SHOULD_BE_DELETED requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getShouldBeDeleted());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_SHOULD_BE_DELETED;
-                propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_SHOULD_BE_DELETED didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_SHOULD_BE_DELETED NOT requested...";
-            propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
-        }
+#endif //def HIDE_SUBCLASS_METHODS    
     }
     if (propertyCount > 0) {
         int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -530,9 +540,11 @@ int EntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* data, in
         bytesRead += sizeof(_position);
 
         // color
+#ifdef HIDE_SUBCLASS_METHODS
         memcpy(_color, dataAt, sizeof(_color));
         dataAt += sizeof(_color);
         bytesRead += sizeof(_color);
+#endif
 
         // shouldBeDeleted
         memcpy(&_shouldBeDeleted, dataAt, sizeof(_shouldBeDeleted));
@@ -545,11 +557,13 @@ int EntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* data, in
         dataAt += sizeof(modelURLLength);
         bytesRead += sizeof(modelURLLength);
         QString modelURLString((const char*)dataAt);
+#ifdef HIDE_SUBCLASS_METHODS
         setModelURL(modelURLString);
+#endif
         dataAt += modelURLLength;
         bytesRead += modelURLLength;
 
-        // modelRotation
+        // rotation
         int bytes = unpackOrientationQuatFromBytes(dataAt, _rotation);
         dataAt += bytes;
         bytesRead += bytes;
@@ -561,10 +575,13 @@ int EntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* data, in
             dataAt += sizeof(animationURLLength);
             bytesRead += sizeof(animationURLLength);
             QString animationURLString((const char*)dataAt);
+#ifdef HIDE_SUBCLASS_METHODS
             setAnimationURL(animationURLString);
+#endif
             dataAt += animationURLLength;
             bytesRead += animationURLLength;
 
+#ifdef HIDE_SUBCLASS_METHODS
             // animationIsPlaying
             memcpy(&_animationIsPlaying, dataAt, sizeof(_animationIsPlaying));
             dataAt += sizeof(_animationIsPlaying);
@@ -579,6 +596,7 @@ int EntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* data, in
             memcpy(&_animationFPS, dataAt, sizeof(_animationFPS));
             dataAt += sizeof(_animationFPS);
             bytesRead += sizeof(_animationFPS);
+#endif
         }
     }
     return bytesRead;
@@ -679,6 +697,32 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             bytesRead += sizeof(_radius);
         }
 
+        // PROP_ROTATION
+        if (propertyFlags.getHasProperty(PROP_ROTATION)) {
+            int bytes = unpackOrientationQuatFromBytes(dataAt, _rotation);
+            dataAt += bytes;
+            bytesRead += bytes;
+        }
+
+        // PROP_SHOULD_BE_DELETED
+        if (propertyFlags.getHasProperty(PROP_SHOULD_BE_DELETED)) {
+            memcpy(&_shouldBeDeleted, dataAt, sizeof(_shouldBeDeleted));
+            dataAt += sizeof(_shouldBeDeleted);
+            bytesRead += sizeof(_shouldBeDeleted);
+        }
+
+        // PROP_SCRIPT
+        //     script would go here...
+        
+        
+#ifdef HIDE_SUBCLASS_METHODS    
+        // PROP_COLOR
+        if (propertyFlags.getHasProperty(PROP_COLOR)) {
+            memcpy(_color, dataAt, sizeof(_color));
+            dataAt += sizeof(_color);
+            bytesRead += sizeof(_color);
+        }
+
         // PROP_MODEL_URL
         if (propertyFlags.getHasProperty(PROP_MODEL_URL)) {
         
@@ -693,23 +737,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             bytesRead += modelURLLength;
         }
 
-        // PROP_ROTATION
-        if (propertyFlags.getHasProperty(PROP_ROTATION)) {
-            int bytes = unpackOrientationQuatFromBytes(dataAt, _rotation);
-            dataAt += bytes;
-            bytesRead += bytes;
-        }
-        
-        // PROP_COLOR
-        if (propertyFlags.getHasProperty(PROP_COLOR)) {
-            memcpy(_color, dataAt, sizeof(_color));
-            dataAt += sizeof(_color);
-            bytesRead += sizeof(_color);
-        }
-        
-        // PROP_SCRIPT
-        //     script would go here...
-        
         // PROP_ANIMATION_URL
         if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
             // animationURL
@@ -743,18 +770,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             dataAt += sizeof(_animationIsPlaying);
             bytesRead += sizeof(_animationIsPlaying);
         }
-
-        // PROP_SHOULD_BE_DELETED
-        if (propertyFlags.getHasProperty(PROP_SHOULD_BE_DELETED)) {
-            memcpy(&_shouldBeDeleted, dataAt, sizeof(_shouldBeDeleted));
-            dataAt += sizeof(_shouldBeDeleted);
-            bytesRead += sizeof(_shouldBeDeleted);
-        }
+#endif
     }
     return bytesRead;
 }
 
-EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid) {
+EntityItem* EntityItem::fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid) {
+    EntityItem* result = NULL;
+    
     bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "EntityItem EntityItem::fromEditPacket() length=" << length;
@@ -839,15 +862,9 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
         if (!packetContainsBits) {
             //qDebug() << "edit packet didn't contain any information ignore it...";
             valid = false;
-            return newEntityItem;
+            //return newEntityItem;
+            return NULL;
         }
-    }
-
-    // radius
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_RADIUS) == ENTITY_PACKET_CONTAINS_RADIUS)) {
-        memcpy(&newEntityItem._radius, dataAt, sizeof(newEntityItem._radius));
-        dataAt += sizeof(newEntityItem._radius);
-        processedBytes += sizeof(newEntityItem._radius);
     }
 
     // position
@@ -857,11 +874,19 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
         processedBytes += sizeof(newEntityItem._position);
     }
 
-    // color
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_COLOR) == ENTITY_PACKET_CONTAINS_COLOR)) {
-        memcpy(newEntityItem._color, dataAt, sizeof(newEntityItem._color));
-        dataAt += sizeof(newEntityItem._color);
-        processedBytes += sizeof(newEntityItem._color);
+    // radius
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_RADIUS) == ENTITY_PACKET_CONTAINS_RADIUS)) {
+        memcpy(&newEntityItem._radius, dataAt, sizeof(newEntityItem._radius));
+        dataAt += sizeof(newEntityItem._radius);
+        processedBytes += sizeof(newEntityItem._radius);
+    }
+
+    // rotation
+    if (isNewEntityItem || ((packetContainsBits & 
+                    ENTITY_PACKET_CONTAINS_ROTATION) == ENTITY_PACKET_CONTAINS_ROTATION)) {
+        int bytes = unpackOrientationQuatFromBytes(dataAt, newEntityItem._rotation);
+        dataAt += bytes;
+        processedBytes += bytes;
     }
 
     // shouldBeDeleted
@@ -869,6 +894,14 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
         memcpy(&newEntityItem._shouldBeDeleted, dataAt, sizeof(newEntityItem._shouldBeDeleted));
         dataAt += sizeof(newEntityItem._shouldBeDeleted);
         processedBytes += sizeof(newEntityItem._shouldBeDeleted);
+    }
+
+#ifdef HIDE_SUBCLASS_METHODS
+    // color
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_COLOR) == ENTITY_PACKET_CONTAINS_COLOR)) {
+        memcpy(newEntityItem._color, dataAt, sizeof(newEntityItem._color));
+        dataAt += sizeof(newEntityItem._color);
+        processedBytes += sizeof(newEntityItem._color);
     }
 
     // modelURL
@@ -881,14 +914,6 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
         newEntityItem._modelURL = tempString;
         dataAt += modelURLLength;
         processedBytes += modelURLLength;
-    }
-
-    // modelRotation
-    if (isNewEntityItem || ((packetContainsBits & 
-                    ENTITY_PACKET_CONTAINS_ROTATION) == ENTITY_PACKET_CONTAINS_ROTATION)) {
-        int bytes = unpackOrientationQuatFromBytes(dataAt, newEntityItem._rotation);
-        dataAt += bytes;
-        processedBytes += bytes;
     }
 
     // animationURL
@@ -929,6 +954,7 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
         dataAt += sizeof(newEntityItem._animationFPS);
         processedBytes += sizeof(newEntityItem._animationFPS);
     }
+#endif
 
     const bool wantDebugging = false;
     if (wantDebugging) {
@@ -937,7 +963,8 @@ EntityItem EntityItem::fromEditPacket(const unsigned char* data, int length, int
         newEntityItem.debugDump();
     }
 
-    return newEntityItem;
+    // TODO: need to make this actually return something...
+    return result;
 }
 
 void EntityItem::debugDump() const {
@@ -946,8 +973,11 @@ void EntityItem::debugDump() const {
     qDebug(" should die:%s", debug::valueOf(getShouldBeDeleted()));
     qDebug(" position:%f,%f,%f", _position.x, _position.y, _position.z);
     qDebug(" radius:%f", getRadius());
+
+#ifdef HIDE_SUBCLASS_METHODS
     qDebug(" color:%d,%d,%d", _color[0], _color[1], _color[2]);
     qDebug() << " modelURL:" << qPrintable(getModelURL());
+#endif
 }
 
 bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID id, const EntityItemProperties& properties,
@@ -1011,14 +1041,6 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
         sizeOut += sizeof(packetContainsBits);
     }
 
-    // radius
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_RADIUS) == ENTITY_PACKET_CONTAINS_RADIUS)) {
-        float radius = properties.getRadius() / (float) TREE_SCALE;
-        memcpy(copyAt, &radius, sizeof(radius));
-        copyAt += sizeof(radius);
-        sizeOut += sizeof(radius);
-    }
-
     // position
     if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_POSITION) == ENTITY_PACKET_CONTAINS_POSITION)) {
         glm::vec3 position = properties.getPosition() / (float)TREE_SCALE;
@@ -1027,12 +1049,19 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
         sizeOut += sizeof(position);
     }
 
-    // color
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_COLOR) == ENTITY_PACKET_CONTAINS_COLOR)) {
-        rgbColor color = { properties.getColor().red, properties.getColor().green, properties.getColor().blue };
-        memcpy(copyAt, color, sizeof(color));
-        copyAt += sizeof(color);
-        sizeOut += sizeof(color);
+    // radius
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_RADIUS) == ENTITY_PACKET_CONTAINS_RADIUS)) {
+        float radius = properties.getRadius() / (float) TREE_SCALE;
+        memcpy(copyAt, &radius, sizeof(radius));
+        copyAt += sizeof(radius);
+        sizeOut += sizeof(radius);
+    }
+
+    // rotation
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_ROTATION) == ENTITY_PACKET_CONTAINS_ROTATION)) {
+        int bytes = packOrientationQuatToBytes(copyAt, properties.getRotation());
+        copyAt += bytes;
+        sizeOut += bytes;
     }
 
     // shoulDie
@@ -1041,6 +1070,15 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
         memcpy(copyAt, &shouldBeDeleted, sizeof(shouldBeDeleted));
         copyAt += sizeof(shouldBeDeleted);
         sizeOut += sizeof(shouldBeDeleted);
+    }
+
+#if 0 //def HIDE_SUBCLASS_METHODS
+    // color
+    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_COLOR) == ENTITY_PACKET_CONTAINS_COLOR)) {
+        rgbColor color = { properties.getColor().red, properties.getColor().green, properties.getColor().blue };
+        memcpy(copyAt, color, sizeof(color));
+        copyAt += sizeof(color);
+        sizeOut += sizeof(color);
     }
 
     // modelURL
@@ -1052,13 +1090,6 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
         memcpy(copyAt, qPrintable(properties.getModelURL()), urlLength);
         copyAt += urlLength;
         sizeOut += urlLength;
-    }
-
-    // modelRotation
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_ROTATION) == ENTITY_PACKET_CONTAINS_ROTATION)) {
-        int bytes = packOrientationQuatToBytes(copyAt, properties.getRotation());
-        copyAt += bytes;
-        sizeOut += bytes;
     }
 
     // animationURL
@@ -1101,6 +1132,7 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
         copyAt += sizeof(animationFPS);
         sizeOut += sizeof(animationFPS);
     }
+#endif
 
     bool wantDebugging = false;
     if (wantDebugging) {
@@ -1148,6 +1180,7 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ss
 }
 
 
+#ifdef HIDE_SUBCLASS_METHODS
 QMap<QString, AnimationPointer> EntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
 AnimationCache EntityItem::_animationCache;
 
@@ -1223,6 +1256,7 @@ QVector<glm::quat> EntityItem::getAnimationFrame() {
     }
     return frameData;
 }
+#endif
 
 void EntityItem::update(const quint64& updateTime) {
     _lastUpdated = updateTime;
@@ -1231,6 +1265,7 @@ void EntityItem::update(const quint64& updateTime) {
     quint64 now = usecTimestampNow();
 
     // only advance the frame index if we're playing
+#ifdef HIDE_SUBCLASS_METHODS
     if (getAnimationIsPlaying()) {
 
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
@@ -1252,6 +1287,7 @@ void EntityItem::update(const quint64& updateTime) {
     } else {
         _lastAnimated = now;
     }
+#endif
 }
 
 void EntityItem::copyChangedProperties(const EntityItem& other) {
@@ -1260,12 +1296,117 @@ void EntityItem::copyChangedProperties(const EntityItem& other) {
 
 EntityItemProperties EntityItem::getProperties() const {
     EntityItemProperties properties;
-    properties.copyFromEntityItem(*this);
+    //properties.copyFromEntityItem(*this);
+    
+    
+    properties._id = getID();
+    properties._idSet = true;
+
+    properties._position = getPosition() * (float) TREE_SCALE;
+    properties._radius = getRadius() * (float) TREE_SCALE;
+    properties._rotation = getRotation();
+    properties._shouldBeDeleted = getShouldBeDeleted();
+
+    properties._positionChanged = false;
+    properties._radiusChanged = false;
+    properties._rotationChanged = false;
+    properties._shouldBeDeletedChanged = false;
+    
+
+#if 0 //def HIDE_SUBCLASS_METHODS
+    properties._color = getXColor();
+    properties._modelURL = getModelURL();
+    properties._animationURL = getAnimationURL();
+    properties._animationIsPlaying = getAnimationIsPlaying();
+    properties._animationFrameIndex = getAnimationFrameIndex();
+    properties._animationFPS = getAnimationFPS();
+    properties._glowLevel = getGlowLevel();
+    properties._sittingPoints = getSittingPoints(); // sitting support
+    properties._colorChanged = false;
+    properties._modelURLChanged = false;
+    properties._animationURLChanged = false;
+    properties._animationIsPlayingChanged = false;
+    properties._animationFrameIndexChanged = false;
+    properties._animationFPSChanged = false;
+    properties._glowLevelChanged = false;
+#endif
+
+    properties._defaultSettings = false;
+    
     return properties;
 }
 
 void EntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    properties.copyToEntityItem(*this, forceCopy);
+    bool somethingChanged = false;
+    if (properties._positionChanged || forceCopy) {
+        setPosition(properties._position / (float) TREE_SCALE);
+        somethingChanged = true;
+    }
+
+    if (properties._radiusChanged || forceCopy) {
+        setRadius(properties._radius / (float) TREE_SCALE);
+        somethingChanged = true;
+    }
+
+    if (properties._rotationChanged || forceCopy) {
+        setRotation(properties._rotation);
+        somethingChanged = true;
+    }
+
+    if (properties._shouldBeDeletedChanged || forceCopy) {
+        setShouldBeDeleted(properties._shouldBeDeleted);
+        somethingChanged = true;
+    }
+
+
+#if 0 // def HIDE_SUBCLASS_METHODS
+    if (properties._colorChanged || forceCopy) {
+        setColor(properties._color);
+        somethingChanged = true;
+    }
+
+    if (properties._modelURLChanged || forceCopy) {
+        setModelURL(properties._modelURL);
+        somethingChanged = true;
+    }
+
+    if (properties._animationURLChanged || forceCopy) {
+        setAnimationURL(properties._animationURL);
+        somethingChanged = true;
+    }
+
+    if (properties._animationIsPlayingChanged || forceCopy) {
+        setAnimationIsPlaying(properties._animationIsPlaying);
+        somethingChanged = true;
+    }
+
+    if (properties._animationFrameIndexChanged || forceCopy) {
+        setAnimationFrameIndex(properties._animationFrameIndex);
+        somethingChanged = true;
+    }
+    
+    if (properties._animationFPSChanged || forceCopy) {
+        setAnimationFPS(properties._animationFPS);
+        somethingChanged = true;
+    }
+    
+    if (properties._glowLevelChanged || forceCopy) {
+        setGlowLevel(properties._glowLevel);
+        somethingChanged = true;
+    }
+#endif
+
+    if (somethingChanged) {
+        bool wantDebug = false;
+        if (wantDebug) {
+            uint64_t now = usecTimestampNow();
+            int elapsed = now - _lastEdited;
+            qDebug() << "EntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+                    "now=" << now << " _lastEdited=" << _lastEdited;
+        }
+        setLastEdited(properties._lastEdited);
+    }
+
 }
 
 EntityItemProperties::EntityItemProperties() :
@@ -1276,28 +1417,33 @@ EntityItemProperties::EntityItemProperties() :
 
     _position(0),
     _radius(ENTITY_DEFAULT_RADIUS),
+    _rotation(ENTITY_DEFAULT_ROTATION),
     _shouldBeDeleted(false),
+
+    _positionChanged(false),
+    _radiusChanged(false),
+    _rotationChanged(false),
+    _shouldBeDeletedChanged(false),
+
+
+#if 0 //def HIDE_SUBCLASS_METHODS
     _color(),
     _modelURL(""),
-    _rotation(ENTITY_DEFAULT_ROTATION),
     _animationURL(""),
     _animationIsPlaying(false),
     _animationFrameIndex(0.0),
     _animationFPS(ENTITY_DEFAULT_ANIMATION_FPS),
     _glowLevel(0.0f),
 
-    _positionChanged(false),
-    _radiusChanged(false),
-    _shouldBeDeletedChanged(false),
-
     _colorChanged(false),
     _modelURLChanged(false),
-    _rotationChanged(false),
     _animationURLChanged(false),
     _animationIsPlayingChanged(false),
     _animationFrameIndexChanged(false),
     _animationFPSChanged(false),
     _glowLevelChanged(false),
+#endif
+
     _defaultSettings(true)
 {
 }
@@ -1308,8 +1454,6 @@ void EntityItemProperties::debugDump() const {
     qDebug() << "   _idSet=" << _idSet;
     qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
     qDebug() << "   _radius=" << _radius;
-    qDebug() << "   _modelURL=" << _modelURL;
-    qDebug() << "   _animationURL=" << _animationURL;
 }
 
 
@@ -1323,20 +1467,21 @@ uint16_t EntityItemProperties::getChangedBits() const {
         changedBits += ENTITY_PACKET_CONTAINS_POSITION;
     }
 
-    if (_colorChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_COLOR;
+    if (_rotationChanged) {
+        changedBits += ENTITY_PACKET_CONTAINS_ROTATION;
     }
 
     if (_shouldBeDeletedChanged) {
         changedBits += ENTITY_PACKET_CONTAINS_SHOULDDIE;
     }
 
-    if (_modelURLChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_MODEL_URL;
+#if 0 //def HIDE_SUBCLASS_METHODS
+    if (_colorChanged) {
+        changedBits += ENTITY_PACKET_CONTAINS_COLOR;
     }
 
-    if (_rotationChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ROTATION;
+    if (_modelURLChanged) {
+        changedBits += ENTITY_PACKET_CONTAINS_MODEL_URL;
     }
 
     if (_animationURLChanged) {
@@ -1354,6 +1499,7 @@ uint16_t EntityItemProperties::getChangedBits() const {
     if (_animationFPSChanged) {
         changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_FPS;
     }
+#endif
 
     return changedBits;
 }
@@ -1362,31 +1508,27 @@ uint16_t EntityItemProperties::getChangedBits() const {
 QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) const {
     QScriptValue properties = engine->newObject();
 
+    if (_idSet) {
+        properties.setProperty("id", _id);
+        properties.setProperty("isKnownID", (_id != UNKNOWN_ENTITY_ID));
+    }
+
     QScriptValue position = vec3toScriptValue(engine, _position);
     properties.setProperty("position", position);
-
-    QScriptValue color = xColorToScriptValue(engine, _color);
-    properties.setProperty("color", color);
-
     properties.setProperty("radius", _radius);
-
+    QScriptValue rotation = quatToScriptValue(engine, _rotation);
+    properties.setProperty("rotation", rotation);
     properties.setProperty("shouldBeDeleted", _shouldBeDeleted);
 
+#if 0 // def HIDE_SUBCLASS_METHODS
+    QScriptValue color = xColorToScriptValue(engine, _color);
+    properties.setProperty("color", color);
     properties.setProperty("modelURL", _modelURL);
-
-    QScriptValue modelRotation = quatToScriptValue(engine, _rotation);
-    properties.setProperty("modelRotation", modelRotation);
-
     properties.setProperty("animationURL", _animationURL);
     properties.setProperty("animationIsPlaying", _animationIsPlaying);
     properties.setProperty("animationFrameIndex", _animationFrameIndex);
     properties.setProperty("animationFPS", _animationFPS);
     properties.setProperty("glowLevel", _glowLevel);
-
-    if (_idSet) {
-        properties.setProperty("id", _id);
-        properties.setProperty("isKnownID", (_id != UNKNOWN_ENTITY_ID));
-    }
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -1399,11 +1541,12 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     }
     sittingPoints.setProperty("length", _sittingPoints.size());
     properties.setProperty("sittingPoints", sittingPoints);
+#endif // HIDE_SUBCLASS_METHODS
 
     return properties;
 }
 
-void EntityItemProperties::copyFromScriptValue(const QScriptValue &object) {
+void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
 
     QScriptValue position = object.property("position");
     if (position.isValid()) {
@@ -1422,6 +1565,46 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue &object) {
         }
     }
 
+    QScriptValue radius = object.property("radius");
+    if (radius.isValid()) {
+        float newRadius;
+        newRadius = radius.toVariant().toFloat();
+        if (_defaultSettings || newRadius != _radius) {
+            _radius = newRadius;
+            _radiusChanged = true;
+        }
+    }
+
+    QScriptValue rotation = object.property("rotation");
+    if (rotation.isValid()) {
+        QScriptValue x = rotation.property("x");
+        QScriptValue y = rotation.property("y");
+        QScriptValue z = rotation.property("z");
+        QScriptValue w = rotation.property("w");
+        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
+            glm::quat newRotation;
+            newRotation.x = x.toVariant().toFloat();
+            newRotation.y = y.toVariant().toFloat();
+            newRotation.z = z.toVariant().toFloat();
+            newRotation.w = w.toVariant().toFloat();
+            if (_defaultSettings || newRotation != _rotation) {
+                _rotation = newRotation;
+                _rotationChanged = true;
+            }
+        }
+    }
+
+    QScriptValue shouldBeDeleted = object.property("shouldBeDeleted");
+    if (shouldBeDeleted.isValid()) {
+        bool newShouldBeDeleted;
+        newShouldBeDeleted = shouldBeDeleted.toVariant().toBool();
+        if (_defaultSettings || newShouldBeDeleted != _shouldBeDeleted) {
+            _shouldBeDeleted = newShouldBeDeleted;
+            _shouldBeDeletedChanged = true;
+        }
+    }
+
+#if 0 //def HIDE_SUBCLASS_METHODS
     QScriptValue color = object.property("color");
     if (color.isValid()) {
         QScriptValue red = color.property("red");
@@ -1441,26 +1624,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue &object) {
         }
     }
 
-    QScriptValue radius = object.property("radius");
-    if (radius.isValid()) {
-        float newRadius;
-        newRadius = radius.toVariant().toFloat();
-        if (_defaultSettings || newRadius != _radius) {
-            _radius = newRadius;
-            _radiusChanged = true;
-        }
-    }
-
-    QScriptValue shouldBeDeleted = object.property("shouldBeDeleted");
-    if (shouldBeDeleted.isValid()) {
-        bool newShouldBeDeleted;
-        newShouldBeDeleted = shouldBeDeleted.toVariant().toBool();
-        if (_defaultSettings || newShouldBeDeleted != _shouldBeDeleted) {
-            _shouldBeDeleted = newShouldBeDeleted;
-            _shouldBeDeletedChanged = true;
-        }
-    }
-
     QScriptValue modelURL = object.property("modelURL");
     if (modelURL.isValid()) {
         QString newModelURL;
@@ -1468,25 +1631,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue &object) {
         if (_defaultSettings || newModelURL != _modelURL) {
             _modelURL = newModelURL;
             _modelURLChanged = true;
-        }
-    }
-
-    QScriptValue modelRotation = object.property("modelRotation");
-    if (modelRotation.isValid()) {
-        QScriptValue x = modelRotation.property("x");
-        QScriptValue y = modelRotation.property("y");
-        QScriptValue z = modelRotation.property("z");
-        QScriptValue w = modelRotation.property("w");
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            glm::quat newRotation;
-            newRotation.x = x.toVariant().toFloat();
-            newRotation.y = y.toVariant().toFloat();
-            newRotation.z = z.toVariant().toFloat();
-            newRotation.w = w.toVariant().toFloat();
-            if (_defaultSettings || newRotation != _rotation) {
-                _rotation = newRotation;
-                _rotationChanged = true;
-            }
         }
     }
 
@@ -1539,109 +1683,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue &object) {
             _glowLevelChanged = true;
         }
     }
+#endif
 
     _lastEdited = usecTimestampNow();
-}
-
-void EntityItemProperties::copyToEntityItem(EntityItem& entityItem, bool forceCopy) const {
-    bool somethingChanged = false;
-    if (_positionChanged || forceCopy) {
-        entityItem.setPosition(_position / (float) TREE_SCALE);
-        somethingChanged = true;
-    }
-
-    if (_colorChanged || forceCopy) {
-        entityItem.setColor(_color);
-        somethingChanged = true;
-    }
-
-    if (_radiusChanged || forceCopy) {
-        entityItem.setRadius(_radius / (float) TREE_SCALE);
-        somethingChanged = true;
-    }
-
-    if (_shouldBeDeletedChanged || forceCopy) {
-        entityItem.setShouldBeDeleted(_shouldBeDeleted);
-        somethingChanged = true;
-    }
-
-    if (_modelURLChanged || forceCopy) {
-        entityItem.setModelURL(_modelURL);
-        somethingChanged = true;
-    }
-
-    if (_rotationChanged || forceCopy) {
-        entityItem.setRotation(_rotation);
-        somethingChanged = true;
-    }
-
-    if (_animationURLChanged || forceCopy) {
-        entityItem.setAnimationURL(_animationURL);
-        somethingChanged = true;
-    }
-
-    if (_animationIsPlayingChanged || forceCopy) {
-        entityItem.setAnimationIsPlaying(_animationIsPlaying);
-        somethingChanged = true;
-    }
-
-    if (_animationFrameIndexChanged || forceCopy) {
-        entityItem.setAnimationFrameIndex(_animationFrameIndex);
-        somethingChanged = true;
-    }
-    
-    if (_animationFPSChanged || forceCopy) {
-        entityItem.setAnimationFPS(_animationFPS);
-        somethingChanged = true;
-    }
-    
-    if (_glowLevelChanged || forceCopy) {
-        entityItem.setGlowLevel(_glowLevel);
-        somethingChanged = true;
-    }
-
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - _lastEdited;
-            qDebug() << "EntityItemProperties::copyToEntityItem() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " _lastEdited=" << _lastEdited;
-        }
-        entityItem.setLastEdited(_lastEdited);
-    }
-}
-
-void EntityItemProperties::copyFromEntityItem(const EntityItem& entityItem) {
-    _position = entityItem.getPosition() * (float) TREE_SCALE;
-    _color = entityItem.getXColor();
-    _radius = entityItem.getRadius() * (float) TREE_SCALE;
-    _shouldBeDeleted = entityItem.getShouldBeDeleted();
-    _modelURL = entityItem.getModelURL();
-    _rotation = entityItem.getRotation();
-    _animationURL = entityItem.getAnimationURL();
-    _animationIsPlaying = entityItem.getAnimationIsPlaying();
-    _animationFrameIndex = entityItem.getAnimationFrameIndex();
-    _animationFPS = entityItem.getAnimationFPS();
-    _glowLevel = entityItem.getGlowLevel();
-    _sittingPoints = entityItem.getSittingPoints(); // sitting support
-
-    _id = entityItem.getID();
-    _idSet = true;
-
-    _positionChanged = false;
-    _colorChanged = false;
-    _radiusChanged = false;
-    
-    _shouldBeDeletedChanged = false;
-    _modelURLChanged = false;
-    _rotationChanged = false;
-    _animationURLChanged = false;
-    _animationIsPlayingChanged = false;
-    _animationFrameIndexChanged = false;
-    _animationFPSChanged = false;
-    _glowLevelChanged = false;
-    _defaultSettings = false;
 }
 
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties) {

@@ -71,7 +71,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
         _entityTree->lockForRead();
         const EntityItem* model = _entityTree->findEntityByID(identity.id, true);
         if (model) {
-            results.copyFromEntityItem(*model);
+            results = model->getProperties();
         } else {
             results.setIsUnknownID();
         }

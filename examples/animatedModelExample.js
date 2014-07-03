@@ -32,7 +32,7 @@ var originalProperties = {
              blue: 0 },
 
     modelURL: "http://www.fungibleinsight.com/faces/beta.fst",
-    modelRotation: rotation,
+    rotation: rotation,
     animationURL: "http://www.fungibleinsight.com/faces/gangnam_style_2.fbx",
     animationIsPlaying: true,
 };
