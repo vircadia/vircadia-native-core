@@ -10,6 +10,7 @@
 //
 
 #include <QMetaObject>
+#include <QAbstractNetworkCache>
 #include <QThread>
 
 #include "NetworkAccessManager.h"
@@ -146,4 +147,15 @@ QNetworkReply* NetworkAccessManager::sendCustomRequest(const QNetworkRequest& re
         return result;
     }
     return QNetworkAccessManager::sendCustomRequest(request, verb, data);
+}
+
+void NetworkAccessManager::setCache(QAbstractNetworkCache* cache) {
+    if (QThread::currentThread() != thread()) {
+        qRegisterMetaType<QAbstractNetworkCache*>();
+        QMetaObject::invokeMethod(this,
+                                  "setCache",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(QAbstractNetworkCache*, cache));
+    }
+    QNetworkAccessManager::setCache(cache);
 }
