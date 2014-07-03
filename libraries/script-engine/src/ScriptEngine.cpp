@@ -256,6 +256,8 @@ void ScriptEngine::init() {
     
     qScriptRegisterMetaType(&_engine, injectorToScriptValue, injectorFromScriptValue);
 
+    qScriptRegisterMetaType(&_engine, animationDetailsToScriptValue, animationDetailsFromScriptValue);
+
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
     registerGlobalObject("Controller", _controllerScriptingInterface);
