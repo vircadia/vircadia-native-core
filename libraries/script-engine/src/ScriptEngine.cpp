@@ -33,6 +33,7 @@
 
 #include "AnimationObject.h"
 #include "MenuItemProperties.h"
+#include "MIDIEvent.h"
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
 #include "XMLHttpRequestClass.h"
@@ -217,6 +218,7 @@ void ScriptEngine::init() {
 
     // register various meta-types
     registerMetaTypes(&_engine);
+    registerMIDIMetaTypes(&_engine);
     registerVoxelMetaTypes(&_engine);
     registerEventTypes(&_engine);
     registerMenuItemProperties(&_engine);

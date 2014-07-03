@@ -70,6 +70,7 @@
 #include "Menu.h"
 #include "ModelUploader.h"
 #include "Util.h"
+#include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
@@ -396,6 +397,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig();
 
     _trayIcon->show();
+    
+#ifdef HAVE_RTMIDI
+    // setup the MIDIManager
+    MIDIManager& midiManagerInstance = MIDIManager::getInstance();
+    midiManagerInstance.openDefaultPort();
+#endif
 }
 
 Application::~Application() {
@@ -3625,6 +3632,10 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
+    
+#ifdef HAVE_RTMIDI
+    scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
+#endif
 
     QThread* workerThread = new QThread(this);
 
