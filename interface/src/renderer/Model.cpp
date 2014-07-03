@@ -1158,14 +1158,9 @@ void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm:
             }
             glm::quat deltaRotation = rotationBetween(leverArm, targetPosition - pivot);
 
-            /* DON'T REMOVE! This code provides the gravitational effect on the IK solution.
-            * It is commented out for the moment because we're blending the IK solution with 
-            * the default pose which provides similar stability, but we might want to use
-            * gravity again later.
-            
-            // We want to mix the shortest rotation with one that will pull the system down with gravity.
-            // So we compute a simplified center of mass, where each joint has a mass of 1.0 and we don't 
-            // bother averaging it because we only need direction.
+            // We want to mix the shortest rotation with one that will pull the system down with gravity
+            // so that limbs don't float unrealistically.  To do this we compute a simplified center of mass
+            // where each joint has unit mass and we don't bother averaging it because we only need direction.
             if (j > 1) {
 
                 glm::vec3 centerOfMass(0.0f);
@@ -1187,11 +1182,9 @@ void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm:
                 }
                 deltaRotation = safeMix(deltaRotation, gravityDelta, mixFactor);
             }
-            */
 
             // Apply the rotation, but use mixRotationDelta() which blends a bit of the default pose
-            // at in the process.  This provides stability to the IK solution and removes the necessity
-            // for the gravity effect.
+            // at in the process.  This provides stability to the IK solution for most models.
             glm::quat oldNextRotation = nextState.getRotation();
             float mixFactor = 0.03f;
             nextState.mixRotationDelta(deltaRotation, mixFactor, priority);
