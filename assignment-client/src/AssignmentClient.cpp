@@ -104,6 +104,8 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // connections to AccountManager for authentication
     connect(&AccountManager::getInstance(), &AccountManager::authRequired,
             this, &AssignmentClient::handleAuthenticationRequest);
+    
+    NetworkAccessManager::getInstance();
 }
 
 void AssignmentClient::sendAssignmentRequest() {
