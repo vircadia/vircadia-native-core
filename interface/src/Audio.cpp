@@ -93,7 +93,7 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _processSpatialAudio(false),
     _spatialAudioStart(0),
     _spatialAudioFinish(0),
-    _spatialAudioRingBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL, true), // random access mode
+    _spatialAudioRingBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, true), // random access mode
     _scopeEnabled(false),
     _scopeEnabledPause(false),
     _scopeInputOffset(0),
