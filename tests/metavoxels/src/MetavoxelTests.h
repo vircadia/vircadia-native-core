@@ -77,6 +77,7 @@ private:
     SharedObjectPointer _remoteState;
     
     MetavoxelData _data;
+    MetavoxelLOD _dataLOD;
     MetavoxelLOD _lod;
     
     SharedObjectPointer _sphere;
@@ -100,6 +101,7 @@ private:
     int _reliableDeltaReceivedOffset;
     MetavoxelData _reliableDeltaData;
     MetavoxelLOD _reliableDeltaLOD;
+    bool _reliableDeltaPending;
 };
 
 /// A simple shared object.
