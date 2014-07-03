@@ -13,8 +13,8 @@
 
 #include "AvatarAudioRingBuffer.h"
 
-AvatarAudioRingBuffer::AvatarAudioRingBuffer(int numFramesCapacity, bool isStereo, bool dynamicJitterBuffer) :
-    PositionalAudioRingBuffer(numFramesCapacity, PositionalAudioRingBuffer::Microphone, isStereo, dynamicJitterBuffer) {
+AvatarAudioRingBuffer::AvatarAudioRingBuffer(bool isStereo, bool dynamicJitterBuffer) :
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone, isStereo, dynamicJitterBuffer) {
     
 }
 

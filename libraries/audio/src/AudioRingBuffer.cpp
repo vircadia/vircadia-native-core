@@ -19,7 +19,7 @@
 #include "AudioRingBuffer.h"
 
 
-AudioRingBuffer::AudioRingBuffer(int numFrameSamples, int numFramesCapacity, bool randomAccessMode) :
+AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode, int numFramesCapacity) :
     NodeData(),
     _overflowCount(0),
     _frameCapacity(numFramesCapacity),

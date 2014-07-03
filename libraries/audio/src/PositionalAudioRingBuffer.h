@@ -43,6 +43,8 @@ private:
     bool _newWindowMaxGapAvailable;
 };
 
+const int AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
+
 class PositionalAudioRingBuffer : public AudioRingBuffer {
 public:
     enum Type {
@@ -50,8 +52,7 @@ public:
         Injector
     };
     
-    PositionalAudioRingBuffer(int numFramesCapacity, PositionalAudioRingBuffer::Type type,
-        bool isStereo = false, bool dynamicJitterBuffers = false);
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false, bool dynamicJitterBuffers = false);
     
     int parseData(const QByteArray& packet);
     int parsePositionalData(const QByteArray& positionalByteArray);

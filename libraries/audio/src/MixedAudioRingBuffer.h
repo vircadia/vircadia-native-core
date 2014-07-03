@@ -17,7 +17,7 @@
 class MixedAudioRingBuffer : public AudioRingBuffer {
     Q_OBJECT
 public:
-    MixedAudioRingBuffer(int numFrameSamples, int numFramesCapacity);
+    MixedAudioRingBuffer(int numFrameSamples);
     
     float getLastReadFrameAverageLoudness() const { return _lastReadFrameAverageLoudness; }
     

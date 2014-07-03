@@ -19,8 +19,6 @@
 #include "AudioMixer.h"
 #include "AudioMixerClientData.h"
 
-static const int AUDIO_RING_BUFFER_CAPACITY_FRAMES = 100;
-
 AudioMixerClientData::AudioMixerClientData() :
     _ringBuffers(),
     _outgoingMixedAudioSequenceNumber(0),
@@ -78,7 +76,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         if (!avatarRingBuffer) {
             // we don't have an AvatarAudioRingBuffer yet, so add it
-            avatarRingBuffer = new AvatarAudioRingBuffer(AUDIO_RING_BUFFER_CAPACITY_FRAMES, isStereo, AudioMixer::getUseDynamicJitterBuffers());
+            avatarRingBuffer = new AvatarAudioRingBuffer(isStereo, AudioMixer::getUseDynamicJitterBuffers());
             _ringBuffers.push_back(avatarRingBuffer);
         }
 
@@ -103,8 +101,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         if (!matchingInjectedRingBuffer) {
             // we don't have a matching injected audio ring buffer, so add it
-            matchingInjectedRingBuffer = new InjectedAudioRingBuffer(AUDIO_RING_BUFFER_CAPACITY_FRAMES, streamIdentifier,
-                                                    AudioMixer::getUseDynamicJitterBuffers());
+            matchingInjectedRingBuffer = new InjectedAudioRingBuffer(streamIdentifier, AudioMixer::getUseDynamicJitterBuffers());
             _ringBuffers.push_back(matchingInjectedRingBuffer);
         }
 
