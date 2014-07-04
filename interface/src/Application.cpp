@@ -683,11 +683,13 @@ void Application::paintGL() {
             _rearMirrorTools->render(true);
         }
 
-        PerformanceTimer perfTimer("paintGL/renderOverlay");
-        // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
-        _applicationOverlay.renderOverlay(true);
-        if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
-            _applicationOverlay.displayOverlayTexture();
+        {
+            PerformanceTimer perfTimer("paintGL/renderOverlay");
+            // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
+            _applicationOverlay.renderOverlay(true);
+            if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
+                _applicationOverlay.displayOverlayTexture();
+            }
         }
     }
 
