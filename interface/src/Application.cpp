@@ -712,6 +712,7 @@ void Application::resizeGL(int width, int height) {
     resetCamerasOnResizeGL(_myCamera, width, height);
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
+    _applicationOverlay.resize();
 
     updateProjectionMatrix();
     glLoadIdentity();

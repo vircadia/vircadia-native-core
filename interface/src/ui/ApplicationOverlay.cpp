@@ -998,6 +998,12 @@ void ApplicationOverlay::renderTexturedHemisphere() {
 
 }
 
+void ApplicationOverlay::resize() {
+    delete _framebufferObject;
+    _framebufferObject = NULL;
+    // _framebufferObject is recreated at the correct size the next time it is accessed via getFramebufferObject().
+}
+
 QOpenGLFramebufferObject* ApplicationOverlay::getFramebufferObject() {
     if (!_framebufferObject) {
         _framebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
