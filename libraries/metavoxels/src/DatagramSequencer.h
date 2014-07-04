@@ -78,6 +78,12 @@ public:
     /// Returns the packet number of the last packet received (or the packet currently being assembled).
     int getIncomingPacketNumber() const { return _incomingPacketNumber; }
     
+    /// Returns a reference to the stream used to read packets.
+    Bitstream& getInputStream() { return _inputStream; }
+    
+    /// Returns a reference to the stream used to write packets.
+    Bitstream& getOutputStream() { return _outputStream; }
+    
     /// Returns the packet number of the sent packet at the specified index.
     int getSentPacketNumber(int index) const { return _sendRecords.at(index).packetNumber; }
     
@@ -147,6 +153,7 @@ private slots:
 
     void sendClearSharedObjectMessage(int id);
     void handleHighPriorityMessage(const QVariant& data);
+    void clearReliableChannel(QObject* object);
     
 private:
     
@@ -325,6 +332,9 @@ public:
     /// Returns the channel's index in the sequencer's channel map.
     int getIndex() const { return _index; }
 
+    /// Checks whether this is an output channel. 
+    bool isOutput() const { return _output; }
+
     /// Returns a reference to the buffer used to write/read data to/from this channel.
     CircularBuffer& getBuffer() { return _buffer; }
     
@@ -390,6 +400,7 @@ private:
     void readData(QDataStream& in);
     
     int _index;
+    bool _output;
     CircularBuffer _buffer;
     CircularBuffer _assemblyBuffer;
     QDataStream _dataStream;

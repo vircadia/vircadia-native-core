@@ -278,6 +278,26 @@ void Bitstream::persistAndResetReadMappings() {
     persistReadMappings(getAndResetReadMappings());
 }
 
+void Bitstream::copyPersistentMappings(const Bitstream& other) {
+    _objectStreamerStreamer.copyPersistentMappings(other._objectStreamerStreamer);
+    _typeStreamerStreamer.copyPersistentMappings(other._typeStreamerStreamer);
+    _attributeStreamer.copyPersistentMappings(other._attributeStreamer);
+    _scriptStringStreamer.copyPersistentMappings(other._scriptStringStreamer);
+    _sharedObjectStreamer.copyPersistentMappings(other._sharedObjectStreamer);
+    _sharedObjectReferences = other._sharedObjectReferences;
+    _weakSharedObjectHash = other._weakSharedObjectHash;
+}
+
+void Bitstream::clearPersistentMappings() {
+    _objectStreamerStreamer.clearPersistentMappings();
+    _typeStreamerStreamer.clearPersistentMappings();
+    _attributeStreamer.clearPersistentMappings();
+    _scriptStringStreamer.clearPersistentMappings();
+    _sharedObjectStreamer.clearPersistentMappings();
+    _sharedObjectReferences.clear();
+    _weakSharedObjectHash.clear();
+}
+
 void Bitstream::clearSharedObject(int id) {
     SharedObjectPointer object = _sharedObjectStreamer.takePersistentValue(id);
     if (object) {

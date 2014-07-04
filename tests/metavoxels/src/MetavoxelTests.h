@@ -66,6 +66,7 @@ private slots:
     void handleHighPriorityMessage(const QVariant& message);
     void handleReliableMessage(const QVariant& message, Bitstream& in);
     void readReliableChannel();
+    void checkReliableDeltaReceived();
 
 private:
     
@@ -98,10 +99,11 @@ private:
     QVariantList _reliableMessagesSent;
     CircularBuffer _dataStreamed;
     
+    ReliableChannel* _reliableDeltaChannel;
     int _reliableDeltaReceivedOffset;
     MetavoxelData _reliableDeltaData;
     MetavoxelLOD _reliableDeltaLOD;
-    bool _reliableDeltaPending;
+    Bitstream::WriteMappings _reliableDeltaWriteMappings;
 };
 
 /// A simple shared object.

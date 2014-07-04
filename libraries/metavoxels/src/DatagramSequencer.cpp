@@ -276,6 +276,11 @@ void DatagramSequencer::handleHighPriorityMessage(const QVariant& data) {
     }
 }
 
+void DatagramSequencer::clearReliableChannel(QObject* object) {
+    ReliableChannel* channel = static_cast<ReliableChannel*>(object);
+    (channel->isOutput() ? _reliableOutputChannels : _reliableInputChannels).remove(channel->getIndex());
+}
+
 void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     // stop acknowledging the recorded packets
     while (!_receiveRecords.isEmpty() && _receiveRecords.first().packetNumber <= record.lastReceivedPacketNumber) {
@@ -297,7 +302,10 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     
     // acknowledge the received spans
     foreach (const ChannelSpan& span, record.spans) {
-        getReliableOutputChannel(span.channel)->spanAcknowledged(span);
+        ReliableChannel* channel = _reliableOutputChannels.value(span.channel);
+        if (channel) {
+            channel->spanAcknowledged(span);
+        }
     }
     
     // increase the packet rate with every ack until we pass the slow start threshold; then, every round trip
@@ -312,7 +320,10 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
 void DatagramSequencer::sendRecordLost(const SendRecord& record) {
     // notify the channels of their lost spans
     foreach (const ChannelSpan& span, record.spans) {
-        getReliableOutputChannel(span.channel)->spanLost(record.packetNumber, _outgoingPacketNumber + 1);
+        ReliableChannel* channel = _reliableOutputChannels.value(span.channel);
+        if (channel) {
+            channel->spanLost(record.packetNumber, _outgoingPacketNumber + 1);
+        }
     }
     
     // halve the rate and remember as threshold
@@ -700,6 +711,7 @@ void ReliableChannel::handleMessage(const QVariant& message, Bitstream& in) {
 ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool output) :
     QObject(sequencer),
     _index(index),
+    _output(output),
     _dataStream(&_buffer),
     _bitstream(_dataStream),
     _priority(1.0f),
@@ -713,6 +725,8 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
     
     connect(&_bitstream, SIGNAL(sharedObjectCleared(int)), SLOT(sendClearSharedObjectMessage(int)));
     connect(this, SIGNAL(receivedMessage(const QVariant&, Bitstream&)), SLOT(handleMessage(const QVariant&, Bitstream&)));
+    
+    sequencer->connect(this, SIGNAL(destroyed(QObject*)), SLOT(clearReliableChannel(QObject*)));
 }
 
 void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans) {
