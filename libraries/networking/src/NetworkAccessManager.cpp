@@ -21,6 +21,7 @@ NetworkAccessManager& NetworkAccessManager::getInstance() {
 }
 
 NetworkAccessManager::NetworkAccessManager() {
+    qRegisterMetaType<QAbstractNetworkCache*>();
 }
 
 QNetworkReply* NetworkAccessManager::get(const QNetworkRequest& request) {
@@ -151,10 +152,9 @@ QNetworkReply* NetworkAccessManager::sendCustomRequest(const QNetworkRequest& re
 
 void NetworkAccessManager::setCache(QAbstractNetworkCache* cache) {
     if (QThread::currentThread() != thread()) {
-        qRegisterMetaType<QAbstractNetworkCache*>();
         QMetaObject::invokeMethod(this,
                                   "setCache",
-                                  Qt::QueuedConnection,
+                                  Qt::BlockingQueuedConnection,
                                   Q_ARG(QAbstractNetworkCache*, cache));
     }
     QNetworkAccessManager::setCache(cache);
