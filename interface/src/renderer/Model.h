@@ -120,6 +120,9 @@ public:
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
 
+    bool getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
+    bool getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
+
     /// \param jointIndex index of joint in model structure
     /// \param position[out] position of joint in model-frame
     /// \return true if joint exists
@@ -152,6 +155,7 @@ protected:
 
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center
+    bool _showTrueJointTransforms;
     int _rootIndex;
     
     QVector<JointState> _jointStates;
@@ -176,6 +180,8 @@ protected:
 
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
+
+    virtual void updateVisibleJointStates();
     
     /// \param jointIndex index of joint in model structure
     /// \param position position of joint in model-frame
@@ -188,6 +194,8 @@ protected:
     bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
+
+    void inverseKinematics(int jointIndex, glm::vec3 position, const glm::quat& rotation, float priority);
     
     /// Restores the indexed joint to its default position.
     /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
@@ -345,6 +353,11 @@ public:
     
     void setRunning(bool running);
     bool isRunning() const { return _running; }
+
+    void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(_frameIndex, _firstFrame, _lastFrame); }
+    float getFrameIndex() const { return _frameIndex; }
+
+    AnimationDetails getAnimationDetails() const;
 
 signals:
     

@@ -19,6 +19,7 @@ set(PRIOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/priovr")
 set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense")
 set(VISAGE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/visage")
 set(LEAPMOTION_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/leapmotion")
+set(RTMIDI_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/rtmidi")
 
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
@@ -111,6 +112,16 @@ if (APPLE)
   SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/interface.icns")
 endif()
 
+# RtMidi for scripted MIDI control
+find_package(RtMidi)
+
+if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI)
+  add_definitions(-DHAVE_RTMIDI)
+  include_directories(SYSTEM ${RTMIDI_INCLUDE_DIR})
+  
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${RTMIDI_CPP}")
+endif ()
+
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
@@ -145,58 +156,58 @@ find_package(Qxmpp)
 
 # include the Sixense library for Razer Hydra if available
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
-    add_definitions(-DHAVE_SIXENSE)
-    include_directories(SYSTEM "${SIXENSE_INCLUDE_DIRS}")
-    if (APPLE OR UNIX)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${SIXENSE_INCLUDE_DIRS}")
-    endif (APPLE OR UNIX)
-    target_link_libraries(${TARGET_NAME} "${SIXENSE_LIBRARIES}")
+  add_definitions(-DHAVE_SIXENSE)
+  include_directories(SYSTEM "${SIXENSE_INCLUDE_DIRS}")
+  if (APPLE OR UNIX)
+      SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${SIXENSE_INCLUDE_DIRS}")
+  endif (APPLE OR UNIX)
+  target_link_libraries(${TARGET_NAME} "${SIXENSE_LIBRARIES}")
 endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
 
 # likewise with Visage library for webcam feature tracking
 if (VISAGE_FOUND AND NOT DISABLE_VISAGE)
-    add_definitions(-DHAVE_VISAGE -DVISAGE_STATIC)
-    include_directories(SYSTEM "${VISAGE_INCLUDE_DIRS}")
-    if (APPLE)
-        add_definitions(-DMAC_OS_X)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment")
-        include_directories(SYSTEM "${VISAGE_INCLUDE_DIRS}")
-        find_library(AVFoundation AVFoundation)
-        find_library(CoreMedia CoreMedia)
-        find_library(NEW_STD_LIBRARY libc++.dylib /usr/lib/)
-        target_link_libraries(${TARGET_NAME} ${AVFoundation} ${CoreMedia} ${NEW_STD_LIBRARY})
-    endif (APPLE)
-    target_link_libraries(${TARGET_NAME} "${VISAGE_LIBRARIES}")
+  add_definitions(-DHAVE_VISAGE -DVISAGE_STATIC)
+  include_directories(SYSTEM "${VISAGE_INCLUDE_DIRS}")
+  if (APPLE)
+      add_definitions(-DMAC_OS_X)
+      SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment")
+      include_directories(SYSTEM "${VISAGE_INCLUDE_DIRS}")
+      find_library(AVFoundation AVFoundation)
+      find_library(CoreMedia CoreMedia)
+      find_library(NEW_STD_LIBRARY libc++.dylib /usr/lib/)
+      target_link_libraries(${TARGET_NAME} ${AVFoundation} ${CoreMedia} ${NEW_STD_LIBRARY})
+  endif (APPLE)
+  target_link_libraries(${TARGET_NAME} "${VISAGE_LIBRARIES}")
 endif (VISAGE_FOUND AND NOT DISABLE_VISAGE)
 
 # and with Faceplus library, also for webcam feature tracking
 if (FACEPLUS_FOUND AND NOT DISABLE_FACEPLUS)
-    add_definitions(-DHAVE_FACEPLUS)
-    include_directories(SYSTEM "${FACEPLUS_INCLUDE_DIRS}")
-    target_link_libraries(${TARGET_NAME} "${FACEPLUS_LIBRARIES}")
+  add_definitions(-DHAVE_FACEPLUS)
+  include_directories(SYSTEM "${FACEPLUS_INCLUDE_DIRS}")
+  target_link_libraries(${TARGET_NAME} "${FACEPLUS_LIBRARIES}")
 endif (FACEPLUS_FOUND AND NOT DISABLE_FACEPLUS)
 
 # and with LibOVR for Oculus Rift
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
-    add_definitions(-DHAVE_LIBOVR)
-    include_directories(SYSTEM "${LIBOVR_INCLUDE_DIRS}")
+  add_definitions(-DHAVE_LIBOVR)
+  include_directories(SYSTEM "${LIBOVR_INCLUDE_DIRS}")
     
-    if (APPLE OR UNIX)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
-    endif ()
+  if (APPLE OR UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
+  endif ()
     
-    if (WIN32)
-      target_link_libraries(${TARGET_NAME} optimized "${LIBOVR_RELEASE_LIBRARIES}" debug "${LIBOVR_DEBUG_LIBRARIES}")
-    else()
-      target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
-    endif()
+  if (WIN32)
+    target_link_libraries(${TARGET_NAME} optimized "${LIBOVR_RELEASE_LIBRARIES}" debug "${LIBOVR_DEBUG_LIBRARIES}")
+  else ()
+    target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
+  endif ()
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
 # and with PrioVR library
 if (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
-    add_definitions(-DHAVE_PRIOVR)
-    include_directories(SYSTEM "${PRIOVR_INCLUDE_DIRS}")
-    target_link_libraries(${TARGET_NAME} "${PRIOVR_LIBRARIES}")
+  add_definitions(-DHAVE_PRIOVR)
+  include_directories(SYSTEM "${PRIOVR_INCLUDE_DIRS}")
+  target_link_libraries(${TARGET_NAME} "${PRIOVR_LIBRARIES}")
 endif (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
 
 # and with LeapMotion library
@@ -208,18 +219,25 @@ endif (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
 
 # and with SDL for joysticks
 if (SDL_FOUND AND NOT DISABLE_SDL)
-    add_definitions(-DHAVE_SDL)
-    include_directories(SYSTEM "${SDL_INCLUDE_DIR}")
-    target_link_libraries(${TARGET_NAME} "${SDL_LIBRARY}")
+  add_definitions(-DHAVE_SDL)
+  include_directories(SYSTEM "${SDL_INCLUDE_DIR}")
+  target_link_libraries(${TARGET_NAME} "${SDL_LIBRARY}")
 endif (SDL_FOUND AND NOT DISABLE_SDL)
 
 # and with qxmpp for chat
 if (QXMPP_FOUND AND NOT DISABLE_QXMPP)
-    add_definitions(-DHAVE_QXMPP -DQXMPP_STATIC)
-    include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
+  add_definitions(-DHAVE_QXMPP -DQXMPP_STATIC)
+  include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
 
-    target_link_libraries(${TARGET_NAME} "${QXMPP_LIBRARY}")
+  target_link_libraries(${TARGET_NAME} "${QXMPP_LIBRARY}")
 endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
+
+# link CoreMIDI if we're using RtMidi
+if (RTMIDI_FOUND AND APPLE)
+  find_library(CoreMIDI CoreMIDI)
+  add_definitions(-D__MACOSX_CORE__)
+  target_link_libraries(${TARGET_NAME} ${CoreMIDI})
+endif()
 
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")

@@ -31,19 +31,19 @@ const int NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL = NETWORK_BUFFER_LENGTH_BYTE
 const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
                                                         / (float) SAMPLE_RATE) * 1000 * 1000);
 
-const short RING_BUFFER_LENGTH_FRAMES = 10;
-
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
+
+const int DEFAULT_RING_BUFFER_FRAME_CAPACITY = 10;
 
 class AudioRingBuffer : public NodeData {
     Q_OBJECT
 public:
-    AudioRingBuffer(int numFrameSamples, bool randomAccessMode = false);
+    AudioRingBuffer(int numFrameSamples, bool randomAccessMode = false, int numFramesCapacity = DEFAULT_RING_BUFFER_FRAME_CAPACITY);
     ~AudioRingBuffer();
 
     void reset();
-    void resizeForFrameSize(qint64 numFrameSamples);
+    void resizeForFrameSize(int numFrameSamples);
     
     int getSampleCapacity() const { return _sampleCapacity; }
     
@@ -53,20 +53,20 @@ public:
     const int16_t* getNextOutput() const { return _nextOutput; }
     const int16_t* getBuffer() const { return _buffer; }
 
-    qint64 readSamples(int16_t* destination, qint64 maxSamples);
-    qint64 writeSamples(const int16_t* source, qint64 maxSamples);
+    int readSamples(int16_t* destination, int maxSamples);
+    int writeSamples(const int16_t* source, int maxSamples);
     
-    qint64 readData(char* data, qint64 maxSize);
-    qint64 writeData(const char* data, qint64 maxSize);
+    int readData(char* data, int maxSize);
+    int writeData(const char* data, int maxSize);
     
     int16_t& operator[](const int index);
     const int16_t& operator[] (const int index) const;
     
     void shiftReadPosition(unsigned int numSamples);
     
-    unsigned int samplesAvailable() const;
+    int samplesAvailable() const;
     
-    bool isNotStarvedOrHasMinimumSamples(unsigned int numRequiredSamples) const;
+    bool isNotStarvedOrHasMinimumSamples(int numRequiredSamples) const;
     
     bool isStarved() const { return _isStarved; }
     void setIsStarved(bool isStarved) { _isStarved = isStarved; }
@@ -84,6 +84,7 @@ protected:
 
     int _overflowCount; /// how many times has the ring buffer has overwritten old data
     
+    int _frameCapacity;
     int _sampleCapacity;
     bool _isFull;
     int _numFrameSamples;

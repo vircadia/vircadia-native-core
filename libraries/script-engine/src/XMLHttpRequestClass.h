@@ -13,7 +13,6 @@
 #define hifi_XMLHttpRequestClass_h
 
 #include <QBuffer>
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
@@ -104,7 +103,6 @@ private:
     QUrl _url;
     QString _method;
     QString _responseType;
-    QNetworkAccessManager _manager;
     QNetworkRequest _request;
     QNetworkReply* _reply;
     QBuffer* _sendData;

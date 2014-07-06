@@ -13,13 +13,13 @@
 #include <QtCore/QEventLoop>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QTimer>
-#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
+#include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <ResourceCache.h>
@@ -208,12 +208,14 @@ void Agent::run() {
         scriptURL = QUrl(_payload);
     }
    
-    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
-    QNetworkReply *reply = networkManager->get(QNetworkRequest(scriptURL));
-    QNetworkDiskCache* cache = new QNetworkDiskCache(networkManager);
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkReply *reply = networkAccessManager.get(QNetworkRequest(scriptURL));
+    
+    QNetworkDiskCache* cache = new QNetworkDiskCache();
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
-    networkManager->setCache(cache);
+    cache->moveToThread(networkAccessManager.thread());
+    networkAccessManager.setCache(cache);
     
     qDebug() << "Downloading script at" << scriptURL.toString();
     
@@ -221,10 +223,6 @@ void Agent::run() {
     QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
     
     loop.exec();
-    
-    // let the AvatarData and ResourceCache classes use our QNetworkAccessManager
-    AvatarData::setNetworkAccessManager(networkManager);
-    ResourceCache::setNetworkAccessManager(networkManager);
     
     QString scriptContents(reply->readAll());
     
@@ -272,4 +270,5 @@ void Agent::run() {
 
 void Agent::aboutToFinish() {
     _scriptEngine.stop();
+    NetworkAccessManager::getInstance().clearAccessCache();
 }

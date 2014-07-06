@@ -14,9 +14,10 @@
 #include <QGridLayout>
 #include <QHeaderView>
 #include <QMessageBox>
-#include <QNetworkAccessManager>
 #include <QUrl>
 #include <QXmlStreamReader>
+
+#include <NetworkAccessManager.h>
 
 #include "Application.h"
 
@@ -210,10 +211,10 @@ void ModelHandler::update() {
     }
     for (int i = 0; i < _model.rowCount(); ++i) {
         QUrl url(_model.item(i,0)->data(Qt::UserRole).toString());
-        QNetworkAccessManager* accessManager = new QNetworkAccessManager(this);
+        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest request(url);
-        accessManager->head(request);
-        connect(accessManager, SIGNAL(finished(QNetworkReply*)), SLOT(downloadFinished(QNetworkReply*)));
+        QNetworkReply* reply = networkAccessManager.head(request);
+        connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
     }
     _lock.unlock();
 }
@@ -233,7 +234,8 @@ void ModelHandler::exit() {
     _lock.unlock();
 }
 
-void ModelHandler::downloadFinished(QNetworkReply* reply) {
+void ModelHandler::downloadFinished() {
+    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
     QByteArray data = reply->readAll();
     
     if (!data.isEmpty()) {
@@ -261,10 +263,10 @@ void ModelHandler::queryNewFiles(QString marker) {
     
     // Download
     url.setQuery(query);
-    QNetworkAccessManager* accessManager = new QNetworkAccessManager(this);
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest request(url);
-    accessManager->get(request);
-    connect(accessManager, SIGNAL(finished(QNetworkReply*)), SLOT(downloadFinished(QNetworkReply*)));
+    QNetworkReply* reply = networkAccessManager.get(request);
+    connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
             
 }
 

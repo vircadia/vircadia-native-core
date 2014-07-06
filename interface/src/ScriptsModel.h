@@ -43,7 +43,7 @@ public:
 
 protected slots:
     void updateScriptsLocation(const QString& newPath);
-    void downloadFinished(QNetworkReply* reply);
+    void downloadFinished();
     void reloadLocalFiles();
     void reloadRemoteFiles();
 
