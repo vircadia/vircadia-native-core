@@ -12,6 +12,8 @@
 #ifndef hifi_ShapeCollider_h
 #define hifi_ShapeCollider_h
 
+#include <QVector>
+
 #include "CapsuleShape.h"
 #include "CollisionInfo.h"
 #include "ListShape.h"
@@ -32,6 +34,9 @@ namespace ShapeCollider {
     /// \param collisions[out] average collision details
     /// \return true if any shapes collide
     bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<const Shape*>& shapesB, CollisionInfo& collision);
+
+    bool collideShapeWithShapes(const Shape* shapeA, const QVector<Shape*>& shapes, int startIndex, CollisionList& collisions);
+    bool collideShapesWithShapes(const QVector<Shape*>& shapesA, const QVector<Shape*>& shapesB, CollisionList& collisions);
 
     /// \param shapeA a pointer to a shape (cannot be NULL)
     /// \param cubeCenter center of cube

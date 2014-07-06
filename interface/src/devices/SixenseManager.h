@@ -71,6 +71,7 @@ private:
     float _lastDistance;
 
 #endif
+    bool _hydrasConnected;
     quint64 _lastMovement;
     glm::vec3 _amountMoved;
 

@@ -13,6 +13,7 @@
 
 #include "Application.h"
 #include "SixenseManager.h"
+#include "UserActivityLogger.h"
 
 #ifdef HAVE_SIXENSE
 const int CALIBRATION_STATE_IDLE = 0;
@@ -39,6 +40,7 @@ SixenseManager::SixenseManager() {
 
     sixenseInit();
 #endif
+    _hydrasConnected = false;
     _triggerPressed[0] = false;
     _bumperPressed[0] = false;
     _oldX[0] = -1;
@@ -70,7 +72,11 @@ void SixenseManager::setFilter(bool filter) {
 void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
     if (sixenseGetNumActiveControllers() == 0) {
+        _hydrasConnected = false;
         return;
+    } else if (!_hydrasConnected) {
+        _hydrasConnected = true;
+        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
     }
     MyAvatar* avatar = Application::getInstance()->getAvatar();
     Hand* hand = avatar->getHand();

@@ -15,7 +15,7 @@
 #include <QCoreApplication>
 #include <QVariantList>
 
-#include <DatagramSequencer.h>
+#include <Endpoint.h>
 #include <ScriptCache.h>
 
 class SequencedTestMessage;
@@ -34,53 +34,60 @@ public:
 };
 
 /// Represents a simulated endpoint.
-class Endpoint : public QObject {
+class TestEndpoint : public Endpoint {
     Q_OBJECT
 
 public:
     
-    Endpoint(const QByteArray& datagramHeader);
+    enum Mode { BASIC_PEER_MODE, CONGESTION_MODE, METAVOXEL_SERVER_MODE, METAVOXEL_CLIENT_MODE };
+    
+    TestEndpoint(Mode mode = BASIC_PEER_MODE);
 
-    void setOther(Endpoint* other) { _other = other; }
+    void setOther(TestEndpoint* other) { _other = other; }
 
     /// Perform a simulation step.
     /// \return true if failure was detected
     bool simulate(int iterationNumber);
 
-private slots:
+    virtual int parseData(const QByteArray& packet);
+    
+protected:
 
-    void sendDatagram(const QByteArray& datagram);    
+    virtual void sendDatagram(const QByteArray& data);
+    virtual void readMessage(Bitstream& in);
+    
+    virtual void handleMessage(const QVariant& message, Bitstream& in); 
+    
+    virtual PacketRecord* maybeCreateSendRecord() const;
+    virtual PacketRecord* maybeCreateReceiveRecord() const;
+    
+private slots:
+   
     void handleHighPriorityMessage(const QVariant& message);
-    void readMessage(Bitstream& in);
     void handleReliableMessage(const QVariant& message);
     void readReliableChannel();
 
-    void clearSendRecordsBefore(int index);    
-    void clearReceiveRecordsBefore(int index);
-
 private:
     
-    class SendRecord {
-    public:
-        int packetNumber;
-        SharedObjectPointer localState;
-    };
-    
-    class ReceiveRecord {
-    public:
-        int packetNumber;
-        SharedObjectPointer remoteState;
-    };
-    
-    DatagramSequencer* _sequencer;
-    QList<SendRecord> _sendRecords;
-    QList<ReceiveRecord> _receiveRecords;
+    Mode _mode;
     
     SharedObjectPointer _localState;
     SharedObjectPointer _remoteState;
     
-    Endpoint* _other;
-    QList<QPair<QByteArray, int> > _delayedDatagrams;
+    MetavoxelData _data;
+    MetavoxelLOD _lod;
+    
+    SharedObjectPointer _sphere;
+    
+    TestEndpoint* _other;
+    
+    typedef QPair<QByteArray, int> ByteArrayIntPair;
+    QList<ByteArrayIntPair> _delayedDatagrams;
+
+    typedef QVector<QByteArray> ByteArrayVector;
+    QList<ByteArrayVector> _pipeline;
+    int _remainingPipelineCapacity;
+
     float _highPriorityMessagesToSend;
     QVariantList _highPriorityMessagesSent;
     QList<SequencedTestMessage> _unreliableMessagesSent;

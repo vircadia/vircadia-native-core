@@ -60,6 +60,7 @@
 #include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
+#include <UserActivityLogger.h>
 #include <UUID.h>
 #include <OctreeSceneStats.h>
 #include <LocalVoxelsList.h>
@@ -136,7 +137,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _frameCount(0),
-        _fps(120.0f),
+        _fps(60.0f),
         _justStarted(true),
         _voxelImporter(NULL),
         _importSucceded(false),
@@ -169,7 +170,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _applicationOverlay(),
-        _runningScriptsWidget(new RunningScriptsWidget(_window)),
+        _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow())
@@ -202,6 +203,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
+
+    _runningScriptsWidget = new RunningScriptsWidget(_window);
 
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -268,6 +271,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
+    UserActivityLogger::getInstance().launch(applicationVersion());
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
@@ -396,7 +400,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 }
 
 Application::~Application() {
-
+    int DELAY_TIME = 1000;
+    UserActivityLogger::getInstance().close(DELAY_TIME);
+    
     qInstallMessageHandler(NULL);
 
     // make sure we don't call the idle timer any more
@@ -553,7 +559,7 @@ void Application::initializeGL() {
     }
 
     // update before the first render
-    update(0.0f);
+    update(1.f / _fps);
 
     InfoView::showFirstTime();
 }
@@ -565,6 +571,16 @@ void Application::paintGL() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
+    const bool glowEnabled = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
+
+    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
+    // Otherwise, it must rebuild the FBOs
+    if (OculusManager::isConnected()) {
+        _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
+    } else {
+        _textureCache.setFrameBufferSize(_glWidget->size());
+    }
+
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
@@ -573,28 +589,16 @@ void Application::paintGL() {
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+        //Note, the camera distance is set in Camera::setMode() so we dont have to do it here.
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
+        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
-        glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
-        float headHeight = eyePosition.y - _myAvatar->getPosition().y;
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-    }
-
-    if (OculusManager::isConnected()) {
-        // Oculus in third person causes nausea, so only allow it if option is checked in dev menu
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::AllowOculusCameraModeChange) || _myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-            _myCamera.setDistance(0.0f);
-            _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
-            _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
-        }
-        _myCamera.setUpShift(0.0f);
-        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
+        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
     }
 
     // Update camera position
@@ -629,16 +633,32 @@ void Application::paintGL() {
         updateShadowMap();
     }
 
+    //If we aren't using the glow shader, we have to clear the color and depth buffer
+    if (!glowEnabled) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+
     if (OculusManager::isConnected()) {
-        OculusManager::display(whichCamera);
+        //When in mirror mode, use camera rotation. Otherwise, use body rotation
+        if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+            OculusManager::display(whichCamera.getRotation(), whichCamera.getPosition(), whichCamera);
+        } else {
+            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), whichCamera.getPosition(), whichCamera);
+        }
 
     } else if (TV3DManager::isConnected()) {
-        _glowEffect.prepare();
+        if (glowEnabled) {
+            _glowEffect.prepare();
+        }
         TV3DManager::display(whichCamera);
-        _glowEffect.render();
+        if (glowEnabled) {
+            _glowEffect.render();
+        }
 
     } else {
-        _glowEffect.prepare();
+        if (glowEnabled) {
+            _glowEffect.prepare();
+        }
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -646,7 +666,9 @@ void Application::paintGL() {
         displaySide(whichCamera);
         glPopMatrix();
 
-        _glowEffect.render();
+        if (glowEnabled) {
+            _glowEffect.render();
+        }
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);
@@ -2178,7 +2200,8 @@ int Application::sendNackPackets() {
             OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
 
             // make copy of missing sequence numbers from stats
-            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = stats.getMissingSequenceNumbers();
+            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers =
+                stats.getIncomingOctreeSequenceNumberStats().getMissingSet();
 
             _octreeSceneStatsLock.unlock();
 
@@ -3148,9 +3171,7 @@ void Application::resetSensors() {
     _faceshift.reset();
     _visage.reset();
 
-    if (OculusManager::isConnected()) {
-        OculusManager::reset();
-    }
+    OculusManager::reset();
 
     _prioVR.reset();
     //_leapmotion.reset();
@@ -3302,6 +3323,10 @@ void Application::nodeKilled(SharedNodePointer node) {
     _voxelEditSender.nodeKilled(node);
     _particleEditSender.nodeKilled(node);
     _modelEditSender.nodeKilled(node);
+
+    if (node->getType() == NodeType::AudioMixer) {
+        QMetaObject::invokeMethod(&_audio, "resetIncomingMixedAudioSequenceNumberStats");
+    }
 
     if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
@@ -3547,10 +3572,12 @@ void Application::saveScripts() {
     _settings->endArray();
 }
 
-ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor) {
+ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor, bool activateMainWindow) {
     QUrl scriptUrl(scriptName);
     const QString& scriptURLString = scriptUrl.toString();
-    if(loadScriptFromEditor && _scriptEnginesHash.contains(scriptURLString) && !_scriptEnginesHash[scriptURLString]->isFinished()){
+    if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
+        && !_scriptEnginesHash[scriptURLString]->isFinished()) {
+
         return _scriptEnginesHash[scriptURLString];
     }
 
@@ -3563,11 +3590,13 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
         if (!scriptEngine->hasScript()) {
             qDebug() << "Application::loadScript(), script failed to load...";
+            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
             return NULL;
         }
 
-        _scriptEnginesHash.insert(scriptURLString, scriptEngine);
+        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        UserActivityLogger::getInstance().loadedScript(scriptURLString);
     }
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
@@ -3623,13 +3652,16 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
 
+    NodeList* nodeList = NodeList::getInstance();
+    connect(nodeList, &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
+
     scriptEngine->moveToThread(workerThread);
 
     // Starts an event loop, and emits workerThread->started()
     workerThread->start();
 
     // restore the main window's active state
-    if (!loadScriptFromEditor) {
+    if (activateMainWindow && !loadScriptFromEditor) {
         _window->activateWindow();
     }
     bumpSettings();
@@ -3638,7 +3670,10 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 }
 
 void Application::scriptFinished(const QString& scriptName) {
-    if (_scriptEnginesHash.remove(scriptName)) {
+    const QString& scriptURLString = QUrl(scriptName).toString();
+    QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptURLString);
+    if (it != _scriptEnginesHash.end()) {
+        _scriptEnginesHash.erase(it);
         _runningScriptsWidget->scriptStopped(scriptName);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
         bumpSettings();
@@ -3658,8 +3693,9 @@ void Application::stopAllScripts(bool restart) {
 }
 
 void Application::stopScript(const QString &scriptName) {
-    if (_scriptEnginesHash.contains(scriptName)) {
-        _scriptEnginesHash.value(scriptName)->stop();
+    const QString& scriptURLString = QUrl(scriptName).toString();
+    if (_scriptEnginesHash.contains(scriptURLString)) {
+        _scriptEnginesHash.value(scriptURLString)->stop();
         qDebug() << "stopping script..." << scriptName;
     }
 }

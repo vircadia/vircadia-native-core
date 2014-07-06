@@ -99,12 +99,20 @@ public:
     /// Returns the intput channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableInputChannel(int index = 0);
     
+    /// Starts a packet group.
+    /// \param desiredPackets the number of packets we'd like to write in the group
+    /// \return the number of packets to write in the group
+    int startPacketGroup(int desiredPackets = 1);
+    
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
     Bitstream& startPacket();
     
     /// Sends the packet currently being written. 
     void endPacket();
+    
+    /// Cancels the packet currently being written.
+    void cancelPacket();
     
     /// Processes a datagram received from the other party, emitting readyToRead when the entire packet
     /// has been successfully assembled.
@@ -165,6 +173,9 @@ private:
     /// Notes that the described send was acknowledged by the other party.
     void sendRecordAcknowledged(const SendRecord& record);
     
+    /// Notes that the described send was lost in transit.
+    void sendRecordLost(const SendRecord& record);
+    
     /// Appends some reliable data to the outgoing packet.
     void appendReliableData(int bytes, QVector<ChannelSpan>& spans);
     
@@ -199,6 +210,12 @@ private:
     int _receivedHighPriorityMessages;
     
     int _maxPacketSize;
+    
+    float _packetsPerGroup;
+    float _packetsToWrite;
+    float _slowStartThreshold;
+    int _packetRateIncreasePacketNumber;
+    int _packetRateDecreasePacketNumber;
     
     QHash<int, ReliableChannel*> _reliableOutputChannels;
     QHash<int, ReliableChannel*> _reliableInputChannels;
@@ -343,10 +360,12 @@ private:
     ReliableChannel(DatagramSequencer* sequencer, int index, bool output);
     
     void writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans);
-    int getBytesToWrite(bool& first, int length) const;
-    int writeSpan(QDataStream& out, bool& first, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
+    void writeFullSpans(QDataStream& out, int bytes, int startingIndex, int position,
+        QVector<DatagramSequencer::ChannelSpan>& spans);
+    int writeSpan(QDataStream& out, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
     
     void spanAcknowledged(const DatagramSequencer::ChannelSpan& span);
+    void spanLost(int packetNumber, int nextOutgoingPacketNumber);
     
     void readData(QDataStream& in);
     
@@ -359,6 +378,7 @@ private:
     
     int _offset;
     int _writePosition;
+    int _writePositionResetPacketNumber;
     SpanList _acknowledged;
     bool _messagesEnabled;
 };

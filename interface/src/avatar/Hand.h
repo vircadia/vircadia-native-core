@@ -54,7 +54,6 @@ public:
     void render(bool isMine, Model::RenderMode renderMode = Model::DEFAULT_RENDER_MODE);
 
     void collideAgainstAvatar(Avatar* avatar, bool isMyHand);
-    void collideAgainstOurself();
 
     void resolvePenetrations();
 

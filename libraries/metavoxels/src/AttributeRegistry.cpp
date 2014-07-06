@@ -211,6 +211,11 @@ void Attribute::writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelSt
     root.writeSubdivision(state);
 }
 
+bool Attribute::metavoxelRootsEqual(const MetavoxelNode& firstRoot, const MetavoxelNode& secondRoot,
+        const glm::vec3& minimum, float size, const MetavoxelLOD& lod) {
+    return firstRoot.deepEquals(this, secondRoot, minimum, size, lod);
+}
+
 FloatAttribute::FloatAttribute(const QString& name, float defaultValue) :
     SimpleInlineAttribute<float>(name, defaultValue) {
 }
@@ -449,6 +454,12 @@ void SharedObjectAttribute::write(Bitstream& out, void* value, bool isLeaf) cons
     }
 }
 
+bool SharedObjectAttribute::deepEqual(void* first, void* second) const {
+    SharedObjectPointer firstObject = decodeInline<SharedObjectPointer>(first);
+    SharedObjectPointer secondObject = decodeInline<SharedObjectPointer>(second);
+    return firstObject ? firstObject->equals(secondObject) : !secondObject;
+}
+
 bool SharedObjectAttribute::merge(void*& parent, void* children[], bool postRead) const {
     SharedObjectPointer firstChild = decodeInline<SharedObjectPointer>(children[0]);
     for (int i = 1; i < MERGE_COUNT; i++) {
@@ -487,6 +498,35 @@ void SharedObjectSetAttribute::write(Bitstream& out, void* value, bool isLeaf) c
 MetavoxelNode* SharedObjectSetAttribute::createMetavoxelNode(
         const AttributeValue& value, const MetavoxelNode* original) const {
     return new MetavoxelNode(value, original);
+}
+
+static bool setsEqual(const SharedObjectSet& firstSet, const SharedObjectSet& secondSet) {
+    if (firstSet.size() != secondSet.size()) {
+        return false;
+    }
+    // some hackiness here: we assume that the local ids of the first set correspond to the remote ids of the second,
+    // so that this will work with the tests
+    foreach (const SharedObjectPointer& firstObject, firstSet) {
+        int id = firstObject->getID();
+        bool found = false;
+        foreach (const SharedObjectPointer& secondObject, secondSet) {
+            if (secondObject->getRemoteID() == id) {
+                if (!firstObject->equals(secondObject)) {
+                    return false;
+                }
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool SharedObjectSetAttribute::deepEqual(void* first, void* second) const {
+    return setsEqual(decodeInline<SharedObjectSet>(first), decodeInline<SharedObjectSet>(second));
 }
 
 bool SharedObjectSetAttribute::merge(void*& parent, void* children[], bool postRead) const {
@@ -563,3 +603,12 @@ void SpannerSetAttribute::writeMetavoxelSubdivision(const MetavoxelNode& root, M
     state.stream << SharedObjectPointer();
 }
 
+bool SpannerSetAttribute::metavoxelRootsEqual(const MetavoxelNode& firstRoot, const MetavoxelNode& secondRoot,
+    const glm::vec3& minimum, float size, const MetavoxelLOD& lod) {
+    
+    SharedObjectSet firstSet;
+    firstRoot.getSpanners(this, minimum, size, lod, firstSet);
+    SharedObjectSet secondSet;
+    secondRoot.getSpanners(this, minimum, size, lod, secondSet);
+    return setsEqual(firstSet, secondSet);
+}

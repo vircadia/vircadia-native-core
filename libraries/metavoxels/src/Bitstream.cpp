@@ -110,6 +110,10 @@ const TypeStreamer* Bitstream::getTypeStreamer(int type) {
     return getTypeStreamers().value(type);
 }
 
+const ObjectStreamer* Bitstream::getObjectStreamer(const QMetaObject* metaObject) {
+    return getObjectStreamers().value(metaObject);
+}
+
 const QMetaObject* Bitstream::getMetaObject(const QByteArray& className) {
     return getMetaObjects().value(className);
 }
@@ -1410,8 +1414,10 @@ Bitstream& Bitstream::operator<(const SharedObjectPointer& object) {
     *this << object->getOriginID();
     QPointer<SharedObject> reference = _sharedObjectReferences.value(object->getOriginID());
     if (reference) {
+        *this << true;
         writeRawDelta((const QObject*)object.data(), (const QObject*)reference.data());
     } else {
+        *this << false;
         *this << (QObject*)object.data();
     }
     return *this;
@@ -1426,19 +1432,27 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
     }
     int originID;
     *this >> originID;
+    bool delta;
+    *this >> delta;
     QPointer<SharedObject> reference = _sharedObjectReferences.value(originID);
     QPointer<SharedObject>& pointer = _weakSharedObjectHash[id];
     if (pointer) {
         ObjectStreamerPointer objectStreamer;
         _objectStreamerStreamer >> objectStreamer;
-        if (reference) {
+        if (delta) {
+            if (!reference) {
+                qWarning() << "Delta without reference" << id << originID;
+            }
             objectStreamer->readRawDelta(*this, reference.data(), pointer.data());
         } else {
             objectStreamer->read(*this, pointer.data());
         }
     } else {
         QObject* rawObject; 
-        if (reference) {
+        if (delta) {
+            if (!reference) {
+                qWarning() << "Delta without reference" << id << originID;
+            }
             readRawDelta(rawObject, (const QObject*)reference.data());
         } else {
             *this >> rawObject;
@@ -2316,6 +2330,15 @@ QObject* MappedObjectStreamer::putJSONData(JSONReader& reader, const QJsonObject
     return object;
 }
 
+bool MappedObjectStreamer::equal(const QObject* first, const QObject* second) const {
+    foreach (const StreamerPropertyPair& property, _properties) {
+        if (!property.first->equal(property.second.read(first), property.second.read(second))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void MappedObjectStreamer::write(Bitstream& out, const QObject* object) const {
     foreach (const StreamerPropertyPair& property, _properties) {
         property.first->write(out, property.second.read(object));
@@ -2431,6 +2454,17 @@ QObject* GenericObjectStreamer::putJSONData(JSONReader& reader, const QJsonObjec
     }
     object->setValues(values);
     return object;
+}
+
+bool GenericObjectStreamer::equal(const QObject* first, const QObject* second) const {
+    const QVariantList& firstValues = static_cast<const GenericSharedObject*>(first)->getValues();
+    const QVariantList& secondValues = static_cast<const GenericSharedObject*>(second)->getValues();
+    for (int i = 0; i < _properties.size(); i++) {
+        if (!_properties.at(i).first->equal(firstValues.at(i), secondValues.at(i))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void GenericObjectStreamer::write(Bitstream& out, const QObject* object) const {
