@@ -21,7 +21,8 @@
 const int SEND_INTERVAL = 50;
 
 MetavoxelServer::MetavoxelServer(const QByteArray& packet) :
-    ThreadedAssignment(packet) {
+    ThreadedAssignment(packet),
+    _sendTimer(this) {
     
     _sendTimer.setSingleShot(true);
     connect(&_sendTimer, SIGNAL(timeout()), SLOT(sendDeltas()));
