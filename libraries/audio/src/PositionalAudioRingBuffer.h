@@ -43,6 +43,8 @@ private:
     bool _newWindowMaxGapAvailable;
 };
 
+const int AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
+
 class PositionalAudioRingBuffer : public AudioRingBuffer {
 public:
     enum Type {
@@ -103,6 +105,11 @@ protected:
     int _desiredJitterBufferFrames;
     int _currentJitterBufferFrames;
     bool _dynamicJitterBuffers;
+
+    // extra stats
+    int _starveCount;
+    int _silentFramesDropped;
+
 };
 
 #endif // hifi_PositionalAudioRingBuffer_h
