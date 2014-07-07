@@ -37,18 +37,21 @@ const QString& EntityTypes::getEntityTypeName(EntityType_t entityType) {
     return matchedTypeName != _typeNameHash.end() ? matchedTypeName.value() : UNKNOWN_EntityType_t_NAME;
 }
 
-bool EntityTypes::registerEntityTypeName(EntityType_t entityType, const QString& name) {
+bool EntityTypes::registerEntityType(EntityType_t entityType, const QString& name) {
     _typeNameHash.insert(entityType, name);
     return true;
 }
 
 EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new EntityItem(entityID, properties); // for now, needs to support registration of constructor
+    return NULL; // new EntityItem(entityID, properties); // for now, needs to support registration of constructor
 }
 
+EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead) {
+    return NULL; // TODO Implement this for real!
+}
 
-bool registered = EntityTypes::registerEntityTypeName(EntityTypes::Base, "Base")
-                    && EntityTypes::registerEntityTypeName(EntityTypes::Model, "Model"); // TODO: move this to model subclass
+bool registered = EntityTypes::registerEntityType(EntityTypes::Base, "Base")
+                    && EntityTypes::registerEntityType(EntityTypes::Model, "Model"); // TODO: move this to model subclass
 
 uint32_t EntityItem::_nextID = 0;
 
@@ -663,7 +666,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         encodedType = typeCoder; // determine true length
         dataAt += encodedType.size();
         bytesRead += encodedType.size();
-        _type = typeCoder;
+        quint32 type = typeCoder;
+        _type = (EntityTypes::EntityType_t)type;
 
         // _lastEdited
         memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
@@ -782,6 +786,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
 EntityItem* EntityItem::fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid) {
     EntityItem* result = NULL;
+    
+#if 0
     
     bool wantDebug = false;
     if (wantDebug) {
@@ -967,6 +973,8 @@ EntityItem* EntityItem::fromEditPacket(const unsigned char* data, int length, in
         qDebug() << "   EntityItem id in packet:" << editID;
         newEntityItem.debugDump();
     }
+    
+#endif
 
     // TODO: need to make this actually return something...
     return result;

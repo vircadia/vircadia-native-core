@@ -58,8 +58,8 @@ public:
     void deleteEntity(const EntityItemID& modelID);
     void deleteEntitys(QSet<EntityItemID> modelIDs);
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
-    const EntityItem* findEntityByID(uint32_t id, bool alreadyLocked = false) const;
-    const EntityItem* findEntityByEntityItemID(const EntityItemID& modelID) const;
+    EntityItem* findEntityByID(uint32_t id, bool alreadyLocked = false) const;
+    EntityItem* findEntityByEntityItemID(const EntityItemID& modelID) const;
 
     /// finds all models that touch a sphere
     /// \param center the center of the sphere
@@ -94,6 +94,11 @@ public:
     EntityTreeElement* getContainingElement(const EntityItemID& entityItemID) const;
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
+
+
+    void rememberDirtyCube(const AACube& cube);
+    void rememberEntityToMove(const EntityItem* entity);
+
 
 private:
 

@@ -1271,7 +1271,7 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
 
 void OctreeTests::modelItemTests(bool verbose) {
     
-#ifdef HIDE_SUBCLASS_METHODS
+#if 0 // def HIDE_SUBCLASS_METHODS
 
     //verbose = true;
     EntityTreeElementExtraEncodeData modelTreeElementExtraEncodeData;

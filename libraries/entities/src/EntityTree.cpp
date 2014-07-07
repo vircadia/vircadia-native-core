@@ -249,8 +249,9 @@ public:
     virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex);
 private:
     EntityTree* _tree;
-    const EntityItem* _existingEntity;
+    EntityItem* _existingEntity;
     EntityTreeElement* _containingElement;
+    const EntityItemProperties& _properties;
     EntityItemID _entityItemID;
     bool _foundOld;
     bool _foundNew;
@@ -271,11 +272,14 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     _tree(tree),
     _existingEntity(existingEntity),
     _containingElement(containingElement),
+    _properties(properties),
     _entityItemID(existingEntity->getEntityItemID()),
     _foundOld(false),
     _foundNew(false),
     _removeOld(false),
-    _changeTime(usecTimestampNow())
+    _changeTime(usecTimestampNow()),
+    _oldEntityCube(),
+    _newEntityCube()
 {
     // caller must have verified existence of containingElement and oldEntity
     assert(_containingElement && _existingEntity);
@@ -353,8 +357,7 @@ bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
     
         // If this element is the best fit for the new entity properties, then add/or update it
         if (entityTreeElement->bestFitBounds(_newEntityCube)) {
-
-            if (entityTreeElement->addOrUpdateEntity(_existingEntity, properties)) {
+            if (entityTreeElement->addOrUpdateEntity(_existingEntity, _properties)) {
 
                 //qDebug() << "UpdateEntityOperator::PreRecursion()... model was updated!";
                 _foundNew = true;
@@ -363,8 +366,6 @@ bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
                 // means we're still searching for our old model and this branch
                 // contains our old model. In which case we want to keep searching.
             }
-        }
-            
         } else {
             keepSearching = true;
         }
@@ -393,7 +394,7 @@ OctreeElement* UpdateEntityOperator::PossiblyCreateChildAt(OctreeElement* elemen
     // We only care if this happens while still searching for the new model location.
     // Check to see if 
     if (!_foundNew) {
-        int indexOfChildContainingNewEntity = element->getMyChildContaining(_newEntity.getAACube());
+        int indexOfChildContainingNewEntity = element->getMyChildContaining(_newEntityCube);
         
         if (childIndex == indexOfChildContainingNewEntity) {
             return element->addChildAtIndex(childIndex);
@@ -409,6 +410,8 @@ OctreeElement* UpdateEntityOperator::PossiblyCreateChildAt(OctreeElement* elemen
 // move to a different EntityTreeElement, otherwise it will not move. If the entity can not move, then the dirty path
 // can be determined to just be the path to the entity
 void EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+
+#if 0
     EntityItem* updateItem = NULL;
     
     bool entityMightMove = properties.containsBoundsProperties();
@@ -455,11 +458,14 @@ void EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
     }
 
     storeEntity(updateItem);
+#endif
 }
 
 void EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+#if 0
     EntityItem updateItem(entityID, properties);
     storeEntity(updateItem);
+#endif
 }
 
 class EntityToDeleteDetails {
@@ -825,7 +831,7 @@ void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*> foundEnti
     foundEntitys.swap(args._foundEntitys);
 }
 
-const EntityItem* EntityTree::findEntityByID(uint32_t id, bool alreadyLocked) const {
+EntityItem* EntityTree::findEntityByID(uint32_t id, bool alreadyLocked) const {
     EntityItemID entityID(id);
 
     bool wantDebug = false;
@@ -839,8 +845,8 @@ const EntityItem* EntityTree::findEntityByID(uint32_t id, bool alreadyLocked) co
     return findEntityByEntityItemID(entityID);
 }
 
-const EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) const {
-    const EntityItem* foundEntity = NULL;
+EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) const {
+    EntityItem* foundEntity = NULL;
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
         foundEntity = containingElement->getEntityWithEntityItemID(entityID);
@@ -856,14 +862,19 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
     // we handle these types of "edit" packets
     switch (packetType) {
         case PacketTypeEntityAddOrEdit: {
-            bool isValid;
-            EntityItem newEntity = EntityItem::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
+            // TODO: need to do this
+            
+#if 0
+            bool isValid = false;
+            EntityItem* newEntity = NULL; // EntityItem::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
             if (isValid) {
                 storeEntity(newEntity, senderNode);
                 if (newEntity.isNewlyCreated()) {
                     notifyNewlyCreatedEntity(newEntity, senderNode);
                 }
             }
+#endif
+            
         } break;
 
         default:
@@ -1145,4 +1156,13 @@ void EntityTree::debugDumpMap() {
         i.next();
         qDebug() << i.key() << ": " << i.value();
     }
+}
+
+
+void EntityTree::rememberDirtyCube(const AACube& cube) {
+    // TODO: do something here
+}
+
+void EntityTree::rememberEntityToMove(const EntityItem* entity) {
+    // TODO: do something here
 }

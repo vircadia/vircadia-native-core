@@ -641,6 +641,15 @@ bool EntityTreeElement::removeEntityItem(const EntityItem* entity) {
 }
 
 
+// Things we want to accomplish as we read these entities from the data buffer.
+//
+// 1) correctly update the properties of the entity
+// 2) add any new entities that didn't previously exist
+// 3) mark our tree as dirty down to the path of the previous location of the entity
+// 4) mark our tree as dirty down to the path of the new location of the entity
+//
+// Since we're potentially reading several entities, we'd prefer to do all the moving around
+// and dirty path marking in one pass.
 int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
 
@@ -667,17 +676,45 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
         
         if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
             for (uint16_t i = 0; i < numberOfEntities; i++) {
-                EntityItem tempEntity; // we will read into this
+                int bytesForThisEntity = 0;
                 EntityItemID entityItemID = EntityItem::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead, args);
-                const EntityItem* existingEntityItem = _myTree->findEntityByEntityItemID(entityItemID);
-                if (existingEntityItem) {
-                    // copy original properties...
-                    tempEntity.copyChangedProperties(*existingEntityItem); 
-                }
-                // read only the changed properties
-                int bytesForThisEntity = tempEntity.readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+                EntityItem* entityItem = _myTree->findEntityByEntityItemID(entityItemID);
+                bool newEntity = false;
                 
-                _myTree->storeEntity(tempEntity);
+                // If the item already exists in our tree, we want do the following...
+                // 1) remember the old cube for the entity so we can mark it as dirty
+                // 2) allow the existing item to read from the databuffer
+                // 3) check to see if after reading the item, the 
+                if (entityItem) {
+                    AACube existingEntityCube = entityItem->getAACube();
+                    _myTree->rememberDirtyCube(existingEntityCube);
+                    bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+                } else {
+                    entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead);
+                    
+                    if (entityItem) {
+                        bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+                        addEntityItem(entityItem); // add this new entity to this elements entities
+                        newEntity = true;
+                    }
+                }
+
+                if (entityItem) {
+                    if (newEntity) {
+                        AACube newEntityCube = entityItem->getAACube();
+                        _myTree->rememberDirtyCube(newEntityCube);
+                    }
+                
+                    if (!bestFitEntityBounds(entityItem)) {
+                        _myTree->rememberEntityToMove(entityItem);
+                        if (!newEntity) {
+                            AACube newEntityCube = entityItem->getAACube();
+                            _myTree->rememberDirtyCube(newEntityCube);
+                        }
+                    }
+                }
+                
+                // Move the buffer forward to read more entities
                 dataAt += bytesForThisEntity;
                 bytesLeftToRead -= bytesForThisEntity;
                 bytesRead += bytesForThisEntity;
@@ -686,6 +723,10 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
     }
 
     return bytesRead;
+}
+
+void EntityTreeElement::addEntityItem(EntityItem* entity) {
+    _entityItems->push_back(entity);
 }
 
 // will average a "common reduced LOD view" from the the child elements...

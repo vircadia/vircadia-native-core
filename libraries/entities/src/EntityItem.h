@@ -70,12 +70,18 @@ public:
     typedef enum EntityType {
         Base,
         Model,
-        Particle
+        Particle,
+        Box,
+        Sphere,
+        Plane,
+        Cylinder
     } EntityType_t;
 
     static const QString& getEntityTypeName(EntityType_t entityType);
     static bool registerEntityType(EntityType_t entityType, const QString& name);
+
     static EntityItem* constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItem* constructEntityItem(const unsigned char* data, int bytesToRead);
 private:
     static QHash<EntityType_t, QString> _typeNameHash;
 };

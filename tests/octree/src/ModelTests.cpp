@@ -292,7 +292,7 @@ void EntityTests::modelTreeTests(bool verbose) {
             EntityTreeElement* containingElement = tree.getContainingElement(modelID);
             AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
             
-            bool elementIsBestFit = containingElement->bestFitEntityBounds(*foundEntityByID);
+            bool elementIsBestFit = containingElement->bestFitEntityBounds(foundEntityByID);
             
             if (extraVerbose) {
                 qDebug() << "foundEntityByRadius=" << foundEntityByRadius;

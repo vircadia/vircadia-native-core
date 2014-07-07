@@ -122,6 +122,7 @@ public:
 
     bool updateEntity(const EntityItem& entity);
     bool addOrUpdateEntity(EntityItem* entity, const EntityItemProperties& properties);
+    void addEntityItem(EntityItem* entity);
 
 
     void updateEntityItemID(FindAndUpdateEntityItemIDArgs* args);
