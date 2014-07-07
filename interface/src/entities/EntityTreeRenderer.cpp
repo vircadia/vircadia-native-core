@@ -90,12 +90,14 @@ Model* EntityTreeRenderer::getModel(const EntityItem& entityItem) {
             }
         }
 
-        // if we don't have a model...        
-        if (!model) {
+        // if we don't have a model... but our item does have a model URL
+        if (!model && !entityItem.getModelURL().isEmpty()) {
             // Make sure we only create new models on the thread that owns the EntityTreeRenderer
             if (QThread::currentThread() != thread()) {
+                qDebug() << "about to call QMetaObject::invokeMethod(this, 'getModel', Qt::BlockingQueuedConnection,...";
                 QMetaObject::invokeMethod(this, "getModel", Qt::BlockingQueuedConnection,
                     Q_RETURN_ARG(Model*, model), Q_ARG(const EntityItem&, entityItem));
+                qDebug() << "got it... model=" << model;
                 return model;
             }
 

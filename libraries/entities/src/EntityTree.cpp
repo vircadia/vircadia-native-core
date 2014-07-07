@@ -761,7 +761,8 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
     switch (packetType) {
         case PacketTypeEntityAddOrEdit: {
             // TODO: need to do this
-            
+     
+            qDebug() << "EntityTree::processEditPacketData().... NOT YET IMPLEMENTED!!!";
 #if 0
             bool isValid = false;
             EntityItem* newEntity = NULL; // EntityItem::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
@@ -841,6 +842,7 @@ void EntityTree::update() {
     for (int i = 0; i < movingEntitys; i++) {
     
         // XXXBHG: replace storeEntity with new API!!
+        qDebug() << "EntityTree::update().... NOT YET IMPLEMENTED!!!";
         #if 0 //////////////////////////////////////////////////////
         bool shouldDie = args._movingEntities[i]->getShouldBeDeleted();
 
