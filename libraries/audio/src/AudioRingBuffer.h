@@ -31,15 +31,15 @@ const int NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL = NETWORK_BUFFER_LENGTH_BYTE
 const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
                                                         / (float) SAMPLE_RATE) * 1000 * 1000);
 
-const short RING_BUFFER_LENGTH_FRAMES = 10;
-
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
+
+const int DEFAULT_RING_BUFFER_FRAME_CAPACITY = 10;
 
 class AudioRingBuffer : public NodeData {
     Q_OBJECT
 public:
-    AudioRingBuffer(int numFrameSamples, bool randomAccessMode = false);
+    AudioRingBuffer(int numFrameSamples, bool randomAccessMode = false, int numFramesCapacity = DEFAULT_RING_BUFFER_FRAME_CAPACITY);
     ~AudioRingBuffer();
 
     void reset();
@@ -84,6 +84,7 @@ protected:
 
     int _overflowCount; /// how many times has the ring buffer has overwritten old data
     
+    int _frameCapacity;
     int _sampleCapacity;
     bool _isFull;
     int _numFrameSamples;

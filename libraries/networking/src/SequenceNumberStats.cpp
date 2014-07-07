@@ -39,7 +39,6 @@ void SequenceNumberStats::reset() {
 }
 
 static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
-static const int MAX_REASONABLE_SEQUENCE_GAP = 1000;  // this must be less than UINT16_RANGE / 2 for rollover handling to work
 
 void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderUUID, const bool wantExtraDebugging) {
 
@@ -95,6 +94,7 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
 
             _numEarly++;
             _numLost += (incomingInt - expectedInt);
+            _lastReceived = incoming;
 
             // add all sequence numbers that were skipped to the missing sequence numbers list
             for (int missingInt = expectedInt; missingInt < incomingInt; missingInt++) {
@@ -106,13 +106,13 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
             if (_missingSet.size() > MAX_REASONABLE_SEQUENCE_GAP) {
                 pruneMissingSet(wantExtraDebugging);
             }
-
-            _lastReceived = incoming;
         } else { // late
             if (wantExtraDebugging) {
                 qDebug() << "this packet is later than expected...";
             }
             _numLate++;
+
+            // do not update _lastReceived; it shouldn't become smaller
 
             // remove this from missing sequence number if it's in there
             if (_missingSet.remove(incoming)) {
@@ -127,8 +127,6 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
                 }
                 _numDuplicate++;
             }
-
-            // do not update _incomingLastSequence; it shouldn't become smaller
         }
     }
 }

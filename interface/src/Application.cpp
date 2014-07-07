@@ -32,7 +32,6 @@
 #include <QKeyEvent>
 #include <QMenuBar>
 #include <QMouseEvent>
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
@@ -53,23 +52,25 @@
 
 #include <AccountManager.h>
 #include <AudioInjector.h>
+#include <LocalVoxelsList.h>
 #include <Logging.h>
 #include <ModelsScriptingInterface.h>
+#include <NetworkAccessManager.h>
 #include <OctalCode.h>
+#include <OctreeSceneStats.h>
 #include <PacketHeaders.h>
 #include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
-#include <OctreeSceneStats.h>
-#include <LocalVoxelsList.h>
 
 #include "Application.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
 #include "Util.h"
+#include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
@@ -314,12 +315,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
-    _networkAccessManager = new QNetworkAccessManager(this);
-    QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkDiskCache* cache = new QNetworkDiskCache();
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
-    _networkAccessManager->setCache(cache);
+    networkAccessManager.setCache(cache);
 
-    ResourceCache::setNetworkAccessManager(_networkAccessManager);
     ResourceCache::setRequestLimit(3);
 
     _window->setCentralWidget(_glWidget);
@@ -395,21 +395,28 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig();
 
     _trayIcon->show();
+    
+#ifdef HAVE_RTMIDI
+    // setup the MIDIManager
+    MIDIManager& midiManagerInstance = MIDIManager::getInstance();
+    midiManagerInstance.openDefaultPort();
+#endif
 }
 
 Application::~Application() {
+    qInstallMessageHandler(NULL);
+    
+    saveSettings();
+    storeSizeAndPosition();
+    saveScripts();
+    
     int DELAY_TIME = 1000;
     UserActivityLogger::getInstance().close(DELAY_TIME);
     
-    qInstallMessageHandler(NULL);
-
     // make sure we don't call the idle timer any more
     delete idleTimer;
-
+    
     _sharedVoxelSystem.changeTree(new VoxelTree);
-
-    saveSettings();
-
     delete _voxelImporter;
 
     // let the avatar mixer know we're out
@@ -432,8 +439,6 @@ Application::~Application() {
     _particleEditSender.terminate();
     _modelEditSender.terminate();
 
-    storeSizeAndPosition();
-    saveScripts();
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
@@ -441,8 +446,6 @@ Application::~Application() {
     _myAvatar = NULL;
 
     delete _glWidget;
-
-    AccountManager::getInstance().destroy();
 }
 
 void Application::saveSettings() {
@@ -590,13 +593,17 @@ void Application::paintGL() {
         //Note, the camera distance is set in Camera::setMode() so we dont have to do it here.
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation());
+        if (OculusManager::isConnected()) {
+            _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation());
+        } else {
+            _myCamera.setTargetRotation(_myAvatar->getHead()->getOrientation());
+        }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition() + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0));
     }
 
     // Update camera position
@@ -634,6 +641,10 @@ void Application::paintGL() {
     //If we aren't using the glow shader, we have to clear the color and depth buffer
     if (!glowEnabled) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    } else if (OculusManager::isConnected()) {
+        //Clear the color buffer to ensure that there isnt any residual color
+        //Left over from when OR was not connected.
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     if (OculusManager::isConnected()) {
@@ -645,13 +656,8 @@ void Application::paintGL() {
         }
 
     } else if (TV3DManager::isConnected()) {
-        if (glowEnabled) {
-            _glowEffect.prepare();
-        }
+       
         TV3DManager::display(whichCamera);
-        if (glowEnabled) {
-            _glowEffect.render();
-        }
 
     } else {
         if (glowEnabled) {
@@ -1139,7 +1145,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     _lastMouseMove = usecTimestampNow();
 
-    if (_mouseHidden && showMouse && !OculusManager::isConnected()) {
+    if (_mouseHidden && showMouse && !OculusManager::isConnected() && !TV3DManager::isConnected()) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;
@@ -2183,11 +2189,11 @@ int Application::sendNackPackets() {
                 _octreeSceneStatsLock.unlock();
                 continue;
             }
-            OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
 
-            // make copy of missing sequence numbers from stats
-            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers =
-                stats.getIncomingOctreeSequenceNumberStats().getMissingSet();
+            // get sequence number stats of node, prune its missing set, and make a copy of the missing set
+            SequenceNumberStats& sequenceNumberStats = _octreeServerSceneStats[nodeUUID].getIncomingOctreeSequenceNumberStats();
+            sequenceNumberStats.pruneMissingSet();
+            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = sequenceNumberStats.getMissingSet();
 
             _octreeSceneStatsLock.unlock();
 
@@ -3624,6 +3630,10 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
+    
+#ifdef HAVE_RTMIDI
+    scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
+#endif
 
     QThread* workerThread = new QThread(this);
 
@@ -3802,7 +3812,8 @@ void Application::initAvatarAndViewFrustum() {
 void Application::checkVersion() {
     QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
     latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    connect(Application::getInstance()->getNetworkAccessManager()->get(latestVersionRequest), SIGNAL(finished()), SLOT(parseVersionXml()));
+    QNetworkReply* reply = NetworkAccessManager::getInstance().get(latestVersionRequest);
+    connect(reply, SIGNAL(finished()), SLOT(parseVersionXml()));
 }
 
 void Application::parseVersionXml() {

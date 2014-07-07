@@ -35,6 +35,7 @@ public:
                 { return _totalElementsInPacket == 0 ? 0 : _totalLockWaitTime / _totalElementsInPacket; }
     
     const SequenceNumberStats& getIncomingEditSequenceNumberStats() const { return _incomingEditSequenceNumberStats; }
+    SequenceNumberStats& getIncomingEditSequenceNumberStats() { return _incomingEditSequenceNumberStats; }
 
     void trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
         int editsInPacket, quint64 processTime, quint64 lockWaitTime);
