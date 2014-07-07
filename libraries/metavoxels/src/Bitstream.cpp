@@ -127,7 +127,6 @@ Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, Generic
     _underlying(underlying),
     _byte(0),
     _position(0),
-    _bytesRemaining(INT_MAX),
     _metadataType(metadataType),
     _genericsMode(genericsMode),
     _objectStreamerStreamer(*this),
@@ -194,16 +193,13 @@ Bitstream& Bitstream::read(void* data, int bits, int offset) {
 void Bitstream::flush() {
     if (_position != 0) {
         _underlying << _byte;
-        _bytesRemaining--;
-        _byte = 0;
-        _position = 0;
+        reset();
     }
 }
 
 void Bitstream::reset() {
     _byte = 0;
     _position = 0;
-    _bytesRemaining = INT_MAX;
 }
 
 Bitstream::WriteMappings Bitstream::getAndResetWriteMappings() {

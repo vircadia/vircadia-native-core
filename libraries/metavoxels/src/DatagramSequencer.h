@@ -84,6 +84,9 @@ public:
     /// Returns a reference to the stream used to write packets.
     Bitstream& getOutputStream() { return _outputStream; }
     
+    /// Returns a reference to the outgoing packet data.
+    const QByteArray& getOutgoingPacketData() const { return _outgoingPacketData; }
+    
     /// Returns the packet number of the sent packet at the specified index.
     int getSentPacketNumber(int index) const { return _sendRecords.at(index).packetNumber; }
     

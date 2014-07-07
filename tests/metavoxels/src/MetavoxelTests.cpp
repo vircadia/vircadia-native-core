@@ -913,32 +913,29 @@ bool TestEndpoint::simulate(int iterationNumber) {
             return false;
         }
         Bitstream& out = _sequencer.startPacket();
+        int start = _sequencer.getOutputStream().getUnderlying().device()->pos();
         out << QVariant::fromValue(MetavoxelDeltaMessage());
         PacketRecord* sendRecord = getLastAcknowledgedSendRecord();
-        out.setBytesRemaining(_sequencer.getMaxPacketSize());
-        try {
-            _data.writeDelta(sendRecord->getData(), sendRecord->getLOD(), out, _lod);
-            _sequencer.endPacket();
-            
-        } catch (const ByteLimitExceededException& exception) {
-            _sequencer.cancelPacket();
-            
+        _data.writeDelta(sendRecord->getData(), sendRecord->getLOD(), out, _lod);
+        out.flush();
+        int end = _sequencer.getOutputStream().getUnderlying().device()->pos();
+        if (end > _sequencer.getMaxPacketSize()) {
             // we need to send the delta on the reliable channel
             _reliableDeltaChannel = _sequencer.getReliableOutputChannel(RELIABLE_DELTA_CHANNEL_INDEX);
-            _reliableDeltaChannel->getBitstream().copyPersistentMappings(_sequencer.getOutputStream());
             _reliableDeltaChannel->startMessage();
-            _reliableDeltaChannel->getBitstream() << QVariant::fromValue(MetavoxelDeltaMessage());
-            _data.writeDelta(sendRecord->getData(), sendRecord->getLOD(), _reliableDeltaChannel->getBitstream(), _lod);
-            _reliableDeltaWriteMappings = _reliableDeltaChannel->getBitstream().getAndResetWriteMappings();
-            _reliableDeltaChannel->getBitstream().clearPersistentMappings();
+            _reliableDeltaChannel->getBuffer().write(_sequencer.getOutgoingPacketData().constData() + start, end - start);
             _reliableDeltaChannel->endMessage();
             
+            _reliableDeltaWriteMappings = out.getAndResetWriteMappings();
             _reliableDeltaReceivedOffset = _reliableDeltaChannel->getBytesWritten();
             _reliableDeltaData = _data;
             _reliableDeltaLOD = _lod;
             
-            Bitstream& out = _sequencer.startPacket();
+            _sequencer.getOutputStream().getUnderlying().device()->seek(start);
             out << QVariant::fromValue(MetavoxelDeltaPendingMessage());
+            _sequencer.endPacket();
+            
+        } else {
             _sequencer.endPacket();
         }
     } else {

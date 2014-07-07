@@ -113,17 +113,16 @@ Bitstream& DatagramSequencer::startPacket() {
         _outgoingPacketStream << (quint32)record.packetNumber;
     }
     
-    // write the high-priority messages
-    _outgoingPacketStream << (quint32)_highPriorityMessages.size();
-    foreach (const HighPriorityMessage& message, _highPriorityMessages) {
-        _outputStream << message.data;
-    }
-    
     // return the stream, allowing the caller to write the rest
     return _outputStream;
 }
 
 void DatagramSequencer::endPacket() {
+    // write the high-priority messages
+    _outputStream << _highPriorityMessages.size();
+    foreach (const HighPriorityMessage& message, _highPriorityMessages) {
+        _outputStream << message.data;
+    }
     _outputStream.flush();
     
     // if we have space remaining, send some data from our reliable channels 
@@ -222,21 +221,21 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         _sendRecords.erase(_sendRecords.begin(), it + 1);
     }
     
+    // alert external parties so that they can read the middle
+    emit readyToRead(_inputStream);
+    
     // read and dispatch the high-priority messages
-    quint32 highPriorityMessageCount;
-    _incomingPacketStream >> highPriorityMessageCount;
+    int highPriorityMessageCount;
+    _inputStream >> highPriorityMessageCount;
     int newHighPriorityMessages = highPriorityMessageCount - _receivedHighPriorityMessages;
-    for (quint32 i = 0; i < highPriorityMessageCount; i++) {
+    for (int i = 0; i < highPriorityMessageCount; i++) {
         QVariant data;
         _inputStream >> data;
-        if ((int)i >= _receivedHighPriorityMessages) {
+        if (i >= _receivedHighPriorityMessages) {
             emit receivedHighPriorityMessage(data);
         }
     }
     _receivedHighPriorityMessages = highPriorityMessageCount;
-    
-    // alert external parties so that they can read the middle
-    emit readyToRead(_inputStream);
     
     // read the reliable data, if any
     quint32 reliableChannels;

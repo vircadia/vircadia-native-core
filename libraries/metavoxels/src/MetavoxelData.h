@@ -164,13 +164,6 @@ public:
     bool becameSubdivided() const;
     
     void setMinimum(const glm::vec3& lastMinimum, int index);
-    
-    /// Throws ByteLimitExceededException if the stream has fewer than zero bytes remaining.
-    void checkByteLimitExceeded();
-};
-
-/// Thrown when we have exceeded the byte limit in writing.
-class ByteLimitExceededException {
 };
 
 /// A single node within a metavoxel layer.

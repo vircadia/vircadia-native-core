@@ -329,6 +329,9 @@ public:
     Bitstream(QDataStream& underlying, MetadataType metadataType = NO_METADATA,
         GenericsMode = NO_GENERICS, QObject* parent = NULL);
 
+    /// Returns a reference to the underlying data stream.
+    QDataStream& getUnderlying() { return _underlying; }
+
     /// Substitutes the supplied metaobject for the given class name's default mapping.  This is mostly useful for testing the
     /// process of mapping between different types, but may in the future be used for permanently renaming classes.
     void addMetaObjectSubstitution(const QByteArray& className, const QMetaObject* metaObject);
@@ -354,12 +357,6 @@ public:
 
     /// Resets to the initial state.
     void reset();
-
-    /// Sets the number of "bytes remaining," which will be decremented with each byte written.
-    void setBytesRemaining(int bytesRemaining) { _bytesRemaining = bytesRemaining; }
-    
-    /// Returns the number of bytes remaining.
-    int getBytesRemaining() const { return _bytesRemaining; }
 
     /// Returns the set of transient mappings gathered during writing and resets them.
     WriteMappings getAndResetWriteMappings();
@@ -546,7 +543,6 @@ private:
     QDataStream& _underlying;
     quint8 _byte;
     int _position;
-    int _bytesRemaining;
 
     MetadataType _metadataType;
     GenericsMode _genericsMode;
