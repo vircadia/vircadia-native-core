@@ -70,6 +70,7 @@
 #include "Menu.h"
 #include "ModelUploader.h"
 #include "Util.h"
+#include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
@@ -315,11 +316,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
     NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkDiskCache* cache = new QNetworkDiskCache(&networkAccessManager);
+    
+    // Make sure cache on same thread than its parent (NetworkAccessManager)
+    QNetworkDiskCache* cache = new QNetworkDiskCache();
+    cache->moveToThread(networkAccessManager.thread());
+    cache->setParent(&networkAccessManager);
+    
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
-    QMetaObject::invokeMethod(&networkAccessManager, "setCache",
-                              Qt::BlockingQueuedConnection,
-                              Q_ARG(QAbstractNetworkCache*, cache));
+    networkAccessManager.setCache(cache);
 
     ResourceCache::setRequestLimit(3);
 
@@ -396,6 +400,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig();
 
     _trayIcon->show();
+    
+#ifdef HAVE_RTMIDI
+    // setup the MIDIManager
+    MIDIManager& midiManagerInstance = MIDIManager::getInstance();
+    midiManagerInstance.openDefaultPort();
+#endif
 }
 
 Application::~Application() {
@@ -2184,11 +2194,11 @@ int Application::sendNackPackets() {
                 _octreeSceneStatsLock.unlock();
                 continue;
             }
-            OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
 
-            // make copy of missing sequence numbers from stats
-            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers =
-                stats.getIncomingOctreeSequenceNumberStats().getMissingSet();
+            // get sequence number stats of node, prune its missing set, and make a copy of the missing set
+            SequenceNumberStats& sequenceNumberStats = _octreeServerSceneStats[nodeUUID].getIncomingOctreeSequenceNumberStats();
+            sequenceNumberStats.pruneMissingSet();
+            const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = sequenceNumberStats.getMissingSet();
 
             _octreeSceneStatsLock.unlock();
 
@@ -3625,6 +3635,10 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
+    
+#ifdef HAVE_RTMIDI
+    scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
+#endif
 
     QThread* workerThread = new QThread(this);
 

@@ -210,12 +210,12 @@ void Agent::run() {
    
     NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkReply *reply = networkAccessManager.get(QNetworkRequest(scriptURL));
-    QNetworkDiskCache* cache = new QNetworkDiskCache(&networkAccessManager);
+    
+    QNetworkDiskCache* cache = new QNetworkDiskCache();
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
-    QMetaObject::invokeMethod(&networkAccessManager, "setCache",
-                              Qt::BlockingQueuedConnection,
-                              Q_ARG(QAbstractNetworkCache*, cache));
+    cache->moveToThread(networkAccessManager.thread());
+    networkAccessManager.setCache(cache);
     
     qDebug() << "Downloading script at" << scriptURL.toString();
     
@@ -270,4 +270,5 @@ void Agent::run() {
 
 void Agent::aboutToFinish() {
     _scriptEngine.stop();
+    NetworkAccessManager::getInstance().clearAccessCache();
 }
