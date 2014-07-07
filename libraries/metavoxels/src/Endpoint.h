@@ -24,6 +24,9 @@ class Endpoint : public NodeData {
     Q_OBJECT
 
 public:
+
+    /// The index of the input/output channel used to transmit reliable deltas.
+    static const int RELIABLE_DELTA_CHANNEL_INDEX = 1;
     
     Endpoint(const SharedNodePointer& node, PacketRecord* baselineSendRecord = NULL,
         PacketRecord* baselineReceiveRecord = NULL);

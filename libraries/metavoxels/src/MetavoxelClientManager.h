@@ -70,6 +70,10 @@ private:
     
     MetavoxelClientManager* _manager;
     MetavoxelData _data;
+    MetavoxelLOD _dataLOD;
+    
+    ReliableChannel* _reliableDeltaChannel;
+    MetavoxelLOD _reliableDeltaLOD;
 };
 
 #endif // hifi_MetavoxelClientManager_h

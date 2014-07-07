@@ -642,8 +642,6 @@ TestReceiveRecord::TestReceiveRecord(const MetavoxelLOD& lod,
     _remoteState(remoteState) {
 }
 
-const int RELIABLE_DELTA_CHANNEL_INDEX = 1;
-
 TestEndpoint::TestEndpoint(Mode mode) :
     Endpoint(SharedNodePointer(), new TestSendRecord(), new TestReceiveRecord()),
     _mode(mode),
