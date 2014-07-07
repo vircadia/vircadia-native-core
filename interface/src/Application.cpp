@@ -316,12 +316,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
     NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    
-    // Make sure cache on same thread than its parent (NetworkAccessManager)
     QNetworkDiskCache* cache = new QNetworkDiskCache();
-    cache->moveToThread(networkAccessManager.thread());
-    cache->setParent(&networkAccessManager);
-    
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     networkAccessManager.setCache(cache);
 
