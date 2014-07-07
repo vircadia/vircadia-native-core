@@ -25,8 +25,9 @@
 //#include "EntityTests.h"
 #include "ModelTests.h" // needs to be EntityTests.h soon
 
-void EntityTests::modelTreeTests(bool verbose) {
-#ifdef HIDE_SUBCLASS_METHODS
+void EntityTests::entityTreeTests(bool verbose) {
+
+//#ifdef HIDE_SUBCLASS_METHODS
     bool extraVerbose = false;
     int testsTaken = 0;
     int testsPassed = 0;
@@ -36,13 +37,13 @@ void EntityTests::modelTreeTests(bool verbose) {
         qDebug() << "******************************************************************************************";
     }
     
-    qDebug() << "EntityTests::modelTreeTests()";
+    qDebug() << "EntityTests::entityTreeTests()";
 
-    // Tree, id, and model properties used in many tests below...
+    // Tree, id, and entity properties used in many tests below...
     EntityTree tree;
     uint32_t id = 1;
-    EntityItemID modelID(id);
-    modelID.isKnownID = false; // this is a temporary workaround to allow local tree models to be added with known IDs
+    EntityItemID entityID(id);
+    entityID.isKnownID = false; // this is a temporary workaround to allow local tree entities to be added with known IDs
     EntityItemProperties properties;
     float oneMeter = 1.0f;
     float halfMeter = oneMeter / 2.0f;
@@ -54,21 +55,21 @@ void EntityTests::modelTreeTests(bool verbose) {
 
     {
         testsTaken++;
-        QString testName = "add model to tree and search";
+        QString testName = "add entity to tree and search";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
         
         properties.setPosition(positionAtCenterInMeters);
         properties.setRadius(halfMeter);
-//properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
+        //properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
 
-        tree.addEntity(modelID, properties);
+        tree.addEntity(entityID, properties);
         
         float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenterInTreeUnits, targetRadius);
         const EntityItem* foundEntityByID = tree.findEntityByID(id);
-        EntityTreeElement* containingElement = tree.getContainingElement(modelID);
+        EntityTreeElement* containingElement = tree.getContainingElement(entityID);
         AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
@@ -93,11 +94,11 @@ void EntityTests::modelTreeTests(bool verbose) {
         }
     }
 
-    modelID.isKnownID = true; // this is a temporary workaround to allow local tree models to be added with known IDs
+    entityID.isKnownID = true; // this is a temporary workaround to allow local tree entities to be added with known IDs
 
     {
         testsTaken++;
-        QString testName = "change position of model in tree";
+        QString testName = "change position of entity in tree";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
@@ -106,12 +107,12 @@ void EntityTests::modelTreeTests(bool verbose) {
 
         properties.setPosition(newPosition);
 
-        tree.updateEntity(modelID, properties);
+        tree.updateEntity(entityID, properties);
         
         float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionNearOriginInTreeUnits, targetRadius);
         const EntityItem* foundEntityByID = tree.findEntityByID(id);
-        EntityTreeElement* containingElement = tree.getContainingElement(modelID);
+        EntityTreeElement* containingElement = tree.getContainingElement(entityID);
         AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
@@ -137,7 +138,7 @@ void EntityTests::modelTreeTests(bool verbose) {
 
     {
         testsTaken++;
-        QString testName = "change position of model in tree back to center";
+        QString testName = "change position of entity in tree back to center";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
@@ -146,12 +147,12 @@ void EntityTests::modelTreeTests(bool verbose) {
 
         properties.setPosition(newPosition);
 
-        tree.updateEntity(modelID, properties);
+        tree.updateEntity(entityID, properties);
         
         float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenterInTreeUnits, targetRadius);
         const EntityItem* foundEntityByID = tree.findEntityByID(id);
-        EntityTreeElement* containingElement = tree.getContainingElement(modelID);
+        EntityTreeElement* containingElement = tree.getContainingElement(entityID);
         AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
@@ -244,7 +245,7 @@ void EntityTests::modelTreeTests(bool verbose) {
     
         testsTaken++;
         const int TEST_ITERATIONS = 1000;
-        QString testName = "Performance - add model to tree " + QString::number(TEST_ITERATIONS) + " times";
+        QString testName = "Performance - add entity to tree " + QString::number(TEST_ITERATIONS) + " times";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
@@ -253,9 +254,9 @@ void EntityTests::modelTreeTests(bool verbose) {
         quint64 totalElapsedAdd = 0;
         quint64 totalElapsedFind = 0;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
-            uint32_t id = i + 2; // make sure it doesn't collide with previous model ids
-            EntityItemID modelID(id);
-            modelID.isKnownID = false; // this is a temporary workaround to allow local tree models to be added with known IDs
+            uint32_t id = i + 2; // make sure it doesn't collide with previous entity ids
+            EntityItemID entityID(id);
+            entityID.isKnownID = false; // this is a temporary workaround to allow local tree entities to be added with known IDs
 
             float randomX = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
             float randomY = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
@@ -269,12 +270,12 @@ void EntityTests::modelTreeTests(bool verbose) {
 
             if (extraVerbose) {
                 qDebug() << "iteration:" << i
-                      << "ading model at x/y/z=" << randomX << "," << randomY << "," << randomZ;
+                      << "ading entity at x/y/z=" << randomX << "," << randomY << "," << randomZ;
                 qDebug() << "before:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
             }
 
             quint64 startAdd = usecTimestampNow();
-            tree.addEntity(modelID, properties);
+            tree.addEntity(entityID, properties);
             quint64 endAdd = usecTimestampNow();
             totalElapsedAdd += (endAdd - startAdd);
 
@@ -289,7 +290,7 @@ void EntityTests::modelTreeTests(bool verbose) {
             quint64 endFind = usecTimestampNow();
             totalElapsedFind += (endFind - startFind);
 
-            EntityTreeElement* containingElement = tree.getContainingElement(modelID);
+            EntityTreeElement* containingElement = tree.getContainingElement(entityID);
             AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
             
             bool elementIsBestFit = containingElement->bestFitEntityBounds(foundEntityByID);
@@ -348,7 +349,7 @@ void EntityTests::modelTreeTests(bool verbose) {
     {
         testsTaken++;
         const int TEST_ITERATIONS = 1000;
-        QString testName = "Performance - delete model from tree " + QString::number(TEST_ITERATIONS) + " times";
+        QString testName = "Performance - delete entity from tree " + QString::number(TEST_ITERATIONS) + " times";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
@@ -357,16 +358,16 @@ void EntityTests::modelTreeTests(bool verbose) {
         quint64 totalElapsedDelete = 0;
         quint64 totalElapsedFind = 0;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
-            uint32_t id = i + 2; // These are the models we added above
-            EntityItemID modelID(id);
-            modelID.isKnownID = true; // this is a temporary workaround to allow local tree models to be added with known IDs
+            uint32_t id = i + 2; // These are the entities we added above
+            EntityItemID entityID(id);
+            entityID.isKnownID = true; // this is a temporary workaround to allow local tree entities to be added with known IDs
 
             if (extraVerbose) {
                 qDebug() << "before:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
             }
 
             quint64 startDelete = usecTimestampNow();
-            tree.deleteEntity(modelID);
+            tree.deleteEntity(entityID);
             quint64 endDelete = usecTimestampNow();
             totalElapsedDelete += (endDelete - startDelete);
 
@@ -379,7 +380,7 @@ void EntityTests::modelTreeTests(bool verbose) {
             quint64 endFind = usecTimestampNow();
             totalElapsedFind += (endFind - startFind);
 
-            EntityTreeElement* containingElement = tree.getContainingElement(modelID);
+            EntityTreeElement* containingElement = tree.getContainingElement(entityID);
             
             if (extraVerbose) {
                 qDebug() << "foundEntityByID=" << foundEntityByID;
@@ -426,9 +427,9 @@ void EntityTests::modelTreeTests(bool verbose) {
     {
         testsTaken++;
         const int TEST_ITERATIONS = 100;
-        const int MODELS_PER_ITERATION = 10;
-        QString testName = "Performance - delete " + QString::number(MODELS_PER_ITERATION) 
-                            + " models from tree " + QString::number(TEST_ITERATIONS) + " times";
+        const int ENTITIES_PER_ITERATION = 10;
+        QString testName = "Performance - delete " + QString::number(ENTITIES_PER_ITERATION) 
+                            + " entities from tree " + QString::number(TEST_ITERATIONS) + " times";
         if (verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
@@ -438,11 +439,11 @@ void EntityTests::modelTreeTests(bool verbose) {
         quint64 totalElapsedFind = 0;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
 
-            QSet<EntityItemID> modelsToDelete;
-            for (int j = 0; j < MODELS_PER_ITERATION; j++) {        
-                uint32_t id = 2 + (i * MODELS_PER_ITERATION) + j; // These are the models we added above
-                EntityItemID modelID(id);
-                modelsToDelete << modelID;
+            QSet<EntityItemID> entitiesToDelete;
+            for (int j = 0; j < ENTITIES_PER_ITERATION; j++) {        
+                uint32_t id = 2 + (i * ENTITIES_PER_ITERATION) + j; // These are the entities we added above
+                EntityItemID entityID(id);
+                entitiesToDelete << entityID;
             }
 
             if (extraVerbose) {
@@ -450,7 +451,7 @@ void EntityTests::modelTreeTests(bool verbose) {
             }
 
             quint64 startDelete = usecTimestampNow();
-            tree.deleteEntitys(modelsToDelete);
+            tree.deleteEntitys(entitiesToDelete);
             quint64 endDelete = usecTimestampNow();
             totalElapsedDelete += (endDelete - startDelete);
 
@@ -459,11 +460,11 @@ void EntityTests::modelTreeTests(bool verbose) {
             }
 
             quint64 startFind = usecTimestampNow();
-            for (int j = 0; j < MODELS_PER_ITERATION; j++) {        
-                uint32_t id = 2 + (i * MODELS_PER_ITERATION) + j; // These are the models we added above
-                EntityItemID modelID(id);
+            for (int j = 0; j < ENTITIES_PER_ITERATION; j++) {        
+                uint32_t id = 2 + (i * ENTITIES_PER_ITERATION) + j; // These are the entities we added above
+                EntityItemID entityID(id);
                 const EntityItem* foundEntityByID = tree.findEntityByID(id);
-                EntityTreeElement* containingElement = tree.getContainingElement(modelID);
+                EntityTreeElement* containingElement = tree.getContainingElement(entityID);
 
                 if (extraVerbose) {
                     qDebug() << "foundEntityByID=" << foundEntityByID;
@@ -490,7 +491,7 @@ void EntityTests::modelTreeTests(bool verbose) {
             qDebug() << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
         }
         
-        bool passed = iterationsPassed == (TEST_ITERATIONS * MODELS_PER_ITERATION);
+        bool passed = iterationsPassed == (TEST_ITERATIONS * ENTITIES_PER_ITERATION);
         if (passed) {
             testsPassed++;
         } else {
@@ -509,11 +510,12 @@ void EntityTests::modelTreeTests(bool verbose) {
     if (verbose) {
         qDebug() << "******************************************************************************************";
     }
-#endif
+//#endif
+//#endif // 0
 }
 
 
 void EntityTests::runAllTests(bool verbose) {
-    modelTreeTests(verbose);
+    entityTreeTests(verbose);
 }
 

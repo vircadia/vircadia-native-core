@@ -152,14 +152,14 @@ public:
     bool containsEntityBounds(const EntityItem* entity) const;
     bool bestFitEntityBounds(const EntityItem* entity) const;
 
-    bool containsBounds(const EntityItemProperties& properties) const;
-    bool bestFitBounds(const EntityItemProperties& properties) const;
+    bool containsBounds(const EntityItemProperties& properties) const; // NOTE: property units in meters
+    bool bestFitBounds(const EntityItemProperties& properties) const; // NOTE: property units in meters
 
-    bool containsBounds(const AACube& bounds) const;
-    bool bestFitBounds(const AACube& bounds) const;
+    bool containsBounds(const AACube& bounds) const; // NOTE: units in tree units
+    bool bestFitBounds(const AACube& bounds) const; // NOTE: units in tree units
 
-    bool containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const;
-    bool bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const;
+    bool containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const; // NOTE: units in tree units
+    bool bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const; // NOTE: units in tree units
 
 protected:
     virtual void init(unsigned char * octalCode);

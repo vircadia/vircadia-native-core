@@ -43,7 +43,44 @@ bool EntityTypes::registerEntityType(EntityType_t entityType, const QString& nam
 }
 
 EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return NULL; // new EntityItem(entityID, properties); // for now, needs to support registration of constructor
+    EntityItem* newEntityItem = NULL;
+
+    // switch statement for now, needs to support registration of constructor
+    switch (entityType) {
+        // Base, // ??? not supported?
+        case Model:
+            newEntityItem = new ModelEntityItem(entityID, properties); 
+        break;
+
+        case Particle:
+            newEntityItem = new ParticleEntityItem(entityID, properties); 
+        break;
+
+        case Box:
+            newEntityItem = new BoxEntityItem(entityID, properties); 
+        break;
+
+        case Sphere:
+            newEntityItem = new SphereEntityItem(entityID, properties); 
+        break;
+
+        case Plane:
+            newEntityItem = new PlaneEntityItem(entityID, properties); 
+        break;
+
+        case Cylinder:
+            newEntityItem = new CylinderEntityItem(entityID, properties); 
+        break;
+
+        case Pyramid:
+            newEntityItem = new PyramidEntityItem(entityID, properties); 
+        break;
+
+        default:
+            newEntityItem = new ModelEntityItem(entityID, properties); 
+        break;
+    }
+    return newEntityItem;
 }
 
 EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead) {

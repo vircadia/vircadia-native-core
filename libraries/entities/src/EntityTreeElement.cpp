@@ -183,11 +183,11 @@ bool EntityTreeElement::bestFitEntityBounds(const EntityItem* entity) const {
 }
 
 bool EntityTreeElement::containsBounds(const EntityItemProperties& properties) const {
-    return containsBounds(properties.getMinimumPoint(), properties.getMaximumPoint());
+    return containsBounds(properties.getMinimumPointTreeUnits(), properties.getMaximumPointTreeUnits());
 }
 
 bool EntityTreeElement::bestFitBounds(const EntityItemProperties& properties) const {
-    return bestFitBounds(properties.getMinimumPoint(), properties.getMaximumPoint());
+    return bestFitBounds(properties.getMinimumPointTreeUnits(), properties.getMaximumPointTreeUnits());
 }
 
 bool EntityTreeElement::containsBounds(const AACube& bounds) const {
@@ -403,81 +403,13 @@ bool EntityTreeElement::addOrUpdateEntity(EntityItem* entity, const EntityItemPr
     
     // If we didn't find the entity here, then let's check to see if we should add it...
     _entityItems->push_back(entity);
+    entity->setProperties(properties); // still need to update the properties!
     markWithChangedTime();
     // Since we're adding this item to this element, we need to let the tree know about it
     _myTree->setContainingElement(entity->getEntityItemID(), this);
 
     return true;
 }
-
-// TODO: the old entity code has support for sittingPoints... need to determine how to handle this...
-// for local editors, the old updateModels(id, properties) had this code...
-// if (found) {
-//     thisModel.setProperties(properties);
-//     if (_myTree->getGeometryForModel(thisModel)) {
-//         thisModel.setSittingPoints(_myTree->getGeometryForModel(thisModel)->sittingPoints);
-//     }
-// ...
-#if 0
-bool EntityTreeElement::updateEntity(const EntityItem& entity) {
-    const bool wantDebug = false;
-    if (wantDebug) {
-        EntityItemID entityItemID = entity.getEntityItemID();
-        qDebug() << "EntityTreeElement::updateEntity(entity) entityID.id="
-                        << entityItemID.id << "creatorTokenID=" << entityItemID.creatorTokenID;
-    }
-    
-    // NOTE: this method must first lookup the entity by ID, hence it is O(N)
-    // and "entity is not found" is worst-case (full N) but maybe we don't care?
-    // (guaranteed that num entities per elemen is small?)
-    uint16_t numberOfEntities = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem* thisEntity = (*_entityItems)[i];
-        if (thisEntity->getID() == entity.getID()) {
-            if (wantDebug) {
-                qDebug() << "found entity with id";
-            }
-            int difference = thisEntity->getLastUpdated() - entity.getLastUpdated();
-            bool changedOnServer = thisEntity->getLastEdited() <= entity.getLastEdited();
-            bool localOlder = thisEntity->getLastUpdated() < entity.getLastUpdated();
-            if (changedOnServer || localOlder) {
-                if (wantDebug) {
-                    qDebug("local entity [id:%d] %s and %s than server entity by %d, entity.isNewlyCreated()=%s",
-                            entity.getID(), (changedOnServer ? "CHANGED" : "same"),
-                            (localOlder ? "OLDER" : "NEWER"),
-                            difference, debug::valueOf(entity.isNewlyCreated()) );
-                }
-                
-                thisEntity->copyChangedProperties(entity);
-                markWithChangedTime();
-                
-                // seems like we shouldn't need this
-                _myTree->setContainingElement(entity.getEntityItemID(), this);
-            } else {
-                if (wantDebug) {
-                    qDebug(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
-                            "local entity [id:%d] %s and %s than server entity by %d, entity.isNewlyCreated()=%s",
-                            entity.getID(), (changedOnServer ? "CHANGED" : "same"),
-                            (localOlder ? "OLDER" : "NEWER"),
-                            difference, debug::valueOf(entity.isNewlyCreated()) );
-                }
-            }
-            return true;
-        }
-    }
-    
-    // If we didn't find the entity here, then let's check to see if we should add it...
-    if (bestFitEntityBounds(entity)) {
-        _entityItems->push_back(entity);
-        markWithChangedTime();
-        // Since we're adding this item to this element, we need to let the tree know about it
-        _myTree->setContainingElement(entity.getEntityItemID(), this);
-        return true;
-    }
-    
-    return false;
-}
-#endif
 
 void EntityTreeElement::updateEntityItemID(FindAndUpdateEntityItemIDArgs* args) {
     bool wantDebug = false;
@@ -518,8 +450,6 @@ void EntityTreeElement::updateEntityItemID(FindAndUpdateEntityItemIDArgs* args) 
         }
     }
 }
-
-
 
 const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const {
     const EntityItem* closestEntity = NULL;

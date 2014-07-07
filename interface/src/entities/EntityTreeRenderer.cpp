@@ -215,17 +215,17 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     }
 
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem& entityItem = entityItems[i];
+        EntityItem* entityItem = entityItems[i];
         // render entityItem aspoints
-        AACube entityCube = entityItem.getAACube();
+        AACube entityCube = entityItem->getAACube();
         entityCube.scale(TREE_SCALE);
         if (args->_viewFrustum->cubeInFrustum(entityCube) != ViewFrustum::OUTSIDE) {
-            glm::vec3 position = entityItem.getPosition() * (float)TREE_SCALE;
-            float radius = entityItem.getRadius() * (float)TREE_SCALE;
-            float size = entityItem.getSize() * (float)TREE_SCALE;
+            glm::vec3 position = entityItem->getPosition() * (float)TREE_SCALE;
+            float radius = entityItem->getRadius() * (float)TREE_SCALE;
+            float size = entityItem->getSize() * (float)TREE_SCALE;
 
 #ifdef HIDE_SUBCLASS_METHODS
-            bool drawAsModel = entityItem.hasModel();
+            bool drawAsModel = entityItem->hasModel();
 #else
             bool drawAsModel = false;
 #endif
@@ -238,27 +238,27 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                 {
                     const float alpha = 1.0f;
                 
-                    Model* model = getModel(entityItem);
+                    Model* model = getModel(*entityItem);
                     
                     if (model) {
                         model->setScaleToFit(true, radius * 2.0f);
                         model->setSnapModelToCenter(true);
                 
                         // set the rotation
-                        glm::quat rotation = entityItem.getRotation();
+                        glm::quat rotation = entityItem->getRotation();
                         model->setRotation(rotation);
                 
                         // set the position
                         model->setTranslation(position);
                     
                         // handle animations..
-                        if (entityItem.hasAnimation()) {
-                            if (!entityItem.jointsMapped()) {
+                        if (entityItem->hasAnimation()) {
+                            if (!entityItem->jointsMapped()) {
                                 QStringList modelJointNames = model->getJointNames();
-                                entityItem.mapJoints(modelJointNames);
+                                entityItem->mapJoints(modelJointNames);
                             }
 
-                            QVector<glm::quat> frameData = entityItem.getAnimationFrame();
+                            QVector<glm::quat> frameData = entityItem->getAnimationFrame();
                             for (int i = 0; i < frameData.size(); i++) {
                                 model->setJointState(i, true, frameData[i]);
                             }
@@ -271,14 +271,14 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                         Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
                                                                 ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
                 
-                        if (entityItem.getGlowLevel() > 0.0f) {
-                            Glower glower(entityItem.getGlowLevel());
+                        if (entityItem->getGlowLevel() > 0.0f) {
+                            Glower glower(entityItem->getGlowLevel());
                             
                             if (model->isActive()) {
                                 model->render(alpha, modelRenderMode);
                             } else {
                                 // if we couldn't get a model, then just draw a sphere
-                                glColor3ub(entityItem.getColor()[RED_INDEX],entityItem.getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
+                                glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem->getColor()[BLUE_INDEX]);
                                 glPushMatrix();
                                     glTranslatef(position.x, position.y, position.z);
                                     glutSolidSphere(radius, 15, 15);
@@ -289,7 +289,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                                 model->render(alpha, modelRenderMode);
                             } else {
                                 // if we couldn't get a model, then just draw a sphere
-                                glColor3ub(entityItem.getColor()[RED_INDEX],entityItem.getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
+                                glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem->getColor()[BLUE_INDEX]);
                                 glPushMatrix();
                                     glTranslatef(position.x, position.y, position.z);
                                     glutSolidSphere(radius, 15, 15);
@@ -340,7 +340,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                         }
                     } else {
                         // if we couldn't get a model, then just draw a sphere
-                        glColor3ub(entityItem.getColor()[RED_INDEX],entityItem.getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
+                        glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem->getColor()[BLUE_INDEX]);
                         glPushMatrix();
                             glTranslatef(position.x, position.y, position.z);
                             glutSolidSphere(radius, 15, 15);
@@ -350,7 +350,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                 glPopMatrix();
 #endif
             } else {
-                //glColor3ub(entityItem.getColor()[RED_INDEX],entityItem.getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
+                //glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
                 glColor3f(1.0f, 0.0f, 0.0f);
                 glPushMatrix();
                     glTranslatef(position.x, position.y, position.z);

@@ -13,7 +13,7 @@
 #define hifi_EntityTests_h
 
 namespace EntityTests {
-    void modelTreeTests(bool verbose = false);
+    void entityTreeTests(bool verbose = false);
     void runAllTests(bool verbose = false);
 }
 

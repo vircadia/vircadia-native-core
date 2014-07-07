@@ -50,11 +50,16 @@ public:
     virtual bool rootElementHasData() const { return true; }
     virtual void update();
 
+    // The newer API...
     EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
+    void addEntityItem(EntityItem* entityItem);
+    EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+    bool updateEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
 
+
+    // the old API
     void storeEntity(const EntityItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
-    void updateEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
-    void addEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
+    //void updateEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
     void deleteEntity(const EntityItemID& modelID);
     void deleteEntitys(QSet<EntityItemID> modelIDs);
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);

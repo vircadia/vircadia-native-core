@@ -74,7 +74,8 @@ public:
         Box,
         Sphere,
         Plane,
-        Cylinder
+        Cylinder,
+        Pyramid
     } EntityType_t;
 
     static const QString& getEntityTypeName(EntityType_t entityType);
@@ -128,9 +129,13 @@ public:
     /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
     
-    glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
-    glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
-    AACube getAACube() const { return AACube(getMinimumPoint(), getMaxDimension()); } /// AACube in domain scale units (0.0 - 1.0)
+    glm::vec3 getMinimumPointMeters() const { return _position - glm::vec3(_radius, _radius, _radius); }
+    glm::vec3 getMaximumPointMeters() const { return _position + glm::vec3(_radius, _radius, _radius); }
+    AACube getAACubeMeters() const { return AACube(getMinimumPointMeters(), getMaxDimension()); } /// AACube in meter units
+
+    glm::vec3 getMinimumPointTreeUnits() const { return getMinimumPointMeters() / (float)TREE_SCALE; }
+    glm::vec3 getMaximumPointTreeUnits() const { return getMaximumPointMeters() / (float)TREE_SCALE; }
+    AACube getAACubeTreeUnits() const { return AACube(getMinimumPointMeters()/(float)TREE_SCALE, getMaxDimension()/(float)TREE_SCALE); } /// AACube in domain scale units (0.0 - 1.0)
     void debugDump() const;
 
     // properties of all entities
@@ -424,6 +429,63 @@ protected:
     static AnimationCache _animationCache;
 #endif
 
+};
+
+// our non-pure virtual subclass for now...
+class ModelEntityItem : public EntityItem {
+public:
+    ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+        EntityItem(entityItemID, properties) { };
+
+    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+};
+
+class ParticleEntityItem : public EntityItem {
+public:
+    ParticleEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+        EntityItem(entityItemID, properties) { };
+
+    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+};
+
+class BoxEntityItem : public EntityItem {
+public:
+    BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+        EntityItem(entityItemID, properties) { };
+
+    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+};
+
+class SphereEntityItem : public EntityItem {
+public:
+    SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+        EntityItem(entityItemID, properties) { };
+
+    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+};
+
+class PlaneEntityItem : public EntityItem {
+public:
+    PlaneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+        EntityItem(entityItemID, properties) { };
+
+    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+};
+
+class CylinderEntityItem : public EntityItem {
+public:
+    CylinderEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+        EntityItem(entityItemID, properties) { };
+
+    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+};
+
+class PyramidEntityItem : public EntityItem {
+public:
+    PyramidEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+        EntityItem(entityItemID, properties) { };
+
+    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
 };
 
 #endif // hifi_EntityItem_h
