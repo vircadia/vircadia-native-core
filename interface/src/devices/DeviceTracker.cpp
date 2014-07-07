@@ -12,7 +12,8 @@
 #include "DeviceTracker.h"
 
 // The singleton managing the connected devices
-DeviceTracker::Singleton DeviceTracker::Singleton::_singleton;
+//template <> DeviceTracker::Singleton DeviceTracker::Singleton::_singleton;
+//TemplateSingleton<DeviceTracker::SingletonData>::_singleton;
 
 int DeviceTracker::init() {
     return Singleton::get()->_devicesMap.size();

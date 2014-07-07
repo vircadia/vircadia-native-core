@@ -18,16 +18,11 @@
 //--------------------------------------------------------------------------------------
 // Singleton template class
 //--------------------------------------------------------------------------------------
-template < class T >
-class TemplateSingleton
-{
-    static TemplateSingleton< T > _singleton;
-    T* _one;
-
+template < typename T >
+class TemplateSingleton {
 public:
 
-    static T* get()
-    {
+    static T* get() {
         if ( !_singleton._one ) {
             _singleton._one = new T();
         }
@@ -38,14 +33,18 @@ public:
         _one(0)
         {
         }
-    ~TemplateSingleton()
-    {
+    ~TemplateSingleton() {
         if ( _one ) {
             delete _one;
             _one = 0;
         }
     }
+private:
+    static TemplateSingleton< T > _singleton;
+    T* _one;
 };
+template <typename T>
+TemplateSingleton<T> TemplateSingleton<T>::_singleton;
 
 /// Base class for device trackers.
 class DeviceTracker : public QObject {
@@ -78,8 +77,7 @@ protected:
 
 private:
 
-    struct SingletonData
-    {
+    struct SingletonData {
         typedef std::map< Name, int > Map;
         typedef std::vector< DeviceTracker* > Vector;
         Map     _devicesMap;

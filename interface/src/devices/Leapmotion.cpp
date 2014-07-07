@@ -323,8 +323,8 @@ void Leapmotion::update() {
 
     // Get the most recent frame and report some basic information
     const Leap::Frame frame = _controller.frame();
-    static _int64 lastFrame = -1;
-    _int64 newFrameNb = frame.id();
+    static int64_t lastFrame = -1;
+    int64_t newFrameNb = frame.id();
 
     if ( (lastFrame >= newFrameNb) )
         return;
@@ -460,7 +460,8 @@ void Leapmotion::update() {
 }
 
 void Leapmotion::reset() {
-   // By default we assume the _neckBase (in orb frame) is as high above the orb 
+#ifdef HAVE_LEAPMOTION
+    // By default we assume the _neckBase (in orb frame) is as high above the orb
     // as the "torso" is below it.
     _leapBasePos = glm::vec3(0, -LEAP_Y, LEAP_Z);
 
@@ -469,6 +470,7 @@ void Leapmotion::reset() {
     glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
     xAxis = glm::normalize(glm::cross(yAxis, zAxis));
     _leapBaseOri = glm::inverse(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
+#endif
 }
 
 void Leapmotion::updateEnabled() {
