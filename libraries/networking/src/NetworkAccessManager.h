@@ -22,7 +22,6 @@ public:
     
 private:
     NetworkAccessManager();
-    Q_DISABLE_COPY(NetworkAccessManager)
 };
 
 #endif // hifi_NetworkAccessManager_h
