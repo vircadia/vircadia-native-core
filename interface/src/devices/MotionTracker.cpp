@@ -76,13 +76,11 @@ MotionTracker::~MotionTracker()
 {
 }
 
-bool MotionTracker::isConnected() const
-{
+bool MotionTracker::isConnected() const {
     return false;
 }
 
-MotionTracker::Index MotionTracker::addJoint( const Semantic& semantic, Index parent )
-{
+MotionTracker::Index MotionTracker::addJoint( const Semantic& semantic, Index parent ) {
     // Check the parent
     if ( int(parent) < 0 )
         return INVALID_PARENT;
@@ -100,16 +98,14 @@ MotionTracker::Index MotionTracker::addJoint( const Semantic& semantic, Index pa
     return newIndex;
 }
 
-MotionTracker::Index MotionTracker::findJointIndex( const Semantic& semantic ) const
-{
+MotionTracker::Index MotionTracker::findJointIndex( const Semantic& semantic ) const {
     auto jointIt = _jointsMap.find( semantic );
     if ( jointIt != _jointsMap.end() )
         return (*jointIt).second;
     return INVALID_SEMANTIC;
 }
 
-void MotionTracker::updateAllAbsTransform()
-{
+void MotionTracker::updateAllAbsTransform() {
     _jointsArray[0].updateAbsFromLocTransform( 0 );
 
     // Because we know the hierarchy is stored from root down the branches let's just traverse and update
@@ -147,8 +143,7 @@ MotionTracker::JointTracker::JointTracker( const JointTracker& tracker ) :
     _lastUpdate( tracker._lastUpdate )
 {
 }
-void MotionTracker::JointTracker::updateAbsFromLocTransform(const JointTracker* parentJoint)
-{
+void MotionTracker::JointTracker::updateAbsFromLocTransform(const JointTracker* parentJoint) {
     if ( parentJoint ) {
         //editAbsFrame()._transform = glm::mult( parentJoint->getAbsFrame()._transform, getLocFrame()._transform );
         editAbsFrame()._transform = ( parentJoint->getAbsFrame()._transform * getLocFrame()._transform );
@@ -157,8 +152,7 @@ void MotionTracker::JointTracker::updateAbsFromLocTransform(const JointTracker* 
     }
 }
 
-void MotionTracker::JointTracker::updateLocFromAbsTransform(const JointTracker* parentJoint)
-{
+void MotionTracker::JointTracker::updateLocFromAbsTransform(const JointTracker* parentJoint) {
     if ( parentJoint ) {
       //  glm::mat4 ip = glm::inverse( glm::mat4( parentJoint->getAbsFrame()._transform ) );
         glm::mat4 ip = glm::inverse( parentJoint->getAbsFrame()._transform );
@@ -186,19 +180,16 @@ void MotionTracker::Frame::setRotation( const glm::quat& rotation )
     _transform[2] = glm::vec4( rot[2], 0.f );
 }
 
-void MotionTracker::Frame::getRotation( glm::quat& rotation ) const
-{
+void MotionTracker::Frame::getRotation( glm::quat& rotation ) const {
    // rotation = glm::quat_cast( glm::mat3( _transform[0], _transform[1], _transform[2] ) );
     rotation = glm::quat_cast(  _transform );
 }
 
-void MotionTracker::Frame::setTranslation( const glm::vec3& translation )
-{
+void MotionTracker::Frame::setTranslation( const glm::vec3& translation ) {
     _transform[3] = glm::vec4( translation, 1.f );
 }
 
-void MotionTracker::Frame::getTranslation( glm::vec3& translation ) const
-{
+void MotionTracker::Frame::getTranslation( glm::vec3& translation ) const {
     translation = glm::vec3( _transform[3] );
 }
 

@@ -269,13 +269,13 @@ AbstractInputController* ControllerScriptingInterface::createInputController( co
     } else {
 
         // Look for matching category
+        // TODO in this current implementation, we just pick the first device assuming there is one ( normally the LeapMotion)
+        // in the near future we need to change that to a real mapping between the device names and the cateory
         int categoryID = 0;
         MotionTracker* motionTracker = dynamic_cast< MotionTracker* > ( DeviceTracker::getDevice( categoryID ) );
-        if ( motionTracker )
-        {
+        if ( motionTracker ) {
             int trackerID = motionTracker->findJointIndex( tracker.toStdString() );
-            if ( trackerID > 0 )
-            {
+            if ( trackerID > 0 ) {
                 AbstractInputController* inputController = new InputController(categoryID,trackerID, this );
 
                 _inputControllers.insert( InputControllerMap::value_type( inputController->getKey(), inputController ) );

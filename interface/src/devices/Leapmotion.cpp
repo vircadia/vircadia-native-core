@@ -177,8 +177,29 @@ const float LEAP_Y = 0.3f;  // meters
 const float LEAP_Z = 0.3f;  // meters
 #endif
 
+const int PALMROOT_NUM_JOINTS = 3;
 const int FINGER_NUM_JOINTS = 4;
-const int HAND_NUM_JOINTS = FINGER_NUM_JOINTS*5+1;
+const int HAND_NUM_JOINTS = FINGER_NUM_JOINTS*5+PALMROOT_NUM_JOINTS;
+
+// find the index of a joint from
+// the side: true = right
+// the finger & the bone:
+//             finger in [0..4] : bone in  [0..3] a finger phalange
+//             [-1]   up the hand branch : bone in [0..2] <=> [ hand, forearm, arm]
+// the bone:
+MotionTracker::Index evalJointIndex( bool isRightSide, int finger, int bone ) {
+
+    MotionTracker::Index offset = 1                                     // start after root
+                                + (int(isRightSide) * HAND_NUM_JOINTS)  // then offset for side
+                                + PALMROOT_NUM_JOINTS;                  // then add the arm/forearm/hand chain
+    if ( finger > 0 ) {
+        // from there go down in the correct finger and bone
+        return offset + (finger * FINGER_NUM_JOINTS) + bone;
+    } else {
+        // or go back up for the correct root bone
+        return offset - 1 - bone;
+    }
+}
 
 Leapmotion::Leapmotion() :
      MotionTracker(),
@@ -196,9 +217,14 @@ Leapmotion::Leapmotion() :
 
     // Create the Leapmotion joint hierarchy
     {
-        std::vector< Semantic > hands;
-        hands.push_back( "Left" );
-        hands.push_back( "Right" );
+        std::vector< Semantic > sides;
+        sides.push_back( "Left" );
+        sides.push_back( "Right" );
+
+        std::vector< Semantic > rootBones;
+        rootBones.push_back( "Arm" );
+        rootBones.push_back( "ForeArm" );
+        rootBones.push_back( "Hand" );
 
         std::vector< Semantic > fingers;
         fingers.push_back( "Thumb" );
@@ -219,13 +245,18 @@ Leapmotion::Leapmotion() :
         fingerBones.push_back( "4" );
 
         std::vector< Index > palms;
-        for ( int h = 0; h < hands.size(); h++ ) {
-            Index rootJoint = addJoint( hands[h] + "Hand", 0 );
+        for ( int s = 0; s < sides.size(); s++ ) {
+            Index rootJoint = 0;
+            for ( int rb = 0; rb < rootBones.size(); rb++ ) {
+                rootJoint = addJoint( sides[s] + rootBones[rb], rootJoint );
+            }
+
+            // capture the hand index for debug
             palms.push_back( rootJoint );
 
             for ( int f = 0; f < fingers.size(); f++ ) {
                 for ( int b = 0; b < fingerBones.size(); b++ ) {
-                    rootJoint  = addJoint( hands[h] + "Hand" + fingers[f] + fingerBones[b], rootJoint );
+                    rootJoint  = addJoint( sides[s] + "Hand" + fingers[f] + fingerBones[b], rootJoint );
                 }
             }
         }
@@ -248,14 +279,15 @@ void Leapmotion::init() {
 #ifdef HAVE_LEAPMOTION
 glm::quat quatFromLeapBase( float sideSign, const Leap::Matrix& basis ) {
 
+    // fix the handness to right and always...
     glm::vec3 xAxis = glm::normalize( sideSign * glm::vec3( basis.xBasis.x, basis.xBasis.y, basis.xBasis.z) );
-    glm::vec3 yAxis = glm::normalize( sideSign * glm::vec3( basis.yBasis.x, basis.yBasis.y, basis.yBasis.z) );
-    glm::vec3 zAxis = glm::normalize( sideSign * glm::vec3( basis.zBasis.x, basis.zBasis.y, basis.zBasis.z) );
-    zAxis = glm::normalize( glm::cross( xAxis, yAxis ) );
-    yAxis = glm::normalize( glm::cross( zAxis, xAxis ) );
-    glm::quat orientation = /*glm::inverse*/(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
-  //  orientation = glm::normalize( orientation );
-    return glm::quat();
+    glm::vec3 yAxis = glm::normalize( glm::vec3( basis.yBasis.x, basis.yBasis.y, basis.yBasis.z) );
+    glm::vec3 zAxis = glm::normalize( glm::vec3( basis.zBasis.x, basis.zBasis.y, basis.zBasis.z) );
+
+    xAxis = glm::normalize( glm::cross( yAxis, zAxis ) );
+
+    glm::quat orientation = (glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
+  //  return glm::quat();
     return orientation;
 }
 glm::quat quatFromLeapBase( float sideSign, const Leap::Vector& dir, const Leap::Vector& normal ) {
@@ -301,29 +333,47 @@ void Leapmotion::update() {
     glm::quat handOri;
     if ( !frame.hands().isEmpty() ) {
         for ( int handNum = 0; handNum < frame.hands().count(); handNum++ ) {
-            // Get the first hand
+
             const Leap::Hand hand = frame.hands()[handNum];
-            int side = ( hand.isRight() ? -1 : 1 );
-            Index handIndex = 1 + ((1 - side)/2) * HAND_NUM_JOINTS;
+            int side = ( hand.isRight() ? 1 : -1 );
+            Index handIndex = evalJointIndex( (side > 0), -1, 0 );
 
-            glm::vec3 pos = vec3FromLeapVector(hand.palmPosition());
-           // glm::quat ori = quatFromLeapBase(float(side), hand.basis() );
-            glm::quat ori = quatFromLeapBase(float(side), hand.direction(), hand.palmNormal() );
+            // only in SDK 2.0.3
+          /*  Leap::Arm arm = hand.arm();
+            if ( arm.isValid() ) {
+                glm::vec3 pos = vec3FromLeapVector(arm.wristPosition());
+                glm::quat ori = quatFromLeapBase(float(side), arm.basis() );
+            //     glm::quat ori = quatFromLeapBase(float(side), hand.direction(), hand.palmNormal() );
 
-            JointTracker* palmJoint = editJointTracker( handIndex );
-            palmJoint->editLocFrame().setTranslation( pos );
-            palmJoint->editLocFrame().setRotation( ori );
-            palmJoint->editAbsFrame().setTranslation( pos );
-            palmJoint->editAbsFrame().setRotation( ori );
-            palmJoint->activeFrame();
+                JointTracker* wrist = editJointTracker( evalJointIndex( (side > 0), -1, 1 ) );
+                //  palmJoint->editLocFrame().setTranslation( pos );
+                //  palmJoint->editLocFrame().setRotation( ori );
+                wrist->editAbsFrame().setTranslation( pos );
+                wrist->editAbsFrame().setRotation( ori );
+                wrist->activeFrame();
 
-            // Transform the measured position into body frame.  
-            glm::vec3 neck = _leapBasePos;
-            // Zeroing y component of the "neck" effectively raises the measured position a little bit.
-            //neck.y = 0.f;
-            pos = _leapBaseOri * (pos - neck);
+                pos = vec3FromLeapVector(arm.elbowPosition());
+                JointTracker* elbow = editJointTracker( evalJointIndex( (side > 0), -1, 2 ) );
+                //  palmJoint->editLocFrame().setTranslation( pos );
+                //  palmJoint->editLocFrame().setRotation( ori );
+                elbow->editAbsFrame().setTranslation( pos );
+                elbow->editAbsFrame().setRotation( ori );
+                elbow->activeFrame();
+            }*/
 
+            JointTracker* palmJoint = nullptr;
+            {
+                glm::vec3 pos = vec3FromLeapVector(hand.palmPosition());
+                glm::quat ori = quatFromLeapBase(float(side), hand.basis() );
+           //     glm::quat ori = quatFromLeapBase(float(side), hand.direction(), hand.palmNormal() );
 
+                palmJoint = editJointTracker( evalJointIndex( (side > 0), -1, 0 ) );
+              //  palmJoint->editLocFrame().setTranslation( pos );
+              //  palmJoint->editLocFrame().setRotation( ori );
+                palmJoint->editAbsFrame().setTranslation( pos );
+                palmJoint->editAbsFrame().setRotation( ori );
+                palmJoint->activeFrame();
+            }
             // Check if the hand has any fingers
             const Leap::FingerList fingers = hand.fingers();
             if (!fingers.isEmpty()) {
@@ -333,7 +383,8 @@ void Leapmotion::update() {
                     JointTracker* parentJointTracker = palmJoint;
 
                     // surprisingly, Leap::Finger::Type start at 0 for thumb a until 4 for the pinky
-                    Index fingerIndex = handIndex + 1 + Index(fingers[i].type()) * FINGER_NUM_JOINTS;
+                    Index fingerIndex = evalJointIndex( (side > 0), int(fingers[i].type()), 0 );
+                    //handIndex + 1 + Index(fingers[i].type()) * FINGER_NUM_JOINTS;
 
                     // let's update the finger's joints
                     for ( int b = 0; b < FINGER_NUM_JOINTS; b++ ) {
@@ -346,7 +397,7 @@ void Leapmotion::update() {
                             ljointTracker->editAbsFrame().setTranslation( vec3FromLeapVector( bp ) );
                             ljointTracker->editAbsFrame().setRotation(quatFromLeapBase( float(side), bone.basis() ) );
                           //  ljointTracker->editAbsFrame().setRotation(quatFromLeapBase( float(side), bone.direction(), bone.basis() ) );
-                            ljointTracker->updateLocFromAbsTransform( parentJointTracker );
+                          //  ljointTracker->updateLocFromAbsTransform( parentJointTracker );
                             ljointTracker->activeFrame();
                         }
                         parentJointTracker = ljointTracker;

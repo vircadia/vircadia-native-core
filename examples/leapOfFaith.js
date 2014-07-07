@@ -28,7 +28,7 @@ function quatToString( q ) {
 }
 
 function printSpatialEvent( label, spatialEvent ) {
-    if ( label == "RightHand" ) {
+    if ( label == "RightHandIndex1" ) {
         var dataString = label + " " +
              /*vec3ToString( spatialEvent.locTranslation ) + " " +
              quatToString( spatialEvent.locRotation ) + " " +*/
@@ -38,7 +38,7 @@ function printSpatialEvent( label, spatialEvent ) {
     }
 }
 
-function avatarToWorld( apos ) {
+function avatarToWorldPos( apos ) {
 
     // apply offset ?
     var offset = { x: 0, y: 0.5, z: -0.5 };   
@@ -48,6 +48,21 @@ function avatarToWorld( apos ) {
 
     return wpos;
 }
+
+function controlerToSkeletonOri( isRightSide, crot ) {
+ /*   var front = Quat.getFront( crot );
+    var right = Quat.getRight( crot );
+    var up = Quat.getUp( crot );
+*/
+    var qrootoffset = Quat.angleAxis( -180, {x:0, y:1, z:0});
+    var qoffset = Quat.angleAxis( -( 2 * isRightSide - 1) * 90, {x:0, y:1, z:0});
+
+   return Quat.multiply( qrootoffset, Quat.multiply( crot, qoffset ) );
+  // return Quat.multiply( crot, qoffset );
+   // return Quat.multiply( qrootoffset, crot );
+   return ( crot );
+}
+
 
 var jointParticles = [];
 function updateJointParticle( joint, pos, look ) {
@@ -75,15 +90,24 @@ function updateJointParticle( joint, pos, look ) {
     }*/
 }
 
+function evalArmBoneLook( isRightSide, bone ) {
+    return { c: { red: (255 * ( 1 - isRightSide )),
+                  green: 255 * ( ((bone)) / 2 ),
+                  blue: (255 * isRightSide) },
+             r: 3 ,
+             side: isRightSide };
+}
+
 function evalFingerBoneLook( isRightSide, finger, bone ) {
     return { c: { red: (255 * ( 1 - isRightSide )),
                   green: 255 * ( ((bone - 1)) / 3 ),
                   blue: (255 * isRightSide) },
-             r: (5 + (5 - (finger-1))) / 10.0  };
+             r: (5 + (5 - (finger-1))) / 10.0,
+             side: isRightSide };
 }
 
 var leapJoints = [
-    { n: "LeftHand",        l: { c: { red: 255, green: 0, blue: 0 },     r: 3 } },
+    { n: "LeftHand",        l: evalArmBoneLook( 0, 0) },
     
     { n: "LeftHandThumb2",  l: evalFingerBoneLook( 0, 1, 2) },
     { n: "LeftHandThumb3",  l: evalFingerBoneLook( 0, 1, 3) },
@@ -109,7 +133,7 @@ var leapJoints = [
     { n: "LeftHandPinky3",  l: evalFingerBoneLook( 0, 5, 3) },
     { n: "LeftHandPinky4",  l: evalFingerBoneLook( 0, 5, 4) },   
 
-    { n: "RightHand",        l: { c: { red: 0, green: 0, blue: 255 }, r: 3 } },
+    { n: "RightHand",        l: evalArmBoneLook( 1, 0) },
 
     { n: "RightHandThumb2",  l: evalFingerBoneLook( 1, 1, 2) },
     { n: "RightHandThumb3",  l: evalFingerBoneLook( 1, 1, 3) },
@@ -140,9 +164,10 @@ var leapJoints = [
 function onSpatialEventHandler( jointName, look ) {
     var _jointName = jointName;
     var _look = look;
+    var _side = look.side;
     return (function( spatialEvent ) {
-        MyAvatar.setJointData(_jointName, spatialEvent.absRotation);
-        updateJointParticle(_jointName, avatarToWorld( spatialEvent.absTranslation ), _look );       
+        MyAvatar.setJointData(_jointName, controlerToSkeletonOri( _side, spatialEvent.absRotation ));
+        updateJointParticle(_jointName, avatarToWorldPos( spatialEvent.absTranslation ), _look );       
         printSpatialEvent(_jointName, spatialEvent );
     });
 }

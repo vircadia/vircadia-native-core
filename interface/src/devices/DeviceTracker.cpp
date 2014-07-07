@@ -14,18 +14,14 @@
 // The singleton managing the connected devices
 DeviceTracker::Singleton DeviceTracker::Singleton::_singleton;
 
-int DeviceTracker::init()
-{
-
+int DeviceTracker::init() {
     return Singleton::get()->_devicesMap.size();
 }
-int DeviceTracker::getNumDevices()
-{
+int DeviceTracker::getNumDevices() {
     return Singleton::get()->_devicesMap.size();
 }
 
-int DeviceTracker::getDeviceIndex( const Name& name )
-{
+int DeviceTracker::getDeviceIndex( const Name& name ) {
     auto deviceIt = Singleton::get()->_devicesMap.find( name );
     if ( deviceIt != Singleton::get()->_devicesMap.end() )
         return (*deviceIt).second;
@@ -33,13 +29,11 @@ int DeviceTracker::getDeviceIndex( const Name& name )
         return -1;
 }
 
-DeviceTracker* DeviceTracker::getDevice( const Name& name )
-{
+DeviceTracker* DeviceTracker::getDevice( const Name& name ) {
     return getDevice( getDeviceIndex( name ) );
 }
 
-DeviceTracker* DeviceTracker::getDevice( int deviceNum )
-{
+DeviceTracker* DeviceTracker::getDevice( int deviceNum ) {
     if ( (deviceNum >= 0) && ( deviceNum < Singleton::get()->_devicesVector.size() ) ) {
         return Singleton::get()->_devicesVector[ deviceNum ];
     } else {
@@ -47,8 +41,7 @@ DeviceTracker* DeviceTracker::getDevice( int deviceNum )
     }
 }
 
-int DeviceTracker::registerDevice( const Name& name, DeviceTracker* device )
-{
+int DeviceTracker::registerDevice( const Name& name, DeviceTracker* device ) {
     if ( !device )
         return -1;
     int index = getDeviceIndex( name );
@@ -81,11 +74,9 @@ DeviceTracker::~DeviceTracker()
 {
 }
 
-bool DeviceTracker::isConnected() const
-{
+bool DeviceTracker::isConnected() const {
     return false;
 }
 
-void DeviceTracker::update()
-{
+void DeviceTracker::update() {
 }
