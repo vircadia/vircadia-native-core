@@ -129,6 +129,7 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
         } else {
             _remoteData.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in,
                 _remoteDataLOD = getLastAcknowledgedSendRecord()->getLOD());
+            in.reset();
         }
         // copy to local and reapply local edits
         _data = _remoteData;
