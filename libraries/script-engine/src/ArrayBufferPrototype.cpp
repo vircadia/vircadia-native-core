@@ -9,7 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDebug>
 #include <QScriptEngine>
+
+#include <glm/glm.hpp>
 
 #include "ArrayBufferClass.h"
 
@@ -21,7 +24,27 @@ ArrayBufferPrototype::ArrayBufferPrototype(QObject* parent) : QObject(parent) {
 }
 
 QByteArray ArrayBufferPrototype::slice(long begin, long end) const {
-    return thisArrayBuffer()->mid(begin, end);
+    QByteArray* ba = thisArrayBuffer();
+    // if indices < 0 then they start from the end of the array
+    begin = (begin < 0) ? ba->size() + begin : begin;
+    end = (end < 0) ? ba->size() + end : end;
+    
+    // here we clamp the indices to fit the array
+    begin = glm::clamp(begin, 0l, (long)(ba->size() - 1));
+    end = glm::clamp(end, 0l, (long)(ba->size() - 1));
+    
+    return (end - begin > 0) ? ba->mid(begin, end - begin) : QByteArray();
+}
+
+QByteArray ArrayBufferPrototype::slice(long begin) const {
+    QByteArray* ba = thisArrayBuffer();
+    // if indices < 0 then they start from the end of the array
+    begin = (begin < 0) ? ba->size() + begin : begin;
+    
+    // here we clamp the indices to fit the array
+    begin = glm::clamp(begin, 0l, (long)(ba->size() - 1));
+    
+    return ba->mid(begin, -1);
 }
 
 QByteArray* ArrayBufferPrototype::thisArrayBuffer() const {

@@ -22,8 +22,9 @@ class ArrayBufferPrototype : public QObject, public QScriptable {
 public:
     ArrayBufferPrototype(QObject* parent = NULL);
     
-public slots:
-    QByteArray slice(long begin, long end = -1) const;
+    public slots:
+    QByteArray slice(long begin, long end) const;
+    QByteArray slice(long begin) const;
     
 private:
     QByteArray* thisArrayBuffer() const;
