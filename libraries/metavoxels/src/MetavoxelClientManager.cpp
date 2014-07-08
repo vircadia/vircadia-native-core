@@ -116,30 +116,26 @@ void MetavoxelClient::writeUpdateMessage(Bitstream& out) {
     out << QVariant::fromValue(state);
 }
 
-void MetavoxelClient::readMessage(Bitstream& in) {
-    Endpoint::readMessage(in);
-    
-    // reapply local edits
-    foreach (const DatagramSequencer::HighPriorityMessage& message, _sequencer.getHighPriorityMessages()) {
-        if (message.data.userType() == MetavoxelEditMessage::Type) {
-            message.data.value<MetavoxelEditMessage>().apply(_data, _sequencer.getWeakSharedObjectHash());
-        }
-    }
-}
-
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType(); 
     if (userType == MetavoxelDeltaMessage::Type) {
         PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
         if (_reliableDeltaChannel) {    
-            _data.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in, _dataLOD = _reliableDeltaLOD);
+            _remoteData.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in, _remoteDataLOD = _reliableDeltaLOD);
             _sequencer.getInputStream().persistReadMappings(in.getAndResetReadMappings());
             in.clearPersistentMappings();
             _reliableDeltaChannel = NULL;
         
         } else {
-            _data.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in,
-                _dataLOD = getLastAcknowledgedSendRecord()->getLOD());
+            _remoteData.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in,
+                _remoteDataLOD = getLastAcknowledgedSendRecord()->getLOD());
+        }
+        // copy to local and reapply local edits
+        _data = _remoteData;
+        foreach (const DatagramSequencer::HighPriorityMessage& message, _sequencer.getHighPriorityMessages()) {
+            if (message.data.userType() == MetavoxelEditMessage::Type) {
+                message.data.value<MetavoxelEditMessage>().apply(_data, _sequencer.getWeakSharedObjectHash());
+            }
         }
     } else if (userType == MetavoxelDeltaPendingMessage::Type) {
         if (!_reliableDeltaChannel) {
@@ -157,5 +153,6 @@ PacketRecord* MetavoxelClient::maybeCreateSendRecord() const {
 }
 
 PacketRecord* MetavoxelClient::maybeCreateReceiveRecord() const {
-    return new PacketRecord(_dataLOD, _data);
+    return new PacketRecord(_remoteDataLOD, _remoteData);
 }
+

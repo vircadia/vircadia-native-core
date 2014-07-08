@@ -60,7 +60,6 @@ public:
 protected:
 
     virtual void writeUpdateMessage(Bitstream& out);
-    virtual void readMessage(Bitstream& in);
     virtual void handleMessage(const QVariant& message, Bitstream& in);
 
     virtual PacketRecord* maybeCreateSendRecord() const;
@@ -70,7 +69,8 @@ private:
     
     MetavoxelClientManager* _manager;
     MetavoxelData _data;
-    MetavoxelLOD _dataLOD;
+    MetavoxelData _remoteData;
+    MetavoxelLOD _remoteDataLOD;
     
     ReliableChannel* _reliableDeltaChannel;
     MetavoxelLOD _reliableDeltaLOD;
