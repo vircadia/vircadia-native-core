@@ -25,8 +25,7 @@ class MotionTracker : public DeviceTracker {
     Q_OBJECT
 public:
 
-    class Frame
-    {
+    class Frame {
     public:
         Frame();
 
@@ -46,8 +45,7 @@ public:
     static const Index INVALID_PARENT = -2;
 
 
-    class JointTracker
-    {
+    class JointTracker {
     public:
         typedef std::vector< JointTracker > vector;
         typedef std::map< Semantic, Index > map;
