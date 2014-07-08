@@ -18,9 +18,7 @@
 #include <MIDIEvent.h>
 
 #ifdef HAVE_RTMIDI
-
 #include <RtMidi.h>
-
 #endif
 
 class MIDIManager : public QObject {
@@ -50,7 +48,7 @@ signals:
 private:
 #ifdef HAVE_RTMIDI
     RtMidiIn* _midiInput;
-#endif HAVE_RTMIDI
+#endif
 };
 
 
