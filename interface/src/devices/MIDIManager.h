@@ -12,14 +12,16 @@
 #ifndef hifi_MIDIManager_h
 #define hifi_MIDIManager_h
 
-#ifdef HAVE_RTMIDI
-
 #include <QtCore/QObject>
 #include <QtScript/QScriptEngine>
 
 #include <MIDIEvent.h>
 
+#ifdef HAVE_RTMIDI
+
 #include <RtMidi.h>
+
+#endif
 
 class MIDIManager : public QObject {
     Q_OBJECT
@@ -46,10 +48,10 @@ signals:
     void midiEvent(const MIDIEvent& event);
     
 private:
+#ifdef HAVE_RTMIDI
     RtMidiIn* _midiInput;
+#endif HAVE_RTMIDI
 };
-
-#endif
 
 
 #endif // hifi_MIDIManager_h
