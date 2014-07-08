@@ -87,7 +87,7 @@ void MetavoxelServer::sendDeltas() {
     int elapsed = now - _lastSend;
     _lastSend = now;
     
-    _sendTimer.start(qMax(0, 2 * SEND_INTERVAL - elapsed));
+    _sendTimer.start(qMax(0, 2 * SEND_INTERVAL - qMax(elapsed, SEND_INTERVAL)));
 }
 
 MetavoxelSession::MetavoxelSession(const SharedNodePointer& node, MetavoxelServer* server) :
