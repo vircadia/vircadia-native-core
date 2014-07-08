@@ -86,7 +86,11 @@ void MetavoxelClientManager::updateClient(MetavoxelClient* client) {
 
 MetavoxelClient::MetavoxelClient(const SharedNodePointer& node, MetavoxelClientManager* manager) :
     Endpoint(node, new PacketRecord(), new PacketRecord()),
-    _manager(manager) {
+    _manager(manager),
+    _reliableDeltaChannel(NULL) {
+    
+    connect(_sequencer.getReliableInputChannel(RELIABLE_DELTA_CHANNEL_INDEX),
+        SIGNAL(receivedMessage(const QVariant&, Bitstream&)), SLOT(handleMessage(const QVariant&, Bitstream&)));
 }
 
 void MetavoxelClient::guide(MetavoxelVisitor& visitor) {
@@ -112,31 +116,44 @@ void MetavoxelClient::writeUpdateMessage(Bitstream& out) {
     out << QVariant::fromValue(state);
 }
 
-void MetavoxelClient::readMessage(Bitstream& in) {
-    Endpoint::readMessage(in);
-    
-    // reapply local edits
-    foreach (const DatagramSequencer::HighPriorityMessage& message, _sequencer.getHighPriorityMessages()) {
-        if (message.data.userType() == MetavoxelEditMessage::Type) {
-            message.data.value<MetavoxelEditMessage>().apply(_data, _sequencer.getWeakSharedObjectHash());
-        }
-    }
-}
-
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
-    if (message.userType() == MetavoxelDeltaMessage::Type) {
+    int userType = message.userType(); 
+    if (userType == MetavoxelDeltaMessage::Type) {
         PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
-        _data.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in, getLastAcknowledgedSendRecord()->getLOD());
-    
+        if (_reliableDeltaChannel) {    
+            _remoteData.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in, _remoteDataLOD = _reliableDeltaLOD);
+            _sequencer.getInputStream().persistReadMappings(in.getAndResetReadMappings());
+            in.clearPersistentMappings();
+            _reliableDeltaChannel = NULL;
+        
+        } else {
+            _remoteData.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in,
+                _remoteDataLOD = getLastAcknowledgedSendRecord()->getLOD());
+            in.reset();
+        }
+        // copy to local and reapply local edits
+        _data = _remoteData;
+        foreach (const DatagramSequencer::HighPriorityMessage& message, _sequencer.getHighPriorityMessages()) {
+            if (message.data.userType() == MetavoxelEditMessage::Type) {
+                message.data.value<MetavoxelEditMessage>().apply(_data, _sequencer.getWeakSharedObjectHash());
+            }
+        }
+    } else if (userType == MetavoxelDeltaPendingMessage::Type) {
+        if (!_reliableDeltaChannel) {
+            _reliableDeltaChannel = _sequencer.getReliableInputChannel(RELIABLE_DELTA_CHANNEL_INDEX);
+            _reliableDeltaChannel->getBitstream().copyPersistentMappings(_sequencer.getInputStream());
+            _reliableDeltaLOD = getLastAcknowledgedSendRecord()->getLOD();
+        }
     } else {
         Endpoint::handleMessage(message, in);
     }
 }
 
 PacketRecord* MetavoxelClient::maybeCreateSendRecord() const {
-    return new PacketRecord(_manager->getLOD());
+    return new PacketRecord(_reliableDeltaChannel ? _reliableDeltaLOD : _manager->getLOD());
 }
 
 PacketRecord* MetavoxelClient::maybeCreateReceiveRecord() const {
-    return new PacketRecord(getLastAcknowledgedSendRecord()->getLOD(), _data);
+    return new PacketRecord(_remoteDataLOD, _remoteData);
 }
+

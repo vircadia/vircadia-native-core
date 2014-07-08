@@ -211,11 +211,7 @@ void Agent::run() {
     NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkReply *reply = networkAccessManager.get(QNetworkRequest(scriptURL));
     
-    // Make sure cache on same thread than its parent (NetworkAccessManager)
     QNetworkDiskCache* cache = new QNetworkDiskCache();
-    cache->moveToThread(networkAccessManager.thread());
-    cache->setParent(&networkAccessManager);
-    
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
     networkAccessManager.setCache(cache);
@@ -273,4 +269,5 @@ void Agent::run() {
 
 void Agent::aboutToFinish() {
     _scriptEngine.stop();
+    NetworkAccessManager::getInstance().clearAccessCache();
 }

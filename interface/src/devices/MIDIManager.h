@@ -12,14 +12,14 @@
 #ifndef hifi_MIDIManager_h
 #define hifi_MIDIManager_h
 
-#ifdef HAVE_RTMIDI
-
 #include <QtCore/QObject>
 #include <QtScript/QScriptEngine>
 
 #include <MIDIEvent.h>
 
+#ifdef HAVE_RTMIDI
 #include <RtMidi.h>
+#endif
 
 class MIDIManager : public QObject {
     Q_OBJECT
@@ -36,7 +36,9 @@ public:
     ~MIDIManager();
     
     void openDefaultPort();
+#ifdef HAVE_RTMIDI
     bool hasDevice() const { return !!_midiInput; }
+#endif
 public slots:
     unsigned int NoteOn() const { return 144; }
     unsigned int NoteOff() const { return 128; }
@@ -46,10 +48,10 @@ signals:
     void midiEvent(const MIDIEvent& event);
     
 private:
+#ifdef HAVE_RTMIDI
     RtMidiIn* _midiInput;
-};
-
 #endif
+};
 
 
 #endif // hifi_MIDIManager_h
