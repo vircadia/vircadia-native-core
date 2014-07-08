@@ -110,6 +110,8 @@ protected:
 
     // extra stats
     int _consecutiveNotMixedCount;
+    int _starveCount;
+    int _silentFramesDropped;
 };
 
 #endif // hifi_PositionalAudioRingBuffer_h

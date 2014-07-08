@@ -100,7 +100,9 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _desiredJitterBufferFrames(1),
     _currentJitterBufferFrames(-1),
     _dynamicJitterBuffers(dynamicJitterBuffers),
-    _consecutiveNotMixedCount(0)
+    _consecutiveNotMixedCount(0),
+    _starveCount(0),
+    _silentFramesDropped(0)
 {
 }
 
@@ -143,9 +145,12 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
                     addSilentFrame(numSilentFramesToAdd * samplesPerFrame);
                     _currentJitterBufferFrames = _desiredJitterBufferFrames;
 
+                    _silentFramesDropped += numFramesToDropDesired;
                 } else {
                     // we need to drop all frames to get the jitter buffer close as possible to its desired length
                     _currentJitterBufferFrames -= numSilentFrames;
+
+                    _silentFramesDropped += numSilentFrames;
                 }
             } else {
                 addSilentFrame(numSilentSamples);
@@ -217,6 +222,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     } else if (samplesAvailable() < samplesPerFrame) { 
         // if the buffer doesn't have a full frame of samples to take for mixing, it is starved
         _isStarved = true;
+        _starveCount++;
         
         // set to -1 to indicate the jitter buffer is starved
         _currentJitterBufferFrames = -1;
