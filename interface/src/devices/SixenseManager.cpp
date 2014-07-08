@@ -13,6 +13,7 @@
 
 #include "Application.h"
 #include "SixenseManager.h"
+#include "devices/OculusManager.h"
 #include "UserActivityLogger.h"
 
 #ifdef HAVE_SIXENSE
@@ -358,9 +359,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     MyAvatar* avatar = application->getAvatar();
     QGLWidget* widget = application->getGLWidget();
     QPoint pos;
-    // Get directon relative to avatar orientation
-    glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
-
+    
     Qt::MouseButton bumperButton;
     Qt::MouseButton triggerButton;
 
@@ -372,15 +371,24 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         triggerButton = Qt::LeftButton;
     }
 
-    // Get the angles, scaled between (-0.5,0.5)
-    float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-    float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
+    if (OculusManager::isConnected()) {
+        pos = application->getApplicationOverlay().getOculusPalmClickLocation(palm);
+        printf("CLICK: %d %d\n", pos.x(), pos.y());
+    } else {
+        // Get directon relative to avatar orientation
+        glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
 
-    // Get the pixel range over which the xAngle and yAngle are scaled
-    float cursorRange = widget->width() * getCursorPixelRangeMult();
+        // Get the angles, scaled between (-0.5,0.5)
+        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+        float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
-    pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
-    pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
+        // Get the pixel range over which the xAngle and yAngle are scaled
+        float cursorRange = widget->width() * getCursorPixelRangeMult();
+
+        pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
+        pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
+
+    }
 
     //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
     //we should unpress them.

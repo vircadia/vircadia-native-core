@@ -443,7 +443,15 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
         ovrPosef pose = ss.Predicted.Pose;
         Quatf orientation = Quatf(pose.Orientation);
         orientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
+    } else {
+        yaw = 0.0f;
+        pitch = 0.0f;
+        roll = 0.0f;
     }
+#else
+    yaw = 0.0f;
+    pitch = 0.0f;
+    roll = 0.0f;
 #endif
 }
 
@@ -461,7 +469,7 @@ QSize OculusManager::getRenderTargetSize() {
 
 void OculusManager::renderLaserPointer() {
 #ifdef HAVE_LIBOVR
-    const float PALM_TIP_ROD_RADIUS = 0.009f;
+    const float PALM_TIP_ROD_RADIUS = 0.002f;
 
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
 
@@ -482,8 +490,8 @@ void OculusManager::renderLaserPointer() {
 
 glm::vec3 OculusManager::getLaserPointerTipPosition(const PalmData* palm) {
 #ifdef HAVE_LIBOVR
-    const float PALM_TIP_ROD_LENGTH_MULT = 2.0f;
-    return (palm->getTipPosition() - palm->getPosition()) * PALM_TIP_ROD_LENGTH_MULT;
+    const float PALM_TIP_ROD_LENGTH_MULT = 11.0f;
+    return palm->getPosition() + (palm->getTipPosition() - palm->getPosition()) * PALM_TIP_ROD_LENGTH_MULT;
 #endif
     return glm::vec3(0.0f);
 }

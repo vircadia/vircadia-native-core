@@ -205,6 +205,103 @@ void ApplicationOverlay::getClickLocation(int &x, int &y) const {
     }
 }
 
+
+//Checks if the given ray intersects the sphere at the origin. result will store a multiplier that should
+//be multiplied by dir and added to origin to get the location of the collision
+bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, float* result)
+{
+    //Source: http://wiki.cgsociety.org/index.php/Ray_Sphere_Intersection
+
+    //Compute A, B and C coefficients
+    float a = glm::dot(dir, dir);
+    float b = 2 * glm::dot(dir, origin);
+    float c = glm::dot(origin, origin) - (r * r);
+
+    //Find discriminant
+    float disc = b * b - 4 * a * c;
+
+    // if discriminant is negative there are no real roots, so return 
+    // false as ray misses sphere
+    if (disc < 0) {
+        return false;
+    }
+
+    // compute q as described above
+    float distSqrt = sqrtf(disc);
+    float q;
+    if (b < 0) {
+        q = (-b - distSqrt) / 2.0;
+    } else {
+        q = (-b + distSqrt) / 2.0;
+    }
+
+    // compute t0 and t1
+    float t0 = q / a;
+    float t1 = c / q;
+
+    // make sure t0 is smaller than t1
+    if (t0 > t1) {
+        // if t0 is bigger than t1 swap them around
+        float temp = t0;
+        t0 = t1;
+        t1 = temp;
+    }
+
+    // if t1 is less than zero, the object is in the ray's negative direction
+    // and consequently the ray misses the sphere
+    if (t1 < 0) {
+        return false;
+    }
+
+    // if t0 is less than zero, the intersection point is at t1
+    if (t0 < 0) {
+        *result = t1;
+        return true;
+    } else { // else the intersection point is at t0
+        *result = t0;
+        return true;
+    }
+}
+
+
+QPoint ApplicationOverlay::getOculusPalmClickLocation(PalmData *palm) const {
+
+    Application* application = Application::getInstance();
+    QGLWidget* glWidget = application->getGLWidget();
+    MyAvatar* myAvatar = application->getAvatar();
+
+    const int widgetWidth = glWidget->width();
+    const int widgetHeight = glWidget->height();
+    
+
+    glm::vec3 tip = OculusManager::getLaserPointerTipPosition(palm);
+    glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
+    glm::quat orientation = glm::inverse(myAvatar->getOrientation());
+    glm::vec3 dir = orientation * glm::normalize(eyePos - tip); //direction of ray goes towards camera
+    glm::vec3 tipPos = orientation * (tip - eyePos);
+
+    QPoint rv;
+
+    float t;
+
+    //Find intersection of crosshair ray
+    if (raySphereIntersect(dir, tipPos, 1, &t)){
+        glm::vec3 collisionPos = tipPos + dir * t;
+
+        float u = asin(collisionPos.x) / (_textureFov)+0.5f;
+        float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
+
+        rv.setX(u * glWidget->width());
+        rv.setY(v * glWidget->height());
+
+    } else {
+        //if they did not click on the overlay, just set the coords to INT_MAX
+        rv.setX(INT_MAX);
+        rv.setY(INT_MAX);
+    }
+    return rv;
+}
+
 // Draws the FBO texture for Oculus rift.
 void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
@@ -221,10 +318,13 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
    
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    glBindTexture(GL_TEXTURE_2D, getFramebufferObject()->texture());
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     glEnable(GL_TEXTURE_2D);
+
+    renderControllerPointersOculus();
+
+    glBindTexture(GL_TEXTURE_2D, getFramebufferObject()->texture());
 
     glMatrixMode(GL_MODELVIEW);
 
@@ -276,8 +376,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glColor4f(1.0f, 1.0f, 1.0f, _alpha);
 
     renderTexturedHemisphere();
-
-    renderControllerPointersOculus();
 
     glPopMatrix();
 
@@ -559,22 +657,6 @@ void ApplicationOverlay::renderControllerPointers() {
     }
 }
 
-bool findSphereIntersection(const glm::vec3 &start, const glm::vec3 &end, const glm::vec3 &spos, const float r, glm::vec3 &result) {
-    double a = pow(end.x - start.x, 2) + pow(end.y - start.y, 2) + pow(end.z - start.z, 2);
-    double b = 2.0f * ((end.x - start.x) * (start.x - spos.x) + (end.y - start.x) * (start.y - spos.y) + (end.z - start.z) * (start.z - spos.z));
-    double c = pow(start.x - spos.x, 2) + pow(start.y - spos.y, 2) + pow(start.z - spos.z, 2) - r*r;
-
-    double delta = b * b - 4.0 * a * c;
-    printf("Intersection Delta %lf\n", delta);
-
-    if (delta == 0) {
-        float d = -b / (2.0 * a);
-        result = start + d * (end - start);
-    } else {
-        return false;
-    }
-}
-
 void ApplicationOverlay::renderControllerPointersOculus() {
 
     const bool useLaser = true; 
@@ -589,54 +671,104 @@ void ApplicationOverlay::renderControllerPointersOculus() {
 
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     glDisable(GL_DEPTH_TEST);
-    
-    for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
-        if (i > 0 && useLaser) {
-            MyAvatar* myAvatar = application->getAvatar();
+    glMatrixMode(GL_MODELVIEW);
+    MyAvatar* myAvatar = application->getAvatar();
+
+    //Determine how much we need to iterate
+    const int ITERATIONS = max(myAvatar->getHand()->getNumPalms(), 3);
+
+    for (int i = 0; i < ITERATIONS; i++) {
+        if (useLaser && i < myAvatar->getHand()->getNumPalms()) {
+           
             PalmData& palm = myAvatar->getHand()->getPalms()[i];
             if (palm.isActive()) {
-               
                 glm::vec3 tip = OculusManager::getLaserPointerTipPosition(&palm);
                 glm::vec3 result;
+                glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
+                glm::quat orientation = glm::inverse(myAvatar->getOrientation());
+                glm::vec3 dir = orientation * glm::normalize(eyePos - tip); //direction of ray goes towards camera
+                glm::vec3 tipPos = (tip - eyePos);
+                
+                float t;
+                float length = glm::length(eyePos - tip);
+                float size = 0.045f * length;
 
-                if (findSphereIntersection(myAvatar->getHead()->calculateAverageEyePosition(),
-                    tip, glm::vec3(0, 0, 0), 1, result)){
-                    printf("Intersection Found: ");
-                    printVector(result);
+                glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * size;
+                glm::vec3 right = glm::vec3(1.0, 0.0, 0.0) * size;
+
+                glm::vec3 cursorVerts[4];
+                cursorVerts[0] = -right + up;
+                cursorVerts[1] = right + up;
+                cursorVerts[2] = right - up;
+                cursorVerts[3] = -right - up;
+
+                glPushMatrix();
+             //   glLoadIdentity();
+
+                // objToCamProj is the vector in world coordinates from the 
+                // local origin to the camera projected in the XZ plane
+                glm::vec3 cursorToCameraXZ(-tipPos.x, 0, -tipPos.z);
+                cursorToCameraXZ = glm::normalize(cursorToCameraXZ);
+
+                // This is the original lookAt vector for the object 
+                // in world coordinates
+                glm::vec3 direction(0, 0, 1);
+                glTranslatef(tip.x, tip.y, tip.z);
+
+                // easy fix to determine wether the angle is negative or positive
+                // for positive angles upAux will be a vector pointing in the 
+                // positive y direction, otherwise upAux will point downwards
+                // effectively reversing the rotation.
+                glm::vec3 upAux = glm::cross(direction, cursorToCameraXZ);
+
+                // compute the angle
+                float angleCosine = glm::dot(direction, cursorToCameraXZ);
+
+                // perform the rotation. The if statement is used for stability reasons
+                // if the lookAt and objToCamProj vectors are too close together then 
+                // |angleCosine| could be bigger than 1 due to lack of precision
+                if ((angleCosine < 0.999999) && (angleCosine > -0.999999)) {
+                    glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, upAux[0], upAux[1], upAux[2]);
                 }
 
+                // so far it is just like the cylindrical billboard. The code for the 
+                // second rotation comes now
+                // The second part tilts the object so that it faces the camera
 
-                //float lX = sin((newULeft - 0.5f) * _textureFov);
-                //float rX = sin((newURight - 0.5f) * _textureFov);
-                //float bY = sin((newVBottom - 0.5f) * _textureFov);
-                //float tY = sin((newVTop - 0.5f) * _textureFov);
+                // objToCam is the vector in world coordinates from 
+                // the local origin to the camera
+                glm::vec3 cursorToCamera = glm::normalize(-tipPos);
 
-                //float dist;
-                ////Bottom Left
-                //dist = sqrt(lX * lX + bY * bY);
-                //float blZ = sqrt(1.0f - dist * dist);
-                ////Top Left
-                //dist = sqrt(lX * lX + tY * tY);
-                //float tlZ = sqrt(1.0f - dist * dist);
-                ////Bottom Right
-                //dist = sqrt(rX * rX + bY * bY);
-                //float brZ = sqrt(1.0f - dist * dist);
-                ////Top Right
-                //dist = sqrt(rX * rX + tY * tY);
-                //float trZ = sqrt(1.0f - dist * dist);
+                // Compute the angle between objToCamProj and objToCam, 
+                //i.e. compute the required angle for the lookup vector
 
-                //glBegin(GL_QUADS);
+                angleCosine = glm::dot(cursorToCameraXZ, cursorToCamera);
 
-                //glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
+                // Tilt the object. The test is done to prevent instability 
+                // when objToCam and objToCamProj have a very small
+                // angle between them
 
-                //glTexCoord2f(0.0f, 0.0f); glVertex3f(lX, tY, -tlZ);
-                //glTexCoord2f(1.0f, 0.0f); glVertex3f(rX, tY, -trZ);
-                //glTexCoord2f(1.0f, 1.0f); glVertex3f(rX, bY, -brZ);
-                //glTexCoord2f(0.0f, 1.0f); glVertex3f(lX, bY, -blZ);
+                if ((angleCosine < 0.99990) && (angleCosine > -0.9999))
+                if (cursorToCamera.y < 0) {
+                    glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, 1, 0, 0);
+                } else {
+                    glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, -1, 0, 0);
+                }
 
-                //glEnd();
+                glBegin(GL_QUADS);
+
+                glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
+
+                glTexCoord2f(0.0f, 0.0f); glVertex3f(cursorVerts[0].x, cursorVerts[0].y, cursorVerts[0].z);
+                glTexCoord2f(1.0f, 0.0f); glVertex3f(cursorVerts[1].x, cursorVerts[1].y, cursorVerts[1].z);
+                glTexCoord2f(1.0f, 1.0f); glVertex3f(cursorVerts[2].x, cursorVerts[2].y, cursorVerts[2].z);
+                glTexCoord2f(0.0f, 1.0f); glVertex3f(cursorVerts[3].x, cursorVerts[3].y, cursorVerts[3].z);
+
+                glEnd();
+
+                glPopMatrix();
             }
-        } else {
+        } else if (i < NUMBER_OF_MAGNIFIERS) {
             //Dont render the reticle if its inactive
             if (!_reticleActive[i]) {
                 continue;
