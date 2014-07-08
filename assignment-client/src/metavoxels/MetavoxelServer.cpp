@@ -93,7 +93,8 @@ void MetavoxelServer::sendDeltas() {
 MetavoxelSession::MetavoxelSession(const SharedNodePointer& node, MetavoxelServer* server) :
     Endpoint(node, new PacketRecord(), NULL),
     _server(server),
-    _reliableDeltaChannel(NULL) {
+    _reliableDeltaChannel(NULL),
+    _reliableDeltaID(0) {
     
     connect(&_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)), SLOT(handleMessage(const QVariant&)));
     connect(&_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(checkReliableDeltaReceived()));
@@ -109,7 +110,8 @@ void MetavoxelSession::update() {
     // if we're sending a reliable delta, wait until it's acknowledged
     if (_reliableDeltaChannel) {
         Bitstream& out = _sequencer.startPacket();
-        out << QVariant::fromValue(MetavoxelDeltaPendingMessage());
+        MetavoxelDeltaPendingMessage msg = { _reliableDeltaID };
+        out << QVariant::fromValue(msg);
         _sequencer.endPacket();
         return;
     }
@@ -134,7 +136,8 @@ void MetavoxelSession::update() {
         
         // go back to the beginning with the current packet and note that there's a delta pending
         _sequencer.getOutputStream().getUnderlying().device()->seek(start);
-        out << QVariant::fromValue(MetavoxelDeltaPendingMessage());
+        MetavoxelDeltaPendingMessage msg = { ++_reliableDeltaID };
+        out << QVariant::fromValue(msg);
         _sequencer.endPacket();
         
     } else {

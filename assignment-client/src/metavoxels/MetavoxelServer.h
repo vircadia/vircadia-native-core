@@ -83,6 +83,7 @@ private:
     MetavoxelData _reliableDeltaData;
     MetavoxelLOD _reliableDeltaLOD;
     Bitstream::WriteMappings _reliableDeltaWriteMappings;
+    int _reliableDeltaID;
 };
 
 #endif // hifi_MetavoxelServer_h

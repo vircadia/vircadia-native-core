@@ -647,7 +647,8 @@ TestEndpoint::TestEndpoint(Mode mode) :
     _mode(mode),
     _highPriorityMessagesToSend(0.0f),
     _reliableMessagesToSend(0.0f),
-    _reliableDeltaChannel(NULL) {
+    _reliableDeltaChannel(NULL),
+    _reliableDeltaID(0) {
     
     connect(&_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)),
         SLOT(handleHighPriorityMessage(const QVariant&)));
@@ -908,7 +909,8 @@ bool TestEndpoint::simulate(int iterationNumber) {
         // if we're sending a reliable delta, wait until it's acknowledged
         if (_reliableDeltaChannel) {
             Bitstream& out = _sequencer.startPacket();
-            out << QVariant::fromValue(MetavoxelDeltaPendingMessage());
+            MetavoxelDeltaPendingMessage msg = { _reliableDeltaID };
+            out << QVariant::fromValue(msg);
             _sequencer.endPacket();
             return false;
         }
@@ -932,7 +934,8 @@ bool TestEndpoint::simulate(int iterationNumber) {
             _reliableDeltaLOD = _lod;
             
             _sequencer.getOutputStream().getUnderlying().device()->seek(start);
-            out << QVariant::fromValue(MetavoxelDeltaPendingMessage());
+            MetavoxelDeltaPendingMessage msg = { ++_reliableDeltaID };
+            out << QVariant::fromValue(msg);
             _sequencer.endPacket();
             
         } else {
@@ -1081,15 +1084,22 @@ void TestEndpoint::handleMessage(const QVariant& message, Bitstream& in) {
     
     } else if (userType == MetavoxelDeltaMessage::Type) {
         PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
-        _data.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in,
-            _dataLOD = getLastAcknowledgedSendRecord()->getLOD());
+        _remoteData.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in,
+            _remoteDataLOD = getLastAcknowledgedSendRecord()->getLOD());
+        in.reset();
+        _data = _remoteData;
         compareMetavoxelData();
     
     } else if (userType == MetavoxelDeltaPendingMessage::Type) {
-        if (!_reliableDeltaChannel) {
+        int id = message.value<MetavoxelDeltaPendingMessage>().id;
+        if (id > _reliableDeltaID) {
+            _reliableDeltaID = id;
             _reliableDeltaChannel = _sequencer.getReliableInputChannel(RELIABLE_DELTA_CHANNEL_INDEX);
             _reliableDeltaChannel->getBitstream().copyPersistentMappings(_sequencer.getInputStream());
             _reliableDeltaLOD = getLastAcknowledgedSendRecord()->getLOD();
+            PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
+            _remoteDataLOD = receiveRecord->getLOD();
+            _remoteData = receiveRecord->getData();
         }
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {
@@ -1107,7 +1117,7 @@ PacketRecord* TestEndpoint::maybeCreateSendRecord() const {
 }
 
 PacketRecord* TestEndpoint::maybeCreateReceiveRecord() const {
-    return new TestReceiveRecord(_dataLOD, (_mode == METAVOXEL_SERVER_MODE) ? MetavoxelData() : _data, _remoteState);
+    return new TestReceiveRecord(_remoteDataLOD, _remoteData, _remoteState);
 }
 
 void TestEndpoint::handleHighPriorityMessage(const QVariant& message) {
@@ -1127,9 +1137,10 @@ void TestEndpoint::handleHighPriorityMessage(const QVariant& message) {
 void TestEndpoint::handleReliableMessage(const QVariant& message, Bitstream& in) {
     if (message.userType() == MetavoxelDeltaMessage::Type) {
         PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
-        _data.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in, _dataLOD = _reliableDeltaLOD);
+        _remoteData.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in, _remoteDataLOD = _reliableDeltaLOD);
         _sequencer.getInputStream().persistReadMappings(in.getAndResetReadMappings());
         in.clearPersistentMappings();
+        _data = _remoteData;
         compareMetavoxelData();
         _reliableDeltaChannel = NULL;
         return;

@@ -87,7 +87,8 @@ void MetavoxelClientManager::updateClient(MetavoxelClient* client) {
 MetavoxelClient::MetavoxelClient(const SharedNodePointer& node, MetavoxelClientManager* manager) :
     Endpoint(node, new PacketRecord(), new PacketRecord()),
     _manager(manager),
-    _reliableDeltaChannel(NULL) {
+    _reliableDeltaChannel(NULL),
+    _reliableDeltaID(0) {
     
     connect(_sequencer.getReliableInputChannel(RELIABLE_DELTA_CHANNEL_INDEX),
         SIGNAL(receivedMessage(const QVariant&, Bitstream&)), SLOT(handleMessage(const QVariant&, Bitstream&)));
@@ -139,7 +140,10 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
             }
         }
     } else if (userType == MetavoxelDeltaPendingMessage::Type) {
-        if (!_reliableDeltaChannel) {
+        // check the id to make sure this is not a delta we've already processed
+        int id = message.value<MetavoxelDeltaPendingMessage>().id;
+        if (id > _reliableDeltaID) {
+            _reliableDeltaID = id;
             _reliableDeltaChannel = _sequencer.getReliableInputChannel(RELIABLE_DELTA_CHANNEL_INDEX);
             _reliableDeltaChannel->getBitstream().copyPersistentMappings(_sequencer.getInputStream());
             _reliableDeltaLOD = getLastAcknowledgedSendRecord()->getLOD();
