@@ -428,10 +428,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
 
-    QMenu* audioOptionsMenu = developerMenu->addMenu("Audio Options");
-
-    addCheckableActionToQMenuAndActionHash(audioOptionsMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, false);
-
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisableNackPackets, 0, false);
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
@@ -578,6 +574,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_U,
                                            false);
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, false);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
