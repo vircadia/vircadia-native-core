@@ -544,7 +544,7 @@ void VoxelSystem::initVoxelMemory() {
         glFogfv(GL_FOG_COLOR, fogColor);
         glFogf(GL_FOG_DENSITY, 0.25f);
         glHint(GL_FOG_HINT, GL_DONT_CARE);
-        glFogf(GL_FOG_START, 20.0f);
+        glFogf(GL_FOG_START, 0.0f);
         glFogf(GL_FOG_END, _farHazeDistance);
         glEnable(GL_FOG);
     }
