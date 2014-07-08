@@ -39,9 +39,12 @@ Endpoint::~Endpoint() {
 }
 
 void Endpoint::update() {
-    Bitstream& out = _sequencer.startPacket();
-    writeUpdateMessage(out);
-    _sequencer.endPacket();
+    int packetsToSend = _sequencer.notePacketGroup();
+    for (int i = 0; i < packetsToSend; i++) {
+        Bitstream& out = _sequencer.startPacket();
+        writeUpdateMessage(out);
+        _sequencer.endPacket();
+    }
 }
 
 int Endpoint::parseData(const QByteArray& packet) {
