@@ -313,8 +313,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     Application* application = Application::getInstance();
 
     MyAvatar* myAvatar = application->getAvatar();
-    const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
-
+   
     glActiveTexture(GL_TEXTURE0);
    
     glEnable(GL_BLEND);
@@ -323,27 +322,9 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glDisable(GL_LIGHTING);
     glEnable(GL_TEXTURE_2D);
 
-    renderControllerPointersOculus();
-
     glBindTexture(GL_TEXTURE_2D, getFramebufferObject()->texture());
 
     glMatrixMode(GL_MODELVIEW);
-
-    glPushMatrix();
-    glLoadIdentity();
-    // Transform to world space
-    glm::quat rotation = whichCamera.getRotation();
-    glm::vec3 axis2 = glm::axis(rotation);
-    glRotatef(-glm::degrees(glm::angle(rotation)), axis2.x, axis2.y, axis2.z);
-    glTranslatef(viewMatrixTranslation.x, viewMatrixTranslation.y, viewMatrixTranslation.z);
-
-    // Translate to the front of the camera
-    glm::vec3 pos = whichCamera.getPosition();
-    glm::quat rot = myAvatar->getOrientation();
-    glm::vec3 axis = glm::axis(rot);
-   
-    glTranslatef(pos.x, pos.y, pos.z);
-    glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
 
     glDepthMask(GL_TRUE);
     
@@ -351,6 +332,15 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glAlphaFunc(GL_GREATER, 0.01f);
 
     //Update and draw the magnifiers
+
+    glPushMatrix();
+    const glm::quat& orientation = myAvatar->getOrientation();
+    const glm::vec3& position = myAvatar->getHead()->calculateAverageEyePosition();
+
+    glm::mat4 rotation = glm::toMat4(orientation);
+
+    glTranslatef(position.x, position.y, position.z);
+    glMultMatrixf(&rotation[0][0]);
     for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
 
         if (_magActive[i]) {
@@ -370,6 +360,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
             renderMagnifier(_magX[i], _magY[i], _magSizeMult[i], i != MOUSE);
         }
     }
+    glPopMatrix();
 
     glDepthMask(GL_FALSE);   
     glDisable(GL_ALPHA_TEST);
@@ -378,7 +369,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     renderTexturedHemisphere();
 
-    glPopMatrix();
+    renderControllerPointersOculus();
 
     glDepthMask(GL_TRUE);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -504,7 +495,6 @@ void ApplicationOverlay::renderPointers() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     
-
     if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
         //If we are in oculus, render reticle later
         _reticleActive[MOUSE] = true;
@@ -513,7 +503,6 @@ void ApplicationOverlay::renderPointers() {
         _mouseY[MOUSE] = application->getMouseY();
         _magX[MOUSE] = _mouseX[MOUSE];
         _magY[MOUSE] = _mouseY[MOUSE];
-
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
         
@@ -664,6 +653,7 @@ void ApplicationOverlay::renderControllerPointersOculus() {
 
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
+    glm::vec3 cursorVerts[4];
 
     const int widgetWidth = glWidget->width();
     const int widgetHeight = glWidget->height();
@@ -678,14 +668,14 @@ void ApplicationOverlay::renderControllerPointersOculus() {
     //Determine how much we need to iterate
     const int ITERATIONS = max(myAvatar->getHand()->getNumPalms(), 3);
 
+    glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
+
     for (int i = 0; i < ITERATIONS; i++) {
         if (useLaser && i < myAvatar->getHand()->getNumPalms()) {
            
             PalmData& palm = myAvatar->getHand()->getPalms()[i];
             if (palm.isActive()) {
                 glm::vec3 tip = OculusManager::getLaserPointerTipPosition(&palm);
-                glm::vec3 result;
-                glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
                 glm::quat orientation = glm::inverse(myAvatar->getOrientation());
                 glm::vec3 dir = orientation * glm::normalize(eyePos - tip); //direction of ray goes towards camera
                 glm::vec3 tipPos = (tip - eyePos);
@@ -697,7 +687,6 @@ void ApplicationOverlay::renderControllerPointersOculus() {
                 glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * size;
                 glm::vec3 right = glm::vec3(1.0, 0.0, 0.0) * size;
 
-                glm::vec3 cursorVerts[4];
                 cursorVerts[0] = -right + up;
                 cursorVerts[1] = right + up;
                 cursorVerts[2] = right - up;
@@ -749,12 +738,13 @@ void ApplicationOverlay::renderControllerPointersOculus() {
                 // when objToCam and objToCamProj have a very small
                 // angle between them
 
-                if ((angleCosine < 0.99990) && (angleCosine > -0.9999))
-                if (cursorToCamera.y < 0) {
-                    glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, 1, 0, 0);
-                } else {
-                    glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, -1, 0, 0);
-                }
+              //  if ((angleCosine < 0.9999) && (angleCosine > -0.99999)) {
+                    if (cursorToCamera.y < 0) {
+                        glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, 1, 0, 0);
+                    } else {
+                        glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, -1, 0, 0);
+                    }
+               // }
 
                 glBegin(GL_QUADS);
 
@@ -779,6 +769,8 @@ void ApplicationOverlay::renderControllerPointersOculus() {
             float mouseY = (float)_mouseY[i];
             mouseX -= reticleSize / 2;
             mouseY += reticleSize / 2;
+
+            printf("MOUSEPOS: %f %f\n", mouseX, mouseY);
 
             //Get new UV coordinates from our magnification window
             float newULeft = mouseX / widgetWidth;
@@ -810,10 +802,17 @@ void ApplicationOverlay::renderControllerPointersOculus() {
 
             glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
 
-            glTexCoord2f(0.0f, 0.0f); glVertex3f(lX, tY, -tlZ);
-            glTexCoord2f(1.0f, 0.0f); glVertex3f(rX, tY, -trZ);
-            glTexCoord2f(1.0f, 1.0f); glVertex3f(rX, bY, -brZ);
-            glTexCoord2f(0.0f, 1.0f); glVertex3f(lX, bY, -blZ);
+
+            const glm::quat& orientation = myAvatar->getOrientation();
+            cursorVerts[0] = orientation * glm::vec3(lX, tY, -tlZ) + eyePos;
+            cursorVerts[1] = orientation * glm::vec3(rX, tY, -trZ) + eyePos;
+            cursorVerts[2] = orientation * glm::vec3(rX, bY, -brZ) + eyePos;
+            cursorVerts[3] = orientation * glm::vec3(lX, bY, -blZ) + eyePos;
+
+            glTexCoord2f(0.0f, 0.0f); glVertex3f(cursorVerts[0].x, cursorVerts[0].y, cursorVerts[0].z);
+            glTexCoord2f(1.0f, 0.0f); glVertex3f(cursorVerts[1].x, cursorVerts[1].y, cursorVerts[1].z);
+            glTexCoord2f(1.0f, 1.0f); glVertex3f(cursorVerts[2].x, cursorVerts[2].y, cursorVerts[2].z);
+            glTexCoord2f(0.0f, 1.0f); glVertex3f(cursorVerts[3].x, cursorVerts[3].y, cursorVerts[3].z);
 
             glEnd();
         }
@@ -1183,8 +1182,22 @@ void ApplicationOverlay::renderTexturedHemisphere() {
 
     glVertexPointer(3, GL_FLOAT, sizeof(TextureVertex), (void*)0);
     glTexCoordPointer(2, GL_FLOAT, sizeof(TextureVertex), (void*)12);
+
+    glPushMatrix();
+    Application* application = Application::getInstance();
+    MyAvatar* myAvatar = application->getAvatar();
+    const glm::quat& orientation = myAvatar->getOrientation();
+    const glm::vec3& position = myAvatar->getHead()->calculateAverageEyePosition();
+
+    glm::mat4 rotation = glm::toMat4(orientation);
+
+    glTranslatef(position.x, position.y, position.z);
+    glMultMatrixf(&rotation[0][0]);
+    
     
     glDrawRangeElements(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+
+    glPopMatrix();
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
