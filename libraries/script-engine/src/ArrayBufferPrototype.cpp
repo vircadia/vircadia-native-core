@@ -11,19 +11,19 @@
 
 #include <QScriptEngine>
 
+#include "ArrayBufferClass.h"
+
 #include "ArrayBufferPrototype.h"
+
+Q_DECLARE_METATYPE(QByteArray*)
 
 ArrayBufferPrototype::ArrayBufferPrototype(QObject* parent) : QObject(parent) {
 }
 
 QByteArray ArrayBufferPrototype::slice(long begin, long end) const {
-    if (end == -1) {
-        return thisArrayBuffer().mid(begin);
-    } else {
-        return thisArrayBuffer().mid(begin, end);
-    }
+    return thisArrayBuffer()->mid(begin, end);
 }
 
-QByteArray ArrayBufferPrototype::thisArrayBuffer() const {
-    return qscriptvalue_cast<QByteArray>(thisObject().data());
+QByteArray* ArrayBufferPrototype::thisArrayBuffer() const {
+    return qscriptvalue_cast<QByteArray*>(thisObject().data());
 }

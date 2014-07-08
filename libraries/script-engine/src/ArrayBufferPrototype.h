@@ -26,7 +26,7 @@ public slots:
     QByteArray slice(long begin, long end = -1) const;
     
 private:
-    QByteArray thisArrayBuffer() const;
+    QByteArray* thisArrayBuffer() const;
 };
 
 #endif // hifi_ArrayBufferPrototype_h

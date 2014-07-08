@@ -32,6 +32,7 @@
 #include <VoxelDetail.h>
 
 #include "AnimationObject.h"
+#include "ArrayBufferClass.h"
 #include "MenuItemProperties.h"
 #include "MIDIEvent.h"
 #include "LocalVoxels.h"
@@ -211,6 +212,8 @@ void ScriptEngine::init() {
         return; // only initialize once
     }
 
+    new ArrayBufferClass(&_engine);
+    
     _isInitialized = true;
 
     _voxelsScriptingInterface.init();
