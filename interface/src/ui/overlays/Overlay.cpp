@@ -22,7 +22,7 @@
 Overlay::Overlay() :
     _parent(NULL),
     _alpha(DEFAULT_ALPHA),
-    _color(DEFAULT_BACKGROUND_COLOR),
+    _color(DEFAULT_OVERLAY_COLOR),
     _visible(true),
     _anchor(NO_ANCHOR)
 {
