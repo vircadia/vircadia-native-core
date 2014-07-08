@@ -497,17 +497,7 @@ void VoxelSystem::initVoxelMemory() {
         _memoryUsageRAM += (sizeof(GLubyte) * vertexPointsPerVoxel * _maxVoxels);
 
         // create our simple fragment shader if we're the first system to init
-        if (!_perlinModulateProgram.isLinked()) {
-            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
-                                                           + "shaders/perlin_modulate.vert");
-            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
-                                                           + "shaders/perlin_modulate.frag");
-            _perlinModulateProgram.link();
-
-            _perlinModulateProgram.bind();
-            _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
-            _perlinModulateProgram.release();
-
+        if (!_shadowMapProgram.isLinked()) {
             _shadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
                 Application::resourcesPath() + "shaders/shadow_map.vert");
             _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
@@ -1468,7 +1458,7 @@ void VoxelSystem::applyScaleAndBindProgram(bool texture) {
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
 
     } else if (texture) {
-        _perlinModulateProgram.bind();
+        bindPerlinModulateProgram();
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
     }
 
@@ -2116,6 +2106,22 @@ unsigned long VoxelSystem::getFreeMemoryGPU() {
 unsigned long VoxelSystem::getVoxelMemoryUsageGPU() {
     unsigned long currentFreeMemory = getFreeMemoryGPU();
     return (_initialMemoryUsageGPU - currentFreeMemory);
+}
+
+void VoxelSystem::bindPerlinModulateProgram() {
+    if (!_perlinModulateProgram.isLinked()) {
+        _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/perlin_modulate.vert");
+        _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/perlin_modulate.frag");
+        _perlinModulateProgram.link();
+
+        _perlinModulateProgram.bind();
+        _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
+    
+    } else {
+        _perlinModulateProgram.bind();
+    }
 }
 
 // Swizzle value of bit pairs of the value of index

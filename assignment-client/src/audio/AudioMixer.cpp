@@ -91,6 +91,7 @@ AudioMixer::~AudioMixer() {
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
+const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
                                                           AvatarAudioRingBuffer* listeningNodeBuffer) {
@@ -107,7 +108,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
         
         float distanceBetween = glm::length(relativePosition);
-       
+        
         if (distanceBetween < EPSILON) {
             distanceBetween = EPSILON;
         }
@@ -124,6 +125,12 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             shouldAttenuate = !bufferToAdd->getListenerUnattenuatedZone()->contains(listeningNodeBuffer->getPosition());
         }
         
+        if (bufferToAdd->getType() == PositionalAudioRingBuffer::Injector) {
+            attenuationCoefficient *= reinterpret_cast<InjectedAudioRingBuffer*>(bufferToAdd)->getAttenuationRatio();
+        }
+        
+        shouldAttenuate = shouldAttenuate && distanceBetween > ATTENUATION_EPSILON_DISTANCE;
+        
         if (shouldAttenuate) {
             glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
             
@@ -131,9 +138,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             float radius = 0.0f;
             
             if (bufferToAdd->getType() == PositionalAudioRingBuffer::Injector) {
-                InjectedAudioRingBuffer* injectedBuffer = (InjectedAudioRingBuffer*) bufferToAdd;
-                radius = injectedBuffer->getRadius();
-                attenuationCoefficient *= injectedBuffer->getAttenuationRatio();
+                radius = reinterpret_cast<InjectedAudioRingBuffer*>(bufferToAdd)->getRadius();
             }
             
             if (radius == 0 || (distanceSquareToSource > radius * radius)) {
@@ -158,7 +163,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
                     const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
                     
                     float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
+                        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
                     
                     // multiply the current attenuation coefficient by the calculated off axis coefficient
                     attenuationCoefficient *= offAxisCoefficient;

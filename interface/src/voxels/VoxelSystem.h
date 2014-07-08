@@ -233,6 +233,8 @@ private:
     static ProgramObject _cascadedShadowMapProgram;
     static int _shadowDistancesLocation;
 
+    static void bindPerlinModulateProgram();
+
     int _hookID;
     std::vector<glBufferIndex> _freeIndexes;
     QMutex _freeIndexLock;

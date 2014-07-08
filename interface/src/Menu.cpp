@@ -1006,7 +1006,6 @@ void Menu::goToDomainDialog() {
     domainDialog.setWindowTitle("Go to Domain");
     domainDialog.setLabelText("Domain server:");
     domainDialog.setTextValue(currentDomainHostname);
-    domainDialog.setWindowFlags(Qt::Sheet);
     domainDialog.resize(domainDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, domainDialog.size().height());
 
     int dialogReturn = domainDialog.exec();
@@ -1044,7 +1043,6 @@ void Menu::goTo() {
     QString destination = QString();
 
     gotoDialog.setTextValue(destination);
-    gotoDialog.setWindowFlags(Qt::Sheet);
     gotoDialog.resize(gotoDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, gotoDialog.size().height());
 
     int dialogReturn = gotoDialog.exec();
@@ -1160,7 +1158,6 @@ void Menu::goToLocation() {
     coordinateDialog.setWindowTitle("Go to Location");
     coordinateDialog.setLabelText("Coordinate as x,y,z:");
     coordinateDialog.setTextValue(currentLocation);
-    coordinateDialog.setWindowFlags(Qt::Sheet);
     coordinateDialog.resize(coordinateDialog.parentWidget()->size().width() * 0.30, coordinateDialog.size().height());
 
     int dialogReturn = coordinateDialog.exec();
@@ -1225,7 +1222,6 @@ void Menu::nameLocation() {
                             "(wherever you are standing and looking now) as you.\n\n"
                             "Location name:");
 
-    nameDialog.setWindowFlags(Qt::Sheet);
     nameDialog.resize((int) (nameDialog.parentWidget()->size().width() * 0.30), nameDialog.size().height());
 
     if (nameDialog.exec() == QDialog::Accepted) {
