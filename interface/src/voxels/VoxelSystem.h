@@ -275,17 +275,9 @@ private:
     static unsigned char _sOctantIndexToSharedBitMask[8][8];    ///< Map octant indices to shared partition mask
     
     // haze
-    xColor* _voxelColors;                                ///< Cached Voxel Colors
-    glm::vec3* _voxelPositions;                           ///< Cached Voxel Positions
     bool _drawHaze;
-    bool _updateHaze;
     float _farHazeDistance;
     glm::vec3 _hazeColor;
-    glm::vec3 _lastHazeCameraPosition;
-    float _lastYawAngle;
-    
-    
-    void updateHazeColors();
 };
 
 #endif // hifi_VoxelSystem_h
