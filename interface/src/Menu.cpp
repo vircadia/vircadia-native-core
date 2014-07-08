@@ -575,6 +575,8 @@ Menu::Menu() :
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_U,
                                            false);
 
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, false);
+
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
                 this,
