@@ -111,16 +111,6 @@ if (APPLE)
   SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/interface.icns")
 endif()
 
-# RtMidi for scripted MIDI control
-find_package(RtMidi)
-
-if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI)
-  add_definitions(-DHAVE_RTMIDI)
-  include_directories(SYSTEM ${RTMIDI_INCLUDE_DIR})
-  
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${RTMIDI_CPP}")
-endif ()
-
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
@@ -151,6 +141,7 @@ find_package(Sixense)
 find_package(Visage)
 find_package(ZLIB)
 find_package(Qxmpp)
+find_package(RtMidi)
 
 # include the Sixense library for Razer Hydra if available
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
@@ -223,11 +214,18 @@ if (QXMPP_FOUND AND NOT DISABLE_QXMPP)
   target_link_libraries(${TARGET_NAME} "${QXMPP_LIBRARY}")
 endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
 
-# link CoreMIDI if we're using RtMidi
-if (RTMIDI_FOUND AND APPLE)
-  find_library(CoreMIDI CoreMIDI)
-  add_definitions(-D__MACOSX_CORE__)
-  target_link_libraries(${TARGET_NAME} ${CoreMIDI})
+# and with RtMidi for RtMidi control
+if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI)
+  
+    add_definitions(-DHAVE_RTMIDI)
+    include_directories(SYSTEM ${RTMIDI_INCLUDE_DIR})
+    target_link_libraries(${TARGET_NAME} "${RTMIDI_LIBRARY}")
+    
+    if (APPLE)
+      find_library(CoreMIDI CoreMIDI)
+      add_definitions(-D__MACOSX_CORE__)
+      target_link_libraries(${TARGET_NAME} ${CoreMIDI})
+    endif()
 endif()
 
 # include headers for interface and InterfaceConfig.
