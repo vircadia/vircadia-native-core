@@ -42,7 +42,7 @@ ArrayBufferClass::ArrayBufferClass(QScriptEngine* engine) : QObject(engine), QSc
     engine->globalObject().setProperty(name(), _ctor);
 }
 
-QScriptValue ArrayBufferClass::newInstance(unsigned long size) {
+QScriptValue ArrayBufferClass::newInstance(quint32 size) {
     engine()->reportAdditionalMemoryCost(size);
     QScriptValue data = engine()->newVariant(QVariant::fromValue(QByteArray(size, 0)));
     return engine()->newObject(this, data);
@@ -60,7 +60,12 @@ QScriptValue ArrayBufferClass::construct(QScriptContext* context, QScriptEngine*
     }
     
     QScriptValue arg = context->argument(0);
-    unsigned long size = arg.toInt32();
+    
+    if (!arg.isValid() || !arg.isNumber()) {
+        return QScriptValue();
+    }
+    
+    quint32 size = arg.toInt32();
     QScriptValue newObject = cls->newInstance(size);
     
     if (context->isCalledAsConstructor()) {

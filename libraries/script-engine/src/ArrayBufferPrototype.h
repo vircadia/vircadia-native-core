@@ -12,19 +12,17 @@
 #ifndef hifi_ArrayBufferPrototype_h
 #define hifi_ArrayBufferPrototype_h
 
-#include <QtCore/QByteArray>
 #include <QtCore/QObject>
 #include <QtScript/QScriptable>
-#include <QtScript/QScriptValue>
 
 class ArrayBufferPrototype : public QObject, public QScriptable {
     Q_OBJECT
 public:
     ArrayBufferPrototype(QObject* parent = NULL);
     
-    public slots:
-    QByteArray slice(long begin, long end) const;
-    QByteArray slice(long begin) const;
+public slots:
+    QByteArray slice(qint32 begin, qint32 end) const;
+    QByteArray slice(qint32 begin) const;
     
 private:
     QByteArray* thisArrayBuffer() const;

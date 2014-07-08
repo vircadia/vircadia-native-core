@@ -24,7 +24,7 @@ class ArrayBufferClass : public QObject, public QScriptClass {
     Q_OBJECT
 public:
     ArrayBufferClass(QScriptEngine* engine);
-    QScriptValue newInstance(unsigned long size);
+    QScriptValue newInstance(quint32 size);
     QScriptValue newInstance(const QByteArray& ba);
     
     QueryFlags queryProperty(const QScriptValue& object,
