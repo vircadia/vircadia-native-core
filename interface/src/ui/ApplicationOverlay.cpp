@@ -95,6 +95,8 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
 
+    printf("%d %d\n", glWidget->width(), glWidget->height());
+
     glLoadIdentity();
     gluOrtho2D(0, glWidget->width(), glWidget->height(), 0);
     glDisable(GL_DEPTH_TEST);
@@ -204,7 +206,6 @@ void ApplicationOverlay::getClickLocation(int &x, int &y) const {
         }
     }
 }
-
 
 //Checks if the given ray intersects the sphere at the origin. result will store a multiplier that should
 //be multiplied by dir and added to origin to get the location of the collision
@@ -1194,8 +1195,12 @@ void ApplicationOverlay::renderTexturedHemisphere() {
 }
 
 QOpenGLFramebufferObject* ApplicationOverlay::getFramebufferObject() {
-    if (!_framebufferObject) {
-        _framebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
+    QSize size = Application::getInstance()->getGLWidget()->size();
+    if (!_framebufferObject || _framebufferObject->size() != size) {
+        if (_framebufferObject){
+            delete _framebufferObject;
+        }
+        _framebufferObject = new QOpenGLFramebufferObject(size);
         glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
