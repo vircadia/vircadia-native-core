@@ -33,6 +33,8 @@
 
 #include "AnimationObject.h"
 #include "ArrayBufferClass.h"
+#include "ArrayBufferViewClass.h"
+#include "DataViewClass.h"
 #include "MenuItemProperties.h"
 #include "MIDIEvent.h"
 #include "LocalVoxels.h"
@@ -213,6 +215,8 @@ void ScriptEngine::init() {
     }
 
     new ArrayBufferClass(&_engine);
+    new ArrayBufferViewClass(&_engine);
+    new DataViewClass(&_engine);
     
     _isInitialized = true;
 
