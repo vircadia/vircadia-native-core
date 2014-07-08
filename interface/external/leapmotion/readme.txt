@@ -2,7 +2,8 @@
 Instructions for adding the Leap Motion library (LeapSDK) to Interface
 Sam Cake, June 10, 2014
 
-You can download the Leap Developer Kit from https://developer.leapmotion.com/ (account creation required). Interface has been tested with SDK version LeapDeveloperKit_2.0.2+16391_win.
+You can download the Leap Developer Kit from https://developer.leapmotion.com/ (account creation required).
+Interface has been tested with SDK version LeapDeveloperKit_2.0.2+16391_win.
 
 1. Copy the LeapSDK folders from the LeapDeveloperKit installation directory (Lib, Include) into the interface/externals/leapmotion folder.
    This readme.txt should be there as well.
