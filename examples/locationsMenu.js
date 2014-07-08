@@ -57,7 +57,7 @@ var LocationMenu = function(opts) {
         y: 0,
         width: menuWidth + 10,
         height: (menuHeight * (pageSize + 1)) + 10,
-        color: { red: 0, green: 0, blue: 0},
+        backgroundColor: { red: 0, green: 0, blue: 0},
         topMargin: 4,
         leftMargin: 4,
         text: "",
@@ -71,7 +71,7 @@ var LocationMenu = function(opts) {
             y: 0,
             width: menuWidth,
             height: menuHeight,
-            color: inactiveColor,
+            backgroundColor: inactiveColor,
             topMargin: margin,
             leftMargin: margin,
             text: (i == 0) ? "Loading..." : "",
@@ -85,7 +85,7 @@ var LocationMenu = function(opts) {
         y: 0,
         width: menuWidth / 2,
         height: menuHeight,
-        color: disabledColor,
+        backgroundColor: disabledColor,
         topMargin: margin,
         leftMargin: margin,
         text: "Previous",
@@ -97,7 +97,7 @@ var LocationMenu = function(opts) {
         y: 0,
         width: menuWidth / 2,
         height: menuHeight,
-        color: disabledColor,
+        backgroundColor: disabledColor,
         topMargin: margin,
         leftMargin: margin,
         text: "Next",
@@ -175,10 +175,10 @@ var LocationMenu = function(opts) {
             if (start + i < this.locations.length) {
                 location = this.locations[start + i];
                 update.text = (start + i + 1) + ". " + location.username;
-                update.color = inactiveColor;
+                update.backgroundColor = inactiveColor;
             } else {
                 update.text = "";
-                update.color = disabledColor;
+                update.backgroundColor = disabledColor;
             }
             Overlays.editOverlay(this.menuItems[i].overlay, update);
             this.menuItems[i].location = location;
@@ -187,8 +187,8 @@ var LocationMenu = function(opts) {
         this.previousEnabled = pageNumber > 0;
         this.nextEnabled = pageNumber < (this.numPages - 1);
 
-        Overlays.editOverlay(this.previousButton, { color: this.previousEnabled ? prevNextColor : disabledColor});
-        Overlays.editOverlay(this.nextButton, { color: this.nextEnabled ? prevNextColor : disabledColor });
+        Overlays.editOverlay(this.previousButton, { backgroundColor: this.previousEnabled ? prevNextColor : disabledColor});
+        Overlays.editOverlay(this.nextButton, { backgroundColor: this.nextEnabled ? prevNextColor : disabledColor });
     }
 
     this.mousePressEvent = function(event) {
@@ -198,17 +198,17 @@ var LocationMenu = function(opts) {
             self.toggleMenu();
         } else if (clickedOverlay == self.previousButton) {
             if (self.previousEnabled) {
-                Overlays.editOverlay(clickedOverlay, { color: activeColor });
+                Overlays.editOverlay(clickedOverlay, { backgroundColor: activeColor });
             }
         } else if (clickedOverlay == self.nextButton) {
             if (self.nextEnabled) {
-                Overlays.editOverlay(clickedOverlay, { color: activeColor });
+                Overlays.editOverlay(clickedOverlay, { backgroundColor: activeColor });
             }
         } else {
             for (var i = 0; i < self.menuItems.length; i++) {
                 if (clickedOverlay == self.menuItems[i].overlay) {
                     if (self.menuItems[i].location != null) {
-                        Overlays.editOverlay(clickedOverlay, { color: activeColor });
+                        Overlays.editOverlay(clickedOverlay, { backgroundColor: activeColor });
                     }
                     break;
                 }
@@ -221,19 +221,19 @@ var LocationMenu = function(opts) {
 
         if (clickedOverlay == self.previousButton) {
             if (self.previousEnabled) {
-                Overlays.editOverlay(clickedOverlay, { color: inactiveColor });
+                Overlays.editOverlay(clickedOverlay, { backgroundColor: inactiveColor });
                 self.goToPage(self.page - 1);
             }
         } else if (clickedOverlay == self.nextButton) {
             if (self.nextEnabled) {
-                Overlays.editOverlay(clickedOverlay, { color: inactiveColor });
+                Overlays.editOverlay(clickedOverlay, { backgroundColor: inactiveColor });
                 self.goToPage(self.page + 1);
             }
         } else {
             for (var i = 0; i < self.menuItems.length; i++) {
                 if (clickedOverlay == self.menuItems[i].overlay) {
                     if (self.menuItems[i].location != null) {
-                        Overlays.editOverlay(clickedOverlay, { color: inactiveColor });
+                        Overlays.editOverlay(clickedOverlay, { backgroundColor: inactiveColor });
                         var location = self.menuItems[i].location;
                         Window.location = "hifi://" + location.domain + "/"
                                           + location.x + "," + location.y + "," + location.z;
