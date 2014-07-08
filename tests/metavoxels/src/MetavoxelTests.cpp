@@ -859,7 +859,7 @@ bool TestEndpoint::simulate(int iterationNumber) {
             bytesReceived += datagram.size();
             _remainingPipelineCapacity += datagram.size();
         }
-        int packetCount = _sequencer.startPacketGroup();
+        int packetCount = _sequencer.notePacketGroup();
         groupsSent++;
         maxPacketsPerGroup = qMax(maxPacketsPerGroup, packetCount);
         for (int i = 0; i < packetCount; i++) {

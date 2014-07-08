@@ -74,6 +74,8 @@ private slots:
     
 private:
     
+    void sendPacketGroup(int alreadySent = 0);
+    
     MetavoxelServer* _server;
     
     MetavoxelLOD _lod;

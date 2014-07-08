@@ -108,10 +108,10 @@ public:
     /// Returns the intput channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableInputChannel(int index = 0);
     
-    /// Starts a packet group.
+    /// Notes that we're sending a group of packets.
     /// \param desiredPackets the number of packets we'd like to write in the group
     /// \return the number of packets to write in the group
-    int startPacketGroup(int desiredPackets = 1);
+    int notePacketGroup(int desiredPackets = 1);
     
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
