@@ -36,7 +36,9 @@ public:
     ~MIDIManager();
     
     void openDefaultPort();
+#ifdef HAVE_RTMIDI
     bool hasDevice() const { return !!_midiInput; }
+#endif
 public slots:
     unsigned int NoteOn() const { return 144; }
     unsigned int NoteOff() const { return 128; }
