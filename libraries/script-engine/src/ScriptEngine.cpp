@@ -515,8 +515,6 @@ void ScriptEngine::run() {
 
         qint64 now = usecTimestampNow();
         float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
-        emit update(deltaTime);
-        lastUpdate = now;
 
         if (_engine.hasUncaughtException()) {
             int line = _engine.uncaughtExceptionLineNumber();
@@ -524,6 +522,9 @@ void ScriptEngine::run() {
             emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + _engine.uncaughtException().toString());
             _engine.clearExceptions();
         }
+
+        emit update(deltaTime);
+        lastUpdate = now;
     }
     emit scriptEnding();
 
