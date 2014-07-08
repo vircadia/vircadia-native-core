@@ -36,6 +36,8 @@ const int HAIR_STRANDS = 150;           //  Number of strands of hair
 const int HAIR_LINKS = 10;              //  Number of links in a hair strand
 const int HAIR_MAX_CONSTRAINTS = 2;     //  Hair verlet is connected to at most how many others
 
+const int MAX_LOCAL_LIGHTS = 6;
+
 enum DriveKeys {
     FWD = 0,
     BACK,
@@ -154,7 +156,9 @@ public:
     
 public slots:
     void updateCollisionGroups();
-
+    void setLocalLightDirection(const glm::vec3& direction, int lightIndex);
+    void setLocalLightColor(const glm::vec4& color, int lightIndex);
+    
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
@@ -174,9 +178,13 @@ protected:
     glm::vec3 _mouseRayDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-
+    
     quint32 _collisionGroups;
-
+    
+    // always-present local lighting for the avatar
+    glm::vec3 _localLightDirections[MAX_LOCAL_LIGHTS];
+    glm::vec4 _localLightColors[MAX_LOCAL_LIGHTS];
+    
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }

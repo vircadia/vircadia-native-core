@@ -11,11 +11,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+const int MAX_LOCAL_LIGHTS = 4;
+
 // the interpolated position
 varying vec4 position;
 
 // the interpolated normal
 varying vec4 normal;
+
+// local light position that is always present
+varying vec4 localLightPos[MAX_LOCAL_LIGHTS];
 
 void main(void) {
 
@@ -36,4 +41,8 @@ void main(void) {
       
     // use standard pipeline transform
     gl_Position = ftransform();
+    
+    for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
+        localLightPos[i] = gl_ModelViewMatrixInverse * gl_LightSource[i+1].position;
+    }
 }

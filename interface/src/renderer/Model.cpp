@@ -1488,6 +1488,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
             if (cascadedShadows) {
                 program->setUniform(skinLocations->shadowDistances, Application::getInstance()->getShadowDistances());
             }
+            
         } else {    
             glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
             program->bind();

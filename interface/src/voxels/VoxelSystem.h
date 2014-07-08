@@ -273,7 +273,19 @@ private:
     static unsigned short _sSwizzledOcclusionBits[64];          ///< Swizzle value of bit pairs of the value of index
     static unsigned char _sOctantIndexToBitMask[8];             ///< Map octant index to partition mask
     static unsigned char _sOctantIndexToSharedBitMask[8][8];    ///< Map octant indices to shared partition mask
-
+    
+    // haze
+    xColor* _voxelColors;                                ///< Cached Voxel Colors
+    glm::vec3* _voxelPositions;                           ///< Cached Voxel Positions
+    bool _drawHaze;
+    bool _updateHaze;
+    float _farHazeDistance;
+    glm::vec3 _hazeColor;
+    glm::vec3 _lastHazeCameraPosition;
+    float _lastYawAngle;
+    
+    
+    void updateHazeColors();
 };
 
 #endif // hifi_VoxelSystem_h

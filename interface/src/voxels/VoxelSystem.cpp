@@ -21,6 +21,8 @@
 #include <SharedUtil.h>
 #include <NodeList.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "Menu.h"
@@ -67,7 +69,13 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
     _inOcclusions(false),
     _showCulledSharedFaces(false),
     _usePrimitiveRenderer(false),
-    _renderer(0) 
+    _renderer(0),
+    _drawHaze(true),
+    _updateHaze(false),
+    _farHazeDistance(300.0f),
+    _hazeColor(0.24f, 0.27f, 0.34f),
+    _lastHazeCameraPosition(0.0f, 0.0f, 0.0f),
+    _lastYawAngle(0.0f)
 {
 
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
@@ -108,6 +116,9 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
 
     _lastKnownVoxelSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     _lastKnownBoundaryLevelAdjust = 0;
+    
+    _voxelColors = NULL;
+    _voxelPositions = NULL;
 }
 
 void VoxelSystem::elementDeleted(OctreeElement* element) {
@@ -373,6 +384,9 @@ void VoxelSystem::cleanupVoxelMemory() {
         delete[] _readVoxelDirtyArray;
         _writeVoxelDirtyArray = _readVoxelDirtyArray = NULL;
         _readArraysLock.unlock();
+        
+        delete[] _voxelColors;
+        delete[] _voxelPositions;
     }
 }
 
@@ -521,11 +535,17 @@ void VoxelSystem::initVoxelMemory() {
             _shadowDistancesLocation = _cascadedShadowMapProgram.uniformLocation("shadowDistances");
             _cascadedShadowMapProgram.release();
         }
+        
     }
     _renderer = new PrimitiveRenderer(_maxVoxels);
 
     _initialized = true;
 
+    _voxelColors = new xColor[_maxVoxels];
+    memset(_voxelColors, 0, sizeof(xColor) *_maxVoxels);
+    
+    _voxelPositions = new glm::vec3[_maxVoxels];
+    
     _writeArraysLock.unlock();
     _readArraysLock.unlock();
 }
@@ -1114,6 +1134,7 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
                     node->setBufferIndex(nodeIndex);
                     node->setVoxelSystem(this);
                 }
+                
                 // populate the array with points for the 8 vertices and RGB color for each added vertex
                 updateArraysDetails(nodeIndex, startVertex, voxelScale, node->getColor());
             }
@@ -1132,10 +1153,24 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
 void VoxelSystem::updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                      float voxelScale, const nodeColor& color) {
 
+//    if (nodeIndex < 0 || nodeIndex > 1000) {
+//        return;
+//    }
+    
     if (_initialized && nodeIndex <= _maxVoxels) {
         _writeVoxelDirtyArray[nodeIndex] = true;
-
+        
+        // cache the colors and position
+        _voxelColors[nodeIndex].red = color[0];
+        _voxelColors[nodeIndex].green = color[1];
+        _voxelColors[nodeIndex].blue = color[2];
+        
+        // scaled voxel position
+        _voxelPositions[nodeIndex] = startVertex * (float)TREE_SCALE;
+        
         if (_useVoxelShader) {
+            // write in position, scale, and color for the voxel
+            
             if (_writeVoxelShaderData) {
                 VoxelShaderVBOData* writeVerticesAt = &_writeVoxelShaderData[nodeIndex];
                 writeVerticesAt->x = startVertex.x * TREE_SCALE;
@@ -1157,7 +1192,83 @@ void VoxelSystem::updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& 
                 }
             }
         }
+    
+        // want new color for haze
+        if (_drawHaze) {
+            _updateHaze = true;
+        }
     }
+}
+
+void VoxelSystem::updateHazeColors() {
+
+    // only update when player moves
+    if (_lastHazeCameraPosition != Application::getInstance()->getAvatar()->getPosition()) {
+        _updateHaze = true;
+        _lastHazeCameraPosition = Application::getInstance()->getAvatar()->getPosition();
+    }
+    
+    // update when yaw angle changes
+    float avatarYaw = Application::getInstance()->getAvatar()->getBodyYaw();
+    if (_lastYawAngle != avatarYaw) {
+        _updateHaze = true;
+        _lastYawAngle = avatarYaw;
+    }
+    
+    if (!_updateHaze) {
+        return;
+    }
+    
+    glm::vec3 cameraPosition = Application::getInstance()->getAvatar()->getPosition();
+    float* hazeColor = glm::value_ptr(_hazeColor);
+    GLubyte* writeColorsAt   = _writeColorsArray;
+    
+    // update voxel color
+    int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
+    for (int i = 0; i < _voxelsInWriteArrays; i++) {
+    
+        float distanceToCamera = glm::length(_voxelPositions[i] - cameraPosition);
+        if(distanceToCamera > _farHazeDistance) {
+            distanceToCamera = _farHazeDistance;
+        }
+        
+        // how much haze there is at the distance
+        float hazeStrength = 1.0f - distanceToCamera / _farHazeDistance;
+        
+        // [0, 1] clamp
+        if (hazeStrength > 1.0f) {
+            hazeStrength = 1.0f;
+        }
+        else if (hazeStrength < 0.0f) {
+            hazeStrength = 0.0f;
+        }
+        
+        // color [0.0, 1.0]
+        float floatColor[] = {(float)_voxelColors[i].red / 255.0f, (float)_voxelColors[i].green / 255.0f, (float)_voxelColors[i].blue / 255.0f };
+        assert(i >= 0 && i < _maxVoxels);
+        
+        // color * haze_strength + haze_color * (1.0 - haze_strength)
+        float oneMinusHazeStrength = 1.0f - hazeStrength;
+        nodeColor colorWithHaze = {
+            (unsigned char)((floatColor[0] * hazeStrength + hazeColor[0] * oneMinusHazeStrength) * 255.0f),
+            (unsigned char)((floatColor[1] * hazeStrength + hazeColor[1] * oneMinusHazeStrength) * 255.0f),
+            (unsigned char)((floatColor[2] * hazeStrength + hazeColor[2] * oneMinusHazeStrength) * 255.0f),
+        };
+        
+        for (int j = 0; j < vertexPointsPerVoxel/3; j++ ) {
+            *(writeColorsAt + j*3) = colorWithHaze[0];
+            *(writeColorsAt + j*3+1) = colorWithHaze[1];
+            *(writeColorsAt + j*3+2) = colorWithHaze[2];
+        }
+        
+        writeColorsAt += vertexPointsPerVoxel;
+    }
+
+    copyWrittenDataToReadArraysFullVBOs();
+    _voxelsDirty = true;
+    _readRenderFullVBO = true;
+    _updateHaze = false;
+
 }
 
 glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const {
@@ -1340,6 +1451,9 @@ void VoxelSystem::render() {
         return;
     }
 
+    if (!_useVoxelShader && _drawHaze) {
+        updateHazeColors();
+    }
     updateVBOs();
 
     // if not don't... then do...
