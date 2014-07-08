@@ -143,6 +143,9 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
             _reliableDeltaChannel = _sequencer.getReliableInputChannel(RELIABLE_DELTA_CHANNEL_INDEX);
             _reliableDeltaChannel->getBitstream().copyPersistentMappings(_sequencer.getInputStream());
             _reliableDeltaLOD = getLastAcknowledgedSendRecord()->getLOD();
+            PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
+            _remoteDataLOD = receiveRecord->getLOD();
+            _remoteData = receiveRecord->getData();
         }
     } else {
         Endpoint::handleMessage(message, in);
