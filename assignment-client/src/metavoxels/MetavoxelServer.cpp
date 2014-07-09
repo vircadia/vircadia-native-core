@@ -226,19 +226,22 @@ void MetavoxelPersister::load() {
     if (!file.exists()) {
         return;
     }
-    QDebug debug = qDebug() << "Reading from" << SAVE_FILE << "...";
-    file.open(QIODevice::ReadOnly);
-    QDataStream inStream(&file);
-    Bitstream in(inStream);
     MetavoxelData data;
-    try {
-        in >> data;
-    } catch (const BitstreamException& e) {
-        debug << "failed, " << e.getDescription();
-        return;
+    {
+        QDebug debug = qDebug() << "Reading from" << SAVE_FILE << "...";
+        file.open(QIODevice::ReadOnly);
+        QDataStream inStream(&file);
+        Bitstream in(inStream);
+        try {
+            in >> data;
+        } catch (const BitstreamException& e) {
+            debug << "failed, " << e.getDescription();
+            return;
+        }
+        QMetaObject::invokeMethod(_server, "setData", Q_ARG(const MetavoxelData&, data));
+        debug << "done.";
     }
-    QMetaObject::invokeMethod(_server, "setData", Q_ARG(const MetavoxelData&, data));
-    debug << "done.";
+    data.dumpStats();
 }
 
 void MetavoxelPersister::save(const MetavoxelData& data) {
