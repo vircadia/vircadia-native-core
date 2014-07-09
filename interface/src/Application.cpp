@@ -1709,9 +1709,7 @@ void Application::init() {
     _faceplus.init();
     _visage.init();
 
-    Leapmotion* leap = new Leapmotion();
-    int index = DeviceTracker::registerDevice( "Leapmotion", leap );
-   // _leapmotion.init();
+    Leapmotion* leap = Leapmotion::create();
 
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();

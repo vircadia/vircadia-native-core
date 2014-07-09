@@ -11,72 +11,74 @@
 
 #include "DeviceTracker.h"
 
-// The singleton managing the connected devices
-//template <> DeviceTracker::Singleton DeviceTracker::Singleton::_singleton;
-//TemplateSingleton<DeviceTracker::SingletonData>::_singleton;
-
-int DeviceTracker::init() {
-    return Singleton::get()->_devicesMap.size();
+DeviceTracker::SingletonData::~SingletonData() {
+    // Destroy all the device registered
+    for (auto device = _devicesVector.begin(); device != _devicesVector.end(); device++) {
+        delete (*device);
+    }
 }
+
 int DeviceTracker::getNumDevices() {
     return Singleton::get()->_devicesMap.size();
 }
 
-int DeviceTracker::getDeviceIndex( const Name& name ) {
-    auto deviceIt = Singleton::get()->_devicesMap.find( name );
-    if ( deviceIt != Singleton::get()->_devicesMap.end() )
+DeviceTracker::ID DeviceTracker::getDeviceID(const Name& name) {
+    auto deviceIt = Singleton::get()->_devicesMap.find(name);
+    if (deviceIt != Singleton::get()->_devicesMap.end()) {
         return (*deviceIt).second;
-    else
-        return -1;
+    } else {
+        return INVALID_DEVICE;
+    }
 }
 
-DeviceTracker* DeviceTracker::getDevice( const Name& name ) {
-    return getDevice( getDeviceIndex( name ) );
+DeviceTracker* DeviceTracker::getDevice(const Name& name) {
+    return getDevice(getDeviceID(name));
 }
 
-DeviceTracker* DeviceTracker::getDevice( int deviceNum ) {
-    if ( (deviceNum >= 0) && ( deviceNum < Singleton::get()->_devicesVector.size() ) ) {
-        return Singleton::get()->_devicesVector[ deviceNum ];
+DeviceTracker* DeviceTracker::getDevice(DeviceTracker::ID deviceID) {
+    if ((deviceID >= 0) && deviceID < Singleton::get()->_devicesVector.size()) {
+        return Singleton::get()->_devicesVector[ deviceID ];
     } else {
         return NULL;
     }
 }
 
-int DeviceTracker::registerDevice( const Name& name, DeviceTracker* device ) {
-    if ( !device )
-        return -1;
-    int index = getDeviceIndex( name );
-    if ( index >= 0 ) {
-        // early exit because device name already taken
-        return -2;
-    } else {
-        index = Singleton::get()->_devicesVector.size();
-        Singleton::get()->_devicesMap.insert( SingletonData::Map::value_type( name, index ) );
-        Singleton::get()->_devicesVector.push_back( device );
-        return index;
+DeviceTracker::ID DeviceTracker::registerDevice(const Name& name, DeviceTracker* device) {
+    // Check that the device exists, if not exit
+    if (!device) {
+        return INVALID_DEVICE;
     }
+
+    // Look if the name is not already used
+    ID deviceID = getDeviceID(name);
+    if (deviceID >= 0) {
+        return INVALID_DEVICE_NAME;
+    }
+
+    // Good to register the device
+    deviceID = Singleton::get()->_devicesVector.size();
+    Singleton::get()->_devicesMap.insert(SingletonData::Map::value_type(name, deviceID));
+    Singleton::get()->_devicesVector.push_back(device);
+    device->assignIDAndName(deviceID, name);
+
+    return deviceID;
 }
 
-void DeviceTracker::updateAll()
-{
-    for ( auto deviceIt = Singleton::get()->_devicesVector.begin(); deviceIt != Singleton::get()->_devicesVector.end(); deviceIt++ ) {
-        if ( (*deviceIt) )
+void DeviceTracker::updateAll() {
+    for (auto deviceIt = Singleton::get()->_devicesVector.begin(); deviceIt != Singleton::get()->_devicesVector.end(); deviceIt++) {
+        if ((*deviceIt))
             (*deviceIt)->update();
     }
 }
 
 // Core features of the Device Tracker
-
-DeviceTracker::DeviceTracker()
+DeviceTracker::DeviceTracker() :
+    _ID(INVALID_DEVICE),
+    _name("Unkown")
 {
 }
 
-DeviceTracker::~DeviceTracker()
-{
-}
-
-bool DeviceTracker::isConnected() const {
-    return false;
+DeviceTracker::~DeviceTracker() {
 }
 
 void DeviceTracker::update() {

@@ -12,64 +12,60 @@
 #include "MotionTracker.h"
 
 
-//--------------------------------------------------------------------------------------
-// glm::mult( mat43, mat43 ) just the composition of the 2 matrices assuming they are in fact mat44 with the last raw = { 0, 0, 0, 1 }
-//--------------------------------------------------------------------------------------
+// glm::mult(mat43, mat43) just the composition of the 2 matrices assuming they are in fact mat44 with the last raw = { 0, 0, 0, 1 }
 namespace glm {
-    mat4x3 mult( const mat4& lhs, const mat4x3& rhs ) {
-        vec3 lrx( lhs[0].x, lhs[1].x, lhs[2].x );
-        vec3 lry( lhs[0].y, lhs[1].y, lhs[2].y );
-        vec3 lrz( lhs[0].z, lhs[1].z, lhs[2].z );
+    mat4x3 mult(const mat4& lhs, const mat4x3& rhs) {
+        vec3 lrx(lhs[0].x, lhs[1].x, lhs[2].x);
+        vec3 lry(lhs[0].y, lhs[1].y, lhs[2].y);
+        vec3 lrz(lhs[0].z, lhs[1].z, lhs[2].z);
         return mat4x3(
-            dot( lrx, rhs[0] ),
-            dot( lry, rhs[0] ),
-            dot( lrz, rhs[0] ),
+            dot(lrx, rhs[0]),
+            dot(lry, rhs[0]),
+            dot(lrz, rhs[0]),
 
-            dot( lrx, rhs[1] ),
-            dot( lry, rhs[1] ),
-            dot( lrz, rhs[1] ),
+            dot(lrx, rhs[1]),
+            dot(lry, rhs[1]),
+            dot(lrz, rhs[1]),
 
-            dot( lrx, rhs[2] ),
-            dot( lry, rhs[2] ),
-            dot( lrz, rhs[2] ),
+            dot(lrx, rhs[2]),
+            dot(lry, rhs[2]),
+            dot(lrz, rhs[2]),
 
-            dot( lrx, rhs[3] ) + lhs[3].x,
-            dot( lry, rhs[3] ) + lhs[3].y,
-            dot( lrz, rhs[3] ) + lhs[3].z
-        );
+            dot(lrx, rhs[3]) + lhs[3].x,
+            dot(lry, rhs[3]) + lhs[3].y,
+            dot(lrz, rhs[3]) + lhs[3].z
+       );
     }
-    mat4x3 mult( const mat4x3& lhs, const mat4x3& rhs ) {
-        vec3 lrx( lhs[0].x, lhs[1].x, lhs[2].x );
-        vec3 lry( lhs[0].y, lhs[1].y, lhs[2].y );
-        vec3 lrz( lhs[0].z, lhs[1].z, lhs[2].z );
+    mat4x3 mult(const mat4x3& lhs, const mat4x3& rhs) {
+        vec3 lrx(lhs[0].x, lhs[1].x, lhs[2].x);
+        vec3 lry(lhs[0].y, lhs[1].y, lhs[2].y);
+        vec3 lrz(lhs[0].z, lhs[1].z, lhs[2].z);
         return mat4x3(
-            dot( lrx, rhs[0] ),
-            dot( lry, rhs[0] ),
-            dot( lrz, rhs[0] ),
+            dot(lrx, rhs[0]),
+            dot(lry, rhs[0]),
+            dot(lrz, rhs[0]),
 
-            dot( lrx, rhs[1] ),
-            dot( lry, rhs[1] ),
-            dot( lrz, rhs[1] ),
+            dot(lrx, rhs[1]),
+            dot(lry, rhs[1]),
+            dot(lrz, rhs[1]),
 
-            dot( lrx, rhs[2] ),
-            dot( lry, rhs[2] ),
-            dot( lrz, rhs[2] ),
+            dot(lrx, rhs[2]),
+            dot(lry, rhs[2]),
+            dot(lrz, rhs[2]),
 
-            dot( lrx, rhs[3] ) + lhs[3].x,
-            dot( lry, rhs[3] ) + lhs[3].y,
-            dot( lrz, rhs[3] ) + lhs[3].z
-        );
+            dot(lrx, rhs[3]) + lhs[3].x,
+            dot(lry, rhs[3]) + lhs[3].y,
+            dot(lrz, rhs[3]) + lhs[3].z
+       );
     }
 }
 
-//--------------------------------------------------------------------------------------
 // MotionTracker
-//--------------------------------------------------------------------------------------
 MotionTracker::MotionTracker() :
     DeviceTracker()
 {
     _jointsArray.resize(1);
-    _jointsMap.insert( JointTracker::map::value_type( Semantic( "Root" ), 0 ) );
+    _jointsMap.insert(JointTracker::map::value_type(Semantic("Root"), 0));
 }
 
 MotionTracker::~MotionTracker()
@@ -80,45 +76,43 @@ bool MotionTracker::isConnected() const {
     return false;
 }
 
-MotionTracker::Index MotionTracker::addJoint( const Semantic& semantic, Index parent ) {
+MotionTracker::Index MotionTracker::addJoint(const Semantic& semantic, Index parent) {
     // Check the parent
-    if ( int(parent) < 0 )
+    if (int(parent) < 0)
         return INVALID_PARENT;
 
     // Check that the semantic is not already in use
-    Index foundIndex = findJointIndex( semantic );
-    if ( int(foundIndex) >= 0 )
+    Index foundIndex = findJointIndex(semantic);
+    if (foundIndex >= 0)
         return INVALID_SEMANTIC;
 
     // All good then allocate the joint
     Index newIndex = _jointsArray.size();
-    _jointsArray.push_back( JointTracker( semantic, parent ) );
-    _jointsMap.insert( JointTracker::map::value_type( semantic, newIndex ) );
+    _jointsArray.push_back(JointTracker(semantic, parent));
+    _jointsMap.insert(JointTracker::map::value_type(semantic, newIndex));
 
     return newIndex;
 }
 
-MotionTracker::Index MotionTracker::findJointIndex( const Semantic& semantic ) const {
-    auto jointIt = _jointsMap.find( semantic );
-    if ( jointIt != _jointsMap.end() )
+MotionTracker::Index MotionTracker::findJointIndex(const Semantic& semantic) const {
+    auto jointIt = _jointsMap.find(semantic);
+    if (jointIt != _jointsMap.end())
         return (*jointIt).second;
     return INVALID_SEMANTIC;
 }
 
 void MotionTracker::updateAllAbsTransform() {
-    _jointsArray[0].updateAbsFromLocTransform( 0 );
+    _jointsArray[0].updateAbsFromLocTransform(0);
 
     // Because we know the hierarchy is stored from root down the branches let's just traverse and update
-    for ( Index i = 1; i < _jointsArray.size(); i++ ) {
+    for (Index i = 1; i < _jointsArray.size(); i++) {
         JointTracker* joint = _jointsArray.data() + i;
-        joint->updateAbsFromLocTransform( _jointsArray.data() + joint->getParent() );
+        joint->updateAbsFromLocTransform(_jointsArray.data() + joint->getParent());
     }
 }
 
-//--------------------------------------------------------------------------------------
-// MotionTracker::JointTracker
-//--------------------------------------------------------------------------------------
 
+// MotionTracker::JointTracker
 MotionTracker::JointTracker::JointTracker() :
     _locFrame(),
     _absFrame(),
@@ -128,36 +122,34 @@ MotionTracker::JointTracker::JointTracker() :
 {
 }
 
-MotionTracker::JointTracker::JointTracker( const Semantic& semantic, Index parent ) :
-    _semantic( semantic ),
-    _parent( parent ),
-    _lastUpdate( 0 )
+MotionTracker::JointTracker::JointTracker(const Semantic& semantic, Index parent) :
+    _semantic(semantic),
+    _parent(parent),
+    _lastUpdate(0)
 {
 }
 
-MotionTracker::JointTracker::JointTracker( const JointTracker& tracker ) :
-    _locFrame( tracker._locFrame ),
-    _absFrame( tracker._absFrame ),
-    _semantic( tracker._semantic ),
-    _parent( tracker._parent ),
-    _lastUpdate( tracker._lastUpdate )
+MotionTracker::JointTracker::JointTracker(const JointTracker& tracker) :
+    _locFrame(tracker._locFrame),
+    _absFrame(tracker._absFrame),
+    _semantic(tracker._semantic),
+    _parent(tracker._parent),
+    _lastUpdate(tracker._lastUpdate)
 {
 }
+
 void MotionTracker::JointTracker::updateAbsFromLocTransform(const JointTracker* parentJoint) {
-    if ( parentJoint ) {
-        //editAbsFrame()._transform = glm::mult( parentJoint->getAbsFrame()._transform, getLocFrame()._transform );
-        editAbsFrame()._transform = ( parentJoint->getAbsFrame()._transform * getLocFrame()._transform );
+    if (parentJoint) {
+        editAbsFrame()._transform = (parentJoint->getAbsFrame()._transform * getLocFrame()._transform);
     } else {
         editAbsFrame()._transform = getLocFrame()._transform;
     }
 }
 
 void MotionTracker::JointTracker::updateLocFromAbsTransform(const JointTracker* parentJoint) {
-    if ( parentJoint ) {
-      //  glm::mat4 ip = glm::inverse( glm::mat4( parentJoint->getAbsFrame()._transform ) );
-        glm::mat4 ip = glm::inverse( parentJoint->getAbsFrame()._transform );
-       // editLocFrame()._transform = glm::mult( ip, getAbsFrame()._transform );
-        editLocFrame()._transform = ( ip * getAbsFrame()._transform );
+    if (parentJoint) {
+        glm::mat4 ip = glm::inverse(parentJoint->getAbsFrame()._transform);
+        editLocFrame()._transform = (ip * getAbsFrame()._transform);
     } else {
         editLocFrame()._transform = getAbsFrame()._transform;
     }
@@ -172,24 +164,22 @@ MotionTracker::Frame::Frame() :
 {
 }
 
-void MotionTracker::Frame::setRotation( const glm::quat& rotation )
-{
-    glm::mat3x3 rot = glm::mat3_cast( rotation );
-    _transform[0] = glm::vec4( rot[0], 0.f );
-    _transform[1] = glm::vec4( rot[1], 0.f );
-    _transform[2] = glm::vec4( rot[2], 0.f );
+void MotionTracker::Frame::setRotation(const glm::quat& rotation) {
+    glm::mat3x3 rot = glm::mat3_cast(rotation);
+    _transform[0] = glm::vec4(rot[0], 0.f);
+    _transform[1] = glm::vec4(rot[1], 0.f);
+    _transform[2] = glm::vec4(rot[2], 0.f);
 }
 
-void MotionTracker::Frame::getRotation( glm::quat& rotation ) const {
-   // rotation = glm::quat_cast( glm::mat3( _transform[0], _transform[1], _transform[2] ) );
-    rotation = glm::quat_cast(  _transform );
+void MotionTracker::Frame::getRotation(glm::quat& rotation) const {
+    rotation = glm::quat_cast( _transform);
 }
 
-void MotionTracker::Frame::setTranslation( const glm::vec3& translation ) {
-    _transform[3] = glm::vec4( translation, 1.f );
+void MotionTracker::Frame::setTranslation(const glm::vec3& translation) {
+    _transform[3] = glm::vec4(translation, 1.f);
 }
 
-void MotionTracker::Frame::getTranslation( glm::vec3& translation ) const {
-    translation = glm::vec3( _transform[3] );
+void MotionTracker::Frame::getTranslation(glm::vec3& translation) const {
+    translation = glm::vec3(_transform[3]);
 }
 

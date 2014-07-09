@@ -44,7 +44,6 @@ private:
     SpatialEvent    _eventCache;
     bool            _isActive;
 
-
 signals:
 };
 
@@ -77,7 +76,7 @@ public:
 
     void updateInputControllers();
 
-    void releaseInputController( AbstractInputController* input );
+    void releaseInputController(AbstractInputController* input);
 
 public slots:
     virtual bool isPrimaryButtonPressed() const;
@@ -114,7 +113,8 @@ public slots:
 
     virtual glm::vec2 getViewportDimensions() const;
 
-    virtual AbstractInputController* createInputController( const QString& category, const QString& tracker );
+    /// Factory to create an InputController
+    virtual AbstractInputController* createInputController(const QString& deviceName, const QString& tracker);
 
 private:
     const PalmData* getPrimaryPalm() const;

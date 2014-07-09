@@ -14,15 +14,12 @@
 
 #include "DeviceTracker.h"
 
-#include <vector>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 /// Base class for device trackers.
 class MotionTracker : public DeviceTracker {
-    Q_OBJECT
 public:
 
     class Frame {
@@ -31,19 +28,18 @@ public:
 
         glm::mat4 _transform;
 
-        void setRotation( const glm::quat& rotation );
-        void getRotation( glm::quat& rotation ) const;
+        void setRotation(const glm::quat& rotation);
+        void getRotation(glm::quat& rotatio) const;
 
-        void setTranslation( const glm::vec3& translation );
-        void getTranslation( glm::vec3& translation ) const;
+        void setTranslation(const glm::vec3& translation);
+        void getTranslation(glm::vec3& translation) const;
     };
 
+    // Semantic and Index types to retreive the JointTrackers of this MotionTracker
     typedef std::string Semantic;
-    typedef unsigned int Index;
-
+    typedef int Index;
     static const Index INVALID_SEMANTIC = -1;
     static const Index INVALID_PARENT = -2;
-
 
     class JointTracker {
     public:
@@ -51,16 +47,16 @@ public:
         typedef std::map< Semantic, Index > map;
 
         JointTracker();
-        JointTracker( const JointTracker& tracker );
-        JointTracker( const Semantic& semantic, Index parent );
+        JointTracker(const JointTracker& tracker);
+        JointTracker(const Semantic& semantic, Index parent);
 
         const Frame& getLocFrame() const { return _locFrame; }
         Frame& editLocFrame() { return _locFrame; }
-        void setLocFrame( const Frame& frame ) { editLocFrame() = frame; }
+        void setLocFrame(const Frame& frame) { editLocFrame() = frame; }
 
         const Frame& getAbsFrame() const { return _absFrame; }
         Frame& editAbsFrame() { return _absFrame; }
-        void setAbsFrame( const Frame& frame ) { editAbsFrame() = frame; }
+        void setAbsFrame(const Frame& frame) { editAbsFrame() = frame; }
 
         const Semantic& getSemantic() const { return _semantic; }
         const Index& getParent() const { return _parent; }
@@ -81,29 +77,26 @@ public:
         int         _lastUpdate;
     };
 
-
     virtual bool isConnected() const;
 
     Index numJointTrackers() const { return _jointsArray.size(); }
 
-
-
     /// Access a Joint from it's index.
     /// Index 0 is always the "Root".
     /// if the index is Invalid then returns NULL.
-    const JointTracker* getJointTracker( Index index ) const { return ( int(index) < _jointsArray.size() ? _jointsArray.data() + index : NULL ); }
-    JointTracker* editJointTracker( Index index ) { return ( int(index) < _jointsArray.size() ? _jointsArray.data() + index : NULL ); }
+    const JointTracker* getJointTracker(Index index) const { return ((index > 0) && (index < _jointsArray.size()) ? _jointsArray.data() + index : NULL); }
+    JointTracker* editJointTracker(Index index) { return ((index > 0) && (index < _jointsArray.size()) ? _jointsArray.data() + index : NULL); }
 
     /// From a semantic, find the Index of the Joint.
     /// \return the index of the mapped Joint or INVALID_SEMANTIC if the semantic is not knowned.
-    Index findJointIndex( const Semantic& semantic ) const;
+    Index findJointIndex(const Semantic& semantic) const;
 
 protected:
     MotionTracker();
     virtual ~MotionTracker();
 
-    JointTracker::vector    _jointsArray;
-    JointTracker::map       _jointsMap;
+    JointTracker::vector _jointsArray;
+    JointTracker::map _jointsMap;
 
     /// Adding joint is only done from the specialized Motion Tracker, hence this function is protected.
     /// The hierarchy of joints must be created from the top down to the branches.
@@ -116,7 +109,7 @@ protected:
     ///         Valid if everything went well.
     ///         INVALID_SEMANTIC if the semantic is already in use
     ///         INVALID_PARENT if the parent is not valid
-    Index addJoint( const Semantic& semantic, Index parent );
+    Index addJoint(const Semantic& semantic, Index parent);
 
     /// Update the absolute transform stack traversing the hierarchy from the root down the branches
     /// This is a generic way to update all the Joint's absFrame by combining the locFrame going down the hierarchy branch.
