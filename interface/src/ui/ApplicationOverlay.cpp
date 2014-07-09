@@ -999,8 +999,10 @@ void ApplicationOverlay::renderTexturedHemisphere() {
 }
 
 void ApplicationOverlay::resize() {
-    delete _framebufferObject;
-    _framebufferObject = NULL;
+    if (_framebufferObject != NULL) {
+        delete _framebufferObject;
+        _framebufferObject = NULL;
+    }
     // _framebufferObject is recreated at the correct size the next time it is accessed via getFramebufferObject().
 }
 
