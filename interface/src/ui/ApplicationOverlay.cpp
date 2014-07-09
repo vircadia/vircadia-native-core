@@ -274,7 +274,6 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(PalmData *palm) const {
     const int widgetWidth = glWidget->width();
     const int widgetHeight = glWidget->height();
     
-
     glm::vec3 tip = OculusManager::getLaserPointerTipPosition(palm);
     glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
     glm::quat orientation = glm::inverse(myAvatar->getOrientation());
@@ -285,9 +284,11 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(PalmData *palm) const {
 
     float t;
 
-    //Find intersection of crosshair ray
-    if (raySphereIntersect(dir, tipPos, 1, &t)){
-        glm::vec3 collisionPos = tipPos + dir * t;
+    //We back the ray up by dir to ensure that it will not start inside the UI.
+    glm::vec3 adjustedPos = tipPos - dir;
+    //Find intersection of crosshair ray. 
+    if (raySphereIntersect(dir, adjustedPos, 1, &t)){
+        glm::vec3 collisionPos = adjustedPos + dir * t;
 
         float u = asin(collisionPos.x) / (_textureFov)+0.5f;
         float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
@@ -682,7 +683,7 @@ void ApplicationOverlay::renderControllerPointersOculus() {
                 
                 float t;
                 float length = glm::length(eyePos - tip);
-                float size = 0.045f * length;
+                float size = 0.03f * length;
 
                 glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * size;
                 glm::vec3 right = glm::vec3(1.0, 0.0, 0.0) * size;
