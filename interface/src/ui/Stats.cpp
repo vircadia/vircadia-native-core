@@ -601,6 +601,8 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
+    PerformanceTimer::tallyAllTimerRecords();
+
     // TODO: the display of these timing details should all be moved to JavaScript
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
         // Timing details...
