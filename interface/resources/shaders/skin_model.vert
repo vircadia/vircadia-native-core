@@ -26,9 +26,6 @@ varying vec4 position;
 // the interpolated normal
 varying vec4 normal;
 
-// static local light position (inverse from eye space)
-varying vec4 localLightPos[MAX_LOCAL_LIGHTS];
-
 void main(void) {
     position = vec4(0.0, 0.0, 0.0, 0.0);
     normal = vec4(0.0, 0.0, 0.0, 0.0);
@@ -52,10 +49,4 @@ void main(void) {
     gl_TexCoord[1] = vec4(dot(gl_EyePlaneS[0], position), dot(gl_EyePlaneT[0], position), dot(gl_EyePlaneR[0], position), 1.0); 
         
     gl_Position = gl_ProjectionMatrix * position;
-    
-    // inverse view to make the light source position static
-    for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
-        localLightPos[i] = gl_ModelViewMatrixInverse * gl_LightSource[i+1].position;
-    }
-    
 }

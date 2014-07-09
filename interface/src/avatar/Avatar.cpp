@@ -61,7 +61,8 @@ Avatar::Avatar() :
     _moving(false),
     _collisionGroups(0),
     _initialized(false),
-    _shouldRenderBillboard(true)
+    _shouldRenderBillboard(true),
+    _numLocalLights(1)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -82,16 +83,23 @@ void Avatar::init() {
     _initialized = true;
     _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
     initializeHair();
-    
+   
     for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
-        _localLightColors[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        _localLightColors[i] = glm::vec3(0.0f, 0.0f, 0.0f);
         _localLightDirections[i] = glm::vec3(0.0f, 0.0f, 1.0f);
     }
+  
+    glm::vec3 darkGrayColor(0.3f, 0.3f, 0.3f); 
+    glm::vec3 greenColor(0.0f, 1.0f, 0.0f);
+    glm::vec3 directionX(1.0f, 0.0f, 0.0f);
+    glm::vec3 directionY(0.0f, 1.0f, 0.0f);
+ 
+    // initialize local lights
+    _localLightColors[0] = darkGrayColor;
+    _localLightColors[1] = greenColor;
     
-    // initialize first light
-    _localLightColors[0].r = 0.2f; _localLightColors[0].g = 0.2f, _localLightColors[0].b = 0.2f;
-    _localLightDirections[0].x = 1.0f; _localLightDirections[0].y = 0.0f; _localLightDirections[0].z = 0.0f;
-    
+    _localLightDirections[0] = directionX;
+    _localLightDirections[1] = directionY;
 }
 
 glm::vec3 Avatar::getChestPosition() const {
@@ -243,13 +251,19 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
                       : GLOW_FROM_AVERAGE_LOUDNESS;
         
         
+        // local lights directions and colors
+        getSkeletonModel().setNumLocalLights(_numLocalLights);
+        getHead()->getFaceModel().setNumLocalLights(_numLocalLights);
         for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
             glm::vec3 normalized = glm::normalize(_localLightDirections[i]);
-            glm::vec4 localLight = glm::vec4(normalized, 1.0f);
             
-            // local light parameters
-            glLightfv(GL_LIGHT1 + i, GL_POSITION, glm::value_ptr(localLight));
-            glLightfv(GL_LIGHT1 + i, GL_DIFFUSE, glm::value_ptr(_localLightColors[i]));
+            // body
+            getSkeletonModel().setLocalLightColor(_localLightColors[i], i);
+            getSkeletonModel().setLocalLightDirection(normalized, i);
+            
+            // head
+            getHead()->getFaceModel().setLocalLightColor(_localLightColors[i], i);
+            getHead()->getFaceModel().setLocalLightDirection(_localLightDirections[i], i);
         }
         
         // render body
@@ -1133,8 +1147,24 @@ void Avatar::setLocalLightDirection(const glm::vec3& direction, int lightIndex) 
     qDebug( "set light %d direction ( %f, %f, %f )\n", lightIndex, direction.x, direction.y, direction.z );
 }
 
-void Avatar::setLocalLightColor(const glm::vec4& color, int lightIndex) {
+void Avatar::setLocalLightColor(const glm::vec3& color, int lightIndex) {
     _localLightColors[lightIndex] = color;
     qDebug( "set light %d color ( %f, %f, %f )\n", lightIndex, color.x, color.y, color.z );
+}
+
+void Avatar::addLocalLight() {
+    if (_numLocalLights + 1 <= MAX_LOCAL_LIGHTS) {
+        ++_numLocalLights;
+    }
+
+    qDebug("ADD LOCAL LIGHT (numLocalLights = %d)\n", _numLocalLights);
+}
+
+void Avatar::removeLocalLight() {
+    if (_numLocalLights - 1 >= 0) {
+        --_numLocalLights;
+    }
+    
+    qDebug("REMOVE LOCAL LIGHT (numLocalLights = %d)\n", _numLocalLights);
 }
 

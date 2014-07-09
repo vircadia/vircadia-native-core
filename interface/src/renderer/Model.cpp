@@ -1489,14 +1489,18 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                 program->setUniform(skinLocations->shadowDistances, Application::getInstance()->getShadowDistances());
             }
             
-        } else {    
+            // local light
+            skinProgram->setUniformValue("numLocalLights", _numLocalLights);
+            skinProgram->setUniformArray("localLightDirections", _localLightDirections, MAX_LOCAL_LIGHTS);
+            skinProgram->setUniformArray("localLightColors", _localLightColors, MAX_LOCAL_LIGHTS);
+        } else {
             glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
             program->bind();
             if (cascadedShadows) {
                 program->setUniform(shadowDistancesLocation, Application::getInstance()->getShadowDistances());
             }
         }
-
+        
         if (mesh.blendshapes.isEmpty()) {
             if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
                 activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
@@ -1621,6 +1625,20 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
 
         activeProgram->release();
     }
+}
+
+void Model::setLocalLightDirection(const glm::vec3& direction, int lightIndex) {
+    assert(lightIndex >= 0 && lightIndex < MAX_LOCAL_LIGHTS);
+    _localLightDirections[lightIndex] = direction;
+}
+
+void Model::setLocalLightColor(const glm::vec3& color, int lightIndex) {
+    assert(lightIndex >= 0 && lightIndex < MAX_LOCAL_LIGHTS);
+    _localLightColors[lightIndex] = color;
+}
+
+void Model::setNumLocalLights(int numLocalLights) {
+    _numLocalLights = numLocalLights;
 }
 
 void AnimationHandle::setURL(const QUrl& url) {

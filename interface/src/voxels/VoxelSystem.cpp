@@ -59,6 +59,8 @@ GLubyte identityIndicesRight[]  = {  1, 2, 6,  1, 6, 5 };
 GLubyte identityIndicesFront[]  = {  0, 2, 1,  0, 3, 2 };
 GLubyte identityIndicesBack[]   = {  4, 5, 6,  4, 6, 7 };
 
+static glm::vec3 grayColor = glm::vec3(0.3f, 0.3f, 0.3f);
+
 VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
     : NodeData(),
     _treeScale(treeScale),
@@ -72,7 +74,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
     _renderer(0),
     _drawHaze(false),
     _farHazeDistance(300.0f),
-    _hazeColor(0.24f, 0.27f, 0.34f)
+    _hazeColor(grayColor)
 {
 
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
@@ -542,11 +544,8 @@ void VoxelSystem::initVoxelMemory() {
         GLfloat fogColor[] = {_hazeColor.x, _hazeColor.y, _hazeColor.z, 1.0f};
         glFogi(GL_FOG_MODE, GL_LINEAR);
         glFogfv(GL_FOG_COLOR, fogColor);
-        glFogf(GL_FOG_DENSITY, 0.25f);
-        glHint(GL_FOG_HINT, GL_DONT_CARE);
         glFogf(GL_FOG_START, 0.0f);
         glFogf(GL_FOG_END, _farHazeDistance);
-        glEnable(GL_FOG);
     }
 }
 
@@ -1431,6 +1430,10 @@ void VoxelSystem::render() {
         }
     } else 
     if (!_usePrimitiveRenderer) {
+        if (_drawHaze) {
+            glEnable(GL_FOG);
+        }
+
         PerformanceWarning warn(showWarnings, "render().. TRIANGLES...");
 
         {
@@ -1501,6 +1504,10 @@ void VoxelSystem::render() {
             // bind with 0 to switch back to normal operation
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        }
+        
+        if (_drawHaze) {
+            glDisable(GL_FOG);
         }
     }
     else {

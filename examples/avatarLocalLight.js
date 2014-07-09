@@ -11,10 +11,11 @@
 //
 
 var localLightDirections = [ {x: 1.0, y:0.0, z: 0.0}, {x: 0.0, y:1.0, z: 1.0}, {x: 0.0, y:0.0, z: 1.0}, {x: 1.0, y:1.0, z: 1.0}  ];
-var localLightColors = [ {x: 0.0, y:0.0, z: 0.0, w: 1.0}, {x: 0.0, y:0.0, z: 0.0, w: 1.0}, {x: 0.0, y:0.0, z: 0.0, w: 1.0}, {x: 0.0, y:0.0, z: 0.0, w: 1.0} ];
+var localLightColors = [ {x: 0.0, y:0.0, z: 0.0}, {x: 0.0, y:0.0, z: 0.0}, {x: 0.0, y:0.0, z: 0.0}, {x: 0.0, y:0.0, z: 0.0} ];
 
 var currentSelection = 0;
 var currentNumLights = 1;
+var maxNumLights = 2;
 
 function keyPressEvent(event) {
 
@@ -92,34 +93,34 @@ function keyPressEvent(event) {
     	
     	MyAvatar.setLocalLightDirection(localLightDirections[currentSelection], currentSelection);
     }
-    else if (event.text == "+" ) {
-    	if (currentNumLights + 1 < 4) {
-    	
+    else if (event.text == "," ) {
+    	if (currentNumLights + 1 <= maxNumLights) {
+            var darkGrayColor = {x:0.3, y:0.3, z:0.3};    
+
     		// default light
-    		localLightColors[currentNumLights].x = 0.1;
-    		localLightColors[currentNumLights].y = 0.1;
-    		localLightColors[currentNumLights].z = 0.1;
+    		localLightColors[currentNumLights].x = darkGrayColor.x;
+    		localLightColors[currentNumLights].y = darkGrayColor.y;
+    		localLightColors[currentNumLights].z = darkGrayColor.z;
     	
+            MyAvatar.addLocalLight(); 
     		MyAvatar.setLocalLightColor(localLightColors[currentNumLights], currentNumLights);
     		MyAvatar.setLocalLightDirection(localLightDirections[currentNumLights], currentNumLights);
-    		
+	
     		++currentNumLights;
     	}
     }
-    else if (event.text == "-" ) {
+    else if (event.text == "." ) {
     	if (currentNumLights - 1 >= 0 ) {
     	
     		// no light contribution
     		localLightColors[currentNumLights - 1].x = 0.0;
     		localLightColors[currentNumLights - 1].y = 0.0;
     		localLightColors[currentNumLights - 1].z = 0.0;
-    	
-    		MyAvatar.setLocalLightColor(localLightColors[currentNumLights - 1], currentNumLights - 1);
-    		
+    
+            MyAvatar.removeLocalLight();	
     		--currentNumLights;	
     	}
-    }
-    
+    }   
 }
 
 Controller.keyPressEvent.connect(keyPressEvent);
