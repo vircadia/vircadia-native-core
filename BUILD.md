@@ -259,3 +259,8 @@ If you need to debug Interface, you can run interface from within Visual Studio 
 * In the Solution Explorer, right click interface and click Set as StartUp Project
 * Set the "Working Directory" for the Interface debugging sessions to the Debug output directory so that your application can load resources. Do this: right click interface and click Properties, choose Debugging from Configuration Properties, set Working Directory to .\Debug
 * Now you can run and debug interface through Visual Studio
+
+#### Devices
+
+You can support external input/output devices such as Leap Motion, Faceplus, Faceshift PrioVR, RTmidi, SixSense and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in /hifi/interface/external/ for the detailed explanation of the requirements to use the device.
+
