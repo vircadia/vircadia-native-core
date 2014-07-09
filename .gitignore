@@ -56,3 +56,6 @@ interface/external/rtmidi/*
 
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/
+tests/shared/src/MovingMinMaxAvgTests.cpp
+examples/dancer.js
+examples/happyBirthday.js

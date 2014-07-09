@@ -19,7 +19,18 @@ public:
     AudioStreamStats()
         : _streamType(PositionalAudioRingBuffer::Microphone),
         _streamIdentifier(),
-        _jitterBufferFrames(0),
+        _timeGapMin(0),
+        _timeGapMax(0),
+        _timeGapAverage(0.0f),
+        _timeGapMovingMin(0),
+        _timeGapMovingMax(0),
+        _timeGapMovingAverage(0.0f),
+        _ringBufferFramesAvailable(0),
+        _ringBufferCurrentJitterBufferFrames(0),
+        _ringBufferDesiredJitterBufferFrames(0),
+        _ringBufferStarveCount(0),
+        _ringBufferOverflowCount(0),
+        _ringBufferSilentFramesDropped(0),
         _packetsReceived(0),
         _packetsUnreasonable(0),
         _packetsEarly(0),
@@ -32,7 +43,19 @@ public:
     PositionalAudioRingBuffer::Type _streamType;
     QUuid _streamIdentifier;
 
-    quint16 _jitterBufferFrames;
+    quint64 _timeGapMin;
+    quint64 _timeGapMax;
+    float _timeGapAverage;
+    quint64 _timeGapMovingMin;
+    quint64 _timeGapMovingMax;
+    float _timeGapMovingAverage;
+
+    quint32 _ringBufferFramesAvailable;
+    quint16 _ringBufferCurrentJitterBufferFrames;
+    quint16 _ringBufferDesiredJitterBufferFrames;
+    quint32 _ringBufferStarveCount;
+    quint32 _ringBufferOverflowCount;
+    quint32 _ringBufferSilentFramesDropped;
 
     quint32 _packetsReceived;
     quint32 _packetsUnreasonable;
