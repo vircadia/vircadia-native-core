@@ -67,7 +67,7 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _proceduralAudioOutput(NULL),
     _proceduralOutputDevice(NULL),
     _inputRingBuffer(0),
-    _ringBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO),
+    _ringBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, false, 100),
     _isStereoInput(false),
     _averagedLatency(0.0),
     _measuredJitter(0),
@@ -869,14 +869,16 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
         _numFramesDisplayStarve = 10;
     }
     
-    // if there is anything in the ring buffer, decide what to do
-    if (_ringBuffer.samplesAvailable() > 0) {
-        
-        int numNetworkOutputSamples = _ringBuffer.samplesAvailable();
-        int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
-        
-        QByteArray outputBuffer;
-        outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
+    int numNetworkOutputSamples;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisableQAudioOutputOverflowCheck)) {
+        numNetworkOutputSamples = _ringBuffer.samplesAvailable();
+    } else {
+        int numSamplesAudioOutputRoomFor = _audioOutput->bytesFree() / sizeof(int16_t);
+        numNetworkOutputSamples = std::min(_ringBuffer.samplesAvailable(), (int)(numSamplesAudioOutputRoomFor * networkOutputToOutputRatio));
+    }
+    
+    // if there is data in the ring buffer and room in the audio output, decide what to do
+    if (numNetworkOutputSamples > 0) {
         
         int numSamplesNeededToStartPlayback = std::min(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2),
             _ringBuffer.getSampleCapacity());
@@ -885,6 +887,11 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
             //  We are still waiting for enough samples to begin playback
             // qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
         } else {
+            int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
+
+            QByteArray outputBuffer;
+            outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
+
             //  We are either already playing back, or we have enough audio to start playing back.
             //qDebug() << "pushing " << numNetworkOutputSamples;
             _ringBuffer.setIsStarved(false);

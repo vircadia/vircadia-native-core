@@ -26,8 +26,8 @@ else ()
   set(RTMIDI_SEARCH_DIRS "${RTMIDI_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/rtmidi")
   
   find_path(RTMIDI_INCLUDE_DIR RtMidi.h PATH_SUFFIXES include HINTS ${RTMIDI_SEARCH_DIRS})
-  find_file(RTMIDI_CPP NAMES RtMidi.cpp PATH_SUFFIXES src HINTS ${RTMIDI_SEARCH_DIRS})
+  find_library(RTMIDI_LIBRARY NAMES rtmidi PATH_SUFFIXES lib HINTS ${RTMIDI_SEARCH_DIRS})
   
   include(FindPackageHandleStandardArgs)
-  find_package_handle_standard_args(RTMIDI DEFAULT_MSG RTMIDI_INCLUDE_DIR RTMIDI_CPP)
+  find_package_handle_standard_args(RTMIDI DEFAULT_MSG RTMIDI_INCLUDE_DIR RTMIDI_LIBRARY)
 endif ()

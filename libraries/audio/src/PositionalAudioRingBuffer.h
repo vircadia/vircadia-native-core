@@ -83,6 +83,8 @@ public:
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
     int getCurrentJitterBufferFrames() const { return _currentJitterBufferFrames; }
 
+    int getConsecutiveNotMixedCount() const { return _consecutiveNotMixedCount; }
+
 protected:
     // disallow copying of PositionalAudioRingBuffer objects
     PositionalAudioRingBuffer(const PositionalAudioRingBuffer&);
@@ -107,9 +109,7 @@ protected:
     bool _dynamicJitterBuffers;
 
     // extra stats
-    int _starveCount;
-    int _silentFramesDropped;
-
+    int _consecutiveNotMixedCount;
 };
 
 #endif // hifi_PositionalAudioRingBuffer_h
