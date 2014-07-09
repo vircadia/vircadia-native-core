@@ -12,8 +12,47 @@
 #ifndef hifi_MovingMinMaxAvg_h
 #define hifi_MovingMinMaxAvg_h
 
+#include "RingBufferHistory.h"
+
 template <typename T>
 class MovingMinMaxAvg {
+
+private:
+    class Stats {
+    public:
+        Stats()
+            : _min(std::numeric_limits<T>::max()),
+            _max(std::numeric_limits<T>::min()),
+            _average(0.0) {}
+
+        void updateWithSample(T sample, int& numSamplesInAverage) {
+            if (sample < _min) {
+                _min = sample;
+            }
+            if (sample > _max) {
+                _max = sample;
+            }
+            _average = _average * ((double)numSamplesInAverage / (numSamplesInAverage + 1))
+                + (double)sample / (numSamplesInAverage + 1);
+            numSamplesInAverage++;
+        }
+
+        void updateWithOtherStats(const Stats& other, int& numStatsInAverage) {
+            if (other._min < _min) {
+                _min = other._min;
+            }
+            if (other._max > _max) {
+                _max = other._max;
+            }
+            _average = _average * ((double)numStatsInAverage / (numStatsInAverage + 1))
+                + other._average / (numStatsInAverage + 1);
+            numStatsInAverage++;
+        }
+
+        T _min;
+        T _max;
+        double _average;
+    };
 
 public:
     // This class collects 3 stats (min, max, avg) over a moving window of samples.
@@ -25,104 +64,51 @@ public:
     // new sample, instantiate this class with MovingMinMaxAvg(1, 100).
     
     MovingMinMaxAvg(int intervalLength, int windowIntervals)
-        : _min(std::numeric_limits<T>::max()),
-        _max(std::numeric_limits<T>::min()),
-        _average(0.0),
-        _samplesCollected(0),
-        _intervalLength(intervalLength),
+        : _intervalLength(intervalLength),
         _windowIntervals(windowIntervals),
+        _overallStats(),
+        _samplesCollected(0),
+        _windowStats(),
         _existingSamplesInCurrentInterval(0),
-        _existingIntervals(0),
-        _windowMin(std::numeric_limits<T>::max()),
-        _windowMax(std::numeric_limits<T>::min()),
-        _windowAverage(0.0),
-        _currentIntervalMin(std::numeric_limits<T>::max()),
-        _currentIntervalMax(std::numeric_limits<T>::min()),
-        _currentIntervalAverage(0.0),
-        _newestIntervalStatsAt(0),
+        _currentIntervalStats(),
+        _intervalStats(windowIntervals),
         _newStatsAvailable(false)
-    {
-        _intervalMins = new T[_windowIntervals];
-        _intervalMaxes = new T[_windowIntervals];
-        _intervalAverages = new double[_windowIntervals];
-    }
-
-    ~MovingMinMaxAvg() {
-        delete[] _intervalMins;
-        delete[] _intervalMaxes;
-        delete[] _intervalAverages;
-    }
+    {}
     
     void reset() {
-        _min = std::numeric_limits<T>::max();
-        _max = std::numeric_limits<T>::min();
-        _average = 0.0;
+        _overallStats = Stats();
         _samplesCollected = 0;
+        _windowStats = Stats();
         _existingSamplesInCurrentInterval = 0;
-        _existingIntervals = 0;
-        _windowMin = std::numeric_limits<T>::max();
-        _windowMax = std::numeric_limits<T>::min();
-        _windowAverage = 0.0;
-        _currentIntervalMin = std::numeric_limits<T>::max();
-        _currentIntervalMax = std::numeric_limits<T>::min();
-        _currentIntervalAverage = 0.0;
-        _newStatsAvailableFlag = false;
+        _currentIntervalStats = Stats();
+        _intervalStats.clear();
+        _newStatsAvailable = false;
     }
 
     void update(T newSample) {
 
         // update overall stats
-        if (newSample < _min) {
-            _min = newSample;
-        }
-        if (newSample > _max) {
-            _max = newSample;
-        }
-        updateAverage(_average, _samplesCollected, (double)newSample);
+        _overallStats.updateWithSample(newSample, _samplesCollected);
 
         // update the current interval stats
-        if (newSample < _currentIntervalMin) {
-            _currentIntervalMin = newSample;
-        }
-        if (newSample > _currentIntervalMax) {
-            _currentIntervalMax = newSample;
-        }
-        updateAverage(_currentIntervalAverage, _existingSamplesInCurrentInterval, (double)newSample);
+        _currentIntervalStats.updateWithSample(newSample, _existingSamplesInCurrentInterval);
 
         // if the current interval of samples is now full, record its stats into our past intervals' stats
         if (_existingSamplesInCurrentInterval == _intervalLength) {
 
-            // increment index of the newest interval's stats cyclically
-            _newestIntervalStatsAt = _newestIntervalStatsAt == _windowIntervals - 1 ? 0 : _newestIntervalStatsAt + 1;
-
             // record current interval's stats, then reset them
-            _intervalMins[_newestIntervalStatsAt] = _currentIntervalMin;
-            _intervalMaxes[_newestIntervalStatsAt] = _currentIntervalMax;
-            _intervalAverages[_newestIntervalStatsAt] = _currentIntervalAverage;
-            _currentIntervalMin = std::numeric_limits<T>::max();
-            _currentIntervalMax = std::numeric_limits<T>::min();
-            _currentIntervalAverage = 0.0;
+            _intervalStats.insert(_currentIntervalStats);
+            _currentIntervalStats = Stats();
             _existingSamplesInCurrentInterval = 0;
 
-            if (_existingIntervals < _windowIntervals) {
-                _existingIntervals++;
-            }
-
-            // update the window's stats
-            int k = _newestIntervalStatsAt;
-            _windowMin = _intervalMins[k];
-            _windowMax = _intervalMaxes[k];
-            _windowAverage = _intervalAverages[k];
-            int intervalsIncludedInWindowStats = 1;
-            while (intervalsIncludedInWindowStats < _existingIntervals) {
-                k = k == 0 ? _windowIntervals - 1 : k - 1;
-                if (_intervalMins[k] < _windowMin) {
-                    _windowMin = _intervalMins[k];
-                }
-                if (_intervalMaxes[k] > _windowMax) {
-                    _windowMax = _intervalMaxes[k];
-                }
-                updateAverage(_windowAverage, intervalsIncludedInWindowStats, _intervalAverages[k]);
+            // update the window's stats by combining the intervals' stats
+            RingBufferHistory<Stats>::Iterator i = _intervalStats.begin();
+            RingBufferHistory<Stats>::Iterator end = _intervalStats.end();
+            _windowStats = Stats();
+            int intervalsIncludedInWindowStats = 0;
+            while (i != end) {
+                _windowStats.updateWithOtherStats(*i, intervalsIncludedInWindowStats);
+                i++;
             }
 
             _newStatsAvailable = true;
@@ -133,48 +119,34 @@ public:
     bool getNewStatsAvailableFlag() const { return _newStatsAvailable; }
     void clearNewStatsAvailableFlag() { _newStatsAvailable = false; }
 
-    T getMin() const { return _min; }
-    T getMax() const { return _max; }
-    double getAverage() const { return _average; }
-    T getWindowMin() const { return _windowMin; }
-    T getWindowMax() const { return _windowMax; }
-    double getWindowAverage() const { return _windowAverage; }
+    T getMin() const { return _overallStats._min; }
+    T getMax() const { return _overallStats._max; }
+    double getAverage() const { return _overallStats._average; }
+    T getWindowMin() const { return _windowStats._min; }
+    T getWindowMax() const { return _windowStats._max; }
+    double getWindowAverage() const { return _windowStats._average; }
+
+
 
 private:
-    void updateAverage(double& average, int& numSamples, double newSample) {
-        // update some running average without overflowing it
-        average = average * ((double)numSamples / (numSamples + 1)) + newSample / (numSamples + 1);
-        numSamples++;
-    }
-
-private:
-    // these are min/max/avg stats for all samples collected.
-    T _min;
-    T _max;
-    double _average;
-    int _samplesCollected;
-
     int _intervalLength;
     int _windowIntervals;
 
-    int _existingSamplesInCurrentInterval;
-    int _existingIntervals;
+    // these are min/max/avg stats for all samples collected.
+    Stats _overallStats;
+    int _samplesCollected;
 
     // these are the min/max/avg stats for the samples in the moving window
-    T _windowMin;
-    T _windowMax;
-    double _windowAverage;
+    Stats _windowStats;
+    int _existingSamplesInCurrentInterval;
 
-    T _currentIntervalMin;
-    T _currentIntervalMax;
-    double _currentIntervalAverage;
+    // these are the min/max/avg stats for the current interval
+    Stats _currentIntervalStats;
 
-    T* _intervalMins;
-    T* _intervalMaxes;
-    double* _intervalAverages;
-    int _newestIntervalStatsAt;
+    // these are stored stats for the past intervals in the window
+    RingBufferHistory<Stats> _intervalStats;
 
     bool _newStatsAvailable;
 };
 
-#endif // hifi_OctalCode_h
+#endif // hifi_MovingMinMaxAvg_h
