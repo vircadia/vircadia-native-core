@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <GeometryUtil.h>
 #include <NodeList.h>
@@ -60,7 +61,8 @@ Avatar::Avatar() :
     _moving(false),
     _collisionGroups(0),
     _initialized(false),
-    _shouldRenderBillboard(true)
+    _shouldRenderBillboard(true),
+    _numLocalLights(1)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -81,6 +83,23 @@ void Avatar::init() {
     _initialized = true;
     _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
     initializeHair();
+   
+    for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
+        _localLightColors[i] = glm::vec3(0.0f, 0.0f, 0.0f);
+        _localLightDirections[i] = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+  
+    glm::vec3 darkGrayColor(0.3f, 0.3f, 0.3f); 
+    glm::vec3 greenColor(0.0f, 1.0f, 0.0f);
+    glm::vec3 directionX(1.0f, 0.0f, 0.0f);
+    glm::vec3 directionY(0.0f, 1.0f, 0.0f);
+ 
+    // initialize local lights
+    _localLightColors[0] = darkGrayColor;
+    _localLightColors[1] = greenColor;
+    
+    _localLightDirections[0] = directionX;
+    _localLightDirections[1] = directionY;
 }
 
 glm::vec3 Avatar::getChestPosition() const {
@@ -232,7 +251,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         const float GLOW_DISTANCE = 20.0f;
         const float GLOW_MAX_LOUDNESS = 2500.0f;
         const float MAX_GLOW = 0.5f;
-        
+     
         float GLOW_FROM_AVERAGE_LOUDNESS = ((this == Application::getInstance()->getAvatar())
                                             ? 0.0f
                                             : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
@@ -243,7 +262,23 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
                       ? 1.0f
                       : GLOW_FROM_AVERAGE_LOUDNESS;
-
+        
+        
+        // local lights directions and colors
+        getSkeletonModel().setNumLocalLights(_numLocalLights);
+        getHead()->getFaceModel().setNumLocalLights(_numLocalLights);
+        for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
+            glm::vec3 normalized = glm::normalize(_localLightDirections[i]);
+            
+            // body
+            getSkeletonModel().setLocalLightColor(_localLightColors[i], i);
+            getSkeletonModel().setLocalLightDirection(normalized, i);
+            
+            // head
+            getHead()->getFaceModel().setLocalLightColor(_localLightColors[i], i);
+            getHead()->getFaceModel().setLocalLightDirection(_localLightDirections[i], i);
+        }
+        
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode, glowLevel);
@@ -1120,5 +1155,31 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
         _displayNameTargetAlpha = 0.0f;
     }
 
+}
+
+void Avatar::setLocalLightDirection(const glm::vec3& direction, int lightIndex) {
+    _localLightDirections[lightIndex] = direction;
+    qDebug( "set light %d direction ( %f, %f, %f )\n", lightIndex, direction.x, direction.y, direction.z );
+}
+
+void Avatar::setLocalLightColor(const glm::vec3& color, int lightIndex) {
+    _localLightColors[lightIndex] = color;
+    qDebug( "set light %d color ( %f, %f, %f )\n", lightIndex, color.x, color.y, color.z );
+}
+
+void Avatar::addLocalLight() {
+    if (_numLocalLights + 1 <= MAX_LOCAL_LIGHTS) {
+        ++_numLocalLights;
+    }
+
+    qDebug("ADD LOCAL LIGHT (numLocalLights = %d)\n", _numLocalLights);
+}
+
+void Avatar::removeLocalLight() {
+    if (_numLocalLights - 1 >= 0) {
+        --_numLocalLights;
+    }
+    
+    qDebug("REMOVE LOCAL LIGHT (numLocalLights = %d)\n", _numLocalLights);
 }
 
