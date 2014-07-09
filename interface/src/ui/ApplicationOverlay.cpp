@@ -95,8 +95,6 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
 
-    printf("%d %d\n", glWidget->width(), glWidget->height());
-
     glLoadIdentity();
     gluOrtho2D(0, glWidget->width(), glWidget->height(), 0);
     glDisable(GL_DEPTH_TEST);
@@ -656,8 +654,6 @@ void ApplicationOverlay::renderControllerPointers() {
 
 void ApplicationOverlay::renderPointersOculus() {
 
-    const bool useLaser = true; 
-
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
     glm::vec3 cursorVerts[4];
@@ -676,94 +672,72 @@ void ApplicationOverlay::renderPointersOculus() {
 
     //Controller Pointers
     for (int i = 0; i < myAvatar->getHand()->getNumPalms(); i++) {
-        if (useLaser && i < myAvatar->getHand()->getNumPalms()) {
-           
-            PalmData& palm = myAvatar->getHand()->getPalms()[i];
-            if (palm.isActive()) {
-                glm::vec3 tip = OculusManager::getLaserPointerTipPosition(&palm);
-                glm::quat orientation = glm::inverse(myAvatar->getOrientation());
-                glm::vec3 dir = orientation * glm::normalize(eyePos - tip); //direction of ray goes towards camera
-                glm::vec3 tipPos = (tip - eyePos);
+
+        PalmData& palm = myAvatar->getHand()->getPalms()[i];
+        if (palm.isActive()) {
+            glm::vec3 tip = OculusManager::getLaserPointerTipPosition(&palm);
+            glm::quat orientation = glm::inverse(myAvatar->getOrientation());
+            glm::vec3 dir = orientation * glm::normalize(eyePos - tip); //direction of ray goes towards camera
+            glm::vec3 tipPos = (tip - eyePos);
                 
-                float t;
-                float length = glm::length(eyePos - tip);
-                float size = 0.03f * length;
+            float length = glm::length(eyePos - tip);
+            float size = 0.03f * length;
 
-                glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * size;
-                glm::vec3 right = glm::vec3(1.0, 0.0, 0.0) * size;
+            glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * size;
+            glm::vec3 right = glm::vec3(1.0, 0.0, 0.0) * size;
 
-                cursorVerts[0] = -right + up;
-                cursorVerts[1] = right + up;
-                cursorVerts[2] = right - up;
-                cursorVerts[3] = -right - up;
+            cursorVerts[0] = -right + up;
+            cursorVerts[1] = right + up;
+            cursorVerts[2] = right - up;
+            cursorVerts[3] = -right - up;
 
-                glPushMatrix();
-             //   glLoadIdentity();
+            glPushMatrix();
 
-                // objToCamProj is the vector in world coordinates from the 
-                // local origin to the camera projected in the XZ plane
-                glm::vec3 cursorToCameraXZ(-tipPos.x, 0, -tipPos.z);
-                cursorToCameraXZ = glm::normalize(cursorToCameraXZ);
+            // objToCamProj is the vector in world coordinates from the 
+            // local origin to the camera projected in the XZ plane
+            glm::vec3 cursorToCameraXZ(-tipPos.x, 0, -tipPos.z);
+            cursorToCameraXZ = glm::normalize(cursorToCameraXZ);
 
-                // This is the original lookAt vector for the object 
-                // in world coordinates
-                glm::vec3 direction(0, 0, 1);
-                glTranslatef(tip.x, tip.y, tip.z);
+            //Translate the cursor to the tip of the oculus ray
+            glTranslatef(tip.x, tip.y, tip.z);
 
-                // easy fix to determine wether the angle is negative or positive
-                // for positive angles upAux will be a vector pointing in the 
-                // positive y direction, otherwise upAux will point downwards
-                // effectively reversing the rotation.
-                glm::vec3 upAux = glm::cross(direction, cursorToCameraXZ);
+            glm::vec3 direction(0, 0, 1);
+            // easy fix to determine wether the angle is negative or positive
+            // for positive angles upAux will be a vector pointing in the 
+            // positive y direction, otherwise upAux will point downwards
+            // effectively reversing the rotation.
+            glm::vec3 upAux = glm::cross(direction, cursorToCameraXZ);
 
-                // compute the angle
-                float angleCosine = glm::dot(direction, cursorToCameraXZ);
+            // compute the angle
+            float angleCosine = glm::dot(direction, cursorToCameraXZ);
 
-                // perform the rotation. The if statement is used for stability reasons
-                // if the lookAt and objToCamProj vectors are too close together then 
-                // |angleCosine| could be bigger than 1 due to lack of precision
-                if ((angleCosine < 0.999999) && (angleCosine > -0.999999)) {
-                    glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, upAux[0], upAux[1], upAux[2]);
-                }
+            //Rotate in XZ direction
+            glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, upAux[0], upAux[1], upAux[2]);
 
-                // so far it is just like the cylindrical billboard. The code for the 
-                // second rotation comes now
-                // The second part tilts the object so that it faces the camera
+            glm::vec3 cursorToCamera = glm::normalize(-tipPos);
 
-                // objToCam is the vector in world coordinates from 
-                // the local origin to the camera
-                glm::vec3 cursorToCamera = glm::normalize(-tipPos);
+            // Compute the angle between cursorToCameraXZ and cursorToCamera, 
+            angleCosine = glm::dot(cursorToCameraXZ, cursorToCamera);
 
-                // Compute the angle between objToCamProj and objToCam, 
-                //i.e. compute the required angle for the lookup vector
-
-                angleCosine = glm::dot(cursorToCameraXZ, cursorToCamera);
-
-                // Tilt the object. The test is done to prevent instability 
-                // when objToCam and objToCamProj have a very small
-                // angle between them
-
-              //  if ((angleCosine < 0.9999) && (angleCosine > -0.99999)) {
-                    if (cursorToCamera.y < 0) {
-                        glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, 1, 0, 0);
-                    } else {
-                        glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, -1, 0, 0);
-                    }
-               // }
-
-                glBegin(GL_QUADS);
-
-                glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
-
-                glTexCoord2f(0.0f, 0.0f); glVertex3f(cursorVerts[0].x, cursorVerts[0].y, cursorVerts[0].z);
-                glTexCoord2f(1.0f, 0.0f); glVertex3f(cursorVerts[1].x, cursorVerts[1].y, cursorVerts[1].z);
-                glTexCoord2f(1.0f, 1.0f); glVertex3f(cursorVerts[2].x, cursorVerts[2].y, cursorVerts[2].z);
-                glTexCoord2f(0.0f, 1.0f); glVertex3f(cursorVerts[3].x, cursorVerts[3].y, cursorVerts[3].z);
-
-                glEnd();
-
-                glPopMatrix();
+            //Rotate in Y direction
+            if (cursorToCamera.y < 0) {
+                glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, 1, 0, 0);
+            } else {
+                glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, -1, 0, 0);
             }
+
+            glBegin(GL_QUADS);
+
+            glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
+
+            glTexCoord2f(0.0f, 0.0f); glVertex3f(cursorVerts[0].x, cursorVerts[0].y, cursorVerts[0].z);
+            glTexCoord2f(1.0f, 0.0f); glVertex3f(cursorVerts[1].x, cursorVerts[1].y, cursorVerts[1].z);
+            glTexCoord2f(1.0f, 1.0f); glVertex3f(cursorVerts[2].x, cursorVerts[2].y, cursorVerts[2].z);
+            glTexCoord2f(0.0f, 1.0f); glVertex3f(cursorVerts[3].x, cursorVerts[3].y, cursorVerts[3].z);
+
+            glEnd();
+
+            glPopMatrix();
         } 
     }
 
@@ -774,8 +748,6 @@ void ApplicationOverlay::renderPointersOculus() {
         float mouseY = (float)_mouseY[MOUSE];
         mouseX -= reticleSize / 2;
         mouseY += reticleSize / 2;
-
-        printf("MOUSEPOS: %f %f\n", mouseX, mouseY);
 
         //Get new UV coordinates from our magnification window
         float newULeft = mouseX / widgetWidth;
@@ -806,7 +778,6 @@ void ApplicationOverlay::renderPointersOculus() {
         glBegin(GL_QUADS);
 
         glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
-
 
         const glm::quat& orientation = myAvatar->getOrientation();
         cursorVerts[0] = orientation * glm::vec3(lX, tY, -tlZ) + eyePos;
