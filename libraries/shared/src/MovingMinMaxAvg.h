@@ -78,8 +78,7 @@ public:
         if (newSample > _max) {
             _max = newSample;
         }
-        _average = (_average * _samplesCollected + newSample) / (_samplesCollected + 1);
-        _samplesCollected++;
+        updateAverage(_average, _samplesCollected, (double)newSample);
 
         // update the current interval stats
         if (newSample < _currentIntervalMin) {
@@ -88,8 +87,7 @@ public:
         if (newSample > _currentIntervalMax) {
             _currentIntervalMax = newSample;
         }
-        _currentIntervalAverage = (_currentIntervalAverage * _existingSamplesInCurrentInterval + newSample) / (_existingSamplesInCurrentInterval + 1);
-        _existingSamplesInCurrentInterval++;
+        updateAverage(_currentIntervalAverage, _existingSamplesInCurrentInterval, (double)newSample);
 
         // if the current interval of samples is now full, record its stats into our past intervals' stats
         if (_existingSamplesInCurrentInterval == _intervalLength) {
@@ -114,8 +112,9 @@ public:
             int k = _newestIntervalStatsAt;
             _windowMin = _intervalMins[k];
             _windowMax = _intervalMaxes[k];
-            double intervalAveragesSum = _intervalAverages[k];
-            for (int i = 1; i < _existingIntervals; i++) {
+            _windowAverage = _intervalAverages[k];
+            int intervalsIncludedInWindowStats = 1;
+            while (intervalsIncludedInWindowStats < _existingIntervals) {
                 k = k == 0 ? _windowIntervals - 1 : k - 1;
                 if (_intervalMins[k] < _windowMin) {
                     _windowMin = _intervalMins[k];
@@ -123,9 +122,8 @@ public:
                 if (_intervalMaxes[k] > _windowMax) {
                     _windowMax = _intervalMaxes[k];
                 }
-                intervalAveragesSum += _intervalAverages[k];
+                updateAverage(_windowAverage, intervalsIncludedInWindowStats, _intervalAverages[k]);
             }
-            _windowAverage = intervalAveragesSum / _existingIntervals;
 
             _newStatsAvailable = true;
         }
@@ -141,6 +139,13 @@ public:
     T getWindowMin() const { return _windowMin; }
     T getWindowMax() const { return _windowMax; }
     double getWindowAverage() const { return _windowAverage; }
+
+private:
+    void updateAverage(double& average, int& numSamples, double newSample) {
+        // update some running average without overflowing it
+        average = average * ((double)numSamples / (numSamples + 1)) + newSample / (numSamples + 1);
+        numSamples++;
+    }
 
 private:
     // these are min/max/avg stats for all samples collected.

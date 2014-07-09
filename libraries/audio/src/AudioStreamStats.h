@@ -29,6 +29,7 @@ public:
         _ringBufferCurrentJitterBufferFrames(0),
         _ringBufferDesiredJitterBufferFrames(0),
         _ringBufferStarveCount(0),
+        _ringBufferConsecutiveNotMixedCount(0),
         _ringBufferOverflowCount(0),
         _ringBufferSilentFramesDropped(0),
         _packetsReceived(0),
@@ -54,6 +55,7 @@ public:
     quint16 _ringBufferCurrentJitterBufferFrames;
     quint16 _ringBufferDesiredJitterBufferFrames;
     quint32 _ringBufferStarveCount;
+    quint32 _ringBufferConsecutiveNotMixedCount;
     quint32 _ringBufferOverflowCount;
     quint32 _ringBufferSilentFramesDropped;
 

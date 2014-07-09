@@ -291,7 +291,7 @@ void Stats::display(
         const AudioStreamStats& audioMixerAvatarStreamStats = audio->getAudioMixerAvatarStreamStats();
         const QHash<QUuid, AudioStreamStats>& audioMixerInjectedStreamStatsMap = audio->getAudioMixerInjectedStreamStatsMap();
 
-        lines = _expanded ? 10 + audioMixerInjectedStreamStatsMap.size(): 3;
+        lines = _expanded ? 12 + audioMixerInjectedStreamStatsMap.size() * 3: 3;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
 
@@ -354,17 +354,48 @@ void Stats::display(
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamLabelString, color);
 
             char upstreamAudioStatsString[30];
-            sprintf(upstreamAudioStatsString, "  mic: %d/%d/%d, %d", audioMixerAvatarStreamStats._packetsEarly,
+            sprintf(upstreamAudioStatsString, " mic: %d/%d/%d, %d/%d/%d", audioMixerAvatarStreamStats._packetsEarly,
                 audioMixerAvatarStreamStats._packetsLate, audioMixerAvatarStreamStats._packetsLost,
-                audioMixerAvatarStreamStats._jitterBufferFrames);
+                audioMixerAvatarStreamStats._ringBufferFramesAvailable, audioMixerAvatarStreamStats._ringBufferCurrentJitterBufferFrames,
+                audioMixerAvatarStreamStats._ringBufferDesiredJitterBufferFrames);
+
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
+
+            sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", audioMixerAvatarStreamStats._timeGapMin,
+                audioMixerAvatarStreamStats._timeGapMax, audioMixerAvatarStreamStats._timeGapAverage,
+                audioMixerAvatarStreamStats._ringBufferStarveCount, audioMixerAvatarStreamStats._ringBufferOverflowCount);
+
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
+
+            sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", audioMixerAvatarStreamStats._timeGapMovingMin,
+                audioMixerAvatarStreamStats._timeGapMovingMax, audioMixerAvatarStreamStats._timeGapMovingAverage,
+                audioMixerAvatarStreamStats._ringBufferConsecutiveNotMixedCount, audioMixerAvatarStreamStats._ringBufferSilentFramesDropped);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
 
             foreach(AudioStreamStats injectedStreamStats, audioMixerInjectedStreamStatsMap) {
-                sprintf(upstreamAudioStatsString, "  inj: %d/%d/%d, %d", injectedStreamStats._packetsEarly,
-                    injectedStreamStats._packetsLate, injectedStreamStats._packetsLost, injectedStreamStats._jitterBufferFrames);
-                
+                sprintf(upstreamAudioStatsString, " inj: %d/%d/%d, %d/%d/%d", injectedStreamStats._packetsEarly,
+                    injectedStreamStats._packetsLate, injectedStreamStats._packetsLost,
+                    injectedStreamStats._ringBufferFramesAvailable, injectedStreamStats._ringBufferCurrentJitterBufferFrames,
+                    injectedStreamStats._ringBufferDesiredJitterBufferFrames);
+
+                verticalOffset += STATS_PELS_PER_LINE;
+                drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
+
+                sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", injectedStreamStats._timeGapMin,
+                    injectedStreamStats._timeGapMax, injectedStreamStats._timeGapAverage,
+                    injectedStreamStats._ringBufferStarveCount, injectedStreamStats._ringBufferOverflowCount);
+
+                verticalOffset += STATS_PELS_PER_LINE;
+                drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
+
+                sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", injectedStreamStats._timeGapMovingMin,
+                    injectedStreamStats._timeGapMovingMax, injectedStreamStats._timeGapMovingAverage,
+                    injectedStreamStats._ringBufferConsecutiveNotMixedCount, injectedStreamStats._ringBufferSilentFramesDropped);
+
                 verticalOffset += STATS_PELS_PER_LINE;
                 drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
             }
