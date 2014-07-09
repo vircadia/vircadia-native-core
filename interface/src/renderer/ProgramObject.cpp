@@ -26,7 +26,7 @@ void ProgramObject::setUniform(const char* name, const glm::vec3& value) {
 void ProgramObject::setUniformArray(const char* name, const glm::vec3* values, int count) {
     GLfloat* floatVal = new GLfloat[count*3];
     int index = 0;
-    for(int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++) {
         assert(index < count*3);
         const float* valPtr = glm::value_ptr(values[i]);
         floatVal[index++] = valPtr[0];

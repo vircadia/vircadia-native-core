@@ -16,7 +16,7 @@
 uniform sampler2D diffuseMap;
 
 // local lights
-const int MAX_LOCAL_LIGHTS = 2;                          // 2 lights for now, will probably need more later on
+const int MAX_LOCAL_LIGHTS = 2;  // 2 lights for now, will probably need more later on
 uniform int numLocalLights;
 uniform vec3 localLightDirections[MAX_LOCAL_LIGHTS];
 uniform vec3 localLightColors[MAX_LOCAL_LIGHTS];

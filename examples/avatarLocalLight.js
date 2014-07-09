@@ -23,19 +23,19 @@ function keyPressEvent(event) {
     
     if (event.text == "1") {
     	currentSelection = 0;
-    	print("selection = " + currentSelection);
+    	print("light election = " + currentSelection);
     }
     else if (event.text == "2" ) {
     	currentSelection = 1;
-    	print("selection = " + currentSelection);
+    	print("light selection = " + currentSelection);
     }
     else if (event.text == "3" ) {
     	currentSelection = 2;
-    	print("selection = " + currentSelection);
+    	print("light selection = " + currentSelection);
     }
     else if (event.text == "4" ) {
     	currentSelection = 3;
-    	print("selection = " + currentSelection);
+    	print("light selection = " + currentSelection);
     }
     else if (event.text == "5" ) {
     	localLightColors[currentSelection].x += 0.01;

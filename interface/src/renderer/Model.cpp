@@ -1489,7 +1489,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                 program->setUniform(skinLocations->shadowDistances, Application::getInstance()->getShadowDistances());
             }
             
-            // local light
+            // local light uniforms
             skinProgram->setUniformValue("numLocalLights", _numLocalLights);
             skinProgram->setUniformArray("localLightDirections", _localLightDirections, MAX_LOCAL_LIGHTS);
             skinProgram->setUniformArray("localLightColors", _localLightColors, MAX_LOCAL_LIGHTS);

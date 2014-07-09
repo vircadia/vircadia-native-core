@@ -86,7 +86,7 @@ void Avatar::init() {
    
     for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
         _localLightColors[i] = glm::vec3(0.0f, 0.0f, 0.0f);
-        _localLightDirections[i] = glm::vec3(0.0f, 0.0f, 1.0f);
+        _localLightDirections[i] = glm::vec3(0.0f, 0.0f, 0.0f);
     }
   
     glm::vec3 darkGrayColor(0.3f, 0.3f, 0.3f); 

@@ -13,7 +13,6 @@
 
 const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
-const int MAX_LOCAL_LIGHTS = 4;
 
 uniform mat4 clusterMatrices[MAX_CLUSTERS];
 

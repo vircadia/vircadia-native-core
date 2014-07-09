@@ -184,7 +184,7 @@ protected:
     // always-present local lighting for the avatar
     glm::vec3 _localLightDirections[MAX_LOCAL_LIGHTS];
     glm::vec3 _localLightColors[MAX_LOCAL_LIGHTS];
-    int _numLocalLights;   
+    int _numLocalLights;
  
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }

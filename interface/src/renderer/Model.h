@@ -166,8 +166,8 @@ protected:
     
     glm::vec3 _localLightDirections[MAX_LOCAL_LIGHTS];
     glm::vec3 _localLightColors[MAX_LOCAL_LIGHTS];
-    int _numLocalLights;    
-    
+    int _numLocalLights;
+ 
     QVector<JointState> _jointStates;
 
     class MeshState {

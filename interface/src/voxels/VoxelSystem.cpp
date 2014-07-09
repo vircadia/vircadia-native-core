@@ -540,7 +540,7 @@ void VoxelSystem::initVoxelMemory() {
     _readArraysLock.unlock();
     
     // fog for haze
-    if(_drawHaze) {
+    if (_drawHaze) {
         GLfloat fogColor[] = {_hazeColor.x, _hazeColor.y, _hazeColor.z, 1.0f};
         glFogi(GL_FOG_MODE, GL_LINEAR);
         glFogfv(GL_FOG_COLOR, fogColor);

@@ -12,6 +12,7 @@
 //
 const int MAX_LOCAL_LIGHTS = 2;
 
+uniform int numLocalLights;
 uniform vec3 localLightDirections[MAX_LOCAL_LIGHTS];
 uniform vec3 localLightColors[MAX_LOCAL_LIGHTS];
 
@@ -35,7 +36,7 @@ void main(void) {
     
     // the local light that is always present
     vec4 totalLocalLight = vec4(0.0, 0.0, 0.0, 1.0);
-    for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
+    for (int i = 0; i < numLocalLights; i++) {
         float localDiffuse = dot(normalizedNormal, vec4(localLightDirections[i], 1.0));
         float localLight = step(0.0, localDiffuse);
         float localLightVal = localDiffuse * localLight;
