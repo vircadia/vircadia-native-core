@@ -87,6 +87,12 @@ IDStreamer& IDStreamer::operator>>(int& value) {
     return *this;
 }
 
+void Bitstream::preThreadingInit() {
+    getObjectStreamers();
+    getEnumStreamers();
+    getEnumStreamersByName();    
+}
+
 int Bitstream::registerMetaObject(const char* className, const QMetaObject* metaObject) {
     getMetaObjects().insert(className, metaObject);
     
