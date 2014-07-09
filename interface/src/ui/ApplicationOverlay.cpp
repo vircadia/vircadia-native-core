@@ -165,7 +165,8 @@ void ApplicationOverlay::displayOverlayTexture() {
 }
 
 void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direction) const {
-    glm::quat rot = Application::getInstance()->getAvatar()->getOrientation();
+    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    glm::quat rot = myAvatar->getOrientation();
 
     //invert y direction
     y = 1.0 - y;
@@ -177,8 +178,11 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direc
     float dist = sqrt(x * x + y * y);
     float z = -sqrt(1.0f - dist * dist);
 
+    glm::vec3 relativePosition = myAvatar->getHead()->calculateAverageEyePosition() + 
+        glm::normalize(rot * glm::vec3(x, y, z));
+
     //Rotate the UI pick ray by the avatar orientation
-    direction = glm::normalize(rot * glm::vec3(x, y, z));
+    direction = glm::normalize(relativePosition - Application::getInstance()->getCamera()->getPosition());
 }
 
 // Calculates the click location on the screen by taking into account any
@@ -275,7 +279,7 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(PalmData *palm) const {
     glm::vec3 tip = OculusManager::getLaserPointerTipPosition(palm);
     glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
     glm::quat orientation = glm::inverse(myAvatar->getOrientation());
-    glm::vec3 dir = orientation * glm::normalize(eyePos - tip); //direction of ray goes towards camera
+    glm::vec3 dir = orientation * glm::normalize(application->getCamera()->getPosition() - tip); //direction of ray goes towards camera
     glm::vec3 tipPos = orientation * (tip - eyePos);
 
     QPoint rv;
@@ -299,6 +303,8 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(PalmData *palm) const {
 
             rv.setX(u * glWidget->width());
             rv.setY(v * glWidget->height());
+
+            printf("%d %d\n", rv.x(), rv.y());
         }
     } else {
         //if they did not click on the overlay, just set the coords to INT_MAX
@@ -374,7 +380,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     renderTexturedHemisphere();
 
-    renderPointersOculus();
+    renderPointersOculus(whichCamera.getPosition());
 
     glDepthMask(GL_TRUE);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -652,7 +658,7 @@ void ApplicationOverlay::renderControllerPointers() {
     }
 }
 
-void ApplicationOverlay::renderPointersOculus() {
+void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
@@ -667,8 +673,6 @@ void ApplicationOverlay::renderPointersOculus() {
     glDisable(GL_DEPTH_TEST);
     glMatrixMode(GL_MODELVIEW);
     MyAvatar* myAvatar = application->getAvatar();
-
-    glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
 
     //Controller Pointers
     for (int i = 0; i < myAvatar->getHand()->getNumPalms(); i++) {

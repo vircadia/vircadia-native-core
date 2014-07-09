@@ -49,7 +49,7 @@ private:
 
     void renderPointers();
     void renderControllerPointers();
-    void renderPointersOculus();
+    void renderPointersOculus(const glm::vec3& eyePos);
     void renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const;
     void renderAudioMeter();
     void renderStatsAndLogs();
