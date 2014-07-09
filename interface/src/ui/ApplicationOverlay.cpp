@@ -290,12 +290,18 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(PalmData *palm) const {
     if (raySphereIntersect(dir, adjustedPos, 1, &t)){
         glm::vec3 collisionPos = adjustedPos + dir * t;
 
-        float u = asin(collisionPos.x) / (_textureFov)+0.5f;
-        float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
+        //If we hit the back hemisphere, mark it as not a collision
+        if (collisionPos.z > 0) {
+            rv.setX(INT_MAX);
+            rv.setY(INT_MAX);
+        } else {
 
-        rv.setX(u * glWidget->width());
-        rv.setY(v * glWidget->height());
+            float u = asin(collisionPos.x) / (_textureFov)+0.5f;
+            float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
 
+            rv.setX(u * glWidget->width());
+            rv.setY(v * glWidget->height());
+        }
     } else {
         //if they did not click on the overlay, just set the coords to INT_MAX
         rv.setX(INT_MAX);

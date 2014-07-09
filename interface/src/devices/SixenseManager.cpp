@@ -373,7 +373,6 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
     if (OculusManager::isConnected()) {
         pos = application->getApplicationOverlay().getOculusPalmClickLocation(palm);
-        printf("CLICK: %d %d\n", pos.x(), pos.y());
     } else {
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
@@ -392,7 +391,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
     //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
     //we should unpress them.
-    if (pos.x() < 0 || pos.x() > widget->width() || pos.y() < 0 || pos.y() > widget->height()) {
+    if (pos.x() == INT_MAX) {
         if (_bumperPressed[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 
