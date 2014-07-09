@@ -14,7 +14,6 @@
 
 #include <QDateTime>
 
-#include "HandTracker.h"
 #include "MotionTracker.h"
 
 #ifdef HAVE_LEAPMOTION
