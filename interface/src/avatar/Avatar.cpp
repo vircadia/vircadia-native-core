@@ -15,11 +15,11 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <GeometryUtil.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <PerfStat.h>
 #include <SharedUtil.h>
-
-#include <GeometryUtil.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -99,6 +99,7 @@ float Avatar::getLODDistance() const {
 }
 
 void Avatar::simulate(float deltaTime) {
+    PerformanceTimer perfTimer("simulate");
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
@@ -118,29 +119,36 @@ void Avatar::simulate(float deltaTime) {
     bool inViewFrustum = Application::getInstance()->getViewFrustum()->sphereInFrustum(_position, boundingRadius) !=
         ViewFrustum::OUTSIDE;
 
-    getHand()->simulate(deltaTime, false);
+    {
+        PerformanceTimer perfTimer("hand");
+        getHand()->simulate(deltaTime, false);
+    }
     _skeletonModel.setLODDistance(getLODDistance());
     
     if (!_shouldRenderBillboard && inViewFrustum) {
         if (_hasNewJointRotations) {
+            PerformanceTimer perfTimer("skeleton");
             for (int i = 0; i < _jointData.size(); i++) {
                 const JointData& data = _jointData.at(i);
                 _skeletonModel.setJointState(i, data.valid, data.rotation);
             }
             _skeletonModel.simulate(deltaTime);
         }
-        _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
-        simulateAttachments(deltaTime);
-        _hasNewJointRotations = false;
+        {
+            PerformanceTimer perfTimer("head");
+            _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
+            simulateAttachments(deltaTime);
+            _hasNewJointRotations = false;
 
-        glm::vec3 headPosition = _position;
-        _skeletonModel.getHeadPosition(headPosition);
-        Head* head = getHead();
-        head->setPosition(headPosition);
-        head->setScale(_scale);
-        head->simulate(deltaTime, false, _shouldRenderBillboard);
-        
+            glm::vec3 headPosition = _position;
+            _skeletonModel.getHeadPosition(headPosition);
+            Head* head = getHead();
+            head->setPosition(headPosition);
+            head->setScale(_scale);
+            head->simulate(deltaTime, false, _shouldRenderBillboard);
+        }
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
+            PerformanceTimer perfTimer("hair");
             simulateHair(deltaTime);
         }
         

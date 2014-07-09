@@ -41,9 +41,13 @@ void AvatarManager::init() {
 }
 
 void AvatarManager::updateOtherAvatars(float deltaTime) {
+    if (_avatarHash.size() > 1) {
+        return;
+    }
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
+    PerformanceTimer perfTimer("otherAvatars");
     Application* applicationInstance = Application::getInstance();
     glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
     glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
