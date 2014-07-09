@@ -291,7 +291,7 @@ void Stats::display(
         const AudioStreamStats& audioMixerAvatarStreamStats = audio->getAudioMixerAvatarStreamStats();
         const QHash<QUuid, AudioStreamStats>& audioMixerInjectedStreamStatsMap = audio->getAudioMixerInjectedStreamStatsMap();
 
-        lines = _expanded ? 12 + audioMixerInjectedStreamStatsMap.size() * 3: 3;
+        lines = _expanded ? 12 + (audioMixerInjectedStreamStatsMap.size() + 1) * 3: 3;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
 
@@ -328,12 +328,21 @@ void Stats::display(
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
 
             char audioMixerStatsLabelString[] = "AudioMixer stats:";
-            char streamStatsFormatLabelString[] = "early/late/lost, jframes";
+            char streamStatsFormatLabelString[] = "early/late/lost";
+            char streamStatsFormatLabelString2[] = "avail/currJ/desiredJ";
+            char streamStatsFormatLabelString3[] = "gaps: min/max/avg, starv/ovfl";
+            char streamStatsFormatLabelString4[] = "30s gaps: (same), notmix/sdrop";
             
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerStatsLabelString, color);
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, streamStatsFormatLabelString, color);
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, streamStatsFormatLabelString2, color);
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, streamStatsFormatLabelString3, color);
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, streamStatsFormatLabelString4, color);
 
 
             char downstreamLabelString[] = " Downstream:";
