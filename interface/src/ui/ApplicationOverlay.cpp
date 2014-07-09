@@ -191,7 +191,7 @@ void ApplicationOverlay::getClickLocation(int &x, int &y) const {
     int dx;
     int dy;
     const float xRange = MAGNIFY_WIDTH * MAGNIFY_MULT / 2.0f;
-    const float yRange = MAGNIFY_WIDTH * MAGNIFY_MULT / 2.0f;
+    const float yRange = MAGNIFY_HEIGHT * MAGNIFY_MULT / 2.0f;
 
     //Loop through all magnification windows
     for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
@@ -267,7 +267,7 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
 }
 
 
-QPoint ApplicationOverlay::getOculusPalmClickLocation(PalmData *palm) const {
+QPoint ApplicationOverlay::getOculusPalmClickLocation(const PalmData *palm) const {
 
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
@@ -303,8 +303,6 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(PalmData *palm) const {
 
             rv.setX(u * glWidget->width());
             rv.setY(v * glWidget->height());
-
-            printf("%d %d\n", rv.x(), rv.y());
         }
     } else {
         //if they did not click on the overlay, just set the coords to INT_MAX
@@ -600,13 +598,32 @@ void ApplicationOverlay::renderControllerPointers() {
         } else {
             bumperPressed[index] = false;
         }
+      
+        //if we have the oculus, we should make the cursor smaller since it will be
+        //magnified
+        if (OculusManager::isConnected()) {
 
+            QPoint point = getOculusPalmClickLocation(palmData);
+          
+            _mouseX[index] = point.x();
+            _mouseY[index] = point.y();
+
+            //When button 2 is pressed we drag the mag window
+            if (isPressed[index]) {
+                _magActive[index] = true;
+                _magX[index] = point.x();
+                _magY[index] = point.y();
+            }
+
+            // If oculus is enabled, we draw the crosshairs later
+            continue;
+        }
 
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
         // Get the angles, scaled between (-0.5,0.5)
-        float xAngle = (atan2(direction.z, direction.x) + M_PI_2) ;
+        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
         float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
         // Get the pixel range over which the xAngle and yAngle are scaled
@@ -621,24 +638,7 @@ void ApplicationOverlay::renderControllerPointers() {
             continue;
         }
         _reticleActive[index] = true;
-     
-        //if we have the oculus, we should make the cursor smaller since it will be
-        //magnified
-        if (OculusManager::isConnected()) {
-          
-            _mouseX[index] = mouseX;
-            _mouseY[index] = mouseY;
 
-            //When button 2 is pressed we drag the mag window
-            if (isPressed[index]) {
-                _magActive[index] = true;
-                _magX[index] = mouseX;
-                _magY[index] = mouseY;
-            }
-
-            // If oculus is enabled, we draw the crosshairs later
-            continue;
-        }
 
         const float reticleSize = 40.0f;
 
