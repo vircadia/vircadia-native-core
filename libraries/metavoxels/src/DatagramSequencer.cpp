@@ -79,7 +79,7 @@ ReliableChannel* DatagramSequencer::getReliableInputChannel(int index) {
     return channel;
 }
 
-int DatagramSequencer::startPacketGroup(int desiredPackets) {
+int DatagramSequencer::notePacketGroup(int desiredPackets) {
     // figure out how much data we have enqueued and increase the number of packets desired
     int totalAvailable = 0;
     foreach (ReliableChannel* channel, _reliableOutputChannels) {
@@ -113,17 +113,16 @@ Bitstream& DatagramSequencer::startPacket() {
         _outgoingPacketStream << (quint32)record.packetNumber;
     }
     
-    // write the high-priority messages
-    _outgoingPacketStream << (quint32)_highPriorityMessages.size();
-    foreach (const HighPriorityMessage& message, _highPriorityMessages) {
-        _outputStream << message.data;
-    }
-    
     // return the stream, allowing the caller to write the rest
     return _outputStream;
 }
 
 void DatagramSequencer::endPacket() {
+    // write the high-priority messages
+    _outputStream << _highPriorityMessages.size();
+    foreach (const HighPriorityMessage& message, _highPriorityMessages) {
+        _outputStream << message.data;
+    }
     _outputStream.flush();
     
     // if we have space remaining, send some data from our reliable channels 
@@ -222,21 +221,21 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         _sendRecords.erase(_sendRecords.begin(), it + 1);
     }
     
+    // alert external parties so that they can read the middle
+    emit readyToRead(_inputStream);
+    
     // read and dispatch the high-priority messages
-    quint32 highPriorityMessageCount;
-    _incomingPacketStream >> highPriorityMessageCount;
+    int highPriorityMessageCount;
+    _inputStream >> highPriorityMessageCount;
     int newHighPriorityMessages = highPriorityMessageCount - _receivedHighPriorityMessages;
-    for (quint32 i = 0; i < highPriorityMessageCount; i++) {
+    for (int i = 0; i < highPriorityMessageCount; i++) {
         QVariant data;
         _inputStream >> data;
-        if ((int)i >= _receivedHighPriorityMessages) {
+        if (i >= _receivedHighPriorityMessages) {
             emit receivedHighPriorityMessage(data);
         }
     }
     _receivedHighPriorityMessages = highPriorityMessageCount;
-    
-    // alert external parties so that they can read the middle
-    emit readyToRead(_inputStream);
     
     // read the reliable data, if any
     quint32 reliableChannels;
@@ -253,6 +252,8 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     // record the receipt
     ReceiveRecord record = { _incomingPacketNumber, _inputStream.getAndResetReadMappings(), newHighPriorityMessages };
     _receiveRecords.append(record);
+    
+    emit receiveRecorded();
 }
 
 void DatagramSequencer::sendClearSharedObjectMessage(int id) {
@@ -272,6 +273,11 @@ void DatagramSequencer::handleHighPriorityMessage(const QVariant& data) {
     if (data.userType() == ClearSharedObjectMessage::Type) {
         _inputStream.clearSharedObject(data.value<ClearSharedObjectMessage>().id);
     }
+}
+
+void DatagramSequencer::clearReliableChannel(QObject* object) {
+    ReliableChannel* channel = static_cast<ReliableChannel*>(object);
+    (channel->isOutput() ? _reliableOutputChannels : _reliableInputChannels).remove(channel->getIndex());
 }
 
 void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
@@ -295,7 +301,10 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     
     // acknowledge the received spans
     foreach (const ChannelSpan& span, record.spans) {
-        getReliableOutputChannel(span.channel)->spanAcknowledged(span);
+        ReliableChannel* channel = _reliableOutputChannels.value(span.channel);
+        if (channel) {
+            channel->spanAcknowledged(span);
+        }
     }
     
     // increase the packet rate with every ack until we pass the slow start threshold; then, every round trip
@@ -310,7 +319,10 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
 void DatagramSequencer::sendRecordLost(const SendRecord& record) {
     // notify the channels of their lost spans
     foreach (const ChannelSpan& span, record.spans) {
-        getReliableOutputChannel(span.channel)->spanLost(record.packetNumber, _outgoingPacketNumber + 1);
+        ReliableChannel* channel = _reliableOutputChannels.value(span.channel);
+        if (channel) {
+            channel->spanLost(record.packetNumber, _outgoingPacketNumber + 1);
+        }
     }
     
     // halve the rate and remember as threshold
@@ -363,6 +375,8 @@ void DatagramSequencer::sendPacket(const QByteArray& packet, const QVector<Chann
     SendRecord record = { _outgoingPacketNumber, _receiveRecords.isEmpty() ? 0 : _receiveRecords.last().packetNumber,
         _outputStream.getAndResetWriteMappings(), spans };
     _sendRecords.append(record);
+    
+    emit sendRecorded();
     
     // write the sequence number and size, which are the same between all fragments
     _outgoingDatagramBuffer.seek(_datagramHeaderSize);
@@ -658,16 +672,24 @@ int ReliableChannel::getBytesAvailable() const {
     return _buffer.size() - _acknowledged.getTotalSet();
 }
 
-void ReliableChannel::sendMessage(const QVariant& message) {
-    // write a placeholder for the length, then fill it in when we know what it is
-    int placeholder = _buffer.pos();
-    _dataStream << (quint32)0;    
-    _bitstream << message;
+void ReliableChannel::startMessage() {
+    // write a placeholder for the length; we'll fill it in when we know what it is
+    _messageLengthPlaceholder = _buffer.pos();
+    _dataStream << (quint32)0;
+}
+
+void ReliableChannel::endMessage() {
     _bitstream.flush();
     _bitstream.persistAndResetWriteMappings();
     
-    quint32 length = _buffer.pos() - placeholder;
-    _buffer.writeBytes(placeholder, sizeof(quint32), (const char*)&length);
+    quint32 length = _buffer.pos() - _messageLengthPlaceholder;
+    _buffer.writeBytes(_messageLengthPlaceholder, sizeof(quint32), (const char*)&length);
+}
+
+void ReliableChannel::sendMessage(const QVariant& message) {
+    startMessage();
+    _bitstream << message;
+    endMessage();
 }
 
 void ReliableChannel::sendClearSharedObjectMessage(int id) {
@@ -675,7 +697,7 @@ void ReliableChannel::sendClearSharedObjectMessage(int id) {
     sendMessage(QVariant::fromValue(message));
 }
 
-void ReliableChannel::handleMessage(const QVariant& message) {
+void ReliableChannel::handleMessage(const QVariant& message, Bitstream& in) {
     if (message.userType() == ClearSharedObjectMessage::Type) {
         _bitstream.clearSharedObject(message.value<ClearSharedObjectMessage>().id);
     
@@ -688,6 +710,7 @@ void ReliableChannel::handleMessage(const QVariant& message) {
 ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool output) :
     QObject(sequencer),
     _index(index),
+    _output(output),
     _dataStream(&_buffer),
     _bitstream(_dataStream),
     _priority(1.0f),
@@ -700,7 +723,9 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
     _dataStream.setByteOrder(QDataStream::LittleEndian);
     
     connect(&_bitstream, SIGNAL(sharedObjectCleared(int)), SLOT(sendClearSharedObjectMessage(int)));
-    connect(this, SIGNAL(receivedMessage(const QVariant&)), SLOT(handleMessage(const QVariant&)));
+    connect(this, SIGNAL(receivedMessage(const QVariant&, Bitstream&)), SLOT(handleMessage(const QVariant&, Bitstream&)));
+    
+    sequencer->connect(this, SIGNAL(destroyed(QObject*)), SLOT(clearReliableChannel(QObject*)));
 }
 
 void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans) {
@@ -843,9 +868,9 @@ void ReliableChannel::readData(QDataStream& in) {
                     _dataStream.skipRawData(sizeof(quint32));
                     QVariant message;
                     _bitstream >> message;
+                    emit receivedMessage(message, _bitstream);
                     _bitstream.reset();
                     _bitstream.persistAndResetReadMappings();
-                    emit receivedMessage(message);
                     continue;
                 }
             }

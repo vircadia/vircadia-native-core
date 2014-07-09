@@ -63,7 +63,6 @@ public:
 
 protected:
 
-    virtual void writeUpdateMessage(Bitstream& out);
     virtual void handleMessage(const QVariant& message, Bitstream& in);
     
     virtual PacketRecord* maybeCreateSendRecord() const;
@@ -71,12 +70,22 @@ protected:
 private slots:
 
     void handleMessage(const QVariant& message);
+    void checkReliableDeltaReceived();
     
 private:
+    
+    void sendPacketGroup(int alreadySent = 0);
     
     MetavoxelServer* _server;
     
     MetavoxelLOD _lod;
+    
+    ReliableChannel* _reliableDeltaChannel;
+    int _reliableDeltaReceivedOffset;
+    MetavoxelData _reliableDeltaData;
+    MetavoxelLOD _reliableDeltaLOD;
+    Bitstream::WriteMappings _reliableDeltaWriteMappings;
+    int _reliableDeltaID;
 };
 
 #endif // hifi_MetavoxelServer_h

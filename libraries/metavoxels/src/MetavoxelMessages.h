@@ -61,6 +61,17 @@ class MetavoxelDeltaMessage {
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelDeltaMessage)
 
+/// A message indicating that metavoxel delta information is being sent on a reliable channel.
+class MetavoxelDeltaPendingMessage {
+    STREAMABLE
+    
+public:
+    
+    STREAM int id;
+};
+
+DECLARE_STREAMABLE_METATYPE(MetavoxelDeltaPendingMessage)
+
 /// A simple streamable edit.
 class MetavoxelEditMessage {
     STREAMABLE

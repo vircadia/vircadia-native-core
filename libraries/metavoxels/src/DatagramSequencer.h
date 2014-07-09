@@ -78,6 +78,15 @@ public:
     /// Returns the packet number of the last packet received (or the packet currently being assembled).
     int getIncomingPacketNumber() const { return _incomingPacketNumber; }
     
+    /// Returns a reference to the stream used to read packets.
+    Bitstream& getInputStream() { return _inputStream; }
+    
+    /// Returns a reference to the stream used to write packets.
+    Bitstream& getOutputStream() { return _outputStream; }
+    
+    /// Returns a reference to the outgoing packet data.
+    const QByteArray& getOutgoingPacketData() const { return _outgoingPacketData; }
+    
     /// Returns the packet number of the sent packet at the specified index.
     int getSentPacketNumber(int index) const { return _sendRecords.at(index).packetNumber; }
     
@@ -99,10 +108,10 @@ public:
     /// Returns the intput channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableInputChannel(int index = 0);
     
-    /// Starts a packet group.
+    /// Notes that we're sending a group of packets.
     /// \param desiredPackets the number of packets we'd like to write in the group
     /// \return the number of packets to write in the group
-    int startPacketGroup(int desiredPackets = 1);
+    int notePacketGroup(int desiredPackets = 1);
     
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
@@ -126,8 +135,14 @@ signals:
     /// Emitted when a packet is available to read.
     void readyToRead(Bitstream& input);
     
-    /// Emitted when we've received a high-priority message
+    /// Emitted when we've received a high-priority message.
     void receivedHighPriorityMessage(const QVariant& data);
+    
+    /// Emitted when we've recorded the transmission of a packet.
+    void sendRecorded();
+    
+    /// Emitted when we've recorded the receipt of a packet (that is, at the end of packet processing).
+    void receiveRecorded();
     
     /// Emitted when a sent packet has been acknowledged by the remote side.
     /// \param index the index of the packet in our list of send records
@@ -141,6 +156,7 @@ private slots:
 
     void sendClearSharedObjectMessage(int id);
     void handleHighPriorityMessage(const QVariant& data);
+    void clearReliableChannel(QObject* object);
     
 private:
     
@@ -319,6 +335,9 @@ public:
     /// Returns the channel's index in the sequencer's channel map.
     int getIndex() const { return _index; }
 
+    /// Checks whether this is an output channel. 
+    bool isOutput() const { return _output; }
+
     /// Returns a reference to the buffer used to write/read data to/from this channel.
     CircularBuffer& getBuffer() { return _buffer; }
     
@@ -336,22 +355,36 @@ public:
     /// Returns the number of bytes available to read from this channel.
     int getBytesAvailable() const;
 
+    /// Returns the offset, which represents the total number of bytes acknowledged
+    /// (on the write end) or received completely (on the read end).
+    int getOffset() const { return _offset; }
+
+    /// Returns the total number of bytes written to this channel.
+    int getBytesWritten() const { return _offset + _buffer.pos(); }
+
     /// Sets whether we expect to write/read framed messages.
     void setMessagesEnabled(bool enabled) { _messagesEnabled = enabled; }
     bool getMessagesEnabled() const { return _messagesEnabled; }
 
-    /// Sends a framed message on this channel.
+    /// Starts a framed message on this channel.
+    void startMessage();
+    
+    /// Ends a framed message on this channel.
+    void endMessage();
+
+    /// Sends a framed message on this channel (convenience function that calls startMessage,
+    /// writes the message to the bitstream, then calls endMessage).
     void sendMessage(const QVariant& message);
 
 signals:
 
     /// Fired when a framed message has been received on this channel.
-    void receivedMessage(const QVariant& message);
+    void receivedMessage(const QVariant& message, Bitstream& in);
 
 private slots:
 
     void sendClearSharedObjectMessage(int id);
-    void handleMessage(const QVariant& message);
+    void handleMessage(const QVariant& message, Bitstream& in);
     
 private:
     
@@ -370,6 +403,7 @@ private:
     void readData(QDataStream& in);
     
     int _index;
+    bool _output;
     CircularBuffer _buffer;
     CircularBuffer _assemblyBuffer;
     QDataStream _dataStream;
@@ -381,6 +415,7 @@ private:
     int _writePositionResetPacketNumber;
     SpanList _acknowledged;
     bool _messagesEnabled;
+    int _messageLengthPlaceholder;
 };
 
 #endif // hifi_DatagramSequencer_h
