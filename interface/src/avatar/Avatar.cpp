@@ -99,6 +99,7 @@ float Avatar::getLODDistance() const {
 }
 
 void Avatar::simulate(float deltaTime) {
+    PerformanceTimer perfTimer("simulate");
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }

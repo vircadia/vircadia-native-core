@@ -130,7 +130,6 @@ void MyAvatar::update(float deltaTime) {
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
-
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
