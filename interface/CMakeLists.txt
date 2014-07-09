@@ -151,6 +151,7 @@ find_package(PrioVR)
 find_package(SDL)
 find_package(Sixense)
 find_package(Visage)
+find_package(LeapMotion)
 find_package(ZLIB)
 find_package(Qxmpp)
 
@@ -210,7 +211,6 @@ if (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
   target_link_libraries(${TARGET_NAME} "${PRIOVR_LIBRARIES}")
 endif (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
 
-<<<<<<< HEAD
 # and with LeapMotion library
 if (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
     add_definitions(-DHAVE_LEAPMOTION)
@@ -222,8 +222,6 @@ if (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
     target_link_libraries(${TARGET_NAME} "${LEAPMOTION_LIBRARIES}")
 endif (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
 
-=======
->>>>>>> origin/master
 # and with SDL for joysticks
 if (SDL_FOUND AND NOT DISABLE_SDL)
   add_definitions(-DHAVE_SDL)

@@ -52,50 +52,17 @@ function avatarToWorldPos( apos ) {
 function avatarToWorldQuat( aori) {
 
     var wori = Quat.multiply(MyAvatar.orientation, aori);
-
-  //  var qoffset = Quat.angleAxis( -90, {x:0, y:1, z:0});
-  //  wori = Quat.multiply( wori, qoffset );
-
-    return wori;a
+    return wori;
 }
 
 function controlerToSkeletonOri( jointName, isRightSide, event ) {
  
-  //  var qrootoffset = Quat.angleAxis( -180, {x:0, y:1, z:0});
-  //  var qoffset = Quat.angleAxis( -( 2 * isRightSide - 1) * 90, {x:0, y:1, z:0});
+    var qAvatarRootOffset = Quat.angleAxis( -180, {x:0, y:1, z:0});
+    var qAxisOffset = Quat.angleAxis( -( 2 * isRightSide - 1) * 90, {x:0, y:1, z:0});
+    var qAbsJoint = event.absRotation;
 
 
-
- //  return Quat.multiply( qrootoffset, Quat.multiply( crot, qoffset ) );
-  // return Quat.multiply( crot, qoffset );
-   // return Quat.multiply( qrootoffset, crot );
- // return ( crot );
-
-  //return MyAvatar.getJointRotation( jointName );
-  //return Quat.fromPitchYawRollDegrees(0,0,30);
-
-  var qx = Quat.angleAxis( -90, {x:1, y:0, z:0});
-  var qy = Quat.angleAxis( 180, {x:0, y:1, z:0});
-  var q = Quat.multiply( qy, qx );
-
-  //  return q;
-
- // return  Quat.multiply( event.locRotation, q );
-    var cq = jointControllers[0].c.getAbsRotation();
-  //  return cq;
-    //var q = spatialEvent.absRotation;
-
-   // MyAvatar.clearJointData( jointName );    
-    var qjointRef = MyAvatar.getJointRotation( jointName );
-    print( jointName + " " + quatToString( qjointRef ) );
-
-        var qjointRefI = Quat.inverse( qjointRef );
-        var qjoint = Quat.multiply( cq, qjointRefI );
-
-
-    print( quatToString( cq )  );
-
-    return  qjoint;
+   return Quat.multiply( qAvatarRootOffset, Quat.multiply( qAbsJoint, qAxisOffset ) );
 }
 
 
@@ -114,11 +81,11 @@ function updateJointParticle( joint, pos, ori, look ) {
             damping: 0, 
             radius : radius,
             color: look.c,
-            lifetime: 0.1
+            lifetime: 0.05
         };
         var atomPos = Particles.addParticle(ballProperties);
-/* 
-        // Zaxis
+ 
+/*        // Zaxis
         var Zaxis = Vec3.multiply( Quat.getFront( ori ), - 1.5 * radius ) ;
         ballProperties.position = Vec3.sum(pos, Zaxis );
         ballProperties.radius = 0.35* radius;
@@ -171,58 +138,63 @@ function evalFingerBoneLook( isRightSide, finger, bone ) {
 }
 
 var leapJoints = [
-    { n: "LeftHand",        l: evalArmBoneLook( 0, 0) },
+
+    { n: "joint_L_elbow",        l: evalArmBoneLook( 0, 2) },
+    { n: "joint_L_hand",        l: evalArmBoneLook( 0, 1) },
+    { n: "joint_L_wrist",        l: evalArmBoneLook( 0, 0) },
     
-    { n: "LeftHandThumb2",  l: evalFingerBoneLook( 0, 1, 2) },
-    { n: "LeftHandThumb3",  l: evalFingerBoneLook( 0, 1, 3) },
-    { n: "LeftHandThumb4",  l: evalFingerBoneLook( 0, 1, 4) },
+    { n: "joint_L_thumb2",  l: evalFingerBoneLook( 0, 1, 2) },
+    { n: "joint_L_thumb3",  l: evalFingerBoneLook( 0, 1, 3) },
+    { n: "joint_L_thumb4",  l: evalFingerBoneLook( 0, 1, 4) },
 
-/*    { n: "LeftHandIndex1",  l: evalFingerBoneLook( 0, 2, 1) },
-    { n: "LeftHandIndex2",  l: evalFingerBoneLook( 0, 2, 2) },
-    { n: "LeftHandIndex3",  l: evalFingerBoneLook( 0, 2, 3) },
-    { n: "LeftHandIndex4",  l: evalFingerBoneLook( 0, 2, 4) },
+    { n: "joint_L_index1",  l: evalFingerBoneLook( 0, 2, 1) },
+    { n: "joint_L_index2",  l: evalFingerBoneLook( 0, 2, 2) },
+    { n: "joint_L_index3",  l: evalFingerBoneLook( 0, 2, 3) },
+    { n: "joint_L_index4",  l: evalFingerBoneLook( 0, 2, 4) },
     
-    { n: "LeftHandMiddle1",  l: evalFingerBoneLook( 0, 3, 1) },
-    { n: "LeftHandMiddle2",  l: evalFingerBoneLook( 0, 3, 2) },
-    { n: "LeftHandMiddle3",  l: evalFingerBoneLook( 0, 3, 3) },
-    { n: "LeftHandMiddle4",  l: evalFingerBoneLook( 0, 3, 4) },
+    { n: "joint_L_middle1",  l: evalFingerBoneLook( 0, 3, 1) },
+    { n: "joint_L_middle2",  l: evalFingerBoneLook( 0, 3, 2) },
+    { n: "joint_L_middle3",  l: evalFingerBoneLook( 0, 3, 3) },
+    { n: "joint_L_middle4",  l: evalFingerBoneLook( 0, 3, 4) },
 
-    { n: "LeftHandRing1",  l: evalFingerBoneLook( 0, 4, 1) },
-    { n: "LeftHandRing2",  l: evalFingerBoneLook( 0, 4, 2) },
-    { n: "LeftHandRing3",  l: evalFingerBoneLook( 0, 4, 3) },
-    { n: "LeftHandRing4",  l: evalFingerBoneLook( 0, 4, 4) },
+    { n: "joint_L_ring1",  l: evalFingerBoneLook( 0, 4, 1) },
+    { n: "joint_L_ring2",  l: evalFingerBoneLook( 0, 4, 2) },
+    { n: "joint_L_ring3",  l: evalFingerBoneLook( 0, 4, 3) },
+    { n: "joint_L_ring4",  l: evalFingerBoneLook( 0, 4, 4) },
 
-    { n: "LeftHandPinky1",  l: evalFingerBoneLook( 0, 5, 1) },
-    { n: "LeftHandPinky2",  l: evalFingerBoneLook( 0, 5, 2) },
-    { n: "LeftHandPinky3",  l: evalFingerBoneLook( 0, 5, 3) },
-    { n: "LeftHandPinky4",  l: evalFingerBoneLook( 0, 5, 4) },   
-*/
-    { n: "RightHand",        l: evalArmBoneLook( 1, 0) },
-/*
-    { n: "RightHandThumb2",  l: evalFingerBoneLook( 1, 1, 2) },
-    { n: "RightHandThumb3",  l: evalFingerBoneLook( 1, 1, 3) },
-    { n: "RightHandThumb4",  l: evalFingerBoneLook( 1, 1, 4) },
-*/
-    { n: "RightHandIndex1",  l: evalFingerBoneLook( 1, 2, 1) },
-    { n: "RightHandIndex2",  l: evalFingerBoneLook( 1, 2, 2) },
-    { n: "RightHandIndex3",  l: evalFingerBoneLook( 1, 2, 3) },
-    { n: "RightHandIndex4",  l: evalFingerBoneLook( 1, 2, 4) },
+    { n: "joint_L_pinky1",  l: evalFingerBoneLook( 0, 5, 1) },
+    { n: "joint_L_pinky2",  l: evalFingerBoneLook( 0, 5, 2) },
+    { n: "joint_L_pinky3",  l: evalFingerBoneLook( 0, 5, 3) },
+    { n: "joint_L_pinky4",  l: evalFingerBoneLook( 0, 5, 4) },   
 
-/*    { n: "RightHandMiddle1",  l: evalFingerBoneLook( 1, 3, 1) },
-    { n: "RightHandMiddle2",  l: evalFingerBoneLook( 1, 3, 2) },
-    { n: "RightHandMiddle3",  l: evalFingerBoneLook( 1, 3, 3) },
-    { n: "RightHandMiddle4",  l: evalFingerBoneLook( 1, 3, 4) },
+    { n: "joint_R_elbow",        l: evalArmBoneLook( 1, 2) },
+    { n: "joint_R_hand",        l: evalArmBoneLook( 1, 1) },   
+    { n: "joint_R_wrist",        l: evalArmBoneLook( 1, 0) },
+    
+    { n: "joint_R_thumb2",  l: evalFingerBoneLook( 1, 1, 2) },
+    { n: "joint_R_thumb3",  l: evalFingerBoneLook( 1, 1, 3) },
+    { n: "joint_R_thumb4",  l: evalFingerBoneLook( 1, 1, 4) },
 
-    { n: "RightHandRing1",  l: evalFingerBoneLook( 1, 4, 1) },
-    { n: "RightHandRing2",  l: evalFingerBoneLook( 1, 4, 2) },
-    { n: "RightHandRing3",  l: evalFingerBoneLook( 1, 4, 3) },
-    { n: "RightHandRing4",  l: evalFingerBoneLook( 1, 4, 4) },
+    { n: "joint_R_index1",  l: evalFingerBoneLook( 1, 2, 1) },
+    { n: "joint_R_index2",  l: evalFingerBoneLook( 1, 2, 2) },
+    { n: "joint_R_index3",  l: evalFingerBoneLook( 1, 2, 3) },
+    { n: "joint_R_index4",  l: evalFingerBoneLook( 1, 2, 4) },
+    
+    { n: "joint_R_middle1",  l: evalFingerBoneLook( 1, 3, 1) },
+    { n: "joint_R_middle2",  l: evalFingerBoneLook( 1, 3, 2) },
+    { n: "joint_R_middle3",  l: evalFingerBoneLook( 1, 3, 3) },
+    { n: "joint_R_middle4",  l: evalFingerBoneLook( 1, 3, 4) },
 
-    { n: "RightHandPinky1",  l: evalFingerBoneLook( 1, 5, 1) },
-    { n: "RightHandPinky2",  l: evalFingerBoneLook( 1, 5, 2) },
-    { n: "RightHandPinky3",  l: evalFingerBoneLook( 1, 5, 3) },
-    { n: "RightHandPinky4",  l: evalFingerBoneLook( 1, 5, 4) }, 
-    */
+    { n: "joint_R_ring1",  l: evalFingerBoneLook( 1, 4, 1) },
+    { n: "joint_R_ring2",  l: evalFingerBoneLook( 1, 4, 2) },
+    { n: "joint_R_ring3",  l: evalFingerBoneLook( 1, 4, 3) },
+    { n: "joint_R_ring4",  l: evalFingerBoneLook( 1, 4, 4) },
+
+    { n: "joint_R_pinky1",  l: evalFingerBoneLook( 1, 5, 1) },
+    { n: "joint_R_pinky2",  l: evalFingerBoneLook( 1, 5, 2) },
+    { n: "joint_R_pinky3",  l: evalFingerBoneLook( 1, 5, 3) },
+    { n: "joint_R_pinky4",  l: evalFingerBoneLook( 1, 5, 4) },   
+
  ];
 
 function onSpatialEventHandler( jointName, look ) {
@@ -231,7 +203,14 @@ function onSpatialEventHandler( jointName, look ) {
     var _side = look.side;
     return (function( spatialEvent ) {
 
-        MyAvatar.setJointData(_jointName, controlerToSkeletonOri( _jointName, _side, spatialEvent ));
+        // THis should be the call to update the skeleton joint from 
+        // the absolute joint transform coming from the Leap controller
+        // WE need a new method on MyAvatar which will ultimately call
+        // state.setRotationFromBindFrame(rotation, priority)  in 
+        // Avatar::simulate=>void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority)
+      
+        // MyAvatar.setJointRotationFromBindSpace(_jointName, controlerToSkeletonOri( _jointName, _side, spatialEvent ));
+
 
         updateJointParticle(_jointName,
             avatarToWorldPos( spatialEvent.absTranslation ),
@@ -247,6 +226,8 @@ var jointControllers = [];
 for ( i in leapJoints ) {
 
     print( leapJoints[i].n );
+    // In the current implementation, the LEapmotion is the only "Spatial" device
+    // Each jointTracker is retreived from the joint name following the rigging convention
     var controller = Controller.createInputController( "Spatial", leapJoints[i].n );
     var handler = onSpatialEventHandler( leapJoints[i].n, leapJoints[i].l );
     jointControllers.push( { c: controller, h: handler } );
@@ -270,12 +251,7 @@ Script.update.connect(function(deltaTime) {
                 jointControllers[i].h( spatialEvent );
             }
         }
-    }
-
-    // simple test
-   // MyAvatar.setJointData("LeftArm", jointControllers[6].c.getLocRotation());
-   // MyAvatar.setJointData("LeftForeArm", jointControllers[7].c.getLocRotation());
- 
+    } 
 });
 
 Script.scriptEnding.connect(function() {
