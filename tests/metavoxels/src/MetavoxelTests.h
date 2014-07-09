@@ -79,6 +79,8 @@ private:
     
     MetavoxelData _data;
     MetavoxelLOD _dataLOD;
+    MetavoxelData _remoteData;
+    MetavoxelLOD _remoteDataLOD;
     MetavoxelLOD _lod;
     
     SharedObjectPointer _sphere;
@@ -104,6 +106,7 @@ private:
     MetavoxelData _reliableDeltaData;
     MetavoxelLOD _reliableDeltaLOD;
     Bitstream::WriteMappings _reliableDeltaWriteMappings;
+    int _reliableDeltaID;
 };
 
 /// A simple shared object.

@@ -87,13 +87,14 @@ void MetavoxelServer::sendDeltas() {
     int elapsed = now - _lastSend;
     _lastSend = now;
     
-    _sendTimer.start(qMax(0, 2 * SEND_INTERVAL - elapsed));
+    _sendTimer.start(qMax(0, 2 * SEND_INTERVAL - qMax(elapsed, SEND_INTERVAL)));
 }
 
 MetavoxelSession::MetavoxelSession(const SharedNodePointer& node, MetavoxelServer* server) :
     Endpoint(node, new PacketRecord(), NULL),
     _server(server),
-    _reliableDeltaChannel(NULL) {
+    _reliableDeltaChannel(NULL),
+    _reliableDeltaID(0) {
     
     connect(&_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)), SLOT(handleMessage(const QVariant&)));
     connect(&_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(checkReliableDeltaReceived()));
@@ -108,9 +109,7 @@ void MetavoxelSession::update() {
     }
     // if we're sending a reliable delta, wait until it's acknowledged
     if (_reliableDeltaChannel) {
-        Bitstream& out = _sequencer.startPacket();
-        out << QVariant::fromValue(MetavoxelDeltaPendingMessage());
-        _sequencer.endPacket();
+        sendPacketGroup();
         return;
     }
     Bitstream& out = _sequencer.startPacket();
@@ -134,12 +133,16 @@ void MetavoxelSession::update() {
         
         // go back to the beginning with the current packet and note that there's a delta pending
         _sequencer.getOutputStream().getUnderlying().device()->seek(start);
-        out << QVariant::fromValue(MetavoxelDeltaPendingMessage());
+        MetavoxelDeltaPendingMessage msg = { ++_reliableDeltaID };
+        out << QVariant::fromValue(msg);
         _sequencer.endPacket();
         
     } else {
         _sequencer.endPacket();
     }
+    
+    // perhaps send additional packets to fill out the group
+    sendPacketGroup(1);   
 }
 
 void MetavoxelSession::handleMessage(const QVariant& message, Bitstream& in) {
@@ -175,4 +178,18 @@ void MetavoxelSession::checkReliableDeltaReceived() {
     _reliableDeltaWriteMappings = Bitstream::WriteMappings();
     _reliableDeltaData = MetavoxelData();
     _reliableDeltaChannel = NULL;
+}
+
+void MetavoxelSession::sendPacketGroup(int alreadySent) {
+    int additionalPackets = _sequencer.notePacketGroup() - alreadySent;
+    for (int i = 0; i < additionalPackets; i++) {
+        Bitstream& out = _sequencer.startPacket();
+        if (_reliableDeltaChannel) {
+            MetavoxelDeltaPendingMessage msg = { _reliableDeltaID };
+            out << QVariant::fromValue(msg);
+        } else {
+            out << QVariant();
+        }
+        _sequencer.endPacket();
+    }
 }
