@@ -50,6 +50,7 @@ protected:
 private slots:
     void activeChanged(Qt::ApplicationState state);
     void throttleRender();
+    bool eventFilter(QObject*, QEvent* event);
 };
 
 #endif // hifi_GLCanvas_h

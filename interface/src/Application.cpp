@@ -803,6 +803,7 @@ bool Application::event(QEvent* event) {
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
+    qDebug("Application::keyPressEvent(%x)", event->key());
 
     _keysPressed.insert(event->key());
 
@@ -1053,6 +1054,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
+    qDebug("Application::keyReleaseEvent(%x)", event->key());
 
     _keysPressed.remove(event->key());
 
