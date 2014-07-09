@@ -1853,8 +1853,6 @@ void Application::updateMouseRay() {
 }
 
 void Application::updateFaceshift() {
-    PerformanceTimer perfTimer("faceshift");
-
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
 
@@ -1868,8 +1866,6 @@ void Application::updateFaceshift() {
 }
 
 void Application::updateVisage() {
-    PerformanceTimer perfTimer("visage");
-
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateVisage()");
 
@@ -2055,18 +2051,17 @@ void Application::update(float deltaTime) {
 
     updateLOD();
     updateMouseRay(); // check what's under the mouse and update the mouse voxel
-    updateFaceshift();
-    updateVisage();
-
+    {
+        PerformanceTimer perfTimer("devices");
+        updateFaceshift();
+        updateVisage();
+        _sixenseManager.update(deltaTime);
+        _joystickManager.update();
+        _prioVR.update(deltaTime);
+    }
     {
         PerformanceTimer perfTimer("myAvatar");
         updateMyAvatarLookAtPosition();
-        {
-            PerformanceTimer perfTimer("devices");
-            _sixenseManager.update(deltaTime);
-            _joystickManager.update();
-            _prioVR.update(deltaTime);
-        }
         updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     }
     
