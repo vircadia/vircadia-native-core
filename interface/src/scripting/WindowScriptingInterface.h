@@ -31,12 +31,14 @@ public slots:
     QScriptValue confirm(const QString& message = "");
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
 private slots:
     QScriptValue showAlert(const QString& message);
     QScriptValue showConfirm(const QString& message);
     QScriptValue showPrompt(const QString& message, const QString& defaultText);
-    QScriptValue showBrowse(const QString& title, const QString& directory, const QString& nameFilter);
+    QScriptValue showBrowse(const QString& title, const QString& directory, const QString& nameFilter,
+                            QFileDialog::AcceptMode acceptMode = QFileDialog::AcceptOpen);
 };
 
 #endif // hifi_WindowScriptingInterface_h

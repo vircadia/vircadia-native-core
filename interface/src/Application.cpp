@@ -141,6 +141,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(NULL),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
+        _modelClipboardRenderer(),
+        _modelClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
@@ -1483,6 +1485,21 @@ struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
 };
 
+void Application::exportModels(const QString& filename, float x, float y, float z, float scale) {
+    ModelTreeElement* selectedNode = _models.getTree()->getModelAt(x, y, z, scale);
+    if (selectedNode) {
+        qDebug() << "Exporting models doing it!" << filename;
+        ModelTree exportTree;
+        _models.getTree()->copySubTreeIntoNewTree(selectedNode, &exportTree, true);
+        exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
+    } else {
+        qDebug() << "No models were selected";
+    }
+
+    // restore the main window's active state
+    _window->activateWindow();
+}
+
 bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
@@ -1557,6 +1574,20 @@ void Application::importVoxels() {
             _sharedVoxelSystem.changeTree(&_clipboard);
         }
     }
+
+    // restore the main window's active state
+    _window->activateWindow();
+
+    emit importDone();
+}
+
+void Application::importModels(const QString& filename) {
+    _importSucceded = false;
+
+
+    _models.getTree()->readFromSVOFile(filename.toLocal8Bit().constData());
+    _models.getTree()->reaverageOctreeElements();
+
 
     // restore the main window's active state
     _window->activateWindow();
@@ -1718,6 +1749,10 @@ void Application::init() {
 
     _models.init();
     _models.setViewFrustum(getViewFrustum());
+
+    _modelClipboardRenderer.init();
+    _modelClipboardRenderer.setViewFrustum(getViewFrustum());
+    _modelClipboardRenderer.setTree(&_modelClipboard);
 
     _metavoxels.init();
 
@@ -2083,6 +2118,7 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("idle/update/_models");
         _models.update(); // update the models...
+        _modelClipboardRenderer.update();
     }
 
     {
@@ -2566,6 +2602,7 @@ void Application::updateShadowMap() {
         _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
         _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
         _models.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        _modelClipboardRenderer.render(OctreeRenderer::SHADOW_RENDER_MODE);
 
         glDisable(GL_POLYGON_OFFSET_FILL);
 
@@ -2767,6 +2804,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... models...");
             _models.render();
+            _modelClipboardRenderer.render();
         }
 
         // render the ambient occlusion effect if enabled

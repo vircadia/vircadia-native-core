@@ -308,6 +308,9 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
 
+    void exportModels(const QString& filename, float x, float y, float z, float scale);
+    void importModels(const QString& filename);
+
     void importVoxels(); // doesn't include source voxel because it goes to clipboard
     void cutVoxels(const VoxelDetail& sourceVoxel);
     void copyVoxels(const VoxelDetail& sourceVoxel);
@@ -452,6 +455,8 @@ private:
     ParticleCollisionSystem _particleCollisionSystem;
 
     ModelTreeRenderer _models;
+    ModelTreeRenderer _modelClipboardRenderer;
+    ModelTree _modelClipboard;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;

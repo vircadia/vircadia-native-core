@@ -100,3 +100,16 @@ void ClipboardScriptingInterface::nudgeVoxel(float x, float y, float z, float s,
 
     Application::getInstance()->nudgeVoxelsByVector(sourceVoxel, nudgeVecInTreeSpace);
 }
+
+
+void ClipboardScriptingInterface::exportModels(const QString& filename, float x, float y, float z, float s) {
+    Application::getInstance()->exportModels(filename, x / TREE_SCALE, y / TREE_SCALE, z / TREE_SCALE, s / TREE_SCALE);
+}
+
+void ClipboardScriptingInterface::importModels(const QString& filename) {
+    Application::getInstance()->importModels(filename);
+}
+
+void ClipboardScriptingInterface::pasteModels() {
+    // TODO
+}
