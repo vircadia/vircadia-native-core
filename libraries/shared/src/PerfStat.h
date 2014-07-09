@@ -25,13 +25,13 @@
 
 class PerformanceWarning {
 private:
-	quint64 _start;
-	const char* _message;
-	bool _renderWarningsOn;
-	bool _alwaysDisplay;
-	quint64* _runningTotal;
-	quint64* _totalCalls;
-	static bool _suppressShortTimings;
+    quint64 _start;
+    const char* _message;
+    bool _renderWarningsOn;
+    bool _alwaysDisplay;
+    quint64* _runningTotal;
+    quint64* _totalCalls;
+    static bool _suppressShortTimings;
 public:
 
     PerformanceWarning(bool renderWarnings, const char* message, bool alwaysDisplay = false,
@@ -62,13 +62,13 @@ public:
     quint64 getCount() const { return _numTallies; }
     
 private:
-	quint64 _runningTotal;
+    quint64 _runningTotal;
     quint64 _lastTotal;
     quint64 _numAccumulations;
-	quint64 _numTallies;
+    quint64 _numTallies;
     quint64 _expiry;
-	SimpleMovingAverage _movingAverage;
-};
+    SimpleMovingAverage _movingAverage;
+    
 
 class PerformanceTimer {
 public:
@@ -89,10 +89,10 @@ public:
     static void dumpAllTimerRecords();
 
 private:
-	quint64 _start;
-	QString _name;
+    quint64 _start;
+    QString _name;
     static QString _fullName;
-	static QMap<QString, PerformanceTimerRecord> _records;
+    static QMap<QString, PerformanceTimerRecord> _records;
 };
 
 

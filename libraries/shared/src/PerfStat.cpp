@@ -90,8 +90,8 @@ PerformanceTimer::~PerformanceTimer() {
 
 // static 
 void PerformanceTimer::tallyAllTimerRecords() {
-	QMap<QString, PerformanceTimerRecord>::iterator recordsItr = _records.begin();
-	QMap<QString, PerformanceTimerRecord>::const_iterator recordsEnd = _records.end();
+    QMap<QString, PerformanceTimerRecord>::iterator recordsItr = _records.begin();
+    QMap<QString, PerformanceTimerRecord>::const_iterator recordsEnd = _records.end();
     quint64 now = usecTimestampNow();
     while (recordsItr != recordsEnd) {
         recordsItr.value().tallyResult(now);
