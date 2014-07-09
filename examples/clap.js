@@ -1,47 +1,51 @@
 //
-//  cameraExample.js
+//  clap.js
 //  examples
 //
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This sample script watches your hydra hands and makes clapping sound when they come close together fast 
+//  This sample script watches your hydra hands and makes clapping sound when they come close together fast, 
+//  and also watches for the 'shift' key and claps when that key is pressed.  Clapping multiple times by pressing 
+//  the shift key again makes the animation and sound match your pace of clapping. 
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 var clapAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+var ANIMATION_FRAMES_PER_CLAP = 10.0;
 var startEndFrames = [];
-startEndFrames.push({ start: 0, end: 8});
+startEndFrames.push({ start: 0, end: 10});
 startEndFrames.push({ start: 10, end: 20});
-startEndFrames.push({ start: 20, end: 28});
-startEndFrames.push({ start: 30, end: 37});
-startEndFrames.push({ start: 41, end: 46});
-startEndFrames.push({ start: 53, end: 58});
+startEndFrames.push({ start: 20, end: 30});
+startEndFrames.push({ start: 30, end: 40});
+startEndFrames.push({ start: 41, end: 51});
+startEndFrames.push({ start: 53, end: 0});
 
 var lastClapFrame = 0;
 var lastAnimFrame = 0;
 
 var claps = [];
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap1Reverb.wav"));
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap2Reverb.wav"));
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap3Reverb.wav"));
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap4Reverb.wav"));
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap5Reverb.wav"));
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap6Reverb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap1Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap2Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap3Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap4Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap5Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap6Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap7Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap8Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap9Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap10Rvb.wav"));
 var numberOfSounds = claps.length;
 
 var clappingNow = false;
 var collectedClicks = 0;
 
+var clickStartTime, clickEndTime;
 var clickClappingNow = false; 
 var CLAP_START_RATE = 15.0;
 var clapRate = CLAP_START_RATE; 
 var startedTimer = false; 
-
-var clapping = new Array();
-clapping[0] = false; 
-clapping[1] = false; 
 
 function maybePlaySound(deltaTime) {
 	//  Set the location and other info for the sound to play
@@ -51,9 +55,9 @@ function maybePlaySound(deltaTime) {
 	var frame = Math.floor(animationDetails.frameIndex);
 
 	if (frame != lastAnimFrame) {
-		print("frame " + frame);
 		lastAnimFrame = frame;
 	}
+
 	for (var i = 0; i < startEndFrames.length; i++) {
 		if (frame == startEndFrames[i].start && (frame != lastClapFrame)) {
 			playClap(1.0, Camera.getPosition());
@@ -90,34 +94,41 @@ function playClap(volume, position) {
 	Audio.playSound(claps[clip], options);
 }
 
-function keepClapping() {
-	playClap(1.0, Camera.getPosition());
-} 
+var FASTEST_CLAP_INTERVAL = 100.0;
+var SLOWEST_CLAP_INTERVAL = 2000.0;
 
 Controller.keyPressEvent.connect(function(event) {
 	if(event.text == "SHIFT") {
 		if (!clickClappingNow) {
+			clickClappingNow = true;
+			clickStartTime = new Date();
 			playClap(1.0, Camera.getPosition());
-			var whichClip = Math.floor(Math.random() * startEndFrames.length);
 			lastClapFrame = 0;
 			MyAvatar.startAnimation(clapAnimation, clapRate, 1.0, true, false);
-			clickClappingNow = true;
 		} else {
-			clapRate *= 1.25;
-			MyAvatar.stopAnimation(clapAnimation);
-			MyAvatar.startAnimation(clapAnimation, clapRate, 1.0, true, false);
+			//  Adjust animation speed for measured clicking interval
+			clickEndTime = new Date();
+			var milliseconds = clickEndTime - clickStartTime;
+			clickStartTime = new Date();
+			if ((milliseconds < SLOWEST_CLAP_INTERVAL) && (milliseconds > FASTEST_CLAP_INTERVAL)) {
+				clapRate = ANIMATION_FRAMES_PER_CLAP * (1000.0 / milliseconds);
+				playClap(1.0, Camera.getPosition());
+				MyAvatar.stopAnimation(clapAnimation);
+				MyAvatar.startAnimation(clapAnimation, clapRate, 1.0, true, false);
+			}
 			collectedClicks = collectedClicks + 1;
 		}
 	}
 });
 
-var CLAP_END_WAIT_MSECS = 500;
+var CLAP_END_WAIT_MSECS = 300;
 Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "SHIFT") {
+    	collectedClicks = 0;
     	if (!startedTimer) {
-   		startedTimer = true;
     		collectedClicks = 0;
     		Script.setTimeout(stopClapping, CLAP_END_WAIT_MSECS);
+    		startedTimer = true;
     	}
     }
 });
@@ -135,4 +146,3 @@ function stopClapping() {
 
 // Connect a call back that happens every frame
 Script.update.connect(maybePlaySound);
-//Controller.keyPressEvent.connect(keyPressEvent);

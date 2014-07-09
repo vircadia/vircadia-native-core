@@ -108,15 +108,10 @@ void MyAvatar::reset() {
 }
 
 void MyAvatar::update(float deltaTime) {
-    PerformanceTimer perfTimer("MyAvatar::update/");
     Head* head = getHead();
     head->relaxLean(deltaTime);
-    {
-        PerformanceTimer perfTimer("MyAvatar::update/updateFromTrackers");
-        updateFromTrackers(deltaTime);
-    }
+    updateFromTrackers(deltaTime);
     if (Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
-        PerformanceTimer perfTimer("MyAvatar::update/moveWithLean");
         // Faceshift drive is enabled, set the avatar drive based on the head position
         moveWithLean();
     }
@@ -127,19 +122,14 @@ void MyAvatar::update(float deltaTime) {
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
     if (_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY) {
-        PerformanceTimer perfTimer("MyAvatar::update/gravityWork");
         setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
     }
 
-    {
-        PerformanceTimer perfTimer("MyAvatar::update/simulate");
-        simulate(deltaTime);
-    }
+    simulate(deltaTime);
 }
 
 void MyAvatar::simulate(float deltaTime) {
-    PerformanceTimer perfTimer("MyAvatar::simulate");
-
+    PerformanceTimer perfTimer("simulate");
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
@@ -150,31 +140,28 @@ void MyAvatar::simulate(float deltaTime) {
     _handState = HAND_STATE_NULL;
 
     {
-        PerformanceTimer perfTimer("MyAvatar::simulate/updateOrientation");
+        PerformanceTimer perfTimer("transform");
         updateOrientation(deltaTime);
-    }
-    {
-        PerformanceTimer perfTimer("MyAvatar::simulate/updatePosition");
         updatePosition(deltaTime);
     }
 
     {
-        PerformanceTimer perfTimer("MyAvatar::simulate/hand Collision,simulate");
+        PerformanceTimer perfTimer("hand");
         // update avatar skeleton and simulate hand and head
         getHand()->simulate(deltaTime, true);
     }
 
     {
-        PerformanceTimer perfTimer("MyAvatar::simulate/_skeletonModel.simulate()");
+        PerformanceTimer perfTimer("skeleton");
         _skeletonModel.simulate(deltaTime);
     }
     {
-        PerformanceTimer perfTimer("MyAvatar::simulate/simulateAttachments");
+        PerformanceTimer perfTimer("attachments");
         simulateAttachments(deltaTime);
     }
 
     {
-        PerformanceTimer perfTimer("MyAvatar::simulate/copy joints");
+        PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _jointData.resize(_skeletonModel.getJointStateCount());
         for (int i = 0; i < _jointData.size(); i++) {
@@ -184,7 +171,7 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     {
-        PerformanceTimer perfTimer("MyAvatar::simulate/head Simulate");
+        PerformanceTimer perfTimer("head");
         Head* head = getHead();
         glm::vec3 headPosition;
         if (!_skeletonModel.getHeadPosition(headPosition)) {
@@ -196,7 +183,7 @@ void MyAvatar::simulate(float deltaTime) {
     }
     
     {
-        PerformanceTimer perfTimer("MyAvatar::simulate/hair Simulate");
+        PerformanceTimer perfTimer("hair");
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
             simulateHair(deltaTime);
             foreach (Hair* hair, _hairs) {
@@ -206,7 +193,7 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     {
-        PerformanceTimer perfTimer("MyAvatar::simulate/ragdoll");
+        PerformanceTimer perfTimer("ragdoll");
         if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
             const int minError = 0.01f;
             const float maxIterations = 10;
@@ -219,7 +206,7 @@ void MyAvatar::simulate(float deltaTime) {
 
     // now that we're done stepping the avatar forward in time, compute new collisions
     if (_collisionGroups != 0) {
-        PerformanceTimer perfTimer("MyAvatar::simulate/_collisionGroups");
+        PerformanceTimer perfTimer("collisions");
         Camera* myCamera = Application::getInstance()->getCamera();
 
         float radius = getSkeletonHeight() * COLLISION_RADIUS_SCALE;
@@ -228,18 +215,18 @@ void MyAvatar::simulate(float deltaTime) {
             radius *= COLLISION_RADIUS_SCALAR;
         }
         if (_collisionGroups & COLLISION_GROUP_ENVIRONMENT) {
-            PerformanceTimer perfTimer("MyAvatar::simulate/updateCollisionWithEnvironment");
+            PerformanceTimer perfTimer("environment");
             updateCollisionWithEnvironment(deltaTime, radius);
         }
         if (_collisionGroups & COLLISION_GROUP_VOXELS) {
-            PerformanceTimer perfTimer("MyAvatar::simulate/updateCollisionWithVoxels");
+            PerformanceTimer perfTimer("voxels");
             updateCollisionWithVoxels(deltaTime, radius);
         } else {
             _trapDuration = 0.0f;
         }
     /* TODO: Andrew to make this work
         if (_collisionGroups & COLLISION_GROUP_AVATARS) {
-            PerformanceTimer perfTimer("MyAvatar::simulate/updateCollisionWithAvatars");
+            PerformanceTimer perfTimer("avatars");
             updateCollisionWithAvatars(deltaTime);
         }
     */
@@ -916,7 +903,6 @@ bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode rend
 }
 
 float MyAvatar::computeDistanceToFloor(const glm::vec3& startPoint) {
-    PerformanceTimer perfTimer("MyAvatar::computeDistanceToFloor()");
     glm::vec3 direction = -_worldUpDirection;
     OctreeElement* elementHit; // output from findRayIntersection
     float distance = FLT_MAX; // output from findRayIntersection
@@ -982,7 +968,6 @@ void MyAvatar::updateOrientation(float deltaTime) {
 const float NEARBY_FLOOR_THRESHOLD = 5.0f;
 
 void MyAvatar::updatePosition(float deltaTime) {
-    PerformanceTimer perfTimer("MyAvatar::updatePosition");
     float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
         fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT]) + 
         fabsf(_driveKeys[UP] - _driveKeys[DOWN]);

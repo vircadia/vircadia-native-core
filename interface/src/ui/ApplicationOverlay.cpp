@@ -40,7 +40,6 @@ ApplicationOverlay::ApplicationOverlay() :
     _framebufferObject(NULL),
     _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
     _alpha(1.0f),
-    _active(true),
     _crosshairTexture(0) {
 
     memset(_reticleActive, 0, sizeof(_reticleActive));
@@ -70,8 +69,8 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
 
-    //Handle fadeing and deactivation/activation of UI
-    if (_active) {
+    //Handle fading and deactivation/activation of UI
+    if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
         _alpha += FADE_SPEED;
         if (_alpha > 1.0f) {
             _alpha = 1.0f;
@@ -581,7 +580,8 @@ void ApplicationOverlay::renderControllerPointers() {
         if (palmData->getTrigger() == 1.0f) {
             if (!triggerPressed[index]) {
                 if (bumperPressed[index]) {
-                    _active = !_active;
+                    Menu::getInstance()->setIsOptionChecked(MenuOption::UserInterface, 
+                        !Menu::getInstance()->isOptionChecked(MenuOption::UserInterface));
                 }
                 triggerPressed[index] = true;
             }
@@ -591,7 +591,8 @@ void ApplicationOverlay::renderControllerPointers() {
         if ((controllerButtons & BUTTON_FWD)) {
             if (!bumperPressed[index]) {
                 if (triggerPressed[index]) {
-                    _active = !_active;
+                    Menu::getInstance()->setIsOptionChecked(MenuOption::UserInterface, 
+                        !Menu::getInstance()->isOptionChecked(MenuOption::UserInterface));
                 }
                 bumperPressed[index] = true;
             }
@@ -1186,6 +1187,14 @@ void ApplicationOverlay::renderTexturedHemisphere() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+}
+
+void ApplicationOverlay::resize() {
+    if (_framebufferObject != NULL) {
+        delete _framebufferObject;
+        _framebufferObject = NULL;
+    }
+    // _framebufferObject is recreated at the correct size the next time it is accessed via getFramebufferObject().
 }
 
 QOpenGLFramebufferObject* ApplicationOverlay::getFramebufferObject() {

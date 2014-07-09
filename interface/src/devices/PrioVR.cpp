@@ -13,6 +13,7 @@
 #include <QtDebug>
 
 #include <FBXReader.h>
+#include <PerfStat.h>
 
 #include "Application.h"
 #include "PrioVR.h"
@@ -166,6 +167,7 @@ void PrioVR::update(float deltaTime) {
     if (!_skeletalDevice) {
         return;
     }
+    PerformanceTimer perfTimer("PrioVR");
     unsigned int timestamp;
     yei_getLastStreamDataAll(_skeletalDevice, (char*)_jointRotations.data(),
         _jointRotations.size() * sizeof(glm::quat), &timestamp);

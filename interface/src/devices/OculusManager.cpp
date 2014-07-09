@@ -269,7 +269,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     // We only need to render the overlays to a texture once, then we just render the texture on the hemisphere
     // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
     applicationOverlay.renderOverlay(true);
-    const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::DisplayOculusOverlays);
+    const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::UserInterface);
 
     //Bind our framebuffer object. If we are rendering the glow effect, we let the glow effect shader take care of it
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {

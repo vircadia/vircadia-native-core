@@ -12,8 +12,9 @@
 #include <limits>
 
 #include <QtDebug>
-
 #include <glm/glm.hpp>
+
+#include <PerfStat.h>
 
 #include "JoystickManager.h"
 
@@ -46,6 +47,7 @@ JoystickManager::~JoystickManager() {
 
 void JoystickManager::update() {
 #ifdef HAVE_SDL
+    PerformanceTimer perfTimer("joystick");
     SDL_JoystickUpdate();
     
     for (int i = 0; i < _joystickStates.size(); i++) {

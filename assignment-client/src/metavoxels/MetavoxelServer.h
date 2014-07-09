@@ -74,6 +74,8 @@ private slots:
     
 private:
     
+    void sendPacketGroup(int alreadySent = 0);
+    
     MetavoxelServer* _server;
     
     MetavoxelLOD _lod;
@@ -83,6 +85,7 @@ private:
     MetavoxelData _reliableDeltaData;
     MetavoxelLOD _reliableDeltaLOD;
     Bitstream::WriteMappings _reliableDeltaWriteMappings;
+    int _reliableDeltaID;
 };
 
 #endif // hifi_MetavoxelServer_h
