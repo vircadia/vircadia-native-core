@@ -376,7 +376,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     renderTexturedHemisphere();
 
-    renderControllerPointersOculus();
+    renderPointersOculus();
 
     glDepthMask(GL_TRUE);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -654,7 +654,7 @@ void ApplicationOverlay::renderControllerPointers() {
     }
 }
 
-void ApplicationOverlay::renderControllerPointersOculus() {
+void ApplicationOverlay::renderPointersOculus() {
 
     const bool useLaser = true; 
 
@@ -672,12 +672,10 @@ void ApplicationOverlay::renderControllerPointersOculus() {
     glMatrixMode(GL_MODELVIEW);
     MyAvatar* myAvatar = application->getAvatar();
 
-    //Determine how much we need to iterate
-    const int ITERATIONS = max(myAvatar->getHand()->getNumPalms(), 3);
-
     glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
 
-    for (int i = 0; i < ITERATIONS; i++) {
+    //Controller Pointers
+    for (int i = 0; i < myAvatar->getHand()->getNumPalms(); i++) {
         if (useLaser && i < myAvatar->getHand()->getNumPalms()) {
            
             PalmData& palm = myAvatar->getHand()->getPalms()[i];
@@ -766,64 +764,65 @@ void ApplicationOverlay::renderControllerPointersOculus() {
 
                 glPopMatrix();
             }
-        } else if (i < NUMBER_OF_MAGNIFIERS) {
-            //Dont render the reticle if its inactive
-            if (!_reticleActive[i]) {
-                continue;
-            }
-
-            float mouseX = (float)_mouseX[i];
-            float mouseY = (float)_mouseY[i];
-            mouseX -= reticleSize / 2;
-            mouseY += reticleSize / 2;
-
-            printf("MOUSEPOS: %f %f\n", mouseX, mouseY);
-
-            //Get new UV coordinates from our magnification window
-            float newULeft = mouseX / widgetWidth;
-            float newURight = (mouseX + reticleSize) / widgetWidth;
-            float newVBottom = 1.0 - mouseY / widgetHeight;
-            float newVTop = 1.0 - (mouseY - reticleSize) / widgetHeight;
-
-            // Project our position onto the hemisphere using the UV coordinates
-            float lX = sin((newULeft - 0.5f) * _textureFov);
-            float rX = sin((newURight - 0.5f) * _textureFov);
-            float bY = sin((newVBottom - 0.5f) * _textureFov);
-            float tY = sin((newVTop - 0.5f) * _textureFov);
-
-            float dist;
-            //Bottom Left
-            dist = sqrt(lX * lX + bY * bY);
-            float blZ = sqrt(1.0f - dist * dist);
-            //Top Left
-            dist = sqrt(lX * lX + tY * tY);
-            float tlZ = sqrt(1.0f - dist * dist);
-            //Bottom Right
-            dist = sqrt(rX * rX + bY * bY);
-            float brZ = sqrt(1.0f - dist * dist);
-            //Top Right
-            dist = sqrt(rX * rX + tY * tY);
-            float trZ = sqrt(1.0f - dist * dist);
-
-            glBegin(GL_QUADS);
-
-            glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
-
-
-            const glm::quat& orientation = myAvatar->getOrientation();
-            cursorVerts[0] = orientation * glm::vec3(lX, tY, -tlZ) + eyePos;
-            cursorVerts[1] = orientation * glm::vec3(rX, tY, -trZ) + eyePos;
-            cursorVerts[2] = orientation * glm::vec3(rX, bY, -brZ) + eyePos;
-            cursorVerts[3] = orientation * glm::vec3(lX, bY, -blZ) + eyePos;
-
-            glTexCoord2f(0.0f, 0.0f); glVertex3f(cursorVerts[0].x, cursorVerts[0].y, cursorVerts[0].z);
-            glTexCoord2f(1.0f, 0.0f); glVertex3f(cursorVerts[1].x, cursorVerts[1].y, cursorVerts[1].z);
-            glTexCoord2f(1.0f, 1.0f); glVertex3f(cursorVerts[2].x, cursorVerts[2].y, cursorVerts[2].z);
-            glTexCoord2f(0.0f, 1.0f); glVertex3f(cursorVerts[3].x, cursorVerts[3].y, cursorVerts[3].z);
-
-            glEnd();
-        }
+        } 
     }
+
+    //Mouse Pointer
+    if (_reticleActive[MOUSE]) {
+
+        float mouseX = (float)_mouseX[MOUSE];
+        float mouseY = (float)_mouseY[MOUSE];
+        mouseX -= reticleSize / 2;
+        mouseY += reticleSize / 2;
+
+        printf("MOUSEPOS: %f %f\n", mouseX, mouseY);
+
+        //Get new UV coordinates from our magnification window
+        float newULeft = mouseX / widgetWidth;
+        float newURight = (mouseX + reticleSize) / widgetWidth;
+        float newVBottom = 1.0 - mouseY / widgetHeight;
+        float newVTop = 1.0 - (mouseY - reticleSize) / widgetHeight;
+
+        // Project our position onto the hemisphere using the UV coordinates
+        float lX = sin((newULeft - 0.5f) * _textureFov);
+        float rX = sin((newURight - 0.5f) * _textureFov);
+        float bY = sin((newVBottom - 0.5f) * _textureFov);
+        float tY = sin((newVTop - 0.5f) * _textureFov);
+
+        float dist;
+        //Bottom Left
+        dist = sqrt(lX * lX + bY * bY);
+        float blZ = sqrt(1.0f - dist * dist);
+        //Top Left
+        dist = sqrt(lX * lX + tY * tY);
+        float tlZ = sqrt(1.0f - dist * dist);
+        //Bottom Right
+        dist = sqrt(rX * rX + bY * bY);
+        float brZ = sqrt(1.0f - dist * dist);
+        //Top Right
+        dist = sqrt(rX * rX + tY * tY);
+        float trZ = sqrt(1.0f - dist * dist);
+
+        glBegin(GL_QUADS);
+
+        glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
+
+
+        const glm::quat& orientation = myAvatar->getOrientation();
+        cursorVerts[0] = orientation * glm::vec3(lX, tY, -tlZ) + eyePos;
+        cursorVerts[1] = orientation * glm::vec3(rX, tY, -trZ) + eyePos;
+        cursorVerts[2] = orientation * glm::vec3(rX, bY, -brZ) + eyePos;
+        cursorVerts[3] = orientation * glm::vec3(lX, bY, -blZ) + eyePos;
+
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(cursorVerts[0].x, cursorVerts[0].y, cursorVerts[0].z);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(cursorVerts[1].x, cursorVerts[1].y, cursorVerts[1].z);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(cursorVerts[2].x, cursorVerts[2].y, cursorVerts[2].z);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(cursorVerts[3].x, cursorVerts[3].y, cursorVerts[3].z);
+
+        glEnd();
+    }
+        
+
     glEnable(GL_DEPTH_TEST);
 }
 
