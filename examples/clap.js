@@ -26,12 +26,16 @@ var lastClapFrame = 0;
 var lastAnimFrame = 0;
 
 var claps = [];
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap1Reverb.wav"));
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap2Reverb.wav"));
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap3Reverb.wav"));
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap4Reverb.wav"));
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap5Reverb.wav"));
-claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap6Reverb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap1Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap2Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap3Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap4Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap5Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap6Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap7Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap8Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap9Rvb.wav"));
+claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap10Rvb.wav"));
 var numberOfSounds = claps.length;
 
 var clappingNow = false;
