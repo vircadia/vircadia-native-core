@@ -18,7 +18,7 @@ class DataViewClass : public ArrayBufferViewClass {
     Q_OBJECT
 public:
     DataViewClass(QScriptEngine* engine);
-    QScriptValue newInstance(QScriptValue buffer, quint32 byteOffset = -1, quint32 byteLength = -1);
+    QScriptValue newInstance(QScriptValue buffer, quint32 byteOffset, quint32 byteLength);
     
     QString name() const;
     QScriptValue prototype() const;

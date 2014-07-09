@@ -54,15 +54,32 @@ QScriptValue DataViewClass::construct(QScriptContext *context, QScriptEngine *en
     }
     
     QScriptValue bufferArg = context->argument(0);
-    QScriptValue byteOffsetArg = (context->argumentCount() >= 2) ? context->argument(1) : QScriptValue(-1);
-    QScriptValue byteLengthArg = (context->argumentCount() >= 3) ? context->argument(2) : QScriptValue(-1);
+    QScriptValue byteOffsetArg = (context->argumentCount() >= 2) ? context->argument(1) : QScriptValue();
+    QScriptValue byteLengthArg = (context->argumentCount() >= 3) ? context->argument(2) : QScriptValue();
     
     QByteArray* arrayBuffer = (bufferArg.isValid()) ? qscriptvalue_cast<QByteArray*>(bufferArg.data()) :NULL;
     if (!arrayBuffer) {
+        engine->evaluate("throw \"TypeError: 1st argument not a ArrayBuffer\"");
         return QScriptValue();
     }
+    if (byteOffsetArg.isNumber() &&
+        (byteOffsetArg.toInt32() < 0 ||
+         byteOffsetArg.toInt32() >= arrayBuffer->size())) {
+            engine->evaluate("throw \"RangeError: byteOffset out of range\"");
+            return QScriptValue();
+        }
+    if (byteLengthArg.isNumber() &&
+        (byteLengthArg.toInt32() < 0 ||
+         byteOffsetArg.toInt32() + byteLengthArg.toInt32() > arrayBuffer->size())) {
+            engine->evaluate("throw \"RangeError: byteLength out of range\"");
+            return QScriptValue();
+        }
     
-    QScriptValue newObject = cls->newInstance(bufferArg, byteOffsetArg.toInt32(), byteLengthArg.toInt32());
+    QScriptValue newObject = cls->newInstance(bufferArg,
+                                              (byteOffsetArg.isNumber()) ? byteOffsetArg.toInt32()
+                                                                         : 0,
+                                              (byteLengthArg.isNumber()) ? byteLengthArg.toInt32()
+                                                                         : arrayBuffer->size());
     
     if (context->isCalledAsConstructor()) {
         context->setThisObject(newObject);
