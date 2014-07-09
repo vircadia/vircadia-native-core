@@ -68,7 +68,7 @@ private:
     quint64 _numTallies;
     quint64 _expiry;
     SimpleMovingAverage _movingAverage;
-    
+};
 
 class PerformanceTimer {
 public:
