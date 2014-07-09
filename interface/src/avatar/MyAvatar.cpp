@@ -187,6 +187,9 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("hair");
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
             simulateHair(deltaTime);
+            foreach (Hair* hair, _hairs) {
+                hair->simulate(deltaTime);
+            }
         }
     }
 
@@ -884,6 +887,9 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
         getHead()->render(1.0f, modelRenderMode);
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
             renderHair();
+            foreach (Hair* hair, _hairs) {
+                hair->render();
+            }
         }
     }
     getHand()->render(true, modelRenderMode);

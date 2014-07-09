@@ -99,7 +99,8 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _listenerUnattenuatedZone(NULL),
     _desiredJitterBufferFrames(1),
     _currentJitterBufferFrames(-1),
-    _dynamicJitterBuffers(dynamicJitterBuffers)
+    _dynamicJitterBuffers(dynamicJitterBuffers),
+    _consecutiveNotMixedCount(0)
 {
 }
 
@@ -129,7 +130,7 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
         numSilentSamples = getSamplesPerFrame();
         
         if (numSilentSamples > 0) {
-            if (_currentJitterBufferFrames > _desiredJitterBufferFrames) {
+            if (_dynamicJitterBuffers && _currentJitterBufferFrames > _desiredJitterBufferFrames) {
                 // our current jitter buffer size exceeds its desired value, so ignore some silent
                 // frames to get that size as close to desired as possible
                 int samplesPerFrame = getSamplesPerFrame();
@@ -206,11 +207,12 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     if (!isNotStarvedOrHasMinimumSamples(samplesPerFrame + desiredJitterBufferSamples)) {
         // if the buffer was starved, allow it to accrue at least the desired number of
         // jitter buffer frames before we start taking frames from it for mixing
-        
+
         if (_shouldOutputStarveDebug) {
             _shouldOutputStarveDebug = false;
         }
 
+        _consecutiveNotMixedCount++;
         return  false;
     } else if (samplesAvailable() < samplesPerFrame) { 
         // if the buffer doesn't have a full frame of samples to take for mixing, it is starved
@@ -222,6 +224,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
         // reset our _shouldOutputStarveDebug to true so the next is printed
         _shouldOutputStarveDebug = true;
 
+        _consecutiveNotMixedCount++;
         return false;
     }
     
@@ -231,6 +234,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
         // minus one (since a frame will be read immediately after this) is the length of the jitter buffer
         _currentJitterBufferFrames = samplesAvailable() / samplesPerFrame - 1;
         _isStarved = false;
+        _consecutiveNotMixedCount = 0;
     }
 
     // since we've read data from ring buffer at least once - we've started

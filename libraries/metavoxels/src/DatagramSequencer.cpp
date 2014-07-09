@@ -79,7 +79,7 @@ ReliableChannel* DatagramSequencer::getReliableInputChannel(int index) {
     return channel;
 }
 
-int DatagramSequencer::startPacketGroup(int desiredPackets) {
+int DatagramSequencer::notePacketGroup(int desiredPackets) {
     // figure out how much data we have enqueued and increase the number of packets desired
     int totalAvailable = 0;
     foreach (ReliableChannel* channel, _reliableOutputChannels) {
