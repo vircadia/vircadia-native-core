@@ -611,7 +611,6 @@ void Avatar::initializeHair() {
             
         }
     }
-    qDebug() << "Initialize Hair";
 }
 
 bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
