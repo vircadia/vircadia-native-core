@@ -382,6 +382,7 @@ namespace MenuOption {
     const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
     const QString HandsCollideWithSelf = "Collide With Self";
     const QString HeadMouse = "Head Mouse";
+    const QString HideFocusIndicators = "Hide Focus Indicators";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
     const QString LoadScript = "Open and Run Script File...";
