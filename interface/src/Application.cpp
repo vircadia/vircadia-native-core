@@ -354,6 +354,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
+    
+    // Set hand controller velocity filtering
+    _sixenseManager.setLowVelocityFilter(Menu::getInstance()->isOptionChecked(MenuOption::LowVelocityFilter));
 
     checkVersion();
 
@@ -1424,6 +1427,10 @@ void Application::setRenderVoxels(bool voxelRender) {
     if (!voxelRender) {
         doKillLocalVoxels();
     }
+}
+
+void Application::setLowVelocityFilter(bool lowVelocityFilter) {
+    getSixenseManager()->setLowVelocityFilter(lowVelocityFilter);
 }
 
 void Application::doKillLocalVoxels() {

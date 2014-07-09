@@ -368,6 +368,7 @@ namespace MenuOption {
     const QString Faceplus = "Faceplus";
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
+    const QString LowVelocityFilter = "Low Velocity Filter";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
