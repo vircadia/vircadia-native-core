@@ -108,6 +108,11 @@ bool FindAndUpdateModelOperator::PostRecursion(OctreeElement* element) {
     return !_found; // if we haven't yet found it, keep looking
 }
 
+
+ModelTreeElement* ModelTree::getModelAt(float x, float y, float z, float s) const {
+    return static_cast<ModelTreeElement*>(getOctreeElementAt(x, y, z, s));
+}
+
 // TODO: improve this to not use multiple recursions
 void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& senderNode) {
     // First, look for the existing model in the tree..
