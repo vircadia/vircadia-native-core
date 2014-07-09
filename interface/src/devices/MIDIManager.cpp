@@ -13,14 +13,13 @@
 
 #include "MIDIManager.h"
 
-#ifdef HAVE_RTMIDI
-
 MIDIManager& MIDIManager::getInstance() {
     static MIDIManager sharedInstance;
     return sharedInstance;
 }
 
 void MIDIManager::midiCallback(double deltaTime, std::vector<unsigned char>* message, void* userData) {
+#ifdef HAVE_RTMIDI
     
     MIDIEvent callbackEvent;
     callbackEvent.deltaTime = deltaTime;
@@ -36,15 +35,19 @@ void MIDIManager::midiCallback(double deltaTime, std::vector<unsigned char>* mes
     }
     
     emit getInstance().midiEvent(callbackEvent);
+#endif
 }
 
 MIDIManager::~MIDIManager() {
+#ifdef HAVE_RTMIDI
     delete _midiInput;
+#endif
 }
 
 const int DEFAULT_MIDI_PORT = 0;
 
 void MIDIManager::openDefaultPort() {
+#ifdef HAVE_RTMIDI
     if (!_midiInput) {
         _midiInput = new RtMidiIn();
         
@@ -63,6 +66,5 @@ void MIDIManager::openDefaultPort() {
             _midiInput = NULL;
         }
     }
-}
-
 #endif
+}

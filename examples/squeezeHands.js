@@ -18,13 +18,16 @@ var RIGHT = 1;
 var lastLeftFrame = 0; 
 var lastRightFrame = 0;
 
-var LAST_FRAME = 11.0;    //  What is the number of the last frame we want to use in the animation?
-var SMOOTH_FACTOR = 0.80;
+var leftDirection = true;
+var rightDirection = true;
 
+var LAST_FRAME = 15.0;    //  What is the number of the last frame we want to use in the animation?
+var SMOOTH_FACTOR = 0.0;
+var MAX_FRAMES = 30.0;
 
 Script.update.connect(function(deltaTime) {
-    var leftTriggerValue = Math.sqrt(Controller.getTriggerValue(LEFT));
-    var rightTriggerValue = Math.sqrt(Controller.getTriggerValue(RIGHT));
+    var leftTriggerValue = Controller.getTriggerValue(LEFT);
+    var rightTriggerValue = Controller.getTriggerValue(RIGHT);
 
     var leftFrame, rightFrame;
 
@@ -32,10 +35,31 @@ Script.update.connect(function(deltaTime) {
     leftFrame = (leftTriggerValue * LAST_FRAME) * (1.0 - SMOOTH_FACTOR) + lastLeftFrame * SMOOTH_FACTOR;
     rightFrame = (rightTriggerValue * LAST_FRAME) * (1.0 - SMOOTH_FACTOR) + lastRightFrame * SMOOTH_FACTOR;
 
-    
+    if (!leftDirection) {
+        leftFrame = MAX_FRAMES - leftFrame;
+    }
+    if (!rightDirection) {
+        rightFrame = MAX_FRAMES - rightFrame;
+    }
+
+    if ((leftTriggerValue == 1.0) && (leftDirection == true)) {
+        leftDirection = false;
+        lastLeftFrame = MAX_FRAMES - leftFrame;
+    } else if ((leftTriggerValue == 0.0) && (leftDirection == false)) {
+        leftDirection = true;
+        lastLeftFrame = leftFrame;
+    }
+    if ((rightTriggerValue == 1.0) && (rightDirection == true)) {
+        rightDirection = false;
+        lastRightFrame = MAX_FRAMES - rightFrame;
+    } else if ((rightTriggerValue == 0.0) && (rightDirection == false)) {
+        rightDirection = true;
+        lastRightFrame = rightFrame;
+    }
+
     if ((leftFrame != lastLeftFrame) && leftHandAnimation.length){
    		MyAvatar.stopAnimation(leftHandAnimation);
-    	MyAvatar.startAnimation(leftHandAnimation, 30.0, 1.0, false, true, leftFrame, leftFrame);
+        MyAvatar.startAnimation(leftHandAnimation, 30.0, 1.0, false, true, leftFrame, leftFrame);
     }
     if ((rightFrame != lastRightFrame) && rightHandAnimation.length) {
    		MyAvatar.stopAnimation(rightHandAnimation);

@@ -21,7 +21,7 @@
 
 #include <SharedUtil.h> // for xColor
 
-const xColor DEFAULT_BACKGROUND_COLOR = { 255, 255, 255 };
+const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
 const float DEFAULT_ALPHA = 0.7f;
 
 class Overlay : public QObject {

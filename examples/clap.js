@@ -10,27 +10,34 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-function length(v) {
-    return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-}
+var clapAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+var startEndFrames = [];
+startEndFrames.push({ start: 0, end: 8});
+startEndFrames.push({ start: 10, end: 20});
+startEndFrames.push({ start: 20, end: 28});
+startEndFrames.push({ start: 30, end: 37});
+startEndFrames.push({ start: 41, end: 46});
+startEndFrames.push({ start: 53, end: 58});
 
+var lastClapFrame = 0;
+var lastAnimFrame = 0;
 
-function printVector(v) {
-	print(v.x + ", " + v.y + ", " + v.z + "\n");
-}
+var claps = [];
+claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap1Reverb.wav"));
+claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap2Reverb.wav"));
+claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap3Reverb.wav"));
+claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap4Reverb.wav"));
+claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap5Reverb.wav"));
+claps.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/Clap6Reverb.wav"));
+var numberOfSounds = claps.length;
 
-function vMinus(a, b) { 
-	var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
-	return rval;
-}
+var clappingNow = false;
+var collectedClicks = 0;
 
-//  First, load the clap sound from a URL 
-var clap1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/clap1.raw");
-var clap2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/clap2.raw");
-var clap3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/clap3.raw");
-var clap4 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/clap4.raw");
-var clap5 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/clap5.raw");
-var clap6 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/claps/clap6.raw");
+var clickClappingNow = false; 
+var CLAP_START_RATE = 15.0;
+var clapRate = CLAP_START_RATE; 
+var startedTimer = false; 
 
 var clapping = new Array();
 clapping[0] = false; 
@@ -38,36 +45,94 @@ clapping[1] = false;
 
 function maybePlaySound(deltaTime) {
 	//  Set the location and other info for the sound to play
-	var palm1Position = Controller.getSpatialControlPosition(0);
-	var palm2Position = Controller.getSpatialControlPosition(2);
-	var distanceBetween = length(vMinus(palm1Position, palm2Position));
 
-	for (var palm = 0; palm < 2; palm++) {
-		var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
-		var speed = length(palmVelocity);
-		
-		const CLAP_SPEED = 0.2;
-		const CLAP_DISTANCE = 0.2; 
+	var animationDetails = MyAvatar.getAnimationDetails(clapAnimation);
 
-    	if (!clapping[palm] && (distanceBetween < CLAP_DISTANCE) && (speed > CLAP_SPEED)) {
-    		var options = new AudioInjectionOptions();
-			options.position = palm1Position;
-			options.volume = speed / 2.0;
-			if (options.volume > 1.0) options.volume = 1.0;
-			which = Math.floor((Math.random() * 6) + 1);
-			if (which == 1) {  Audio.playSound(clap1, options);  }
-			else if (which == 2) { Audio.playSound(clap2, options); }
-			else if (which == 3) { Audio.playSound(clap3, options); }
-			else if (which == 4) { Audio.playSound(clap4, options); }
-			else if (which == 5) { Audio.playSound(clap5, options); }
-			else { Audio.playSound(clap6, options); }
-			Audio.playSound(clap, options);
-			clapping[palm] = true; 
-    	} else if (clapping[palm] && (speed < (CLAP_SPEED / 4.0))) {
-    		clapping[palm] = false;
-    	}
+	var frame = Math.floor(animationDetails.frameIndex);
+
+	if (frame != lastAnimFrame) {
+		print("frame " + frame);
+		lastAnimFrame = frame;
 	}
+	for (var i = 0; i < startEndFrames.length; i++) {
+		if (frame == startEndFrames[i].start && (frame != lastClapFrame)) {
+			playClap(1.0, Camera.getPosition());
+			lastClapFrame = frame; 
+		}
+	}
+
+	var palm1Position = MyAvatar.getLeftPalmPosition();
+	var palm2Position = MyAvatar.getRightPalmPosition();
+	var distanceBetween = Vec3.length(Vec3.subtract(palm1Position, palm2Position));
+
+	var palm1Velocity = Controller.getSpatialControlVelocity(1);
+	var palm2Velocity = Controller.getSpatialControlVelocity(3);
+	var closingVelocity = Vec3.length(Vec3.subtract(palm1Velocity, palm2Velocity));
+
+	const CLAP_SPEED = 0.7;
+	const CLAP_DISTANCE = 0.15; 
+
+	if ((closingVelocity > CLAP_SPEED) && (distanceBetween < CLAP_DISTANCE) && !clappingNow) {
+		var volume = closingVelocity / 2.0;
+		if (volume > 1.0) volume = 1.0;
+		playClap(volume, palm1Position);
+		clappingNow = true; 
+	} else if (clappingNow && (distanceBetween > CLAP_DISTANCE * 1.2)) {
+		clappingNow = false;
+	}
+}
+
+function playClap(volume, position) {
+	var options = new AudioInjectionOptions();
+	options.position = position;
+	options.volume = 1.0;
+	var clip = Math.floor(Math.random() * numberOfSounds);
+	Audio.playSound(claps[clip], options);
+}
+
+function keepClapping() {
+	playClap(1.0, Camera.getPosition());
+} 
+
+Controller.keyPressEvent.connect(function(event) {
+	if(event.text == "SHIFT") {
+		if (!clickClappingNow) {
+			playClap(1.0, Camera.getPosition());
+			var whichClip = Math.floor(Math.random() * startEndFrames.length);
+			lastClapFrame = 0;
+			MyAvatar.startAnimation(clapAnimation, clapRate, 1.0, true, false);
+			clickClappingNow = true;
+		} else {
+			clapRate *= 1.25;
+			MyAvatar.stopAnimation(clapAnimation);
+			MyAvatar.startAnimation(clapAnimation, clapRate, 1.0, true, false);
+			collectedClicks = collectedClicks + 1;
+		}
+	}
+});
+
+var CLAP_END_WAIT_MSECS = 500;
+Controller.keyReleaseEvent.connect(function(event) {
+    if (event.text == "SHIFT") {
+    	if (!startedTimer) {
+   		startedTimer = true;
+    		collectedClicks = 0;
+    		Script.setTimeout(stopClapping, CLAP_END_WAIT_MSECS);
+    	}
+    }
+});
+
+function stopClapping() {
+	if (collectedClicks == 0) {
+		startedTimer = false;
+	   	MyAvatar.stopAnimation(clapAnimation);
+       	clapRate = CLAP_START_RATE;
+       	clickClappingNow = false;
+	}  else {
+		startedTimer = false;
+	} 
 }
 
 // Connect a call back that happens every frame
 Script.update.connect(maybePlaySound);
+//Controller.keyPressEvent.connect(keyPressEvent);
