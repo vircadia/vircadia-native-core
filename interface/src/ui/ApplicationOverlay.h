@@ -69,7 +69,6 @@ private:
     float _magSizeMult[NUMBER_OF_MAGNIFIERS];
     
     float _alpha;
-    bool _active;
 
     GLuint _crosshairTexture;
 };
