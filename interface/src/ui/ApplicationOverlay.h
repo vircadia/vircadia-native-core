@@ -32,11 +32,8 @@ public:
     void displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov);
     void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
     void getClickLocation(int &x, int &y) const;
-<<<<<<< HEAD
     QPoint getOculusPalmClickLocation(const PalmData *palm) const;
-=======
-    void resize();
->>>>>>> af6704a83cec1d69b3dc3e1145238919fcb82933
+
 
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();

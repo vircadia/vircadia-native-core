@@ -1189,20 +1189,12 @@ void ApplicationOverlay::renderTexturedHemisphere() {
 
 }
 
-void ApplicationOverlay::resize() {
-    if (_framebufferObject != NULL) {
-        delete _framebufferObject;
-        _framebufferObject = NULL;
-    }
-    // _framebufferObject is recreated at the correct size the next time it is accessed via getFramebufferObject().
-}
-
 QOpenGLFramebufferObject* ApplicationOverlay::getFramebufferObject() {
     QSize size = Application::getInstance()->getGLWidget()->size();
     if (!_framebufferObject || _framebufferObject->size() != size) {
-        if (_framebufferObject){
-            delete _framebufferObject;
-        }
+
+        delete _framebufferObject;
+
         _framebufferObject = new QOpenGLFramebufferObject(size);
         glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
