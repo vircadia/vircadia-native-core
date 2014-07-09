@@ -683,12 +683,9 @@ void Application::paintGL() {
 
         {
             PerformanceTimer perfTimer("paintGL/renderOverlay");
-            //If alpha is 1, we can render directly to the screen.
-            if (_applicationOverlay.getAlpha() == 1.0f) {
-                _applicationOverlay.renderOverlay();
-            } else {
-                //Render to to texture so we can fade it
-                _applicationOverlay.renderOverlay(true);
+            // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
+            _applicationOverlay.renderOverlay(true);
+            if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
                 _applicationOverlay.displayOverlayTexture();
             }
         }
@@ -713,6 +710,7 @@ void Application::resizeGL(int width, int height) {
     resetCamerasOnResizeGL(_myCamera, width, height);
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
+    _applicationOverlay.resize();
 
     updateProjectionMatrix();
     glLoadIdentity();
@@ -1010,6 +1008,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
                 }
                 break;
+            case Qt::Key_Slash:
+                Menu::getInstance()->triggerOption(MenuOption::UserInterface);
+                break;
             case Qt::Key_F:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::DisplayFrustum);
@@ -1029,7 +1030,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
                 break;
-            case Qt::Key_Slash:
+            case Qt::Key_Percent:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
             case Qt::Key_Plus:
@@ -2791,7 +2792,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     if (!selfAvatarOnly) {
         //  Render the world box
-        if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+        if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats) && Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
             PerformanceTimer perfTimer("paintGL/displaySide/renderWorldBox");
             renderWorldBox();
         }
