@@ -37,9 +37,14 @@ void main(void) {
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
     float diffuse = dot(viewNormal, gl_LightSource[0].position);
     float facingLight = step(0.0, diffuse);
+    float localDiffuse = dot(viewNormal, gl_LightSource[1].position);
+    float localLight = step(0.0, localDiffuse);
     vec4 base = gl_Color * (gl_FrontLightModelProduct.sceneColor + gl_FrontLightProduct[0].ambient +
-        gl_FrontLightProduct[0].diffuse * (diffuse * facingLight));
+        gl_FrontLightProduct[0].diffuse * (diffuse * facingLight) + gl_FrontLightProduct[1].diffuse * (localDiffuse * localLight));
 
+
+    
+    
     // compute the specular component (sans exponent)
     float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position -
         normalize(vec4(vec3(interpolatedPosition), 0.0))), viewNormal));

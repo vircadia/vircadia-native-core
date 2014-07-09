@@ -11,6 +11,8 @@
 
 #include <vector>
 
+#include <PerfStat.h>
+
 #include "Application.h"
 #include "SixenseManager.h"
 #include "UserActivityLogger.h"
@@ -83,7 +85,10 @@ void SixenseManager::update(float deltaTime) {
     if (sixenseGetNumActiveControllers() == 0) {
         _hydrasConnected = false;
         return;
-    } else if (!_hydrasConnected) {
+    } 
+
+    PerformanceTimer perfTimer("sixense");
+    if (!_hydrasConnected) {
         _hydrasConnected = true;
         UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
     }

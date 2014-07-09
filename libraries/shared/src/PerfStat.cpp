@@ -17,6 +17,12 @@
 
 #include "PerfStat.h"
 
+#include "SharedUtil.h"
+
+// ----------------------------------------------------------------------------
+// PerformanceWarning
+// ----------------------------------------------------------------------------
+
 // Static class members initialization here!
 bool PerformanceWarning::_suppressShortTimings = false;
 
@@ -52,14 +58,50 @@ PerformanceWarning::~PerformanceWarning() {
     }
 };
 
+// ----------------------------------------------------------------------------
+// PerformanceTimerRecord
+// ----------------------------------------------------------------------------
+const quint64 STALE_STAT_PERIOD = 4 * USECS_PER_SECOND;
+
+void PerformanceTimerRecord::tallyResult(const quint64& now) { 
+    if (_numAccumulations > 0) {
+        _numTallies++; 
+        _movingAverage.updateAverage(_runningTotal - _lastTotal); 
+        _lastTotal = _runningTotal; 
+        _numAccumulations = 0;
+        _expiry = now + STALE_STAT_PERIOD;
+    }
+}
+
+// ----------------------------------------------------------------------------
+// PerformanceTimer
+// ----------------------------------------------------------------------------
+
+QString PerformanceTimer::_fullName;
 QMap<QString, PerformanceTimerRecord> PerformanceTimer::_records;
 
 
 PerformanceTimer::~PerformanceTimer() {
-    quint64 end = usecTimestampNow();
-    quint64 elapsedusec = (end - _start);
-    PerformanceTimerRecord& namedRecord = _records[_name];
-    namedRecord.recordResult(elapsedusec);
+    quint64 elapsedusec = (usecTimestampNow() - _start);
+    PerformanceTimerRecord& namedRecord = _records[_fullName];
+    namedRecord.accumulateResult(elapsedusec);
+    _fullName.resize(_fullName.size() - (_name.size() + 1));
+}
+
+// static 
+void PerformanceTimer::tallyAllTimerRecords() {
+    QMap<QString, PerformanceTimerRecord>::iterator recordsItr = _records.begin();
+    QMap<QString, PerformanceTimerRecord>::const_iterator recordsEnd = _records.end();
+    quint64 now = usecTimestampNow();
+    while (recordsItr != recordsEnd) {
+        recordsItr.value().tallyResult(now);
+        if (recordsItr.value().isStale(now)) {
+            // purge stale records
+            recordsItr = _records.erase(recordsItr);
+        } else {
+            ++recordsItr;
+        }
+    }
 }
 
 void PerformanceTimer::dumpAllTimerRecords() {

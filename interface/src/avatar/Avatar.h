@@ -155,7 +155,11 @@ public:
     
 public slots:
     void updateCollisionGroups();
-
+    void setLocalLightDirection(const glm::vec3& direction, int lightIndex);
+    void setLocalLightColor(const glm::vec3& color, int lightIndex);
+    void addLocalLight();
+    void removeLocalLight();   
+ 
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
@@ -176,9 +180,14 @@ protected:
     glm::vec3 _mouseRayDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-
+    
     quint32 _collisionGroups;
-
+    
+    // always-present local lighting for the avatar
+    glm::vec3 _localLightDirections[MAX_LOCAL_LIGHTS];
+    glm::vec3 _localLightColors[MAX_LOCAL_LIGHTS];
+    int _numLocalLights;
+ 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
