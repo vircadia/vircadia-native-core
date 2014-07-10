@@ -148,6 +148,8 @@ public:
     void setLocalLightDirection(const glm::vec3& direction, int lightIndex);
     void setLocalLightColor(const glm::vec3& color, int lightIndex);
     void setNumLocalLights(int numLocalLights);   
+
+    void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
  
 protected:
     QSharedPointer<NetworkGeometry> _geometry;

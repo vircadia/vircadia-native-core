@@ -39,7 +39,7 @@ Model::Model(QObject* parent) :
     _scaledToFit(false),
     _snapModelToCenter(false),
     _snappedToCenter(false),
-    _showTrueJointTransforms(false),
+    _showTrueJointTransforms(true),
     _rootIndex(-1),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
@@ -937,7 +937,6 @@ void Model::simulateInternal(float deltaTime) {
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
-    updateVisibleJointStates();
 
     _shapesAreDirty = ! _shapes.isEmpty();
     
@@ -1006,10 +1005,12 @@ void Model::updateJointState(int index) {
 }
 
 void Model::updateVisibleJointStates() {
-    if (!_showTrueJointTransforms) {
-        for (int i = 0; i < _jointStates.size(); i++) {
-            _jointStates[i].slaveVisibleTransform();
-        }
+    if (_showTrueJointTransforms) {
+        // no need to update visible transforms
+        return;
+    }
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].slaveVisibleTransform();
     }
 }
 
@@ -1356,6 +1357,7 @@ void Model::deleteGeometry() {
 }
 
 void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows) {
+    updateVisibleJointStates();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     
