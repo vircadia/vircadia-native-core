@@ -700,7 +700,7 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
     MyAvatar* myAvatar = application->getAvatar();
 
     //Controller Pointers
-    for (int i = 0; i < myAvatar->getHand()->getNumPalms(); i++) {
+    for (size_t i = 0; i < myAvatar->getHand()->getNumPalms(); i++) {
 
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
         if (palm.isActive()) {
