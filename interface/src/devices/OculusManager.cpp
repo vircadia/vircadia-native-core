@@ -473,7 +473,6 @@ void OculusManager::renderLaserPointers() {
 
     //If the Oculus is enabled, we will draw a blue cursor ray
    
-    // Draw the palm ball and disk
     for (size_t i = 0; i < myAvatar->getHand()->getNumPalms(); ++i) {
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
         if (palm.isActive()) {

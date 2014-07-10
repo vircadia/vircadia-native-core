@@ -130,6 +130,9 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
 void Hand::renderHandTargets(bool isMine) {
     glPushMatrix();
 
+    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    const float avatarScale = Application::getInstance()->getAvatar()->getScale();
+
     const float alpha = 1.0f;
     const glm::vec3 handColor(1.0, 0.0, 0.0); //  Color the hand targets red to be different than skin
     
@@ -153,10 +156,10 @@ void Hand::renderHandTargets(bool isMine) {
         }
     }
     
-    const float PALM_BALL_RADIUS = 0.03f;
-    const float PALM_DISK_RADIUS = 0.06f;
-    const float PALM_DISK_THICKNESS = 0.01f;
-    const float PALM_FINGER_ROD_RADIUS = 0.003f;
+    const float PALM_BALL_RADIUS = 0.03f * avatarScale;
+    const float PALM_DISK_RADIUS = 0.06f * avatarScale;
+    const float PALM_DISK_THICKNESS = 0.01f * avatarScale;
+    const float PALM_FINGER_ROD_RADIUS = 0.003f * avatarScale;
     
     // Draw the palm ball and disk
     for (size_t i = 0; i < getNumPalms(); ++i) {
@@ -165,6 +168,11 @@ void Hand::renderHandTargets(bool isMine) {
             glColor4f(handColor.r, handColor.g, handColor.b, alpha);
             glm::vec3 tip = palm.getFingerTipPosition();
             glm::vec3 root = palm.getPosition();
+
+            //Scale the positions based on avatar scale
+            tip = myAvatar->getPosition() + avatarScale * (tip - myAvatar->getPosition());
+            root = myAvatar->getPosition() + avatarScale * (root - myAvatar->getPosition());
+
             Avatar::renderJointConnectingCone(root, tip, PALM_FINGER_ROD_RADIUS, PALM_FINGER_ROD_RADIUS);
             //  Render sphere at palm/finger root
             glm::vec3 offsetFromPalm = root + palm.getNormal() * PALM_DISK_THICKNESS;
