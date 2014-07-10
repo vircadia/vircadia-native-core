@@ -136,7 +136,8 @@ void Leapmotion::update() {
     }
 
     // go through all the joints and increment their counter since last update
-    for (auto jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
+    // TODO C++11 for (auto jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
+    for (JointTracker::Vector::iterator jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
         (*jointIt).tickNewFrame();
     }
 

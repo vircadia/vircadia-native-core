@@ -13,7 +13,8 @@
 
 DeviceTracker::SingletonData::~SingletonData() {
     // Destroy all the device registered
-    for (auto device = _devicesVector.begin(); device != _devicesVector.end(); device++) {
+    //TODO C++11 for (auto device = _devicesVector.begin(); device != _devicesVector.end(); device++) {
+    for (Vector::iterator device = _devicesVector.begin(); device != _devicesVector.end(); device++) {
         delete (*device);
     }
 }
@@ -23,7 +24,8 @@ int DeviceTracker::getNumDevices() {
 }
 
 DeviceTracker::ID DeviceTracker::getDeviceID(const Name& name) {
-    auto deviceIt = Singleton::get()->_devicesMap.find(name);
+    //TODO C++11 auto deviceIt = Singleton::get()->_devicesMap.find(name);
+    Map::iterator deviceIt = Singleton::get()->_devicesMap.find(name);
     if (deviceIt != Singleton::get()->_devicesMap.end()) {
         return (*deviceIt).second;
     } else {
@@ -36,7 +38,7 @@ DeviceTracker* DeviceTracker::getDevice(const Name& name) {
 }
 
 DeviceTracker* DeviceTracker::getDevice(DeviceTracker::ID deviceID) {
-    if ((deviceID >= 0) && deviceID < Singleton::get()->_devicesVector.size()) {
+    if ((deviceID >= 0) && (unsigned int(deviceID) < Singleton::get()->_devicesVector.size())) {
         return Singleton::get()->_devicesVector[ deviceID ];
     } else {
         return NULL;
@@ -57,7 +59,7 @@ DeviceTracker::ID DeviceTracker::registerDevice(const Name& name, DeviceTracker*
 
     // Good to register the device
     deviceID = Singleton::get()->_devicesVector.size();
-    Singleton::get()->_devicesMap.insert(SingletonData::Map::value_type(name, deviceID));
+    Singleton::get()->_devicesMap.insert(Map::value_type(name, deviceID));
     Singleton::get()->_devicesVector.push_back(device);
     device->assignIDAndName(deviceID, name);
 
@@ -65,7 +67,8 @@ DeviceTracker::ID DeviceTracker::registerDevice(const Name& name, DeviceTracker*
 }
 
 void DeviceTracker::updateAll() {
-    for (auto deviceIt = Singleton::get()->_devicesVector.begin(); deviceIt != Singleton::get()->_devicesVector.end(); deviceIt++) {
+    //TODO C++11 for (auto deviceIt = Singleton::get()->_devicesVector.begin(); deviceIt != Singleton::get()->_devicesVector.end(); deviceIt++) {
+    for (Vector::iterator deviceIt = Singleton::get()->_devicesVector.begin(); deviceIt != Singleton::get()->_devicesVector.end(); deviceIt++) {
         if ((*deviceIt))
             (*deviceIt)->update();
     }

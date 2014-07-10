@@ -100,9 +100,9 @@ private:
     // this call is used by the singleton when the device tracker is currently beeing registered and beeing assigned an ID
     void assignIDAndName( const ID id, const Name& name ) { _ID = id; _name = name; }
 
+    typedef std::vector< DeviceTracker* > Vector;
+    typedef std::map< Name, ID > Map;
     struct SingletonData {
-        typedef std::map< Name, ID > Map;
-        typedef std::vector< DeviceTracker* > Vector;
         Map     _devicesMap;
         Vector  _devicesVector;
 

@@ -43,8 +43,8 @@ public:
 
     class JointTracker {
     public:
-        typedef std::vector< JointTracker > vector;
-        typedef std::map< Semantic, Index > map;
+        typedef std::vector< JointTracker > Vector;
+        typedef std::map< Semantic, Index > Map;
 
         JointTracker();
         JointTracker(const JointTracker& tracker);
@@ -84,8 +84,8 @@ public:
     /// Access a Joint from it's index.
     /// Index 0 is always the "Root".
     /// if the index is Invalid then returns NULL.
-    const JointTracker* getJointTracker(Index index) const { return ((index > 0) && (index < _jointsArray.size()) ? _jointsArray.data() + index : NULL); }
-    JointTracker* editJointTracker(Index index) { return ((index > 0) && (index < _jointsArray.size()) ? _jointsArray.data() + index : NULL); }
+    const JointTracker* getJointTracker(Index index) const { return ((index > 0) && (unsigned int(index) < _jointsArray.size()) ? _jointsArray.data() + index : NULL); }
+    JointTracker* editJointTracker(Index index) { return ((index > 0) && (unsigned int(index) < _jointsArray.size()) ? _jointsArray.data() + index : NULL); }
 
     /// From a semantic, find the Index of the Joint.
     /// \return the index of the mapped Joint or INVALID_SEMANTIC if the semantic is not knowned.
@@ -95,8 +95,8 @@ protected:
     MotionTracker();
     virtual ~MotionTracker();
 
-    JointTracker::vector _jointsArray;
-    JointTracker::map _jointsMap;
+    JointTracker::Vector _jointsArray;
+    JointTracker::Map _jointsMap;
 
     /// Adding joint is only done from the specialized Motion Tracker, hence this function is protected.
     /// The hierarchy of joints must be created from the top down to the branches.

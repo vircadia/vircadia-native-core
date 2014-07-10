@@ -262,7 +262,9 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
 
 AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
     // This is where we retreive the Device Tracker category and then the sub tracker within it
-    auto icIt = _inputControllers.find(0);
+    //TODO C++11 auto icIt = _inputControllers.find(0);
+    InputControllerMap::iterator icIt = _inputControllers.find(0);
+
     if (icIt != _inputControllers.end()) {
         return (*icIt).second;
     } else {
@@ -281,7 +283,7 @@ AbstractInputController* ControllerScriptingInterface::createInputController(con
             MotionTracker* motionTracker = dynamic_cast< MotionTracker* > (DeviceTracker::getDevice(deviceID));
             if (motionTracker) {
                 MotionTracker::Index trackerID = motionTracker->findJointIndex(tracker.toStdString());
-                if (trackerID > 0) {
+                if (trackerID >= 0) {
                     AbstractInputController* inputController = new InputController(deviceID, trackerID, this);
 
                     _inputControllers.insert(InputControllerMap::value_type(inputController->getKey(), inputController));
@@ -296,7 +298,8 @@ AbstractInputController* ControllerScriptingInterface::createInputController(con
 }
 
 void ControllerScriptingInterface::updateInputControllers() {
-    for (auto it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
+    //TODO C++11 for (auto it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
+    for (InputControllerMap::iterator it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
         (*it).second->update();
     }
 }

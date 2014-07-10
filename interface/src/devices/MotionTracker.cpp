@@ -65,7 +65,7 @@ MotionTracker::MotionTracker() :
     DeviceTracker()
 {
     _jointsArray.resize(1);
-    _jointsMap.insert(JointTracker::map::value_type(Semantic("Root"), 0));
+    _jointsMap.insert(JointTracker::Map::value_type(Semantic("Root"), 0));
 }
 
 MotionTracker::~MotionTracker()
@@ -89,13 +89,14 @@ MotionTracker::Index MotionTracker::addJoint(const Semantic& semantic, Index par
     // All good then allocate the joint
     Index newIndex = _jointsArray.size();
     _jointsArray.push_back(JointTracker(semantic, parent));
-    _jointsMap.insert(JointTracker::map::value_type(semantic, newIndex));
+    _jointsMap.insert(JointTracker::Map::value_type(semantic, newIndex));
 
     return newIndex;
 }
 
 MotionTracker::Index MotionTracker::findJointIndex(const Semantic& semantic) const {
-    auto jointIt = _jointsMap.find(semantic);
+    // TODO C++11 auto jointIt = _jointsMap.find(semantic);
+    JointTracker::Map::const_iterator jointIt = _jointsMap.find(semantic);
     if (jointIt != _jointsMap.end())
         return (*jointIt).second;
     return INVALID_SEMANTIC;
@@ -105,7 +106,7 @@ void MotionTracker::updateAllAbsTransform() {
     _jointsArray[0].updateAbsFromLocTransform(0);
 
     // Because we know the hierarchy is stored from root down the branches let's just traverse and update
-    for (Index i = 1; i < _jointsArray.size(); i++) {
+    for (Index i = 1; unsigned int(i) < _jointsArray.size(); i++) {
         JointTracker* joint = _jointsArray.data() + i;
         joint->updateAbsFromLocTransform(_jointsArray.data() + joint->getParent());
     }
