@@ -164,10 +164,25 @@ void JointState::mixRotationDelta(const glm::quat& delta, float mixFactor, float
     setRotationInConstrainedFrame(targetRotation);
 }
 
+void JointState::mixVisibleRotationDelta(const glm::quat& delta, float mixFactor) {
+    // NOTE: delta is in model-frame
+    assert(_fbxJoint != NULL);
+    glm::quat targetRotation = _visibleRotationInConstrainedFrame * glm::inverse(_rotation) * delta * _rotation;
+    if (mixFactor > 0.0f && mixFactor <= 1.0f) {
+        //targetRotation = safeMix(targetRotation, _fbxJoint->rotation, mixFactor);
+        targetRotation = safeMix(targetRotation, _rotationInConstrainedFrame, mixFactor);
+    }
+    setVisibleRotationInConstrainedFrame(targetRotation);
+}
+
 glm::quat JointState::computeParentRotation() const {
     // R = Rp * Rpre * r * Rpost
     // Rp = R * (Rpre * r * Rpost)^
     return _rotation * glm::inverse(_fbxJoint->preRotation * _rotationInConstrainedFrame * _fbxJoint->postRotation);
+}
+
+glm::quat JointState::computeVisibleParentRotation() const {
+    return _visibleRotation * glm::inverse(_fbxJoint->preRotation * _visibleRotationInConstrainedFrame * _fbxJoint->postRotation);
 }
 
 void JointState::setRotationInConstrainedFrame(const glm::quat& targetRotation) {
@@ -175,6 +190,12 @@ void JointState::setRotationInConstrainedFrame(const glm::quat& targetRotation) 
     _rotationInConstrainedFrame = targetRotation;
     // R' = Rp * Rpre * r' * Rpost
     _rotation = parentRotation * _fbxJoint->preRotation * _rotationInConstrainedFrame * _fbxJoint->postRotation;
+}
+
+void JointState::setVisibleRotationInConstrainedFrame(const glm::quat& targetRotation) {
+    glm::quat parentRotation = computeVisibleParentRotation();
+    _visibleRotationInConstrainedFrame = targetRotation;
+    _visibleRotation = parentRotation * _fbxJoint->preRotation * _visibleRotationInConstrainedFrame * _fbxJoint->postRotation;
 }
 
 const glm::vec3& JointState::getDefaultTranslationInConstrainedFrame() const {

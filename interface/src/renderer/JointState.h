@@ -47,6 +47,8 @@ public:
     /// \return rotation from bind to model frame
     glm::quat getRotationFromBindToModelFrame() const;
 
+    int getParentIndex() const { return _fbxJoint->parentIndex; }
+
     /// \param rotation rotation of joint in model-frame
     void setRotation(const glm::quat& rotation, bool constrain, float priority);
 
@@ -59,6 +61,7 @@ public:
     /// \param mixFactor fraction in range [0,1] of how much default pose to blend in (0 is none, 1 is all)
     /// \param priority priority level of this animation blend
     void mixRotationDelta(const glm::quat& delta, float mixFactor, float priority = 1.0f);
+    void mixVisibleRotationDelta(const glm::quat& delta, float mixFactor);
 
     /// Blends a fraciton of default pose into joint rotation.
     /// \param fraction fraction in range [0,1] of how much default pose to blend in (0 is none, 1 is all)
@@ -71,6 +74,7 @@ public:
     void setRotationFromBindFrame(const glm::quat& rotation, float priority, bool constrain = false);
 
     void setRotationInConstrainedFrame(const glm::quat& targetRotation);
+    void setVisibleRotationInConstrainedFrame(const glm::quat& targetRotation);
     const glm::quat& getRotationInConstrainedFrame() const { return _rotationInConstrainedFrame; }
 
     const glm::vec3& getDefaultTranslationInConstrainedFrame() const;
@@ -86,6 +90,7 @@ private:
     /// \return parent model-frame rotation 
     // (used to keep _rotation consistent when modifying _rotationInWorldFrame directly)
     glm::quat computeParentRotation() const;
+    glm::quat computeVisibleParentRotation() const;
 
     /// debug helper function
     void loadBindRotation();
