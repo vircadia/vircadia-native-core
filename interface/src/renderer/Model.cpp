@@ -460,7 +460,7 @@ void Model::reset() {
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _jointStates.size(); i++) {
-        _jointStates[i].setRotationInParentFrame(geometry.joints.at(i).rotation);
+        _jointStates[i].setRotationInConstrainedFrame(geometry.joints.at(i).rotation);
     }
 }
 
@@ -688,7 +688,7 @@ bool Model::getJointState(int index, glm::quat& rotation) const {
     if (index == -1 || index >= _jointStates.size()) {
         return false;
     }
-    rotation = _jointStates.at(index).getRotationInParentFrame();
+    rotation = _jointStates.at(index).getRotationInConstrainedFrame();
     const glm::quat& defaultRotation = _geometry->getFBXGeometry().joints.at(index).rotation;
     return glm::abs(rotation.x - defaultRotation.x) >= EPSILON ||
         glm::abs(rotation.y - defaultRotation.y) >= EPSILON ||
@@ -701,7 +701,7 @@ void Model::setJointState(int index, bool valid, const glm::quat& rotation, floa
         JointState& state = _jointStates[index];
         if (priority >= state._animationPriority) {
             if (valid) {
-                state.setRotationInParentFrame(rotation);
+                state.setRotationInConstrainedFrame(rotation);
                 state._animationPriority = priority;
             } else {
                 state.restoreRotation(1.0f, priority);
@@ -1787,7 +1787,7 @@ void AnimationHandle::applyFrame(float frameIndex) {
         if (mapping != -1) {
             JointState& state = _model->_jointStates[mapping];
             if (_priority >= state._animationPriority) {
-                state.setRotationInParentFrame(safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction));
+                state.setRotationInConstrainedFrame(safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction));
                 state._animationPriority = _priority;
             }
         }

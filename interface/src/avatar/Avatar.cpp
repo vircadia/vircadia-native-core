@@ -145,20 +145,20 @@ void Avatar::simulate(float deltaTime) {
     _skeletonModel.setLODDistance(getLODDistance());
     
     if (!_shouldRenderBillboard && inViewFrustum) {
-        if (_hasNewJointRotations) {
-            PerformanceTimer perfTimer("skeleton");
-            for (int i = 0; i < _jointData.size(); i++) {
-                const JointData& data = _jointData.at(i);
-                _skeletonModel.setJointState(i, data.valid, data.rotation);
-            }
-            _skeletonModel.simulate(deltaTime);
-        }
         {
-            PerformanceTimer perfTimer("head");
+            PerformanceTimer perfTimer("skeleton");
+            if (_hasNewJointRotations) {
+                for (int i = 0; i < _jointData.size(); i++) {
+                    const JointData& data = _jointData.at(i);
+                    _skeletonModel.setJointState(i, data.valid, data.rotation);
+                }
+            }
             _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
             simulateAttachments(deltaTime);
             _hasNewJointRotations = false;
-
+        }
+        {
+            PerformanceTimer perfTimer("head");
             glm::vec3 headPosition = _position;
             _skeletonModel.getHeadPosition(headPosition);
             Head* head = getHead();
@@ -300,7 +300,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             }
 
             // If this is the avatar being looked at, render a little ball above their head
-            if (_isLookAtTarget) {
+            if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::FocusIndicators)) {
                 const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
                 const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
                 const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.75f };

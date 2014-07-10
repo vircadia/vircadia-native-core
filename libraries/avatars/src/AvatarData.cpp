@@ -490,11 +490,11 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         for (int i = 0; i < numJoints; i++) {
             JointData& data = _jointData[i];
             if (data.valid) {
+                _hasNewJointRotations = true;
                 sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
             }
         }
     } // numJoints * 8 bytes
-    _hasNewJointRotations = true;
     
     return sourceBuffer - startPosition;
 }
