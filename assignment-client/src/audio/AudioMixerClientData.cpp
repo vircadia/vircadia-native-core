@@ -162,14 +162,13 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
 AudioStreamStats AudioMixerClientData::getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer) const {
     
     AudioStreamStats streamStats;
-    const SequenceNumberStats* streamSequenceNumberStats;
 
     streamStats._streamType = ringBuffer->getType();
     if (streamStats._streamType == PositionalAudioRingBuffer::Injector) {
         streamStats._streamIdentifier = ((InjectedAudioRingBuffer*)ringBuffer)->getStreamIdentifier();
-        streamSequenceNumberStats = &_incomingInjectedAudioSequenceNumberStatsMap[streamStats._streamIdentifier];
+        streamStats._packetStreamStats = _incomingInjectedAudioSequenceNumberStatsMap[streamStats._streamIdentifier].getStats();
     } else {
-        streamSequenceNumberStats = &_incomingAvatarAudioSequenceNumberStats;
+        streamStats._packetStreamStats = _incomingAvatarAudioSequenceNumberStats.getStats();
     }
     
     const MovingMinMaxAvg<quint64>& timeGapStats = ringBuffer->getInterframeTimeGapStatsForStatsPacket();
@@ -187,14 +186,6 @@ AudioStreamStats AudioMixerClientData::getAudioStreamStatsOfStream(const Positio
     streamStats._ringBufferConsecutiveNotMixedCount = ringBuffer->getConsecutiveNotMixedCount();
     streamStats._ringBufferOverflowCount = ringBuffer->getOverflowCount();
     streamStats._ringBufferSilentFramesDropped = ringBuffer->getSilentFramesDropped();
-    
-    streamStats._packetStreamStats._numReceived = streamSequenceNumberStats->getNumReceived();
-    streamStats._packetStreamStats._numUnreasonable = streamSequenceNumberStats->getNumUnreasonable();
-    streamStats._packetStreamStats._numEarly = streamSequenceNumberStats->getNumEarly();
-    streamStats._packetStreamStats._numLate = streamSequenceNumberStats->getNumLate();
-    streamStats._packetStreamStats._numLost = streamSequenceNumberStats->getNumLost();
-    streamStats._packetStreamStats._numRecovered = streamSequenceNumberStats->getNumRecovered();
-    streamStats._packetStreamStats._numDuplicate = streamSequenceNumberStats->getNumDuplicate();
 
     return streamStats;
 }
