@@ -135,6 +135,7 @@ void MyAvatar::simulate(float deltaTime) {
         setScale(scale);
         Application::getInstance()->getCamera()->setScale(scale);
     }
+    _skeletonModel.setShowTrueJointTransforms(! Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll));
 
     // no extra movement of the hand here any more ...
     _handState = HAND_STATE_NULL;

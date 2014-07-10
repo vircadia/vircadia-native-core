@@ -537,8 +537,43 @@ void SkeletonModel::buildRagdollConstraints() {
 }
 
 void SkeletonModel::updateVisibleJointStates() {
-    Model::updateVisibleJointStates();
-    // TODO: implement this to move visible joints to agree with joint shape positions
+    if (_showTrueJointTransforms) {
+        // no need to update visible transforms
+        return;
+    }
+    for (int i = 0; i < _jointStates.size(); i++) {
+        JointState& state = _jointStates[i];
+
+        // get the parent state (this is the state that we want to rotate)
+        int parentIndex = state.getParentIndex();
+        if (parentIndex == -1) {
+            _jointStates[i].slaveVisibleTransform();
+            continue;
+        }
+        JointState& parentState = _jointStates[parentIndex];
+
+        // check the grand-parent index (for now we don't want to rotate any root states)
+        int grandParentIndex = parentState.getParentIndex();
+        if (grandParentIndex == -1) {
+            continue;
+        }
+
+        // make sure state's visibleTransform is up to date
+        const glm::mat4& parentTransform = parentState.getVisibleTransform();
+        state.computeVisibleTransform(parentTransform);
+
+        // we're looking for the rotation that moves visible bone parallel to ragdoll bone
+        glm::vec3 pivot = extractTranslation(parentTransform);
+        glm::vec3 tip = state.getVisiblePosition();
+        glm::vec3 shapeTip = _ragdollPoints[i]._position;
+        glm::quat delta = rotationBetween(tip - pivot, shapeTip - pivot);
+
+        // apply
+        parentState.mixVisibleRotationDelta(delta, 0.01f);
+        // update transforms
+        parentState.computeVisibleTransform(_jointStates[grandParentIndex].getVisibleTransform());
+        state.computeVisibleTransform(parentState.getVisibleTransform());
+    }
 }
 
 // virtual 
