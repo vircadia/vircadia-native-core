@@ -422,18 +422,15 @@ void Stats::display(
         
         
         int internal = 0, leaves = 0;
-        int received = 0, total = 0;
+        int sendProgress = 0, sendTotal = 0;
+        int receiveProgress = 0, receiveTotal = 0;
         foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
             if (node->getType() == NodeType::MetavoxelServer) {
                 QMutexLocker locker(&node->getMutex());
                 MetavoxelClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
                 if (client) {
                     client->getData().countNodes(internal, leaves, Application::getInstance()->getMetavoxels()->getLOD());
-                    int clientReceived = 0, clientTotal = 0;
-                    if (client->getReliableDeltaProgress(clientReceived, clientTotal)) {
-                        received += clientReceived;
-                        total += clientTotal;
-                    }
+                    client->getSequencer().addReliableChannelStats(sendProgress, sendTotal, receiveProgress, receiveTotal);
                 }
             }
         }
@@ -447,11 +444,16 @@ void Stats::display(
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodeTypes.str().c_str(), color);
         
-        if (total > 0) {
-            stringstream reliableDelta;
-            reliableDelta << "Reliable Delta: " << (received * 100 / total) << "%";
+        if (sendTotal > 0 || receiveTotal > 0) {
+            stringstream reliableStats;
+            if (sendTotal > 0) {
+                reliableStats << "Upload: " << (sendProgress * 100 / sendTotal) << "%  ";
+            }
+            if (receiveTotal > 0) {
+                reliableStats << "Download: " << (receiveProgress * 100 / receiveTotal) << "%";
+            }
             verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, reliableDelta.str().c_str(), color);
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, reliableStats.str().c_str(), color);
         }
     }
 

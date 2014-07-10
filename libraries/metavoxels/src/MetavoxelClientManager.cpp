@@ -94,10 +94,6 @@ MetavoxelClient::MetavoxelClient(const SharedNodePointer& node, MetavoxelClientM
         SIGNAL(receivedMessage(const QVariant&, Bitstream&)), SLOT(handleMessage(const QVariant&, Bitstream&)));
 }
 
-bool MetavoxelClient::getReliableDeltaProgress(int& received, int& total) const {
-    return _reliableDeltaChannel && _reliableDeltaChannel->getMessageReceiveProgress(received, total);
-}
-
 void MetavoxelClient::guide(MetavoxelVisitor& visitor) {
     visitor.setLOD(_manager->getLOD());
     _data.guide(visitor);
