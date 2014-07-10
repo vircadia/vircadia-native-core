@@ -109,6 +109,12 @@ public:
     public:
         Iterator(T* buffer, int size, T* at) : _buffer(buffer), _bufferEnd(buffer+size), _at(at) {}
 
+        Iterator& operator=(const Iterator& other) {
+            _buffer = other._buffer;
+            _bufferEnd = other._bufferEnd;
+            _at = other._at;
+        }
+
         bool operator==(const Iterator& rhs) { return _at == rhs._at; }
         bool operator!=(const Iterator& rhs) { return _at != rhs._at; }
         T& operator*() { return *_at; }
