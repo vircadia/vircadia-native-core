@@ -54,30 +54,30 @@ public:
     
 public slots:
     /// adds a model with the specific properties
-    EntityItemID addEntity(const EntityItemProperties& properties);
+    Q_INVOKABLE EntityItemID addEntity(const EntityItemProperties& properties);
 
     /// identify a recently created model to determine its true ID
-    EntityItemID identifyEntity(EntityItemID entityID);
+    Q_INVOKABLE EntityItemID identifyEntity(EntityItemID entityID);
 
     /// gets the current model properties for a specific model
     /// this function will not find return results in script engine contexts which don't have access to models
-    EntityItemProperties getEntityProperties(EntityItemID entityID);
+    Q_INVOKABLE EntityItemProperties getEntityProperties(EntityItemID entityID);
 
     /// edits a model updating only the included properties, will return the identified EntityItemID in case of
     /// successful edit, if the input entityID is for an unknown model this function will have no effect
-    EntityItemID editEntity(EntityItemID entityID, const EntityItemProperties& properties);
+    Q_INVOKABLE EntityItemID editEntity(EntityItemID entityID, const EntityItemProperties& properties);
 
     /// deletes a model
-    void deleteEntity(EntityItemID entityID);
+    Q_INVOKABLE void deleteEntity(EntityItemID entityID);
 
     /// finds the closest model to the center point, within the radius
     /// will return a EntityItemID.isKnownID = false if no models are in the radius
     /// this function will not find any models in script engine contexts which don't have access to models
-    EntityItemID findClosestEntity(const glm::vec3& center, float radius) const;
+    Q_INVOKABLE EntityItemID findClosestEntity(const glm::vec3& center, float radius) const;
 
     /// finds models within the search sphere specified by the center point and radius
     /// this function will not find any models in script engine contexts which don't have access to models
-    QVector<EntityItemID> findEntities(const glm::vec3& center, float radius) const;
+    Q_INVOKABLE QVector<EntityItemID> findEntities(const glm::vec3& center, float radius) const;
 
     /// If the scripting context has visible voxels, this will determine a ray intersection, the results
     /// may be inaccurate if the engine is unable to access the visible voxels, in which case result.accurate
@@ -88,6 +88,8 @@ public slots:
     /// order to return an accurate result
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray);
 
+
+    Q_INVOKABLE void dumpTree() const;
 
 signals:
     void modelCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, const CollisionInfo& collision);

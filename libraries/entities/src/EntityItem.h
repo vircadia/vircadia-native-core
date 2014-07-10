@@ -83,6 +83,8 @@ public:
 
     static EntityItem* constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItem* constructEntityItem(const unsigned char* data, int bytesToRead);
+    static bool decodEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes, 
+                                        const EntityItemID& entityID, const EntityItemProperties& properties);
 private:
     static QHash<EntityType_t, QString> _typeNameHash;
 };
@@ -125,6 +127,7 @@ public:
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
+    EntityPropertyFlags getChangedProperties() const;
 
     /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
@@ -224,13 +227,19 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
 class EntityItemID {
 public:
     EntityItemID() :
-            id(NEW_ENTITY), creatorTokenID(UNKNOWN_ENTITY_TOKEN), isKnownID(false) { };
+            id(NEW_ENTITY), creatorTokenID(UNKNOWN_ENTITY_TOKEN), isKnownID(false) { 
+    //qDebug() << "EntityItemID::EntityItemID()... isKnownID=" << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
+    };
 
     EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID) :
-            id(id), creatorTokenID(creatorTokenID), isKnownID(isKnownID) { };
+            id(id), creatorTokenID(creatorTokenID), isKnownID(isKnownID) { 
+    //qDebug() << "EntityItemID::EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID)... isKnownID=" << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
+    };
 
     EntityItemID(uint32_t id) :
-            id(id), creatorTokenID(UNKNOWN_ENTITY_TOKEN), isKnownID(true) { };
+            id(id), creatorTokenID(UNKNOWN_ENTITY_TOKEN), isKnownID(true) { 
+    //qDebug() << "EntityItemID::EntityItemID(uint32_t id)... isKnownID=" << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
+    };
 
     uint32_t id;
     uint32_t creatorTokenID;
@@ -259,7 +268,7 @@ inline uint qHash(const EntityItemID& a, uint seed) {
 }
 
 inline QDebug operator<<(QDebug debug, const EntityItemID& id) {
-    debug << "[ id:" << id.id << ", creatorTokenID:" << id.creatorTokenID << "]";
+    debug << "[ id:" << id.id << ", creatorTokenID:" << id.creatorTokenID << ", isKnownID:" << id.isKnownID << "]";
     return debug;
 }
 

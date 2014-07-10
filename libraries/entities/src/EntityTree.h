@@ -99,7 +99,7 @@ public:
     EntityTreeElement* getContainingElement(const EntityItemID& entityItemID) const;
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
-
+    void dumpTree();
 
     void rememberDirtyCube(const AACube& cube);
     void rememberEntityToMove(const EntityItem* entity);

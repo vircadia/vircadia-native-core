@@ -21,7 +21,7 @@ EntityScriptingInterface::EntityScriptingInterface() :
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
         EntityItemID entityID, const EntityItemProperties& properties) {
-    getEntityPacketSender()->queueEntityEditMessage(packetType, entityID, properties);
+    getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
 
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
@@ -56,6 +56,7 @@ EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
         // found it!
         entityID.id = actualID;
         entityID.isKnownID = true;
+        qDebug() << "EntityScriptingInterface::identifyEntity() ...found it... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
     }
     return entityID;
 }
@@ -95,6 +96,7 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     if (actualID != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID;
         entityID.isKnownID = true;
+        qDebug() << "EntityScriptingInterface::editEntity()... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
     
@@ -130,6 +132,7 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     if (actualID != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID;
         entityID.isKnownID = true;
+        qDebug() << "EntityScriptingInterface::deleteEntity()... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
 
@@ -151,11 +154,20 @@ EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center
         if (closestEntity) {
             result.id = closestEntity->getID();
             result.isKnownID = true;
+            qDebug() << "EntityScriptingInterface::findClosestEntity()... isKnownID=" << result.isKnownID << "id=" << result.id << "creatorTokenID=" << result.creatorTokenID;
         }
     }
     return result;
 }
 
+
+void EntityScriptingInterface::dumpTree() const {
+    if (_entityTree) {
+        _entityTree->lockForRead();
+        _entityTree->dumpTree();
+        _entityTree->unlock();
+    }
+}
 
 QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {
     QVector<EntityItemID> result;
@@ -186,10 +198,14 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     RayToEntityIntersectionResult result;
     if (_entityTree) {
         OctreeElement* element;
-        EntityItem* intersectedEntity;
+        EntityItem* intersectedEntity = NULL;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
                                                                 (void**)&intersectedEntity, lockType, &result.accurate);
         if (result.intersects && intersectedEntity) {
+
+qDebug() << "findRayIntersectionWorker().... intersectedEntity=" << intersectedEntity;
+intersectedEntity->debugDump();
+
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);

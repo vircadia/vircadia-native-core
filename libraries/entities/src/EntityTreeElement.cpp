@@ -333,7 +333,11 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                         if (localDistance < distance) {
                             distance = localDistance;
                             face = localFace;
-                            *intersectedObject = (void*)(&entity);
+                            
+                            qDebug() << "about to set intersectedObject=" << entity;
+                            entity->debugDump();
+                            
+                            *intersectedObject = (void*)entity;
                             somethingIntersected = true;
                         }
                     }
@@ -341,7 +345,11 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
             } else if (localDistance < distance) {
                 distance = localDistance;
                 face = localFace;
-                *intersectedObject = (void*)(&entity);
+                
+                qDebug() << "about to set intersectedObject=" << entity;
+                entity->debugDump();
+
+                *intersectedObject = (void*)entity;
                 somethingIntersected = true;
             }
         }
@@ -672,3 +680,12 @@ bool EntityTreeElement::collapseChildren() {
     // nothing to do here yet...
     return false;
 }
+
+
+void EntityTreeElement::debugDump() {
+    for (uint16_t i = 0; i < _entityItems->size(); i++) {
+        EntityItem* entity = (*_entityItems)[i];
+        entity->debugDump();
+    }
+}
+    

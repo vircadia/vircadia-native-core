@@ -161,6 +161,8 @@ public:
     bool containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const; // NOTE: units in tree units
     bool bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const; // NOTE: units in tree units
 
+    void debugDump();
+
 protected:
     virtual void init(unsigned char * octalCode);
     EntityTree* _myTree;

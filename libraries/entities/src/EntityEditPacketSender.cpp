@@ -43,7 +43,7 @@ void EntityEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeCol
 }
 
 
-void EntityEditPacketSender::queueEntityEditMessage(PacketType type, EntityItemID modelID, 
+void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemID modelID, 
                                                                 const EntityItemProperties& properties) {
     if (!_shouldSend) {
         return; // bail early

@@ -349,6 +349,9 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 }
 
 EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+
+qDebug() << "EntityTree::addEntity()... entityID=" << entityID;
+
     EntityItem* result = NULL;
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElement* containingElement = getContainingElement(entityID);
@@ -360,6 +363,9 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     // construct the instance of the entity
     EntityTypes::EntityType_t type = properties.getType();
     result = EntityTypes::constructEntityItem(type, entityID, properties);
+
+qDebug() << "EntityTree::addEntity()... result = EntityTypes::constructEntityItem(type, entityID, properties)... result->getEntityItemID()=" << result->getEntityItemID();
+
     if (result) {
         // this does the actual adding of the entity
         addEntityItem(result);
@@ -760,10 +766,33 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
     // we handle these types of "edit" packets
     switch (packetType) {
         case PacketTypeEntityAddOrEdit: {
-            // TODO: need to do this
+            qDebug() << "EntityTree::processEditPacketData()....";
+
+            EntityItemID entityItemID;
+            EntityItemProperties properties;
+            
+            bool validEditPacket = EntityTypes::decodEntityEditPacket(editData, maxLength, 
+                                                    processedBytes, entityItemID, properties);
+            
+            // If we got a valid edit packet, then it could be a new entity or it could be an update to
+            // an existing entity... handle appropriately
+            if (validEditPacket) {
+                // search for the entity by EntityItemID
+                EntityItem* existingEntity = findEntityByEntityItemID(entityItemID);
+
+                // if the entityItem exists, then update it
+                if (existingEntity) {
+                    updateEntity(entityItemID, properties);
+                } else {
+                    EntityItem* newEntity = addEntity(entityItemID, properties);
+                    if (newEntity) {
+                        notifyNewlyCreatedEntity(*newEntity, senderNode);
+                    }
+                }
+            }
+
      
-            qDebug() << "EntityTree::processEditPacketData().... NOT YET IMPLEMENTED!!!";
-#if 0
+#if 0 ////// OLD CODE...
             bool isValid = false;
             EntityItem* newEntity = NULL; // EntityItem::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
             if (isValid) {
@@ -1062,11 +1091,32 @@ void EntityTree::debugDumpMap() {
     }
 }
 
+class DebugOperator : public RecurseOctreeOperator {
+public:
+    virtual bool PreRecursion(OctreeElement* element);
+    virtual bool PostRecursion(OctreeElement* element) { return true; };
+    virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex) { return NULL; }
+};
+
+bool DebugOperator::PreRecursion(OctreeElement* element) {
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    entityTreeElement->debugDump();
+    return true;
+}
+
+void EntityTree::dumpTree() {
+    // First, look for the existing model in the tree..
+    DebugOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+}
+
 
 void EntityTree::rememberDirtyCube(const AACube& cube) {
     // TODO: do something here
+    qDebug() << "void EntityTree::rememberDirtyCube(const AACube& cube) CALLED BUT NOT IMPLEMENTED!";
 }
 
 void EntityTree::rememberEntityToMove(const EntityItem* entity) {
     // TODO: do something here
+    qDebug() << "void EntityTree::rememberEntityToMove() CALLED BUT NOT IMPLEMENTED!";
 }
