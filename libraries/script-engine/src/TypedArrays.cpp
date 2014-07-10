@@ -19,6 +19,22 @@ TypedArray::TypedArray(ScriptEngine* scriptEngine, QString name) : ArrayBufferVi
     _bytesPerElementName = engine()->toStringHandle(BYTES_PER_ELEMENT_PROPERTY_NAME.toLatin1());
     _lengthName = engine()->toStringHandle(LENGTH_PROPERTY_NAME.toLatin1());
     _name = engine()->toStringHandle(name.toLatin1());
+    
+    QScriptValue global = engine()->globalObject();
+    
+    // build prototype TODO
+    //    _proto = engine->newQObject(new DataViewPrototype(this),
+    //                                QScriptEngine::QtOwnership,
+    //                                QScriptEngine::SkipMethodsInEnumeration |
+    //                                QScriptEngine::ExcludeSuperClassMethods |
+    //                                QScriptEngine::ExcludeSuperClassProperties);
+    
+    _proto.setPrototype(global.property("Object").property("prototype"));
+    
+    _ctor = engine()->newFunction(construct, _proto);
+    _ctor.setData(engine()->toScriptValue(this));
+    
+    engine()->globalObject().setProperty(_name, _ctor);
 }
 
 QScriptValue TypedArray::construct(QScriptContext *context, QScriptEngine *engine) {
@@ -93,6 +109,18 @@ QScriptClass::QueryFlags TypedArray::queryProperty(const QScriptValue& object,
     if (name == _bytesPerElementName || name == _lengthName) {
         return flags &= HandlesReadAccess; // Only keep read access flags
     }
+    
+    quint32 byteOffset = object.data().property(_byteOffsetName).toInt32();
+    quint32 length = object.data().property(_lengthName).toInt32();
+    bool ok = false;
+    int pos = name.toArrayIndex(&ok);
+    
+    // Check that name is a valid index and arrayBuffer exists
+    if (ok && pos >= 0 && pos < length) {
+        *id = byteOffset + pos * _bytesPerElement; // save pos to avoid recomputation
+        return HandlesReadAccess | HandlesWriteAccess; // Read/Write access
+    }
+    
     return ArrayBufferViewClass::queryProperty(object, name, flags, id);
 }
 
@@ -121,23 +149,7 @@ QScriptValue TypedArray::prototype() const {
 }
 
 Int8ArrayClass::Int8ArrayClass(ScriptEngine* scriptEngine) : TypedArray(scriptEngine, INT_8_ARRAY_CLASS_NAME) {
-    QScriptValue global = engine()->globalObject();
-    
     _bytesPerElement = sizeof(qint8);
-    
-    // build prototype
-//    _proto = engine->newQObject(new DataViewPrototype(this),
-//                                QScriptEngine::QtOwnership,
-//                                QScriptEngine::SkipMethodsInEnumeration |
-//                                QScriptEngine::ExcludeSuperClassMethods |
-//                                QScriptEngine::ExcludeSuperClassProperties);
-    
-    _proto.setPrototype(global.property("Object").property("prototype"));
-    
-    _ctor = engine()->newFunction(construct, _proto);
-    _ctor.setData(engine()->toScriptValue(this));
-    
-    engine()->globalObject().setProperty(name(), _ctor);
 }
 
 QScriptValue Int8ArrayClass::newInstance(quint32 length) {
@@ -180,23 +192,6 @@ QScriptValue Int8ArrayClass::newInstance(QScriptValue buffer, quint32 byteOffset
     return engine()->newObject(this, data);
 }
 
-QScriptClass::QueryFlags Int8ArrayClass::queryProperty(const QScriptValue& object,
-                                                 const QScriptString& name,
-                                                      QueryFlags flags, uint* id) {
-    quint32 byteOffset = object.data().property(_byteOffsetName).toInt32();
-    quint32 length = object.data().property(_lengthName).toInt32();
-    bool ok = false;
-    int pos = name.toArrayIndex(&ok);
-
-    // Check that name is a valid index and arrayBuffer exists
-    if (ok && pos >= 0 && pos < length) {
-        *id = byteOffset + pos * _bytesPerElement; // save pos to avoid recomputation
-        return HandlesReadAccess | HandlesWriteAccess; // Read/Write access
-    }
-
-    return TypedArray::queryProperty(object, name, flags, id);
-}
-
 QScriptValue Int8ArrayClass::property(const QScriptValue &object,
                                 const QScriptString &name, uint id) {
     QByteArray* arrayBuffer = qscriptvalue_cast<QByteArray*>(object.data().property(_bufferName).data());
@@ -218,13 +213,11 @@ QScriptValue Int8ArrayClass::property(const QScriptValue &object,
 void Int8ArrayClass::setProperty(QScriptValue &object,
                                 const QScriptString &name,
                                 uint id, const QScriptValue &value) {
-    qDebug() << "ID: " << id << ", Value: " << value.toInt32();
     QByteArray *ba = qscriptvalue_cast<QByteArray*>(object.data().property(_bufferName).data());
     if (ba && value.isNumber()) {
         QDataStream stream(ba, QIODevice::ReadWrite);
         stream.skipRawData(id);
         
-        qDebug() << "Adding: " << (qint8)value.toInt32();
         stream << (qint8)value.toInt32();
     }
 }

@@ -59,9 +59,6 @@ public:
     QScriptValue newInstance(QScriptValue array, bool isTypedArray);
     QScriptValue newInstance(QScriptValue buffer, quint32 byteOffset, quint32 length);
 
-    QueryFlags queryProperty(const QScriptValue& object,
-                             const QScriptString& name,
-                             QueryFlags flags, uint* id);
     QScriptValue property(const QScriptValue &object,
                           const QScriptString &name, uint id);
     void setProperty(QScriptValue &object,
