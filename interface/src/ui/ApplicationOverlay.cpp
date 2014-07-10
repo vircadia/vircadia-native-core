@@ -272,9 +272,6 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(const PalmData *palm) cons
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
-
-    const int widgetWidth = glWidget->width();
-    const int widgetHeight = glWidget->height();
     
     glm::vec3 tip = OculusManager::getLaserPointerTipPosition(palm);
     glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
@@ -700,13 +697,12 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
     MyAvatar* myAvatar = application->getAvatar();
 
     //Controller Pointers
-    for (size_t i = 0; i < myAvatar->getHand()->getNumPalms(); i++) {
+    for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
 
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
         if (palm.isActive()) {
             glm::vec3 tip = OculusManager::getLaserPointerTipPosition(&palm);
             glm::quat orientation = glm::inverse(myAvatar->getOrientation());
-            glm::vec3 dir = orientation * glm::normalize(eyePos - tip); //direction of ray goes towards camera
             glm::vec3 tipPos = (tip - eyePos);
                 
             float length = glm::length(eyePos - tip);
