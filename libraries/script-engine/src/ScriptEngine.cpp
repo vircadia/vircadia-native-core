@@ -32,13 +32,13 @@
 #include <VoxelDetail.h>
 
 #include "AnimationObject.h"
-#include "ArrayBufferClass.h"
 #include "ArrayBufferViewClass.h"
 #include "DataViewClass.h"
 #include "MenuItemProperties.h"
 #include "MIDIEvent.h"
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
+#include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
@@ -93,8 +93,15 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _quatLibrary(),
     _vec3Library(),
     _uuidLibrary(),
-    _animationCache(this)
+    _animationCache(this),
+    _arrayBufferClass(NULL)
 {
+    _arrayBufferClass = new ArrayBufferClass(this);
+    qDebug() << "Engine: " << this;
+    qDebug() << "ArrayBuffer: " <<_arrayBufferClass;
+    qDebug() << "DataView: " << new DataViewClass(this);
+    qDebug() << "Int8Array: " << new Int8ArrayClass(this);
+    qDebug() << "Initial thread: " << QThread::currentThread() << " " << thread();
 }
 
 ScriptEngine::ScriptEngine(const QUrl& scriptURL,
@@ -118,13 +125,21 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _quatLibrary(),
     _vec3Library(),
     _uuidLibrary(),
-    _animationCache(this)
+    _animationCache(this),
+    _arrayBufferClass(NULL)
 {
     QString scriptURLString = scriptURL.toString();
     _fileNameString = scriptURLString;
 
     QUrl url(scriptURL);
-
+    
+    _arrayBufferClass = new ArrayBufferClass(this);
+    qDebug() << "Engine: " << this;
+    qDebug() << "ArrayBuffer: " <<_arrayBufferClass;
+    qDebug() << "DataView: " << new DataViewClass(this);
+    qDebug() << "Int8Array: " << new Int8ArrayClass(this);
+    qDebug() << "Initial thread: " << QThread::currentThread() << " " << thread();
+    
     // if the scheme length is one or lower, maybe they typed in a file, let's try
     const int WINDOWS_DRIVE_LETTER_SIZE = 1;
     if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
@@ -141,6 +156,7 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
                 QTextStream in(&scriptFile);
                 _scriptContents = in.readAll();
             } else {
+                
                 qDebug() << "ERROR Loading file:" << fileName;
                 emit errorMessage("ERROR Loading file:" + fileName);
             }
@@ -213,10 +229,6 @@ void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
     }
-
-    new ArrayBufferClass(&_engine);
-    new ArrayBufferViewClass(&_engine);
-    new DataViewClass(&_engine);
     
     _isInitialized = true;
 

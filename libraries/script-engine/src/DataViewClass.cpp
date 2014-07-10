@@ -17,14 +17,14 @@ Q_DECLARE_METATYPE(QByteArray*)
 
 static const QString DATA_VIEW_NAME = "DataView";
 
-DataViewClass::DataViewClass(QScriptEngine* engine) : ArrayBufferViewClass(engine) {
-    QScriptValue global = engine->globalObject();
+DataViewClass::DataViewClass(ScriptEngine* scriptEngine) : ArrayBufferViewClass(scriptEngine) {
+    QScriptValue global = engine()->globalObject();
     
     // Save string handles for quick lookup
-    _name = engine->toStringHandle(DATA_VIEW_NAME.toLatin1());
+    _name = engine()->toStringHandle(DATA_VIEW_NAME.toLatin1());
     
     // build prototype
-    _proto = engine->newQObject(new DataViewPrototype(this),
+    _proto = engine()->newQObject(new DataViewPrototype(this),
                                 QScriptEngine::QtOwnership,
                                 QScriptEngine::SkipMethodsInEnumeration |
                                 QScriptEngine::ExcludeSuperClassMethods |
@@ -32,10 +32,10 @@ DataViewClass::DataViewClass(QScriptEngine* engine) : ArrayBufferViewClass(engin
     
     _proto.setPrototype(global.property("Object").property("prototype"));
     
-    _ctor = engine->newFunction(construct, _proto);
-    _ctor.setData(engine->toScriptValue(this));
+    _ctor = engine()->newFunction(construct, _proto);
+    _ctor.setData(engine()->toScriptValue(this));
     
-    engine->globalObject().setProperty(name(), _ctor);
+    engine()->globalObject().setProperty(name(), _ctor);
 }
 
 QScriptValue DataViewClass::newInstance(QScriptValue buffer, quint32 byteOffset, quint32 byteLentgh) {

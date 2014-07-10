@@ -9,8 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDebug>
 
 #include "ArrayBufferPrototype.h"
+#include "ScriptEngine.h"
 
 #include "ArrayBufferClass.h"
 
@@ -19,16 +21,20 @@ static const QString BYTE_LENGTH_PROPERTY_NAME = "byteLength";
 
 Q_DECLARE_METATYPE(QByteArray*)
 
-ArrayBufferClass::ArrayBufferClass(QScriptEngine* engine) : QObject(engine), QScriptClass(engine) {
-    qScriptRegisterMetaType<QByteArray>(engine, toScriptValue, fromScriptValue);
-    QScriptValue global = engine->globalObject();
+ArrayBufferClass::ArrayBufferClass(ScriptEngine* scriptEngine) :
+QObject(scriptEngine->getScriptEngine()),
+QScriptClass(scriptEngine->getScriptEngine()),
+_scriptEngine(scriptEngine) {
+    qDebug() << "Created with engine: " << engine();
+    qScriptRegisterMetaType<QByteArray>(engine(), toScriptValue, fromScriptValue);
+    QScriptValue global = engine()->globalObject();
     
     // Save string handles for quick lookup
-    _name = engine->toStringHandle(CLASS_NAME.toLatin1());
-    _byteLength = engine->toStringHandle(BYTE_LENGTH_PROPERTY_NAME.toLatin1());
+    _name = engine()->toStringHandle(CLASS_NAME.toLatin1());
+    _byteLength = engine()->toStringHandle(BYTE_LENGTH_PROPERTY_NAME.toLatin1());
     
     // build prototype
-    _proto = engine->newQObject(new ArrayBufferPrototype(this),
+    _proto = engine()->newQObject(new ArrayBufferPrototype(this),
                                 QScriptEngine::QtOwnership,
                                 QScriptEngine::SkipMethodsInEnumeration |
                                 QScriptEngine::ExcludeSuperClassMethods |
@@ -36,15 +42,17 @@ ArrayBufferClass::ArrayBufferClass(QScriptEngine* engine) : QObject(engine), QSc
 
     _proto.setPrototype(global.property("Object").property("prototype"));
     
-    _ctor = engine->newFunction(construct, _proto);
-    _ctor.setData(engine->toScriptValue(this));
+    _ctor = engine()->newFunction(construct, _proto);
+    _ctor.setData(engine()->toScriptValue(this));
     
-    engine->globalObject().setProperty(name(), _ctor);
+    engine()->globalObject().setProperty(name(), _ctor);
 }
 
 QScriptValue ArrayBufferClass::newInstance(quint32 size) {
     engine()->reportAdditionalMemoryCost(size);
-    QScriptValue data = engine()->newVariant(QVariant::fromValue(QByteArray(size, 0)));
+    QScriptEngine* eng = engine();
+    QVariant variant = QVariant::fromValue(QByteArray(size, 0));
+    QScriptValue data =  eng->newVariant(variant);
     return engine()->newObject(this, data);
 }
 

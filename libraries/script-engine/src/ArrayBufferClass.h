@@ -20,12 +20,16 @@
 #include <QtScript/QScriptString>
 #include <QtScript/QScriptValue>
 
+class ScriptEngine;
+
 class ArrayBufferClass : public QObject, public QScriptClass {
     Q_OBJECT
 public:
-    ArrayBufferClass(QScriptEngine* engine);
+    ArrayBufferClass(ScriptEngine* scriptEngine);
     QScriptValue newInstance(quint32 size);
     QScriptValue newInstance(const QByteArray& ba);
+    
+    ScriptEngine* getScriptEngine() { return _scriptEngine; }
     
     QueryFlags queryProperty(const QScriptValue& object,
                              const QScriptString& name,
@@ -50,6 +54,8 @@ private:
     // JS Object attributes
     QScriptString _name;
     QScriptString _byteLength;
+    
+    ScriptEngine* _scriptEngine;
 };
 
 #endif // hifi_ArrayBufferClass_h

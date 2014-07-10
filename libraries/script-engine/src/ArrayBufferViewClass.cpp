@@ -13,13 +13,14 @@
 
 Q_DECLARE_METATYPE(QByteArray*)
 
-ArrayBufferViewClass::ArrayBufferViewClass(QScriptEngine* engine) :
-QObject(engine),
-QScriptClass(engine) {
+ArrayBufferViewClass::ArrayBufferViewClass(ScriptEngine* scriptEngine) :
+QObject(scriptEngine->getScriptEngine()),
+QScriptClass(scriptEngine->getScriptEngine()),
+_scriptEngine(scriptEngine) {
     // Save string handles for quick lookup
-    _bufferName = engine->toStringHandle(BUFFER_PROPERTY_NAME.toLatin1());
-    _byteOffsetName = engine->toStringHandle(BYTE_OFFSET_PROPERTY_NAME.toLatin1());
-    _byteLengthName = engine->toStringHandle(BYTE_LENGTH_PROPERTY_NAME.toLatin1());
+    _bufferName = engine()->toStringHandle(BUFFER_PROPERTY_NAME.toLatin1());
+    _byteOffsetName = engine()->toStringHandle(BYTE_OFFSET_PROPERTY_NAME.toLatin1());
+    _byteLengthName = engine()->toStringHandle(BYTE_LENGTH_PROPERTY_NAME.toLatin1());
 }
 
 QScriptClass::QueryFlags ArrayBufferViewClass::queryProperty(const QScriptValue& object,
