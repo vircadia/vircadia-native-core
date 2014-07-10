@@ -184,12 +184,13 @@ bool GLCanvas::eventFilter(QObject*, QEvent* event) {
         {
             QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
             if (keyEvent->key() == Qt::Key_Alt || keyEvent->key() == Qt::Key_Meta) {
-                if (event->type() == QEvent::KeyPress)
+                if (event->type() == QEvent::KeyPress) {
                     keyPressEvent(keyEvent);
-                else if (event->type() == QEvent::KeyRelease)
+                } else if (event->type() == QEvent::KeyRelease) {
                     keyReleaseEvent(keyEvent);
-                else
+                } else {
                     QGLWidget::event(event);
+                }
                 return true;
             }
         }
