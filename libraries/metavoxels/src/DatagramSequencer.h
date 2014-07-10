@@ -376,6 +376,10 @@ public:
     /// writes the message to the bitstream, then calls endMessage).
     void sendMessage(const QVariant& message);
 
+    /// Determines the number of bytes downloaded towards the currently pending message.
+    /// \return true if there is a message pending, in which case the received and total arguments will be set
+    bool getMessageReceiveProgress(int& received, int& total) const;
+
 signals:
 
     /// Fired when a framed message has been received on this channel.

@@ -692,6 +692,17 @@ void ReliableChannel::sendMessage(const QVariant& message) {
     endMessage();
 }
 
+bool ReliableChannel::getMessageReceiveProgress(int& received, int& total) const {
+    if (!_messagesEnabled || _buffer.bytesAvailable() < (int)sizeof(quint32)) {
+        return false;
+    }
+    quint32 length;
+    _buffer.readBytes(_buffer.pos(), sizeof(quint32), (char*)&length);
+    total = length;
+    received = _buffer.bytesAvailable();
+    return true;
+}
+
 void ReliableChannel::sendClearSharedObjectMessage(int id) {
     ClearSharedObjectMessage message = { id };
     sendMessage(QVariant::fromValue(message));

@@ -377,7 +377,7 @@ void Stats::display(
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 
-    lines = _expanded ? 5 : 3;
+    lines = _expanded ? 8 : 3;
 
     drawBackground(backgroundColor, horizontalOffset, 0, _geoStatsWidth, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
@@ -419,6 +419,40 @@ void Stats::display(
         
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, downloads.str().c_str(), color);
+        
+        
+        int internal = 0, leaves = 0;
+        int received = 0, total = 0;
+        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+            if (node->getType() == NodeType::MetavoxelServer) {
+                QMutexLocker locker(&node->getMutex());
+                MetavoxelClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
+                if (client) {
+                    client->getData().countNodes(internal, leaves, Application::getInstance()->getMetavoxels()->getLOD());
+                    int clientReceived = 0, clientTotal = 0;
+                    if (client->getReliableDeltaProgress(clientReceived, clientTotal)) {
+                        received += clientReceived;
+                        total += clientTotal;
+                    }
+                }
+            }
+        }
+        stringstream nodes;
+        nodes << "Metavoxels: " << (internal + leaves);
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodes.str().c_str(), color);
+        
+        stringstream nodeTypes;
+        nodeTypes << "Internal: " << internal << "  Leaves: " << leaves;
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodeTypes.str().c_str(), color);
+        
+        if (total > 0) {
+            stringstream reliableDelta;
+            reliableDelta << "Reliable Delta: " << (received * 100 / total) << "%";
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, reliableDelta.str().c_str(), color);
+        }
     }
 
     verticalOffset = 0;

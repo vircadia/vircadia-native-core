@@ -53,6 +53,8 @@ public:
 
     MetavoxelData& getData() { return _data; }
 
+    bool getReliableDeltaProgress(int& received, int& total) const;
+
     void guide(MetavoxelVisitor& visitor);
     
     void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);

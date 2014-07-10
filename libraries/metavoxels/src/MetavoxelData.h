@@ -125,6 +125,9 @@ public:
     /// shallow comparison).
     bool deepEquals(const MetavoxelData& other, const MetavoxelLOD& lod = MetavoxelLOD()) const;
 
+    /// Counts the nodes in the data.
+    void countNodes(int& internalNodes, int& leaves, const MetavoxelLOD& lod = MetavoxelLOD()) const;
+
     void dumpStats(QDebug debug = QDebug(QtDebugMsg)) const;
 
     bool operator==(const MetavoxelData& other) const;
@@ -223,7 +226,8 @@ public:
     void getSpanners(const AttributePointer& attribute, const glm::vec3& minimum,
         float size, const MetavoxelLOD& lod, SharedObjectSet& results) const;
     
-    void countDescendants(int& internalNodes, int& leaves) const;
+    void countNodes(const AttributePointer& attribute, const glm::vec3& minimum,
+        float size, const MetavoxelLOD& lod, int& internalNodes, int& leaves) const;
     
 private:
     Q_DISABLE_COPY(MetavoxelNode)

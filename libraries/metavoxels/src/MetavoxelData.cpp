@@ -628,17 +628,25 @@ bool MetavoxelData::deepEquals(const MetavoxelData& other, const MetavoxelLOD& l
     return true;
 }
 
+void MetavoxelData::countNodes(int& internal, int& leaves, const MetavoxelLOD& lod) const {
+    glm::vec3 minimum = getMinimum();
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        it.value()->countNodes(it.key(), minimum, _size, lod, internal, leaves);
+    }
+}
+
 void MetavoxelData::dumpStats(QDebug debug) const {
     QDebugStateSaver saver(debug);
     debug.nospace() << "[size=" << _size << ", roots=[";
     int totalInternal = 0, totalLeaves = 0;
+    glm::vec3 minimum = getMinimum();
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         if (it != _roots.constBegin()) {
             debug << ", ";
         }
         debug << it.key()->getName() << " (" << it.key()->metaObject()->className() << "): ";
         int internal = 0, leaves = 0;
-        it.value()->countDescendants(internal, leaves);
+        it.value()->countNodes(it.key(), minimum, _size, MetavoxelLOD(), internal, leaves);
         debug << internal << " internal, " << leaves << " leaves, " << (internal + leaves) << " total";
         totalInternal += internal;
         totalLeaves += leaves;
@@ -1076,19 +1084,20 @@ void MetavoxelNode::getSpanners(const AttributePointer& attribute, const glm::ve
     }
     float nextSize = size * 0.5f;
     for (int i = 0; i < CHILD_COUNT; i++) {
-        glm::vec3 nextMinimum = getNextMinimum(minimum, nextSize, i);
-        _children[i]->getSpanners(attribute, nextMinimum, nextSize, lod, results);
+        _children[i]->getSpanners(attribute, getNextMinimum(minimum, nextSize, i), nextSize, lod, results);
     }
 }
 
-void MetavoxelNode::countDescendants(int& internalNodes, int& leaves) const {
-    if (isLeaf()) {
+void MetavoxelNode::countNodes(const AttributePointer& attribute, const glm::vec3& minimum,
+        float size, const MetavoxelLOD& lod, int& internal, int& leaves) const {
+    if (isLeaf() || !lod.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier())) {
         leaves++;
         return;
     }
-    internalNodes++;
+    internal++;
+    float nextSize = size * 0.5f;
     for (int i = 0; i < CHILD_COUNT; i++) {
-        _children[i]->countDescendants(internalNodes, leaves);
+        _children[i]->countNodes(attribute, getNextMinimum(minimum, nextSize, i), nextSize, lod, internal, leaves);
     }
 }
 
