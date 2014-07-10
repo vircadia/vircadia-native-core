@@ -32,6 +32,8 @@ class Shape;
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
+const int MAX_LOCAL_LIGHTS = 2;
+
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
@@ -143,6 +145,10 @@ public:
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
+    void setLocalLightDirection(const glm::vec3& direction, int lightIndex);
+    void setLocalLightColor(const glm::vec3& color, int lightIndex);
+    void setNumLocalLights(int numLocalLights);   
+ 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
     
@@ -158,6 +164,10 @@ protected:
     bool _showTrueJointTransforms;
     int _rootIndex;
     
+    glm::vec3 _localLightDirections[MAX_LOCAL_LIGHTS];
+    glm::vec3 _localLightColors[MAX_LOCAL_LIGHTS];
+    int _numLocalLights;
+ 
     QVector<JointState> _jointStates;
 
     class MeshState {

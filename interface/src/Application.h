@@ -317,6 +317,7 @@ public slots:
     void nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
 
     void setRenderVoxels(bool renderVoxels);
+    void setLowVelocityFilter(bool lowVelocityFilter);
     void doKillLocalVoxels();
     void loadDialog();
     void loadScriptURLDialog();

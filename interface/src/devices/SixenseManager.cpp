@@ -11,6 +11,8 @@
 
 #include <vector>
 
+#include <PerfStat.h>
+
 #include "Application.h"
 #include "SixenseManager.h"
 #include "UserActivityLogger.h"
@@ -32,6 +34,7 @@ SixenseManager::SixenseManager() {
 #ifdef HAVE_SIXENSE
     _lastMovement = 0;
     _amountMoved = glm::vec3(0.0f);
+    _lowVelocityFilter = false;
 
     _calibrationState = CALIBRATION_STATE_IDLE;
     // By default we assume the _neckBase (in orb frame) is as high above the orb 
@@ -60,10 +63,8 @@ SixenseManager::~SixenseManager() {
 void SixenseManager::setFilter(bool filter) {
 #ifdef HAVE_SIXENSE
     if (filter) {
-        qDebug("Sixense Filter ON");
         sixenseSetFilterEnabled(1);
     } else {
-        qDebug("Sixense Filter OFF");
         sixenseSetFilterEnabled(0);
     }
 #endif
@@ -84,7 +85,10 @@ void SixenseManager::update(float deltaTime) {
     if (sixenseGetNumActiveControllers() == 0) {
         _hydrasConnected = false;
         return;
-    } else if (!_hydrasConnected) {
+    } 
+
+    PerformanceTimer perfTimer("sixense");
+    if (!_hydrasConnected) {
         _hydrasConnected = true;
         UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
     }
@@ -160,17 +164,21 @@ void SixenseManager::update(float deltaTime) {
         }
         palm->setRawVelocity(rawVelocity);   //  meters/sec
     
-        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-        //  no latency.
-        float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-        palm->setRawPosition(palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter));
-
         // adjustment for hydra controllers fit into hands
         float sign = (i == 0) ? -1.0f : 1.0f;
         rotation *= glm::angleAxis(sign * PI/4.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 
-        palm->setRawRotation(safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter));
-        
+        if (_lowVelocityFilter) {
+            //  Use a velocity sensitive filter to damp small motions and preserve large ones with
+            //  no latency.
+            float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
+            palm->setRawPosition(palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter));
+            palm->setRawRotation(safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter));
+        } else {
+            palm->setRawPosition(position);
+            palm->setRawRotation(rotation);
+        }
+
         // use the velocity to determine whether there's any movement (if the hand isn't new)
         const float MOVEMENT_DISTANCE_THRESHOLD = 0.003f;
         _amountMoved += rawVelocity * deltaTime;
