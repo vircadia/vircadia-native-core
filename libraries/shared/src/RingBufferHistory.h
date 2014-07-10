@@ -23,7 +23,7 @@ public:
     RingBufferHistory(int capacity = 10)
         : _size(capacity + 1),
         _capacity(capacity),
-        _newestEntryAt(0),
+        _newestEntryAtIndex(0),
         _numEntries(0)
     {
         _buffer = new T[_size];
@@ -32,7 +32,7 @@ public:
     RingBufferHistory(const RingBufferHistory& other)
         : _size(other._size),
         _capacity(other._capacity),
-        _newestEntryAt(other._newestEntryAt),
+        _newestEntryAtIndex(other._newestEntryAtIndex),
         _numEntries(other._numEntries)
     {
         _buffer = new T[_size];
@@ -42,7 +42,7 @@ public:
     RingBufferHistory& operator= (const RingBufferHistory& rhs) {
         _size = rhs._size;
         _capacity = rhs._capacity;
-        _newestEntryAt = rhs._newestEntryAt;
+        _newestEntryAtIndex = rhs._newestEntryAtIndex;
         _numEntries = rhs._numEntries;
         delete[] _buffer;
         _buffer = new T[_size];
@@ -60,10 +60,10 @@ public:
 
     void insert(const T& entry) {
         // increment newest entry index cyclically
-        _newestEntryAt = (_newestEntryAt == _size - 1) ? 0 : _newestEntryAt + 1;
+        _newestEntryAtIndex = (_newestEntryAtIndex == _size - 1) ? 0 : _newestEntryAtIndex + 1;
 
         // insert new entry
-        _buffer[_newestEntryAt] = entry;
+        _buffer[_newestEntryAtIndex] = entry;
         if (_numEntries < _capacity) {
             _numEntries++;
         }
@@ -75,7 +75,7 @@ public:
         if (!(entryAge >= 0 && entryAge < _numEntries)) {
             return NULL;
         }
-        int entryAt = _newestEntryAt - entryAge;
+        int entryAt = _newestEntryAtIndex - entryAge;
         if (entryAt < 0) {
             entryAt += _size;
         }
@@ -87,11 +87,11 @@ public:
     }
 
     const T* getNewestEntry() const {
-        return &_buffer[_newestEntryAt];
+        return &_buffer[_newestEntryAtIndex];
     }
 
     T* getNewestEntry() {
-        return &_buffer[_newestEntryAt];
+        return &_buffer[_newestEntryAtIndex];
     }
 
     int getCapacity() const { return _capacity; }
@@ -101,7 +101,7 @@ private:
     T* _buffer;
     int _size;
     int _capacity;
-    int _newestEntryAt;
+    int _newestEntryAtIndex;
     int _numEntries;
 
 
@@ -133,14 +133,14 @@ public:
         T* _at;
     };
 
-    Iterator begin() { return Iterator(_buffer, _size, &_buffer[_newestEntryAt]); }
+    Iterator begin() { return Iterator(_buffer, _size, &_buffer[_newestEntryAtIndex]); }
 
     Iterator end() {
-        int endAt = _newestEntryAt - _numEntries;
-        if (endAt < 0) {
-            endAt += _size;
+        int endAtIndex = _newestEntryAtIndex - _numEntries;
+        if (endAtIndex < 0) {
+            endAtIndex += _size;
         }
-        return Iterator(_buffer, _size, &_buffer[endAt]);
+        return Iterator(_buffer, _size, &_buffer[endAtIndex]);
     }
 };
 

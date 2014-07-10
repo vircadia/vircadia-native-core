@@ -341,21 +341,11 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, streamStatsFormatLabelString4, color);
 
+            float packetLossRate, packetLossRate30s;
 
             char downstreamLabelString[] = " Downstream:";
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamLabelString, color);
-
-           /* const SequenceNumberStats& downstreamAudioSequenceNumberStats = audio->getIncomingMixedAudioSequenceNumberStats();
-            
-            sprintf(downstreamAudioStatsString, "  mix: %d/%d/%d, %d", downstreamAudioSequenceNumberStats.getNumEarly(),
-                downstreamAudioSequenceNumberStats.getNumLate(), downstreamAudioSequenceNumberStats.getNumLost(),
-                audio->getJitterBufferSamples() / NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
-
-            verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);*/
-            
-            float packetLossRate, packetLossRate30s;
 
             char downstreamAudioStatsString[30];
 
@@ -406,8 +396,8 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
 
-            sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", audioMixerAvatarAudioStreamStats._timeGapMovingMin,
-                audioMixerAvatarAudioStreamStats._timeGapMovingMax, audioMixerAvatarAudioStreamStats._timeGapMovingAverage,
+            sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", audioMixerAvatarAudioStreamStats._timeGapWindowMin,
+                audioMixerAvatarAudioStreamStats._timeGapWindowMax, audioMixerAvatarAudioStreamStats._timeGapWindowAverage,
                 audioMixerAvatarAudioStreamStats._ringBufferConsecutiveNotMixedCount, audioMixerAvatarAudioStreamStats._ringBufferSilentFramesDropped);
 
             verticalOffset += STATS_PELS_PER_LINE;
@@ -435,8 +425,8 @@ void Stats::display(
                 verticalOffset += STATS_PELS_PER_LINE;
                 drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
 
-                sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", injectedStreamAudioStats._timeGapMovingMin,
-                    injectedStreamAudioStats._timeGapMovingMax, injectedStreamAudioStats._timeGapMovingAverage,
+                sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", injectedStreamAudioStats._timeGapWindowMin,
+                    injectedStreamAudioStats._timeGapWindowMax, injectedStreamAudioStats._timeGapWindowAverage,
                     injectedStreamAudioStats._ringBufferConsecutiveNotMixedCount, injectedStreamAudioStats._ringBufferSilentFramesDropped);
 
                 verticalOffset += STATS_PELS_PER_LINE;

@@ -176,9 +176,9 @@ AudioStreamStats AudioMixerClientData::getAudioStreamStatsOfStream(const Positio
     streamStats._timeGapMin = timeGapStats.getMin();
     streamStats._timeGapMax = timeGapStats.getMax();
     streamStats._timeGapAverage = timeGapStats.getAverage();
-    streamStats._timeGapMovingMin = timeGapStats.getWindowMin();
-    streamStats._timeGapMovingMax = timeGapStats.getWindowMax();
-    streamStats._timeGapMovingAverage = timeGapStats.getWindowAverage();
+    streamStats._timeGapWindowMin = timeGapStats.getWindowMin();
+    streamStats._timeGapWindowMax = timeGapStats.getWindowMax();
+    streamStats._timeGapWindowAverage = timeGapStats.getWindowAverage();
 
     streamStats._ringBufferFramesAvailable = ringBuffer->framesAvailable();
     streamStats._ringBufferCurrentJitterBufferFrames = ringBuffer->getCurrentJitterBufferFrames();
@@ -267,9 +267,9 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
             + " min gap:" + QString::number(streamStats._timeGapMin)
             + " max gap:" + QString::number(streamStats._timeGapMax)
             + " avg gap:" + QString::number(streamStats._timeGapAverage, 'g', 2)
-            + " min 30s gap:" + QString::number(streamStats._timeGapMovingMin)
-            + " max 30s gap:" + QString::number(streamStats._timeGapMovingMax)
-            + " avg 30s gap:" + QString::number(streamStats._timeGapMovingAverage, 'g', 2);
+            + " min 30s gap:" + QString::number(streamStats._timeGapWindowMin)
+            + " max 30s gap:" + QString::number(streamStats._timeGapWindowMax)
+            + " avg 30s gap:" + QString::number(streamStats._timeGapWindowAverage, 'g', 2);
     } else {
         result = "mic unknown";
     }
@@ -290,9 +290,9 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
                 + " min gap:" + QString::number(streamStats._timeGapMin)
                 + " max gap:" + QString::number(streamStats._timeGapMax)
                 + " avg gap:" + QString::number(streamStats._timeGapAverage, 'g', 2)
-                + " min 30s gap:" + QString::number(streamStats._timeGapMovingMin)
-                + " max 30s gap:" + QString::number(streamStats._timeGapMovingMax)
-                + " avg 30s gap:" + QString::number(streamStats._timeGapMovingAverage, 'g', 2);
+                + " min 30s gap:" + QString::number(streamStats._timeGapWindowMin)
+                + " max 30s gap:" + QString::number(streamStats._timeGapWindowMax)
+                + " avg 30s gap:" + QString::number(streamStats._timeGapWindowAverage, 'g', 2);
         }
     }
     return result;

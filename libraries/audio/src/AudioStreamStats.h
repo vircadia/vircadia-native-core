@@ -23,9 +23,9 @@ public:
         _timeGapMin(0),
         _timeGapMax(0),
         _timeGapAverage(0.0f),
-        _timeGapMovingMin(0),
-        _timeGapMovingMax(0),
-        _timeGapMovingAverage(0.0f),
+        _timeGapWindowMin(0),
+        _timeGapWindowMax(0),
+        _timeGapWindowAverage(0.0f),
         _ringBufferFramesAvailable(0),
         _ringBufferCurrentJitterBufferFrames(0),
         _ringBufferDesiredJitterBufferFrames(0),
@@ -42,9 +42,9 @@ public:
     quint64 _timeGapMin;
     quint64 _timeGapMax;
     float _timeGapAverage;
-    quint64 _timeGapMovingMin;
-    quint64 _timeGapMovingMax;
-    float _timeGapMovingAverage;
+    quint64 _timeGapWindowMin;
+    quint64 _timeGapWindowMax;
+    float _timeGapWindowAverage;
 
     quint32 _ringBufferFramesAvailable;
     quint16 _ringBufferCurrentJitterBufferFrames;

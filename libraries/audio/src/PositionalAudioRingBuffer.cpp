@@ -198,7 +198,7 @@ int PositionalAudioRingBuffer::getCalculatedDesiredJitterBufferFrames() const {
     return calculatedDesiredJitterBufferFrames;
 }
 
-void PositionalAudioRingBuffer::frameReceived() {
+void PositionalAudioRingBuffer::timeGapStatsFrameReceived() {
     quint64 now = usecTimestampNow();
     if (_lastFrameReceivedTime != 0) {
         quint64 gap = now - _lastFrameReceivedTime;

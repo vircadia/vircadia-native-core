@@ -50,6 +50,7 @@ static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 
 static const int AUDIO_STREAM_STATS_HISTORY_SIZE = 30;
 
+// audio frames time gap stats (min/max/avg) for last ~30 seconds are recalculated every ~1 second
 const int TIME_GAPS_STATS_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
 const int TIME_GAP_STATS_WINDOW_INTERVALS = 30;
 
@@ -776,8 +777,8 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
         }
     }
 
-    // when an audio stream stats packet is received, also record the current packets received and lost
-    // in the packet loss stats history
+    // when an audio stream stats packet is received, also record the downstream packets stats in the history
+    // for calculating packet loss rates
     _incomingStreamPacketStatsHistory.insert(_incomingMixedAudioSequenceNumberStats.getStats());
 }
 

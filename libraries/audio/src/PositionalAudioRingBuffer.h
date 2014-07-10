@@ -80,7 +80,7 @@ protected:
     PositionalAudioRingBuffer(const PositionalAudioRingBuffer&);
     PositionalAudioRingBuffer& operator= (const PositionalAudioRingBuffer&);
 
-    void frameReceived();
+    void timeGapStatsFrameReceived();
     void updateDesiredJitterBufferFrames();
     
     PositionalAudioRingBuffer::Type _type;

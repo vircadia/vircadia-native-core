@@ -86,7 +86,6 @@ public:
     }
 
     void update(T newSample) {
-
         // update overall stats
         _overallStats.updateWithSample(newSample, _samplesCollected);
 
@@ -115,7 +114,6 @@ public:
         }
     }
 
-
     bool getNewStatsAvailableFlag() const { return _newStatsAvailable; }
     void clearNewStatsAvailableFlag() { _newStatsAvailable = false; }
 
@@ -125,8 +123,6 @@ public:
     T getWindowMin() const { return _windowStats._min; }
     T getWindowMax() const { return _windowStats._max; }
     double getWindowAverage() const { return _windowStats._average; }
-
-
 
 private:
     int _intervalLength;
