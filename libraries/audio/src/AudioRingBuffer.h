@@ -67,6 +67,8 @@ public:
     
     int samplesAvailable() const;
     int framesAvailable() const { return samplesAvailable() / _numFrameSamples; }
+
+    int getNumFrameSamples() const { return _numFrameSamples; }
     
     bool isNotStarvedOrHasMinimumSamples(int numRequiredSamples) const;
     

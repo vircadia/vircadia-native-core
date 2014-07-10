@@ -13,6 +13,7 @@
 #define hifi_AudioStreamStats_h
 
 #include "PositionalAudioRingBuffer.h"
+#include "SequenceNumberStats.h"
 
 class AudioStreamStats {
 public:
@@ -32,13 +33,7 @@ public:
         _ringBufferConsecutiveNotMixedCount(0),
         _ringBufferOverflowCount(0),
         _ringBufferSilentFramesDropped(0),
-        _packetsReceived(0),
-        _packetsUnreasonable(0),
-        _packetsEarly(0),
-        _packetsLate(0),
-        _packetsLost(0),
-        _packetsRecovered(0),
-        _packetsDuplicate(0)
+        _packetStreamStats()
     {}
 
     PositionalAudioRingBuffer::Type _streamType;
@@ -59,13 +54,7 @@ public:
     quint32 _ringBufferOverflowCount;
     quint32 _ringBufferSilentFramesDropped;
 
-    quint32 _packetsReceived;
-    quint32 _packetsUnreasonable;
-    quint32 _packetsEarly;
-    quint32 _packetsLate;
-    quint32 _packetsLost;
-    quint32 _packetsRecovered;
-    quint32 _packetsDuplicate;
+    PacketStreamStats _packetStreamStats;
 };
 
 #endif  // hifi_AudioStreamStats_h

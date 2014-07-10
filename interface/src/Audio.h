@@ -17,6 +17,8 @@
 
 #include "InterfaceConfig.h"
 #include "AudioStreamStats.h"
+#include "RingBufferHistory.h"
+#include "MovingMinMaxAvg.h"
 
 #include <QAudio>
 #include <QAudioInput>
@@ -107,8 +109,22 @@ public slots:
     float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
 
-    const AudioStreamStats& getAudioMixerAvatarStreamStats() const { return _audioMixerAvatarStreamStats; }
-    const QHash<QUuid, AudioStreamStats>& getAudioMixerInjectedStreamStatsMap() const { return _audioMixerInjectedStreamStatsMap; }
+    const AudioRingBuffer& getDownstreamRingBuffer() const { return _ringBuffer; }
+    
+    int getDesiredJitterBufferFrames() const { return _jitterBufferSamples / _ringBuffer.getNumFrameSamples(); }
+
+    int getStarveCount() const { return _starveCount; }
+    int getConsecutiveNotMixedCount() const { return _consecutiveNotMixedCount; }
+
+    const AudioStreamStats& getAudioMixerAvatarStreamAudioStats() const { return _audioMixerAvatarStreamAudioStats; }
+    const QHash<QUuid, AudioStreamStats>& getAudioMixerInjectedStreamAudioStatsMap() const { return _audioMixerInjectedStreamAudioStatsMap; }
+    const RingBufferHistory<PacketStreamStats>& getAudioMixerAvatarStreamPacketStatsHistory() const { return _audioMixerAvatarStreamPacketStatsHistory; }
+    const QHash<QUuid, RingBufferHistory<PacketStreamStats> >& getAudioMixerInjectedStreamPacketStatsHistoryMap() const {return _audioMixerInjectedStreamPacketStatsHistoryMap; }
+    const RingBufferHistory<PacketStreamStats>& getIncomingStreamPacketStatsHistory() const { return _incomingStreamPacketStatsHistory; }
+    const MovingMinMaxAvg<quint64>& getInterframeTimeGapStats() const { return _interframeTimeGapStats; }
+
+    void calculatePacketLossRate(const RingBufferHistory<PacketStreamStats>& statsHistory,
+        float& overallLossRate, float& windowLossRate) const;
 
 signals:
     bool muteToggled();
@@ -241,11 +257,21 @@ private:
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
 
-    AudioStreamStats _audioMixerAvatarStreamStats;
-    QHash<QUuid, AudioStreamStats> _audioMixerInjectedStreamStatsMap;
+    int _starveCount;
+    int _consecutiveNotMixedCount;
+
+    AudioStreamStats _audioMixerAvatarStreamAudioStats;
+    QHash<QUuid, AudioStreamStats> _audioMixerInjectedStreamAudioStatsMap;
+
+    RingBufferHistory<PacketStreamStats> _audioMixerAvatarStreamPacketStatsHistory;
+    QHash<QUuid, RingBufferHistory<PacketStreamStats> > _audioMixerInjectedStreamPacketStatsHistoryMap;
 
     quint16 _outgoingAvatarAudioSequenceNumber;
     SequenceNumberStats _incomingMixedAudioSequenceNumberStats;
+
+    RingBufferHistory<PacketStreamStats> _incomingStreamPacketStatsHistory;
+
+    MovingMinMaxAvg<quint64> _interframeTimeGapStats;
 };
 
 

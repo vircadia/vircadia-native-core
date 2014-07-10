@@ -20,7 +20,7 @@ class RingBufferHistory {
 
 public:
     
-    RingBufferHistory(int capacity)
+    RingBufferHistory(int capacity = 10)
         : _size(capacity + 1),
         _capacity(capacity),
         _newestEntryAt(0),
@@ -47,6 +47,7 @@ public:
         delete[] _buffer;
         _buffer = new T[_size];
         memcpy(_buffer, rhs._buffer, _size*sizeof(T));
+        return *this;
     }
 
     ~RingBufferHistory() {
@@ -120,7 +121,7 @@ public:
             return *this;
         }
 
-        Iterator& operator++(int) {
+        Iterator operator++(int) {
             Iterator tmp(*this);
             ++(*this);
             return tmp;

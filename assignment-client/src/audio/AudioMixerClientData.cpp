@@ -188,13 +188,13 @@ AudioStreamStats AudioMixerClientData::getAudioStreamStatsOfStream(const Positio
     streamStats._ringBufferOverflowCount = ringBuffer->getOverflowCount();
     streamStats._ringBufferSilentFramesDropped = ringBuffer->getSilentFramesDropped();
     
-    streamStats._packetsReceived = streamSequenceNumberStats->getNumReceived();
-    streamStats._packetsUnreasonable = streamSequenceNumberStats->getNumUnreasonable();
-    streamStats._packetsEarly = streamSequenceNumberStats->getNumEarly();
-    streamStats._packetsLate = streamSequenceNumberStats->getNumLate();
-    streamStats._packetsLost = streamSequenceNumberStats->getNumLost();
-    streamStats._packetsRecovered = streamSequenceNumberStats->getNumRecovered();
-    streamStats._packetsDuplicate = streamSequenceNumberStats->getNumDuplicate();
+    streamStats._packetStreamStats._numReceived = streamSequenceNumberStats->getNumReceived();
+    streamStats._packetStreamStats._numUnreasonable = streamSequenceNumberStats->getNumUnreasonable();
+    streamStats._packetStreamStats._numEarly = streamSequenceNumberStats->getNumEarly();
+    streamStats._packetStreamStats._numLate = streamSequenceNumberStats->getNumLate();
+    streamStats._packetStreamStats._numLost = streamSequenceNumberStats->getNumLost();
+    streamStats._packetStreamStats._numRecovered = streamSequenceNumberStats->getNumRecovered();
+    streamStats._packetStreamStats._numDuplicate = streamSequenceNumberStats->getNumDuplicate();
 
     return streamStats;
 }
@@ -261,9 +261,9 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
             + " not mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)
             + " overflows:" + QString::number(streamStats._ringBufferOverflowCount)
             + " silents dropped:" + QString::number(streamStats._ringBufferSilentFramesDropped)
-            + " early:" + QString::number(streamStats._packetsEarly)
-            + " late:" + QString::number(streamStats._packetsLate)
-            + " lost:" + QString::number(streamStats._packetsLost)
+            + " early:" + QString::number(streamStats._packetStreamStats._numEarly)
+            + " late:" + QString::number(streamStats._packetStreamStats._numLate)
+            + " lost:" + QString::number(streamStats._packetStreamStats._numLost)
             + " min gap:" + QString::number(streamStats._timeGapMin)
             + " max gap:" + QString::number(streamStats._timeGapMax)
             + " avg gap:" + QString::number(streamStats._timeGapAverage, 'g', 2)
@@ -284,9 +284,9 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
                 + " not mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)
                 + " overflows:" + QString::number(streamStats._ringBufferOverflowCount)
                 + " silents dropped:" + QString::number(streamStats._ringBufferSilentFramesDropped)
-                + " early:" + QString::number(streamStats._packetsEarly)
-                + " late:" + QString::number(streamStats._packetsLate)
-                + " lost:" + QString::number(streamStats._packetsLost)
+                + " early:" + QString::number(streamStats._packetStreamStats._numEarly)
+                + " late:" + QString::number(streamStats._packetStreamStats._numLate)
+                + " lost:" + QString::number(streamStats._packetStreamStats._numLost)
                 + " min gap:" + QString::number(streamStats._timeGapMin)
                 + " max gap:" + QString::number(streamStats._timeGapMax)
                 + " avg gap:" + QString::number(streamStats._timeGapAverage, 'g', 2)
