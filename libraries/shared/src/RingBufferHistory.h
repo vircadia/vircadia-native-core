@@ -104,8 +104,6 @@ private:
     int _newestEntryAtIndex;
     int _numEntries;
 
-
-
 public:
     class Iterator : public std::iterator < std::forward_iterator_tag, T > {
     public:
