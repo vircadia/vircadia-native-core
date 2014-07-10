@@ -101,8 +101,8 @@ public:
             _existingSamplesInCurrentInterval = 0;
 
             // update the window's stats by combining the intervals' stats
-            RingBufferHistory<Stats>::Iterator i = _intervalStats.begin();
-            RingBufferHistory<Stats>::Iterator end = _intervalStats.end();
+            typename RingBufferHistory<Stats>::Iterator i = _intervalStats.begin();
+            typename RingBufferHistory<Stats>::Iterator end = _intervalStats.end();
             _windowStats = Stats();
             int intervalsIncludedInWindowStats = 0;
             while (i != end) {
