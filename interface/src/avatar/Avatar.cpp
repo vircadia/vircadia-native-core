@@ -970,6 +970,11 @@ glm::quat Avatar::getJointCombinedRotation(const QString& name) const {
     return rotation;
 }
 
+void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
+    //Scale a world space vector as if it was relative to the position
+    positionToScale = _position + _scale * (positionToScale - _position);
+}
+
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");

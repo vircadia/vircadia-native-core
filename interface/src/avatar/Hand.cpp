@@ -170,8 +170,8 @@ void Hand::renderHandTargets(bool isMine) {
             glm::vec3 root = palm.getPosition();
 
             //Scale the positions based on avatar scale
-            tip = myAvatar->getPosition() + avatarScale * (tip - myAvatar->getPosition());
-            root = myAvatar->getPosition() + avatarScale * (root - myAvatar->getPosition());
+            myAvatar->scaleVectorRelativeToPosition(tip);
+            myAvatar->scaleVectorRelativeToPosition(root);
 
             Avatar::renderJointConnectingCone(root, tip, PALM_FINGER_ROD_RADIUS, PALM_FINGER_ROD_RADIUS);
             //  Render sphere at palm/finger root
