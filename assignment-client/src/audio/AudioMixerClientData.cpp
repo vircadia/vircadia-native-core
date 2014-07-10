@@ -20,10 +20,13 @@
 #include "AudioMixerClientData.h"
 #include "MovingMinMaxAvg.h"
 
+const int INCOMING_SEQ_STATS_HISTORY_LENGTH = INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS /
+    (TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS / USECS_PER_SECOND);
+
 AudioMixerClientData::AudioMixerClientData() :
     _ringBuffers(),
     _outgoingMixedAudioSequenceNumber(0),
-    _incomingAvatarAudioSequenceNumberStats()
+    _incomingAvatarAudioSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH)
 {
     
 }
@@ -89,6 +92,9 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
         // grab the stream identifier for this injected audio
         QUuid streamIdentifier = QUuid::fromRfc4122(packet.mid(numBytesForPacketHeader(packet) + sizeof(quint16), NUM_BYTES_RFC4122_UUID));
 
+        if (!_incomingInjectedAudioSequenceNumberStatsMap.contains(streamIdentifier)) {
+            _incomingInjectedAudioSequenceNumberStatsMap.insert(streamIdentifier, SequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH));
+        }
         _incomingInjectedAudioSequenceNumberStatsMap[streamIdentifier].sequenceNumberReceived(sequence);
 
         InjectedAudioRingBuffer* matchingInjectedRingBuffer = NULL;
@@ -175,11 +181,14 @@ AudioStreamStats AudioMixerClientData::getAudioStreamStatsOfStream(const Positio
     streamStats._streamType = ringBuffer->getType();
     if (streamStats._streamType == PositionalAudioRingBuffer::Injector) {
         streamStats._streamIdentifier = ((InjectedAudioRingBuffer*)ringBuffer)->getStreamIdentifier();
-        streamStats._packetStreamStats = _incomingInjectedAudioSequenceNumberStatsMap[streamStats._streamIdentifier].getStats();
+        const SequenceNumberStats& sequenceNumberStats = _incomingInjectedAudioSequenceNumberStatsMap[streamStats._streamIdentifier];
+        streamStats._packetStreamStats = sequenceNumberStats.getStats();
+        streamStats._packetStreamWindowStats = sequenceNumberStats.getStatsForHistoryWindow();
     } else {
         streamStats._packetStreamStats = _incomingAvatarAudioSequenceNumberStats.getStats();
+        streamStats._packetStreamWindowStats = _incomingAvatarAudioSequenceNumberStats.getStatsForHistoryWindow();
     }
-    
+
     const MovingMinMaxAvg<quint64>& timeGapStats = ringBuffer->getInterframeTimeGapStatsForStatsPacket();
     streamStats._timeGapMin = timeGapStats.getMin();
     streamStats._timeGapMax = timeGapStats.getMax();
@@ -199,8 +208,18 @@ AudioStreamStats AudioMixerClientData::getAudioStreamStatsOfStream(const Positio
     return streamStats;
 }
 
-void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) const {
+void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) {
     
+    // have all the seq number stats of each audio stream push their current stats into their history,
+    // which moves that history window 1 second forward (since that's how long since the last stats were pushed into history)
+    _incomingAvatarAudioSequenceNumberStats.pushStatsToHistory();
+    QHash<QUuid, SequenceNumberStats>::Iterator i = _incomingInjectedAudioSequenceNumberStatsMap.begin();
+    QHash<QUuid, SequenceNumberStats>::Iterator end = _incomingInjectedAudioSequenceNumberStatsMap.end();
+    while (i != end) {
+        i.value().pushStatsToHistory();
+        i++;
+    }
+
     char packet[MAX_PACKET_SIZE];
     NodeList* nodeList = NodeList::getInstance();
 
@@ -251,6 +270,23 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
 QString AudioMixerClientData::getAudioStreamStatsString() const {
     QString result;
+    AudioStreamStats streamStats = _downstreamAudioStreamStats;
+    result += "downstream.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
+        + " current: ?"
+        + " available:" + QString::number(streamStats._ringBufferFramesAvailable)
+        + " starves:" + QString::number(streamStats._ringBufferStarveCount)
+        + " not mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)
+        + " overflows:" + QString::number(streamStats._ringBufferOverflowCount)
+        + " silents dropped: ?"
+        + " lost %:" + QString::number(streamStats._packetStreamStats.getLostRate(), 'g', 2)
+        + " lost % 30s:" + QString::number(streamStats._packetStreamWindowStats.getLostRate(), 'g', 2)
+        + " min gap:" + QString::number(streamStats._timeGapMin)
+        + " max gap:" + QString::number(streamStats._timeGapMax)
+        + " avg gap:" + QString::number(streamStats._timeGapAverage, 'g', 2)
+        + " min 30s gap:" + QString::number(streamStats._timeGapWindowMin)
+        + " max 30s gap:" + QString::number(streamStats._timeGapWindowMax)
+        + " avg 30s gap:" + QString::number(streamStats._timeGapWindowAverage, 'g', 2);
+
     AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
     if (avatarRingBuffer) {
         AudioStreamStats streamStats = getAudioStreamStatsOfStream(avatarRingBuffer);
@@ -261,9 +297,8 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
             + " not mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)
             + " overflows:" + QString::number(streamStats._ringBufferOverflowCount)
             + " silents dropped:" + QString::number(streamStats._ringBufferSilentFramesDropped)
-            + " early:" + QString::number(streamStats._packetStreamStats._numEarly)
-            + " late:" + QString::number(streamStats._packetStreamStats._numLate)
-            + " lost:" + QString::number(streamStats._packetStreamStats._numLost)
+            + " lost %:" + QString::number(streamStats._packetStreamStats.getLostRate(), 'g', 2)
+            + " lost % 30s:" + QString::number(streamStats._packetStreamWindowStats.getLostRate(), 'g', 2)
             + " min gap:" + QString::number(streamStats._timeGapMin)
             + " max gap:" + QString::number(streamStats._timeGapMax)
             + " avg gap:" + QString::number(streamStats._timeGapAverage, 'g', 2)
@@ -277,16 +312,15 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
     for (int i = 0; i < _ringBuffers.size(); i++) {
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
             AudioStreamStats streamStats = getAudioStreamStatsOfStream(_ringBuffers[i]);
-            result += "mic.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
+            result += "inj.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
                 + " current:" + QString::number(streamStats._ringBufferCurrentJitterBufferFrames)
                 + " available:" + QString::number(streamStats._ringBufferFramesAvailable)
                 + " starves:" + QString::number(streamStats._ringBufferStarveCount)
                 + " not mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)
                 + " overflows:" + QString::number(streamStats._ringBufferOverflowCount)
                 + " silents dropped:" + QString::number(streamStats._ringBufferSilentFramesDropped)
-                + " early:" + QString::number(streamStats._packetStreamStats._numEarly)
-                + " late:" + QString::number(streamStats._packetStreamStats._numLate)
-                + " lost:" + QString::number(streamStats._packetStreamStats._numLost)
+                + " lost %:" + QString::number(streamStats._packetStreamStats.getLostRate(), 'g', 2)
+                + " lost % 30s:" + QString::number(streamStats._packetStreamWindowStats.getLostRate(), 'g', 2)
                 + " min gap:" + QString::number(streamStats._timeGapMin)
                 + " max gap:" + QString::number(streamStats._timeGapMax)
                 + " avg gap:" + QString::number(streamStats._timeGapAverage, 'g', 2)

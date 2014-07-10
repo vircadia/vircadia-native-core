@@ -64,11 +64,11 @@ public:
     }
 
     const T* getNewestEntry() const {
-        return &_buffer[_newestEntryAtIndex];
+        return _numEntries == 0 ? NULL : &_buffer[_newestEntryAtIndex];
     }
 
     T* getNewestEntry() {
-        return &_buffer[_newestEntryAtIndex];
+        return _numEntries == 0 ? NULL : &_buffer[_newestEntryAtIndex];
     }
 
     int getCapacity() const { return _capacity; }

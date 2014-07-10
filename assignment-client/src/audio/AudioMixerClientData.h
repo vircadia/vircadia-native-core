@@ -20,6 +20,9 @@
 #include "AudioStreamStats.h"
 #include "SequenceNumberStats.h"
 
+
+const int INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS = 30;
+
 class AudioMixerClientData : public NodeData {
 public:
     AudioMixerClientData();
@@ -35,7 +38,7 @@ public:
     AudioStreamStats getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer) const;
     QString getAudioStreamStatsString() const;
     
-    void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) const;
+    void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
     
     void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }

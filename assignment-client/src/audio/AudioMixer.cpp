@@ -641,9 +641,6 @@ void AudioMixer::run() {
             ++framesSinceCutoffEvent;
         }
         
-
-        const quint64 TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS = 1 * USECS_PER_SECOND;
-        
         bool sendAudioStreamStats = false;
         quint64 now = usecTimestampNow();
         if (now - _lastSendAudioStreamStatsTime > TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS) {

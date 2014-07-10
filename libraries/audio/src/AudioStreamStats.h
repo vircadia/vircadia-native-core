@@ -33,7 +33,8 @@ public:
         _ringBufferConsecutiveNotMixedCount(0),
         _ringBufferOverflowCount(0),
         _ringBufferSilentFramesDropped(0),
-        _packetStreamStats()
+        _packetStreamStats(),
+        _packetStreamWindowStats()
     {}
 
     PositionalAudioRingBuffer::Type _streamType;
@@ -55,6 +56,7 @@ public:
     quint32 _ringBufferSilentFramesDropped;
 
     PacketStreamStats _packetStreamStats;
+    PacketStreamStats _packetStreamWindowStats;
 };
 
 #endif  // hifi_AudioStreamStats_h

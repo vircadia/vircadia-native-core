@@ -13,6 +13,7 @@
 #define hifi_SequenceNumberStats_h
 
 #include "SharedUtil.h"
+#include "RingBufferHistory.h"
 #include <quuid.h>
 
 const int MAX_REASONABLE_SEQUENCE_GAP = 1000;
@@ -28,6 +29,14 @@ public:
         _numRecovered(0),
         _numDuplicate(0)
     {}
+
+    float getUnreasonableRate() const { return (float)_numUnreasonable / _numReceived; }
+    float getNumEaryRate() const { return (float)_numEarly / _numReceived; }
+    float getLateRate() const { return (float)_numLate / _numReceived; }
+    float getLostRate() const { return (float)_numLost / _numReceived; }
+    float getRecoveredRate() const { return (float)_numRecovered / _numReceived; }
+    float getDuplicateRate() const { return (float)_numDuplicate / _numReceived; }
+
     quint32 _numReceived;
     quint32 _numUnreasonable;
     quint32 _numEarly;
@@ -39,11 +48,12 @@ public:
 
 class SequenceNumberStats {
 public:
-    SequenceNumberStats();
+    SequenceNumberStats(int statsHistoryLength = 0);
 
     void reset();
     void sequenceNumberReceived(quint16 incoming, QUuid senderUUID = QUuid(), const bool wantExtraDebugging = false);
     void pruneMissingSet(const bool wantExtraDebugging = false);
+    void pushStatsToHistory() { _statsHistory.insert(_stats); }
 
     quint32 getNumReceived() const { return _stats._numReceived; }
     quint32 getNumUnreasonable() const { return _stats._numUnreasonable; }
@@ -54,6 +64,7 @@ public:
     quint32 getNumRecovered() const { return _stats._numRecovered; }
     quint32 getNumDuplicate() const { return _stats._numDuplicate; }
     const PacketStreamStats& getStats() const { return _stats; }
+    PacketStreamStats getStatsForHistoryWindow() const;
     const QSet<quint16>& getMissingSet() const { return _missingSet; }
 
 private:
@@ -63,6 +74,8 @@ private:
     PacketStreamStats _stats;
 
     QUuid _lastSenderUUID;
+
+    RingBufferHistory<PacketStreamStats> _statsHistory;
 };
 
 #endif // hifi_SequenceNumberStats_h

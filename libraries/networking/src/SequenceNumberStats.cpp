@@ -13,17 +13,19 @@
 
 #include <limits>
 
-SequenceNumberStats::SequenceNumberStats()
+SequenceNumberStats::SequenceNumberStats(int statsHistoryLength)
     : _lastReceived(std::numeric_limits<quint16>::max()),
     _missingSet(),
     _stats(),
-    _lastSenderUUID()
+    _lastSenderUUID(),
+    _statsHistory(statsHistoryLength)
 {
 }
 
 void SequenceNumberStats::reset() {
     _missingSet.clear();
     _stats = PacketStreamStats();
+    _statsHistory.clear();
 }
 
 static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
@@ -167,4 +169,27 @@ void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {
             }
         }
     }
+}
+
+PacketStreamStats SequenceNumberStats::getStatsForHistoryWindow() const {
+
+    const PacketStreamStats* newestStats = _statsHistory.getNewestEntry();
+    const PacketStreamStats* oldestStats = _statsHistory.get(_statsHistory.getNumEntries() - 1);
+    
+    // this catches cases where history is length 1 or 0 (both are NULL in case of 0)
+    if (newestStats == oldestStats) {
+        return PacketStreamStats();
+    }
+
+    // calculate difference between newest stats and oldest stats to get window stats
+    PacketStreamStats windowStats;
+    windowStats._numReceived = newestStats->_numReceived - oldestStats->_numReceived;
+    windowStats._numUnreasonable = newestStats->_numUnreasonable - oldestStats->_numUnreasonable;
+    windowStats._numEarly = newestStats->_numEarly - oldestStats->_numEarly;
+    windowStats._numLate = newestStats->_numLate - oldestStats->_numLate;
+    windowStats._numLost = newestStats->_numLost - oldestStats->_numLost;
+    windowStats._numRecovered = newestStats->_numRecovered - oldestStats->_numRecovered;
+    windowStats._numDuplicate = newestStats->_numDuplicate - oldestStats->_numDuplicate;
+
+    return windowStats;
 }
