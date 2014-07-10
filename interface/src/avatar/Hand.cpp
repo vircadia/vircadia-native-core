@@ -145,7 +145,7 @@ void Hand::renderHandTargets(bool isMine) {
             if (!palm.isActive()) {
                 continue;
             }
-            glm::vec3 targetPosition = palm.getFingerTipPosition();
+            glm::vec3 targetPosition = palm.getTipPosition();
             glPushMatrix();
             glTranslatef(targetPosition.x, targetPosition.y, targetPosition.z);
         
@@ -166,7 +166,7 @@ void Hand::renderHandTargets(bool isMine) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
             glColor4f(handColor.r, handColor.g, handColor.b, alpha);
-            glm::vec3 tip = palm.getFingerTipPosition();
+            glm::vec3 tip = palm.getTipPosition();
             glm::vec3 root = palm.getPosition();
 
             //Scale the positions based on avatar scale
