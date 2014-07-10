@@ -44,7 +44,7 @@ public:
     static QSize getRenderTargetSize();
 
     /// Renders a laser pointer for UI picking
-    static void renderLaserPointer();
+    static void renderLaserPointers();
     static glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
     
 private:

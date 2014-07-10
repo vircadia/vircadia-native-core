@@ -340,6 +340,9 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     MyAvatar* myAvatar = application->getAvatar();
    
+    //Render the sixense lasers
+    OculusManager::renderLaserPointers();
+
     glActiveTexture(GL_TEXTURE0);
    
     glEnable(GL_BLEND);

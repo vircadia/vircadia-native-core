@@ -2786,10 +2786,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     {
         PerformanceTimer perfTimer("avatars");
 
-        if (OculusManager::isConnected()) {
-            OculusManager::renderLaserPointer();
-        }
-
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
     }
 
