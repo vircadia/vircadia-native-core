@@ -83,7 +83,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
         // ask the AvatarAudioRingBuffer instance to parse the data
         avatarRingBuffer->parseData(packet);
-    } else {
+    } else if (packetType == PacketTypeInjectAudio) {
         // this is injected audio
 
         // grab the stream identifier for this injected audio
@@ -107,6 +107,15 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
         }
 
         matchingInjectedRingBuffer->parseData(packet);
+    } else if (packetType == PacketTypeAudioStreamStats) {
+
+        const char* dataAt = packet.data();
+
+        // skip over header, appendFlag, and num stats packed
+        dataAt += (numBytesPacketHeader + sizeof(quint8) + sizeof(quint16));
+
+        // read the downstream audio stream stats
+        memcpy(&_downstreamAudioStreamStats, dataAt, sizeof(AudioStreamStats));
     }
 
     return 0;

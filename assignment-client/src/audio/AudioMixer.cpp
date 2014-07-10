@@ -405,7 +405,8 @@ void AudioMixer::readPendingDatagrams() {
             if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
                 || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
                 || mixerPacketType == PacketTypeInjectAudio
-                || mixerPacketType == PacketTypeSilentAudioFrame) {
+                || mixerPacketType == PacketTypeSilentAudioFrame
+                || mixerPacketType == PacketTypeAudioStreamStats) {
                 
                 nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
             } else if (mixerPacketType == PacketTypeMuteEnvironment) {

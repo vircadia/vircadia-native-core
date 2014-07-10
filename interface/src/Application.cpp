@@ -172,7 +172,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
-        _lastNackTime(usecTimestampNow())
+        _lastNackTime(usecTimestampNow()),
+        _lastSendDownstreamAudioStats(usecTimestampNow())
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -2125,10 +2126,11 @@ void Application::updateMyAvatar(float deltaTime) {
         loadViewFrustum(_myCamera, _viewFrustum);
     }
 
+    quint64 now = usecTimestampNow();
+
     // Update my voxel servers with my current voxel query...
     {
         PerformanceTimer perfTimer("queryOctree");
-        quint64 now = usecTimestampNow();
         quint64 sinceLastQuery = now - _lastQueriedTime;
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
         bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
@@ -2146,12 +2148,21 @@ void Application::updateMyAvatar(float deltaTime) {
 
     // sent nack packets containing missing sequence numbers of received packets from nodes
     {
-        quint64 now = usecTimestampNow();
         quint64 sinceLastNack = now - _lastNackTime;
         const quint64 TOO_LONG_SINCE_LAST_NACK = 1 * USECS_PER_SECOND;
         if (sinceLastNack > TOO_LONG_SINCE_LAST_NACK) {
             _lastNackTime = now;
             sendNackPackets();
+        }
+    }
+
+    {
+        quint64 sinceLastNack = now - _lastSendDownstreamAudioStats;
+        const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
+        if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
+            _lastSendDownstreamAudioStats = now;
+            
+            QMetaObject::invokeMethod(&_audio, "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
     }
 }

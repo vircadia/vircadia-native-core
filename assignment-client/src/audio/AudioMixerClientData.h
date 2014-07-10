@@ -46,6 +46,8 @@ private:
     quint16 _outgoingMixedAudioSequenceNumber;
     SequenceNumberStats _incomingAvatarAudioSequenceNumberStats;
     QHash<QUuid, SequenceNumberStats> _incomingInjectedAudioSequenceNumberStatsMap;
+
+    AudioStreamStats _downstreamAudioStreamStats;
 };
 
 #endif // hifi_AudioMixerClientData_h

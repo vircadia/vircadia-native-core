@@ -586,6 +586,7 @@ private:
     QSystemTrayIcon* _trayIcon;
 
     quint64 _lastNackTime;
+    quint64 _lastSendDownstreamAudioStats;
 };
 
 #endif // hifi_Application_h

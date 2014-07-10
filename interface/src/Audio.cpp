@@ -782,6 +782,60 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
     _incomingStreamPacketStatsHistory.insert(_incomingMixedAudioSequenceNumberStats.getStats());
 }
 
+AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
+
+    AudioStreamStats stats;
+    stats._streamType = PositionalAudioRingBuffer::Microphone;
+
+    stats._timeGapMin = _interframeTimeGapStats.getMin();
+    stats._timeGapMax = _interframeTimeGapStats.getMax();
+    stats._timeGapAverage = _interframeTimeGapStats.getAverage();
+    stats._timeGapWindowMin = _interframeTimeGapStats.getWindowMin();
+    stats._timeGapWindowMax = _interframeTimeGapStats.getWindowMax();
+    stats._timeGapWindowAverage = _interframeTimeGapStats.getWindowAverage();
+
+    stats._ringBufferFramesAvailable = _ringBuffer.framesAvailable();
+    stats._ringBufferCurrentJitterBufferFrames = 0;
+    stats._ringBufferDesiredJitterBufferFrames = getDesiredJitterBufferFrames();
+    stats._ringBufferStarveCount = _starveCount;
+    stats._ringBufferConsecutiveNotMixedCount = _consecutiveNotMixedCount;
+    stats._ringBufferOverflowCount = _ringBuffer.getOverflowCount();
+    stats._ringBufferSilentFramesDropped = 0;
+
+    stats._packetStreamStats = _incomingMixedAudioSequenceNumberStats.getStats();
+
+    return stats;
+}
+
+void Audio::sendDownstreamAudioStatsPacket() {
+
+    char packet[MAX_PACKET_SIZE];
+
+    // pack header
+    int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeAudioStreamStats);
+    char* dataAt = packet + numBytesPacketHeader;
+
+    // pack append flag
+    quint8 appendFlag = 0;
+    memcpy(dataAt, &appendFlag, sizeof(quint8));
+    dataAt += sizeof(quint8);
+
+    // pack number of stats packed
+    quint16 numStreamStatsToPack = 1;
+    memcpy(dataAt, &numStreamStatsToPack, sizeof(quint16));
+    dataAt += sizeof(quint16);
+
+    // pack downstream audio stream stats
+    AudioStreamStats stats = getDownstreamAudioStreamStats();
+    memcpy(dataAt, &stats, sizeof(AudioStreamStats));
+    dataAt += sizeof(AudioStreamStats);
+    
+    // send packet
+    NodeList* nodeList = NodeList::getInstance();
+    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+    nodeList->writeDatagram(packet, dataAt - packet, audioMixer);
+}
+
 // NOTE: numSamples is the total number of single channel samples, since callers will always call this with stereo
 // data we know that we will have 2x samples for each stereo time sample at the format's sample rate
 void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples) {

@@ -99,6 +99,9 @@ public slots:
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
+    AudioStreamStats getDownstreamAudioStreamStats() const;
+    void sendDownstreamAudioStatsPacket();
+
     bool switchInputToAudioDevice(const QString& inputDeviceName);
     bool switchOutputToAudioDevice(const QString& outputDeviceName);
     QString getDeviceName(QAudio::Mode mode) const { return (mode == QAudio::AudioInput) ?

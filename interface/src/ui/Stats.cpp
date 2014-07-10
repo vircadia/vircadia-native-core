@@ -349,24 +349,26 @@ void Stats::display(
 
             char downstreamAudioStatsString[30];
 
+            AudioStreamStats downstreamAudioStreamStats = audio->getDownstreamAudioStreamStats();
+
             audio->calculatePacketLossRate(audio->getIncomingStreamPacketStatsHistory(), packetLossRate, packetLossRate30s);
 
-            sprintf(downstreamAudioStatsString, " mix: %.1f%%/%.1f%%, %d/?/%d", packetLossRate*100.0f, packetLossRate30s*100.0f,
-                audio->getDownstreamRingBuffer().framesAvailable(), audio->getDesiredJitterBufferFrames());
+            sprintf(downstreamAudioStatsString, " mix: %.1f%%/%.1f%%, %u/?/%u", packetLossRate*100.0f, packetLossRate30s*100.0f,
+                downstreamAudioStreamStats._ringBufferFramesAvailable, downstreamAudioStreamStats._ringBufferDesiredJitterBufferFrames);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
 
-            const MovingMinMaxAvg<quint64>& timeGapStats = audio->getInterframeTimeGapStats();
-
-            sprintf(downstreamAudioStatsString, "  %llu/%llu/%.2f, %d/%d", timeGapStats.getMin(), timeGapStats.getMax(),
-                timeGapStats.getAverage(), audio->getStarveCount(), audio->getDownstreamRingBuffer().getOverflowCount());
+            sprintf(downstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", downstreamAudioStreamStats._timeGapMin,
+                downstreamAudioStreamStats._timeGapMax, downstreamAudioStreamStats._timeGapAverage,
+                downstreamAudioStreamStats._ringBufferStarveCount, downstreamAudioStreamStats._ringBufferOverflowCount);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
 
-            sprintf(downstreamAudioStatsString, "  %llu/%llu/%.2f, %d/?", timeGapStats.getWindowMin(), timeGapStats.getWindowMax(),
-                timeGapStats.getWindowAverage(), audio->getConsecutiveNotMixedCount());
+            sprintf(downstreamAudioStatsString, "  %llu/%llu/%.2f, %u/?", downstreamAudioStreamStats._timeGapWindowMin,
+                downstreamAudioStreamStats._timeGapWindowMax, downstreamAudioStreamStats._timeGapWindowAverage,
+                downstreamAudioStreamStats._ringBufferConsecutiveNotMixedCount);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
