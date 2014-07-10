@@ -311,6 +311,24 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(const PalmData *palm) cons
     return rv;
 }
 
+bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
+    Application* application = Application::getInstance();
+    MyAvatar* myAvatar = application->getAvatar();
+    
+    glm::quat orientation = myAvatar->getOrientation();
+
+    glm::vec3 relativePosition = orientation * (position - myAvatar->getHead()->calculateAverageEyePosition());
+    glm::vec3 relativeDirection = orientation * direction;
+
+    float t;
+    if (raySphereIntersect(relativeDirection, relativePosition, 1, &t)){
+        result = position + direction * t;
+        return true;
+    }
+
+    return false;
+}
+
 // Draws the FBO texture for Oculus rift.
 void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 

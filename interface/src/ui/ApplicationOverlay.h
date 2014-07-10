@@ -33,6 +33,7 @@ public:
     void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
     void getClickLocation(int &x, int &y) const;
     QPoint getOculusPalmClickLocation(const PalmData *palm) const;
+    bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
 
 
     // Getters

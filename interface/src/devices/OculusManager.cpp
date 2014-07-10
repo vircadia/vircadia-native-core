@@ -490,8 +490,16 @@ void OculusManager::renderLaserPointer() {
 
 glm::vec3 OculusManager::getLaserPointerTipPosition(const PalmData* palm) {
 #ifdef HAVE_LIBOVR
-    const float PALM_TIP_ROD_LENGTH_MULT = 4.0f;
-    return palm->getPosition() + (palm->getTipPosition() - palm->getPosition()) * PALM_TIP_ROD_LENGTH_MULT;
+    const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
+    const float PALM_TIP_ROD_LENGTH_MULT = 40.0f;
+
+    glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
+    glm::vec3 result;
+    if (applicationOverlay.calculateRayUICollisionPoint(palm->getPosition(), direction, result)) {
+        return result;
+    }
+
+    return palm->getPosition();
 #endif
     return glm::vec3(0.0f);
 }
