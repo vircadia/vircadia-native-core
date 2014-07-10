@@ -158,6 +158,9 @@ public:
     bool containsBounds(const AACube& bounds) const; // NOTE: units in tree units
     bool bestFitBounds(const AACube& bounds) const; // NOTE: units in tree units
 
+    bool containsBounds(const AABox& bounds) const; // NOTE: units in tree units
+    bool bestFitBounds(const AABox& bounds) const; // NOTE: units in tree units
+
     bool containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const; // NOTE: units in tree units
     bool bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const; // NOTE: units in tree units
 

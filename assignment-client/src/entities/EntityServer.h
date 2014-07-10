@@ -1,6 +1,6 @@
 //
 //  EntityServer.h
-//  assignment-client/src/models
+//  assignment-client/src/entities
 //
 //  Created by Brad Hefta-Gaub on 4/29/14
 //  Copyright 2014 High Fidelity, Inc.
@@ -18,7 +18,7 @@
 #include "EntityServerConsts.h"
 #include "EntityTree.h"
 
-/// Handles assignments of type EntityServer - sending models to various clients.
+/// Handles assignments of type EntityServer - sending entities to various clients.
 class EntityServer : public OctreeServer, public NewlyCreatedEntityHook {
     Q_OBJECT
 public:
@@ -43,7 +43,7 @@ public:
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
 public slots:
-    void pruneDeletedEntitys();
+    void pruneDeletedEntities();
 
 private:
 };

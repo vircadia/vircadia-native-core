@@ -451,7 +451,7 @@ void EntityTests::entityTreeTests(bool verbose) {
             }
 
             quint64 startDelete = usecTimestampNow();
-            tree.deleteEntitys(entitiesToDelete);
+            tree.deleteEntities(entitiesToDelete);
             quint64 endDelete = usecTimestampNow();
             totalElapsedDelete += (endDelete - startDelete);
 

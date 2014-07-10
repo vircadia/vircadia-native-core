@@ -1,6 +1,6 @@
 //
 //  EntityNodeData.h
-//  assignment-client/src/models
+//  assignment-client/src/entities
 //
 //  Created by Brad Hefta-Gaub on 4/29/14
 //  Copyright 2014 High Fidelity, Inc.
@@ -20,15 +20,15 @@ class EntityNodeData : public OctreeQueryNode {
 public:
     EntityNodeData() :
         OctreeQueryNode(),
-        _lastDeletedEntitysSentAt(0) {  };
+        _lastDeletedEntitiesSentAt(0) {  };
 
     virtual PacketType getMyPacketType() const { return PacketTypeEntityData; }
 
-    quint64 getLastDeletedEntitysSentAt() const { return _lastDeletedEntitysSentAt; }
-    void setLastDeletedEntitysSentAt(quint64 sentAt) { _lastDeletedEntitysSentAt = sentAt; }
+    quint64 getLastDeletedEntitiesSentAt() const { return _lastDeletedEntitiesSentAt; }
+    void setLastDeletedEntitiesSentAt(quint64 sentAt) { _lastDeletedEntitiesSentAt = sentAt; }
 
 private:
-    quint64 _lastDeletedEntitysSentAt;
+    quint64 _lastDeletedEntitiesSentAt;
 };
 
 #endif // hifi_EntityNodeData_h

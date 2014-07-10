@@ -14,6 +14,11 @@
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
 
+
+AABox::AABox(const AACube& other) : 
+    _corner(other.getCorner()), _scale(other.getScale(), other.getScale(), other.getScale()) {
+}
+
 AABox::AABox(const glm::vec3& corner, float size) : 
     _corner(corner), _scale(size, size, size) {
 };
@@ -442,4 +447,20 @@ BoxFace AABox::getOppositeFace(BoxFace face) {
 		default: //quiet windows warnings
         case MAX_Z_FACE: return MIN_Z_FACE;
     }
+}
+
+AABox AABox::clamp(const glm::vec3& min, const glm::vec3& max) const {
+    glm::vec3 clampedCorner = glm::clamp(_corner, min, max);
+    glm::vec3 clampedTopFarLeft = glm::clamp(calcTopFarLeft(), min, max);
+    glm::vec3 clampedScale = clampedTopFarLeft - clampedCorner;
+    
+    return AABox(clampedCorner, clampedScale);
+}
+
+AABox AABox::clamp(float min, float max) const {
+    glm::vec3 clampedCorner = glm::clamp(_corner, min, max);
+    glm::vec3 clampedTopFarLeft = glm::clamp(calcTopFarLeft(), min, max);
+    glm::vec3 clampedScale = clampedTopFarLeft - clampedCorner;
+    
+    return AABox(clampedCorner, clampedScale);
 }

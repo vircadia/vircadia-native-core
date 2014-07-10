@@ -44,15 +44,15 @@ var originalProperties = {
 var positionDelta = { x: 0, y: 0, z: 0 };
 
 
-var modelID = Models.addModel(originalProperties);
+var entityID = Entities.addEntity(originalProperties);
 
-function moveModel(deltaTime) {
+function moveEntity(deltaTime) {
     if (count >= moveUntil) {
 
         // delete it...
         if (count == moveUntil) {
-            print("calling Models.deleteModel()");
-            Models.deleteModel(modelID);
+            print("calling Entities.deleteEntity()");
+            Entities.deleteEntity(entityID);
         }
 
         // stop it...
@@ -68,7 +68,7 @@ function moveModel(deltaTime) {
     //print("count =" + count);
     count++;
 
-    //print("modelID.creatorTokenID = " + modelID.creatorTokenID);
+    //print("entityID.creatorTokenID = " + entityID.creatorTokenID);
 
     var newProperties = {
         position: {
@@ -81,13 +81,13 @@ function moveModel(deltaTime) {
     };
 
 
-    //print("modelID = " + modelID);
+    //print("entityID = " + entityID);
     //print("newProperties.position = " + newProperties.position.x + "," + newProperties.position.y+ "," + newProperties.position.z);
 
-    Models.editModel(modelID, newProperties);
+    Entities.editEntity(entityID, newProperties);
 }
 
 
 // register the call back so it fires before each data send
-Script.update.connect(moveModel);
+Script.update.connect(moveEntity);
 

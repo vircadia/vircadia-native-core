@@ -1,6 +1,6 @@
 //
 //  EntityTree.h
-//  libraries/models/src
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -22,7 +22,7 @@ public:
 
 class EntityItemFBXService {
 public:
-    virtual const FBXGeometry* getGeometryForEntity(const EntityItem& modelItem) = 0;
+    virtual const FBXGeometry* getGeometryForEntity(const EntityItem& entityItem) = 0;
 };
 
 class EntityTree : public Octree {
@@ -54,49 +54,49 @@ public:
     EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
     void addEntityItem(EntityItem* entityItem);
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
-    bool updateEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
+    bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
 
 
     // the old API
-    void storeEntity(const EntityItem& model, const SharedNodePointer& senderNode = SharedNodePointer());
-    //void updateEntity(const EntityItemID& modelID, const EntityItemProperties& properties);
-    void deleteEntity(const EntityItemID& modelID);
-    void deleteEntitys(QSet<EntityItemID> modelIDs);
+    void storeEntity(const EntityItem& entity, const SharedNodePointer& senderNode = SharedNodePointer());
+    //void updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+    void deleteEntity(const EntityItemID& entityID);
+    void deleteEntities(QSet<EntityItemID> entityIDs);
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
-    EntityItem* findEntityByID(uint32_t id, bool alreadyLocked = false) const;
-    EntityItem* findEntityByEntityItemID(const EntityItemID& modelID) const;
+    EntityItem* findEntityByID(uint32_t id, bool alreadyLocked = false)  /*const*/;
+    EntityItem* findEntityByEntityItemID(const EntityItemID& entityID)  /*const*/;
 
-    /// finds all models that touch a sphere
+    /// finds all entities that touch a sphere
     /// \param center the center of the sphere
     /// \param radius the radius of the sphere
-    /// \param foundEntitys[out] vector of const EntityItem*
-    /// \remark Side effect: any initial contents in foundEntitys will be lost
-    void findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntitys);
+    /// \param foundEntities[out] vector of const EntityItem*
+    /// \remark Side effect: any initial contents in foundEntities will be lost
+    void findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities);
 
-    /// finds all models that touch a cube
+    /// finds all entities that touch a cube
     /// \param cube the query cube
-    /// \param foundEntitys[out] vector of non-const EntityItem*
-    /// \remark Side effect: any initial contents in models will be lost
-    void findEntities(const AACube& cube, QVector<EntityItem*> foundEntitys);
+    /// \param foundEntities[out] vector of non-const EntityItem*
+    /// \remark Side effect: any initial contents in entities will be lost
+    void findEntities(const AACube& cube, QVector<EntityItem*> foundEntities);
 
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
 
-    bool hasAnyDeletedEntitys() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
-    bool hasEntitysDeletedSince(quint64 sinceTime);
-    bool encodeEntitysDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, 
+    bool hasAnyDeletedEntities() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
+    bool hasEntitiesDeletedSince(quint64 sinceTime);
+    bool encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, 
                                     unsigned char* packetData, size_t maxLength, size_t& outputLength);
-    void forgetEntitysDeletedBefore(quint64 sinceTime);
+    void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     void handleAddEntityResponse(const QByteArray& packet);
     
     void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
-    const FBXGeometry* getGeometryForEntity(const EntityItem& modelItem) {
-        return _fbxService ? _fbxService->getGeometryForEntity(modelItem) : NULL;
+    const FBXGeometry* getGeometryForEntity(const EntityItem& entityItem) {
+        return _fbxService ? _fbxService->getGeometryForEntity(entityItem) : NULL;
     }
     
-    EntityTreeElement* getContainingElement(const EntityItemID& entityItemID) const;
+    EntityTreeElement* getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
     void dumpTree();
@@ -123,11 +123,11 @@ private:
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
-    QReadWriteLock _recentlyDeletedEntitysLock;
+    QReadWriteLock _recentlyDeletedEntitiesLock;
     QMultiMap<quint64, uint32_t> _recentlyDeletedEntityItemIDs;
     EntityItemFBXService* _fbxService;
 
-    QHash<EntityItemID, EntityTreeElement*> _modelToElementMap;
+    QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
 };
 
 #endif // hifi_EntityTree_h

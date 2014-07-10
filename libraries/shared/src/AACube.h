@@ -17,6 +17,8 @@
 
 #include <glm/glm.hpp>
 
+#include <QDebug>
+
 #include "BoxBase.h"
 
 class AABox;
@@ -54,6 +56,9 @@ public:
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;
 
+    AABox clamp(const glm::vec3& min, const glm::vec3& max) const;
+    AABox clamp(float min, float max) const;
+
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
     glm::vec3 getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const;
@@ -68,5 +73,12 @@ private:
 inline bool operator==(const AACube& a, const AACube& b) {
     return a.getCorner() == b.getCorner() && a.getScale() == b.getScale();
 }
+
+inline QDebug operator<<(QDebug debug, const AACube& cube) {
+    debug << "AACube[ (" << cube.getCorner().x << "," << cube.getCorner().y << "," << cube.getCorner().z << " ) to ("
+            << cube.calcTopFarLeft().x << "," << cube.calcTopFarLeft().y << "," << cube.calcTopFarLeft().z << ")]";
+    return debug;
+}
+
 
 #endif // hifi_AACube_h

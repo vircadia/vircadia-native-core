@@ -1,6 +1,6 @@
 //
 //  EntityServer.cpp
-//  assignment-client/src/models
+//  assignment-client/src/entities
 //
 //  Created by Brad Hefta-Gaub on 4/29/14
 //  Copyright 2014 High Fidelity, Inc.
@@ -40,10 +40,10 @@ Octree* EntityServer::createTree() {
 }
 
 void EntityServer::beforeRun() {
-    QTimer* pruneDeletedEntitysTimer = new QTimer(this);
-    connect(pruneDeletedEntitysTimer, SIGNAL(timeout()), this, SLOT(pruneDeletedEntitys()));
+    QTimer* pruneDeletedEntitiesTimer = new QTimer(this);
+    connect(pruneDeletedEntitiesTimer, SIGNAL(timeout()), this, SLOT(pruneDeletedEntities()));
     const int PRUNE_DELETED_MODELS_INTERVAL_MSECS = 1 * 1000; // once every second
-    pruneDeletedEntitysTimer->start(PRUNE_DELETED_MODELS_INTERVAL_MSECS);
+    pruneDeletedEntitiesTimer->start(PRUNE_DELETED_MODELS_INTERVAL_MSECS);
 }
 
 void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
@@ -60,30 +60,30 @@ void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePo
     copyAt += sizeof(creatorTokenID);
     packetLength += sizeof(creatorTokenID);
 
-    // encode the model ID
-    uint32_t modelID = newEntity.getID();
-    memcpy(copyAt, &modelID, sizeof(modelID));
-    copyAt += sizeof(modelID);
-    packetLength += sizeof(modelID);
+    // encode the entity ID
+    uint32_t entityID = newEntity.getID();
+    memcpy(copyAt, &entityID, sizeof(entityID));
+    copyAt += sizeof(entityID);
+    packetLength += sizeof(entityID);
 
     NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, senderNode);
 }
 
 
-// EntityServer will use the "special packets" to send list of recently deleted models
+// EntityServer will use the "special packets" to send list of recently deleted entities
 bool EntityServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
-    bool shouldSendDeletedEntitys = false;
+    bool shouldSendDeletedEntities = false;
 
-    // check to see if any new models have been added since we last sent to this node...
+    // check to see if any new entities have been added since we last sent to this node...
     EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
     if (nodeData) {
-        quint64 deletedEntitysSentAt = nodeData->getLastDeletedEntitysSentAt();
+        quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
 
         EntityTree* tree = static_cast<EntityTree*>(_tree);
-        shouldSendDeletedEntitys = tree->hasEntitysDeletedSince(deletedEntitysSentAt);
+        shouldSendDeletedEntities = tree->hasEntitiesDeletedSince(deletedEntitiesSentAt);
     }
 
-    return shouldSendDeletedEntitys;
+    return shouldSendDeletedEntities;
 }
 
 int EntityServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) {
@@ -92,16 +92,16 @@ int EntityServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNo
 
     EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
     if (nodeData) {
-        quint64 deletedEntitysSentAt = nodeData->getLastDeletedEntitysSentAt();
+        quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
         quint64 deletePacketSentAt = usecTimestampNow();
 
         EntityTree* tree = static_cast<EntityTree*>(_tree);
         bool hasMoreToSend = true;
 
-        // TODO: is it possible to send too many of these packets? what if you deleted 1,000,000 models?
+        // TODO: is it possible to send too many of these packets? what if you deleted 1,000,000 entities?
         packetsSent = 0;
         while (hasMoreToSend) {
-            hasMoreToSend = tree->encodeEntitysDeletedSince(queryNode->getSequenceNumber(), deletedEntitysSentAt,
+            hasMoreToSend = tree->encodeEntitiesDeletedSince(queryNode->getSequenceNumber(), deletedEntitiesSentAt,
                                                 outputBuffer, MAX_PACKET_SIZE, packetLength);
 
             //qDebug() << "sending PacketType_MODEL_ERASE packetLength:" << packetLength;
@@ -111,30 +111,30 @@ int EntityServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNo
             packetsSent++;
         }
 
-        nodeData->setLastDeletedEntitysSentAt(deletePacketSentAt);
+        nodeData->setLastDeletedEntitiesSentAt(deletePacketSentAt);
     }
 
     // TODO: caller is expecting a packetLength, what if we send more than one packet??
     return packetLength;
 }
 
-void EntityServer::pruneDeletedEntitys() {
+void EntityServer::pruneDeletedEntities() {
     EntityTree* tree = static_cast<EntityTree*>(_tree);
-    if (tree->hasAnyDeletedEntitys()) {
+    if (tree->hasAnyDeletedEntities()) {
 
-        //qDebug() << "there are some deleted models to consider...";
-        quint64 earliestLastDeletedEntitysSent = usecTimestampNow() + 1; // in the future
+        //qDebug() << "there are some deleted entities to consider...";
+        quint64 earliestLastDeletedEntitiesSent = usecTimestampNow() + 1; // in the future
         foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
             if (otherNode->getLinkedData()) {
                 EntityNodeData* nodeData = static_cast<EntityNodeData*>(otherNode->getLinkedData());
-                quint64 nodeLastDeletedEntitysSentAt = nodeData->getLastDeletedEntitysSentAt();
-                if (nodeLastDeletedEntitysSentAt < earliestLastDeletedEntitysSent) {
-                    earliestLastDeletedEntitysSent = nodeLastDeletedEntitysSentAt;
+                quint64 nodeLastDeletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
+                if (nodeLastDeletedEntitiesSentAt < earliestLastDeletedEntitiesSent) {
+                    earliestLastDeletedEntitiesSent = nodeLastDeletedEntitiesSentAt;
                 }
             }
         }
-        //qDebug() << "earliestLastDeletedEntitysSent=" << earliestLastDeletedEntitysSent;
-        tree->forgetEntitysDeletedBefore(earliestLastDeletedEntitysSent);
+        //qDebug() << "earliestLastDeletedEntitiesSent=" << earliestLastDeletedEntitiesSent;
+        tree->forgetEntitiesDeletedBefore(earliestLastDeletedEntitiesSent);
     }
 }
 

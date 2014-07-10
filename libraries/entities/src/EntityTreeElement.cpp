@@ -198,6 +198,14 @@ bool EntityTreeElement::bestFitBounds(const AACube& bounds) const {
     return bestFitBounds(bounds.getMinimumPoint(), bounds.getMaximumPoint());
 }
 
+bool EntityTreeElement::containsBounds(const AABox& bounds) const {
+    return containsBounds(bounds.getMinimumPoint(), bounds.getMaximumPoint());
+}
+
+bool EntityTreeElement::bestFitBounds(const AABox& bounds) const {
+    return bestFitBounds(bounds.getMinimumPoint(), bounds.getMaximumPoint());
+}
+
 bool EntityTreeElement::containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
     glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
     glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
@@ -683,6 +691,9 @@ bool EntityTreeElement::collapseChildren() {
 
 
 void EntityTreeElement::debugDump() {
+    qDebug() << "EntityTreeElement...";
+    qDebug() << "entity count:" << _entityItems->size();
+    qDebug() << "cube:" << getAACube();
     for (uint16_t i = 0; i < _entityItems->size(); i++) {
         EntityItem* entity = (*_entityItems)[i];
         entity->debugDump();

@@ -1458,6 +1458,32 @@ OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AACube& cu
     return child->getOrCreateChildElementContaining(cube);
 }
 
+OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AABox& box) {
+    OctreeElement* child = NULL;
+    
+    int childIndex = getMyChildContaining(box);
+    
+    // If getMyChildContaining() returns CHILD_UNKNOWN then it means that our level
+    // is the correct level for this cube
+    if (childIndex == CHILD_UNKNOWN) {
+        return this;
+    }
+    
+    // Now, check if we have a child at that location
+    child = getChildAtIndex(childIndex);
+    if (!child) {
+        child = addChildAtIndex(childIndex);
+    }
+    
+    // if we've made a really small child, then go ahead and use that one.
+    if (child->getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+        return child;
+    }
+
+    // Now that we have the child to recurse down, let it answer the original question...
+    return child->getOrCreateChildElementContaining(box);
+}
+
 int OctreeElement::getMyChildContaining(const AACube& cube) const {
     float ourScale = getScale();
     float cubeScale = cube.getScale();
@@ -1471,6 +1497,31 @@ int OctreeElement::getMyChildContaining(const AACube& cube) const {
     // Determine which of our children the minimum and maximum corners of the cube live in...
     glm::vec3 cubeCornerMinimum = cube.getCorner();
     glm::vec3 cubeCornerMaximum = cube.calcTopFarLeft();
+
+    int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);
+    int childIndexCubeMaximum = getMyChildContainingPoint(cubeCornerMaximum);
+
+    // If the minimum and maximum corners of the cube are in two different children's cubes, then we are the containing element
+    if (childIndexCubeMinimum != childIndexCubeMaximum) {
+        return CHILD_UNKNOWN;
+    }
+    
+    return childIndexCubeMinimum; // either would do, they are the same
+}
+
+int OctreeElement::getMyChildContaining(const AABox& box) const {
+    float ourScale = getScale();
+    float boxLargestScale = box.getLargestDimension();
+
+    // TODO: consider changing this to assert()
+    if(boxLargestScale > ourScale) {
+        qDebug("UNEXPECTED -- OctreeElement::getMyChildContaining() "
+                    "boxLargestScale=[%f] > ourScale=[%f] ", boxLargestScale, ourScale);
+    }
+
+    // Determine which of our children the minimum and maximum corners of the cube live in...
+    glm::vec3 cubeCornerMinimum = box.getCorner();
+    glm::vec3 cubeCornerMaximum = box.calcTopFarLeft();
 
     int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);
     int childIndexCubeMaximum = getMyChildContainingPoint(cubeCornerMaximum);

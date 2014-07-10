@@ -17,13 +17,17 @@
 
 #include <glm/glm.hpp>
 
+#include <QDebug>
+
 #include "BoxBase.h"
+#include "StreamUtils.h"
 
 class AACube;
 
 class AABox {
 
 public:
+    AABox(const AACube& other);
     AABox(const glm::vec3& corner, float size);
     AABox(const glm::vec3& corner, const glm::vec3& dimensions);
     AABox();
@@ -38,6 +42,7 @@ public:
     const glm::vec3& getCorner() const { return _corner; }
     const glm::vec3& getScale() const { return _scale; }
     const glm::vec3& getDimensions() const { return _scale; }
+    float getLargestDimension() const { return glm::max(_scale.x, glm::max(_scale.y, _scale.z)); }
 
     glm::vec3 calcCenter() const;
     glm::vec3 calcTopFarLeft() const;
@@ -62,6 +67,9 @@ public:
     
     bool isNull() const { return _scale == glm::vec3(0.0f, 0.0f, 0.0f); }
 
+    AABox clamp(const glm::vec3& min, const glm::vec3& max) const;
+    AABox clamp(float min, float max) const;
+
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
     glm::vec3 getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const;
@@ -75,6 +83,12 @@ private:
 
 inline bool operator==(const AABox& a, const AABox& b) {
     return a.getCorner() == b.getCorner() && a.getDimensions() == b.getDimensions();
+}
+
+inline QDebug operator<<(QDebug debug, const AABox& box) {
+    debug << "AABox[ (" << box.getCorner().x << "," << box.getCorner().y << "," << box.getCorner().z << " ) to ("
+            << box.calcTopFarLeft().x << "," << box.calcTopFarLeft().y << "," << box.calcTopFarLeft().z << ")]";
+    return debug;
 }
 
 #endif // hifi_AABox_h
