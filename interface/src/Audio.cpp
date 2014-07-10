@@ -693,7 +693,7 @@ void Audio::handleAudioInput() {
             // memcpy our orientation
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
-if (randFloat() < 0.95f)
+            
             nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
             _outgoingAvatarAudioSequenceNumber++;
 
