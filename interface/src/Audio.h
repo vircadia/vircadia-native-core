@@ -36,6 +36,8 @@
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
+static const int INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS = 30;
+
 class QAudioInput;
 class QAudioOutput;
 class QIODevice;
@@ -121,13 +123,7 @@ public slots:
 
     const AudioStreamStats& getAudioMixerAvatarStreamAudioStats() const { return _audioMixerAvatarStreamAudioStats; }
     const QHash<QUuid, AudioStreamStats>& getAudioMixerInjectedStreamAudioStatsMap() const { return _audioMixerInjectedStreamAudioStatsMap; }
-    const RingBufferHistory<PacketStreamStats>& getAudioMixerAvatarStreamPacketStatsHistory() const { return _audioMixerAvatarStreamPacketStatsHistory; }
-    const QHash<QUuid, RingBufferHistory<PacketStreamStats> >& getAudioMixerInjectedStreamPacketStatsHistoryMap() const {return _audioMixerInjectedStreamPacketStatsHistoryMap; }
-    const RingBufferHistory<PacketStreamStats>& getIncomingStreamPacketStatsHistory() const { return _incomingStreamPacketStatsHistory; }
     const MovingMinMaxAvg<quint64>& getInterframeTimeGapStats() const { return _interframeTimeGapStats; }
-
-    void calculatePacketLossRate(const RingBufferHistory<PacketStreamStats>& statsHistory,
-        float& overallLossRate, float& windowLossRate) const;
 
 signals:
     bool muteToggled();
@@ -266,13 +262,8 @@ private:
     AudioStreamStats _audioMixerAvatarStreamAudioStats;
     QHash<QUuid, AudioStreamStats> _audioMixerInjectedStreamAudioStatsMap;
 
-    RingBufferHistory<PacketStreamStats> _audioMixerAvatarStreamPacketStatsHistory;
-    QHash<QUuid, RingBufferHistory<PacketStreamStats> > _audioMixerInjectedStreamPacketStatsHistoryMap;
-
     quint16 _outgoingAvatarAudioSequenceNumber;
     SequenceNumberStats _incomingMixedAudioSequenceNumberStats;
-
-    RingBufferHistory<PacketStreamStats> _incomingStreamPacketStatsHistory;
 
     MovingMinMaxAvg<quint64> _interframeTimeGapStats;
 };

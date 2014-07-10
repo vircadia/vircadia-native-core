@@ -48,14 +48,17 @@ static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_
 
 static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 
-static const int AUDIO_STREAM_STATS_HISTORY_SIZE = 30;
-
 // audio frames time gap stats (min/max/avg) for last ~30 seconds are recalculated every ~1 second
-const int TIME_GAPS_STATS_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
-const int TIME_GAP_STATS_WINDOW_INTERVALS = 30;
+static const int TIME_GAPS_STATS_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
+static const int TIME_GAP_STATS_WINDOW_INTERVALS = 30;
+
+// incoming sequence number stats history will cover last 30s
+static const int INCOMING_SEQ_STATS_HISTORY_LENGTH = INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS /
+        (TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS / USECS_PER_SECOND);
 
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
+
 
 Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     AbstractAudioInterface(parent),
@@ -110,9 +113,8 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
     _audioMixerAvatarStreamAudioStats(),
-    _audioMixerAvatarStreamPacketStatsHistory(AUDIO_STREAM_STATS_HISTORY_SIZE),
     _outgoingAvatarAudioSequenceNumber(0),
-    _incomingStreamPacketStatsHistory(AUDIO_STREAM_STATS_HISTORY_SIZE),
+    _incomingMixedAudioSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH),
     _interframeTimeGapStats(TIME_GAPS_STATS_INTERVAL_SAMPLES, TIME_GAP_STATS_WINDOW_INTERVALS),
     _starveCount(0),
     _consecutiveNotMixedCount(0)
@@ -138,13 +140,8 @@ void Audio::reset() {
     _audioMixerAvatarStreamAudioStats = AudioStreamStats();
     _audioMixerInjectedStreamAudioStatsMap.clear();
 
-    _audioMixerAvatarStreamPacketStatsHistory.clear();
-    _audioMixerInjectedStreamPacketStatsHistoryMap.clear();
-
     _outgoingAvatarAudioSequenceNumber = 0;
     _incomingMixedAudioSequenceNumberStats.reset();
-
-    _incomingStreamPacketStatsHistory.clear();
 }
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
@@ -751,7 +748,6 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
     dataAt += sizeof(quint8);
     if (!appendFlag) {
         _audioMixerInjectedStreamAudioStatsMap.clear();
-        _audioMixerInjectedStreamPacketStatsHistoryMap.clear();
     }
 
     // parse the number of stream stats structs to follow
@@ -766,20 +762,10 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
 
         if (streamStats._streamType == PositionalAudioRingBuffer::Microphone) {
             _audioMixerAvatarStreamAudioStats = streamStats;
-            _audioMixerAvatarStreamPacketStatsHistory.insert(streamStats._packetStreamStats);
         } else {
-            if (!_audioMixerInjectedStreamAudioStatsMap.contains(streamStats._streamIdentifier)) {
-                _audioMixerInjectedStreamPacketStatsHistoryMap.insert(streamStats._streamIdentifier,
-                    RingBufferHistory<PacketStreamStats>(AUDIO_STREAM_STATS_HISTORY_SIZE));
-            }
             _audioMixerInjectedStreamAudioStatsMap[streamStats._streamIdentifier] = streamStats;
-            _audioMixerInjectedStreamPacketStatsHistoryMap[streamStats._streamIdentifier].insert(streamStats._packetStreamStats);
         }
     }
-
-    // when an audio stream stats packet is received, also record the downstream packets stats in the history
-    // for calculating packet loss rates
-    _incomingStreamPacketStatsHistory.insert(_incomingMixedAudioSequenceNumberStats.getStats());
 }
 
 AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
@@ -803,11 +789,16 @@ AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
     stats._ringBufferSilentFramesDropped = 0;
 
     stats._packetStreamStats = _incomingMixedAudioSequenceNumberStats.getStats();
+    stats._packetStreamWindowStats = _incomingMixedAudioSequenceNumberStats.getStatsForHistoryWindow();
 
     return stats;
 }
 
 void Audio::sendDownstreamAudioStatsPacket() {
+
+    // push the current seq number stats into history, which moves the history window forward 1s
+    // (since that's how often pushStatsToHistory() is called)
+    _incomingMixedAudioSequenceNumberStats.pushStatsToHistory();
 
     char packet[MAX_PACKET_SIZE];
 
@@ -1607,26 +1598,4 @@ float Audio::calculateDeviceToNetworkInputRatio(int numBytes) {
 int Audio::calculateNumberOfFrameSamples(int numBytes) {
     int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / sizeof(int16_t);
     return frameSamples;
-}
-
-void Audio::calculatePacketLossRate(const RingBufferHistory<PacketStreamStats>& statsHistory,
-    float& overallLossRate, float& windowLossRate) const {
-
-    int numHistoryEntries = statsHistory.getNumEntries();
-    if (numHistoryEntries == 0) {
-        overallLossRate = 0.0f;
-        windowLossRate = 0.0f;
-    } else {
-        const PacketStreamStats& newestStats = *statsHistory.getNewestEntry();
-        overallLossRate = (float)newestStats._numLost / newestStats._numReceived;
-
-        if (numHistoryEntries == 1) {
-            windowLossRate = overallLossRate;
-        } else {
-            int age = std::min(numHistoryEntries-1, AUDIO_STREAM_STATS_HISTORY_SIZE-1);
-            const PacketStreamStats& oldestStats = *statsHistory.get(age);
-            windowLossRate = (float)(newestStats._numLost - oldestStats._numLost) 
-                / (newestStats._numReceived - oldestStats._numReceived);
-        }
-    }
 }

@@ -125,6 +125,8 @@ static const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
+static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
+
 class Application : public QApplication {
     Q_OBJECT
 

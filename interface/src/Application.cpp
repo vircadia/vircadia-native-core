@@ -2158,7 +2158,6 @@ void Application::updateMyAvatar(float deltaTime) {
 
     {
         quint64 sinceLastNack = now - _lastSendDownstreamAudioStats;
-        const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
             
