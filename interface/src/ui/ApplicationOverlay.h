@@ -71,6 +71,7 @@ private:
     float _magSizeMult[NUMBER_OF_MAGNIFIERS];
     
     float _alpha;
+    float _oculusuiRadius;
 
     GLuint _crosshairTexture;
 };

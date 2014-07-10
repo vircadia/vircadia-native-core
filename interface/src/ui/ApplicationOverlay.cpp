@@ -40,7 +40,8 @@ ApplicationOverlay::ApplicationOverlay() :
     _framebufferObject(NULL),
     _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
     _alpha(1.0f),
-    _crosshairTexture(0) {
+    _crosshairTexture(0),
+    _oculusuiRadius(1.0f) {
 
     memset(_reticleActive, 0, sizeof(_reticleActive));
     memset(_magActive, 0, sizeof(_reticleActive));
@@ -288,9 +289,10 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(const PalmData *palm) cons
     //We back the ray up by dir to ensure that it will not start inside the UI.
     glm::vec3 adjustedPos = tipPos - dir;
     //Find intersection of crosshair ray. 
-    if (raySphereIntersect(dir, adjustedPos, 1, &t)){
+    if (raySphereIntersect(dir, adjustedPos, _oculusuiRadius, &t)){
         glm::vec3 collisionPos = adjustedPos + dir * t;
-
+        //Normalize it in case its not a radius of 1
+        collisionPos = glm::normalize(collisionPos);
         //If we hit the back hemisphere, mark it as not a collision
         if (collisionPos.z > 0) {
             rv.setX(INT_MAX);
@@ -321,7 +323,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
     glm::vec3 relativeDirection = orientation * direction;
 
     float t;
-    if (raySphereIntersect(relativeDirection, relativePosition, 1, &t)){
+    if (raySphereIntersect(relativeDirection, relativePosition, _oculusuiRadius, &t)){
         result = position + direction * t;
         return true;
     }
@@ -1196,8 +1198,8 @@ void ApplicationOverlay::renderTexturedHemisphere() {
 
     glTranslatef(position.x, position.y, position.z);
     glMultMatrixf(&rotation[0][0]);
-    
-    
+    glScalef(_oculusuiRadius, _oculusuiRadius, _oculusuiRadius);
+
     glDrawRangeElements(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
 
     glPopMatrix();
