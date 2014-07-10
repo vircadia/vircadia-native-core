@@ -266,7 +266,7 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
     }
 }
 
-
+//Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getOculusPalmClickLocation(const PalmData *palm) const {
 
     Application* application = Application::getInstance();
@@ -289,7 +289,7 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(const PalmData *palm) cons
     //We back the ray up by dir to ensure that it will not start inside the UI.
     glm::vec3 adjustedPos = tipPos - dir;
     //Find intersection of crosshair ray. 
-    if (raySphereIntersect(dir, adjustedPos, _oculusuiRadius, &t)){
+    if (raySphereIntersect(dir, adjustedPos, _oculusuiRadius * myAvatar->getScale(), &t)){
         glm::vec3 collisionPos = adjustedPos + dir * t;
         //Normalize it in case its not a radius of 1
         collisionPos = glm::normalize(collisionPos);
@@ -313,6 +313,7 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(const PalmData *palm) cons
     return rv;
 }
 
+//Finds the collision point of a world space ray
 bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
     Application* application = Application::getInstance();
     MyAvatar* myAvatar = application->getAvatar();
@@ -323,7 +324,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
     glm::vec3 relativeDirection = orientation * direction;
 
     float t;
-    if (raySphereIntersect(relativeDirection, relativePosition, _oculusuiRadius, &t)){
+    if (raySphereIntersect(relativeDirection, relativePosition, _oculusuiRadius * myAvatar->getScale(), &t)){
         result = position + direction * t;
         return true;
     }
@@ -862,18 +863,22 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult,
     float newVTop = 1.0 - (newMouseY - newHeight) / widgetHeight;
 
     // Project our position onto the hemisphere using the UV coordinates
-    float lX = sin((newULeft - 0.5f) * _textureFov);
-    float rX = sin((newURight - 0.5f) * _textureFov);
-    float bY = sin((newVBottom - 0.5f) * _textureFov);
-    float tY = sin((newVTop - 0.5f) * _textureFov);
+    float radius = _oculusuiRadius * application->getAvatar()->getScale();
+    float radius2 = radius * radius;
+
+    float lX = radius * sin((newULeft - 0.5f) * _textureFov);
+    float rX = radius * sin((newURight - 0.5f) * _textureFov);
+    float bY = radius * sin((newVBottom - 0.5f) * _textureFov);
+    float tY = radius * sin((newVTop - 0.5f) * _textureFov);
 
     float blZ, tlZ, brZ, trZ;
 
     float dist;
     float discriminant;
+
     //Bottom Left
     dist = sqrt(lX * lX + bY * bY);
-    discriminant = 1.0f - dist * dist;
+    discriminant = radius2 - dist * dist;
     if (discriminant > 0) {
         blZ = sqrt(discriminant);
     } else {
@@ -881,7 +886,7 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult,
     }
     //Top Left
     dist = sqrt(lX * lX + tY * tY);
-    discriminant = 1.0f - dist * dist;
+    discriminant = radius2 - dist * dist;
     if (discriminant > 0) {
         tlZ = sqrt(discriminant);
     } else {
@@ -889,7 +894,7 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult,
     }
     //Bottom Right
     dist = sqrt(rX * rX + bY * bY);
-    discriminant = 1.0f - dist * dist;
+    discriminant = radius2 - dist * dist;
     if (discriminant > 0) {
         brZ = sqrt(discriminant);
     } else {
@@ -897,7 +902,7 @@ void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult,
     }
     //Top Right
     dist = sqrt(rX * rX + tY * tY);
-    discriminant = 1.0f - dist * dist;
+    discriminant = radius2 - dist * dist;
     if (discriminant > 0) {
         trZ = sqrt(discriminant);
     } else {
@@ -1198,7 +1203,9 @@ void ApplicationOverlay::renderTexturedHemisphere() {
 
     glTranslatef(position.x, position.y, position.z);
     glMultMatrixf(&rotation[0][0]);
-    glScalef(_oculusuiRadius, _oculusuiRadius, _oculusuiRadius);
+    
+    const float scale = _oculusuiRadius * myAvatar->getScale();
+    glScalef(scale, scale, scale);
 
     glDrawRangeElements(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
 

@@ -479,6 +479,10 @@ void OculusManager::renderLaserPointers() {
             glColor4f(0, 1, 1, 1);
             glm::vec3 tip = getLaserPointerTipPosition(&palm);
             glm::vec3 root = palm.getPosition();
+
+            //Scale the root vector with the avatar scale
+            myAvatar->scaleVectorRelativeToPosition(root);
+
             Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS);
         }
     }
@@ -492,8 +496,14 @@ glm::vec3 OculusManager::getLaserPointerTipPosition(const PalmData* palm) {
     const float PALM_TIP_ROD_LENGTH_MULT = 40.0f;
 
     glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
+
+    glm::vec3 position = palm->getPosition();
+    //scale the position with the avatar
+    Application::getInstance()->getAvatar()->scaleVectorRelativeToPosition(position);
+
+   
     glm::vec3 result;
-    if (applicationOverlay.calculateRayUICollisionPoint(palm->getPosition(), direction, result)) {
+    if (applicationOverlay.calculateRayUICollisionPoint(position, direction, result)) {
         return result;
     }
 
