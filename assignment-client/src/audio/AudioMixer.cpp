@@ -366,6 +366,11 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
 }
 
 void AudioMixer::prepareMixForListeningNode(Node* node) {
+
+    static int k = 0;
+    k++;
+    bool debug = (k % 20) == 0;
+
     AvatarAudioRingBuffer* nodeRingBuffer = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer();
 
     // zero out the client mix for this node
@@ -381,11 +386,30 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
             for (int i = 0; i < otherNodeClientData->getRingBuffers().size(); i++) {
                 PositionalAudioRingBuffer* otherNodeBuffer = otherNodeClientData->getRingBuffers()[i];
 
+
                 if ((*otherNode != *node
                      || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->willBeAddedToMix()
-                    && otherNodeBuffer->getNextOutputTrailingLoudness() > 0) {
+                    && otherNodeBuffer->getNextOutputTrailingLoudness() > 0.0f) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
+                } else {
+
+                    //if (debug) {
+                        printf("\nWILL NOT MIX!!!\n");
+                        printf("listening node = %s\n", node->getUUID().toString().toLatin1().data());
+                        printf("other node = %s\n", otherNode->getUUID().toString().toLatin1().data());
+
+                        if (otherNodeBuffer->getType() == PositionalAudioRingBuffer::Microphone)
+                            printf("\t avatar buffer...\n");
+                        else
+                        {
+                            printf("\t inj buffer %s\n", ((InjectedAudioRingBuffer*)otherNodeBuffer)->getStreamIdentifier().toString().toLatin1().data());
+                        }
+                        
+                        printf("\t\t other==listening || shouldLoopBack: %d\n", (*otherNode != *node || otherNodeBuffer->shouldLoopbackForNode()));
+                        printf("\t\t other will be added to mix: %d\n", otherNodeBuffer->willBeAddedToMix());
+                        printf("\t\t other trailing loudess: %f\n", otherNodeBuffer->getNextOutputTrailingLoudness());
+                    //}
                 }
             }
         }
