@@ -166,14 +166,16 @@ function SeatIndicator(modelProperties, seatIndex) {
                                      modelProperties.sittingPoints[seatIndex].rotation);
     this.scale = MyAvatar.scale / 12;
     
-    this.sphere = Overlays.addOverlay("sphere", {
-                                    position: this.position,
-                                    size: this.scale,
-                                    solid: true,
-                                    color: { red: 0, green: 0, blue: 255 },
-                                    alpha: 0.3,
-                                    visible: true
-                                    });
+    this.sphere = Overlays.addOverlay("billboard", {
+                                      subImage: { x: 0, y: buttonHeight, width: buttonWidth, height: buttonHeight},
+                                      url: buttonImageUrl,
+                                       position: this.position,
+                                      scale: this.scale * 4,
+                                      solid: true,
+                                      color: { red: 0, green: 0, blue: 255 },
+                                      alpha: 0.3,
+                                      visible: true
+                                      });
     
     this.show = function(doShow) {
         Overlays.editOverlay(this.sphere, { visible: doShow });
