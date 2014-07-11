@@ -20,7 +20,7 @@ test = function(name, func) {
         unitTest.run();
         print("  Success: " + unitTest.numAssertions + " assertions passed");
     } catch (error) {
-        print("  Failure: " + error.message);
+        print("  Failure: " + error.name + " " + error.message);
     }
 };
 
@@ -28,6 +28,12 @@ AssertionException = function(expected, actual, message) {
     print("Creating exception");
     this.message = message + "\n: " + actual + " != " + expected;
     this.name = 'AssertionException';
+};
+
+UnthrownException = function(message) {
+    print("Creating exception");
+    this.message = message + "\n";
+    this.name = 'UnthrownException';
 };
 
 UnitTest = function(name, func) {
@@ -77,4 +83,15 @@ UnitTest.prototype.arrayEqual = function(array1, array2, message) {
             throw new AssertionException(array1[i], array2[i], message);
         }
     }
+}
+
+UnitTest.prototype.raises = function(func, message) {
+    this.numAssertions++;
+    try {
+        func();
+    } catch (error) {
+        return;
+    }
+    
+    throw new UnthrownException(message);
 }
