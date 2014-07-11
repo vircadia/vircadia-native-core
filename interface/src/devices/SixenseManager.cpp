@@ -15,6 +15,7 @@
 
 #include "Application.h"
 #include "SixenseManager.h"
+#include "devices/OculusManager.h"
 #include "UserActivityLogger.h"
 
 #ifdef HAVE_SIXENSE
@@ -172,8 +173,10 @@ void SixenseManager::update(float deltaTime) {
             //  Use a velocity sensitive filter to damp small motions and preserve large ones with
             //  no latency.
             float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-            palm->setRawPosition(palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter));
-            palm->setRawRotation(safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter));
+            position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
+            rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
+            palm->setRawPosition(position);
+            palm->setRawRotation(rotation);
         } else {
             palm->setRawPosition(position);
             palm->setRawRotation(rotation);
@@ -366,9 +369,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     MyAvatar* avatar = application->getAvatar();
     QGLWidget* widget = application->getGLWidget();
     QPoint pos;
-    // Get directon relative to avatar orientation
-    glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
-
+    
     Qt::MouseButton bumperButton;
     Qt::MouseButton triggerButton;
 
@@ -380,19 +381,27 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         triggerButton = Qt::LeftButton;
     }
 
-    // Get the angles, scaled between (-0.5,0.5)
-    float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-    float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
+    if (OculusManager::isConnected()) {
+        pos = application->getApplicationOverlay().getOculusPalmClickLocation(palm);
+    } else {
+        // Get directon relative to avatar orientation
+        glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
 
-    // Get the pixel range over which the xAngle and yAngle are scaled
-    float cursorRange = widget->width() * getCursorPixelRangeMult();
+        // Get the angles, scaled between (-0.5,0.5)
+        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+        float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
-    pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
-    pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
+        // Get the pixel range over which the xAngle and yAngle are scaled
+        float cursorRange = widget->width() * getCursorPixelRangeMult();
+
+        pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
+        pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
+
+    }
 
     //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
     //we should unpress them.
-    if (pos.x() < 0 || pos.x() > widget->width() || pos.y() < 0 || pos.y() > widget->height()) {
+    if (pos.x() == INT_MAX) {
         if (_bumperPressed[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 

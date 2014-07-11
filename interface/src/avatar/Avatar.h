@@ -152,6 +152,10 @@ public:
     
     glm::vec3 getAcceleration() const { return _acceleration; }
     glm::vec3 getAngularVelocity() const { return _angularVelocity; }
+
+    /// Scales a world space position vector relative to the avatar position and scale
+    /// \param vector position to be scaled. Will store the result
+    void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
     
 public slots:
     void updateCollisionGroups();
