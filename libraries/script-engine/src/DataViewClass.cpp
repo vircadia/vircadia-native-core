@@ -74,12 +74,9 @@ QScriptValue DataViewClass::construct(QScriptContext *context, QScriptEngine *en
             engine->evaluate("throw \"RangeError: byteLength out of range\"");
             return QScriptValue();
         }
-    
-    QScriptValue newObject = cls->newInstance(bufferArg,
-                                              (byteOffsetArg.isNumber()) ? byteOffsetArg.toInt32()
-                                                                         : 0,
-                                              (byteLengthArg.isNumber()) ? byteLengthArg.toInt32()
-                                                                         : arrayBuffer->size());
+    quint32 byteOffset = (byteOffsetArg.isNumber()) ? byteOffsetArg.toInt32() : 0;
+    quint32 byteLength = (byteLengthArg.isNumber()) ? byteLengthArg.toInt32() : arrayBuffer->size() - byteOffset;
+    QScriptValue newObject = cls->newInstance(bufferArg, byteOffset, byteLength);
     
     if (context->isCalledAsConstructor()) {
         context->setThisObject(newObject);

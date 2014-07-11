@@ -97,11 +97,15 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _arrayBufferClass(NULL)
 {
     _arrayBufferClass = new ArrayBufferClass(this);
-    qDebug() << "Engine: " << this;
-    qDebug() << "ArrayBuffer: " <<_arrayBufferClass;
-    qDebug() << "DataView: " << new DataViewClass(this);
-    qDebug() << "Int8Array: " << new Int8ArrayClass(this);
-    qDebug() << "Initial thread: " << QThread::currentThread() << " " << thread();
+    new DataViewClass(this);
+    new Int8ArrayClass(this);
+    new Uint8ArrayClass(this);
+    new Int16ArrayClass(this);
+    new Uint16ArrayClass(this);
+    new Int32ArrayClass(this);
+    new Uint32ArrayClass(this);
+    new Float32ArrayClass(this);
+    new Float64ArrayClass(this);
 }
 
 ScriptEngine::ScriptEngine(const QUrl& scriptURL,
@@ -134,11 +138,15 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     QUrl url(scriptURL);
     
     _arrayBufferClass = new ArrayBufferClass(this);
-    qDebug() << "Engine: " << this;
-    qDebug() << "ArrayBuffer: " <<_arrayBufferClass;
-    qDebug() << "DataView: " << new DataViewClass(this);
-    qDebug() << "Int8Array: " << new Int8ArrayClass(this);
-    qDebug() << "Initial thread: " << QThread::currentThread() << " " << thread();
+    new DataViewClass(this);
+    new Int8ArrayClass(this);
+    new Uint8ArrayClass(this);
+    new Int16ArrayClass(this);
+    new Uint16ArrayClass(this);
+    new Int32ArrayClass(this);
+    new Uint32ArrayClass(this);
+    new Float32ArrayClass(this);
+    new Float64ArrayClass(this);
     
     // if the scheme length is one or lower, maybe they typed in a file, let's try
     const int WINDOWS_DRIVE_LETTER_SIZE = 1;
