@@ -364,12 +364,12 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
         
         // clamp the distances to the ends of the capsule line segments
         float absDistanceA = fabs(distanceA);
-        if (absDistanceA > capsuleA->getHalfHeight() + capsuleA->getRadius()) {
+        if (absDistanceA > capsuleA->getHalfHeight()) {
             float signA = distanceA < 0.0f ? -1.0f : 1.0f;
             distanceA = signA * capsuleA->getHalfHeight();
         }
         float absDistanceB = fabs(distanceB);
-        if (absDistanceB > capsuleB->getHalfHeight() + capsuleB->getRadius()) {
+        if (absDistanceB > capsuleB->getHalfHeight()) {
             float signB = distanceB < 0.0f ? -1.0f : 1.0f;
             distanceB = signB * capsuleB->getHalfHeight();
         }
