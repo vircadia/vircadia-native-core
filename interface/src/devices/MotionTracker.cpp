@@ -106,7 +106,7 @@ void MotionTracker::updateAllAbsTransform() {
     _jointsArray[0].updateAbsFromLocTransform(0);
 
     // Because we know the hierarchy is stored from root down the branches let's just traverse and update
-    for (Index i = 1; unsigned int(i) < _jointsArray.size(); i++) {
+    for (Index i = 1; i < _jointsArray.size(); i++) {
         JointTracker* joint = _jointsArray.data() + i;
         joint->updateAbsFromLocTransform(_jointsArray.data() + joint->getParent());
     }
