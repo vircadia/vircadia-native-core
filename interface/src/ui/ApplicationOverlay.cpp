@@ -702,7 +702,6 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
         if (palm.isActive()) {
             glm::vec3 tip = OculusManager::getLaserPointerTipPosition(&palm);
-            glm::quat orientation = glm::inverse(myAvatar->getOrientation());
             glm::vec3 tipPos = (tip - eyePos);
                 
             float length = glm::length(eyePos - tip);
