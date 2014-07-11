@@ -162,36 +162,25 @@ void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int heigh
 }
 
 bool Stats::includeTimingRecord(const QString& name) {
-    bool included = false;
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
-
-        if (name == "idle/update") {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming) ||
-                       Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
-        } else if (name == "idle/updateGL") {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
-        } else if (name.startsWith("idle/update")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming);
-        } else if (name.startsWith("idle/")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
-        } else if (name.startsWith("MyAvatar::simulate")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandAvatarSimulateTiming);
-        } else if (name.startsWith("MyAvatar::update/") || name.startsWith("updateMyAvatar")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandAvatarUpdateTiming);
-        } else if (name.startsWith("MyAvatar::")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandMiscAvatarTiming);
-        } else if (name == "paintGL/displaySide") {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandDisplaySideTiming) ||
-                       Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
-        } else if (name.startsWith("paintGL/displaySide/")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandDisplaySideTiming);
-        } else if (name.startsWith("paintGL/")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
-        } else {
-            included = true; // include everything else
+        if (name.startsWith("/idle/update/")) {
+            if (name.startsWith("/idle/update/myAvatar/")) {
+                if (name.startsWith("/idle/update/myAvatar/simulate/")) {
+                    return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
+                }
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarTiming);
+            } else if (name.startsWith("/idle/update/otherAvatars/")) {
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandOtherAvatarTiming);
+            }
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming);
+        } else if (name.startsWith("/idle/updateGL/paintGL/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+        } else if (name.startsWith("/paintGL/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
         }
+        return true;
     }
-    return included;
+    return false;
 }
 
 // display expanded or contracted stats
