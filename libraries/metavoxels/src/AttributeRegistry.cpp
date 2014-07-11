@@ -568,6 +568,10 @@ void SpannerSetAttribute::readMetavoxelRoot(MetavoxelData& data, MetavoxelStream
         }
         data.insert(state.attribute, object);
     }
+    // even if the root is empty, it should still exist
+    if (!data.getRoot(state.attribute)) {
+        data.createRoot(state.attribute);
+    }
 }
 
 void SpannerSetAttribute::writeMetavoxelRoot(const MetavoxelNode& root, MetavoxelStreamState& state) {
@@ -585,6 +589,10 @@ void SpannerSetAttribute::readMetavoxelDelta(MetavoxelData& data,
             break;
         }
         data.toggle(state.attribute, object);
+    }
+    // even if the root is empty, it should still exist
+    if (!data.getRoot(state.attribute)) {
+        data.createRoot(state.attribute);
     }
 }
 
