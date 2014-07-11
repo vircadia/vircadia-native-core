@@ -65,4 +65,16 @@ UnitTest.prototype.assertNull = function(value, message) {
     if (value !== null) {
         throw new AssertionException(value, null, message);
     }
-};
+}
+
+UnitTest.prototype.arrayEqual = function(array1, array2, message) {
+    this.numAssertions++;
+    if (array1.length !== array2.length) {
+        throw new AssertionException(array1.length , array2.length , message);
+    }
+    for (var i = 0; i < array1.length; ++i) {
+        if (array1[i] !== array2[i]) {
+            throw new AssertionException(array1[i], array2[i], message);
+        }
+    }
+}
