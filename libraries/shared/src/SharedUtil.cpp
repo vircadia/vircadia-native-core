@@ -837,3 +837,17 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
 QByteArray createByteArray(const glm::vec3& vector) {
     return QByteArray::number(vector.x) + ',' + QByteArray::number(vector.y) + ',' + QByteArray::number(vector.z);
 }
+
+QString formatUsecTime(float usecs, int prec) {
+    QString result;
+    if (usecs > USECS_PER_MINUTE) {
+        result = QString::number(usecs / USECS_PER_MINUTE, 'f', prec) + "min";
+    } else if (usecs > USECS_PER_SECOND) {
+        result = QString::number(usecs / USECS_PER_SECOND, 'f', prec) + 's';
+    } else if (usecs > USECS_PER_MSEC) {
+        result = QString::number(usecs / USECS_PER_MSEC, 'f', prec) + "ms";
+    } else {
+        result = QString::number(usecs, 'f', prec) + "us";
+    }
+    return result;
+}

@@ -57,7 +57,9 @@ static const float METERS_PER_MILLIMETER = 0.001f;
 static const float MILLIMETERS_PER_METER = 1000.0f;
 static const quint64 USECS_PER_MSEC = 1000;
 static const quint64 MSECS_PER_SECOND = 1000;
+static const quint64 SECONDS_PER_MINUTE = 60;
 static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
+static const quint64 USECS_PER_MINUTE = USECS_PER_SECOND * SECONDS_PER_MINUTE;
 
 const int BITS_IN_BYTE  = 8;
 
@@ -188,5 +190,7 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
 bool isNaN(float value);
 
 QByteArray createByteArray(const glm::vec3& vector);
+
+QString formatUsecTime(float usecs, int prec = 3);
 
 #endif // hifi_SharedUtil_h
