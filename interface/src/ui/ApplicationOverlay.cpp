@@ -166,7 +166,6 @@ void ApplicationOverlay::displayOverlayTexture() {
 
 void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direction) const {
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-    glm::quat rot = myAvatar->getOrientation();
 
     //invert y direction
     y = 1.0 - y;
@@ -179,7 +178,7 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direc
     float z = -sqrt(1.0f - dist * dist);
 
     glm::vec3 relativePosition = myAvatar->getHead()->calculateAverageEyePosition() + 
-        glm::normalize(rot * glm::vec3(x, y, z));
+        glm::normalize(myAvatar->getOrientation() * glm::vec3(x, y, z));
 
     //Rotate the UI pick ray by the avatar orientation
     direction = glm::normalize(relativePosition - Application::getInstance()->getCamera()->getPosition());
