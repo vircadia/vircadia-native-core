@@ -43,7 +43,10 @@ var animationLenght = 2.0;
 
 var avatarOldPosition = { x: 0, y: 0, z: 0 };
 
-var sitting = false;
+var sittingSettingsHandle = "SitJsSittingPosition";
+var sitting = Settings.getValue(sittingSettingsHandle, false) == "true";
+print("Original sitting status: " + sitting);
+var frame = 0;
 
 var seat = new Object();
 var hiddingSeats = false;
@@ -123,10 +126,12 @@ var goToSeatAnimation = function(deltaTime) {
 
 function sitDown() {
 	sitting = true;
+    Settings.setValue(sittingSettingsHandle, sitting);
+    print("sitDown sitting status: " + Settings.getValue(sittingSettingsHandle, false));
 	passedTime = 0.0;
 	startPosition = MyAvatar.position;
 	storeStartPoseAndTransition();
-	try{
+	try {
 		Script.update.disconnect(standingUpAnimation);
 	} catch(e){
 			// no need to handle. if it wasn't connected no harm done
@@ -138,6 +143,8 @@ function sitDown() {
 
 function standUp() {
 	sitting = false;
+    Settings.setValue(sittingSettingsHandle, sitting);
+    print("standUp sitting status: " + Settings.getValue(sittingSettingsHandle, false));
 	passedTime = 0.0;
 	startPosition = MyAvatar.position;
 	try{
@@ -218,33 +225,6 @@ Controller.mousePressEvent.connect(function(event) {
            try{ Script.update.disconnect(sittingDownAnimation); } catch(e){}
            Script.update.connect(goToSeatAnimation);
        }
-       
-                                   
-                                   
-                                   return;
-       var intersection = Models.findRayIntersection(pickRay);
-       
-       if (intersection.accurate && intersection.intersects && false) {
-           var properties = intersection.modelProperties;
-           print("Intersecting with model, let's check for seats.");
-           
-           if (properties.sittingPoints.length > 0) {
-                print("Available seats, going to the first one: " + properties.sittingPoints[0].name);
-                seat.position = Vec3.sum(properties.position, Vec3.multiplyQbyV(properties.modelRotation, properties.sittingPoints[0].position));
-                Vec3.print("Seat position: ", seat.position);
-                seat.rotation = Quat.multiply(properties.modelRotation, properties.sittingPoints[0].rotation);
-                Quat.print("Seat rotation: ", seat.rotation);
-                                   
-                passedTime = 0.0;
-                startPosition = MyAvatar.position;
-                startRotation = MyAvatar.orientation;
-                try{ Script.update.disconnect(standingUpAnimation); } catch(e){}
-                try{ Script.update.disconnect(sittingDownAnimation); } catch(e){}
-                Script.update.connect(goToSeatAnimation);
-           } else {
-               print ("Sorry, no seats here.");
-           }
-       }
    }
 })
 
@@ -257,6 +237,22 @@ function update(deltaTime){
 		Overlays.editOverlay( standUpButton, {x: newX, y: newY} );
 		Overlays.editOverlay( sitDownButton, {x: newX, y: newY} );
 	}
+    
+    // For a weird reason avatar joint don't update till the 10th frame
+    // Set the update frame to 20 to be safe
+    var UPDATE_FRAME = 20;
+    if (frame <= UPDATE_FRAME) {
+        if (frame == UPDATE_FRAME) {
+            if (sitting == true) {
+                print("Was seated: " + sitting);
+                storeStartPoseAndTransition();
+                updateJoints(1.0);
+                Overlays.editOverlay(sitDownButton, { visible: false });
+                Overlays.editOverlay(standUpButton, { visible: true });
+            }
+        }
+        frame++;
+    }
 	
     if (MyAvatar.position.x != avatarOldPosition.x &&
         MyAvatar.position.y != avatarOldPosition.y &&
