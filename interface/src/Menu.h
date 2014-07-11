@@ -369,6 +369,7 @@ namespace MenuOption {
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString FirstPerson = "First Person";
+    const QString FocusIndicators = "Focus Indicators";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
@@ -439,7 +440,7 @@ namespace MenuOption {
     const QString UploadAttachment = "Upload Attachment Model";
     const QString UploadHead = "Upload Head Model";
     const QString UploadSkeleton = "Upload Skeleton Model";
-    const QString UserInterface = "UserInterface";
+    const QString UserInterface = "User Interface";
     const QString Visage = "Visage";
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString Voxels = "Voxels";

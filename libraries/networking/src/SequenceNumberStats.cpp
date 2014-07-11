@@ -13,29 +13,19 @@
 
 #include <limits>
 
-SequenceNumberStats::SequenceNumberStats()
+SequenceNumberStats::SequenceNumberStats(int statsHistoryLength)
     : _lastReceived(std::numeric_limits<quint16>::max()),
     _missingSet(),
-    _numReceived(0),
-    _numUnreasonable(0),
-    _numEarly(0),
-    _numLate(0),
-    _numLost(0),
-    _numRecovered(0),
-    _numDuplicate(0),
-    _lastSenderUUID()
+    _stats(),
+    _lastSenderUUID(),
+    _statsHistory(statsHistoryLength)
 {
 }
 
 void SequenceNumberStats::reset() {
     _missingSet.clear();
-    _numReceived = 0;
-    _numUnreasonable = 0;
-    _numEarly = 0;
-    _numLate = 0;
-    _numLost = 0;
-    _numRecovered = 0;
-    _numDuplicate = 0;
+    _stats = PacketStreamStats();
+    _statsHistory.clear();
 }
 
 static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
@@ -51,9 +41,9 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
     }
 
     // determine our expected sequence number... handle rollover appropriately
-    quint16 expected = _numReceived > 0 ? _lastReceived + (quint16)1 : incoming;
+    quint16 expected = _stats._numReceived > 0 ? _lastReceived + (quint16)1 : incoming;
 
-    _numReceived++;
+    _stats._numReceived++;
 
     if (incoming == expected) { // on time
         _lastReceived = incoming;
@@ -80,7 +70,7 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
             // ignore packet if gap is unreasonable
             qDebug() << "ignoring unreasonable sequence number:" << incoming
                 << "previous:" << _lastReceived;
-            _numUnreasonable++;
+            _stats._numUnreasonable++;
             return;
         }
 
@@ -92,8 +82,8 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
                 qDebug() << ">>>>>>>> missing gap=" << (incomingInt - expectedInt);
             }
 
-            _numEarly++;
-            _numLost += (incomingInt - expectedInt);
+            _stats._numEarly++;
+            _stats._numLost += (incomingInt - expectedInt);
             _lastReceived = incoming;
 
             // add all sequence numbers that were skipped to the missing sequence numbers list
@@ -110,7 +100,7 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
             if (wantExtraDebugging) {
                 qDebug() << "this packet is later than expected...";
             }
-            _numLate++;
+            _stats._numLate++;
 
             // do not update _lastReceived; it shouldn't become smaller
 
@@ -119,13 +109,13 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
                 if (wantExtraDebugging) {
                     qDebug() << "found it in _missingSet";
                 }
-                _numLost--;
-                _numRecovered++;
+                _stats._numLost--;
+                _stats._numRecovered++;
             } else {
                 if (wantExtraDebugging) {
                     qDebug() << "sequence:" << incoming << "was NOT found in _missingSet and is probably a duplicate";
                 }
-                _numDuplicate++;
+                _stats._numDuplicate++;
             }
         }
     }
@@ -179,4 +169,27 @@ void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {
             }
         }
     }
+}
+
+PacketStreamStats SequenceNumberStats::getStatsForHistoryWindow() const {
+
+    const PacketStreamStats* newestStats = _statsHistory.getNewestEntry();
+    const PacketStreamStats* oldestStats = _statsHistory.get(_statsHistory.getNumEntries() - 1);
+    
+    // this catches cases where history is length 1 or 0 (both are NULL in case of 0)
+    if (newestStats == oldestStats) {
+        return PacketStreamStats();
+    }
+
+    // calculate difference between newest stats and oldest stats to get window stats
+    PacketStreamStats windowStats;
+    windowStats._numReceived = newestStats->_numReceived - oldestStats->_numReceived;
+    windowStats._numUnreasonable = newestStats->_numUnreasonable - oldestStats->_numUnreasonable;
+    windowStats._numEarly = newestStats->_numEarly - oldestStats->_numEarly;
+    windowStats._numLate = newestStats->_numLate - oldestStats->_numLate;
+    windowStats._numLost = newestStats->_numLost - oldestStats->_numLost;
+    windowStats._numRecovered = newestStats->_numRecovered - oldestStats->_numRecovered;
+    windowStats._numDuplicate = newestStats->_numDuplicate - oldestStats->_numDuplicate;
+
+    return windowStats;
 }

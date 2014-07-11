@@ -17,31 +17,17 @@
 #include <AABox.h>
 
 #include "AudioRingBuffer.h"
+#include "MovingMinMaxAvg.h"
 
-// this means that every 500 samples, the max for the past 10*500 samples will be calculated
-const int TIME_GAP_NUM_SAMPLES_IN_INTERVAL = 500;
-const int TIME_GAP_NUM_INTERVALS_IN_WINDOW = 10;
+// the time gaps stats for _desiredJitterBufferFrames calculation
+// will recalculate the max for the past 5000 samples every 500 samples
+const int TIME_GAPS_FOR_JITTER_CALC_INTERVAL_SAMPLES = 500;
+const int TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS = 10;
 
-// class used to track time between incoming frames for the purpose of varying the jitter buffer length
-class InterframeTimeGapStats {
-public:
-    InterframeTimeGapStats();
-
-    void frameReceived();
-    bool hasNewWindowMaxGapAvailable() const { return _newWindowMaxGapAvailable; }
-    quint64 peekWindowMaxGap() const { return _windowMaxGap; }
-    quint64 getWindowMaxGap();
-
-private:
-    quint64 _lastFrameReceivedTime;
-
-    int _numSamplesInCurrentInterval;
-    quint64 _currentIntervalMaxGap;
-    quint64 _intervalMaxGaps[TIME_GAP_NUM_INTERVALS_IN_WINDOW];
-    int _newestIntervalMaxGapAt;
-    quint64 _windowMaxGap;
-    bool _newWindowMaxGapAvailable;
-};
+// the time gap stats for constructing AudioStreamStats will
+// recalculate min/max/avg every ~1 second for the past ~30 seconds of time gap data
+const int TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
+const int TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS = 30;
 
 const int AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
@@ -79,17 +65,22 @@ public:
     
     int getSamplesPerFrame() const { return _isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
 
+    const MovingMinMaxAvg<quint64>& getInterframeTimeGapStatsForStatsPacket() const { return _interframeTimeGapStatsForStatsPacket; }
+
     int getCalculatedDesiredJitterBufferFrames() const; /// returns what we would calculate our desired as if asked
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
     int getCurrentJitterBufferFrames() const { return _currentJitterBufferFrames; }
 
     int getConsecutiveNotMixedCount() const { return _consecutiveNotMixedCount; }
+    int getStarveCount() const { return _starveCount; }
+    int getSilentFramesDropped() const { return _silentFramesDropped; }
 
 protected:
     // disallow copying of PositionalAudioRingBuffer objects
     PositionalAudioRingBuffer(const PositionalAudioRingBuffer&);
     PositionalAudioRingBuffer& operator= (const PositionalAudioRingBuffer&);
 
+    void timeGapStatsFrameReceived();
     void updateDesiredJitterBufferFrames();
     
     PositionalAudioRingBuffer::Type _type;
@@ -103,13 +94,18 @@ protected:
     float _nextOutputTrailingLoudness;
     AABox* _listenerUnattenuatedZone;
 
-    InterframeTimeGapStats _interframeTimeGapStats;
+    quint64 _lastFrameReceivedTime;
+    MovingMinMaxAvg<quint64> _interframeTimeGapStatsForJitterCalc;
+    MovingMinMaxAvg<quint64> _interframeTimeGapStatsForStatsPacket;
+    
     int _desiredJitterBufferFrames;
     int _currentJitterBufferFrames;
     bool _dynamicJitterBuffers;
 
     // extra stats
     int _consecutiveNotMixedCount;
+    int _starveCount;
+    int _silentFramesDropped;
 };
 
 #endif // hifi_PositionalAudioRingBuffer_h

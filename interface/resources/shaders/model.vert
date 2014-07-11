@@ -11,6 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+const int MAX_LOCAL_LIGHTS = 4;
+
 // the interpolated position
 varying vec4 position;
 
@@ -37,3 +39,4 @@ void main(void) {
     // use standard pipeline transform
     gl_Position = ftransform();
 }
+
