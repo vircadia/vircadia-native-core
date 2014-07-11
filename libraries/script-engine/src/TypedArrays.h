@@ -69,7 +69,7 @@ public:
     TypedArrayPrototype(QObject* parent = NULL);
     
 public slots:
-    void set(QScriptValue array, quint32 offset = 0);
+    void set(QScriptValue array, qint32 offset = 0);
     QScriptValue subarray(qint32 begin);
     QScriptValue subarray(qint32 begin, qint32 end);
     

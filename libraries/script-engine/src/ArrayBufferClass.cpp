@@ -48,7 +48,17 @@ _scriptEngine(scriptEngine) {
     engine()->globalObject().setProperty(name(), _ctor);
 }
 
-QScriptValue ArrayBufferClass::newInstance(quint32 size) {
+QScriptValue ArrayBufferClass::newInstance(qint32 size) {
+    const qint32 MAX_LENGTH = 100000000;
+    if (size < 0) {
+        engine()->evaluate("throw \"ArgumentError: negative length\"");
+        return QScriptValue();
+    }
+    if (size > MAX_LENGTH) {
+        engine()->evaluate("throw \"ArgumentError: absurd length\"");
+        return QScriptValue();
+    }
+    
     engine()->reportAdditionalMemoryCost(size);
     QScriptEngine* eng = engine();
     QVariant variant = QVariant::fromValue(QByteArray(size, 0));

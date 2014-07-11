@@ -26,7 +26,10 @@ QByteArray* DataViewPrototype::thisArrayBuffer() const {
     return qscriptvalue_cast<QByteArray*>(bufferObject.data());
 }
 
-bool DataViewPrototype::realOffset(quint32& offset, size_t size) const {
+bool DataViewPrototype::realOffset(qint32& offset, size_t size) const {
+    if (offset < 0) {
+        return false;
+    }
     quint32 viewOffset = thisObject().data().property(BYTE_OFFSET_PROPERTY_NAME).toInt32();
     quint32 viewLength = thisObject().data().property(BYTE_LENGTH_PROPERTY_NAME).toInt32();
     //qDebug() << "View Offset: " << viewOffset << ", View Lenght: " << viewLength;
@@ -38,7 +41,7 @@ bool DataViewPrototype::realOffset(quint32& offset, size_t size) const {
 
 ///////////////// GETTERS ////////////////////////////
 
-qint32 DataViewPrototype::getInt8(quint32 byteOffset) {
+qint32 DataViewPrototype::getInt8(qint32 byteOffset) {
     if (realOffset(byteOffset, sizeof(qint8))) {
         QDataStream stream(*thisArrayBuffer());
         stream.skipRawData(byteOffset);
@@ -51,7 +54,7 @@ qint32 DataViewPrototype::getInt8(quint32 byteOffset) {
     return 0;
 }
 
-quint32 DataViewPrototype::getUint8(quint32 byteOffset) {
+quint32 DataViewPrototype::getUint8(qint32 byteOffset) {
     if (realOffset(byteOffset, sizeof(quint8))) {
         QDataStream stream(*thisArrayBuffer());
         stream.skipRawData(byteOffset);
@@ -64,7 +67,7 @@ quint32 DataViewPrototype::getUint8(quint32 byteOffset) {
     return 0;
 }
 
-qint32 DataViewPrototype::getInt16(quint32 byteOffset, bool littleEndian) {
+qint32 DataViewPrototype::getInt16(qint32 byteOffset, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(qint16))) {
         QDataStream stream(*thisArrayBuffer());
         stream.skipRawData(byteOffset);
@@ -78,7 +81,7 @@ qint32 DataViewPrototype::getInt16(quint32 byteOffset, bool littleEndian) {
     return 0;
 }
 
-quint32 DataViewPrototype::getUint16(quint32 byteOffset, bool littleEndian) {
+quint32 DataViewPrototype::getUint16(qint32 byteOffset, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(quint16))) {
         QDataStream stream(*thisArrayBuffer());
         stream.skipRawData(byteOffset);
@@ -92,7 +95,7 @@ quint32 DataViewPrototype::getUint16(quint32 byteOffset, bool littleEndian) {
     return 0;
 }
 
-qint32 DataViewPrototype::getInt32(quint32 byteOffset, bool littleEndian) {
+qint32 DataViewPrototype::getInt32(qint32 byteOffset, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(qint32))) {
         QDataStream stream(*thisArrayBuffer());
         stream.skipRawData(byteOffset);
@@ -106,7 +109,7 @@ qint32 DataViewPrototype::getInt32(quint32 byteOffset, bool littleEndian) {
     return 0;
 }
 
-quint32 DataViewPrototype::getUint32(quint32 byteOffset, bool littleEndian) {
+quint32 DataViewPrototype::getUint32(qint32 byteOffset, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(quint32))) {
         QDataStream stream(*thisArrayBuffer());
         stream.skipRawData(byteOffset);
@@ -120,25 +123,28 @@ quint32 DataViewPrototype::getUint32(quint32 byteOffset, bool littleEndian) {
     return 0;
 }
 
-float DataViewPrototype::getFloat32(quint32 byteOffset, bool littleEndian) {
+float DataViewPrototype::getFloat32(qint32 byteOffset, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(float))) {
         QDataStream stream(*thisArrayBuffer());
         stream.skipRawData(byteOffset);
         stream.setByteOrder((littleEndian) ? QDataStream::LittleEndian : QDataStream::BigEndian);
+        stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
         
         float result;
         stream >> result;
+        qDebug() << "Get: " << result;
         return result;
     }
     thisObject().engine()->evaluate("throw \"RangeError: byteOffset out of range\"");
     return 0;
 }
 
-double DataViewPrototype::getFloat64(quint32 byteOffset, bool littleEndian) {
+double DataViewPrototype::getFloat64(qint32 byteOffset, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(double))) {
         QDataStream stream(*thisArrayBuffer());
         stream.skipRawData(byteOffset);
         stream.setByteOrder((littleEndian) ? QDataStream::LittleEndian : QDataStream::BigEndian);
+        stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
         
         double result;
         stream >> result;
@@ -150,7 +156,7 @@ double DataViewPrototype::getFloat64(quint32 byteOffset, bool littleEndian) {
 
 ///////////////// SETTERS ////////////////////////////
 
-void DataViewPrototype::setInt8(quint32 byteOffset, qint32 value) {
+void DataViewPrototype::setInt8(qint32 byteOffset, qint32 value) {
     if (realOffset(byteOffset, sizeof(qint8))) {
         QDataStream stream(thisArrayBuffer(), QIODevice::ReadWrite);
         stream.skipRawData(byteOffset);
@@ -161,7 +167,7 @@ void DataViewPrototype::setInt8(quint32 byteOffset, qint32 value) {
     }
 }
 
-void DataViewPrototype::setUint8(quint32 byteOffset, quint32 value) {
+void DataViewPrototype::setUint8(qint32 byteOffset, quint32 value) {
     if (realOffset(byteOffset, sizeof(quint8))) {
         QDataStream stream(thisArrayBuffer(), QIODevice::ReadWrite);
         stream.skipRawData(byteOffset);
@@ -172,7 +178,7 @@ void DataViewPrototype::setUint8(quint32 byteOffset, quint32 value) {
     }
 }
 
-void DataViewPrototype::setInt16(quint32 byteOffset, qint32 value, bool littleEndian) {
+void DataViewPrototype::setInt16(qint32 byteOffset, qint32 value, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(qint16))) {
         QDataStream stream(thisArrayBuffer(), QIODevice::ReadWrite);
         stream.skipRawData(byteOffset);
@@ -184,7 +190,7 @@ void DataViewPrototype::setInt16(quint32 byteOffset, qint32 value, bool littleEn
     }
 }
 
-void DataViewPrototype::setUint16(quint32 byteOffset, quint32 value, bool littleEndian) {
+void DataViewPrototype::setUint16(qint32 byteOffset, quint32 value, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(quint16))) {
         QDataStream stream(thisArrayBuffer(), QIODevice::ReadWrite);
         stream.skipRawData(byteOffset);
@@ -196,7 +202,7 @@ void DataViewPrototype::setUint16(quint32 byteOffset, quint32 value, bool little
     }
 }
 
-void DataViewPrototype::setInt32(quint32 byteOffset, qint32 value, bool littleEndian) {
+void DataViewPrototype::setInt32(qint32 byteOffset, qint32 value, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(qint32))) {
         QDataStream stream(thisArrayBuffer(), QIODevice::ReadWrite);
         stream.skipRawData(byteOffset);
@@ -208,7 +214,7 @@ void DataViewPrototype::setInt32(quint32 byteOffset, qint32 value, bool littleEn
     }
 }
 
-void DataViewPrototype::setUint32(quint32 byteOffset, quint32 value, bool littleEndian) {
+void DataViewPrototype::setUint32(qint32 byteOffset, quint32 value, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(quint32))) {
         QDataStream stream(thisArrayBuffer(), QIODevice::ReadWrite);
         stream.skipRawData(byteOffset);
@@ -220,11 +226,12 @@ void DataViewPrototype::setUint32(quint32 byteOffset, quint32 value, bool little
     }
 }
 
-void DataViewPrototype::setFloat32(quint32 byteOffset, float value, bool littleEndian) {
+void DataViewPrototype::setFloat32(qint32 byteOffset, float value, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(float))) {
         QDataStream stream(thisArrayBuffer(), QIODevice::ReadWrite);
         stream.skipRawData(byteOffset);
         stream.setByteOrder((littleEndian) ? QDataStream::LittleEndian : QDataStream::BigEndian);
+        stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
         
         stream << value;
     } else {
@@ -232,11 +239,12 @@ void DataViewPrototype::setFloat32(quint32 byteOffset, float value, bool littleE
     }
 }
 
-void DataViewPrototype::setFloat64(quint32 byteOffset, double value, bool littleEndian) {
+void DataViewPrototype::setFloat64(qint32 byteOffset, double value, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(double))) {
         QDataStream stream(thisArrayBuffer(), QIODevice::ReadWrite);
         stream.skipRawData(byteOffset);
         stream.setByteOrder((littleEndian) ? QDataStream::LittleEndian : QDataStream::BigEndian);
+        stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
         
         stream << value;
     } else {

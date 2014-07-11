@@ -64,7 +64,7 @@ QScriptValue DataViewClass::construct(QScriptContext *context, QScriptEngine *en
     }
     if (byteOffsetArg.isNumber() &&
         (byteOffsetArg.toInt32() < 0 ||
-         byteOffsetArg.toInt32() >= arrayBuffer->size())) {
+         byteOffsetArg.toInt32() > arrayBuffer->size())) {
             engine->evaluate("throw \"RangeError: byteOffset out of range\"");
             return QScriptValue();
         }

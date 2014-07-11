@@ -26,7 +26,7 @@ class ArrayBufferClass : public QObject, public QScriptClass {
     Q_OBJECT
 public:
     ArrayBufferClass(ScriptEngine* scriptEngine);
-    QScriptValue newInstance(quint32 size);
+    QScriptValue newInstance(qint32 size);
     QScriptValue newInstance(const QByteArray& ba);
     
     ScriptEngine* getScriptEngine() { return _scriptEngine; }
