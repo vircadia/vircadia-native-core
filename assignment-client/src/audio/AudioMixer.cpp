@@ -394,7 +394,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 } else {
 
-                    //if (debug) {
+                    if (debug) {
                         printf("\nWILL NOT MIX!!!\n");
                         printf("listening node = %s\n", node->getUUID().toString().toLatin1().data());
                         printf("other node = %s\n", otherNode->getUUID().toString().toLatin1().data());
@@ -409,7 +409,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
                         printf("\t\t other==listening || shouldLoopBack: %d\n", (*otherNode != *node || otherNodeBuffer->shouldLoopbackForNode()));
                         printf("\t\t other will be added to mix: %d\n", otherNodeBuffer->willBeAddedToMix());
                         printf("\t\t other trailing loudess: %f\n", otherNodeBuffer->getNextOutputTrailingLoudness());
-                    //}
+                    }
                 }
             }
         }

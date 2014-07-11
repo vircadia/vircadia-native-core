@@ -154,13 +154,12 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
         // this was a used buffer, push the output pointer forwards
         PositionalAudioRingBuffer* audioBuffer = *i;
 
-        const int INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD = 100;
+        const int INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD = 200;
 
         if (audioBuffer->willBeAddedToMix()) {
             audioBuffer->shiftReadPosition(audioBuffer->getSamplesPerFrame());
             audioBuffer->setWillBeAddedToMix(false);
         } else if (audioBuffer->getType() == PositionalAudioRingBuffer::Injector
-                   && audioBuffer->hasStarted() && audioBuffer->isStarved()
                    && audioBuffer->getConsecutiveNotMixedCount() > INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD) {
             // this is an empty audio buffer that has starved, safe to delete
             // also delete its sequence number stats
