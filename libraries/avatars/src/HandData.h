@@ -140,7 +140,6 @@ public:
     void getBallHoldPosition(glm::vec3& position) const;
 
     // return world-frame:
-    glm::vec3 getFingerTipPosition() const;
     glm::vec3 getFingerDirection() const;
     glm::vec3 getNormal() const;
 
