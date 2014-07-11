@@ -55,6 +55,7 @@ void MetavoxelServer::run() {
     _persister = new MetavoxelPersister(this);
     QThread* persistenceThread = new QThread(this);
     _persister->moveToThread(persistenceThread);
+    _persister->connect(persistenceThread, SIGNAL(finished()), SLOT(deleteLater()));
     persistenceThread->start();
     
     // queue up the load

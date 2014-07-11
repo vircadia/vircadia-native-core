@@ -603,12 +603,18 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, const MetavoxelLO
     }
 }
 
-MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
-    MetavoxelNode*& root = _roots[attribute];
-    if (root) {
-        root->decrementReferenceCount(attribute);
+void MetavoxelData::setRoot(const AttributePointer& attribute, MetavoxelNode* root) {
+    MetavoxelNode*& rootReference = _roots[attribute];
+    if (rootReference) {
+        rootReference->decrementReferenceCount(attribute);
     }
-    return root = new MetavoxelNode(attribute);
+    rootReference = root;
+}
+
+MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
+    MetavoxelNode* root = new MetavoxelNode(attribute);
+    setRoot(attribute, root);
+    return root;
 }
 
 bool MetavoxelData::deepEquals(const MetavoxelData& other, const MetavoxelLOD& lod) const {
@@ -843,10 +849,12 @@ void MetavoxelNode::readDelta(const MetavoxelNode& reference, MetavoxelStreamSta
                     _children[i] = new MetavoxelNode(state.attribute);
                     _children[i]->readDelta(*reference._children[i], nextState);
                 } else {
-                    _children[i] = reference._children[i];
-                    _children[i]->incrementReferenceCount();
-                    if (nextState.becameSubdivided()) {
-                        _children[i]->readSubdivision(nextState);
+                    if (nextState.becameSubdivided() && reference._children[i]->readSubdivision(nextState)) {
+                        _children[i] = new MetavoxelNode(state.attribute, reference._children[i]);
+                    
+                    } else {
+                        _children[i] = reference._children[i];
+                        _children[i]->incrementReferenceCount();    
                     }
                 }
             }
@@ -888,7 +896,7 @@ void MetavoxelNode::writeDelta(const MetavoxelNode& reference, MetavoxelStreamSt
     }
 }
 
-void MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
+bool MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
     bool leaf;
     bool subdivideReference = state.shouldSubdivideReference();
     if (!subdivideReference) {
@@ -897,7 +905,7 @@ void MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
         leaf = isLeaf();
     }
     if (leaf) {
-        clearChildren(state.attribute);
+        return clearChildren(state.attribute);
         
     } else {
         MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
@@ -909,13 +917,22 @@ void MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
                 _children[i] = new MetavoxelNode(state.attribute);
                 _children[i]->read(nextState);
             }
+            return true;
+            
         } else {
+            bool changed = false;
             for (int i = 0; i < CHILD_COUNT; i++) {
                 nextState.setMinimum(state.minimum, i);
                 if (nextState.becameSubdivided()) {
-                    _children[i]->readSubdivision(nextState);
+                    if (_children[i]->readSubdivision(nextState)) {
+                        MetavoxelNode* oldNode = _children[i];
+                        _children[i] = new MetavoxelNode(state.attribute, oldNode);
+                        oldNode->decrementReferenceCount(state.attribute);
+                        changed = true;
+                    }
                 }
             }
+            return changed;
         }
     }
 }
@@ -1042,13 +1059,16 @@ void MetavoxelNode::destroy(const AttributePointer& attribute) {
     }
 }
 
-void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
+bool MetavoxelNode::clearChildren(const AttributePointer& attribute) {
+    bool cleared = false;
     for (int i = 0; i < CHILD_COUNT; i++) {
         if (_children[i]) {
             _children[i]->decrementReferenceCount(attribute);
             _children[i] = NULL;
+            cleared = true;
         }
     }
+    return cleared;
 }
 
 bool MetavoxelNode::deepEquals(const AttributePointer& attribute, const MetavoxelNode& other,
