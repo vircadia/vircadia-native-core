@@ -21,70 +21,6 @@
 #include "PositionalAudioRingBuffer.h"
 #include "SharedUtil.h"
 
-InterframeTimeGapStats::InterframeTimeGapStats()
-    : _lastFrameReceivedTime(0),
-    _numSamplesInCurrentInterval(0),
-    _currentIntervalMaxGap(0),
-    _newestIntervalMaxGapAt(0),
-    _windowMaxGap(0),
-    _newWindowMaxGapAvailable(false)
-{
-    memset(_intervalMaxGaps, 0, TIME_GAP_NUM_INTERVALS_IN_WINDOW * sizeof(quint64));
-}
-
-void InterframeTimeGapStats::frameReceived() {
-    quint64 now = usecTimestampNow();
-
-    // make sure this isn't the first time frameReceived() is called so can actually calculate a gap.
-    if (_lastFrameReceivedTime != 0) {
-        quint64 gap = now - _lastFrameReceivedTime;
-
-        // update the current interval max
-        if (gap > _currentIntervalMaxGap) {
-            _currentIntervalMaxGap = gap;
-
-            // keep the window max gap at least as large as the current interval max
-            // this allows the window max gap to respond immediately to a sudden spike in gap times
-            // also, this prevents the window max gap from staying at 0 until the first interval of samples filled up
-            if (_currentIntervalMaxGap > _windowMaxGap) {
-                _windowMaxGap = _currentIntervalMaxGap;
-                _newWindowMaxGapAvailable = true;
-            }
-        }
-        _numSamplesInCurrentInterval++;
-
-        // if the current interval of samples is now full, record it in our interval maxes
-        if (_numSamplesInCurrentInterval == TIME_GAP_NUM_SAMPLES_IN_INTERVAL) {
-
-            // find location to insert this interval's max (increment index cyclically)
-            _newestIntervalMaxGapAt = _newestIntervalMaxGapAt == TIME_GAP_NUM_INTERVALS_IN_WINDOW - 1 ? 0 : _newestIntervalMaxGapAt + 1;
-
-            // record the current interval's max gap as the newest
-            _intervalMaxGaps[_newestIntervalMaxGapAt] = _currentIntervalMaxGap;
-
-            // update the window max gap, which is the max out of all the past intervals' max gaps
-            _windowMaxGap = 0;
-            for (int i = 0; i < TIME_GAP_NUM_INTERVALS_IN_WINDOW; i++) {
-                if (_intervalMaxGaps[i] > _windowMaxGap) {
-                    _windowMaxGap = _intervalMaxGaps[i];
-                }
-            }
-            _newWindowMaxGapAvailable = true;
-
-            // reset the current interval
-            _numSamplesInCurrentInterval = 0;
-            _currentIntervalMaxGap = 0;
-        }
-    }
-    _lastFrameReceivedTime = now;
-}
-
-quint64 InterframeTimeGapStats::getWindowMaxGap() {
-    _newWindowMaxGapAvailable = false;
-    return _windowMaxGap;
-}
-
-
 PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo, bool dynamicJitterBuffers) :
         
     AudioRingBuffer(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
@@ -97,10 +33,15 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _shouldOutputStarveDebug(true),
     _isStereo(isStereo),
     _listenerUnattenuatedZone(NULL),
+    _lastFrameReceivedTime(0),
+    _interframeTimeGapStatsForJitterCalc(TIME_GAPS_FOR_JITTER_CALC_INTERVAL_SAMPLES, TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS),
+    _interframeTimeGapStatsForStatsPacket(TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES, TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS),
     _desiredJitterBufferFrames(1),
     _currentJitterBufferFrames(-1),
     _dynamicJitterBuffers(dynamicJitterBuffers),
-    _consecutiveNotMixedCount(0)
+    _consecutiveNotMixedCount(0),
+    _starveCount(0),
+    _silentFramesDropped(0)
 {
 }
 
@@ -143,9 +84,12 @@ int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
                     addSilentFrame(numSilentFramesToAdd * samplesPerFrame);
                     _currentJitterBufferFrames = _desiredJitterBufferFrames;
 
+                    _silentFramesDropped += numFramesToDropDesired;
                 } else {
                     // we need to drop all frames to get the jitter buffer close as possible to its desired length
                     _currentJitterBufferFrames -= numSilentFrames;
+
+                    _silentFramesDropped += numSilentFrames;
                 }
             } else {
                 addSilentFrame(numSilentSamples);
@@ -217,6 +161,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
     } else if (samplesAvailable() < samplesPerFrame) { 
         // if the buffer doesn't have a full frame of samples to take for mixing, it is starved
         _isStarved = true;
+        _starveCount++;
         
         // set to -1 to indicate the jitter buffer is starved
         _currentJitterBufferFrames = -1;
@@ -224,7 +169,7 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
         // reset our _shouldOutputStarveDebug to true so the next is printed
         _shouldOutputStarveDebug = true;
 
-        _consecutiveNotMixedCount++;
+        _consecutiveNotMixedCount = 1;
         return false;
     }
     
@@ -234,7 +179,6 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix() {
         // minus one (since a frame will be read immediately after this) is the length of the jitter buffer
         _currentJitterBufferFrames = samplesAvailable() / samplesPerFrame - 1;
         _isStarved = false;
-        _consecutiveNotMixedCount = 0;
     }
 
     // since we've read data from ring buffer at least once - we've started
@@ -247,21 +191,31 @@ int PositionalAudioRingBuffer::getCalculatedDesiredJitterBufferFrames() const {
     int calculatedDesiredJitterBufferFrames = 1;
     const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
      
-    calculatedDesiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.peekWindowMaxGap() / USECS_PER_FRAME);
+    calculatedDesiredJitterBufferFrames = ceilf((float)_interframeTimeGapStatsForJitterCalc.getWindowMax() / USECS_PER_FRAME);
     if (calculatedDesiredJitterBufferFrames < 1) {
         calculatedDesiredJitterBufferFrames = 1;
     }
     return calculatedDesiredJitterBufferFrames;
 }
 
+void PositionalAudioRingBuffer::timeGapStatsFrameReceived() {
+    quint64 now = usecTimestampNow();
+    if (_lastFrameReceivedTime != 0) {
+        quint64 gap = now - _lastFrameReceivedTime;
+        _interframeTimeGapStatsForJitterCalc.update(gap);
+        _interframeTimeGapStatsForStatsPacket.update(gap);
+    }
+    _lastFrameReceivedTime = now;
+}
+
 void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
-    if (_interframeTimeGapStats.hasNewWindowMaxGapAvailable()) {
+    if (_interframeTimeGapStatsForJitterCalc.getNewStatsAvailableFlag()) {
         if (!_dynamicJitterBuffers) {
             _desiredJitterBufferFrames = 1; // HACK to see if this fixes the audio silence
         } else {
             const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
             
-            _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStats.getWindowMaxGap() / USECS_PER_FRAME);
+            _desiredJitterBufferFrames = ceilf((float)_interframeTimeGapStatsForJitterCalc.getWindowMax() / USECS_PER_FRAME);
             if (_desiredJitterBufferFrames < 1) {
                 _desiredJitterBufferFrames = 1;
             }
@@ -270,5 +224,6 @@ void PositionalAudioRingBuffer::updateDesiredJitterBufferFrames() {
                 _desiredJitterBufferFrames = maxDesired;
             }
         }
+        _interframeTimeGapStatsForJitterCalc.clearNewStatsAvailableFlag();
     }
 }
