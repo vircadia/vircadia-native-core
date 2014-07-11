@@ -24,6 +24,7 @@
 #include "InterfaceConfig.h"
 #include "Menu.h"
 #include "Util.h"
+#include "SequenceNumberStats.h"
 
 using namespace std;
 
@@ -341,8 +342,6 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, streamStatsFormatLabelString4, color);
 
-            float packetLossRate, packetLossRate30s;
-
             char downstreamLabelString[] = " Downstream:";
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamLabelString, color);
@@ -351,9 +350,8 @@ void Stats::display(
 
             AudioStreamStats downstreamAudioStreamStats = audio->getDownstreamAudioStreamStats();
 
-            audio->calculatePacketLossRate(audio->getIncomingStreamPacketStatsHistory(), packetLossRate, packetLossRate30s);
-
-            sprintf(downstreamAudioStatsString, " mix: %.1f%%/%.1f%%, %u/?/%u", packetLossRate*100.0f, packetLossRate30s*100.0f,
+            sprintf(downstreamAudioStatsString, " mix: %.1f%%/%.1f%%, %u/?/%u", downstreamAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
+                downstreamAudioStreamStats._packetStreamWindowStats.getLostRate() * 100.0f,
                 downstreamAudioStreamStats._ringBufferFramesAvailable, downstreamAudioStreamStats._ringBufferDesiredJitterBufferFrames);
 
             verticalOffset += STATS_PELS_PER_LINE;
@@ -381,10 +379,9 @@ void Stats::display(
             char upstreamAudioStatsString[30];
 
             const AudioStreamStats& audioMixerAvatarAudioStreamStats = audio->getAudioMixerAvatarStreamAudioStats();
-            
-            audio->calculatePacketLossRate(audio->getAudioMixerAvatarStreamPacketStatsHistory(), packetLossRate, packetLossRate30s);
 
-            sprintf(upstreamAudioStatsString, " mic: %.1f%%/%.1f%%, %u/%u/%u", packetLossRate*100.0f, packetLossRate30s*100.0f,
+            sprintf(upstreamAudioStatsString, " mic: %.1f%%/%.1f%%, %u/%u/%u", audioMixerAvatarAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
+                audioMixerAvatarAudioStreamStats._packetStreamWindowStats.getLostRate() * 100.0f,
                 audioMixerAvatarAudioStreamStats._ringBufferFramesAvailable, audioMixerAvatarAudioStreamStats._ringBufferCurrentJitterBufferFrames,
                 audioMixerAvatarAudioStreamStats._ringBufferDesiredJitterBufferFrames);
 
@@ -405,15 +402,10 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
 
-            QHash<QUuid, RingBufferHistory<PacketStreamStats> > audioMixerInjectedStreamPacketStatsHistoryMap
-                = audio->getAudioMixerInjectedStreamPacketStatsHistoryMap();
-
             foreach(const AudioStreamStats& injectedStreamAudioStats, audioMixerInjectedStreamAudioStatsMap) {
 
-                audio->calculatePacketLossRate(audioMixerInjectedStreamPacketStatsHistoryMap[injectedStreamAudioStats._streamIdentifier],
-                    packetLossRate, packetLossRate30s);
-
-                sprintf(upstreamAudioStatsString, " inj: %.1f%%/%.1f%%, %u/%u/%u", packetLossRate*100.0f, packetLossRate30s*100.0f,
+                sprintf(upstreamAudioStatsString, " inj: %.1f%%/%.1f%%, %u/%u/%u", injectedStreamAudioStats._packetStreamStats.getLostRate()*100.0f,
+                    injectedStreamAudioStats._packetStreamWindowStats.getLostRate() * 100.0f,
                     injectedStreamAudioStats._ringBufferFramesAvailable, injectedStreamAudioStats._ringBufferCurrentJitterBufferFrames,
                     injectedStreamAudioStats._ringBufferDesiredJitterBufferFrames);
 
