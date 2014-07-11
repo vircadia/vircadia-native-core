@@ -723,7 +723,6 @@ void Application::resizeGL(int width, int height) {
     resetCamerasOnResizeGL(_myCamera, width, height);
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
-    _applicationOverlay.resize();
 
     updateProjectionMatrix();
     glLoadIdentity();
@@ -2786,6 +2785,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
+
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
     }
 
