@@ -420,7 +420,6 @@ void Stats::display(
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, downloads.str().c_str(), color);
         
-        
         int internal = 0, leaves = 0;
         int sendProgress = 0, sendTotal = 0;
         int receiveProgress = 0, receiveTotal = 0;

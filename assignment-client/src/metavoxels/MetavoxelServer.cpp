@@ -51,7 +51,7 @@ void MetavoxelServer::run() {
     // initialize Bitstream before using it in multiple threads
     Bitstream::preThreadingInit();
     
-    // create the persister and start the it in its own thread
+    // create the persister and start it in its own thread
     _persister = new MetavoxelPersister(this);
     QThread* persistenceThread = new QThread(this);
     _persister->moveToThread(persistenceThread);
