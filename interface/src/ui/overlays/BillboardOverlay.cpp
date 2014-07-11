@@ -20,6 +20,10 @@ BillboardOverlay::BillboardOverlay()
 }
 
 void BillboardOverlay::render() {
+    if (!_visible) {
+        return;
+    }
+    
     if (!_billboard.isEmpty()) {
         if (!_billboardTexture) {
             QImage image = QImage::fromData(_billboard);
