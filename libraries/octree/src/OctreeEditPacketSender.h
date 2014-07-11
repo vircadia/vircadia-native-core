@@ -21,7 +21,7 @@
 /// Used for construction of edit packets
 class EditPacketBuffer {
 public:
-    EditPacketBuffer() : _nodeUUID(), _currentType(PacketTypeUnknown), _currentSize(0)  { }
+    EditPacketBuffer() : _nodeUUID(), _currentType(PacketTypeUnknown), _currentSize(0) { }
     EditPacketBuffer(PacketType type, unsigned char* codeColorBuffer, ssize_t length, const QUuid nodeUUID = QUuid());
     QUuid _nodeUUID;
     PacketType _currentType;
@@ -100,7 +100,7 @@ public:
 
 protected:
     bool _shouldSend;
-    void queuePacketToNode(const QUuid& nodeID, const unsigned char* buffer, ssize_t length);
+    void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, ssize_t length);
     void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, ssize_t length);
     void queuePacketToNodes(unsigned char* buffer, ssize_t length);
     void initializePacket(EditPacketBuffer& packetBuffer, PacketType type);
@@ -120,12 +120,12 @@ protected:
 
     NodeToJurisdictionMap* _serverJurisdictions;
     
-    unsigned short int _sequenceNumber;
     int _maxPacketSize;
 
     QMutex _releaseQueuedPacketMutex;
 
     // TODO: add locks for this and _pendingEditPackets
     QHash<QUuid, SentPacketHistory> _sentPacketHistories;
+    QHash<QUuid, quint16> _outgoingSequenceNumbers;
 };
 #endif // hifi_OctreeEditPacketSender_h
