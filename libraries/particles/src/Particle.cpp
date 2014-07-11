@@ -385,6 +385,8 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         newParticle._newlyCreated = true;
         newParticle.setAge(0); // this guy is new!
 
+        valid = true;
+
     } else {
         // look up the existing particle
         const Particle* existingParticle = tree->findParticleByID(editID, true);
@@ -392,20 +394,20 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         // copy existing properties before over-writing with new properties
         if (existingParticle) {
             newParticle = *existingParticle;
+            valid = true;
+
         } else {
             // the user attempted to edit a particle that doesn't exist
-            qDebug() << "user attempted to edit a particle that doesn't exist...";
+            qDebug() << "user attempted to edit a particle that doesn't exist... editID=" << editID;
+            
+            // NOTE: even though this is a bad particle ID, we have to consume the edit details, so that
+            // the buffer doesn't get corrupted for further processing...
             valid = false;
-            return newParticle;
         }
         newParticle._id = editID;
         newParticle._newlyCreated = false;
     }
     
-    // if we got this far, then our result will be valid
-    valid = true;
-    
-
     // lastEdited
     memcpy(&newParticle._lastEdited, dataAt, sizeof(newParticle._lastEdited));
     dataAt += sizeof(newParticle._lastEdited);
