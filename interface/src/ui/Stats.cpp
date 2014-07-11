@@ -424,7 +424,7 @@ void Stats::display(
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 
-    lines = _expanded ? 5 : 3;
+    lines = _expanded ? 8 : 3;
 
     drawBackground(backgroundColor, horizontalOffset, 0, _geoStatsWidth, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
@@ -466,6 +466,41 @@ void Stats::display(
         
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, downloads.str().c_str(), color);
+        
+        int internal = 0, leaves = 0;
+        int sendProgress = 0, sendTotal = 0;
+        int receiveProgress = 0, receiveTotal = 0;
+        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+            if (node->getType() == NodeType::MetavoxelServer) {
+                QMutexLocker locker(&node->getMutex());
+                MetavoxelClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
+                if (client) {
+                    client->getData().countNodes(internal, leaves, Application::getInstance()->getMetavoxels()->getLOD());
+                    client->getSequencer().addReliableChannelStats(sendProgress, sendTotal, receiveProgress, receiveTotal);
+                }
+            }
+        }
+        stringstream nodes;
+        nodes << "Metavoxels: " << (internal + leaves);
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodes.str().c_str(), color);
+        
+        stringstream nodeTypes;
+        nodeTypes << "Internal: " << internal << "  Leaves: " << leaves;
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodeTypes.str().c_str(), color);
+        
+        if (sendTotal > 0 || receiveTotal > 0) {
+            stringstream reliableStats;
+            if (sendTotal > 0) {
+                reliableStats << "Upload: " << (sendProgress * 100 / sendTotal) << "%  ";
+            }
+            if (receiveTotal > 0) {
+                reliableStats << "Download: " << (receiveProgress * 100 / receiveTotal) << "%";
+            }
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, reliableStats.str().c_str(), color);
+        }
     }
 
     verticalOffset = 0;
