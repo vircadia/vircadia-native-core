@@ -60,9 +60,9 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
+    _numLocalLights(2),
     _initialized(false),
-    _shouldRenderBillboard(true),
-    _numLocalLights(1)
+    _shouldRenderBillboard(true)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -89,14 +89,14 @@ void Avatar::init() {
         _localLightDirections[i] = glm::vec3(0.0f, 0.0f, 0.0f);
     }
   
-    glm::vec3 darkGrayColor(0.3f, 0.3f, 0.3f); 
+    glm::vec3 darkGrayColor(0.4f, 0.4f, 0.4f);
     glm::vec3 greenColor(0.0f, 1.0f, 0.0f);
     glm::vec3 directionX(1.0f, 0.0f, 0.0f);
     glm::vec3 directionY(0.0f, 1.0f, 0.0f);
  
     // initialize local lights
     _localLightColors[0] = darkGrayColor;
-    _localLightColors[1] = greenColor;
+    _localLightColors[1] = darkGrayColor;
     
     _localLightDirections[0] = directionX;
     _localLightDirections[1] = directionY;
