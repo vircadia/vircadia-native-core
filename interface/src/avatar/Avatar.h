@@ -222,6 +222,7 @@ private:
     
     float getBillboardSize() const;
     
+    
 };
 
 #endif // hifi_Avatar_h

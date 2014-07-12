@@ -20,7 +20,7 @@ const float CONSTRAINT_RELAXATION = 10.0f;
 const float HAIR_ACCELERATION_COUPLING = 0.025f;
 const float HAIR_ANGULAR_VELOCITY_COUPLING = 0.10f;
 const float HAIR_MAX_LINEAR_ACCELERATION = 4.0f;
-const float HAIR_STIFFNESS = 0.0000f;
+const float HAIR_STIFFNESS = 0.0003f;
 const glm::vec3 HAIR_COLOR1(0.98f, 0.92f, 0.843f);
 const glm::vec3 HAIR_COLOR2(0.545f, 0.533f, 0.47f);
 
