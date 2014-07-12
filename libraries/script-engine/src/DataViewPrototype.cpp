@@ -32,10 +32,7 @@ bool DataViewPrototype::realOffset(qint32& offset, size_t size) const {
     }
     quint32 viewOffset = thisObject().data().property(BYTE_OFFSET_PROPERTY_NAME).toInt32();
     quint32 viewLength = thisObject().data().property(BYTE_LENGTH_PROPERTY_NAME).toInt32();
-    //qDebug() << "View Offset: " << viewOffset << ", View Lenght: " << viewLength;
-    //qDebug() << "Offset: " << offset << ", Size: " << size;
     offset += viewOffset;
-    //qDebug() << "New offset: " << offset << ", bool: " << ((offset + size) <= viewOffset + viewLength);
     return (offset + size) <= viewOffset + viewLength;
 }
 
@@ -123,7 +120,7 @@ quint32 DataViewPrototype::getUint32(qint32 byteOffset, bool littleEndian) {
     return 0;
 }
 
-float DataViewPrototype::getFloat32(qint32 byteOffset, bool littleEndian) {
+QScriptValue DataViewPrototype::getFloat32(qint32 byteOffset, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(float))) {
         QDataStream stream(*thisArrayBuffer());
         stream.skipRawData(byteOffset);
@@ -132,14 +129,17 @@ float DataViewPrototype::getFloat32(qint32 byteOffset, bool littleEndian) {
         
         float result;
         stream >> result;
-        qDebug() << "Get: " << result;
-        return result;
+        if (isNaN(result)) {
+            return QScriptValue(NAN);
+        }
+        
+        return QScriptValue(result);
     }
     thisObject().engine()->evaluate("throw \"RangeError: byteOffset out of range\"");
-    return 0;
+    return QScriptValue();
 }
 
-double DataViewPrototype::getFloat64(qint32 byteOffset, bool littleEndian) {
+QScriptValue DataViewPrototype::getFloat64(qint32 byteOffset, bool littleEndian) {
     if (realOffset(byteOffset, sizeof(double))) {
         QDataStream stream(*thisArrayBuffer());
         stream.skipRawData(byteOffset);
@@ -148,10 +148,14 @@ double DataViewPrototype::getFloat64(qint32 byteOffset, bool littleEndian) {
         
         double result;
         stream >> result;
+        if (isNaN(result)) {
+            return QScriptValue();
+        }
+        
         return result;
     }
     thisObject().engine()->evaluate("throw \"RangeError: byteOffset out of range\"");
-    return 0;
+    return QScriptValue();
 }
 
 ///////////////// SETTERS ////////////////////////////

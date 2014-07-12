@@ -426,6 +426,9 @@ QScriptValue Float32ArrayClass::property(const QScriptValue &object, const QScri
         
         float result;
         stream >> result;
+        if (isNaN(result)) {
+            return QScriptValue(NAN);
+        }
         return result;
     }
     return TypedArray::property(object, name, id);
@@ -459,6 +462,9 @@ QScriptValue Float64ArrayClass::property(const QScriptValue &object, const QScri
         
         double result;
         stream >> result;
+        if (isNaN(result)) {
+            return QScriptValue(NAN);
+        }
         return result;
     }
     return TypedArray::property(object, name, id);

@@ -11,6 +11,26 @@
 
 Script.include("Test.js");
 
+// e.g. extractbits([0xff, 0x80, 0x00, 0x00], 23, 30); inclusive
+function extractbits(bytes, lo, hi) {
+  var out = 0;
+  bytes = bytes.slice(); // make a copy
+  var lsb = bytes.pop(), sc = 0, sh = 0;
+
+  for (; lo > 0;  lo--, hi--) {
+    lsb >>= 1;
+    if (++sc === 8) { sc = 0; lsb = bytes.pop(); }
+  }
+
+  for (; hi >= 0;  hi--) {
+    out = out | (lsb & 0x01) << sh++;
+    lsb >>= 1;
+    if (++sc === 8) { sc = 0; lsb = bytes.pop(); }
+  }
+
+  return out;
+}
+
 test('ArrayBuffer', function(finished) {
      this.assertEquals(new ArrayBuffer(0).byteLength, 0, 'no length');
      
@@ -20,8 +40,8 @@ test('ArrayBuffer', function(finished) {
      
      this.assertEquals(new ArrayBuffer(123).byteLength, 123, 'length');
 
-  	// raises(function () { return new ArrayBuffer(-1); }, RangeError, 'negative length');
-  	// raises(function () { return new ArrayBuffer(0x80000000); }, RangeError, 'absurd length');
+  	this.raises(function () { return new ArrayBuffer(-1); }, 'negative length');
+  	this.raises(function () { return new ArrayBuffer(0x80000000); }, 'absurd length');
 });
 
 test('DataView constructors', function (finished) {
@@ -39,8 +59,8 @@ test('DataView constructors', function (finished) {
   d.setUint32(0, 0x12345678);
   this.assertEquals(d.getUint32(0, true), 0x78563412, 'big endian/little endian');
 
-  // raises(function () { return new DataView({}); }, 'non-ArrayBuffer argument');
-  // raises(function () { return new DataView("bogus"); }, TypeError, 'non-ArrayBuffer argument');
+  this.raises(function () { return new DataView({}); }, 'non-ArrayBuffer argument');
+  this.raises(function () { return new DataView("bogus"); }, 'non-ArrayBuffer argument');
 });
 
 
@@ -118,8 +138,8 @@ test('typed array constructors', function () {
 
   var int8 = new Int8Array();
   this.assertEquals(int8.length, 0, 'no args 0');
-  // raises(function () { return new Int8Array(-1); }, /*Range*/Error, 'bogus length');
-  // raises(function () { return new Int8Array(0x80000000); }, /*Range*/Error, 'bogus length');
+  this.raises(function () { return new Int8Array(-1); }, 'bogus length');
+  this.raises(function () { return new Int8Array(0x80000000); }, 'bogus length');
 
   int8 = new Int8Array(4);
   this.assertEquals(int8.BYTES_PER_ELEMENT, 1);
@@ -160,10 +180,10 @@ test('typed array constructors', function () {
   int8 = new Int8Array(rawbuf, 8);
   this.assertEquals(int8.length, 0, 'buffer, byteOffset 26');
 
-  // raises(function () { return new Int8Array(rawbuf, -1); }, 'invalid byteOffset 27');
-  // raises(function () { return new Int8Array(rawbuf, 9); }, 'invalid byteOffset 28');
-  // raises(function () { return new Int8Array(rawbuf, -1); }, 'invalid byteOffset 29');
-  // raises(function () { return new Int32Array(rawbuf, 5); }, 'invalid byteOffset 30');
+  this.raises(function () { return new Int8Array(rawbuf, -1); }, 'invalid byteOffset 27');
+  this.raises(function () { return new Int8Array(rawbuf, 9); }, 'invalid byteOffset 28');
+  this.raises(function () { return new Int32Array(rawbuf, -1); }, 'invalid byteOffset 29');
+  this.raises(function () { return new Int32Array(rawbuf, 5); }, 'invalid byteOffset 30');
 
   int8 = new Int8Array(rawbuf, 2, 4);
   this.assertEquals(int8.length, 4, 'buffer, byteOffset, length 31');
@@ -175,9 +195,9 @@ test('typed array constructors', function () {
   this.assertEquals(int8.get(-1), undefined, 'buffer, byteOffset, length, out of bounds 36');
   this.assertEquals(int8.get(4), undefined, 'buffer, byteOffset, length, out of bounds 37');
 
-  // raises(function () { return new Int8Array(rawbuf, 0, 9); }, 'invalid byteOffset+length');
-  // raises(function () { return new Int8Array(rawbuf, 8, 1); }, 'invalid byteOffset+length');
-  // raises(function () { return new Int8Array(rawbuf, 9, -1); }, 'invalid byteOffset+length');
+  this.raises(function () { return new Int8Array(rawbuf, 0, 9); }, 'invalid byteOffset+length');
+  this.raises(function () { return new Int8Array(rawbuf, 8, 1); }, 'invalid byteOffset+length');
+  this.raises(function () { return new Int8Array(rawbuf, 9, -1); }, 'invalid byteOffset+length');
 });
 
 test('TypedArray clone constructor', function () {
@@ -239,6 +259,189 @@ test('signed/unsigned conversions', function () {
   this.assertEquals(uint32.get(0), 0xffffffff, 'uint32/int32');
 });
 
+
+test('IEEE754 single precision unpacking', function () {
+  function fromBytes(bytes) {
+    var uint8 = new Uint8Array(bytes),
+        dv = new DataView(uint8.buffer);
+    return dv.getFloat32(0);
+  }
+
+  this.assertEquals(isNaN(fromBytes([0xff, 0xff, 0xff, 0xff])), true, 'Q-NaN');
+  this.assertEquals(isNaN(fromBytes([0xff, 0xc0, 0x00, 0x01])), true, 'Q-NaN');
+
+  this.assertEquals(isNaN(fromBytes([0xff, 0xc0, 0x00, 0x00])), true, 'Indeterminate');
+
+  this.assertEquals(isNaN(fromBytes([0xff, 0xbf, 0xff, 0xff])), true, 'S-NaN');
+  this.assertEquals(isNaN(fromBytes([0xff, 0x80, 0x00, 0x01])), true, 'S-NaN');
+
+  this.assertEquals(fromBytes([0xff, 0x80, 0x00, 0x00]), -Infinity, '-Infinity');
+
+  this.assertEquals(fromBytes([0xff, 0x7f, 0xff, 0xff]), -3.4028234663852886E+38, '-Normalized');
+  this.assertEquals(fromBytes([0x80, 0x80, 0x00, 0x00]), -1.1754943508222875E-38, '-Normalized');
+  this.assertEquals(fromBytes([0xff, 0x7f, 0xff, 0xff]), -3.4028234663852886E+38, '-Normalized');
+  this.assertEquals(fromBytes([0x80, 0x80, 0x00, 0x00]), -1.1754943508222875E-38, '-Normalized');
+
+  // TODO: Denormalized values fail on Safari on iOS/ARM
+  this.assertEquals(fromBytes([0x80, 0x7f, 0xff, 0xff]), -1.1754942106924411E-38, '-Denormalized');
+  this.assertEquals(fromBytes([0x80, 0x00, 0x00, 0x01]), -1.4012984643248170E-45, '-Denormalized');
+
+  this.assertEquals(fromBytes([0x80, 0x00, 0x00, 0x00]), -0, '-0');
+  this.assertEquals(fromBytes([0x00, 0x00, 0x00, 0x00]), +0, '+0');
+
+  // TODO: Denormalized values fail on Safari on iOS/ARM
+  this.assertEquals(fromBytes([0x00, 0x00, 0x00, 0x01]), 1.4012984643248170E-45, '+Denormalized');
+  this.assertEquals(fromBytes([0x00, 0x7f, 0xff, 0xff]), 1.1754942106924411E-38, '+Denormalized');
+
+  this.assertEquals(fromBytes([0x00, 0x80, 0x00, 0x00]), 1.1754943508222875E-38, '+Normalized');
+  this.assertEquals(fromBytes([0x7f, 0x7f, 0xff, 0xff]), 3.4028234663852886E+38, '+Normalized');
+
+  this.assertEquals(fromBytes([0x7f, 0x80, 0x00, 0x00]), +Infinity, '+Infinity');
+
+  this.assertEquals(isNaN(fromBytes([0x7f, 0x80, 0x00, 0x01])), true, 'S+NaN');
+  this.assertEquals(isNaN(fromBytes([0x7f, 0xbf, 0xff, 0xff])), true, 'S+NaN');
+
+  this.assertEquals(isNaN(fromBytes([0x7f, 0xc0, 0x00, 0x00])), true, 'Q+NaN');
+  this.assertEquals(isNaN(fromBytes([0x7f, 0xff, 0xff, 0xff])), true, 'Q+NaN');
+});
+
+test('IEEE754 single precision packing', function () {
+
+  function toBytes(v) {
+    var uint8 = new Uint8Array(4), dv = new DataView(uint8.buffer);
+    dv.setFloat32(0, v);
+    var bytes = [];
+    for (var i = 0; i < 4; i += 1) {
+      bytes.push(uint8.get(i));
+    }
+    return bytes;
+  }
+
+  this.arrayEqual(toBytes(-Infinity), [0xff, 0x80, 0x00, 0x00], '-Infinity');
+
+  this.arrayEqual(toBytes(-3.4028235677973366e+38), [0xff, 0x80, 0x00, 0x00], '-Overflow');
+  this.arrayEqual(toBytes(-3.402824E+38), [0xff, 0x80, 0x00, 0x00], '-Overflow');
+
+  this.arrayEqual(toBytes(-3.4028234663852886E+38), [0xff, 0x7f, 0xff, 0xff], '-Normalized');
+  this.arrayEqual(toBytes(-1.1754943508222875E-38), [0x80, 0x80, 0x00, 0x00], '-Normalized');
+
+  // TODO: Denormalized values fail on Safari iOS/ARM
+  this.arrayEqual(toBytes(-1.1754942106924411E-38), [0x80, 0x7f, 0xff, 0xff], '-Denormalized');
+  this.arrayEqual(toBytes(-1.4012984643248170E-45), [0x80, 0x00, 0x00, 0x01], '-Denormalized');
+
+  this.arrayEqual(toBytes(-7.006492321624085e-46), [0x80, 0x00, 0x00, 0x00], '-Underflow');
+
+  this.arrayEqual(toBytes(-0), [0x80, 0x00, 0x00, 0x00], '-0');
+  this.arrayEqual(toBytes(0), [0x00, 0x00, 0x00, 0x00], '+0');
+
+  this.arrayEqual(toBytes(7.006492321624085e-46), [0x00, 0x00, 0x00, 0x00], '+Underflow');
+
+  // TODO: Denormalized values fail on Safari iOS/ARM
+  this.arrayEqual(toBytes(1.4012984643248170E-45), [0x00, 0x00, 0x00, 0x01], '+Denormalized');
+  this.arrayEqual(toBytes(1.1754942106924411E-38), [0x00, 0x7f, 0xff, 0xff], '+Denormalized');
+
+  this.arrayEqual(toBytes(1.1754943508222875E-38), [0x00, 0x80, 0x00, 0x00], '+Normalized');
+  this.arrayEqual(toBytes(3.4028234663852886E+38), [0x7f, 0x7f, 0xff, 0xff], '+Normalized');
+
+  this.arrayEqual(toBytes(+3.402824E+38), [0x7f, 0x80, 0x00, 0x00], '+Overflow');
+  this.arrayEqual(toBytes(+3.402824E+38), [0x7f, 0x80, 0x00, 0x00], '+Overflow');
+  this.arrayEqual(toBytes(+Infinity), [0x7f, 0x80, 0x00, 0x00], '+Infinity');
+
+  // Allow any NaN pattern (exponent all 1's, fraction non-zero)
+  var nanbytes = toBytes(NaN),
+      sign = extractbits(nanbytes, 31, 31),
+      exponent = extractbits(nanbytes, 23, 30),
+      fraction = extractbits(nanbytes, 0, 22);
+  this.assertEquals(exponent === 255 && fraction !== 0, true, 'NaN');
+});
+
+
+test('IEEE754 double precision unpacking', function () {
+
+  function fromBytes(bytes) {
+    var uint8 = new Uint8Array(bytes),
+        dv = new DataView(uint8.buffer);
+    return dv.getFloat64(0);
+  }
+
+  this.assertEquals(isNaN(fromBytes([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])), true, 'Q-NaN');
+  this.assertEquals(isNaN(fromBytes([0xff, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01])), true, 'Q-NaN');
+
+  this.assertEquals(isNaN(fromBytes([0xff, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])), true, 'Indeterminate');
+
+  this.assertEquals(isNaN(fromBytes([0xff, 0xf7, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])), true, 'S-NaN');
+  this.assertEquals(isNaN(fromBytes([0xff, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01])), true, 'S-NaN');
+
+  this.assertEquals(fromBytes([0xff, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), -Infinity, '-Infinity');
+
+  this.assertEquals(fromBytes([0xff, 0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]), -1.7976931348623157E+308, '-Normalized');
+  this.assertEquals(fromBytes([0x80, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), -2.2250738585072014E-308, '-Normalized');
+
+  // TODO: Denormalized values fail on Safari iOS/ARM
+  this.assertEquals(fromBytes([0x80, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]), -2.2250738585072010E-308, '-Denormalized');
+  this.assertEquals(fromBytes([0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]), -4.9406564584124654E-324, '-Denormalized');
+
+  this.assertEquals(fromBytes([0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), -0, '-0');
+  this.assertEquals(fromBytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), +0, '+0');
+
+  // TODO: Denormalized values fail on Safari iOS/ARM
+  this.assertEquals(fromBytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]), 4.9406564584124654E-324, '+Denormalized');
+  this.assertEquals(fromBytes([0x00, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]), 2.2250738585072010E-308, '+Denormalized');
+
+  this.assertEquals(fromBytes([0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), 2.2250738585072014E-308, '+Normalized');
+  this.assertEquals(fromBytes([0x7f, 0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]), 1.7976931348623157E+308, '+Normalized');
+
+  this.assertEquals(fromBytes([0x7f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), +Infinity, '+Infinity');
+
+  this.assertEquals(isNaN(fromBytes([0x7f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01])), true, 'S+NaN');
+  this.assertEquals(isNaN(fromBytes([0x7f, 0xf7, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])), true, 'S+NaN');
+
+  this.assertEquals(isNaN(fromBytes([0x7f, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])), true, 'Q+NaN');
+  this.assertEquals(isNaN(fromBytes([0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])), true, 'Q+NaN');
+});
+
+
+test('IEEE754 double precision packing', function () {
+
+  function toBytes(v) {
+    var uint8 = new Uint8Array(8),
+        dv = new DataView(uint8.buffer);
+    dv.setFloat64(0, v);
+    var bytes = [];
+    for (var i = 0; i < 8; i += 1) {
+      bytes.push(uint8.get(i));
+    }
+    return bytes;
+  }
+
+  this.arrayEqual(toBytes(-Infinity), [0xff, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], '-Infinity');
+
+  this.arrayEqual(toBytes(-1.7976931348623157E+308), [0xff, 0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff], '-Normalized');
+  this.arrayEqual(toBytes(-2.2250738585072014E-308), [0x80, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], '-Normalized');
+
+  // TODO: Denormalized values fail on Safari iOS/ARM
+  this.arrayEqual(toBytes(-2.2250738585072010E-308), [0x80, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff], '-Denormalized');
+  this.arrayEqual(toBytes(-4.9406564584124654E-324), [0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01], '-Denormalized');
+
+  this.arrayEqual(toBytes(-0), [0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], '-0');
+  this.arrayEqual(toBytes(0), [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], '+0');
+
+  // TODO: Denormalized values fail on Safari iOS/ARM
+  this.arrayEqual(toBytes(4.9406564584124654E-324), [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01], '+Denormalized');
+  this.arrayEqual(toBytes(2.2250738585072010E-308), [0x00, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff], '+Denormalized');
+
+  this.arrayEqual(toBytes(2.2250738585072014E-308), [0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], '+Normalized');
+  this.arrayEqual(toBytes(1.7976931348623157E+308), [0x7f, 0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff], '+Normalized');
+
+  this.arrayEqual(toBytes(+Infinity), [0x7f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], '+Infinity');
+
+  // Allow any NaN pattern (exponent all 1's, fraction non-zero)
+  var nanbytes = toBytes(NaN),
+      sign = extractbits(nanbytes, 63, 63),
+      exponent = extractbits(nanbytes, 52, 62),
+      fraction = extractbits(nanbytes, 0, 51);
+  this.assertEquals(exponent === 2047 && fraction !== 0, true, 'NaN');
+});
 
 test('Int32Array round trips', function () {
   var i32 = new Int32Array([0]);
@@ -319,8 +522,8 @@ test('TypedArray setting', function () {
   b.set(new Int32Array([99, 98, 97]), 2);
   this.arrayEqual(b, [1, 2, 99, 98, 97], '3');
 
-  // raises(function () { b.set(new Int32Array([99, 98, 97, 96]), 2); });
-  // raises(function () { b.set([101, 102, 103, 104], 4); });
+  this.raises(function () { b.set(new Int32Array([99, 98, 97, 96]), 2); });
+  this.raises(function () { b.set([101, 102, 103, 104], 4); });
 
   //  ab = [ 0, 1, 2, 3, 4, 5, 6, 7 ]
   //  a1 = [ ^, ^, ^, ^, ^, ^, ^, ^ ]
@@ -374,11 +577,113 @@ test('DataView constructors', function () {
   //raises(function () { return new DataView(); }, TypeError, 'no arguments');
 
   // Chrome raises TypeError, Safari iOS5 raises isDOMException(INDEX_SIZE_ERR)
-  // raises(function () { return new DataView({}); }, 'non-ArrayBuffer argument');
+  this.raises(function () { return new DataView({}); }, 'non-ArrayBuffer argument');
 
-  // raises(function () { return new DataView("bogus"); }, TypeError, 'non-ArrayBuffer argument');
+  this.raises(function () { return new DataView("bogus"); }, TypeError, 'non-ArrayBuffer argument');
 });
 
 
 
+test('DataView accessors', function () {
+  var u = new Uint8Array(8), d = new DataView(u.buffer);
+  this.arrayEqual(u, [0, 0, 0, 0, 0, 0, 0, 0], '1');
+
+  d.setUint8(0, 255);
+  this.arrayEqual(u, [0xff, 0, 0, 0, 0, 0, 0, 0], '2');
+
+  d.setInt8(1, -1);
+  this.arrayEqual(u, [0xff, 0xff, 0, 0, 0, 0, 0, 0], '3');
+
+  d.setUint16(2, 0x1234);
+  this.arrayEqual(u, [0xff, 0xff, 0x12, 0x34, 0, 0, 0, 0]), '4';
+
+  d.setInt16(4, -1);
+  this.arrayEqual(u, [0xff, 0xff, 0x12, 0x34, 0xff, 0xff, 0, 0], '5');
+
+  d.setUint32(1, 0x12345678);
+  this.arrayEqual(u, [0xff, 0x12, 0x34, 0x56, 0x78, 0xff, 0, 0], '6');
+
+  d.setInt32(4, -2023406815);
+  this.arrayEqual(u, [0xff, 0x12, 0x34, 0x56, 0x87, 0x65, 0x43, 0x21], '7');
+  
+  d.setFloat32(2, 1.2E+38);
+  this.arrayEqual(u, [0xff, 0x12, 0x7e, 0xb4, 0x8e, 0x52, 0x43, 0x21], '8');
+
+  d.setFloat64(0, -1.2345678E+301);
+  this.arrayEqual(u, [0xfe, 0x72, 0x6f, 0x51, 0x5f, 0x61, 0x77, 0xe5], '9');
+
+  u.set([0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87]);
+  this.assertEquals(d.getUint8(0), 128, '10');
+  this.assertEquals(d.getInt8(1), -127, '11');
+  this.assertEquals(d.getUint16(2), 33411, '12');
+  this.assertEquals(d.getInt16(3), -31868, '13');
+  this.assertEquals(d.getUint32(4), 2223343239, '14');
+  this.assertEquals(d.getInt32(2), -2105310075, '15');
+  this.assertEquals(d.getFloat32(2), -1.932478247535851e-37, '16');
+  this.assertEquals(d.getFloat64(0), -3.116851295377095e-306, '17');
+
+});
+
+
+test('DataView endian', function () {
+  var rawbuf = (new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7])).buffer;
+  var d;
+
+  d = new DataView(rawbuf);
+  this.assertEquals(d.byteLength, 8, 'buffer');
+  this.assertEquals(d.byteOffset, 0, 'buffer');
+  this.raises(function () { d.getUint8(-2); }); // Chrome bug for index -, DOMException, 'bounds for buffer'?
+  this.raises(function () { d.getUint8(8); }, 'bounds for buffer');
+  this.raises(function () { d.setUint8(-2, 0); }, 'bounds for buffer');
+  this.raises(function () { d.setUint8(8, 0); }, 'bounds for buffer');
+
+  d = new DataView(rawbuf, 2);
+  this.assertEquals(d.byteLength, 6, 'buffer, byteOffset');
+  this.assertEquals(d.byteOffset, 2, 'buffer, byteOffset');
+  this.assertEquals(d.getUint8(5), 7, 'buffer, byteOffset');
+  this.raises(function () { d.getUint8(-2); }, 'bounds for buffer, byteOffset');
+  this.raises(function () { d.getUint8(6); }, 'bounds for buffer, byteOffset');
+  this.raises(function () { d.setUint8(-2, 0); }, 'bounds for buffer, byteOffset');
+  this.raises(function () { d.setUint8(6, 0); }, 'bounds for buffer, byteOffset');
+
+  d = new DataView(rawbuf, 8);
+  this.assertEquals(d.byteLength, 0, 'buffer, byteOffset');
+
+  this.raises(function () { return new DataView(rawbuf, -1); }, 'invalid byteOffset');
+  this.raises(function () { return new DataView(rawbuf, 9); }, 'invalid byteOffset');
+  this.raises(function () { return new DataView(rawbuf, -1); }, 'invalid byteOffset');
+
+  d = new DataView(rawbuf, 2, 4);
+  this.assertEquals(d.byteLength, 4, 'buffer, byteOffset, length');
+  this.assertEquals(d.byteOffset, 2, 'buffer, byteOffset, length');
+  this.assertEquals(d.getUint8(3), 5, 'buffer, byteOffset, length');
+  this.raises(function () { return d.getUint8(-2); }, 'bounds for buffer, byteOffset, length');
+  this.raises(function () { d.getUint8(4); }, 'bounds for buffer, byteOffset, length');
+  this.raises(function () { d.setUint8(-2, 0); }, 'bounds for buffer, byteOffset, length');
+  this.raises(function () { d.setUint8(4, 0); }, 'bounds for buffer, byteOffset, length');
+
+  this.raises(function () { return new DataView(rawbuf, 0, 9); }, 'invalid byteOffset+length');
+  this.raises(function () { return new DataView(rawbuf, 8, 1); }, 'invalid byteOffset+length');
+  this.raises(function () { return new DataView(rawbuf, 9, -1); }, 'invalid byteOffset+length');
+});
+
+
+test('Typed Array getters/setters', function () {
+  // Only supported if Object.defineProperty() is fully supported on non-DOM objects.
+  try {
+    var o = {};
+    Object.defineProperty(o, 'x', { get: function() { return 1; } });
+    if (o.x !== 1) throw Error();
+  } catch (_) {
+    ok(true);
+    return;
+  }
+
+  var bytes = new Uint8Array([1, 2, 3, 4]),
+      uint32s = new Uint32Array(bytes.buffer);
+
+  this.assertEquals(bytes[1], 2);
+  uint32s[0] = 0xffffffff;
+  this.assertEquals(bytes[1], 0xff);
+});
 
