@@ -17,16 +17,12 @@
 
 const float HAIR_DAMPING = 0.99f;
 const float CONSTRAINT_RELAXATION = 10.0f;
-const glm::vec3 HAIR_GRAVITY(0.0f, -0.007f, 0.0f);
 const float HAIR_ACCELERATION_COUPLING = 0.025f;
 const float HAIR_ANGULAR_VELOCITY_COUPLING = 0.10f;
 const float HAIR_MAX_LINEAR_ACCELERATION = 4.0f;
 const float HAIR_STIFFNESS = 0.0000f;
 const glm::vec3 HAIR_COLOR1(0.98f, 0.92f, 0.843f);
 const glm::vec3 HAIR_COLOR2(0.545f, 0.533f, 0.47f);
-const glm::vec3 WIND_DIRECTION(0.5f, -1.0f, 0.0f);
-const float MAX_WIND_STRENGTH = 0.02f;
-
 
 Hair::Hair(int strands,
            int links,
@@ -99,8 +95,6 @@ void Hair::simulate(float deltaTime) {
         acceleration = glm::normalize(acceleration) * HAIR_MAX_LINEAR_ACCELERATION;
     }
     
-    float windIntensity = randFloat() * MAX_WIND_STRENGTH;
-    
     for (int strand = 0; strand < _strands; strand++) {
         for (int link = 0; link < _links; link++) {
             int vertexIndex = strand * _links + link;
@@ -114,40 +108,25 @@ void Hair::simulate(float deltaTime) {
                 glm::vec3 thisPosition = _hairPosition[vertexIndex];
                 glm::vec3 diff = thisPosition - _hairLastPosition[vertexIndex];
                 _hairPosition[vertexIndex] += diff * HAIR_DAMPING;
-                //  Resolve collision with head sphere
+                
+                //  Resolve collisions with sphere
                 if (glm::length(_hairPosition[vertexIndex]) < _radius) {
                     _hairPosition[vertexIndex] += glm::normalize(_hairPosition[vertexIndex]) *
                     (_radius - glm::length(_hairPosition[vertexIndex]));
                 }
-                //  Resolve collision with hands
-                /*
-                if (glm::length(_hairPosition[vertexIndex] - leftHandPosition) < FINGER_RADIUS) {
-                    _hairPosition[vertexIndex] += glm::normalize(_hairPosition[vertexIndex] - leftHandPosition) *
-                    (FINGER_RADIUS - glm::length(_hairPosition[vertexIndex] - leftHandPosition));
-                }
-                if (glm::length(_hairPosition[vertexIndex] - rightHandPosition) < FINGER_RADIUS) {
-                    _hairPosition[vertexIndex] += glm::normalize(_hairPosition[vertexIndex] - rightHandPosition) *
-                    (FINGER_RADIUS - glm::length(_hairPosition[vertexIndex] - rightHandPosition));
-                }
-                 */
                 
+                //  Add gravity
+                _hairPosition[vertexIndex] += _gravity * deltaTime;
                 
-                //  Add a little gravity
-                _hairPosition[vertexIndex] += HAIR_GRAVITY * deltaTime;
-                
-                //  Add linear acceleration of the avatar body
+                //  Add linear acceleration
                 _hairPosition[vertexIndex] -= acceleration * HAIR_ACCELERATION_COUPLING * deltaTime;
                 
-                //  Add stiffness (like hair care products do)
+                //  Add stiffness to return to original position
                 _hairPosition[vertexIndex] += (_hairOriginalPosition[vertexIndex] - _hairPosition[vertexIndex])
                 * powf(1.f - link / _links, 2.f) * HAIR_STIFFNESS;
                 
-                //  Add some wind
-                glm::vec3 wind = WIND_DIRECTION * windIntensity;
-                _hairPosition[vertexIndex] += wind * deltaTime;
-                
+                //  Add angular acceleration
                 const float ANGULAR_VELOCITY_MIN = 0.001f;
-                //  Add angular acceleration of the avatar body
                 if (glm::length(_angularVelocity) > ANGULAR_VELOCITY_MIN) {
                     glm::vec3 yawVector = _hairPosition[vertexIndex];
                     yawVector.y = 0.f;
@@ -178,7 +157,7 @@ void Hair::simulate(float deltaTime) {
                     }
                 }
                 
-                //  Iterate length constraints to other links
+                //  Impose link constraints
                 for (int link = 0; link < HAIR_CONSTRAINTS; link++) {
                     if (_hairConstraints[vertexIndex * HAIR_CONSTRAINTS + link] > -1) {
                         //  If there is a constraint, try to enforce it
@@ -186,12 +165,12 @@ void Hair::simulate(float deltaTime) {
                         _hairPosition[vertexIndex] += glm::normalize(vectorBetween) * (glm::length(vectorBetween) - _linkLength) * CONSTRAINT_RELAXATION * deltaTime;
                     }
                 }
+                
                 //  Store start position for next vertlet pass
                 _hairLastPosition[vertexIndex] = thisPosition;
             }
         }
     }
-
 }
 
 void Hair::render() {
