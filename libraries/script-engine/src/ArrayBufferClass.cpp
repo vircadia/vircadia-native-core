@@ -12,12 +12,13 @@
 #include <QDebug>
 
 #include "ArrayBufferPrototype.h"
+#include "DataViewClass.h"
 #include "ScriptEngine.h"
+#include "TypedArrays.h"
 
 #include "ArrayBufferClass.h"
 
 static const QString CLASS_NAME = "ArrayBuffer";
-static const QString BYTE_LENGTH_PROPERTY_NAME = "byteLength";
 
 Q_DECLARE_METATYPE(QByteArray*)
 
@@ -46,6 +47,18 @@ _scriptEngine(scriptEngine) {
     _ctor.setData(engine()->toScriptValue(this));
     
     engine()->globalObject().setProperty(name(), _ctor);
+    
+    // Registering other array types
+    new DataViewClass(scriptEngine);
+    new Int8ArrayClass(scriptEngine);
+    new Uint8ArrayClass(scriptEngine);
+    new Uint8ClampedArrayClass(scriptEngine);
+    new Int16ArrayClass(scriptEngine);
+    new Uint16ArrayClass(scriptEngine);
+    new Int32ArrayClass(scriptEngine);
+    new Uint32ArrayClass(scriptEngine);
+    new Float32ArrayClass(scriptEngine);
+    new Float64ArrayClass(scriptEngine);
 }
 
 QScriptValue ArrayBufferClass::newInstance(qint32 size) {

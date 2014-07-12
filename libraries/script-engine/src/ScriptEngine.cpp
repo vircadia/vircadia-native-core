@@ -94,19 +94,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _vec3Library(),
     _uuidLibrary(),
     _animationCache(this),
-    _arrayBufferClass(NULL)
+    _arrayBufferClass(new ArrayBufferClass(this))
 {
-    _arrayBufferClass = new ArrayBufferClass(this);
-    new DataViewClass(this);
-    new Int8ArrayClass(this);
-    new Uint8ArrayClass(this);
-    new Uint8ClampedArrayClass(this);
-    new Int16ArrayClass(this);
-    new Uint16ArrayClass(this);
-    new Int32ArrayClass(this);
-    new Uint32ArrayClass(this);
-    new Float32ArrayClass(this);
-    new Float64ArrayClass(this);
 }
 
 ScriptEngine::ScriptEngine(const QUrl& scriptURL,
@@ -131,24 +120,12 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _vec3Library(),
     _uuidLibrary(),
     _animationCache(this),
-    _arrayBufferClass(NULL)
+    _arrayBufferClass(new ArrayBufferClass(this))
 {
     QString scriptURLString = scriptURL.toString();
     _fileNameString = scriptURLString;
 
     QUrl url(scriptURL);
-    
-    _arrayBufferClass = new ArrayBufferClass(this);
-    new DataViewClass(this);
-    new Int8ArrayClass(this);
-    new Uint8ArrayClass(this);
-    new Uint8ClampedArrayClass(this);
-    new Int16ArrayClass(this);
-    new Uint16ArrayClass(this);
-    new Int32ArrayClass(this);
-    new Uint32ArrayClass(this);
-    new Float32ArrayClass(this);
-    new Float64ArrayClass(this);
     
     // if the scheme length is one or lower, maybe they typed in a file, let's try
     const int WINDOWS_DRIVE_LETTER_SIZE = 1;
