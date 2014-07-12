@@ -10,9 +10,12 @@
 
 #include "AngularConstraintTests.h"
 #include "MovingPercentileTests.h"
+#include "MovingMinMaxAvgTests.h"
 
 int main(int argc, char** argv) {
+    MovingMinMaxAvgTests::runAllTests();
     MovingPercentileTests::runAllTests();
     AngularConstraintTests::runAllTests();
+    getchar();
     return 0;
 }

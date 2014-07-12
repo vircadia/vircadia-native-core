@@ -61,7 +61,7 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
-    _numLocalLights(1),
+    _numLocalLights(2),
     _initialized(false),
     _shouldRenderBillboard(true)
 {
@@ -89,14 +89,14 @@ void Avatar::init() {
         _localLightDirections[i] = glm::vec3(0.0f, 0.0f, 0.0f);
     }
   
-    glm::vec3 darkGrayColor(0.3f, 0.3f, 0.3f); 
+    glm::vec3 darkGrayColor(0.4f, 0.4f, 0.4f);
     glm::vec3 greenColor(0.0f, 1.0f, 0.0f);
     glm::vec3 directionX(1.0f, 0.0f, 0.0f);
     glm::vec3 directionY(0.0f, 1.0f, 0.0f);
  
     // initialize local lights
     _localLightColors[0] = darkGrayColor;
-    _localLightColors[1] = greenColor;
+    _localLightColors[1] = darkGrayColor;
     
     _localLightDirections[0] = directionX;
     _localLightDirections[1] = directionY;
@@ -145,20 +145,20 @@ void Avatar::simulate(float deltaTime) {
     _skeletonModel.setLODDistance(getLODDistance());
     
     if (!_shouldRenderBillboard && inViewFrustum) {
-        if (_hasNewJointRotations) {
-            PerformanceTimer perfTimer("skeleton");
-            for (int i = 0; i < _jointData.size(); i++) {
-                const JointData& data = _jointData.at(i);
-                _skeletonModel.setJointState(i, data.valid, data.rotation);
-            }
-            _skeletonModel.simulate(deltaTime);
-        }
         {
-            PerformanceTimer perfTimer("head");
+            PerformanceTimer perfTimer("skeleton");
+            if (_hasNewJointRotations) {
+                for (int i = 0; i < _jointData.size(); i++) {
+                    const JointData& data = _jointData.at(i);
+                    _skeletonModel.setJointState(i, data.valid, data.rotation);
+                }
+            }
             _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
             simulateAttachments(deltaTime);
             _hasNewJointRotations = false;
-
+        }
+        {
+            PerformanceTimer perfTimer("head");
             glm::vec3 headPosition = _position;
             _skeletonModel.getHeadPosition(headPosition);
             Head* head = getHead();
@@ -750,6 +750,11 @@ glm::quat Avatar::getJointCombinedRotation(const QString& name) const {
     glm::quat rotation;
     _skeletonModel.getJointCombinedRotation(getJointIndex(name), rotation);
     return rotation;
+}
+
+void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
+    //Scale a world space vector as if it was relative to the position
+    positionToScale = _position + _scale * (positionToScale - _position);
 }
 
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
