@@ -19,6 +19,7 @@ static const QString LENGTH_PROPERTY_NAME = "length";
 
 static const QString INT_8_ARRAY_CLASS_NAME = "Int8Array";
 static const QString UINT_8_ARRAY_CLASS_NAME = "Uint8Array";
+static const QString UINT_8_CLAMPED_ARRAY_CLASS_NAME = "Uint8ClampedArray";
 static const QString INT_16_ARRAY_CLASS_NAME = "Int16Array";
 static const QString UINT_16_ARRAY_CLASS_NAME = "Uint16Array";
 static const QString INT_32_ARRAY_CLASS_NAME = "Int32Array";
@@ -98,7 +99,12 @@ public:
 };
 
 class Uint8ClampedArrayClass : public TypedArray {
-    // TODO
+    Q_OBJECT
+public:
+    Uint8ClampedArrayClass(ScriptEngine* scriptEngine);
+    
+    QScriptValue property(const QScriptValue &object, const QScriptString &name, uint id);
+    void setProperty(QScriptValue &object, const QScriptString &name, uint id, const QScriptValue &value);
 };
 
 class Int16ArrayClass : public TypedArray {

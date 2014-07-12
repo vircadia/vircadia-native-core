@@ -80,7 +80,7 @@ UnitTest.prototype.arrayEqual = function(array1, array2, message) {
     }
     for (var i = 0; i < array1.length; ++i) {
         if (array1[i] !== array2[i]) {
-            throw new AssertionException(array1[i], array2[i], message);
+            throw new AssertionException(array1[i], array2[i], i + " " + message);
         }
     }
 }

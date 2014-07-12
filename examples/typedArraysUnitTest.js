@@ -687,3 +687,22 @@ test('Typed Array getters/setters', function () {
   this.assertEquals(bytes[1], 0xff);
 });
 
+
+test('Uint8ClampedArray', function () {
+  this.assertEquals(Uint8ClampedArray.BYTES_PER_ELEMENT, 1, 'Uint8ClampedArray.BYTES_PER_ELEMENT');
+  var a = new Uint8ClampedArray([-Infinity, -Number.MAX_VALUE, -1, -Number.MIN_VALUE, -0,
+                                 0, Number.MIN_VALUE, 1, 1.1, 1.9, 255, 255.1, 255.9, 256, Number.MAX_VALUE, Infinity,
+                                 NaN]);
+  this.assertEquals(a.BYTES_PER_ELEMENT, 1);
+  this.assertEquals(a.byteOffset, 0);
+  this.assertEquals(a.byteLength, 17);
+  this.arrayEqual(a, [0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0], "array test");
+});
+
+test('Regression Tests', function() {
+  // Bug: https://github.com/inexorabletash/polyfill/issues/16
+  var minFloat32 = 1.401298464324817e-45;
+  var truncated = new Float32Array([-minFloat32 / 2 - Math.pow(2, -202)]).get(0);
+  this.assertEquals(truncated, -minFloat32, 'smallest 32 bit float should not truncate to zero');
+});
+

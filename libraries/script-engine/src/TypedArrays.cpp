@@ -342,6 +342,33 @@ void Uint8ArrayClass::setProperty(QScriptValue &object, const QScriptString &nam
     setPropertyHelper<quint8>(ba, name, id, value);
 }
 
+Uint8ClampedArrayClass::Uint8ClampedArrayClass(ScriptEngine* scriptEngine) : TypedArray(scriptEngine, UINT_8_CLAMPED_ARRAY_CLASS_NAME) {
+    setBytesPerElement(sizeof(quint8));
+}
+
+QScriptValue Uint8ClampedArrayClass::property(const QScriptValue &object, const QScriptString &name, uint id) {
+    
+    QByteArray* arrayBuffer = qscriptvalue_cast<QByteArray*>(object.data().property(_bufferName).data());
+    QScriptValue result = propertyHelper<quint8>(arrayBuffer, name, id);
+    return (result.isValid()) ? result : TypedArray::property(object, name, id);
+}
+
+void Uint8ClampedArrayClass::setProperty(QScriptValue &object, const QScriptString &name,
+                                  uint id, const QScriptValue &value) {
+    QByteArray *ba = qscriptvalue_cast<QByteArray*>(object.data().property(_bufferName).data());
+    if (ba && value.isNumber()) {
+        QDataStream stream(ba, QIODevice::ReadWrite);
+        stream.skipRawData(id);
+        if (value.toNumber() > 255) {
+            stream << (quint8)255;
+        } else if (value.toNumber() < 0) {
+            stream << (quint8)0;
+        } else {
+            stream << (quint8)glm::clamp(qRound(value.toNumber()), 0, 255);
+        }
+    }
+}
+
 Int16ArrayClass::Int16ArrayClass(ScriptEngine* scriptEngine) : TypedArray(scriptEngine, INT_16_ARRAY_CLASS_NAME) {
     setBytesPerElement(sizeof(qint16));
 }

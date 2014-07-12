@@ -100,6 +100,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     new DataViewClass(this);
     new Int8ArrayClass(this);
     new Uint8ArrayClass(this);
+    new Uint8ClampedArrayClass(this);
     new Int16ArrayClass(this);
     new Uint16ArrayClass(this);
     new Int32ArrayClass(this);
@@ -141,6 +142,7 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     new DataViewClass(this);
     new Int8ArrayClass(this);
     new Uint8ArrayClass(this);
+    new Uint8ClampedArrayClass(this);
     new Int16ArrayClass(this);
     new Uint16ArrayClass(this);
     new Int32ArrayClass(this);
