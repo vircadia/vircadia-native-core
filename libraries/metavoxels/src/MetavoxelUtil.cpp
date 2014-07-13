@@ -312,7 +312,7 @@ Box operator*(const glm::mat4& matrix, const Box& box) {
 }
 
 QDebug& operator<<(QDebug& dbg, const Box& box) {
-    return dbg.nospace() << "{type='Box', minimum=" << box.minimum << ", maximumx=" << box.maximum << "}";
+    return dbg.nospace() << "{type='Box', minimum=" << box.minimum << ", maximum=" << box.maximum << "}";
 }
 
 QMetaObjectEditor::QMetaObjectEditor(QWidget* parent) : QWidget(parent) {
