@@ -29,15 +29,15 @@ Hair::Hair(int strands,
            float radius,
            float linkLength,
            float hairThickness) :
+    _strands(strands),
+    _links(links),
+    _linkLength(linkLength),
+    _hairThickness(hairThickness),
+    _radius(radius),
     _acceleration(0.0f),
     _angularVelocity(0.0f),
     _gravity(0.0f)
 {
-    _strands = strands;
-    _links = links;
-    _radius = radius;
-    _linkLength = linkLength;
-    _hairThickness = hairThickness;
     _hairPosition = new glm::vec3[_strands * _links];
     _hairOriginalPosition = new glm::vec3[_strands * _links];
     _hairLastPosition = new glm::vec3[_strands * _links];
