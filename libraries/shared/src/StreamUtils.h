@@ -40,7 +40,7 @@ QDataStream& operator>>(QDataStream& in, glm::quat& quaternion);
 #ifdef DEBUG
 class CollisionInfo;
 class SphereShape;
-class CapsuleShape.h;
+class CapsuleShape;
 std::ostream& operator<<(std::ostream& s, const CollisionInfo& c);
 std::ostream& operator<<(std::ostream& s, const SphereShape& shape);
 std::ostream& operator<<(std::ostream& s, const CapsuleShape& capsule);
