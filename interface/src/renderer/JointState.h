@@ -48,6 +48,9 @@ public:
     /// \return rotation from bind to model frame
     glm::quat getRotationInBindFrame() const;
 
+    glm::quat getRotationInParentFrame() const;
+    glm::quat getVisibleRotationInParentFrame() const;
+
     int getParentIndex() const { return _fbxJoint->parentIndex; }
 
     /// \param rotation rotation of joint in model-frame

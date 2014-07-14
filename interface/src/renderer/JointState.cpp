@@ -82,21 +82,29 @@ void JointState::initTransform(const glm::mat4& parentTransform) {
 }
 
 void JointState::computeTransform(const glm::mat4& parentTransform) {
-    glm::quat rotationInConstrainedFrame = _fbxJoint->preRotation * _rotationInConstrainedFrame * _fbxJoint->postRotation;
-    glm::mat4 rotationInParentFrame = _fbxJoint->preTransform * glm::mat4_cast(rotationInConstrainedFrame) * _fbxJoint->postTransform;
-    _transform = parentTransform * glm::translate(_fbxJoint->translation) * rotationInParentFrame;
+    glm::quat rotationInParentFrame = _fbxJoint->preRotation * _rotationInConstrainedFrame * _fbxJoint->postRotation;
+    glm::mat4 transformInParentFrame = _fbxJoint->preTransform * glm::mat4_cast(rotationInParentFrame) * _fbxJoint->postTransform;
+    _transform = parentTransform * glm::translate(_fbxJoint->translation) * transformInParentFrame;
     _rotation = extractRotation(_transform);
 }
 
 void JointState::computeVisibleTransform(const glm::mat4& parentTransform) {
-    glm::quat rotationInConstrainedFrame = _fbxJoint->preRotation * _visibleRotationInConstrainedFrame * _fbxJoint->postRotation;
-    glm::mat4 rotationInParentFrame = _fbxJoint->preTransform * glm::mat4_cast(rotationInConstrainedFrame) * _fbxJoint->postTransform;
-    _visibleTransform = parentTransform * glm::translate(_fbxJoint->translation) * rotationInParentFrame;
+    glm::quat rotationInParentFrame = _fbxJoint->preRotation * _visibleRotationInConstrainedFrame * _fbxJoint->postRotation;
+    glm::mat4 transformInParentFrame = _fbxJoint->preTransform * glm::mat4_cast(rotationInParentFrame) * _fbxJoint->postTransform;
+    _visibleTransform = parentTransform * glm::translate(_fbxJoint->translation) * transformInParentFrame;
     _visibleRotation = extractRotation(_visibleTransform);
 }
 
 glm::quat JointState::getRotationInBindFrame() const {
     return _rotation * _fbxJoint->inverseBindRotation;
+}
+
+glm::quat JointState::getRotationInParentFrame() const {
+    return _fbxJoint->preRotation * _rotationInConstrainedFrame * _fbxJoint->postRotation;
+}
+
+glm::quat JointState::getVisibleRotationInParentFrame() const {
+    return _fbxJoint->preRotation * _visibleRotationInConstrainedFrame * _fbxJoint->postRotation;
 }
 
 void JointState::restoreRotation(float fraction, float priority) {
