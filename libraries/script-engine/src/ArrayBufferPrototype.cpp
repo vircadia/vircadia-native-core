@@ -12,7 +12,6 @@
 #include <glm/glm.hpp>
 
 #include "ArrayBufferClass.h"
-
 #include "ArrayBufferPrototype.h"
 
 Q_DECLARE_METATYPE(QByteArray*)

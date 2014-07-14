@@ -14,8 +14,8 @@
 Q_DECLARE_METATYPE(QByteArray*)
 
 ArrayBufferViewClass::ArrayBufferViewClass(ScriptEngine* scriptEngine) :
-QObject(scriptEngine->getScriptEngine()),
-QScriptClass(scriptEngine->getScriptEngine()),
+QObject(scriptEngine->getEngine()),
+QScriptClass(scriptEngine->getEngine()),
 _scriptEngine(scriptEngine) {
     // Save string handles for quick lookup
     _bufferName = engine()->toStringHandle(BUFFER_PROPERTY_NAME.toLatin1());
@@ -32,8 +32,8 @@ QScriptClass::QueryFlags ArrayBufferViewClass::queryProperty(const QScriptValue&
     return 0; // No access
 }
 
-QScriptValue ArrayBufferViewClass::property(const QScriptValue &object,
-                                            const QScriptString &name, uint id) {
+QScriptValue ArrayBufferViewClass::property(const QScriptValue& object,
+                                            const QScriptString& name, uint id) {
     if (name == _bufferName) {
         return object.data().property(_bufferName);
     }
@@ -50,55 +50,3 @@ QScriptValue::PropertyFlags ArrayBufferViewClass::propertyFlags(const QScriptVal
                                                                 const QScriptString& name, uint id) {
     return QScriptValue::Undeletable;
 }
-
-//QScriptClass::QueryFlags DataViewClass::queryProperty(const QScriptValue& object,
-//                                                 const QScriptString& name,
-//                                                      QueryFlags flags, uint* id) {
-//    QByteArray* arrayBuffer = qscriptvalue_cast<QByteArray*>(object.property(_bufferName).data());
-//    bool ok = false;
-//    int pos = name.toArrayIndex(&ok);
-//
-//    // Check that name is a valid index and arrayBuffer exists
-//    if (ok && arrayBuffer && pos > 0 && pos < arrayBuffer->size()) {
-//        *id = pos; // save pos to avoid recomputation
-//        return HandlesReadAccess | HandlesWriteAccess; // Read/Write access
-//    }
-//
-//    return ArrayBufferViewClass::queryProperty(object, name, flags, id);
-//}
-//
-//QScriptValue DataViewClass::property(const QScriptValue &object,
-//                                const QScriptString &name, uint id) {
-//    QByteArray* arrayBuffer = qscriptvalue_cast<QByteArray*>(object.property(_bufferName).data());
-//    bool ok = false;
-//    name.toArrayIndex(&ok);
-//
-//    if (ok && arrayBuffer) {
-//        return (*arrayBuffer)[id];
-//    }
-//
-//    return ArrayBufferViewClass::queryProperty(object, name, flags, id);
-//}
-//
-//void DataViewClass::setProperty(QScriptValue &object,
-//                                const QScriptString &name,
-//                                uint id, const QScriptValue &value) {
-//    QByteArray *ba = qscriptvalue_cast<QByteArray*>(object.data());
-//    if (!ba)
-//    return;
-//    if (name == length) {
-//        resize(*ba, value.toInt32());
-//    } else {
-//        qint32 pos = id;
-//        if (pos < 0)
-//        return;
-//        if (ba->size() <= pos)
-//        resize(*ba, pos + 1);
-//        (*ba)[pos] = char(value.toInt32());
-//    }
-//}
-//
-//QScriptValue::PropertyFlags DataViewClass::propertyFlags(const QScriptValue& object,
-//                                                    const QScriptString& name, uint id) {
-//    return QScriptValue::Undeletable;
-//}

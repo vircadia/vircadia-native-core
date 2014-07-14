@@ -57,7 +57,7 @@ public:
     /// Access the ModelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static ModelsScriptingInterface* getModelsScriptingInterface() { return &_modelsScriptingInterface; }
 
-    QScriptEngine* getScriptEngine() { return &_engine; }
+    QScriptEngine* getEngine() { return &_engine; }
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
     
     /// sets the script contents, will return false if failed, will fail if script is already running

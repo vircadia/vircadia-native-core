@@ -34,12 +34,12 @@ public:
     ScriptEngine* getScriptEngine() { return _scriptEngine; }
     
     virtual QueryFlags queryProperty(const QScriptValue& object,
-                             const QScriptString& name,
-                             QueryFlags flags, uint* id);
-    virtual QScriptValue property(const QScriptValue &object,
-                          const QScriptString &name, uint id);
+                                     const QScriptString& name,
+                                     QueryFlags flags, uint* id);
+    virtual QScriptValue property(const QScriptValue& object,
+                                  const QScriptString& name, uint id);
     virtual QScriptValue::PropertyFlags propertyFlags(const QScriptValue& object,
-                                              const QScriptString& name, uint id);
+                                                      const QScriptString& name, uint id);
 protected:
     // JS Object attributes
     QScriptString _bufferName;

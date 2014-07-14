@@ -29,12 +29,11 @@ DataViewClass::DataViewClass(ScriptEngine* scriptEngine) : ArrayBufferViewClass(
                                 QScriptEngine::SkipMethodsInEnumeration |
                                 QScriptEngine::ExcludeSuperClassMethods |
                                 QScriptEngine::ExcludeSuperClassProperties);
-    
     _proto.setPrototype(global.property("Object").property("prototype"));
     
+    // Register constructor
     _ctor = engine()->newFunction(construct, _proto);
     _ctor.setData(engine()->toScriptValue(this));
-    
     engine()->globalObject().setProperty(name(), _ctor);
 }
 
@@ -47,7 +46,7 @@ QScriptValue DataViewClass::newInstance(QScriptValue buffer, quint32 byteOffset,
     return engine()->newObject(this, data);
 }
 
-QScriptValue DataViewClass::construct(QScriptContext *context, QScriptEngine *engine) {
+QScriptValue DataViewClass::construct(QScriptContext* context, QScriptEngine* engine) {
     DataViewClass* cls = qscriptvalue_cast<DataViewClass*>(context->callee().data());
     if (!cls || context->argumentCount() < 1) {
         return QScriptValue();

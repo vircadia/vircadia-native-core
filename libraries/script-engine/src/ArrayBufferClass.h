@@ -29,18 +29,18 @@ public:
     QScriptValue newInstance(qint32 size);
     QScriptValue newInstance(const QByteArray& ba);
     
-    ScriptEngine* getScriptEngine() { return _scriptEngine; }
-    
     QueryFlags queryProperty(const QScriptValue& object,
                              const QScriptString& name,
                              QueryFlags flags, uint* id);
-    QScriptValue property(const QScriptValue &object,
-                          const QScriptString &name, uint id);
+    QScriptValue property(const QScriptValue& object,
+                          const QScriptString& name, uint id);
     QScriptValue::PropertyFlags propertyFlags(const QScriptValue& object,
                                               const QScriptString& name, uint id);
     
     QString name() const;
     QScriptValue prototype() const;
+    
+    ScriptEngine* getEngine() { return _scriptEngine; }
     
 private:
     static QScriptValue construct(QScriptContext* context, QScriptEngine* engine);

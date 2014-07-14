@@ -143,7 +143,6 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
                 QTextStream in(&scriptFile);
                 _scriptContents = in.readAll();
             } else {
-                
                 qDebug() << "ERROR Loading file:" << fileName;
                 emit errorMessage("ERROR Loading file:" + fileName);
             }

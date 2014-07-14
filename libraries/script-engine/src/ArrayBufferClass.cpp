@@ -23,10 +23,9 @@ static const QString CLASS_NAME = "ArrayBuffer";
 Q_DECLARE_METATYPE(QByteArray*)
 
 ArrayBufferClass::ArrayBufferClass(ScriptEngine* scriptEngine) :
-QObject(scriptEngine->getScriptEngine()),
-QScriptClass(scriptEngine->getScriptEngine()),
+QObject(scriptEngine->getEngine()),
+QScriptClass(scriptEngine->getEngine()),
 _scriptEngine(scriptEngine) {
-    qDebug() << "Created with engine: " << engine();
     qScriptRegisterMetaType<QByteArray>(engine(), toScriptValue, fromScriptValue);
     QScriptValue global = engine()->globalObject();
     
@@ -40,15 +39,16 @@ _scriptEngine(scriptEngine) {
                                 QScriptEngine::SkipMethodsInEnumeration |
                                 QScriptEngine::ExcludeSuperClassMethods |
                                 QScriptEngine::ExcludeSuperClassProperties);
-
     _proto.setPrototype(global.property("Object").property("prototype"));
     
+    // Register constructor
     _ctor = engine()->newFunction(construct, _proto);
     _ctor.setData(engine()->toScriptValue(this));
     
     engine()->globalObject().setProperty(name(), _ctor);
     
     // Registering other array types
+    // The script engine is there parent so it'll delete them with itself
     new DataViewClass(scriptEngine);
     new Int8ArrayClass(scriptEngine);
     new Uint8ArrayClass(scriptEngine);
@@ -87,11 +87,10 @@ QScriptValue ArrayBufferClass::newInstance(const QByteArray& ba) {
 QScriptValue ArrayBufferClass::construct(QScriptContext* context, QScriptEngine* engine) {
     ArrayBufferClass* cls = qscriptvalue_cast<ArrayBufferClass*>(context->callee().data());
     if (!cls) {
+        // return if callee (function called) is not of type ArrayBuffer
         return QScriptValue();
     }
-    
     QScriptValue arg = context->argument(0);
-    
     if (!arg.isValid() || !arg.isNumber()) {
         return QScriptValue();
     }
@@ -100,6 +99,7 @@ QScriptValue ArrayBufferClass::construct(QScriptContext* context, QScriptEngine*
     QScriptValue newObject = cls->newInstance(size);
     
     if (context->isCalledAsConstructor()) {
+        // if called with keyword new, replace this object.
         context->setThisObject(newObject);
         return engine->undefinedValue();
     }
@@ -118,8 +118,8 @@ QScriptClass::QueryFlags ArrayBufferClass::queryProperty(const QScriptValue& obj
     return 0; // No access
 }
 
-QScriptValue ArrayBufferClass::property(const QScriptValue &object,
-                                   const QScriptString &name, uint id) {
+QScriptValue ArrayBufferClass::property(const QScriptValue& object,
+                                   const QScriptString& name, uint id) {
     QByteArray* ba = qscriptvalue_cast<QByteArray*>(object.data());
     if (ba && name == _byteLength) {
         return ba->length();
