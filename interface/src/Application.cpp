@@ -1722,7 +1722,7 @@ void Application::init() {
     _faceplus.init();
     _visage.init();
 
-    Leapmotion* leap = Leapmotion::create();
+    Leapmotion::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
