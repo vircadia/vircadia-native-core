@@ -14,6 +14,7 @@
 #include <QCryptographicHash>
 #include <QDataStream>
 #include <QMetaType>
+#include <QScriptEngine>
 #include <QScriptValueIterator>
 #include <QUrl>
 #include <QtDebug>
@@ -126,6 +127,12 @@ const QMetaObject* Bitstream::getMetaObject(const QByteArray& className) {
 
 QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* metaObject) {
     return getMetaObjectSubClasses().values(metaObject);
+}
+
+void Bitstream::configureScriptEngine(QScriptEngine* engine) {
+    foreach (const QMetaObject* metaObject, getMetaObjects()) {
+        engine->globalObject().setProperty(metaObject->className(), engine->newQMetaObject(metaObject));
+    }
 }
 
 Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, GenericsMode genericsMode, QObject* parent) :

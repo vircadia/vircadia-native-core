@@ -28,6 +28,10 @@ public:
 
     SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const AttributePointer& attribute, float& distance);
+
+    Q_INVOKABLE void setSphere(const glm::vec3& center, float radius, QRgb color = 0x808080);
+
+    Q_INVOKABLE void setSpanner(const SharedObjectPointer& object, bool reliable = false);
         
     Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
 
