@@ -839,6 +839,9 @@ QByteArray createByteArray(const glm::vec3& vector) {
 }
 
 QString formatUsecTime(float usecs, int prec) {
+    static const quint64 SECONDS_PER_MINUTE = 60;
+    static const quint64 USECS_PER_MINUTE = USECS_PER_SECOND * SECONDS_PER_MINUTE;
+
     QString result;
     if (usecs > USECS_PER_MINUTE) {
         result = QString::number(usecs / USECS_PER_MINUTE, 'f', prec) + "min";
