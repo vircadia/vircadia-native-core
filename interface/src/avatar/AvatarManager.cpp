@@ -158,3 +158,63 @@ void AvatarManager::clearOtherAvatars() {
     }
     _myAvatar->clearLookAtTargetAvatar();
 }
+
+Avatar* AvatarManager::getAvatarFromIndex(int avatarIndex)
+{
+    Avatar* avatar = NULL;
+    int numAvatars = _avatarHash.count();
+    if (avatarIndex < numAvatars) {
+        QUuid key = (_avatarHash.keys())[avatarIndex];
+        
+        const AvatarSharedPointer& avatarPointer = _avatarHash.value(key);
+        avatar = static_cast<Avatar*>(avatarPointer.data());
+    }
+    
+    return avatar;
+}
+
+void AvatarManager::addAvatarLocalLight(int avatarIndex)
+{
+    Avatar* avatar = getAvatarFromIndex(avatarIndex);
+    if (avatar) {
+        avatar->addLocalLight();
+    }
+}
+
+void AvatarManager::removeAvatarLocalLight(int avatarIndex)
+{
+    Avatar* avatar = getAvatarFromIndex(avatarIndex);
+    if (avatar) {
+        avatar->removeLocalLight();
+    }
+}
+
+void AvatarManager::setAvatarLightDirection(const glm::vec3& direction, int lightIndex, int avatarIndex)
+{
+    Avatar* avatar = getAvatarFromIndex(avatarIndex);
+    if (avatar) {
+        avatar->setLocalLightDirection(direction, lightIndex);
+    }
+}
+
+void AvatarManager::setAvatarLightColor(const glm::vec3& color, int lightIndex, int avatarIndex)
+{
+    Avatar* avatar = getAvatarFromIndex(avatarIndex);
+    if (avatar) {
+        avatar->setLocalLightColor(color, lightIndex);
+    }
+}
+
+int AvatarManager::getNumAvatars()
+{
+    return _avatarHash.count();
+}
+
+QString AvatarManager::getAvatarHashKey(int index)
+{
+    QString id = ((_avatarHash.keys())[index]).toString();
+    std::string idString = id.toStdString();
+    return id;
+}
+
+
