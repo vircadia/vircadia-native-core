@@ -21,9 +21,6 @@ const glm::vec3 xAxis(1.f, 0.f, 0.f);
 const glm::vec3 yAxis(0.f, 1.f, 0.f);
 const glm::vec3 zAxis(0.f, 0.f, 1.f);
 
-std::ostream& operator<<(std::ostream& s, const glm::vec3& v);
-std::ostream& operator<<(std::ostream& s, const glm::quat& q);
-std::ostream& operator<<(std::ostream& s, const glm::mat4& m);
 std::ostream& operator<<(std::ostream& s, const CollisionInfo& c);
 
 #endif // hifi_PhysicsTestUtil_h
