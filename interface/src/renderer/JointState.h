@@ -46,7 +46,7 @@ public:
     glm::vec3 getPosition() const { return extractTranslation(_transform); }
 
     /// \return rotation from bind to model frame
-    glm::quat getRotationFromBindToModelFrame() const;
+    glm::quat getRotationInBindFrame() const;
 
     int getParentIndex() const { return _fbxJoint->parentIndex; }
 
@@ -72,7 +72,7 @@ public:
     /// \param rotation is from bind- to model-frame
     /// computes and sets new _rotationInConstrainedFrame
     /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
-    void setRotationFromBindFrame(const glm::quat& rotation, float priority, bool constrain = false);
+    void setRotationInBindFrame(const glm::quat& rotation, float priority, bool constrain = false);
 
     void setRotationInConstrainedFrame(const glm::quat& targetRotation);
     void setVisibleRotationInConstrainedFrame(const glm::quat& targetRotation);

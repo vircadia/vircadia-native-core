@@ -95,7 +95,7 @@ void JointState::computeVisibleTransform(const glm::mat4& parentTransform) {
     _visibleRotation = extractRotation(_visibleTransform);
 }
 
-glm::quat JointState::getRotationFromBindToModelFrame() const {
+glm::quat JointState::getRotationInBindFrame() const {
     return _rotation * _fbxJoint->inverseBindRotation;
 }
 
@@ -107,7 +107,7 @@ void JointState::restoreRotation(float fraction, float priority) {
     }
 }
 
-void JointState::setRotationFromBindFrame(const glm::quat& rotation, float priority, bool constrain) {
+void JointState::setRotationInBindFrame(const glm::quat& rotation, float priority, bool constrain) {
     // rotation is from bind- to model-frame
     assert(_fbxJoint != NULL);
     if (priority >= _animationPriority) {
