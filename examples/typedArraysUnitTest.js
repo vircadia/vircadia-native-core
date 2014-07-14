@@ -514,7 +514,7 @@ test('TypedArray setting', function () {
   var b = new Int32Array(5);
   b.set(a);
   this.arrayEqual(b, [1, 2, 3, 4, 5], '1');
-  // raises(function () { b.set(a, 1); });
+  this.raises(function () { b.set(a, 1); });
 
   b.set(new Int32Array([99, 98]), 2);
   this.arrayEqual(b, [1, 2, 99, 98, 5], '2');

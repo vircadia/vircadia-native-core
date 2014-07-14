@@ -128,7 +128,7 @@ QScriptValue DataViewPrototype::getFloat32(qint32 byteOffset, bool littleEndian)
         float result;
         stream >> result;
         if (isNaN(result)) {
-            return QScriptValue(NAN);
+            return QScriptValue();
         }
         
         return QScriptValue(result);
@@ -147,7 +147,7 @@ QScriptValue DataViewPrototype::getFloat64(qint32 byteOffset, bool littleEndian)
         double result;
         stream >> result;
         if (isNaN(result)) {
-            return QScriptValue(NAN);
+            return QScriptValue();
         }
         
         return result;
