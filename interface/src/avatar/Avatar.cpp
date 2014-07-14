@@ -46,7 +46,6 @@ const float DISPLAYNAME_BACKGROUND_ALPHA = 0.4f;
 
 Avatar::Avatar() :
     AvatarData(),
-    _hair(),
     _skeletonModel(this),
     _bodyYawDelta(0.0f),
     _velocity(0.0f, 0.0f, 0.0f),

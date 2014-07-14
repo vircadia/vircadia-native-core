@@ -20,7 +20,7 @@ const float CONSTRAINT_RELAXATION = 10.0f;
 const float HAIR_ACCELERATION_COUPLING = 0.025f;
 const float HAIR_ANGULAR_VELOCITY_COUPLING = 0.10f;
 const float HAIR_MAX_LINEAR_ACCELERATION = 4.0f;
-const float HAIR_STIFFNESS = 0.0003f;
+const float HAIR_STIFFNESS = 0.005f;
 const glm::vec3 HAIR_COLOR1(0.98f, 0.92f, 0.843f);
 const glm::vec3 HAIR_COLOR2(0.545f, 0.533f, 0.47f);
 
@@ -72,12 +72,10 @@ Hair::Hair(int strands,
                     _hairConstraints[vertexIndex * HAIR_CONSTRAINTS + 1] = vertexIndex + 1;
                 }
             }
-            _hairPosition[vertexIndex] = thisVertex;
-            _hairLastPosition[vertexIndex] = _hairPosition[vertexIndex];
-            _hairOriginalPosition[vertexIndex] = _hairPosition[vertexIndex];
+            _hairOriginalPosition[vertexIndex] = _hairLastPosition[vertexIndex] = _hairPosition[vertexIndex] = thisVertex;
             
             _hairQuadDelta[vertexIndex] = glm::vec3(cos(strandAngle) * _hairThickness, 0.f, sin(strandAngle) * _hairThickness);
-            _hairQuadDelta[vertexIndex] *= 1.f - (link / _links);
+            _hairQuadDelta[vertexIndex] *= 1.f - ((float)link / _links);
             _hairNormals[vertexIndex] = glm::normalize(randVector());
             if (randFloat() < elevation / PI_OVER_TWO) {
                 _hairColors[vertexIndex] = HAIR_COLOR1 * ((float)(link + 1) / (float)_links);
@@ -123,7 +121,7 @@ void Hair::simulate(float deltaTime) {
                 
                 //  Add stiffness to return to original position
                 _hairPosition[vertexIndex] += (_hairOriginalPosition[vertexIndex] - _hairPosition[vertexIndex])
-                * powf(1.f - link / _links, 2.f) * HAIR_STIFFNESS;
+                * powf(1.f - (float)link / _links, 2.f) * HAIR_STIFFNESS;
                 
                 //  Add angular acceleration
                 const float ANGULAR_VELOCITY_MIN = 0.001f;
