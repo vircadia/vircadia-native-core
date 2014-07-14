@@ -142,7 +142,6 @@ function updateLocalLights()
 	// new avatars, so add lights
 	var numAvatars = AvatarManager.getNumAvatars();
 	if (numAvatars != currentNumAvatars) {
-		print("!!! REINITIALIZE LIGHTS !!!");
 		
 		for (var i = 0; i < numAvatars; i++) {
 			var id = AvatarManager.getAvatarHashKey(i);
@@ -158,8 +157,7 @@ function updateLocalLights()
 			
 			// add new id and set light params
 			if (!hasRegistered) {
-				print("!!! SAVE NEW AVATAR " + avatarHashIDs.length + " ID = " + id + " !!!");
-			
+				
 				avatarHashIDs.push(id);
 				AvatarManager.addAvatarLocalLight(i);
 				
