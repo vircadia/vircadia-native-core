@@ -24,9 +24,12 @@ In order for CMake to find the Qt5 find modules, you will need to set an ENV var
 
 For example, a Qt5 5.2.0 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
 
-    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.2.0/clang_64/lib/cmake/
+The path it needs to be set to will depend on where and how Qt5 was installed. e.g.
 
-The path it needs to be set to will depend on where and how Qt5 was installed.
+    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.2.0/clang_64/lib/cmake/
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.2.1/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
+
 
 ####Generating build files
 Create a build directory in the root of your checkout and then run the CMake build from there. This will keep the rest of the directory clean.

@@ -405,7 +405,8 @@ void AudioMixer::readPendingDatagrams() {
             if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
                 || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
                 || mixerPacketType == PacketTypeInjectAudio
-                || mixerPacketType == PacketTypeSilentAudioFrame) {
+                || mixerPacketType == PacketTypeSilentAudioFrame
+                || mixerPacketType == PacketTypeAudioStreamStats) {
                 
                 nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
             } else if (mixerPacketType == PacketTypeMuteEnvironment) {
@@ -639,9 +640,6 @@ void AudioMixer::run() {
         if (!hasRatioChanged) {
             ++framesSinceCutoffEvent;
         }
-        
-
-        const quint64 TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS = 1 * USECS_PER_SECOND;
         
         bool sendAudioStreamStats = false;
         quint64 now = usecTimestampNow();

@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 #include <qbytearray.h>
-#include <qvector.h>
+#include "RingBufferHistory.h"
 
 #include "SequenceNumberStats.h"
 
@@ -26,9 +26,7 @@ public:
     const QByteArray* getPacket(uint16_t sequenceNumber) const;
 
 private:
-    QVector<QByteArray> _sentPackets;    // circular buffer
-    int _newestPacketAt;
-    int _numExistingPackets;
+    RingBufferHistory<QByteArray> _sentPackets;    // circular buffer
 
     uint16_t _newestSequenceNumber;
 };

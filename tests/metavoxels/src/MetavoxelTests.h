@@ -64,10 +64,13 @@ protected:
 private slots:
    
     void handleHighPriorityMessage(const QVariant& message);
-    void handleReliableMessage(const QVariant& message);
+    void handleReliableMessage(const QVariant& message, Bitstream& in);
     void readReliableChannel();
+    void checkReliableDeltaReceived();
 
 private:
+    
+    void compareMetavoxelData();
     
     Mode _mode;
     
@@ -75,6 +78,9 @@ private:
     SharedObjectPointer _remoteState;
     
     MetavoxelData _data;
+    MetavoxelLOD _dataLOD;
+    MetavoxelData _remoteData;
+    MetavoxelLOD _remoteDataLOD;
     MetavoxelLOD _lod;
     
     SharedObjectPointer _sphere;
@@ -94,6 +100,13 @@ private:
     float _reliableMessagesToSend;
     QVariantList _reliableMessagesSent;
     CircularBuffer _dataStreamed;
+    
+    ReliableChannel* _reliableDeltaChannel;
+    int _reliableDeltaReceivedOffset;
+    MetavoxelData _reliableDeltaData;
+    MetavoxelLOD _reliableDeltaLOD;
+    Bitstream::WriteMappings _reliableDeltaWriteMappings;
+    int _reliableDeltaID;
 };
 
 /// A simple shared object.

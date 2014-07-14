@@ -18,6 +18,7 @@
 #include "ui/TextRenderer.h"
 
 TextOverlay::TextOverlay() :
+    _backgroundColor(DEFAULT_BACKGROUND_COLOR),
     _leftMargin(DEFAULT_MARGIN),
     _topMargin(DEFAULT_MARGIN),
     _fontSize(DEFAULT_FONTSIZE)
@@ -33,7 +34,7 @@ void TextOverlay::render() {
     }
 
     const float MAX_COLOR = 255;
-    glColor4f(0 / MAX_COLOR, 0 / MAX_COLOR, 0 / MAX_COLOR, _alpha);
+    glColor4f(_backgroundColor.red / MAX_COLOR, _backgroundColor.green / MAX_COLOR, _backgroundColor.blue / MAX_COLOR, _alpha);
 
     glBegin(GL_QUADS);
         glVertex2f(_bounds.left(), _bounds.top());
@@ -80,6 +81,18 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
     QScriptValue text = properties.property("text");
     if (text.isValid()) {
         setText(text.toVariant().toString());
+    }
+
+    QScriptValue backgroundColor = properties.property("backgroundColor");
+    if (backgroundColor.isValid()) {
+        QScriptValue red = backgroundColor.property("red");
+        QScriptValue green = backgroundColor.property("green");
+        QScriptValue blue = backgroundColor.property("blue");
+        if (red.isValid() && green.isValid() && blue.isValid()) {
+            _backgroundColor.red = red.toVariant().toInt();
+            _backgroundColor.green = green.toVariant().toInt();
+            _backgroundColor.blue = blue.toVariant().toInt();
+        }
     }
 
     if (properties.property("leftMargin").isValid()) {

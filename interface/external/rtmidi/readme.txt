@@ -7,7 +7,9 @@ Stephen Birarda, June 30, 2014
    
 2. Copy RtMidi.h to externals/rtmidi/include.
 
-3. Copy RtMidi.cpp to externals/rtmidi/src
+3. Compile the RtMidi library.
+
+3. Copy either librtmidi.dylib (dynamic) or librtmidi.a (static) to externals/rtmidi/lib
    
 4. Delete your build directory, run cmake and build, and you should be all set.
 
