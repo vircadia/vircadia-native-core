@@ -112,11 +112,10 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
-    _audioMixerAvatarStreamAudioStats(),
-    _outgoingAvatarAudioSequenceNumber(0),
-    _incomingMixedAudioSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH),
     _starveCount(0),
     _consecutiveNotMixedCount(0),
+    _outgoingAvatarAudioSequenceNumber(0),
+    _incomingMixedAudioSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH),
     _interframeTimeGapStats(TIME_GAPS_STATS_INTERVAL_SAMPLES, TIME_GAP_STATS_WINDOW_INTERVALS)
 {
     // clear the array of locally injected samples
