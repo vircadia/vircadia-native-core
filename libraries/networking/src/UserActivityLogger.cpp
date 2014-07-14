@@ -146,3 +146,15 @@ void UserActivityLogger::loadedScript(QString scriptName) {
     logAction(ACTION_NAME, actionDetails);
 
 }
+
+void UserActivityLogger::wentTo(QString destinationType, QString destinationName) {
+    const QString ACTION_NAME = "went_to";
+    QJsonObject actionDetails;
+    const QString DESTINATION_TYPE_KEY = "destination_type";
+    const QString DESTINATION_NAME_KEY = "detination_name";
+    
+    actionDetails.insert(DESTINATION_TYPE_KEY, destinationType);
+    actionDetails.insert(DESTINATION_NAME_KEY, destinationName);
+    
+    logAction(ACTION_NAME, actionDetails);
+}
