@@ -76,17 +76,22 @@ void JointState::copyState(const JointState& state) {
     // DO NOT copy _fbxJoint or _constraint
 }
 
+void JointState::initTransform(const glm::mat4& parentTransform) {
+    computeTransform(parentTransform);
+    _positionInParentFrame = glm::inverse(extractRotation(parentTransform)) * (extractTranslation(_transform) - extractTranslation(parentTransform));
+}
+
 void JointState::computeTransform(const glm::mat4& parentTransform) {
     glm::quat rotationInConstrainedFrame = _fbxJoint->preRotation * _rotationInConstrainedFrame * _fbxJoint->postRotation;
-    glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(rotationInConstrainedFrame) * _fbxJoint->postTransform;
-    _transform = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
+    glm::mat4 rotationInParentFrame = _fbxJoint->preTransform * glm::mat4_cast(rotationInConstrainedFrame) * _fbxJoint->postTransform;
+    _transform = parentTransform * glm::translate(_fbxJoint->translation) * rotationInParentFrame;
     _rotation = extractRotation(_transform);
 }
 
 void JointState::computeVisibleTransform(const glm::mat4& parentTransform) {
     glm::quat rotationInConstrainedFrame = _fbxJoint->preRotation * _visibleRotationInConstrainedFrame * _fbxJoint->postRotation;
-    glm::mat4 modifiedTransform = _fbxJoint->preTransform * glm::mat4_cast(rotationInConstrainedFrame) * _fbxJoint->postTransform;
-    _visibleTransform = parentTransform * glm::translate(_fbxJoint->translation) * modifiedTransform;
+    glm::mat4 rotationInParentFrame = _fbxJoint->preTransform * glm::mat4_cast(rotationInConstrainedFrame) * _fbxJoint->postTransform;
+    _visibleTransform = parentTransform * glm::translate(_fbxJoint->translation) * rotationInParentFrame;
     _visibleRotation = extractRotation(_visibleTransform);
 }
 

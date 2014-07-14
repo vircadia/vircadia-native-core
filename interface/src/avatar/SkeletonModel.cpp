@@ -589,7 +589,7 @@ float VERY_BIG_MASS = 1.0e6f;
 
 // virtual
 void SkeletonModel::buildShapes() {
-    if (!_geometry || _rootIndex == -1) {
+    if (_geometry == NULL || _jointStates.isEmpty()) {
         return;
     }
     
@@ -743,7 +743,7 @@ void SkeletonModel::resetShapePositionsToDefaultPose() {
     // Moves shapes to the joint default locations for debug visibility into
     // how the bounding shape is computed.
 
-    if (!_geometry || _rootIndex == -1 || _shapes.isEmpty()) {
+    if (!_geometry || _shapes.isEmpty()) {
         // geometry or joints have not yet been created
         return;
     }

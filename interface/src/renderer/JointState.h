@@ -32,6 +32,7 @@ public:
     void updateConstraint();
     void copyState(const JointState& state);
 
+    void initTransform(const glm::mat4& parentTransform);
     void computeTransform(const glm::mat4& parentTransform);
 
     void computeVisibleTransform(const glm::mat4& parentTransform);
@@ -98,6 +99,7 @@ private:
     glm::mat4 _transform; // joint- to model-frame
     glm::quat _rotation;  // joint- to model-frame
     glm::quat _rotationInConstrainedFrame; // rotation in frame where angular constraints would be applied
+    glm::vec3 _positionInParentFrame; // only changes when the Model is scaled
 
     glm::mat4 _visibleTransform;
     glm::quat _visibleRotation;

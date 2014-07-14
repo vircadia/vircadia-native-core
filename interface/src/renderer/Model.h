@@ -164,7 +164,6 @@ protected:
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center
     bool _showTrueJointTransforms;
-    int _rootIndex;
     
     glm::vec3 _localLightDirections[MAX_LOCAL_LIGHTS];
     glm::vec3 _localLightColors[MAX_LOCAL_LIGHTS];
@@ -227,6 +226,7 @@ private:
     void deleteGeometry();
     void renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
+    void initJointTransforms();
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
     QSharedPointer<NetworkGeometry> _nextBaseGeometry;
