@@ -732,7 +732,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // Property Flags
         QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
         EntityPropertyFlags propertyFlags = encodedPropertyFlags;
-        encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
 
@@ -831,18 +830,16 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 EntityItem* EntityItem::fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid) {
     EntityItem* result = NULL;
     
-#if 0
-    
     bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "EntityItem EntityItem::fromEditPacket() length=" << length;
     }
 
-    EntityItem newEntityItem; // id and _lastUpdated will get set here...
     const unsigned char* dataAt = data;
     processedBytes = 0;
 
-    // the first part of the data is our octcode...
+    // the first part of the data is an octcode, this is a required element of the edit packet format, but we don't
+    // actually use it, we do need to skip it and read to the actual data we care about.
     int octets = numberOfThreeBitSectionsInCode(data);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
 
@@ -853,12 +850,22 @@ EntityItem* EntityItem::fromEditPacket(const unsigned char* data, int length, in
     // we don't actually do anything with this octcode...
     dataAt += lengthOfOctcode;
     processedBytes += lengthOfOctcode;
+    
+    // Edit packets have a last edited time stamp immediately following the octcode.
+    // NOTE: the edit times have been set by the editor to match out clock, so we don't need to adjust
+    // these times for clock skew at this point.
+    quint64 lastEdited;
+    memcpy(&lastEdited, dataAt, sizeof(lastEdited));
+    dataAt += sizeof(lastEdited);
+    processedBytes += sizeof(lastEdited);
 
-    // id
-    uint32_t editID;
-    memcpy(&editID, dataAt, sizeof(editID));
-    dataAt += sizeof(editID);
-    processedBytes += sizeof(editID);
+    // encoded id
+    QByteArray encodedID((const char*)dataAt, (length - processedBytes));
+    ByteCountCoded<quint32> idCoder = encodedID;
+    quint32 editID = idCoder;
+    encodedID = idCoder; // determine true length
+    dataAt += encodedID.size();
+    processedBytes += encodedID.size();
 
     if (wantDebug) {
         qDebug() << "EntityItem EntityItem::fromEditPacket() editID=" << editID;
@@ -866,25 +873,33 @@ EntityItem* EntityItem::fromEditPacket(const unsigned char* data, int length, in
 
     bool isNewEntityItem = (editID == NEW_ENTITY);
 
-    // special case for handling "new" modelItems
     if (isNewEntityItem) {
         // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
-        uint32_t creatorTokenID;
-        memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
-        dataAt += sizeof(creatorTokenID);
-        processedBytes += sizeof(creatorTokenID);
 
-        newEntityItem.setCreatorTokenID(creatorTokenID);
-        newEntityItem._newlyCreated = true;
+        QByteArray encodedToken((const char*)dataAt, (length - processedBytes));
+        ByteCountCoded<quint32> tokenCoder = encodedToken;
+        quint32 creatorTokenID = tokenCoder;
+        encodedToken = tokenCoder; // determine true length
+        dataAt += encodedToken.size();
+        processedBytes += encodedToken.size();
+
+        //newEntityItem.setCreatorTokenID(creatorTokenID);
+        //newEntityItem._newlyCreated = true;
+
         valid = true;
+
     } else {
         // look up the existing entityItem
         const EntityItem* existingEntityItem = tree->findEntityByID(editID, true);
 
         // copy existing properties before over-writing with new properties
         if (existingEntityItem) {
-            newEntityItem = *existingEntityItem;
+
+            // TODO: how do we want to handle these edits to existing packets???
+            
+            //newEntityItem = *existingEntityItem;
+            
             valid = true;
         } else {
             // the user attempted to edit a entityItem that doesn't exist
@@ -896,15 +911,39 @@ EntityItem* EntityItem::fromEditPacket(const unsigned char* data, int length, in
             // of the edit packet so that we don't end up out of sync on our bitstream
             // fall through....
         }
-        newEntityItem._id = editID;
-        newEntityItem._newlyCreated = false;
+
+        //newEntityItem._id = editID;
+        //newEntityItem._newlyCreated = false;
     }
     
-    // lastEdited
-    memcpy(&newEntityItem._lastEdited, dataAt, sizeof(newEntityItem._lastEdited));
-    dataAt += sizeof(newEntityItem._lastEdited);
-    processedBytes += sizeof(newEntityItem._lastEdited);
+    // Entity Type...
+    QByteArray encodedType((const char*)dataAt, (length - processedBytes));
+    ByteCountCoded<quint32> typeCoder = encodedType;
+    quint32 entityTypeCode = typeCoder;
+    EntityTypes::EntityType_t entityType = (EntityTypes::EntityType_t)entityTypeCode;
+    encodedType = typeCoder; // determine true length
+    dataAt += encodedType.size();
+    processedBytes += encodedType.size();
 
+    // Update Delta - when was this item updated relative to last edit... this really should be 0
+    // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
+    // last updated is stored as ByteCountCoded delta from lastEdited
+    QByteArray encodedUpdateDelta((const char*)dataAt, (length - processedBytes));
+    ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
+    quint64 updateDelta = updateDeltaCoder;
+    quint64 lastUpdated = lastEdited + updateDelta; // don't adjust for clock skew since we already did that for lastEdited
+   
+    encodedUpdateDelta = updateDeltaCoder; // determine true length
+    dataAt += encodedUpdateDelta.size();
+    processedBytes += encodedUpdateDelta.size();
+    
+    // Property Flags...
+    QByteArray encodedPropertyFlags((const char*)dataAt, (length - processedBytes));
+    EntityPropertyFlags propertyFlags = encodedPropertyFlags;
+    dataAt += propertyFlags.getEncodedLength();
+    processedBytes += propertyFlags.getEncodedLength();
+    
+/****    
     // All of the remaining items are optional, and may or may not be included based on their included values in the
     // properties included bits
     uint16_t packetContainsBits = 0;
@@ -1011,15 +1050,14 @@ EntityItem* EntityItem::fromEditPacket(const unsigned char* data, int length, in
     }
 #endif
 
+***/
     const bool wantDebugging = false;
     if (wantDebugging) {
         qDebug("EntityItem::fromEditPacket()...");
         qDebug() << "   EntityItem id in packet:" << editID;
-        newEntityItem.debugDump();
+        //newEntityItem.debugDump();
     }
     
-#endif
-
     // TODO: need to make this actually return something...
     return result;
 }
@@ -1081,12 +1119,6 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     // assuming we have rome to fit our octalCode, proceed...
     if (success) {
 
-        LevelDetails entityLevel = packetData.startLevel();
-
-        // Last Edited quint64 always first, before any other details, which allows us easy access to adjusting this
-        // timestamp for clock skew
-        bool successLastEditedFits = packetData.appendValue(properties.getLastEdited());
-
         // Now add our edit content details...
         bool isNewEntityItem = (id.id == NEW_ENTITY);
 
@@ -1127,12 +1159,20 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
 
         //qDebug() << "requestedProperties=";
         //requestedProperties.debugDumpBits();
+
+        LevelDetails entityLevel = packetData.startLevel();
+
+        // Last Edited quint64 always first, before any other details, which allows us easy access to adjusting this
+        // timestamp for clock skew
+        bool successLastEditedFits = packetData.appendValue(properties.getLastEdited());
     
         bool successIDFits = packetData.appendValue(encodedID);
         if (isNewEntityItem && successIDFits) {
             successIDFits = packetData.appendValue(encodedToken);
         }
         bool successTypeFits = packetData.appendValue(encodedType);
+
+        // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
         bool successLastUpdatedFits = packetData.appendValue(encodedUpdateDelta);
     
         int propertyFlagsOffset = packetData.getUncompressedByteOffset();
@@ -1430,192 +1470,13 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     return success;
 }
 
-#if 0 /// OLD VERSION
-bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-        unsigned char* bufferOut, int sizeIn, int& sizeOut) {
-
-    bool success = true; // assume the best
-    unsigned char* copyAt = bufferOut;
-    sizeOut = 0;
-
-    // get the octal code for the entityItem
-
-    // this could be a problem if the caller doesn't include position....
-    glm::vec3 rootPosition(0);
-    float rootScale = 0.5f;
-    unsigned char* octcode = pointToOctalCode(rootPosition.x, rootPosition.y, rootPosition.z, rootScale);
-
-    // TODO: Consider this old code... including the correct octree for where the entityItem will go matters for 
-    // entityItem servers with different jurisdictions, but for now, we'll send everything to the root, since the 
-    // tree does the right thing...
-    //
-    //unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y,
-    //                                          details[i].position.z, details[i].radius);
-
-    int octets = numberOfThreeBitSectionsInCode(octcode);
-    int lengthOfOctcode = bytesRequiredForCodeLength(octets);
-
-    // add it to our message
-    memcpy(copyAt, octcode, lengthOfOctcode);
-    copyAt += lengthOfOctcode;
-    sizeOut += lengthOfOctcode;
-
-    // Now add our edit content details...
-    bool isNewEntityItem = (id.id == NEW_ENTITY);
-
-    // id
-    memcpy(copyAt, &id.id, sizeof(id.id));
-    copyAt += sizeof(id.id);
-    sizeOut += sizeof(id.id);
-
-    // special case for handling "new" modelItems
-    if (isNewEntityItem) {
-        // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
-        // we want to send back to the creator as an map to the actual id
-        memcpy(copyAt, &id.creatorTokenID, sizeof(id.creatorTokenID));
-        copyAt += sizeof(id.creatorTokenID);
-        sizeOut += sizeof(id.creatorTokenID);
-    }
-    
-    // lastEdited
-    quint64 lastEdited = properties.getLastEdited();
-    memcpy(copyAt, &lastEdited, sizeof(lastEdited));
-    copyAt += sizeof(lastEdited);
-    sizeOut += sizeof(lastEdited);
-    
-    // For new modelItems, all remaining items are mandatory, for an edited entityItem, All of the remaining items are
-    // optional, and may or may not be included based on their included values in the properties included bits
-    uint16_t packetContainsBits = properties.getChangedBits();
-    if (!isNewEntityItem) {
-        memcpy(copyAt, &packetContainsBits, sizeof(packetContainsBits));
-        copyAt += sizeof(packetContainsBits);
-        sizeOut += sizeof(packetContainsBits);
-    }
-
-    // position
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_POSITION) == ENTITY_PACKET_CONTAINS_POSITION)) {
-        glm::vec3 position = properties.getPosition() / (float)TREE_SCALE;
-        memcpy(copyAt, &position, sizeof(position));
-        copyAt += sizeof(position);
-        sizeOut += sizeof(position);
-    }
-
-    // radius
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_RADIUS) == ENTITY_PACKET_CONTAINS_RADIUS)) {
-        float radius = properties.getRadius() / (float) TREE_SCALE;
-        memcpy(copyAt, &radius, sizeof(radius));
-        copyAt += sizeof(radius);
-        sizeOut += sizeof(radius);
-    }
-
-    // rotation
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_ROTATION) == ENTITY_PACKET_CONTAINS_ROTATION)) {
-        int bytes = packOrientationQuatToBytes(copyAt, properties.getRotation());
-        copyAt += bytes;
-        sizeOut += bytes;
-    }
-
-    // shoulDie
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_SHOULDDIE) == ENTITY_PACKET_CONTAINS_SHOULDDIE)) {
-        bool shouldBeDeleted = properties.getShouldBeDeleted();
-        memcpy(copyAt, &shouldBeDeleted, sizeof(shouldBeDeleted));
-        copyAt += sizeof(shouldBeDeleted);
-        sizeOut += sizeof(shouldBeDeleted);
-    }
-
-#if 0 //def HIDE_SUBCLASS_METHODS
-    // color
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_COLOR) == ENTITY_PACKET_CONTAINS_COLOR)) {
-        rgbColor color = { properties.getColor().red, properties.getColor().green, properties.getColor().blue };
-        memcpy(copyAt, color, sizeof(color));
-        copyAt += sizeof(color);
-        sizeOut += sizeof(color);
-    }
-
-    // modelURL
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_MODEL_URL) == ENTITY_PACKET_CONTAINS_MODEL_URL)) {
-        uint16_t urlLength = properties.getModelURL().size() + 1;
-        memcpy(copyAt, &urlLength, sizeof(urlLength));
-        copyAt += sizeof(urlLength);
-        sizeOut += sizeof(urlLength);
-        memcpy(copyAt, qPrintable(properties.getModelURL()), urlLength);
-        copyAt += urlLength;
-        sizeOut += urlLength;
-    }
-
-    // animationURL
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_ANIMATION_URL) == ENTITY_PACKET_CONTAINS_ANIMATION_URL)) {
-        uint16_t urlLength = properties.getAnimationURL().size() + 1;
-        memcpy(copyAt, &urlLength, sizeof(urlLength));
-        copyAt += sizeof(urlLength);
-        sizeOut += sizeof(urlLength);
-        memcpy(copyAt, qPrintable(properties.getAnimationURL()), urlLength);
-        copyAt += urlLength;
-        sizeOut += urlLength;
-    }
-
-    // animationIsPlaying
-    if (isNewEntityItem || ((packetContainsBits & 
-                    ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING) == ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING)) {
-                    
-        bool animationIsPlaying = properties.getAnimationIsPlaying();
-        memcpy(copyAt, &animationIsPlaying, sizeof(animationIsPlaying));
-        copyAt += sizeof(animationIsPlaying);
-        sizeOut += sizeof(animationIsPlaying);
-    }
-
-    // animationFrameIndex
-    if (isNewEntityItem || ((packetContainsBits & 
-                    ENTITY_PACKET_CONTAINS_ANIMATION_FRAME) == ENTITY_PACKET_CONTAINS_ANIMATION_FRAME)) {
-                    
-        float animationFrameIndex = properties.getAnimationFrameIndex();
-        memcpy(copyAt, &animationFrameIndex, sizeof(animationFrameIndex));
-        copyAt += sizeof(animationFrameIndex);
-        sizeOut += sizeof(animationFrameIndex);
-    }
-
-    // animationFPS
-    if (isNewEntityItem || ((packetContainsBits & 
-                    ENTITY_PACKET_CONTAINS_ANIMATION_FPS) == ENTITY_PACKET_CONTAINS_ANIMATION_FPS)) {
-                    
-        float animationFPS = properties.getAnimationFPS();
-        memcpy(copyAt, &animationFPS, sizeof(animationFPS));
-        copyAt += sizeof(animationFPS);
-        sizeOut += sizeof(animationFPS);
-    }
-#endif
-
-    bool wantDebugging = false;
-    if (wantDebugging) {
-        qDebug("encodeEntityItemEditMessageDetails()....");
-        qDebug("EntityItem id  :%u", id.id);
-        qDebug(" nextID:%u", _nextID);
-    }
-
-    // cleanup
-    delete[] octcode;
-    
-    return success;
-}
-#endif
 
 // adjust any internal timestamps to fix clock skew for this server
-void EntityItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
-    unsigned char* dataAt = codeColorBuffer;
+void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, ssize_t length, int clockSkew) {
+    unsigned char* dataAt = editPacketBuffer;
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
     dataAt += lengthOfOctcode;
-
-    // id
-    uint32_t id;
-    memcpy(&id, dataAt, sizeof(id));
-    dataAt += sizeof(id);
-    // special case for handling "new" modelItems
-    if (id == NEW_ENTITY) {
-        // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
-        // we want to send back to the creator as an map to the actual id
-        dataAt += sizeof(uint32_t);
-    }
 
     // lastEdited
     quint64 lastEditedInLocalTime;
@@ -1630,7 +1491,6 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ss
         qDebug() << "    lastEditedInServerTime: " << lastEditedInServerTime;
     }
 }
-
 
 #ifdef HIDE_SUBCLASS_METHODS
 QMap<QString, AnimationPointer> EntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
