@@ -135,7 +135,6 @@ void PositionalAudioRingBuffer::updateNextOutputTrailingLoudness() {
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
     const float LOUDNESS_EPSILON = 0.000001f;
     
-    float oldNextOutputTrailingLoudness = _nextOutputTrailingLoudness;
     if (nextLoudness >= _nextOutputTrailingLoudness) {
         _nextOutputTrailingLoudness = nextLoudness;
     } else {
