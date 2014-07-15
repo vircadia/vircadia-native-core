@@ -94,23 +94,21 @@ function playClap(volume, position) {
 	Audio.playSound(claps[clip], options);
 }
 
-var FASTEST_CLAP_INTERVAL = 100.0;
-var SLOWEST_CLAP_INTERVAL = 2000.0;
+var FASTEST_CLAP_INTERVAL = 150.0;
+var SLOWEST_CLAP_INTERVAL = 750.0;
 
 Controller.keyPressEvent.connect(function(event) {
 	if(event.text == "SHIFT") {
 		if (!clickClappingNow) {
 			clickClappingNow = true;
 			clickStartTime = new Date();
-			playClap(1.0, Camera.getPosition());
 			lastClapFrame = 0;
-			MyAvatar.startAnimation(clapAnimation, clapRate, 1.0, true, false);
 		} else {
-			//  Adjust animation speed for measured clicking interval
+			//  start or adjust clapping speed based on the duration between clicks
 			clickEndTime = new Date();
-			var milliseconds = clickEndTime - clickStartTime;
+			var milliseconds = Math.max(clickEndTime - clickStartTime, FASTEST_CLAP_INTERVAL);
 			clickStartTime = new Date();
-			if ((milliseconds < SLOWEST_CLAP_INTERVAL) && (milliseconds > FASTEST_CLAP_INTERVAL)) {
+			if (milliseconds < SLOWEST_CLAP_INTERVAL) {
 				clapRate = ANIMATION_FRAMES_PER_CLAP * (1000.0 / milliseconds);
 				playClap(1.0, Camera.getPosition());
 				MyAvatar.stopAnimation(clapAnimation);

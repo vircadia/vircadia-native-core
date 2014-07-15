@@ -95,3 +95,34 @@ std::ostream& operator<<(std::ostream& s, const CapsuleShape& capsule) {
 
 #endif // DEBUG
 
+#ifndef QT_NO_DEBUG_STREAM
+#include <QDebug>
+
+QDebug& operator<<(QDebug& dbg, const glm::vec3& v) {
+    dbg.nospace() << "{type='glm::vec3'"
+        ", x=" << v.x <<
+        ", y=" << v.y <<
+        ", z=" << v.z <<
+        "}";
+    return dbg;
+}
+
+QDebug& operator<<(QDebug& dbg, const glm::quat& q) {
+    dbg.nospace() << "{type='glm::quat'"
+        ", x=" << q.x <<
+        ", y=" << q.y <<
+        ", z=" << q.z <<
+        ", w=" << q.w <<
+        "}";
+    return dbg;
+}
+
+QDebug& operator<<(QDebug& dbg, const glm::mat4& m) {
+    dbg.nospace() << "{type='glm::mat4', [";
+    for (int j = 0; j < 4; ++j) {
+        dbg << ' ' << m[0][j] << ' ' << m[1][j] << ' ' << m[2][j] << ' ' << m[3][j] << ';';
+    }
+    return dbg << " ]}";
+}
+
+#endif // QT_NO_DEBUG_STREAM

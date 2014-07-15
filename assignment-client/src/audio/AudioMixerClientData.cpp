@@ -280,12 +280,12 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
         + " silents_dropped: ?"
         + " lost%:" + QString::number(streamStats._packetStreamStats.getLostRate() * 100.0f, 'f', 2)
         + " lost%_30s:" + QString::number(streamStats._packetStreamWindowStats.getLostRate() * 100.0f, 'f', 2)
-        + " min_gap:" + QString::number(streamStats._timeGapMin)
-        + " max_gap:" + QString::number(streamStats._timeGapMax)
-        + " avg_gap:" + QString::number(streamStats._timeGapAverage, 'f', 2)
-        + " min_gap_30s:" + QString::number(streamStats._timeGapWindowMin)
-        + " max_gap_30s:" + QString::number(streamStats._timeGapWindowMax)
-        + " avg_gap_30s:" + QString::number(streamStats._timeGapWindowAverage, 'f', 2);
+        + " min_gap:" + formatUsecTime(streamStats._timeGapMin)
+        + " max_gap:" + formatUsecTime(streamStats._timeGapMax)
+        + " avg_gap:" + formatUsecTime(streamStats._timeGapAverage)
+        + " min_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMin)
+        + " max_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMax)
+        + " avg_gap_30s:" + formatUsecTime(streamStats._timeGapWindowAverage);
 
     AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
     if (avatarRingBuffer) {
@@ -299,12 +299,12 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
             + " silents_dropped:" + QString::number(streamStats._ringBufferSilentFramesDropped)
             + " lost%:" + QString::number(streamStats._packetStreamStats.getLostRate() * 100.0f, 'f', 2)
             + " lost%_30s:" + QString::number(streamStats._packetStreamWindowStats.getLostRate() * 100.0f, 'f', 2)
-            + " min_gap:" + QString::number(streamStats._timeGapMin)
-            + " max_gap:" + QString::number(streamStats._timeGapMax)
-            + " avg_gap:" + QString::number(streamStats._timeGapAverage, 'f', 2)
-            + " min_gap_30s:" + QString::number(streamStats._timeGapWindowMin)
-            + " max_gap_30s:" + QString::number(streamStats._timeGapWindowMax)
-            + " avg_gap_30s:" + QString::number(streamStats._timeGapWindowAverage, 'f', 2);
+            + " min_gap:" + formatUsecTime(streamStats._timeGapMin)
+            + " max_gap:" + formatUsecTime(streamStats._timeGapMax)
+            + " avg_gap:" + formatUsecTime(streamStats._timeGapAverage)
+            + " min_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMin)
+            + " max_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMax)
+            + " avg_gap_30s:" + formatUsecTime(streamStats._timeGapWindowAverage);
     } else {
         result = "mic unknown";
     }
@@ -321,12 +321,12 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
                 + " silents_dropped:" + QString::number(streamStats._ringBufferSilentFramesDropped)
                 + " lost%:" + QString::number(streamStats._packetStreamStats.getLostRate() * 100.0f, 'f', 2)
                 + " lost%_30s:" + QString::number(streamStats._packetStreamWindowStats.getLostRate() * 100.0f, 'f', 2)
-                + " min_gap:" + QString::number(streamStats._timeGapMin)
-                + " max_gap:" + QString::number(streamStats._timeGapMax)
-                + " avg_gap:" + QString::number(streamStats._timeGapAverage, 'f', 2)
-                + " min_gap_30s:" + QString::number(streamStats._timeGapWindowMin)
-                + " max_gap_30s:" + QString::number(streamStats._timeGapWindowMax)
-                + " avg_gap_30s:" + QString::number(streamStats._timeGapWindowAverage, 'f', 2);
+                + " min_gap:" + formatUsecTime(streamStats._timeGapMin)
+                + " max_gap:" + formatUsecTime(streamStats._timeGapMax)
+                + " avg_gap:" + formatUsecTime(streamStats._timeGapAverage)
+                + " min_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMin)
+                + " max_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMax)
+                + " avg_gap_30s:" + formatUsecTime(streamStats._timeGapWindowAverage);
         }
     }
     return result;

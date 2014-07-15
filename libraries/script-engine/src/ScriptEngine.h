@@ -25,6 +25,7 @@
 #include <VoxelsScriptingInterface.h>
 
 #include "AbstractControllerScriptingInterface.h"
+#include "ArrayBufferClass.h"
 #include "Quat.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
@@ -56,6 +57,9 @@ public:
     /// Access the EntityScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static EntityScriptingInterface* getEntityScriptingInterface() { return &_entityScriptingInterface; }
 
+    QScriptEngine* getEngine() { return &_engine; }
+    ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
+    
     /// sets the script contents, will return false if failed, will fail if script is already running
     bool setScriptContents(const QString& scriptContents, const QString& fileNameString = QString(""));
 
@@ -147,6 +151,8 @@ private:
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
     AnimationCache _animationCache;
+    
+    ArrayBufferClass* _arrayBufferClass;
 
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 };
