@@ -430,6 +430,12 @@ var UPDATE_RATE = 1.0;
 var sandArray = [];
 var numSand = 0;
 
+//These arrays are used to buffer add/remove operations so they can be batched together
+var addArray = [];
+var addArraySize = 0;
+var removeArray = [];
+var removeArraySize = 0;
+
 var red = 234;
 var green = 206;
 var blue = 106;
@@ -439,8 +445,23 @@ function update() {
     for (var i = 0; i < numSand; i++) {
         updateSand(i);
     }
+    
+    //Remove all voxels that need to be moved
+    for (var i = 0; i < removeArraySize; i++) {
+        var elem = removeArray[i];
+        Voxels.eraseVoxel(elem.x, elem.y, elem.z, elem.s);
+    }
+    removeArraySize = 0;
+    
+    //Add all voxels that have moved
+    for (var i = 0; i < addArraySize; i++) {
+        var elem = addArray[i];
+        Voxels.setVoxel(elem.x, elem.y, elem.z, elem.s, elem.r, elem.g, elem.b);
+    }
+    addArraySize = 0;
 }
 
+//Adds a sphere of sand at the center cx,cy,cz
 function makeSphere(cx, cy, cz, r, voxelSize) {
 
     var r2 = r * r;
@@ -449,7 +470,7 @@ function makeSphere(cx, cy, cz, r, voxelSize) {
     var dy;
     var dz;
     
-      Voxels.setVoxel(cx, cy, cz, voxelSize, red, green, blue);
+    Voxels.setVoxel(cx, cy, cz, voxelSize, red, green, blue);
                     sandArray[numSand] = { x: cx, y: cy, z: cz, s: voxelSize, r: red, g: green, b: blue };
                     numSand++;
                     return 0;
@@ -472,9 +493,13 @@ function makeSphere(cx, cy, cz, r, voxelSize) {
 }
 
 function isVoxelEmpty(x, y, z, s) {
-    var adjacent = Voxels.getVoxelAt(x, y, z, s);
-    print(adjacent.s);
-    return (adjacent.s == 0);
+    var halfSize = s / 2;
+    var point = {x: x + halfSize, y: y + halfSize, z: z + halfSize };
+   
+    var adjacent = Voxels.getVoxelEnclosingPointBlocking(point);
+
+    //If color is all 0, we assume its air.
+    return (adjacent.red == 0 && adjacent.green == 0 && adjacent.blue == 0);
 }
 
 function tryMoveVoxel(voxel, x, y, z) {
@@ -487,8 +512,8 @@ function tryMoveVoxel(voxel, x, y, z) {
 }
 
 function moveVoxel(voxel, x, y, z) {
-    Voxels.eraseVoxel(voxel.x, voxel.y, voxel.z, voxel.s);
-    Voxels.setVoxel(x, y, z, voxel.s, red, green, blue);
+    removeArray[removeArraySize++] = {x: voxel.x, y: voxel.y, z: voxel.z, s: voxel.s};
+    addArray[addArraySize++] = {x: x, y: y, z: z, s: voxel.s, r: red, g: green, b: blue};
     voxel.x = x;
     voxel.y = y;
     voxel.z = z;
@@ -497,30 +522,29 @@ function moveVoxel(voxel, x, y, z) {
 function updateSand(i) {
     var voxel = sandArray[i];
     var size = voxel.s;
-    print("start");
+
     //Down
     if (tryMoveVoxel(voxel, voxel.x, voxel.y - size, voxel.z)) {
         return true;
     }
+    return;
     //Left
-    if (isVoxelEmpty(voxel.x - size, voxel.y, voxel.z) && isVoxelEmpty(voxel.x - size, voxel.y - size, voxel.z)) {
+    if (isVoxelEmpty(voxel.x - size, voxel.y, voxel.z, size) && isVoxelEmpty(voxel.x - size, voxel.y - size, voxel.z, size)) {
         moveVoxel(voxel, voxel.x - size, voxel.y, voxel.z);
-        print("LEFT");
         return true;
     }
     //Back
-    if (isVoxelEmpty(voxel.x, voxel.y, voxel.z - size) && isVoxelEmpty(voxel.x, voxel.y - size, voxel.z - size)) {
+    if (isVoxelEmpty(voxel.x, voxel.y, voxel.z - size, size) && isVoxelEmpty(voxel.x, voxel.y - size, voxel.z - size, size)) {
         moveVoxel(voxel, voxel.x, voxel.y, voxel.z - size);
         return true;
     }
     //Right
-    if (isVoxelEmpty(voxel.x + size, voxel.y, voxel.z) && isVoxelEmpty(voxel.x + size, voxel.y - size, voxel.z)) {
+    if (isVoxelEmpty(voxel.x + size, voxel.y, voxel.z, size) && isVoxelEmpty(voxel.x + size, voxel.y - size, voxel.z, size)) {
         moveVoxel(voxel, voxel.x + size, voxel.y, voxel.z);
-         print("Right");
         return true;
     }
     //Front
-    if (isVoxelEmpty(voxel.x, voxel.y, voxel.z + size) && isVoxelEmpty(voxel.x, voxel.y - size, voxel.z + size)) {
+    if (isVoxelEmpty(voxel.x, voxel.y, voxel.z + size, size) && isVoxelEmpty(voxel.x, voxel.y - size, voxel.z + size, size)) {
         moveVoxel(voxel, voxel.x, voxel.y, voxel.z + size);
         return true;
     }
