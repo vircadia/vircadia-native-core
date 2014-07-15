@@ -55,7 +55,7 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
     return closestSpanner;
 }
 
-void MetavoxelClientManager::setSphere(const glm::vec3& center, float radius, QRgb color) {
+void MetavoxelClientManager::setSphere(const glm::vec3& center, float radius, const QColor& color) {
     Sphere* sphere = new Sphere();
     sphere->setTranslation(center);
     sphere->setScale(radius);
