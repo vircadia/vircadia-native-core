@@ -44,8 +44,10 @@ void SharedObject::incrementReferenceCount() {
 
 void SharedObject::decrementReferenceCount() {
     if (!_referenceCount.deref()) {
-        QWriteLocker locker(&_weakHashLock);
-        _weakHash.remove(_id);
+        {
+            QWriteLocker locker(&_weakHashLock);
+            _weakHash.remove(_id);
+        }
         delete this;
     }
 }
