@@ -380,11 +380,11 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
             for (int i = 0; i < otherNodeClientData->getRingBuffers().size(); i++) {
                 PositionalAudioRingBuffer* otherNodeBuffer = otherNodeClientData->getRingBuffers()[i];
-
+                
                 if ((*otherNode != *node
                      || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->willBeAddedToMix()
-                    && otherNodeBuffer->getNextOutputTrailingLoudness() > 0) {
+                    && otherNodeBuffer->getNextOutputTrailingLoudness() > 0.0f) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
             }

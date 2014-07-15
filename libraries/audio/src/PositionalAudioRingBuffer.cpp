@@ -32,6 +32,7 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _shouldLoopbackForNode(false),
     _shouldOutputStarveDebug(true),
     _isStereo(isStereo),
+    _nextOutputTrailingLoudness(0.0f),
     _listenerUnattenuatedZone(NULL),
     _lastFrameReceivedTime(0),
     _interframeTimeGapStatsForJitterCalc(TIME_GAPS_FOR_JITTER_CALC_INTERVAL_SAMPLES, TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS),
@@ -121,26 +122,34 @@ void PositionalAudioRingBuffer::updateNextOutputTrailingLoudness() {
     // ForBoundarySamples means that we expect the number of samples not to roll of the end of the ring buffer
     float nextLoudness = 0;
     
-    for (int i = 0; i < _numFrameSamples; ++i) {
-        nextLoudness += fabsf(_nextOutput[i]);
+    if (samplesAvailable() >= _numFrameSamples) {
+        for (int i = 0; i < _numFrameSamples; ++i) {
+            nextLoudness += fabsf(_nextOutput[i]);
+        }
+        nextLoudness /= _numFrameSamples;
+        nextLoudness /= MAX_SAMPLE_VALUE;
     }
-    
-    nextLoudness /= _numFrameSamples;
-    nextLoudness /= MAX_SAMPLE_VALUE;
     
     const int TRAILING_AVERAGE_FRAMES = 100;
     const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
     const float LOUDNESS_EPSILON = 0.000001f;
     
+    float oldNextOutputTrailingLoudness = _nextOutputTrailingLoudness;
     if (nextLoudness >= _nextOutputTrailingLoudness) {
         _nextOutputTrailingLoudness = nextLoudness;
     } else {
         _nextOutputTrailingLoudness = (_nextOutputTrailingLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * nextLoudness);
-        
+
         if (_nextOutputTrailingLoudness < LOUDNESS_EPSILON) {
             _nextOutputTrailingLoudness = 0;
         }
+    }
+    
+    // fixes bug on Windows where _nextOutputTrailingLoudness sometimes becomes NaN.  In that case,
+    // revert _nextOutputTrailingLoudness to its previous value
+    if (isNaN(_nextOutputTrailingLoudness)) {
+        _nextOutputTrailingLoudness = oldNextOutputTrailingLoudness;
     }
 }
 
