@@ -32,10 +32,13 @@
 #include <VoxelDetail.h>
 
 #include "AnimationObject.h"
+#include "ArrayBufferViewClass.h"
+#include "DataViewClass.h"
 #include "MenuItemProperties.h"
 #include "MIDIEvent.h"
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
+#include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
@@ -90,7 +93,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _quatLibrary(),
     _vec3Library(),
     _uuidLibrary(),
-    _animationCache(this)
+    _animationCache(this),
+    _arrayBufferClass(new ArrayBufferClass(this))
 {
 }
 
@@ -115,13 +119,14 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _quatLibrary(),
     _vec3Library(),
     _uuidLibrary(),
-    _animationCache(this)
+    _animationCache(this),
+    _arrayBufferClass(new ArrayBufferClass(this))
 {
     QString scriptURLString = scriptURL.toString();
     _fileNameString = scriptURLString;
 
     QUrl url(scriptURL);
-
+    
     // if the scheme length is one or lower, maybe they typed in a file, let's try
     const int WINDOWS_DRIVE_LETTER_SIZE = 1;
     if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
@@ -210,7 +215,7 @@ void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
     }
-
+    
     _isInitialized = true;
 
     _voxelsScriptingInterface.init();
