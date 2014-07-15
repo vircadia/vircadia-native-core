@@ -1081,6 +1081,12 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
     // assuming we have rome to fit our octalCode, proceed...
     if (success) {
 
+        LevelDetails entityLevel = packetData.startLevel();
+
+        // Last Edited quint64 always first, before any other details, which allows us easy access to adjusting this
+        // timestamp for clock skew
+        bool successLastEditedFits = packetData.appendValue(properties.getLastEdited());
+
         // Now add our edit content details...
         bool isNewEntityItem = (id.id == NEW_ENTITY);
 
@@ -1122,14 +1128,11 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
         //qDebug() << "requestedProperties=";
         //requestedProperties.debugDumpBits();
     
-        LevelDetails entityLevel = packetData.startLevel();
-
         bool successIDFits = packetData.appendValue(encodedID);
         if (isNewEntityItem && successIDFits) {
             successIDFits = packetData.appendValue(encodedToken);
         }
         bool successTypeFits = packetData.appendValue(encodedType);
-        bool successLastEditedFits = packetData.appendValue(properties.getLastEdited());
         bool successLastUpdatedFits = packetData.appendValue(encodedUpdateDelta);
     
         int propertyFlagsOffset = packetData.getUncompressedByteOffset();

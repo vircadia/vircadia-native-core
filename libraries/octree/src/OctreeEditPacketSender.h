@@ -90,7 +90,7 @@ public:
 
     // you must override these...
     virtual char getMyNodeType() const = 0;
-    virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { };
+    virtual void adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, ssize_t length, int clockSkew) { };
 
 public slots:
     void nodeKilled(SharedNodePointer node);

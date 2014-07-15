@@ -209,8 +209,8 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
 }
 
 
-// NOTE: codeColorBuffer - is JUST the octcode/color and does not contain the packet header!
-void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned char* codeColorBuffer, ssize_t length) {
+// NOTE: editPacketBuffer - is JUST the octcode/color and does not contain the packet header!
+void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned char* editPacketBuffer, ssize_t length) {
 
     if (!_shouldSend) {
         return; // bail early
@@ -220,7 +220,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
     // jurisdictions for processing
     if (!serversExist()) {
         if (_maxPendingMessages > 0) {
-            EditPacketBuffer* packet = new EditPacketBuffer(type, codeColorBuffer, length);
+            EditPacketBuffer* packet = new EditPacketBuffer(type, editPacketBuffer, length);
             _pendingPacketsLock.lock();
             _preServerPackets.push_back(packet);
 
@@ -253,7 +253,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
                 _serverJurisdictions->lockForRead();
                 if ((*_serverJurisdictions).find(nodeUUID) != (*_serverJurisdictions).end()) {
                     const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
-                    isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+                    isMyJurisdiction = (map.isMyJurisdiction(editPacketBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
                 } else {
                     isMyJurisdiction = false;
                 }
@@ -280,10 +280,10 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
                 // We call this virtual function that allows our specific type of EditPacketSender to
                 // fixup the buffer for any clock skew
                 if (node->getClockSkewUsec() != 0) {
-                    adjustEditPacketForClockSkew(codeColorBuffer, length, node->getClockSkewUsec());
+                    adjustEditPacketForClockSkew(editPacketBuffer, length, node->getClockSkewUsec());
                 }
 
-                memcpy(&packetBuffer._currentBuffer[packetBuffer._currentSize], codeColorBuffer, length);
+                memcpy(&packetBuffer._currentBuffer[packetBuffer._currentSize], editPacketBuffer, length);
                 packetBuffer._currentSize += length;
             }
         }
