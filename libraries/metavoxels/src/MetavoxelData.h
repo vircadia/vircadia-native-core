@@ -201,7 +201,7 @@ public:
     void readDelta(const MetavoxelNode& reference, MetavoxelStreamState& state);
     void writeDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const;
 
-    bool readSubdivision(MetavoxelStreamState& state);
+    MetavoxelNode* readSubdivision(MetavoxelStreamState& state);
     void writeSubdivision(MetavoxelStreamState& state) const;
 
     void writeSpanners(MetavoxelStreamState& state) const;
