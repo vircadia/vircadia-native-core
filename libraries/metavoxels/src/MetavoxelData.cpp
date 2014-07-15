@@ -47,13 +47,8 @@ bool MetavoxelLOD::becameSubdivided(const glm::vec3& minimum, float size,
     if (!shouldSubdivide(minimum, size, multiplier)) {
         return false; // this one must be subdivided
     }
-    // the general check is whether we've gotten closer (as multiplied by the threshold) to any point in the volume,
-    // which we approximate as a sphere for simplicity
-    float halfSize = size * 0.5f;
-    glm::vec3 center = minimum + glm::vec3(halfSize, halfSize, halfSize);
-    float radius = sqrtf(3 * halfSize * halfSize);
-    return qMax(0.0f, glm::distance(position, center) - radius) * threshold <=
-        qMax(0.0f, glm::distance(reference.position, center) - radius) * reference.threshold;
+    // TODO: find some way of culling subtrees that can't possibly contain subdivided nodes
+    return true;
 }
 
 MetavoxelData::MetavoxelData() : _size(1.0f) {
