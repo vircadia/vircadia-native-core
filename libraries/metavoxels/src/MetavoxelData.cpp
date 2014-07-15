@@ -767,7 +767,7 @@ void MetavoxelNode::mergeChildren(const AttributePointer& attribute, bool postRe
         childValues[i] = _children[i]->_attributeValue;
         allLeaves &= _children[i]->isLeaf();
     }
-    if (attribute->merge(_attributeValue, childValues, postRead) && allLeaves) {
+    if (attribute->merge(_attributeValue, childValues, postRead) && allLeaves && !postRead) {
         clearChildren(attribute);
     }
 }
@@ -917,6 +917,7 @@ bool MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
                 _children[i] = new MetavoxelNode(state.attribute);
                 _children[i]->read(nextState);
             }
+            mergeChildren(state.attribute, true);
             return true;
             
         } else {
@@ -931,6 +932,9 @@ bool MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
                         changed = true;
                     }
                 }
+            }
+            if (changed) {
+                mergeChildren(state.attribute, true);
             }
             return changed;
         }
