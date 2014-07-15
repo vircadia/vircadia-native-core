@@ -168,7 +168,7 @@ signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
 protected:
-    QVector<Hair*> _hairs;
+    Hair _hair;
     SkeletonModel _skeletonModel;
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
@@ -214,18 +214,6 @@ protected:
     virtual void renderAttachments(RenderMode renderMode);
 
     virtual void updateJointMappings();
-    
-    glm::vec3 _hairPosition[HAIR_STRANDS * HAIR_LINKS];
-    glm::vec3 _hairOriginalPosition[HAIR_STRANDS * HAIR_LINKS];
-    glm::vec3 _hairLastPosition[HAIR_STRANDS * HAIR_LINKS];
-    glm::vec3 _hairQuadDelta[HAIR_STRANDS * HAIR_LINKS];
-    glm::vec3 _hairNormals[HAIR_STRANDS * HAIR_LINKS];
-    glm::vec3 _hairColors[HAIR_STRANDS * HAIR_LINKS];
-    int _hairIsMoveable[HAIR_STRANDS * HAIR_LINKS];
-    int _hairConstraints[HAIR_STRANDS * HAIR_LINKS * 2];     // Hair can link to two others
-    void renderHair();
-    void simulateHair(float deltaTime);
-    void initializeHair();
 
 private:
 
@@ -237,6 +225,7 @@ private:
     void renderBillboard();
     
     float getBillboardSize() const;
+    
     
 };
 
