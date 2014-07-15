@@ -254,7 +254,6 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
                 delayNextOutputStart = bufferStart + ringBufferSampleCapacity - numSamplesDelay;
             }
             
-
             for (int i = 0; i < numSamplesDelay; i++) {
                 int parentIndex = i * 2;
                 _clientSamples[parentIndex + delayedChannelOffset] += delayNextOutputStart[i] * attenuationAndWeakChannelRatio;
