@@ -17,7 +17,6 @@ var currentSelection = 0;
 var currentNumLights = 1;
 var maxNumLights = 2;
 var currentNumAvatars = 0;
-var avatarHashIDs = [];
 
 function keyPressEvent(event) {
 
@@ -142,23 +141,14 @@ function updateLocalLights()
 	// new avatars, so add lights
 	var numAvatars = AvatarManager.getNumAvatars();
 	if (numAvatars != currentNumAvatars) {
-		
+			
 		for (var i = 0; i < numAvatars; i++) {
 			var id = AvatarManager.getAvatarHashKey(i);
 			
-			// check if avatar has already been registered
-			var hasRegistered = false;
-			for (var j = 0; j < numAvatars; j++) {
-				if (avatarHashIDs[j] == id) {
-					hasRegistered = true;
-					break;
-				}
-			}
+			var numLights = AvatarManager.getNumLightsInAvatar(i);
 			
-			// add new id and set light params
-			if (!hasRegistered) {
-				
-				avatarHashIDs.push(id);
+			// check if new avatar has lights
+			if (numLights <= 0) {
 				AvatarManager.addAvatarLocalLight(i);
 				
 				// set color and direction for new avatar
