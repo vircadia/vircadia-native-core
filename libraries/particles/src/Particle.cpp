@@ -368,7 +368,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     uint32_t editID;
 
     // check to make sure we have enough content to keep reading...
-    if (length - processedBytes - sizeof(editID) < 0) {
+    if (length - (processedBytes + (int)sizeof(editID)) < 0) {
         valid = false;
         processedBytes = length;
         return newParticle; // fail as if we read the entire buffer
@@ -387,7 +387,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         uint32_t creatorTokenID;
 
         // check to make sure we have enough content to keep reading...
-        if (length - processedBytes - sizeof(creatorTokenID) < 0) {
+        if (length - (processedBytes + (int)sizeof(creatorTokenID)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -426,7 +426,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     
     // lastEdited
     // check to make sure we have enough content to keep reading...
-    if (length - processedBytes - sizeof(newParticle._lastEdited) < 0) {
+    if (length - (processedBytes + (int)sizeof(newParticle._lastEdited)) < 0) {
         valid = false;
         processedBytes = length;
         return newParticle; // fail as if we read the entire buffer
@@ -439,7 +439,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     // properties included bits
     uint16_t packetContainsBits = 0;
     if (!isNewParticle) {
-        if (length - processedBytes - sizeof(packetContainsBits) < 0) {
+        if (length - (processedBytes + (int)sizeof(packetContainsBits)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -452,7 +452,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // radius
     if (isNewParticle || ((packetContainsBits & CONTAINS_RADIUS) == CONTAINS_RADIUS)) {
-        if (length - processedBytes - sizeof(newParticle._radius) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._radius)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -464,7 +464,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // position
     if (isNewParticle || ((packetContainsBits & CONTAINS_POSITION) == CONTAINS_POSITION)) {
-        if (length - processedBytes - sizeof(newParticle._position) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._position)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -476,7 +476,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // color
     if (isNewParticle || ((packetContainsBits & CONTAINS_COLOR) == CONTAINS_COLOR)) {
-        if (length - processedBytes - sizeof(newParticle._color) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._color)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -488,7 +488,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // velocity
     if (isNewParticle || ((packetContainsBits & CONTAINS_VELOCITY) == CONTAINS_VELOCITY)) {
-        if (length - processedBytes - sizeof(newParticle._velocity) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._velocity)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -500,7 +500,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // gravity
     if (isNewParticle || ((packetContainsBits & CONTAINS_GRAVITY) == CONTAINS_GRAVITY)) {
-        if (length - processedBytes - sizeof(newParticle._gravity) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._gravity)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -512,7 +512,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // damping
     if (isNewParticle || ((packetContainsBits & CONTAINS_DAMPING) == CONTAINS_DAMPING)) {
-        if (length - processedBytes - sizeof(newParticle._damping) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._damping)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -524,7 +524,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // lifetime
     if (isNewParticle || ((packetContainsBits & CONTAINS_LIFETIME) == CONTAINS_LIFETIME)) {
-        if (length - processedBytes - sizeof(newParticle._lifetime) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._lifetime)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -537,7 +537,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     // TODO: make inHand and shouldDie into single bits
     // inHand
     if (isNewParticle || ((packetContainsBits & CONTAINS_INHAND) == CONTAINS_INHAND)) {
-        if (length - processedBytes - sizeof(newParticle._inHand) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._inHand)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -549,7 +549,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // shouldDie
     if (isNewParticle || ((packetContainsBits & CONTAINS_SHOULDDIE) == CONTAINS_SHOULDDIE)) {
-        if (length - processedBytes - sizeof(newParticle._shouldDie) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._shouldDie)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -562,7 +562,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     // script
     if (isNewParticle || ((packetContainsBits & CONTAINS_SCRIPT) == CONTAINS_SCRIPT)) {
         uint16_t scriptLength;
-        if (length - processedBytes - sizeof(scriptLength) < 0) {
+        if (length - (processedBytes + (int)sizeof(scriptLength)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -571,7 +571,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         dataAt += sizeof(scriptLength);
         processedBytes += sizeof(scriptLength);
 
-        if (length - processedBytes - scriptLength < 0) {
+        if (length - (processedBytes + (int)scriptLength) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -585,7 +585,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     // modelURL
     if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_URL) == CONTAINS_MODEL_URL)) {
         uint16_t modelURLLength;
-        if (length - processedBytes - sizeof(modelURLLength) < 0) {
+        if (length - (processedBytes + (int)sizeof(modelURLLength)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -594,7 +594,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         dataAt += sizeof(modelURLLength);
         processedBytes += sizeof(modelURLLength);
 
-        if (length - processedBytes - modelURLLength < 0) {
+        if (length - (processedBytes + (int)modelURLLength) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -607,7 +607,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // modelScale
     if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_SCALE) == CONTAINS_MODEL_SCALE)) {
-        if (length - processedBytes - sizeof(newParticle._modelScale) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._modelScale)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -619,7 +619,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // modelTranslation
     if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_TRANSLATION) == CONTAINS_MODEL_TRANSLATION)) {
-        if (length - processedBytes - sizeof(newParticle._modelTranslation) < 0) {
+        if (length - (processedBytes + (int)sizeof(newParticle._modelTranslation)) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
@@ -632,7 +632,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     // modelRotation
     if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_ROTATION) == CONTAINS_MODEL_ROTATION)) {
         const int expectedBytesForPackedQuat = sizeof(uint16_t) * 4; // this is how we pack the quats
-        if (length - processedBytes - expectedBytesForPackedQuat < 0) {
+        if (length - (processedBytes + expectedBytesForPackedQuat) < 0) {
             valid = false;
             processedBytes = length;
             return newParticle; // fail as if we read the entire buffer
