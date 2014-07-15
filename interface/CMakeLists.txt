@@ -131,7 +131,7 @@ link_hifi_library(audio ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
 
-# find any optional libraries
+# find any optional and required libraries
 find_package(Faceplus)
 find_package(Faceshift)
 find_package(LibOVR)
@@ -142,6 +142,7 @@ find_package(Visage)
 find_package(ZLIB)
 find_package(Qxmpp)
 find_package(RtMidi)
+find_package(NSS REQUIRED)
 
 # include the Sixense library for Razer Hydra if available
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
@@ -233,12 +234,13 @@ include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes"
 
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
+include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${NSS_INCLUDE_DIRS}")
 
 target_link_libraries(
   ${TARGET_NAME}
   "${FACESHIFT_LIBRARIES}"
   "${ZLIB_LIBRARIES}"
+  "${NSS_LIBRARIES}"
   Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
   Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
 )
