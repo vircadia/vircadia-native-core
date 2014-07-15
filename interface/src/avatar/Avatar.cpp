@@ -62,7 +62,7 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
-    _numLocalLights(2),
+    _numLocalLights(0),
     _initialized(false),
     _shouldRenderBillboard(true)
 {
@@ -84,23 +84,6 @@ void Avatar::init() {
     _skeletonModel.init();
     _initialized = true;
     _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
-
-    for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
-        _localLightColors[i] = glm::vec3(0.0f, 0.0f, 0.0f);
-        _localLightDirections[i] = glm::vec3(0.0f, 0.0f, 0.0f);
-    }
-  
-    glm::vec3 darkGrayColor(0.4f, 0.4f, 0.4f);
-    glm::vec3 greenColor(0.0f, 1.0f, 0.0f);
-    glm::vec3 directionX(1.0f, 0.0f, 0.0f);
-    glm::vec3 directionY(0.0f, 1.0f, 0.0f);
- 
-    // initialize local lights
-    _localLightColors[0] = darkGrayColor;
-    _localLightColors[1] = darkGrayColor;
-    
-    _localLightDirections[0] = directionX;
-    _localLightDirections[1] = directionY;
 }
 
 glm::vec3 Avatar::getChestPosition() const {
