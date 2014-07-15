@@ -149,6 +149,7 @@ void PositionalAudioRingBuffer::updateNextOutputTrailingLoudness() {
     // fixes bug on Windows where _nextOutputTrailingLoudness sometimes becomes NaN.  In that case,
     // revert _nextOutputTrailingLoudness to its previous value
     if (isNaN(_nextOutputTrailingLoudness)) {
+        printf("next output trailling loudness NaN!! --------------------------------------\n");
         _nextOutputTrailingLoudness = oldNextOutputTrailingLoudness;
     }
 }
