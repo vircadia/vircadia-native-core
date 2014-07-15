@@ -24,6 +24,7 @@ class MyAvatar;
 
 class AvatarManager : public AvatarHashMap {
     Q_OBJECT
+
 public:
     AvatarManager(QObject* parent = 0);
 
@@ -36,6 +37,14 @@ public:
     
     void clearOtherAvatars();
     
+public slots:
+    void setAvatarLightColor(const glm::vec3& color, int lightIndex, int avatarIndex);
+    void setAvatarLightDirection(const glm::vec3& direction, int lightIndex, int avatarIndex);
+    void removeAvatarLocalLight(int avatarIndex);
+    void addAvatarLocalLight(int avatarIndex);
+    int getNumAvatars();
+    QString getAvatarHashKey(int index);
+    
 private:
     AvatarManager(const AvatarManager& other);
 
@@ -43,6 +52,8 @@ private:
     void renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode);
     
     AvatarSharedPointer newSharedAvatar();
+    
+    Avatar* getAvatarFromIndex(int avatarIndex);
     
     // virtual override
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
