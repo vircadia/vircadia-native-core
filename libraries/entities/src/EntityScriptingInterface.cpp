@@ -70,9 +70,10 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
     }
     if (_entityTree) {
         _entityTree->lockForRead();
-        const EntityItem* model = _entityTree->findEntityByID(identity.id, true);
-        if (model) {
-            results = model->getProperties();
+        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByID(identity.id, true));
+        if (entity) {
+            entity->setSittingPoints(_entityTree->getGeometryForEntity(*entity)->sittingPoints);
+            results = entity->getProperties();
         } else {
             results.setIsUnknownID();
         }

@@ -19,6 +19,7 @@
 
 #include <AvatarData.h>
 
+#include "Hair.h"
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
@@ -151,14 +152,23 @@ public:
     
     glm::vec3 getAcceleration() const { return _acceleration; }
     glm::vec3 getAngularVelocity() const { return _angularVelocity; }
+
+    /// Scales a world space position vector relative to the avatar position and scale
+    /// \param vector position to be scaled. Will store the result
+    void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
     
 public slots:
     void updateCollisionGroups();
-
+    void setLocalLightDirection(const glm::vec3& direction, int lightIndex);
+    void setLocalLightColor(const glm::vec3& color, int lightIndex);
+    void addLocalLight();
+    void removeLocalLight();   
+ 
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
 protected:
+    QVector<Hair*> _hairs;
     SkeletonModel _skeletonModel;
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
@@ -174,9 +184,14 @@ protected:
     glm::vec3 _mouseRayDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-
+    
     quint32 _collisionGroups;
-
+    
+    // always-present local lighting for the avatar
+    glm::vec3 _localLightDirections[MAX_LOCAL_LIGHTS];
+    glm::vec3 _localLightColors[MAX_LOCAL_LIGHTS];
+    int _numLocalLights;
+ 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }

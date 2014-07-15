@@ -78,6 +78,8 @@ PacketVersion versionForPacketType(PacketType type) {
             return VERSION_ENTITIES_SUPPORT_SPLIT_MTU;
         case PacketTypeEntityErase:
             return 1;
+        case PacketTypeAudioStreamStats:
+            return 1;
         default:
             return 0;
     }

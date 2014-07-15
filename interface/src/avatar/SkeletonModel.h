@@ -109,6 +109,7 @@ public:
     void resetShapePositionsToDefaultPose(); // DEBUG method
 
     void renderRagdoll();
+    
 protected:
 
     // virtual overrrides from Ragdoll

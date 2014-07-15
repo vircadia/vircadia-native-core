@@ -14,12 +14,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
-
-#include <NodeList.h>
-#include <PacketHeaders.h>
-#include <SharedUtil.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <GeometryUtil.h>
+#include <NodeList.h>
+#include <PacketHeaders.h>
+#include <PerfStat.h>
+#include <SharedUtil.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -59,6 +60,7 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
+    _numLocalLights(2),
     _initialized(false),
     _shouldRenderBillboard(true)
 {
@@ -81,6 +83,23 @@ void Avatar::init() {
     _initialized = true;
     _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
     initializeHair();
+   
+    for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
+        _localLightColors[i] = glm::vec3(0.0f, 0.0f, 0.0f);
+        _localLightDirections[i] = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+  
+    glm::vec3 darkGrayColor(0.4f, 0.4f, 0.4f);
+    glm::vec3 greenColor(0.0f, 1.0f, 0.0f);
+    glm::vec3 directionX(1.0f, 0.0f, 0.0f);
+    glm::vec3 directionY(0.0f, 1.0f, 0.0f);
+ 
+    // initialize local lights
+    _localLightColors[0] = darkGrayColor;
+    _localLightColors[1] = darkGrayColor;
+    
+    _localLightDirections[0] = directionX;
+    _localLightDirections[1] = directionY;
 }
 
 glm::vec3 Avatar::getChestPosition() const {
@@ -99,6 +118,7 @@ float Avatar::getLODDistance() const {
 }
 
 void Avatar::simulate(float deltaTime) {
+    PerformanceTimer perfTimer("simulate");
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
@@ -118,31 +138,43 @@ void Avatar::simulate(float deltaTime) {
     bool inViewFrustum = Application::getInstance()->getViewFrustum()->sphereInFrustum(_position, boundingRadius) !=
         ViewFrustum::OUTSIDE;
 
-    getHand()->simulate(deltaTime, false);
+    {
+        PerformanceTimer perfTimer("hand");
+        getHand()->simulate(deltaTime, false);
+    }
     _skeletonModel.setLODDistance(getLODDistance());
     
     if (!_shouldRenderBillboard && inViewFrustum) {
-        if (_hasNewJointRotations) {
-            for (int i = 0; i < _jointData.size(); i++) {
-                const JointData& data = _jointData.at(i);
-                _skeletonModel.setJointState(i, data.valid, data.rotation);
+        {
+            PerformanceTimer perfTimer("skeleton");
+            if (_hasNewJointRotations) {
+                for (int i = 0; i < _jointData.size(); i++) {
+                    const JointData& data = _jointData.at(i);
+                    _skeletonModel.setJointState(i, data.valid, data.rotation);
+                }
             }
-            _skeletonModel.simulate(deltaTime);
+            _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
+            simulateAttachments(deltaTime);
+            _hasNewJointRotations = false;
         }
-        _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
-        simulateAttachments(deltaTime);
-        _hasNewJointRotations = false;
-
-        glm::vec3 headPosition = _position;
-        _skeletonModel.getHeadPosition(headPosition);
-        Head* head = getHead();
-        head->setPosition(headPosition);
-        head->setScale(_scale);
-        head->simulate(deltaTime, false, _shouldRenderBillboard);
-        
+        {
+            PerformanceTimer perfTimer("head");
+            glm::vec3 headPosition = _position;
+            _skeletonModel.getHeadPosition(headPosition);
+            Head* head = getHead();
+            head->setPosition(headPosition);
+            head->setScale(_scale);
+            head->simulate(deltaTime, false, _shouldRenderBillboard);
+        }
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
+            PerformanceTimer perfTimer("hair");
             simulateHair(deltaTime);
         }
+        
+        foreach (Hair* hair, _hairs) {
+            hair->simulate(deltaTime);
+        }
+
     }
     
     // update position by velocity, and subtract the change added earlier for gravity
@@ -219,7 +251,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         const float GLOW_DISTANCE = 20.0f;
         const float GLOW_MAX_LOUDNESS = 2500.0f;
         const float MAX_GLOW = 0.5f;
-        
+     
         float GLOW_FROM_AVERAGE_LOUDNESS = ((this == Application::getInstance()->getAvatar())
                                             ? 0.0f
                                             : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
@@ -230,7 +262,23 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
                       ? 1.0f
                       : GLOW_FROM_AVERAGE_LOUDNESS;
-
+        
+        
+        // local lights directions and colors
+        getSkeletonModel().setNumLocalLights(_numLocalLights);
+        getHead()->getFaceModel().setNumLocalLights(_numLocalLights);
+        for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
+            glm::vec3 normalized = glm::normalize(_localLightDirections[i]);
+            
+            // body
+            getSkeletonModel().setLocalLightColor(_localLightColors[i], i);
+            getSkeletonModel().setLocalLightDirection(normalized, i);
+            
+            // head
+            getHead()->getFaceModel().setLocalLightColor(_localLightColors[i], i);
+            getHead()->getFaceModel().setLocalLightDirection(_localLightDirections[i], i);
+        }
+        
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode, glowLevel);
@@ -252,7 +300,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             }
 
             // If this is the avatar being looked at, render a little ball above their head
-            if (_isLookAtTarget) {
+            if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::FocusIndicators)) {
                 const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
                 const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
                 const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.75f };
@@ -380,6 +428,9 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
     getHead()->render(1.0f, modelRenderMode);
     if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
         renderHair();
+        foreach (Hair* hair, _hairs) {
+            hair->render();
+        }
     }
 }
 
@@ -603,7 +654,6 @@ void Avatar::initializeHair() {
             
         }
     }
-    qDebug() << "Initialize Hair";
 }
 
 bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
@@ -920,6 +970,11 @@ glm::quat Avatar::getJointCombinedRotation(const QString& name) const {
     return rotation;
 }
 
+void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
+    //Scale a world space vector as if it was relative to the position
+    positionToScale = _position + _scale * (positionToScale - _position);
+}
+
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");
@@ -1105,5 +1160,31 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
         _displayNameTargetAlpha = 0.0f;
     }
 
+}
+
+void Avatar::setLocalLightDirection(const glm::vec3& direction, int lightIndex) {
+    _localLightDirections[lightIndex] = direction;
+    qDebug( "set light %d direction ( %f, %f, %f )\n", lightIndex, direction.x, direction.y, direction.z );
+}
+
+void Avatar::setLocalLightColor(const glm::vec3& color, int lightIndex) {
+    _localLightColors[lightIndex] = color;
+    qDebug( "set light %d color ( %f, %f, %f )\n", lightIndex, color.x, color.y, color.z );
+}
+
+void Avatar::addLocalLight() {
+    if (_numLocalLights + 1 <= MAX_LOCAL_LIGHTS) {
+        ++_numLocalLights;
+    }
+
+    qDebug("ADD LOCAL LIGHT (numLocalLights = %d)\n", _numLocalLights);
+}
+
+void Avatar::removeLocalLight() {
+    if (_numLocalLights - 1 >= 0) {
+        --_numLocalLights;
+    }
+    
+    qDebug("REMOVE LOCAL LIGHT (numLocalLights = %d)\n", _numLocalLights);
 }
 

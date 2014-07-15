@@ -66,14 +66,14 @@ public:
     void restoreRotation(float fraction, float priority);
 
     /// \param rotation is from bind- to model-frame
-    /// computes and sets new _rotationInParentFrame
+    /// computes and sets new _rotationInConstrainedFrame
     /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
     void setRotationFromBindFrame(const glm::quat& rotation, float priority, bool constrain = false);
 
-    void setRotationInParentFrame(const glm::quat& targetRotation);
-    const glm::quat& getRotationInParentFrame() const { return _rotationInParentFrame; }
+    void setRotationInConstrainedFrame(const glm::quat& targetRotation);
+    const glm::quat& getRotationInConstrainedFrame() const { return _rotationInConstrainedFrame; }
 
-    const glm::vec3& getDefaultTranslationInParentFrame() const;
+    const glm::vec3& getDefaultTranslationInConstrainedFrame() const;
 
 
     void clearTransformTranslation();
@@ -92,11 +92,11 @@ private:
 
     glm::mat4 _transform; // joint- to model-frame
     glm::quat _rotation;  // joint- to model-frame
-    glm::quat _rotationInParentFrame; // joint- to parentJoint-frame
+    glm::quat _rotationInConstrainedFrame; // rotation in frame where angular constraints would be applied
 
     glm::mat4 _visibleTransform;
     glm::quat _visibleRotation;
-    glm::quat _visibleRotationInParentFrame;
+    glm::quat _visibleRotationInConstrainedFrame;
 
     const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
     AngularConstraint* _constraint; // JointState owns its AngularConstraint

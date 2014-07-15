@@ -276,6 +276,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
                                             appInstance, SLOT(cameraMenuChanged()));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::UserInterface, Qt::Key_Slash, true);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
@@ -326,7 +327,7 @@ Menu::Menu() :
 
 
     addDisabledActionAndSeparator(viewMenu, "Stats");
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Percent);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, appInstance, SLOT(toggleLogDialog()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
@@ -406,9 +407,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
-
-    QMenu* oculusOptionsMenu = developerMenu->addMenu("Oculus Options");
-    addCheckableActionToQMenuAndActionHash(oculusOptionsMenu, MenuOption::DisplayOculusOverlays, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::FocusIndicators, 0, false);
 
     QMenu* sixenseOptionsMenu = developerMenu->addMenu("Sixense Options");
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
@@ -421,6 +420,13 @@ Menu::Menu() :
                                            true,
                                            appInstance->getSixenseManager(),
                                            SLOT(setFilter(bool)));
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu,
+                                           MenuOption::LowVelocityFilter,
+                                           0,
+                                           true,
+                                           appInstance,
+                                           SLOT(setLowVelocityFilter(bool)));
+
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandsCollideWithSelf, 0, false);
@@ -435,13 +441,11 @@ Menu::Menu() :
     QMenu* timingMenu = developerMenu->addMenu("Timing and Statistics Tools");
     QMenu* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayTimingDetails, 0, true);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandDisplaySideTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandAvatarSimulateTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandAvatarUpdateTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMiscAvatarTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandIdleTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandUpdateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarSimulateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandOtherAvatarTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
 
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
@@ -574,6 +578,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_U,
                                            false);
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, false);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,

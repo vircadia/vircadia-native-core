@@ -10,6 +10,9 @@
 //
 
 #include <QDateTime>
+#include <QFile>
+#include <QSaveFile>
+#include <QThread>
 
 #include <PacketHeaders.h>
 
@@ -44,6 +47,18 @@ void MetavoxelServer::run() {
     
     _lastSend = QDateTime::currentMSecsSinceEpoch();
     _sendTimer.start(SEND_INTERVAL);
+    
+    // initialize Bitstream before using it in multiple threads
+    Bitstream::preThreadingInit();
+    
+    // create the persister and start it in its own thread
+    _persister = new MetavoxelPersister(this);
+    QThread* persistenceThread = new QThread(this);
+    _persister->moveToThread(persistenceThread);
+    persistenceThread->start();
+    
+    // queue up the load
+    QMetaObject::invokeMethod(_persister, "load");
 }
 
 void MetavoxelServer::readPendingDatagrams() {
@@ -67,6 +82,12 @@ void MetavoxelServer::readPendingDatagrams() {
     }
 }
 
+void MetavoxelServer::aboutToFinish() {
+    QMetaObject::invokeMethod(_persister, "save", Q_ARG(const MetavoxelData&, _data));
+    _persister->thread()->quit();
+    _persister->thread()->wait();
+}
+
 void MetavoxelServer::maybeAttachSession(const SharedNodePointer& node) {
     if (node->getType() == NodeType::Agent) {
         QMutexLocker locker(&node->getMutex());
@@ -87,13 +108,14 @@ void MetavoxelServer::sendDeltas() {
     int elapsed = now - _lastSend;
     _lastSend = now;
     
-    _sendTimer.start(qMax(0, 2 * SEND_INTERVAL - elapsed));
+    _sendTimer.start(qMax(0, 2 * SEND_INTERVAL - qMax(elapsed, SEND_INTERVAL)));
 }
 
 MetavoxelSession::MetavoxelSession(const SharedNodePointer& node, MetavoxelServer* server) :
     Endpoint(node, new PacketRecord(), NULL),
     _server(server),
-    _reliableDeltaChannel(NULL) {
+    _reliableDeltaChannel(NULL),
+    _reliableDeltaID(0) {
     
     connect(&_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)), SLOT(handleMessage(const QVariant&)));
     connect(&_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(checkReliableDeltaReceived()));
@@ -108,9 +130,7 @@ void MetavoxelSession::update() {
     }
     // if we're sending a reliable delta, wait until it's acknowledged
     if (_reliableDeltaChannel) {
-        Bitstream& out = _sequencer.startPacket();
-        out << QVariant::fromValue(MetavoxelDeltaPendingMessage());
-        _sequencer.endPacket();
+        sendPacketGroup();
         return;
     }
     Bitstream& out = _sequencer.startPacket();
@@ -134,12 +154,16 @@ void MetavoxelSession::update() {
         
         // go back to the beginning with the current packet and note that there's a delta pending
         _sequencer.getOutputStream().getUnderlying().device()->seek(start);
-        out << QVariant::fromValue(MetavoxelDeltaPendingMessage());
+        MetavoxelDeltaPendingMessage msg = { ++_reliableDeltaID };
+        out << QVariant::fromValue(msg);
         _sequencer.endPacket();
         
     } else {
         _sequencer.endPacket();
     }
+    
+    // perhaps send additional packets to fill out the group
+    sendPacketGroup(1);   
 }
 
 void MetavoxelSession::handleMessage(const QVariant& message, Bitstream& in) {
@@ -175,4 +199,59 @@ void MetavoxelSession::checkReliableDeltaReceived() {
     _reliableDeltaWriteMappings = Bitstream::WriteMappings();
     _reliableDeltaData = MetavoxelData();
     _reliableDeltaChannel = NULL;
+}
+
+void MetavoxelSession::sendPacketGroup(int alreadySent) {
+    int additionalPackets = _sequencer.notePacketGroup() - alreadySent;
+    for (int i = 0; i < additionalPackets; i++) {
+        Bitstream& out = _sequencer.startPacket();
+        if (_reliableDeltaChannel) {
+            MetavoxelDeltaPendingMessage msg = { _reliableDeltaID };
+            out << QVariant::fromValue(msg);
+        } else {
+            out << QVariant();
+        }
+        _sequencer.endPacket();
+    }
+}
+
+MetavoxelPersister::MetavoxelPersister(MetavoxelServer* server) :
+    _server(server) {
+}
+
+const char* SAVE_FILE = "metavoxels.dat";
+
+void MetavoxelPersister::load() {
+    QFile file(SAVE_FILE);
+    if (!file.exists()) {
+        return;
+    }
+    MetavoxelData data;
+    {
+        QDebug debug = qDebug() << "Reading from" << SAVE_FILE << "...";
+        file.open(QIODevice::ReadOnly);
+        QDataStream inStream(&file);
+        Bitstream in(inStream);
+        try {
+            in >> data;
+        } catch (const BitstreamException& e) {
+            debug << "failed, " << e.getDescription();
+            return;
+        }
+        QMetaObject::invokeMethod(_server, "setData", Q_ARG(const MetavoxelData&, data));
+        debug << "done.";
+    }
+    data.dumpStats();
+}
+
+void MetavoxelPersister::save(const MetavoxelData& data) {
+    QDebug debug = qDebug() << "Writing to" << SAVE_FILE << "...";
+    QSaveFile file(SAVE_FILE);
+    file.open(QIODevice::WriteOnly);
+    QDataStream outStream(&file);
+    Bitstream out(outStream);
+    out << data;
+    out.flush();
+    file.commit();
+    debug << "done.";
 }

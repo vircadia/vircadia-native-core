@@ -74,6 +74,7 @@ private:
     
     ReliableChannel* _reliableDeltaChannel;
     MetavoxelLOD _reliableDeltaLOD;
+    int _reliableDeltaID;
 };
 
 #endif // hifi_MetavoxelClientManager_h

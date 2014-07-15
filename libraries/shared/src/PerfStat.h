@@ -25,13 +25,13 @@
 
 class PerformanceWarning {
 private:
-	quint64 _start;
-	const char* _message;
-	bool _renderWarningsOn;
-	bool _alwaysDisplay;
-	quint64* _runningTotal;
-	quint64* _totalCalls;
-	static bool _suppressShortTimings;
+    quint64 _start;
+    const char* _message;
+    bool _renderWarningsOn;
+    bool _alwaysDisplay;
+    quint64* _runningTotal;
+    quint64* _totalCalls;
+    static bool _suppressShortTimings;
 public:
 
     PerformanceWarning(bool renderWarnings, const char* message, bool alwaysDisplay = false,
@@ -52,38 +52,47 @@ public:
 
 class PerformanceTimerRecord {
 public:
-    PerformanceTimerRecord() : _runningTotal(0), _totalCalls(0) {}
+    PerformanceTimerRecord() : _runningTotal(0), _lastTotal(0), _numAccumulations(0), _numTallies(0), _expiry(0) {}
     
-    void recordResult(quint64 elapsed) { _runningTotal += elapsed; _totalCalls++; _movingAverage.updateAverage(elapsed); }
-    quint64 getAverage() const { return (_totalCalls == 0) ? 0 : _runningTotal / _totalCalls; }
-    quint64 getMovingAverage() const { return (_totalCalls == 0) ? 0 : _movingAverage.getAverage(); }
-    quint64 getCount() const { return _totalCalls; }
+    void accumulateResult(const quint64& elapsed) { _runningTotal += elapsed; ++_numAccumulations; }
+    void tallyResult(const quint64& now);
+    bool isStale(const quint64& now) const { return now > _expiry; }
+    quint64 getAverage() const { return (_numTallies == 0) ? 0 : _runningTotal / _numTallies; }
+    quint64 getMovingAverage() const { return (_numTallies == 0) ? 0 : _movingAverage.getAverage(); }
+    quint64 getCount() const { return _numTallies; }
     
 private:
-	quint64 _runningTotal;
-	quint64 _totalCalls;
-	SimpleMovingAverage _movingAverage;
+    quint64 _runningTotal;
+    quint64 _lastTotal;
+    quint64 _numAccumulations;
+    quint64 _numTallies;
+    quint64 _expiry;
+    SimpleMovingAverage _movingAverage;
 };
 
 class PerformanceTimer {
 public:
 
     PerformanceTimer(const QString& name) :
-        _start(usecTimestampNow()),
-        _name(name) { }
+        _start(0),
+        _name(name) {
+            _fullName.append("/");
+            _fullName.append(_name);
+            _start = usecTimestampNow();
+        }
         
-    quint64 elapsed() const { return (usecTimestampNow() - _start); };
-
     ~PerformanceTimer();
     
     static const PerformanceTimerRecord& getTimerRecord(const QString& name) { return _records[name]; };
     static const QMap<QString, PerformanceTimerRecord>& getAllTimerRecords() { return _records; };
+    static void tallyAllTimerRecords();
     static void dumpAllTimerRecords();
 
 private:
-	quint64 _start;
-	QString _name;
-	static QMap<QString, PerformanceTimerRecord> _records;
+    quint64 _start;
+    QString _name;
+    static QString _fullName;
+    static QMap<QString, PerformanceTimerRecord> _records;
 };
 
 
