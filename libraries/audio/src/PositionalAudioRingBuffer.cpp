@@ -135,7 +135,6 @@ void PositionalAudioRingBuffer::updateNextOutputTrailingLoudness() {
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
     const float LOUDNESS_EPSILON = 0.000001f;
     
-    float oldNextOutputTrailingLoudness = _nextOutputTrailingLoudness;
     if (nextLoudness >= _nextOutputTrailingLoudness) {
         _nextOutputTrailingLoudness = nextLoudness;
     } else {
@@ -144,12 +143,6 @@ void PositionalAudioRingBuffer::updateNextOutputTrailingLoudness() {
         if (_nextOutputTrailingLoudness < LOUDNESS_EPSILON) {
             _nextOutputTrailingLoudness = 0;
         }
-    }
-    
-    // fixes bug on Windows where _nextOutputTrailingLoudness sometimes becomes NaN.  In that case,
-    // revert _nextOutputTrailingLoudness to its previous value
-    if (isNaN(_nextOutputTrailingLoudness)) {
-        _nextOutputTrailingLoudness = oldNextOutputTrailingLoudness;
     }
 }
 
