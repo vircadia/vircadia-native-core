@@ -28,14 +28,14 @@ public:
 public slots:
     QScriptValue alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
-    QScriptValue arrayEdit(const QString& title, QScriptValue array);
+    QScriptValue form(const QString& title, QScriptValue array);
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
 private slots:
     QScriptValue showAlert(const QString& message);
     QScriptValue showConfirm(const QString& message);
-    QScriptValue showArrayEdit(const QString& title, QScriptValue array);
+    QScriptValue showForm(const QString& title, QScriptValue form);
     QScriptValue showPrompt(const QString& message, const QString& defaultText);
     QScriptValue showBrowse(const QString& title, const QString& directory, const QString& nameFilter);
     
