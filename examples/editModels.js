@@ -1118,14 +1118,35 @@ function handeMenuEvent(menuItem){
         }
         if (editModelID != -1) {
             print("  Edit Properties.... about to edit properties...");
-            var propertyName = Window.prompt("Which property would you like to change?", "modelURL");
-            var properties = Models.getModelProperties(editModelID);
-            var oldValue = properties[propertyName];
-            var newValue = Window.prompt("New value for: " + propertyName, oldValue);
-            if (newValue != "") {
-                properties[propertyName] = newValue;
-                Models.editModel(editModelID, properties);
-            }
+            var array = new Array();
+            var decimals = 3;
+            array.push({ label: "Model URL", value: selectedModelProperties.modelURL });
+            array.push({ label: "Animation URL", value: selectedModelProperties.animationURL });
+            array.push({ label: "x", value: selectedModelProperties.position.x.toFixed(decimals) });
+            array.push({ label: "y", value: selectedModelProperties.position.y.toFixed(decimals) });
+            array.push({ label: "z", value: selectedModelProperties.position.z.toFixed(decimals) });
+            var angles = Quat.safeEulerAngles(selectedModelProperties.modelRotation);
+            array.push({ label: "pitch", value: angles.x.toFixed(decimals) });
+            array.push({ label: "yaw", value: angles.y.toFixed(decimals) });
+            array.push({ label: "roll", value: angles.z.toFixed(decimals) });
+            array.push({ label: "Scale", value: 2 * selectedModelProperties.radius.toFixed(decimals) });
+            
+            var propertyName = Window.arrayEdit("Edit Properties", array);
+            modelSelected = false;
+            
+            selectedModelProperties.modelURL = array[0].value;
+            selectedModelProperties.animationURL = array[1].value;
+            selectedModelProperties.position.x = array[2].value;
+            selectedModelProperties.position.y = array[3].value;
+            selectedModelProperties.position.z = array[4].value;
+            angles.x = array[5].value;
+            angles.y = array[6].value;
+            angles.z = array[7].value;
+            selectedModelProperties.modelRotation = Quat.fromVec3Degrees(angles);
+            selectedModelProperties.radius = array[8].value / 2;
+            print(selectedModelProperties.radius);
+
+            Models.editModel(selectedModelID, selectedModelProperties);
         }
     }
     tooltip.show(false);
