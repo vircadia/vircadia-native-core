@@ -74,6 +74,7 @@
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
+#include "SignedWalletTransaction.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -405,6 +406,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
     midiManagerInstance.openDefaultPort();
 #endif
+    
+    
+    QUuid destinationWallet = QUuid::createUuid();
+    
+    SignedWalletTransaction testTransaction(destinationWallet, 1000, QDateTime::currentDateTime().toTime_t(), 3600);
+    qDebug() << "Message digest is" << testTransaction.hexMessage();
 }
 
 Application::~Application() {
