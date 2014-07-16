@@ -13,6 +13,12 @@
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
 
+#include <openssl/bio.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+
+#include <AccountManager.h>
+
 #include "SignedWalletTransaction.h"
 
 SignedWalletTransaction::SignedWalletTransaction(const QUuid& destinationUUID, qint64 amount,
@@ -35,9 +41,7 @@ QByteArray SignedWalletTransaction::hexMessage() {
     messageBinary.append(reinterpret_cast<const char*>(&_messageTimestamp), sizeof(_messageTimestamp));
     messageBinary.append(reinterpret_cast<const char*>(&_expiryDelta), sizeof(_expiryDelta));
     
-    QUuid sourceUUID = QUuid::createUuid();
-    qDebug() << "The faked source UUID is" << sourceUUID;
-    messageBinary.append(sourceUUID.toRfc4122());
+    messageBinary.append(AccountManager::getInstance().getAccountInfo().getWalletID().toRfc4122());
     
     messageBinary.append(_destinationUUID.toRfc4122());
     
@@ -47,5 +51,29 @@ QByteArray SignedWalletTransaction::hexMessage() {
 }
 
 QByteArray SignedWalletTransaction::messageDigest() {
-    return QCryptographicHash::hash(hexMessage(), QCryptographicHash::Sha256);
+    return QCryptographicHash::hash(hexMessage(), QCryptographicHash::Sha256).toHex();
+}
+
+QByteArray SignedWalletTransaction::signedMessageDigest() {
+    // read the private key from file into memory
+    QFile privateKeyFile("/Users/birarda/Desktop/generated-private.pem");
+    privateKeyFile.open(QIODevice::ReadOnly);
+    QByteArray privateKeyData = privateKeyFile.readAll();
+    
+    BIO* privateKeyBIO = NULL;
+    RSA* rsaPrivateKey = NULL;
+    
+    privateKeyBIO = BIO_new_mem_buf(privateKeyData.data(), privateKeyData.size());
+    PEM_read_bio_RSAPrivateKey(privateKeyBIO, &rsaPrivateKey, NULL, NULL);
+    
+    QByteArray digestToEncrypt = messageDigest();
+    qDebug() << "encrypting the following digest" << digestToEncrypt;
+    QByteArray encryptedDigest(RSA_size(rsaPrivateKey), 0);
+    
+    int encryptReturn = RSA_private_encrypt(digestToEncrypt.size(),
+                                            reinterpret_cast<const unsigned char*>(digestToEncrypt.constData()),
+                                            reinterpret_cast<unsigned char*>(encryptedDigest.data()),
+                                            rsaPrivateKey, RSA_PKCS1_PADDING);
+    
+    return encryptedDigest;
 }

@@ -406,12 +406,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
     midiManagerInstance.openDefaultPort();
 #endif
-    
-    
-    QUuid destinationWallet = QUuid::createUuid();
-    
-    SignedWalletTransaction testTransaction(destinationWallet, 1000, QDateTime::currentDateTime().toTime_t(), 3600);
-    qDebug() << "Message digest is" << testTransaction.hexMessage();
 }
 
 Application::~Application() {
