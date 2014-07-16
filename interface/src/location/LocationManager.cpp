@@ -13,6 +13,7 @@
 
 #include "Application.h"
 #include "LocationManager.h"
+#include <UserActivityLogger.h>
 
 const QString GET_USER_ADDRESS = "/api/v1/users/%1/address";
 const QString GET_PLACE_ADDRESS = "/api/v1/places/%1";
@@ -60,23 +61,30 @@ void LocationManager::createNamedLocation(NamedLocation* namedLocation) {
 }
 
 void LocationManager::goTo(QString destination) {
-
+    const QString USER_DESTINATION_TYPE = "user";
+    const QString PLACE_DESTINATION_TYPE = "place";
+    const QString OTHER_DESTINATION_TYPE = "coordinate_or_username";
+    
     if (destination.startsWith("@")) {
         // remove '@' and go to user
-        goToUser(destination.remove(0, 1));
+        QString destinationUser = destination.remove(0, 1);
+        UserActivityLogger::getInstance().wentTo(USER_DESTINATION_TYPE, destinationUser);
+        goToUser(destinationUser);
         return;
     }
 
     if (destination.startsWith("#")) {
         // remove '#' and go to named place
-        goToPlace(destination.remove(0, 1));
+        QString destinationPlace = destination.remove(0, 1);
+        UserActivityLogger::getInstance().wentTo(PLACE_DESTINATION_TYPE, destinationPlace);
+        goToPlace(destinationPlace);
         return;
     }
 
     // go to coordinate destination or to Username
     if (!goToDestination(destination)) {
         destination = QString(QUrl::toPercentEncoding(destination));
-
+        UserActivityLogger::getInstance().wentTo(OTHER_DESTINATION_TYPE, destination);
         JSONCallbackParameters callbackParams;
         callbackParams.jsonCallbackReceiver = this;
         callbackParams.jsonCallbackMethod = "goToAddressFromResponse";

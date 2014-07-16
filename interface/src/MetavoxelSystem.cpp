@@ -48,8 +48,10 @@ void MetavoxelSystem::init() {
 }
 
 MetavoxelLOD MetavoxelSystem::getLOD() const {
-    const float FIXED_LOD_THRESHOLD = 0.01f;
-    return MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), FIXED_LOD_THRESHOLD);
+    // the LOD threshold is temporarily tied to the avatar LOD parameter
+    const float BASE_LOD_THRESHOLD = 0.01f;
+    return MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(),
+        BASE_LOD_THRESHOLD * Menu::getInstance()->getAvatarLODDistanceMultiplier());
 }
 
 void MetavoxelSystem::simulate(float deltaTime) {

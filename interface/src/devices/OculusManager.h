@@ -23,6 +23,7 @@
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
 
 class Camera;
+class PalmData;
 
 /// Handles interaction with the Oculus Rift.
 class OculusManager {
@@ -41,6 +42,10 @@ public:
     /// param \roll[out] roll in radians
     static void getEulerAngles(float& yaw, float& pitch, float& roll);
     static QSize getRenderTargetSize();
+
+    /// Renders a laser pointer for UI picking
+    static void renderLaserPointers();
+    static glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
     
 private:
 #ifdef HAVE_LIBOVR
