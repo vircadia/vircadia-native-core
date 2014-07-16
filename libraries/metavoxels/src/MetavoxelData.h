@@ -27,6 +27,7 @@
 
 class QScriptContext;
 
+class DifferentMetavoxelVisitation;
 class MetavoxelNode;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
@@ -80,6 +81,9 @@ public:
     /// Applies the specified visitor to the contained voxels.
     void guide(MetavoxelVisitor& visitor);
    
+    /// Guides the specified visitor to the voxels that differ from those of the specified other.
+    void guideToDifferent(const MetavoxelData& other, MetavoxelVisitor& visitor);
+    
     /// Inserts a spanner into the specified attribute layer.
     void insert(const AttributePointer& attribute, const SharedObjectPointer& object);
     void insert(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
@@ -252,6 +256,9 @@ public:
     bool isLODLeaf;
     bool isLeaf;
     
+    MetavoxelInfo(MetavoxelInfo* parentInfo, const glm::vec3& minimum, float size, const QVector<AttributeValue>& inputValues,
+        const QVector<OwnedAttributeValue>& outputValues, bool isLODLeaf = false, bool isLeaf = false);
+    
     Box getBounds() const { return Box(minimum, minimum + glm::vec3(size, size, size)); }
     glm::vec3 getCenter() const { return minimum + glm::vec3(size, size, size) * 0.5f; }
 };
@@ -277,6 +284,9 @@ public:
     
     /// A special "order" that short-circuits the tour.
     static const int SHORT_CIRCUIT;
+    
+    /// A flag combined with an order that instructs us to return to visiting all nodes (rather than the different ones).
+    static const int ALL_NODES;
     
     MetavoxelVisitor(const QVector<AttributePointer>& inputs,
         const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
@@ -390,6 +400,10 @@ public:
     /// Guides the specified visitor to the contained voxels.
     /// \return true to keep going, false to short circuit the tour
     virtual bool guide(MetavoxelVisitation& visitation) = 0;
+    
+    /// Guides the specified visitor to the voxels that differ from a reference.
+    /// \return true to keep going, false to short circuit the tour
+    virtual bool guideToDifferent(DifferentMetavoxelVisitation& visitation);
 };
 
 /// Guides visitors through the explicit content of the system.
@@ -401,6 +415,7 @@ public:
     Q_INVOKABLE DefaultMetavoxelGuide();
     
     virtual bool guide(MetavoxelVisitation& visitation);
+    virtual bool guideToDifferent(DifferentMetavoxelVisitation& visitation);
 };
 
 /// A temporary test guide that just makes the existing voxels throb with delight.
@@ -469,8 +484,22 @@ public:
     QVector<MetavoxelNode*> outputNodes;
     MetavoxelInfo info;
     
+    MetavoxelVisitation(MetavoxelVisitation* previous, MetavoxelVisitor& visitor, const QVector<MetavoxelNode*>& inputNodes,
+        const QVector<MetavoxelNode*>& outputNodes, const MetavoxelInfo& info);
+    
     bool allInputNodesLeaves() const;
     AttributeValue getInheritedOutputValue(int index) const;
+};
+
+/// Extends the basic visitation to include state required to visit different metavoxels.
+class DifferentMetavoxelVisitation : public MetavoxelVisitation {
+public:
+    
+    QVector<MetavoxelNode*> compareNodes;
+    
+    DifferentMetavoxelVisitation(MetavoxelVisitation* previous, MetavoxelVisitor& visitor,
+        const QVector<MetavoxelNode*>& inputNodes, const QVector<MetavoxelNode*>& outputNodes,
+        const MetavoxelInfo& info, const QVector<MetavoxelNode*>& compareNodes);
 };
 
 /// An object that spans multiple octree cells.
