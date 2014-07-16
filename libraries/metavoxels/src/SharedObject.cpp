@@ -14,6 +14,7 @@
 #include <QItemEditorFactory>
 #include <QMetaProperty>
 #include <QVBoxLayout>
+#include <QWriteLocker>
 
 #include "Bitstream.h"
 #include "MetavoxelUtil.h"
@@ -27,10 +28,12 @@ SharedObject::SharedObject() :
     _remoteID(0),
     _remoteOriginID(0) {
     
+    QWriteLocker locker(&_weakHashLock);
     _weakHash.insert(_id, this);
 }
 
 void SharedObject::setID(int id) {
+    QWriteLocker locker(&_weakHashLock);
     _weakHash.remove(_id);
     _weakHash.insert(_id = id, this);
 }
@@ -41,7 +44,10 @@ void SharedObject::incrementReferenceCount() {
 
 void SharedObject::decrementReferenceCount() {
     if (!_referenceCount.deref()) {
-        _weakHash.remove(_id);
+        {
+            QWriteLocker locker(&_weakHashLock);
+            _weakHash.remove(_id);
+        }
         delete this;
     }
 }
@@ -127,6 +133,7 @@ void SharedObject::dump(QDebug debug) const {
 
 int SharedObject::_lastID = 0;
 WeakSharedObjectHash SharedObject::_weakHash;
+QReadWriteLock SharedObject::_weakHashLock;
 
 void pruneWeakSharedObjectHash(WeakSharedObjectHash& hash) {
     for (WeakSharedObjectHash::iterator it = hash.begin(); it != hash.end(); ) {
