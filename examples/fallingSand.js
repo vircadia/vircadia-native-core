@@ -380,7 +380,7 @@ function mouseMoveEvent(event) {
     showPreviewLines();
 }
 
-var BRUSH_RADIUS = 5;
+var BRUSH_RADIUS = 2;
 
 function mousePressEvent(event) {
     var mouseX = event.x;
@@ -424,11 +424,9 @@ function mousePressEvent(event) {
     makeSphere(resultVoxel.x, resultVoxel.y, resultVoxel.z, voxelSize * BRUSH_RADIUS, voxelSize);
 }
 
-var SAND_LIFETIME = 100.0;
-var UPDATE_RATE = 1.0;
-
 var sandArray = [];
 var numSand = 0;
+
 
 //These arrays are used to buffer add/remove operations so they can be batched together
 var addArray = [];
@@ -436,29 +434,50 @@ var addArraySize = 0;
 var removeArray = [];
 var removeArraySize = 0;
 
-var red = 234;
-var green = 206;
-var blue = 106;
+//The colors must be different
+var activeSandColor = { r: 234, g: 206, b: 106};
+var inactiveSandColor = { r: 233, g: 0, b: 0};
+
+//This is used as an optimization, so that we
+//will check our 6 neighbors at most once.
+var adjacentVoxels = [];
+var numAdjacentVoxels = 0;
+//Stores a list of voxels we need to activate
+var activateMap = {};
 
 function update() {
+
+    activateMap = {};
+    
     //Update all sand in our sandArray
-    for (var i = 0; i < numSand; i++) {
-        updateSand(i);
+    var i = 0;
+    while (i < numSand) {
+        //Update the sand voxel and if it doesn't move, deactivate it
+        if (updateSand(i) == false) {
+            deactivateSand(i);
+        } else {
+            i++;
+        }
     }
     
-    //Remove all voxels that need to be moved
     for (var i = 0; i < removeArraySize; i++) {
-        var elem = removeArray[i];
-        Voxels.eraseVoxel(elem.x, elem.y, elem.z, elem.s);
+        var voxel = removeArray[i];
+        Voxels.eraseVoxel(voxel.x, voxel.y, voxel.z, voxel.s);
     }
     removeArraySize = 0;
-    
+     
     //Add all voxels that have moved
     for (var i = 0; i < addArraySize; i++) {
-        var elem = addArray[i];
-        Voxels.setVoxel(elem.x, elem.y, elem.z, elem.s, elem.r, elem.g, elem.b);
+        var voxel = addArray[i];
+        Voxels.setVoxel(voxel.x, voxel.y, voxel.z, voxel.s, voxel.r, voxel.g, voxel.b);
     }
     addArraySize = 0;
+    
+    for (var key in activateMap) {
+        var voxel = activateMap[key];
+        Voxels.setVoxel(voxel.x, voxel.y, voxel.z, voxel.s, 0, 0, 255);
+        sandArray[numSand++] = { x: voxel.x, y: voxel.y, z: voxel.z, s: voxel.s, r: activeSandColor.r, g: activeSandColor.g, b: activeSandColor.b };
+    }
 }
 
 //Adds a sphere of sand at the center cx,cy,cz
@@ -469,12 +488,8 @@ function makeSphere(cx, cy, cz, r, voxelSize) {
     var dx;
     var dy;
     var dz;
-    
-    Voxels.setVoxel(cx, cy, cz, voxelSize, red, green, blue);
-                    sandArray[numSand] = { x: cx, y: cy, z: cz, s: voxelSize, r: red, g: green, b: blue };
-                    numSand++;
-                    return 0;
-    
+     sandArray[numSand++] = { x: cx, y: cy, z: cz, s: voxelSize, r: activeSandColor.r, g: activeSandColor.g, b: activeSandColor.b };
+     return
     for (var x = cx - r; x <= cx + r; x += voxelSize) {
         for (var y = cy - r; y <= cy + r; y += voxelSize) {
             for (var z = cz - r; z <= cz + r; z += voxelSize) {
@@ -483,72 +498,113 @@ function makeSphere(cx, cy, cz, r, voxelSize) {
                 dz = Math.abs(z - cz);
                 distance2 = dx * dx + dy * dy + dz * dz;
                 if (distance2 <= r2 && isVoxelEmpty(x, y, z, voxelSize)) {
-                    Voxels.setVoxel(x, y, z, voxelSize, red, green, blue);
-                    sandArray[numSand] = { x: x, y: y, z: z, s: voxelSize, r: red, g: green, b: blue };
-                    numSand++;
+                    Voxels.setVoxel(x, y, z, voxelSize, activeSandColor.r, activeSandColor.g, activeSandColor.b);
+                    sandArray[numSand++] = { x: x, y: y, z: z, s: voxelSize, r: activeSandColor.r, g: activeSandColor.g, b: activeSandColor.b };
                 }
             }
         }
     }
 }
 
-function isVoxelEmpty(x, y, z, s) {
+function isVoxelEmpty(x, y, z, s, isAdjacent) {
     var halfSize = s / 2;
     var point = {x: x + halfSize, y: y + halfSize, z: z + halfSize };
    
     var adjacent = Voxels.getVoxelEnclosingPointBlocking(point);
-
     //If color is all 0, we assume its air.
-    return (adjacent.red == 0 && adjacent.green == 0 && adjacent.blue == 0);
+   
+    if (adjacent.red == 0 && adjacent.green == 0 && adjacent.blue == 0) {
+        return true;
+    }
+    
+    if (isAdjacent) {
+        adjacentVoxels[numAdjacentVoxels++] = adjacent;
+    }
+
+    return false;
 }
 
 function tryMoveVoxel(voxel, x, y, z) {
     //If the adjacent voxel is empty, we will move to it.
-    if (isVoxelEmpty(x, y, z, voxel.s)) {
+    if (isVoxelEmpty(x, y, z, voxel.s, false)) {
         moveVoxel(voxel, x, y, z);
+        var hsize = voxel.s / 2;
+        //Get all adjacent voxels for activation
+        for (var i = 0; i < 5; i++) {
+            var point = {x: voxel.x + directionVecs[i].x * voxel.s + hsize, y: voxel.y + directionVecs[i].y * voxel.s + hsize, z: voxel.z + directionVecs[i].z * voxel.s + hsize };
+            adjacentVoxels[numAdjacentVoxels++] = Voxels.getVoxelEnclosingPointBlocking(point);
+        }
         return true;
     }
     return false;
 }
 
 function moveVoxel(voxel, x, y, z) {
+    activateNeighbors();
     removeArray[removeArraySize++] = {x: voxel.x, y: voxel.y, z: voxel.z, s: voxel.s};
-    addArray[addArraySize++] = {x: x, y: y, z: z, s: voxel.s, r: red, g: green, b: blue};
+    addArray[addArraySize++] = {x: x, y: y, z: z, s: voxel.s, r: activeSandColor.r, g: activeSandColor.g, b: activeSandColor.b};
     voxel.x = x;
     voxel.y = y;
     voxel.z = z;
 }
 
+var LEFT = 0;
+var BACK = 1;
+var RIGHT = 2;
+var FRONT = 3;
+var TOP = 4;
+
+var directionVecs = [];
+directionVecs[LEFT] = {x: -1, y: 0, z: 0}; //Left
+directionVecs[BACK] = {x: 0, y: 0, z: -1}; //Back
+directionVecs[RIGHT] = {x: 1, y: 0, z: 0}; //Right
+directionVecs[FRONT] = {x: 0, y: 0, z: 1}; //Front
+directionVecs[TOP] = {x: 0, y: 1, z: 0}; //Top
+
 function updateSand(i) {
     var voxel = sandArray[i];
     var size = voxel.s;
+    var hsize = size / 2;
+    numAdjacentVoxels = 0;
 
     //Down
     if (tryMoveVoxel(voxel, voxel.x, voxel.y - size, voxel.z)) {
         return true;
     }
-    return;
-    //Left
-    if (isVoxelEmpty(voxel.x - size, voxel.y, voxel.z, size) && isVoxelEmpty(voxel.x - size, voxel.y - size, voxel.z, size)) {
-        moveVoxel(voxel, voxel.x - size, voxel.y, voxel.z);
-        return true;
+    
+    //Left, back, right, front
+    for (var i = 0; i < 4; i++) {
+        if (isVoxelEmpty(voxel.x + directionVecs[i].x * size, voxel.y + directionVecs[i].y * size, voxel.z + directionVecs[i].z * size, size, true)
+         && isVoxelEmpty(voxel.x + directionVecs[i].x * size, (voxel.y - size) + directionVecs[i].y * size, voxel.z + directionVecs[i].z * size, size, false)) {
+            //get the rest of the adjacent voxels
+            for (var j = i + 1; j < 5; j++) {
+                var point = {x: voxel.x + directionVecs[j].x * size + hsize, y: voxel.y + directionVecs[j].y * size + hsize, z: voxel.z + directionVecs[j].z * size + hsize }; 
+                adjacentVoxels[numAdjacentVoxels++] = Voxels.getVoxelEnclosingPointBlocking(point);
+            }
+            moveVoxel(voxel, voxel.x + directionVecs[i].x * size, voxel.y + directionVecs[i].y * size, voxel.z + directionVecs[i].z * size);
+            return true;
+        }
     }
-    //Back
-    if (isVoxelEmpty(voxel.x, voxel.y, voxel.z - size, size) && isVoxelEmpty(voxel.x, voxel.y - size, voxel.z - size, size)) {
-        moveVoxel(voxel, voxel.x, voxel.y, voxel.z - size);
-        return true;
-    }
-    //Right
-    if (isVoxelEmpty(voxel.x + size, voxel.y, voxel.z, size) && isVoxelEmpty(voxel.x + size, voxel.y - size, voxel.z, size)) {
-        moveVoxel(voxel, voxel.x + size, voxel.y, voxel.z);
-        return true;
-    }
-    //Front
-    if (isVoxelEmpty(voxel.x, voxel.y, voxel.z + size, size) && isVoxelEmpty(voxel.x, voxel.y - size, voxel.z + size, size)) {
-        moveVoxel(voxel, voxel.x, voxel.y, voxel.z + size);
-        return true;
-    }
+    
     return false;
+}
+
+function activateNeighbors() {
+    for (var i = 0; i < numAdjacentVoxels; i++) {
+        var voxel = adjacentVoxels[i];
+        //Check if this neighbor is inactive, if so, activate it
+        if (voxel.red == inactiveSandColor.r && voxel.green == inactiveSandColor.g && voxel.blue == inactiveSandColor.b) {
+            print("Activating");
+            activateMap[voxel.x.toString() + "," + voxel.y.toString() + ',' + voxel.z.toString()] = voxel;
+        }
+    }
+}
+
+function deactivateSand(i) {
+    var voxel = sandArray[i];
+    addArray[addArraySize++] = {x: voxel.x, y: voxel.y, z: voxel.z, s: voxel.s, r: inactiveSandColor.r, g: inactiveSandColor.g, b: inactiveSandColor.b};
+    sandArray[i] = sandArray[numSand-1];
+    numSand--;
 }
 
 function scriptEnding() {
@@ -570,4 +626,5 @@ Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 
+Voxels.setMaxPacketSize(1); //this is needed or a bug occurs :(
 Voxels.setPacketsPerSecond(10000);
