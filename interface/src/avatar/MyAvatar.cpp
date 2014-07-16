@@ -429,6 +429,7 @@ glm::vec3 MyAvatar::getLeftPalmPosition() {
     leftHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftRotation);
     return leftHandPosition;
 }
+
 glm::vec3 MyAvatar::getRightPalmPosition() {
     glm::vec3 rightHandPosition;
     getSkeletonModel().getRightHandPosition(rightHandPosition);
