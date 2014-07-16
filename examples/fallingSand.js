@@ -5,7 +5,8 @@
 //  Created by Ben Arnold on 7/14/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This sample script allows the user to grow different types of plants on the voxels
+//  This sample script allows the user to place sand voxels that will undergo
+//  cellular automata physics.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

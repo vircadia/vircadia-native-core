@@ -8,7 +8,7 @@
 //
 //  This is an example script that turns the hydra controllers and mouse into a particle gun.
 //  It reads the controller, watches for trigger pulls, and launches particles.
-//  When particles collide with voxels they blow little holes out of the voxels. 
+//  When particles collide with voxels they blow big holes out of the voxels. 
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
