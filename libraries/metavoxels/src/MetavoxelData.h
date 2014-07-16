@@ -118,7 +118,8 @@ public:
     void writeDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
         Bitstream& out, const MetavoxelLOD& lod) const;
 
-    MetavoxelNode* getRoot(const AttributePointer& attribute) const { return _roots.value(attribute); }
+    void setRoot(const AttributePointer& attribute, MetavoxelNode* root);
+    MetavoxelNode* getRoot(const AttributePointer& attribute) const { return _roots.value(attribute); }    
     MetavoxelNode* createRoot(const AttributePointer& attribute);
 
     /// Performs a deep comparison between this data and the specified other (as opposed to the == operator, which does a
@@ -200,7 +201,7 @@ public:
     void readDelta(const MetavoxelNode& reference, MetavoxelStreamState& state);
     void writeDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const;
 
-    void readSubdivision(MetavoxelStreamState& state);
+    MetavoxelNode* readSubdivision(MetavoxelStreamState& state);
     void writeSubdivision(MetavoxelStreamState& state) const;
 
     void writeSpanners(MetavoxelStreamState& state) const;
@@ -216,7 +217,7 @@ public:
 
     void destroy(const AttributePointer& attribute);
 
-    void clearChildren(const AttributePointer& attribute);
+    bool clearChildren(const AttributePointer& attribute);
     
     /// Performs a deep comparison between this and the specified other node.
     bool deepEquals(const AttributePointer& attribute, const MetavoxelNode& other,

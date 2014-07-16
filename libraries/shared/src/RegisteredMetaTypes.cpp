@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QColor>
+
 #include "RegisteredMetaTypes.h"
 
 static int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
@@ -25,6 +27,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, xColorToScriptValue, xColorFromScriptValue);
+    qScriptRegisterMetaType(engine, qColorToScriptValue, qColorFromScriptValue);
     qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
 }
@@ -99,6 +102,29 @@ void xColorFromScriptValue(const QScriptValue &object, xColor& color) {
     color.red = object.property("red").toVariant().toInt();
     color.green = object.property("green").toVariant().toInt();
     color.blue = object.property("blue").toVariant().toInt();
+}
+
+QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color) {
+    QScriptValue object = engine->newObject();
+    object.setProperty("red", color.red());
+    object.setProperty("green", color.green());
+    object.setProperty("blue", color.blue());
+    object.setProperty("alpha", color.alpha());
+    return object;
+}
+
+void qColorFromScriptValue(const QScriptValue& object, QColor& color) {
+    if (object.isNumber()) {
+        color.setRgb(object.toUInt32());
+    
+    } else if (object.isString()) {
+        color.setNamedColor(object.toString());
+            
+    } else {
+        QScriptValue alphaValue = object.property("alpha");
+        color.setRgb(object.property("red").toInt32(), object.property("green").toInt32(), object.property("blue").toInt32(),
+            alphaValue.isNumber() ? alphaValue.toInt32() : 255);
+    }
 }
 
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay) {

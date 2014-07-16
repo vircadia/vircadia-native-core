@@ -3641,6 +3641,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
     
     scriptEngine->registerGlobalObject("AvatarManager", &_avatarManager);
     
