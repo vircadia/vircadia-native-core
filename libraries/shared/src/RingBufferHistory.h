@@ -73,6 +73,7 @@ public:
 
     int getCapacity() const { return _capacity; }
     int getNumEntries() const { return _numEntries; }
+    bool isFilled() const { return _numEntries == _capacity; }
 
 private:
     int _size;
