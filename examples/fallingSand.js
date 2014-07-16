@@ -446,8 +446,17 @@ var numAdjacentVoxels = 0;
 //Stores a list of voxels we need to activate
 var activateMap = {};
 
-function update() {
+var UPDATES_PER_SECOND = 12.0; // frames per second
+var frameIndex = 0.0;
+var oldFrameIndex = 0;
 
+function update(deltaTime) {
+    frameIndex += deltaTime * UPDATES_PER_SECOND;
+    if (Math.floor(frameIndex) == oldFrameIndex) {
+        return;
+    }
+    oldFrameIndex++;
+    
     //Clear the activate map each frame
     activateMap = {};
     
