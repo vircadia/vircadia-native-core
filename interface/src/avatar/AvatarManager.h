@@ -44,7 +44,6 @@ public slots:
     void addAvatarLocalLight(int avatarIndex);
     int getNumLightsInAvatar(int avatarIndex);
     int getNumAvatars();
-    QString getAvatarHashKey(int index);
     
 private:
     AvatarManager(const AvatarManager& other);

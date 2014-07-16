@@ -214,11 +214,3 @@ int AvatarManager::getNumLightsInAvatar(int avatarIndex) {
 int AvatarManager::getNumAvatars() {
     return _avatarHash.count();
 }
-
-QString AvatarManager::getAvatarHashKey(int index) {
-    QString id = ((_avatarHash.keys())[index]).toString();
-    std::string idString = id.toStdString();
-    return id;
-}
-
-
