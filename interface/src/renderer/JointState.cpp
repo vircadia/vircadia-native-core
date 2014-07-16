@@ -19,6 +19,7 @@
 
 JointState::JointState() :
     _animationPriority(0.0f),
+    _positionInParentFrame(0.0f),
     _fbxJoint(NULL),
     _constraint(NULL) {
 }
@@ -27,6 +28,7 @@ JointState::JointState(const JointState& other) : _constraint(NULL) {
     _transform = other._transform;
     _rotation = other._rotation;
     _rotationInConstrainedFrame = other._rotationInConstrainedFrame;
+    _positionInParentFrame = other._positionInParentFrame;
     _animationPriority = other._animationPriority;
     _fbxJoint = other._fbxJoint;
     // DO NOT copy _constraint
@@ -69,6 +71,7 @@ void JointState::copyState(const JointState& state) {
     _transform = state._transform;
     _rotation = extractRotation(_transform);
     _rotationInConstrainedFrame = state._rotationInConstrainedFrame;
+    _positionInParentFrame = state._positionInParentFrame;
 
     _visibleTransform = state._visibleTransform;
     _visibleRotation = extractRotation(_visibleTransform);

@@ -50,6 +50,7 @@ public:
 
     glm::quat getRotationInParentFrame() const;
     glm::quat getVisibleRotationInParentFrame() const;
+    const glm::vec3& getPositionInParentFrame() const { return _positionInParentFrame; }
 
     int getParentIndex() const { return _fbxJoint->parentIndex; }
 
@@ -90,12 +91,12 @@ public:
 
     float _animationPriority; // the priority of the animation affecting this joint
 
-private:
     /// \return parent model-frame rotation 
     // (used to keep _rotation consistent when modifying _rotationInWorldFrame directly)
     glm::quat computeParentRotation() const;
     glm::quat computeVisibleParentRotation() const;
 
+private:
     /// debug helper function
     void loadBindRotation();
 
