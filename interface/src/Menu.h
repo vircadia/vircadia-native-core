@@ -341,6 +341,7 @@ namespace MenuOption {
     const QString Console = "Console...";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
+    const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableNackPackets = "Disable NACK Packets";
     const QString DisableQAudioOutputOverflowCheck = "Disable QAudioOutput Overflow Check";
