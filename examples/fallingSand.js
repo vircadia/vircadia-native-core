@@ -436,7 +436,7 @@ var removeArraySize = 0;
 
 //The colors must be different
 var activeSandColor = { r: 234, g: 206, b: 106};
-var inactiveSandColor = { r: 233, g: 0, b: 0};
+var inactiveSandColor = { r: 233, g: 206, b: 106};
 
 //This is used as an optimization, so that we
 //will check our 6 neighbors at most once.
@@ -447,6 +447,7 @@ var activateMap = {};
 
 function update() {
 
+    //Clear the activate map each frame
     activateMap = {};
     
     //Update all sand in our sandArray
@@ -475,7 +476,7 @@ function update() {
     
     for (var key in activateMap) {
         var voxel = activateMap[key];
-        Voxels.setVoxel(voxel.x, voxel.y, voxel.z, voxel.s, 0, 0, 255);
+        Voxels.setVoxel(voxel.x, voxel.y, voxel.z, voxel.s, activeSandColor.r, activeSandColor.g, activeSandColor.b);
         sandArray[numSand++] = { x: voxel.x, y: voxel.y, z: voxel.z, s: voxel.s, r: activeSandColor.r, g: activeSandColor.g, b: activeSandColor.b };
     }
 }
@@ -488,8 +489,7 @@ function makeSphere(cx, cy, cz, r, voxelSize) {
     var dx;
     var dy;
     var dz;
-     sandArray[numSand++] = { x: cx, y: cy, z: cz, s: voxelSize, r: activeSandColor.r, g: activeSandColor.g, b: activeSandColor.b };
-     return
+     
     for (var x = cx - r; x <= cx + r; x += voxelSize) {
         for (var y = cy - r; y <= cy + r; y += voxelSize) {
             for (var z = cz - r; z <= cz + r; z += voxelSize) {
@@ -506,6 +506,7 @@ function makeSphere(cx, cy, cz, r, voxelSize) {
     }
 }
 
+//Check if a given voxel is empty
 function isVoxelEmpty(x, y, z, s, isAdjacent) {
     var halfSize = s / 2;
     var point = {x: x + halfSize, y: y + halfSize, z: z + halfSize };
@@ -524,21 +525,24 @@ function isVoxelEmpty(x, y, z, s, isAdjacent) {
     return false;
 }
 
+//Moves voxel to x,y,z if the space is empty
 function tryMoveVoxel(voxel, x, y, z) {
     //If the adjacent voxel is empty, we will move to it.
     if (isVoxelEmpty(x, y, z, voxel.s, false)) {
-        moveVoxel(voxel, x, y, z);
         var hsize = voxel.s / 2;
-        //Get all adjacent voxels for activation
         for (var i = 0; i < 5; i++) {
             var point = {x: voxel.x + directionVecs[i].x * voxel.s + hsize, y: voxel.y + directionVecs[i].y * voxel.s + hsize, z: voxel.z + directionVecs[i].z * voxel.s + hsize };
             adjacentVoxels[numAdjacentVoxels++] = Voxels.getVoxelEnclosingPointBlocking(point);
         }
+        moveVoxel(voxel, x, y, z);
+        
+        //Get all adjacent voxels for activation
         return true;
     }
     return false;
 }
 
+//Moves voxel to x,y,z
 function moveVoxel(voxel, x, y, z) {
     activateNeighbors();
     removeArray[removeArraySize++] = {x: voxel.x, y: voxel.y, z: voxel.z, s: voxel.s};
@@ -554,6 +558,7 @@ var RIGHT = 2;
 var FRONT = 3;
 var TOP = 4;
 
+//These indicate the different directions to neighbor voxels, so we can iterate them
 var directionVecs = [];
 directionVecs[LEFT] = {x: -1, y: 0, z: 0}; //Left
 directionVecs[BACK] = {x: 0, y: 0, z: -1}; //Back
@@ -594,12 +599,12 @@ function activateNeighbors() {
         var voxel = adjacentVoxels[i];
         //Check if this neighbor is inactive, if so, activate it
         if (voxel.red == inactiveSandColor.r && voxel.green == inactiveSandColor.g && voxel.blue == inactiveSandColor.b) {
-            print("Activating");
             activateMap[voxel.x.toString() + "," + voxel.y.toString() + ',' + voxel.z.toString()] = voxel;
         }
     }
 }
 
+//Deactivates a sand voxel to save processing power
 function deactivateSand(i) {
     var voxel = sandArray[i];
     addArray[addArraySize++] = {x: voxel.x, y: voxel.y, z: voxel.z, s: voxel.s, r: inactiveSandColor.r, g: inactiveSandColor.g, b: inactiveSandColor.b};
@@ -607,6 +612,7 @@ function deactivateSand(i) {
     numSand--;
 }
 
+//Cleanup
 function scriptEnding() {
     for (var i = 0; i < numSand; i++) {
         var voxel = sandArray[i];
