@@ -10,6 +10,7 @@
 //
 
 #include <glm/gtx/transform.hpp>
+#include <QMultiMap>
 
 #include <VerletCapsuleShape.h>
 #include <VerletSphereShape.h>
@@ -522,6 +523,7 @@ void SkeletonModel::buildRagdollConstraints() {
     const int numPoints = _ragdollPoints.size();
     assert(numPoints == _jointStates.size());
 
+    QMultiMap<int, int> families;
     for (int i = 0; i < numPoints; ++i) {
         const JointState& state = _jointStates.at(i);
         const FBXJoint& joint = state.getFBXJoint();
@@ -532,8 +534,23 @@ void SkeletonModel::buildRagdollConstraints() {
         } else { 
             DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[i]), &(_ragdollPoints[parentIndex]));
             _ragdollConstraints.push_back(bone);
+            families.insert(parentIndex, i);
         }
     }
+    // Joints that have multiple children effectively have rigid constraints between the children
+    // in the parent frame, so we add constraints between children in the same family.
+    QMultiMap<int, int>::iterator itr = families.begin();
+    while (itr != families.end()) {
+        QList<int> children = families.values(itr.key());
+        if (children.size() > 1) {
+            for (int i = 1; i < children.size(); ++i) {
+                DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[children[i-1]]), &(_ragdollPoints[children[i]]));
+                _ragdollConstraints.push_back(bone);
+            }
+        }
+        ++itr;
+    }
+    
 }
 
 void SkeletonModel::updateVisibleJointStates() {
@@ -562,6 +579,7 @@ void SkeletonModel::updateVisibleJointStates() {
         const glm::mat4& parentTransform = parentState.getVisibleTransform();
         state.computeVisibleTransform(parentTransform);
 
+        // TODO: Andrew to fix instability here
         // we're looking for the rotation that moves visible bone parallel to ragdoll bone
         glm::vec3 pivot = extractTranslation(parentTransform);
         glm::vec3 tip = state.getVisiblePosition();
@@ -645,7 +663,13 @@ void SkeletonModel::buildShapes() {
     buildRagdollConstraints();
 
     // ... then move shapes back to current joint positions
-    moveShapesTowardJoints(1.0f);
+    if (_ragdollPoints.size() == numStates) {
+        int numJoints = _jointStates.size();
+        for (int i = 0; i < numJoints; ++i) {
+            _ragdollPoints[i]._lastPosition = _ragdollPoints.at(i)._position;
+            _ragdollPoints[i]._position = _jointStates.at(i).getPosition();
+        }
+    }
     enforceRagdollConstraints();
 }
 
