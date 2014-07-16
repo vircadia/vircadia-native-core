@@ -70,6 +70,7 @@
 #include "Menu.h"
 #include "ModelUploader.h"
 #include "Util.h"
+#include "FaceshiftScriptingInterface.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
@@ -3638,6 +3639,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Faceshift", FaceshiftScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
