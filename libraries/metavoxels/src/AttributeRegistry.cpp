@@ -9,7 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QReadLocker>
 #include <QScriptEngine>
+#include <QWriteLocker>
 
 #include "AttributeRegistry.h"
 #include "MetavoxelData.h"
@@ -69,6 +71,7 @@ AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute
     if (!attribute) {
         return attribute;
     }
+    QWriteLocker locker(&_attributesLock);
     AttributePointer& pointer = _attributes[attribute->getName()];
     if (!pointer) {
         pointer = attribute;
@@ -77,7 +80,13 @@ AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute
 }
 
 void AttributeRegistry::deregisterAttribute(const QString& name) {
+    QWriteLocker locker(&_attributesLock);
     _attributes.remove(name);
+}
+
+AttributePointer AttributeRegistry::getAttribute(const QString& name) {
+    QReadLocker locker(&_attributesLock);
+    return _attributes.value(name);
 }
 
 QScriptValue AttributeRegistry::getAttribute(QScriptContext* context, QScriptEngine* engine) {
@@ -204,7 +213,12 @@ void Attribute::writeMetavoxelDelta(const MetavoxelNode& root, const MetavoxelNo
 }
 
 void Attribute::readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
-    data.getRoot(state.attribute)->readSubdivision(state);
+    // copy if changed
+    MetavoxelNode* oldRoot = data.getRoot(state.attribute);
+    MetavoxelNode* newRoot = oldRoot->readSubdivision(state);
+    if (newRoot != oldRoot) {
+        data.setRoot(state.attribute, newRoot);
+    }
 }
 
 void Attribute::writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
@@ -559,6 +573,10 @@ void SpannerSetAttribute::readMetavoxelRoot(MetavoxelData& data, MetavoxelStream
         }
         data.insert(state.attribute, object);
     }
+    // even if the root is empty, it should still exist
+    if (!data.getRoot(state.attribute)) {
+        data.createRoot(state.attribute);
+    }
 }
 
 void SpannerSetAttribute::writeMetavoxelRoot(const MetavoxelNode& root, MetavoxelStreamState& state) {
@@ -576,6 +594,10 @@ void SpannerSetAttribute::readMetavoxelDelta(MetavoxelData& data,
             break;
         }
         data.toggle(state.attribute, object);
+    }
+    // even if the root is empty, it should still exist
+    if (!data.getRoot(state.attribute)) {
+        data.createRoot(state.attribute);
     }
 }
 

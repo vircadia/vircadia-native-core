@@ -162,36 +162,25 @@ void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int heigh
 }
 
 bool Stats::includeTimingRecord(const QString& name) {
-    bool included = false;
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
-
-        if (name == "idle/update") {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming) ||
-                       Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
-        } else if (name == "idle/updateGL") {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
-        } else if (name.startsWith("idle/update")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming);
-        } else if (name.startsWith("idle/")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
-        } else if (name.startsWith("MyAvatar::simulate")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandAvatarSimulateTiming);
-        } else if (name.startsWith("MyAvatar::update/") || name.startsWith("updateMyAvatar")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandAvatarUpdateTiming);
-        } else if (name.startsWith("MyAvatar::")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandMiscAvatarTiming);
-        } else if (name == "paintGL/displaySide") {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandDisplaySideTiming) ||
-                       Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
-        } else if (name.startsWith("paintGL/displaySide/")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandDisplaySideTiming);
-        } else if (name.startsWith("paintGL/")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
-        } else {
-            included = true; // include everything else
+        if (name.startsWith("/idle/update/")) {
+            if (name.startsWith("/idle/update/myAvatar/")) {
+                if (name.startsWith("/idle/update/myAvatar/simulate/")) {
+                    return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
+                }
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarTiming);
+            } else if (name.startsWith("/idle/update/otherAvatars/")) {
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandOtherAvatarTiming);
+            }
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming);
+        } else if (name.startsWith("/idle/updateGL/paintGL/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+        } else if (name.startsWith("/paintGL/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
         }
+        return true;
     }
-    return included;
+    return false;
 }
 
 // display expanded or contracted stats
@@ -346,26 +335,28 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamLabelString, color);
 
-            char downstreamAudioStatsString[30];
+            char downstreamAudioStatsString[512];
 
             AudioStreamStats downstreamAudioStreamStats = audio->getDownstreamAudioStreamStats();
 
-            sprintf(downstreamAudioStatsString, " mix: %.1f%%/%.1f%%, %u/?/%u", downstreamAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
+            sprintf(downstreamAudioStatsString, " mix: %.2f%%/%.2f%%, %u/?/%u", downstreamAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
                 downstreamAudioStreamStats._packetStreamWindowStats.getLostRate() * 100.0f,
                 downstreamAudioStreamStats._ringBufferFramesAvailable, downstreamAudioStreamStats._ringBufferDesiredJitterBufferFrames);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
 
-            sprintf(downstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", downstreamAudioStreamStats._timeGapMin,
-                downstreamAudioStreamStats._timeGapMax, downstreamAudioStreamStats._timeGapAverage,
+            sprintf(downstreamAudioStatsString, "  %s/%s/%s, %u/%u", formatUsecTime(downstreamAudioStreamStats._timeGapMin).toLatin1().data(),
+                formatUsecTime(downstreamAudioStreamStats._timeGapMax).toLatin1().data(),
+                formatUsecTime(downstreamAudioStreamStats._timeGapAverage).toLatin1().data(),
                 downstreamAudioStreamStats._ringBufferStarveCount, downstreamAudioStreamStats._ringBufferOverflowCount);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
 
-            sprintf(downstreamAudioStatsString, "  %llu/%llu/%.2f, %u/?", downstreamAudioStreamStats._timeGapWindowMin,
-                downstreamAudioStreamStats._timeGapWindowMax, downstreamAudioStreamStats._timeGapWindowAverage,
+            sprintf(downstreamAudioStatsString, "  %s/%s/%s, %u/?", formatUsecTime(downstreamAudioStreamStats._timeGapWindowMin).toLatin1().data(),
+                formatUsecTime(downstreamAudioStreamStats._timeGapWindowMax).toLatin1().data(),
+                formatUsecTime(downstreamAudioStreamStats._timeGapWindowAverage).toLatin1().data(),
                 downstreamAudioStreamStats._ringBufferConsecutiveNotMixedCount);
 
             verticalOffset += STATS_PELS_PER_LINE;
@@ -376,11 +367,11 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamLabelString, color);
 
-            char upstreamAudioStatsString[30];
+            char upstreamAudioStatsString[512];
 
             const AudioStreamStats& audioMixerAvatarAudioStreamStats = audio->getAudioMixerAvatarStreamAudioStats();
 
-            sprintf(upstreamAudioStatsString, " mic: %.1f%%/%.1f%%, %u/%u/%u", audioMixerAvatarAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
+            sprintf(upstreamAudioStatsString, " mic: %.2f%%/%.2f%%, %u/%u/%u", audioMixerAvatarAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
                 audioMixerAvatarAudioStreamStats._packetStreamWindowStats.getLostRate() * 100.0f,
                 audioMixerAvatarAudioStreamStats._ringBufferFramesAvailable, audioMixerAvatarAudioStreamStats._ringBufferCurrentJitterBufferFrames,
                 audioMixerAvatarAudioStreamStats._ringBufferDesiredJitterBufferFrames);
@@ -388,15 +379,17 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
 
-            sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", audioMixerAvatarAudioStreamStats._timeGapMin,
-                audioMixerAvatarAudioStreamStats._timeGapMax, audioMixerAvatarAudioStreamStats._timeGapAverage,
+            sprintf(upstreamAudioStatsString, "  %s/%s/%s, %u/%u", formatUsecTime(audioMixerAvatarAudioStreamStats._timeGapMin).toLatin1().data(),
+                formatUsecTime(audioMixerAvatarAudioStreamStats._timeGapMax).toLatin1().data(),
+                formatUsecTime(audioMixerAvatarAudioStreamStats._timeGapAverage).toLatin1().data(),
                 audioMixerAvatarAudioStreamStats._ringBufferStarveCount, audioMixerAvatarAudioStreamStats._ringBufferOverflowCount);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
 
-            sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", audioMixerAvatarAudioStreamStats._timeGapWindowMin,
-                audioMixerAvatarAudioStreamStats._timeGapWindowMax, audioMixerAvatarAudioStreamStats._timeGapWindowAverage,
+            sprintf(upstreamAudioStatsString, "  %s/%s/%s, %u/%u", formatUsecTime(audioMixerAvatarAudioStreamStats._timeGapWindowMin).toLatin1().data(),
+                formatUsecTime(audioMixerAvatarAudioStreamStats._timeGapWindowMax).toLatin1().data(),
+                formatUsecTime(audioMixerAvatarAudioStreamStats._timeGapWindowAverage).toLatin1().data(),
                 audioMixerAvatarAudioStreamStats._ringBufferConsecutiveNotMixedCount, audioMixerAvatarAudioStreamStats._ringBufferSilentFramesDropped);
 
             verticalOffset += STATS_PELS_PER_LINE;
@@ -404,7 +397,7 @@ void Stats::display(
 
             foreach(const AudioStreamStats& injectedStreamAudioStats, audioMixerInjectedStreamAudioStatsMap) {
 
-                sprintf(upstreamAudioStatsString, " inj: %.1f%%/%.1f%%, %u/%u/%u", injectedStreamAudioStats._packetStreamStats.getLostRate()*100.0f,
+                sprintf(upstreamAudioStatsString, " inj: %.2f%%/%.2f%%, %u/%u/%u", injectedStreamAudioStats._packetStreamStats.getLostRate()*100.0f,
                     injectedStreamAudioStats._packetStreamWindowStats.getLostRate() * 100.0f,
                     injectedStreamAudioStats._ringBufferFramesAvailable, injectedStreamAudioStats._ringBufferCurrentJitterBufferFrames,
                     injectedStreamAudioStats._ringBufferDesiredJitterBufferFrames);
@@ -412,15 +405,17 @@ void Stats::display(
                 verticalOffset += STATS_PELS_PER_LINE;
                 drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
 
-                sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", injectedStreamAudioStats._timeGapMin,
-                    injectedStreamAudioStats._timeGapMax, injectedStreamAudioStats._timeGapAverage,
+                sprintf(upstreamAudioStatsString, "  %s/%s/%s, %u/%u", formatUsecTime(injectedStreamAudioStats._timeGapMin).toLatin1().data(),
+                    formatUsecTime(injectedStreamAudioStats._timeGapMax).toLatin1().data(),
+                    formatUsecTime(injectedStreamAudioStats._timeGapAverage).toLatin1().data(),
                     injectedStreamAudioStats._ringBufferStarveCount, injectedStreamAudioStats._ringBufferOverflowCount);
 
                 verticalOffset += STATS_PELS_PER_LINE;
                 drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
 
-                sprintf(upstreamAudioStatsString, "  %llu/%llu/%.2f, %u/%u", injectedStreamAudioStats._timeGapWindowMin,
-                    injectedStreamAudioStats._timeGapWindowMax, injectedStreamAudioStats._timeGapWindowAverage,
+                sprintf(upstreamAudioStatsString, "  %s/%s/%s, %u/%u", formatUsecTime(injectedStreamAudioStats._timeGapWindowMin).toLatin1().data(),
+                    formatUsecTime(injectedStreamAudioStats._timeGapWindowMax).toLatin1().data(),
+                    formatUsecTime(injectedStreamAudioStats._timeGapWindowAverage).toLatin1().data(),
                     injectedStreamAudioStats._ringBufferConsecutiveNotMixedCount, injectedStreamAudioStats._ringBufferSilentFramesDropped);
 
                 verticalOffset += STATS_PELS_PER_LINE;
@@ -435,7 +430,7 @@ void Stats::display(
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 
-    lines = _expanded ? 5 : 3;
+    lines = _expanded ? 8 : 3;
 
     drawBackground(backgroundColor, horizontalOffset, 0, _geoStatsWidth, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
@@ -477,6 +472,41 @@ void Stats::display(
         
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, downloads.str().c_str(), color);
+        
+        int internal = 0, leaves = 0;
+        int sendProgress = 0, sendTotal = 0;
+        int receiveProgress = 0, receiveTotal = 0;
+        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+            if (node->getType() == NodeType::MetavoxelServer) {
+                QMutexLocker locker(&node->getMutex());
+                MetavoxelClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
+                if (client) {
+                    client->getData().countNodes(internal, leaves, Application::getInstance()->getMetavoxels()->getLOD());
+                    client->getSequencer().addReliableChannelStats(sendProgress, sendTotal, receiveProgress, receiveTotal);
+                }
+            }
+        }
+        stringstream nodes;
+        nodes << "Metavoxels: " << (internal + leaves);
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodes.str().c_str(), color);
+        
+        stringstream nodeTypes;
+        nodeTypes << "Internal: " << internal << "  Leaves: " << leaves;
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodeTypes.str().c_str(), color);
+        
+        if (sendTotal > 0 || receiveTotal > 0) {
+            stringstream reliableStats;
+            if (sendTotal > 0) {
+                reliableStats << "Upload: " << (sendProgress * 100 / sendTotal) << "%  ";
+            }
+            if (receiveTotal > 0) {
+                reliableStats << "Download: " << (receiveProgress * 100 / receiveTotal) << "%";
+            }
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, reliableStats.str().c_str(), color);
+        }
     }
 
     verticalOffset = 0;

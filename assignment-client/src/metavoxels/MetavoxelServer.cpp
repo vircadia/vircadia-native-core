@@ -10,6 +10,9 @@
 //
 
 #include <QDateTime>
+#include <QFile>
+#include <QSaveFile>
+#include <QThread>
 
 #include <PacketHeaders.h>
 
@@ -44,6 +47,19 @@ void MetavoxelServer::run() {
     
     _lastSend = QDateTime::currentMSecsSinceEpoch();
     _sendTimer.start(SEND_INTERVAL);
+    
+    // initialize Bitstream before using it in multiple threads
+    Bitstream::preThreadingInit();
+    
+    // create the persister and start it in its own thread
+    _persister = new MetavoxelPersister(this);
+    QThread* persistenceThread = new QThread(this);
+    _persister->moveToThread(persistenceThread);
+    _persister->connect(persistenceThread, SIGNAL(finished()), SLOT(deleteLater()));
+    persistenceThread->start();
+    
+    // queue up the load
+    QMetaObject::invokeMethod(_persister, "load");
 }
 
 void MetavoxelServer::readPendingDatagrams() {
@@ -65,6 +81,12 @@ void MetavoxelServer::readPendingDatagrams() {
             }
         }
     }
+}
+
+void MetavoxelServer::aboutToFinish() {
+    QMetaObject::invokeMethod(_persister, "save", Q_ARG(const MetavoxelData&, _data));
+    _persister->thread()->quit();
+    _persister->thread()->wait();
 }
 
 void MetavoxelServer::maybeAttachSession(const SharedNodePointer& node) {
@@ -192,4 +214,45 @@ void MetavoxelSession::sendPacketGroup(int alreadySent) {
         }
         _sequencer.endPacket();
     }
+}
+
+MetavoxelPersister::MetavoxelPersister(MetavoxelServer* server) :
+    _server(server) {
+}
+
+const char* SAVE_FILE = "metavoxels.dat";
+
+void MetavoxelPersister::load() {
+    QFile file(SAVE_FILE);
+    if (!file.exists()) {
+        return;
+    }
+    MetavoxelData data;
+    {
+        QDebug debug = qDebug() << "Reading from" << SAVE_FILE << "...";
+        file.open(QIODevice::ReadOnly);
+        QDataStream inStream(&file);
+        Bitstream in(inStream);
+        try {
+            in >> data;
+        } catch (const BitstreamException& e) {
+            debug << "failed, " << e.getDescription();
+            return;
+        }
+        QMetaObject::invokeMethod(_server, "setData", Q_ARG(const MetavoxelData&, data));
+        debug << "done.";
+    }
+    data.dumpStats();
+}
+
+void MetavoxelPersister::save(const MetavoxelData& data) {
+    QDebug debug = qDebug() << "Writing to" << SAVE_FILE << "...";
+    QSaveFile file(SAVE_FILE);
+    file.open(QIODevice::WriteOnly);
+    QDataStream outStream(&file);
+    Bitstream out(outStream);
+    out << data;
+    out.flush();
+    file.commit();
+    debug << "done.";
 }

@@ -38,13 +38,20 @@ QDataStream& operator>>(QDataStream& in, glm::quat& quaternion);
 
 // less common utils can be enabled with DEBUG
 #ifdef DEBUG
-#include "CollisionInfo.h"
-#include "SphereShape.h"
-#include "CapsuleShape.h"
+class CollisionInfo;
+class SphereShape;
+class CapsuleShape;
 std::ostream& operator<<(std::ostream& s, const CollisionInfo& c);
 std::ostream& operator<<(std::ostream& s, const SphereShape& shape);
 std::ostream& operator<<(std::ostream& s, const CapsuleShape& capsule);
 #endif // DEBUG
 
+#ifndef QT_NO_DEBUG_STREAM
+class QDebug;
+// Add support for writing these to qDebug().
+QDebug& operator<<(QDebug& s, const glm::vec3& v);
+QDebug& operator<<(QDebug& s, const glm::quat& q);
+QDebug& operator<<(QDebug& s, const glm::mat4& m);
+#endif // QT_NO_DEBUG_STREAM
 
 #endif // hifi_StreamUtils_h
