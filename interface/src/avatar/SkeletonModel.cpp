@@ -558,8 +558,11 @@ void SkeletonModel::updateVisibleJointStates() {
         // no need to update visible transforms
         return;
     }
+    QVector<glm::vec3> points;
+    points.reserve(_jointStates.size());
     for (int i = 0; i < _jointStates.size(); i++) {
         JointState& state = _jointStates[i];
+        points.push_back(_ragdollPoints[i]._position);
 
         // get the parent state (this is the state that we want to rotate)
         int parentIndex = state.getParentIndex();
@@ -579,12 +582,10 @@ void SkeletonModel::updateVisibleJointStates() {
         const glm::mat4& parentTransform = parentState.getVisibleTransform();
         state.computeVisibleTransform(parentTransform);
 
-        // TODO: Andrew to fix instability here
         // we're looking for the rotation that moves visible bone parallel to ragdoll bone
-        glm::vec3 pivot = extractTranslation(parentTransform);
-        glm::vec3 tip = state.getVisiblePosition();
-        glm::vec3 shapeTip = _ragdollPoints[i]._position;
-        glm::quat delta = rotationBetween(tip - pivot, shapeTip - pivot);
+        // rotationBetween(jointTip - jointPivot, shapeTip - shapePivot)
+        glm::quat delta = rotationBetween(state.getVisiblePosition() - extractTranslation(parentTransform), 
+                points[i] - points[parentIndex]);
 
         // apply
         parentState.mixVisibleRotationDelta(delta, 0.01f);
