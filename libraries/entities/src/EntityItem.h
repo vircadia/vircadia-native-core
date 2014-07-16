@@ -1,6 +1,6 @@
 //
 //  EntityItem.h
-//  libraries/models/src
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -18,266 +18,16 @@
 
 #include <glm/glm.hpp>
 
-#include <QtScript/QScriptEngine>
-#include <QtCore/QObject>
-
-#include <AnimationCache.h>
-#include <CollisionInfo.h>
+#include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
+#include <Octree.h> // for EncodeBitstreamParams class
+#include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
-#include <PropertyFlags.h>
-#include <SharedUtil.h>
-#include <FBXReader.h>
 
+#include "EntityItemID.h" 
+#include "EntityItemProperties.h" 
+#include "EntityTypes.h" 
 
-class EntityItem;
-class EntityItemID;
-class EntityEditPacketSender;
-class EntityItemProperties;
-class EntitysScriptingInterface;
-class EntityTree;
 class EntityTreeElementExtraEncodeData;
-class ScriptEngine;
-class VoxelEditPacketSender;
-class VoxelsScriptingInterface;
-struct VoxelDetail;
-
-const uint32_t NEW_ENTITY = 0xFFFFFFFF;
-const uint32_t UNKNOWN_ENTITY_TOKEN = 0xFFFFFFFF;
-const uint32_t UNKNOWN_ENTITY_ID = 0xFFFFFFFF;
-
-const uint16_t ENTITY_PACKET_CONTAINS_RADIUS = 1;
-const uint16_t ENTITY_PACKET_CONTAINS_POSITION = 2;
-const uint16_t ENTITY_PACKET_CONTAINS_COLOR = 4;
-const uint16_t ENTITY_PACKET_CONTAINS_SHOULDDIE = 8;
-const uint16_t ENTITY_PACKET_CONTAINS_MODEL_URL = 16;
-const uint16_t ENTITY_PACKET_CONTAINS_ROTATION = 32;
-const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_URL = 64;
-const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING = 128;
-const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_FRAME = 256;
-const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_FPS = 512;
-
-const float ENTITY_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
-const float ENTITY_MINIMUM_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
-const QString ENTITY_DEFAULT_MODEL_URL("");
-const glm::quat ENTITY_DEFAULT_ROTATION;
-const QString ENTITY_DEFAULT_ANIMATION_URL("");
-const float ENTITY_DEFAULT_ANIMATION_FPS = 30.0f;
-
-// PropertyFlags support
-
-class EntityTypes {
-public:
-    typedef enum EntityType {
-        Base,
-        Model,
-        Particle,
-        Box,
-        Sphere,
-        Plane,
-        Cylinder,
-        Pyramid
-    } EntityType_t;
-
-    static const QString& getEntityTypeName(EntityType_t entityType);
-    static bool registerEntityType(EntityType_t entityType, const QString& name);
-
-    static EntityItem* constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
-    static EntityItem* constructEntityItem(const unsigned char* data, int bytesToRead);
-    static bool decodEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes, 
-                                        const EntityItemID& entityID, const EntityItemProperties& properties);
-private:
-    static QHash<EntityType_t, QString> _typeNameHash;
-};
-
-// PropertyFlags support
-enum EntityPropertyList {
-    PROP_PAGED_PROPERTY,
-    PROP_CUSTOM_PROPERTIES_INCLUDED,
-    PROP_VISIBLE,
-    PROP_POSITION,
-    PROP_RADIUS,
-    PROP_ROTATION,
-    PROP_SCRIPT,
-    PROP_MODEL_URL,
-    PROP_COLOR,
-    PROP_ANIMATION_URL,
-    PROP_ANIMATION_FPS,
-    PROP_ANIMATION_FRAME_INDEX,
-    PROP_ANIMATION_PLAYING,
-    PROP_SHOULD_BE_DELETED,
-    PROP_LAST_ITEM = PROP_SHOULD_BE_DELETED
-};
-
-typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
-
-
-/// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
-/// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
-/// set of entity item properties via JavaScript hashes/QScriptValues
-/// all units for position, radius, etc are in meter units
-class EntityItemProperties {
-    friend class EntityItem; // TODO: consider removing this friend relationship and have EntityItem use public methods
-public:
-    EntityItemProperties();
-    virtual ~EntityItemProperties() { };
-
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine) const;
-    virtual void copyFromScriptValue(const QScriptValue& object);
-
-    // editing related features supported by all entities
-    quint64 getLastEdited() const { return _lastEdited; }
-    uint16_t getChangedBits() const;
-    EntityPropertyFlags getChangedProperties() const;
-
-    /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
-    void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
-    
-    glm::vec3 getMinimumPointMeters() const { return _position - glm::vec3(_radius, _radius, _radius); }
-    glm::vec3 getMaximumPointMeters() const { return _position + glm::vec3(_radius, _radius, _radius); }
-    AACube getAACubeMeters() const { return AACube(getMinimumPointMeters(), getMaxDimension()); } /// AACube in meter units
-
-    glm::vec3 getMinimumPointTreeUnits() const { return getMinimumPointMeters() / (float)TREE_SCALE; }
-    glm::vec3 getMaximumPointTreeUnits() const { return getMaximumPointMeters() / (float)TREE_SCALE; }
-    AACube getAACubeTreeUnits() const { return AACube(getMinimumPointMeters()/(float)TREE_SCALE, getMaxDimension()/(float)TREE_SCALE); } /// AACube in domain scale units (0.0 - 1.0)
-    void debugDump() const;
-
-    // properties of all entities
-    EntityTypes::EntityType_t getType() const { return _type; }
-    const glm::vec3& getPosition() const { return _position; }
-    float getRadius() const { return _radius; }
-    float getMaxDimension() const { return _radius * 2.0f; }
-    glm::vec3 getDimensions() const { return glm::vec3(_radius, _radius, _radius) * 2.0f; }
-    const glm::quat& getRotation() const { return _rotation; }
-    bool getShouldBeDeleted() const { return _shouldBeDeleted; }
-
-    /// set position in meter units
-    void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
-    void setRadius(float value) { _radius = value; _radiusChanged = true; }
-    void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; _shouldBeDeletedChanged = true;  }
-    
-    // NOTE: how do we handle _defaultSettings???
-    bool containsBoundsProperties() const { return (_positionChanged || _radiusChanged); }
-
-#if 0 // def HIDE_SUBCLASS_METHODS
-    // properties we want to move to just models and particles
-    xColor getColor() const { return _color; }
-    const QString& getModelURL() const { return _modelURL; }
-    const QString& getAnimationURL() const { return _animationURL; }
-    float getAnimationFrameIndex() const { return _animationFrameIndex; }
-    bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
-    float getAnimationFPS() const { return _animationFPS; }
-    float getGlowLevel() const { return _glowLevel; }
-
-    // model related properties
-    void setColor(const xColor& value) { _color = value; _colorChanged = true; }
-    void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; _rotationChanged = true; }
-    void setAnimationURL(const QString& url) { _animationURL = url; _animationURLChanged = true; }
-    void setAnimationFrameIndex(float value) { _animationFrameIndex = value; _animationFrameIndexChanged = true; }
-    void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
-    void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
-    void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
-#endif
-
-private:
-    quint32 _id;
-    bool _idSet;
-    quint64 _lastEdited;
-
-    EntityTypes::EntityType_t _type;
-    glm::vec3 _position;
-    float _radius;
-    glm::quat _rotation;
-    bool _shouldBeDeleted;
-
-    bool _positionChanged;
-    bool _radiusChanged;
-    bool _rotationChanged;
-    bool _shouldBeDeletedChanged;
-    
-#if 0 // def HIDE_SUBCLASS_METHODS
-    xColor _color;
-    QString _modelURL;
-    QString _animationURL;
-    bool _animationIsPlaying;
-    float _animationFrameIndex;
-    float _animationFPS;
-    float _glowLevel;
-    QVector<SittingPoint> _sittingPoints;
-
-    bool _colorChanged;
-    bool _modelURLChanged;
-    bool _animationURLChanged;
-    bool _animationIsPlayingChanged;
-    bool _animationFrameIndexChanged;
-    bool _animationFPSChanged;
-    bool _glowLevelChanged;
-#endif
-
-    bool _defaultSettings;
-};
-Q_DECLARE_METATYPE(EntityItemProperties);
-QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties);
-
-
-/// Abstract ID for editing model items. Used in EntityItem JS API - When models are created in the JS api, they are given a
-/// local creatorTokenID, the actual id for the model is not known until the server responds to the creator with the
-/// correct mapping. This class works with the scripting API an allows the developer to edit models they created.
-class EntityItemID {
-public:
-    EntityItemID() :
-            id(NEW_ENTITY), creatorTokenID(UNKNOWN_ENTITY_TOKEN), isKnownID(false) { 
-    //qDebug() << "EntityItemID::EntityItemID()... isKnownID=" << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
-    };
-
-    EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID) :
-            id(id), creatorTokenID(creatorTokenID), isKnownID(isKnownID) { 
-    //qDebug() << "EntityItemID::EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID)... isKnownID=" << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
-    };
-
-    EntityItemID(uint32_t id) :
-            id(id), creatorTokenID(UNKNOWN_ENTITY_TOKEN), isKnownID(true) { 
-    //qDebug() << "EntityItemID::EntityItemID(uint32_t id)... isKnownID=" << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
-    };
-
-    uint32_t id;
-    uint32_t creatorTokenID;
-    bool isKnownID;
-};
-
-inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
-    return (a.id == b.id) ? (a.creatorTokenID < b.creatorTokenID) : (a.id < b.id);
-}
-
-inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
-    if (a.id == UNKNOWN_ENTITY_ID && b.id == UNKNOWN_ENTITY_ID) {
-        return a.creatorTokenID == b.creatorTokenID;
-    }
-    return a.id == b.id;
-}
-
-inline uint qHash(const EntityItemID& a, uint seed) {
-    qint64 temp;
-    if (a.id == UNKNOWN_ENTITY_ID) {
-        temp = -a.creatorTokenID;
-    } else {
-        temp = a.id;
-    }
-    return qHash(temp, seed);
-}
-
-inline QDebug operator<<(QDebug debug, const EntityItemID& id) {
-    debug << "[ id:" << id.id << ", creatorTokenID:" << id.creatorTokenID << ", isKnownID:" << id.isKnownID << "]";
-    return debug;
-}
-
-Q_DECLARE_METATYPE(EntityItemID);
-Q_DECLARE_METATYPE(QVector<EntityItemID>);
-QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID& properties);
-void EntityItemIDfromScriptValue(const QScriptValue &object, EntityItemID& properties);
-
-
 
 /// EntityItem class - this is the actual model item class.
 class EntityItem  {
@@ -287,9 +37,6 @@ public:
     EntityItem(const EntityItemID& entityItemID);
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
-    /// creates an NEW model from an model add or edit message data buffer
-    static EntityItem* fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid);
-
     virtual ~EntityItem();
     
     virtual void somePureVirtualFunction() = 0;
@@ -444,7 +191,7 @@ protected:
 class ModelEntityItem : public EntityItem {
 public:
     ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { };
+        EntityItem(entityItemID, properties) { _type = EntityTypes::Model; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
 };
@@ -452,7 +199,7 @@ public:
 class ParticleEntityItem : public EntityItem {
 public:
     ParticleEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { };
+        EntityItem(entityItemID, properties) { _type = EntityTypes::Particle; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
 };
@@ -460,7 +207,7 @@ public:
 class BoxEntityItem : public EntityItem {
 public:
     BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { };
+        EntityItem(entityItemID, properties) { _type = EntityTypes::Box; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
 };
@@ -468,7 +215,7 @@ public:
 class SphereEntityItem : public EntityItem {
 public:
     SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { };
+        EntityItem(entityItemID, properties) { _type = EntityTypes::Sphere; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
 };
@@ -476,7 +223,7 @@ public:
 class PlaneEntityItem : public EntityItem {
 public:
     PlaneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { };
+        EntityItem(entityItemID, properties) { _type = EntityTypes::Plane; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
 };
@@ -484,7 +231,7 @@ public:
 class CylinderEntityItem : public EntityItem {
 public:
     CylinderEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { };
+        EntityItem(entityItemID, properties) { _type = EntityTypes::Cylinder; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
 };
@@ -492,7 +239,7 @@ public:
 class PyramidEntityItem : public EntityItem {
 public:
     PyramidEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { };
+        EntityItem(entityItemID, properties) { _type = EntityTypes::Pyramid; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
 };

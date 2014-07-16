@@ -8,6 +8,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+// TODO: How will we handle collision callbacks with Entities
+//
 
 #ifndef hifi_EntityScriptingInterface_h
 #define hifi_EntityScriptingInterface_h
@@ -20,6 +22,10 @@
 #include <RegisteredMetaTypes.h>
 
 #include "EntityEditPacketSender.h"
+
+
+class EntityTree;
+
 
 class RayToEntityIntersectionResult {
 public:
@@ -90,10 +96,6 @@ public slots:
 
 
     Q_INVOKABLE void dumpTree() const;
-
-signals:
-    void modelCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, const CollisionInfo& collision);
-    void modelCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const CollisionInfo& collision);
 
 private:
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);

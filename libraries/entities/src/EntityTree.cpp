@@ -797,7 +797,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
             EntityItemID entityItemID;
             EntityItemProperties properties;
             
-            bool validEditPacket = EntityTypes::decodEntityEditPacket(editData, maxLength, 
+            bool validEditPacket = EntityTypes::decodeEntityEditPacket(editData, maxLength, 
                                                     processedBytes, entityItemID, properties);
             
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
@@ -816,20 +816,8 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     }
                 }
             }
-
-     
-#if 0 ////// OLD CODE...
-            bool isValid = false;
-            EntityItem* newEntity = NULL; // EntityItem::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
-            if (isValid) {
-                storeEntity(newEntity, senderNode);
-                if (newEntity.isNewlyCreated()) {
-                    notifyNewlyCreatedEntity(newEntity, senderNode);
-                }
-            }
-#endif
-            
-        } break;
+            break;
+        }
 
         default:
             processedBytes = 0;

@@ -29,74 +29,6 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
-QHash<EntityTypes::EntityType_t, QString> EntityTypes::_typeNameHash;
-
-const QString UNKNOWN_EntityType_t_NAME = "Unknown";
-const QString& EntityTypes::getEntityTypeName(EntityType_t entityType) {
-    QHash<EntityType_t, QString>::iterator matchedTypeName = _typeNameHash.find(entityType);
-    return matchedTypeName != _typeNameHash.end() ? matchedTypeName.value() : UNKNOWN_EntityType_t_NAME;
-}
-
-bool EntityTypes::registerEntityType(EntityType_t entityType, const QString& name) {
-    _typeNameHash.insert(entityType, name);
-    return true;
-}
-
-EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* newEntityItem = NULL;
-
-    // switch statement for now, needs to support registration of constructor
-    switch (entityType) {
-        // Base, // ??? not supported?
-        case Model:
-            newEntityItem = new ModelEntityItem(entityID, properties); 
-        break;
-
-        case Particle:
-            newEntityItem = new ParticleEntityItem(entityID, properties); 
-        break;
-
-        case Box:
-            newEntityItem = new BoxEntityItem(entityID, properties); 
-        break;
-
-        case Sphere:
-            newEntityItem = new SphereEntityItem(entityID, properties); 
-        break;
-
-        case Plane:
-            newEntityItem = new PlaneEntityItem(entityID, properties); 
-        break;
-
-        case Cylinder:
-            newEntityItem = new CylinderEntityItem(entityID, properties); 
-        break;
-
-        case Pyramid:
-            newEntityItem = new PyramidEntityItem(entityID, properties); 
-        break;
-
-        default:
-            newEntityItem = new ModelEntityItem(entityID, properties); 
-        break;
-    }
-    return newEntityItem;
-}
-
-EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead) {
-    return NULL; // TODO Implement this for real!
-}
-
-bool EntityTypes::decodEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
-                        const EntityItemID& entityID, const EntityItemProperties& properties) {
-    bool valid = false;
-    return valid;
-}
-
-
-bool registered = EntityTypes::registerEntityType(EntityTypes::Base, "Base")
-                    && EntityTypes::registerEntityType(EntityTypes::Model, "Model"); // TODO: move this to model subclass
-
 uint32_t EntityItem::_nextID = 0;
 
 // for locally created models
@@ -827,241 +759,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     return bytesRead;
 }
 
-EntityItem* EntityItem::fromEditPacket(const unsigned char* data, int length, int& processedBytes, EntityTree* tree, bool& valid) {
-    EntityItem* result = NULL;
-    
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityItem EntityItem::fromEditPacket() length=" << length;
-    }
-
-    const unsigned char* dataAt = data;
-    processedBytes = 0;
-
-    // the first part of the data is an octcode, this is a required element of the edit packet format, but we don't
-    // actually use it, we do need to skip it and read to the actual data we care about.
-    int octets = numberOfThreeBitSectionsInCode(data);
-    int lengthOfOctcode = bytesRequiredForCodeLength(octets);
-
-    if (wantDebug) {
-        qDebug() << "EntityItem EntityItem::fromEditPacket() lengthOfOctcode=" << lengthOfOctcode;
-    }
-
-    // we don't actually do anything with this octcode...
-    dataAt += lengthOfOctcode;
-    processedBytes += lengthOfOctcode;
-    
-    // Edit packets have a last edited time stamp immediately following the octcode.
-    // NOTE: the edit times have been set by the editor to match out clock, so we don't need to adjust
-    // these times for clock skew at this point.
-    quint64 lastEdited;
-    memcpy(&lastEdited, dataAt, sizeof(lastEdited));
-    dataAt += sizeof(lastEdited);
-    processedBytes += sizeof(lastEdited);
-
-    // encoded id
-    QByteArray encodedID((const char*)dataAt, (length - processedBytes));
-    ByteCountCoded<quint32> idCoder = encodedID;
-    quint32 editID = idCoder;
-    encodedID = idCoder; // determine true length
-    dataAt += encodedID.size();
-    processedBytes += encodedID.size();
-
-    if (wantDebug) {
-        qDebug() << "EntityItem EntityItem::fromEditPacket() editID=" << editID;
-    }
-
-    bool isNewEntityItem = (editID == NEW_ENTITY);
-
-    if (isNewEntityItem) {
-        // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
-        // we want to send back to the creator as an map to the actual id
-
-        QByteArray encodedToken((const char*)dataAt, (length - processedBytes));
-        ByteCountCoded<quint32> tokenCoder = encodedToken;
-        quint32 creatorTokenID = tokenCoder;
-        encodedToken = tokenCoder; // determine true length
-        dataAt += encodedToken.size();
-        processedBytes += encodedToken.size();
-
-        //newEntityItem.setCreatorTokenID(creatorTokenID);
-        //newEntityItem._newlyCreated = true;
-
-        valid = true;
-
-    } else {
-        // look up the existing entityItem
-        const EntityItem* existingEntityItem = tree->findEntityByID(editID, true);
-
-        // copy existing properties before over-writing with new properties
-        if (existingEntityItem) {
-
-            // TODO: how do we want to handle these edits to existing packets???
-            
-            //newEntityItem = *existingEntityItem;
-            
-            valid = true;
-        } else {
-            // the user attempted to edit a entityItem that doesn't exist
-            qDebug() << "user attempted to edit a entityItem that doesn't exist... editID=" << editID;
-            tree->debugDumpMap();
-            valid = false;
-            
-            // NOTE: Even though we know item is not valid, we still need to parse the rest
-            // of the edit packet so that we don't end up out of sync on our bitstream
-            // fall through....
-        }
-
-        //newEntityItem._id = editID;
-        //newEntityItem._newlyCreated = false;
-    }
-    
-    // Entity Type...
-    QByteArray encodedType((const char*)dataAt, (length - processedBytes));
-    ByteCountCoded<quint32> typeCoder = encodedType;
-    quint32 entityTypeCode = typeCoder;
-    EntityTypes::EntityType_t entityType = (EntityTypes::EntityType_t)entityTypeCode;
-    encodedType = typeCoder; // determine true length
-    dataAt += encodedType.size();
-    processedBytes += encodedType.size();
-
-    // Update Delta - when was this item updated relative to last edit... this really should be 0
-    // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
-    // last updated is stored as ByteCountCoded delta from lastEdited
-    QByteArray encodedUpdateDelta((const char*)dataAt, (length - processedBytes));
-    ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
-    quint64 updateDelta = updateDeltaCoder;
-    quint64 lastUpdated = lastEdited + updateDelta; // don't adjust for clock skew since we already did that for lastEdited
-   
-    encodedUpdateDelta = updateDeltaCoder; // determine true length
-    dataAt += encodedUpdateDelta.size();
-    processedBytes += encodedUpdateDelta.size();
-    
-    // Property Flags...
-    QByteArray encodedPropertyFlags((const char*)dataAt, (length - processedBytes));
-    EntityPropertyFlags propertyFlags = encodedPropertyFlags;
-    dataAt += propertyFlags.getEncodedLength();
-    processedBytes += propertyFlags.getEncodedLength();
-    
-/****    
-    // All of the remaining items are optional, and may or may not be included based on their included values in the
-    // properties included bits
-    uint16_t packetContainsBits = 0;
-    if (!isNewEntityItem) {
-        memcpy(&packetContainsBits, dataAt, sizeof(packetContainsBits));
-        dataAt += sizeof(packetContainsBits);
-        processedBytes += sizeof(packetContainsBits);
-
-        // only applies to editing of existing models
-        if (!packetContainsBits) {
-            //qDebug() << "edit packet didn't contain any information ignore it...";
-            valid = false;
-            //return newEntityItem;
-            return NULL;
-        }
-    }
-
-    // position
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_POSITION) == ENTITY_PACKET_CONTAINS_POSITION)) {
-        memcpy(&newEntityItem._position, dataAt, sizeof(newEntityItem._position));
-        dataAt += sizeof(newEntityItem._position);
-        processedBytes += sizeof(newEntityItem._position);
-    }
-
-    // radius
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_RADIUS) == ENTITY_PACKET_CONTAINS_RADIUS)) {
-        memcpy(&newEntityItem._radius, dataAt, sizeof(newEntityItem._radius));
-        dataAt += sizeof(newEntityItem._radius);
-        processedBytes += sizeof(newEntityItem._radius);
-    }
-
-    // rotation
-    if (isNewEntityItem || ((packetContainsBits & 
-                    ENTITY_PACKET_CONTAINS_ROTATION) == ENTITY_PACKET_CONTAINS_ROTATION)) {
-        int bytes = unpackOrientationQuatFromBytes(dataAt, newEntityItem._rotation);
-        dataAt += bytes;
-        processedBytes += bytes;
-    }
-
-    // shouldBeDeleted
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_SHOULDDIE) == ENTITY_PACKET_CONTAINS_SHOULDDIE)) {
-        memcpy(&newEntityItem._shouldBeDeleted, dataAt, sizeof(newEntityItem._shouldBeDeleted));
-        dataAt += sizeof(newEntityItem._shouldBeDeleted);
-        processedBytes += sizeof(newEntityItem._shouldBeDeleted);
-    }
-
-#ifdef HIDE_SUBCLASS_METHODS
-    // color
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_COLOR) == ENTITY_PACKET_CONTAINS_COLOR)) {
-        memcpy(newEntityItem._color, dataAt, sizeof(newEntityItem._color));
-        dataAt += sizeof(newEntityItem._color);
-        processedBytes += sizeof(newEntityItem._color);
-    }
-
-    // modelURL
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_MODEL_URL) == ENTITY_PACKET_CONTAINS_MODEL_URL)) {
-        uint16_t modelURLLength;
-        memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
-        dataAt += sizeof(modelURLLength);
-        processedBytes += sizeof(modelURLLength);
-        QString tempString((const char*)dataAt);
-        newEntityItem._modelURL = tempString;
-        dataAt += modelURLLength;
-        processedBytes += modelURLLength;
-    }
-
-    // animationURL
-    if (isNewEntityItem || ((packetContainsBits & ENTITY_PACKET_CONTAINS_ANIMATION_URL) == ENTITY_PACKET_CONTAINS_ANIMATION_URL)) {
-        uint16_t animationURLLength;
-        memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
-        dataAt += sizeof(animationURLLength);
-        processedBytes += sizeof(animationURLLength);
-        QString tempString((const char*)dataAt);
-        newEntityItem._animationURL = tempString;
-        dataAt += animationURLLength;
-        processedBytes += animationURLLength;
-    }
-
-    // animationIsPlaying
-    if (isNewEntityItem || ((packetContainsBits & 
-                    ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING) == ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING)) {
-                    
-        memcpy(&newEntityItem._animationIsPlaying, dataAt, sizeof(newEntityItem._animationIsPlaying));
-        dataAt += sizeof(newEntityItem._animationIsPlaying);
-        processedBytes += sizeof(newEntityItem._animationIsPlaying);
-    }
-
-    // animationFrameIndex
-    if (isNewEntityItem || ((packetContainsBits & 
-                    ENTITY_PACKET_CONTAINS_ANIMATION_FRAME) == ENTITY_PACKET_CONTAINS_ANIMATION_FRAME)) {
-                    
-        memcpy(&newEntityItem._animationFrameIndex, dataAt, sizeof(newEntityItem._animationFrameIndex));
-        dataAt += sizeof(newEntityItem._animationFrameIndex);
-        processedBytes += sizeof(newEntityItem._animationFrameIndex);
-    }
-
-    // animationFPS
-    if (isNewEntityItem || ((packetContainsBits & 
-                    ENTITY_PACKET_CONTAINS_ANIMATION_FPS) == ENTITY_PACKET_CONTAINS_ANIMATION_FPS)) {
-                    
-        memcpy(&newEntityItem._animationFPS, dataAt, sizeof(newEntityItem._animationFPS));
-        dataAt += sizeof(newEntityItem._animationFPS);
-        processedBytes += sizeof(newEntityItem._animationFPS);
-    }
-#endif
-
-***/
-    const bool wantDebugging = false;
-    if (wantDebugging) {
-        qDebug("EntityItem::fromEditPacket()...");
-        qDebug() << "   EntityItem id in packet:" << editID;
-        //newEntityItem.debugDump();
-    }
-    
-    // TODO: need to make this actually return something...
-    return result;
-}
-
 void EntityItem::debugDump() const {
     qDebug() << "EntityItem id:" << getEntityItemID();
     qDebug(" edited ago:%f", getEditedAgo());
@@ -1078,9 +775,6 @@ void EntityItem::debugDump() const {
     }
 #endif
 }
-
-
-
 
 
 
@@ -1614,6 +1308,8 @@ EntityItemProperties EntityItem::getProperties() const {
     properties._id = getID();
     properties._idSet = true;
 
+    properties._type = getType();
+    
     properties._position = getPosition() * (float) TREE_SCALE;
     properties._radius = getRadius() * (float) TREE_SCALE;
     properties._rotation = getRotation();
@@ -1726,6 +1422,7 @@ EntityItemProperties::EntityItemProperties() :
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
     _lastEdited(usecTimestampNow()),
+    _type(EntityTypes::Base),
 
     _position(0),
     _radius(ENTITY_DEFAULT_RADIUS),
@@ -1908,6 +1605,13 @@ qDebug() << "EntityItemProperties::copyToScriptValue()... isKnownID=" << isKnown
 
 void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
 
+    QScriptValue typeScriptValue = object.property("type");
+    if (typeScriptValue.isValid()) {
+        QString typeName;
+        typeName = typeScriptValue.toVariant().toString();
+        _type = EntityTypes::getEntityTypeFromName(typeName);
+    }
+
     QScriptValue position = object.property("position");
     if (position.isValid()) {
         QScriptValue x = position.property("x");
@@ -2055,22 +1759,3 @@ QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const Enti
 void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties) {
     properties.copyFromScriptValue(object);
 }
-
-
-QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID& id) {
-    QScriptValue obj = engine->newObject();
-    obj.setProperty("id", id.id);
-    obj.setProperty("creatorTokenID", id.creatorTokenID);
-    obj.setProperty("isKnownID", id.isKnownID);
-qDebug() << "EntityItemIDtoScriptValue()... isKnownID=" << id.isKnownID << "id=" << id.id << "creatorTokenID=" << id.creatorTokenID;
-    return obj;
-}
-
-void EntityItemIDfromScriptValue(const QScriptValue &object, EntityItemID& id) {
-    id.id = object.property("id").toVariant().toUInt();
-    id.creatorTokenID = object.property("creatorTokenID").toVariant().toUInt();
-    id.isKnownID = object.property("isKnownID").toVariant().toBool();
-}
-
-
-
