@@ -164,6 +164,8 @@ public slots:
     void addLocalLight();
     void removeLocalLight();
     int getNumLocalLights();
+    glm::vec3 getLocalLightDirection(int lightIndex);
+    glm::vec3 getLocalLightColor(int lightIndex);
  
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);

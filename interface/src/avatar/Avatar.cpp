@@ -950,3 +950,12 @@ int Avatar::getNumLocalLights() {
     return _numLocalLights;
 }
 
+glm::vec3 Avatar::getLocalLightDirection(int lightIndex) {
+    return _localLightDirections[lightIndex];
+}
+
+glm::vec3 Avatar::getLocalLightColor(int lightIndex) {
+    return _localLightColors[lightIndex];
+}
+ 
+
