@@ -20,6 +20,7 @@
 #include <AudioInjector.h>
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
+#include <Bitstream.h>
 #include <CollisionInfo.h>
 #include <ModelsScriptingInterface.h>
 #include <NetworkAccessManager.h>
@@ -229,6 +230,7 @@ void ScriptEngine::init() {
     registerMenuItemProperties(&_engine);
     registerAnimationTypes(&_engine);
     registerAvatarTypes(&_engine);
+    Bitstream::registerTypes(&_engine);
 
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);

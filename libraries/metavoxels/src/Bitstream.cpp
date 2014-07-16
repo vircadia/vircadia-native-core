@@ -129,10 +129,19 @@ QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* 
     return getMetaObjectSubClasses().values(metaObject);
 }
 
-void Bitstream::configureScriptEngine(QScriptEngine* engine) {
+QScriptValue sharedObjectPointerToScriptValue(QScriptEngine* engine, const SharedObjectPointer& pointer) {
+    return pointer ? engine->newQObject(pointer.data()) : engine->nullValue();
+}
+
+void sharedObjectPointerFromScriptValue(const QScriptValue& object, SharedObjectPointer& pointer) {
+    pointer = qobject_cast<SharedObject*>(object.toQObject());
+}
+
+void Bitstream::registerTypes(QScriptEngine* engine) {
     foreach (const QMetaObject* metaObject, getMetaObjects()) {
         engine->globalObject().setProperty(metaObject->className(), engine->newQMetaObject(metaObject));
     }
+    qScriptRegisterMetaType(engine, sharedObjectPointerToScriptValue, sharedObjectPointerFromScriptValue);
 }
 
 Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, GenericsMode genericsMode, QObject* parent) :

@@ -323,7 +323,7 @@ public:
 
     /// Configures the supplied script engine with our registered meta-objects, allowing all of them to be instantiated from
     /// scripts.
-    static void configureScriptEngine(QScriptEngine* engine);
+    static void registerTypes(QScriptEngine* engine);
 
     enum MetadataType { NO_METADATA, HASH_METADATA, FULL_METADATA };
 
