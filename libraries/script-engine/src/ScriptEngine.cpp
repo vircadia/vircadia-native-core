@@ -72,6 +72,14 @@ void injectorFromScriptValue(const QScriptValue &object, AudioInjector* &out) {
     out = qobject_cast<AudioInjector*>(object.toQObject());
 }
 
+QScriptValue injectorToScriptValueInputController(QScriptEngine *engine, AbstractInputController* const &in) {
+    return engine->newQObject(in);
+}
+
+void injectorFromScriptValueInputController(const QScriptValue &object, AbstractInputController* &out) {
+    out = qobject_cast<AbstractInputController*>(object.toQObject());
+}
+
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
 
@@ -262,6 +270,7 @@ void ScriptEngine::init() {
     _engine.globalObject().setProperty("LocalVoxels", localVoxelsValue);
     
     qScriptRegisterMetaType(&_engine, injectorToScriptValue, injectorFromScriptValue);
+    qScriptRegisterMetaType( &_engine, injectorToScriptValueInputController, injectorFromScriptValueInputController);
 
     qScriptRegisterMetaType(&_engine, animationDetailsToScriptValue, animationDetailsFromScriptValue);
 

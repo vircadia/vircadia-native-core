@@ -17,6 +17,37 @@
 #include <AbstractControllerScriptingInterface.h>
 class PalmData;
 
+
+class InputController : public  AbstractInputController {
+    Q_OBJECT
+
+public:
+    InputController(int deviceTrackerId, int subTrackerId, QObject* parent = NULL);
+
+    virtual void update();
+    virtual Key getKey() const;
+
+public slots:
+
+    virtual bool isActive() const { return _isActive; }
+    virtual glm::vec3 getAbsTranslation() const { return _eventCache.absTranslation; }
+    virtual glm::quat getAbsRotation() const    { return _eventCache.absRotation; }
+    virtual glm::vec3 getLocTranslation() const { return _eventCache.locTranslation; }
+    virtual glm::quat getLocRotation() const    { return _eventCache.locRotation; }
+
+private:
+
+    int  _deviceTrackerId;
+    int  _subTrackerId;
+
+    // cache for the spatial
+    SpatialEvent    _eventCache;
+    bool            _isActive;
+
+signals:
+};
+
+
 /// handles scripting of input controller commands from JS
 class ControllerScriptingInterface : public AbstractControllerScriptingInterface {
     Q_OBJECT
@@ -42,6 +73,10 @@ public:
     bool isTouchCaptured() const { return _touchCaptured; }
     bool isWheelCaptured() const { return _wheelCaptured; }
     bool isJoystickCaptured(int joystickIndex) const;
+
+    void updateInputControllers();
+
+    void releaseInputController(AbstractInputController* input);
 
 public slots:
     virtual bool isPrimaryButtonPressed() const;
@@ -78,6 +113,9 @@ public slots:
 
     virtual glm::vec2 getViewportDimensions() const;
 
+    /// Factory to create an InputController
+    virtual AbstractInputController* createInputController(const QString& deviceName, const QString& tracker);
+
 private:
     const PalmData* getPrimaryPalm() const;
     const PalmData* getPalm(int palmIndex) const;
@@ -89,6 +127,9 @@ private:
     bool _wheelCaptured;
     QMultiMap<int,KeyEvent> _capturedKeys;
     QSet<int> _capturedJoysticks;
+
+    typedef std::map< AbstractInputController::Key, AbstractInputController* > InputControllerMap;
+    InputControllerMap _inputControllers;
 };
 
 const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 2; // the hand and the tip
@@ -97,5 +138,6 @@ const int NUMBER_OF_TRIGGERS_PER_PALM = 1;
 const int NUMBER_OF_BUTTONS_PER_PALM = 6;
 const int PALM_SPATIALCONTROL = 0;
 const int TIP_SPATIALCONTROL = 1;
+
 
 #endif // hifi_ControllerScriptingInterface_h

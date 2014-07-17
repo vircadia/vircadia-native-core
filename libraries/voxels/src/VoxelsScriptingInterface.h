@@ -90,6 +90,11 @@ public:
     /// \return VoxelDetail - if no voxel encloses the point then VoxelDetail items will be 0
     Q_INVOKABLE VoxelDetail getVoxelEnclosingPoint(const glm::vec3& point);
 
+    /// checks the local voxel tree for the smallest voxel enclosing the point and uses a blocking lock
+    /// \param point the x,y,z coordinates of the point (in meter units)
+    /// \return VoxelDetail - if no voxel encloses the point then VoxelDetail items will be 0
+    Q_INVOKABLE VoxelDetail getVoxelEnclosingPointBlocking(const glm::vec3& point);
+
 private:
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToVoxelIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType);

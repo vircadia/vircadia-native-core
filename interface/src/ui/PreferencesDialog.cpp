@@ -136,6 +136,8 @@ void PreferencesDialog::loadPreferences() {
 
     _skeletonURLString = myAvatar->getSkeletonModel().getURL().toString();
     ui.skeletonURLEdit->setText(_skeletonURLString);
+    
+    ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
     ui.snapshotLocationEdit->setText(menuInstance->getSnapshotsLocation());
 
@@ -200,6 +202,11 @@ void PreferencesDialog::savePreferences() {
     if (shouldDispatchIdentityPacket) {
         myAvatar->sendIdentityPacket();
         Application::getInstance()->bumpSettings();
+    }
+    
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger)
+        != ui.sendDataCheckBox->isChecked()) {
+        Menu::getInstance()->triggerOption(MenuOption::DisableActivityLogger);
     }
 
     if (!ui.snapshotLocationEdit->text().isEmpty() && QDir(ui.snapshotLocationEdit->text()).exists()) {
