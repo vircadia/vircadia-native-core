@@ -17,6 +17,7 @@
 #include <QMetaType>
 #include <QObject>
 #include <QPointer>
+#include <QReadWriteLock>
 #include <QSet>
 #include <QWidget>
 #include <QtDebug>
@@ -36,6 +37,9 @@ public:
     /// Returns the weak hash under which all local shared objects are registered.
     static const WeakSharedObjectHash& getWeakHash() { return _weakHash; }
 
+    /// Returns a reference to the weak hash lock.
+    static QReadWriteLock& getWeakHashLock() { return _weakHashLock; }
+    
     Q_INVOKABLE SharedObject();
 
     /// Returns the unique local ID for this object.
@@ -85,6 +89,7 @@ private:
     
     static int _lastID;
     static WeakSharedObjectHash _weakHash;
+    static QReadWriteLock _weakHashLock;
 };
 
 /// Removes the null references from the supplied hash.

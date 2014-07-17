@@ -426,9 +426,9 @@ private:
     int _writePositionResetPacketNumber;
     SpanList _acknowledged;
     bool _messagesEnabled;
-    int _messageLengthPlaceholder;
-    int _messageReceivedOffset;
-    int _messageSize;
+    int _messageLengthPlaceholder; ///< the location in the buffer of the message length for the current message
+    int _messageReceivedOffset; ///< when reached, indicates that the most recent sent message has been received
+    int _messageSize; ///< the size of the most recent sent message; only valid when _messageReceivedOffset has been set
 };
 
 #endif // hifi_DatagramSequencer_h

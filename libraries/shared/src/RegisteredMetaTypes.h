@@ -19,6 +19,8 @@
 #include "CollisionInfo.h"
 #include "SharedUtil.h"
 
+class QColor;
+
 Q_DECLARE_METATYPE(glm::vec4)
 Q_DECLARE_METATYPE(glm::vec3)
 Q_DECLARE_METATYPE(glm::vec2)
@@ -41,6 +43,9 @@ void quatFromScriptValue(const QScriptValue &object, glm::quat& quat);
 
 QScriptValue xColorToScriptValue(QScriptEngine* engine, const xColor& color);
 void xColorFromScriptValue(const QScriptValue &object, xColor& color);
+
+QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color);
+void qColorFromScriptValue(const QScriptValue& object, QColor& color);
 
 class PickRay {
 public:
