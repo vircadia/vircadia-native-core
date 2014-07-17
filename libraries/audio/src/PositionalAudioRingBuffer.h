@@ -75,7 +75,7 @@ public:
 
     int getCalculatedDesiredJitterBufferFrames() const; /// returns what we would calculate our desired as if asked
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
-    double getAverageFramesAvailable() const { return _framesAvailableStats.getWindowAverage(); }
+    double getFramesAvailableAverage() const { return _framesAvailableStats.getWindowAverage(); }
 
     int getConsecutiveNotMixedCount() const { return _consecutiveNotMixedCount; }
     int getStarveCount() const { return _starveCount; }

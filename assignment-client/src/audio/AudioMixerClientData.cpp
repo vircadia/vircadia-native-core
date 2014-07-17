@@ -227,7 +227,7 @@ AudioStreamStats AudioMixerClientData::getAudioStreamStatsOfStream(const Positio
     streamStats._timeGapWindowAverage = timeGapStats.getWindowAverage();
 
     streamStats._ringBufferFramesAvailable = ringBuffer->framesAvailable();
-    streamStats._ringBufferFramesAvailableAverage = ringBuffer->getAverageFramesAvailable();
+    streamStats._ringBufferFramesAvailableAverage = ringBuffer->getFramesAvailableAverage();
     streamStats._ringBufferDesiredJitterBufferFrames = ringBuffer->getDesiredJitterBufferFrames();
     streamStats._ringBufferStarveCount = ringBuffer->getStarveCount();
     streamStats._ringBufferConsecutiveNotMixedCount = ringBuffer->getConsecutiveNotMixedCount();
