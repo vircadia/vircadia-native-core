@@ -18,7 +18,9 @@ set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/oculus")
 set(PRIOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/priovr")
 set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense")
 set(VISAGE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/visage")
+set(LEAPMOTION_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/leapmotion")
 set(RTMIDI_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/rtmidi")
+
 
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
@@ -139,6 +141,7 @@ find_package(PrioVR)
 find_package(SDL)
 find_package(Sixense)
 find_package(Visage)
+find_package(LeapMotion)
 find_package(ZLIB)
 find_package(Qxmpp)
 find_package(RtMidi)
@@ -198,6 +201,17 @@ if (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
   include_directories(SYSTEM "${PRIOVR_INCLUDE_DIRS}")
   target_link_libraries(${TARGET_NAME} "${PRIOVR_LIBRARIES}")
 endif (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
+
+# and with LeapMotion library
+if (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
+    add_definitions(-DHAVE_LEAPMOTION)
+    include_directories(SYSTEM "${LEAPMOTION_INCLUDE_DIRS}")
+
+    if (APPLE OR UNIX)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LEAPMOTION_INCLUDE_DIRS}")
+    endif ()
+    target_link_libraries(${TARGET_NAME} "${LEAPMOTION_LIBRARIES}")
+endif (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
 
 # and with SDL for joysticks
 if (SDL_FOUND AND NOT DISABLE_SDL)
