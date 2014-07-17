@@ -44,12 +44,14 @@ For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generat
 
     cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.2.0/lib/cmake
 
-####OpenSSL
-Some OS X and Linux distributions will come with a pre-installed version of OpenSSL. If this version is not at least 1.0.1g, you will need to install OpenSSL manually in a different location. You can point our [Cmake find module](cmake/modules/FindOpenSSL.cmake) by setting one of the three following variables to the location of the correct version of OpenSSL.
+####Find modules
+You can point our [Cmake find modules](cmake/modules/) to the correct version of dependencies by setting one of the three following variables to the location of the correct version of the dependency.
 
-* OPENSSL_ROOT_DIR - pass this variable to Cmake with the -DOPENSSL_ROOT_DIR= flag when running Cmake to generate build files
-* OPENSSL_ROOT_DIR - set this variable in your ENV
-* HIFI_LIB_DIR - set this variable in your ENV to your High Fidelity lib folder, should contain a folder 'openssl'
+In the examples below the variable $NAME would be replaced by the name of the dependency in uppercase, and $name would be replaced by the name of the dependency in lowercase (ex: OPENSSL_ROOT_DIR, openssl).
+
+* $NAME_ROOT_DIR - pass this variable to Cmake with the -DNAME_ROOT_DIR= flag when running Cmake to generate build files
+* $NAME_ROOT_DIR - set this variable in your ENV
+* HIFI_LIB_DIR - set this variable in your ENV to your High Fidelity lib folder, should contain a folder '$name'
 
 UNIX
 ===
@@ -65,7 +67,7 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
     brew tap highfidelity/homebrew-formulas
-    brew install cmake glm gnutls
+    brew install cmake glm openssl
     brew install highfidelity/formulas/qt5
     brew link qt5 --force
     brew install highfidelity/formulas/qxmpp
@@ -215,20 +217,6 @@ Add to the PATH: `%HIFI_LIB_DIR%\glew\bin\Release\Win32`
 This package contains only headers, so there's nothing to add to the PATH.
 
 Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
-
-#### GnuTLS
-
-You can get a precompiled version of GnuTLS for Windows [here](http://gnutls.org/download.html).
-
-To use GnuTLS with Visual Studio, you will need to create `libgnutls-28.lib`, the import library for Visual Studio projects. This is done using the `lib` command in the `bin` folder of your GnuTLS download. Start a Visual Studio Command Prompt, and then run:
-
-    cd %HIFI_LIB_DIR%\gnutls\bin
-    lib /def:libgnutls-28.def 
-    copy libgnutls-28.lib ..\lib
-
-The Cmake FindGnuTLS module will now find libgnutls-28.lib during the Cmake run.
-
-Add to the PATH: `%HIFI_LIB_DIR%\gnutls\bin`
 
 #### qxmpp
 
