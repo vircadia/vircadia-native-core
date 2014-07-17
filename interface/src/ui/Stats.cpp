@@ -316,7 +316,7 @@ void Stats::display(
 
             char audioMixerStatsLabelString[] = "AudioMixer stats:";
             char streamStatsFormatLabelString[] = "lost%/lost_30s%";
-            char streamStatsFormatLabelString2[] = "desr/avg_10s/avail";
+            char streamStatsFormatLabelString2[] = "desired/avail_avg_10s/avail";
             char streamStatsFormatLabelString3[] = "gaps: min/max/avg, starv/ovfl";
             char streamStatsFormatLabelString4[] = "gaps_30s: (same), notmix/sdrop";
             
