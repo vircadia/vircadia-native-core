@@ -109,8 +109,6 @@ void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject
     setXMPPPassword(user["xmpp_password"].toString());
     setDiscourseApiKey(user["discourse_api_key"].toString());
     setWalletID(QUuid(user["wallet_id"].toString()));
-    
-    qDebug() << "Wallet is" << _walletID;
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {

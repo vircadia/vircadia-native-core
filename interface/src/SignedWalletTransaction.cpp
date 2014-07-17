@@ -19,6 +19,8 @@
 
 #include <AccountManager.h>
 
+#include "Menu.h"
+
 #include "SignedWalletTransaction.h"
 
 SignedWalletTransaction::SignedWalletTransaction(const QUuid& destinationUUID, qint64 amount,
@@ -55,19 +57,16 @@ QByteArray SignedWalletTransaction::messageDigest() {
 }
 
 QByteArray SignedWalletTransaction::signedMessageDigest() {
-    // read the private key from file into memory
-    QFile privateKeyFile("/Users/birarda/Desktop/generated-private.pem");
-    privateKeyFile.open(QIODevice::ReadOnly);
-    QByteArray privateKeyData = privateKeyFile.readAll();
+    // pull the current private key from menu into RSA structure in memory
+    QByteArray privateKeyByteArray = Menu::getInstance()->getWalletPrivateKey();
     
     BIO* privateKeyBIO = NULL;
     RSA* rsaPrivateKey = NULL;
     
-    privateKeyBIO = BIO_new_mem_buf(privateKeyData.data(), privateKeyData.size());
+    privateKeyBIO = BIO_new_mem_buf(privateKeyByteArray.data(), privateKeyByteArray.size());
     PEM_read_bio_RSAPrivateKey(privateKeyBIO, &rsaPrivateKey, NULL, NULL);
     
     QByteArray digestToEncrypt = messageDigest();
-    qDebug() << "encrypting the following digest" << digestToEncrypt;
     QByteArray encryptedDigest(RSA_size(rsaPrivateKey), 0);
     
     int encryptReturn = RSA_private_encrypt(digestToEncrypt.size(),
@@ -75,5 +74,9 @@ QByteArray SignedWalletTransaction::signedMessageDigest() {
                                             reinterpret_cast<unsigned char*>(encryptedDigest.data()),
                                             rsaPrivateKey, RSA_PKCS1_PADDING);
     
-    return encryptedDigest;
+    // free the two structures used
+    BIO_free(privateKeyBIO);
+    RSA_free(rsaPrivateKey);
+    
+    return (encryptReturn != -1) ? encryptedDigest : QByteArray();
 }
