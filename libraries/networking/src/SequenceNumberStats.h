@@ -48,10 +48,25 @@ public:
 
 class SequenceNumberStats {
 public:
+    enum ArrivalStatus {
+        OnTime,
+        Unreasonable,
+        Early,
+        Late,   // recovered
+        Duplicate
+    };
+
+    class ArrivalInfo {
+    public:
+        ArrivalStatus _status;
+        int _seqDiffFromExpected;
+    };
+
+
     SequenceNumberStats(int statsHistoryLength = 0);
 
     void reset();
-    void sequenceNumberReceived(quint16 incoming, QUuid senderUUID = QUuid(), const bool wantExtraDebugging = false);
+    ArrivalInfo sequenceNumberReceived(quint16 incoming, QUuid senderUUID = QUuid(), const bool wantExtraDebugging = false);
     void pruneMissingSet(const bool wantExtraDebugging = false);
     void pushStatsToHistory() { _statsHistory.insert(_stats); }
 
