@@ -125,7 +125,8 @@ public:
     void addEntityItem(EntityItem* entity);
 
 
-    void updateEntityItemID(FindAndUpdateEntityItemIDArgs* args);
+    //void updateEntityItemID(FindAndUpdateEntityItemIDArgs* args);
+    void updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID);
 
     const EntityItem* getClosestEntity(glm::vec3 position) const;
 

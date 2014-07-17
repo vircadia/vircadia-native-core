@@ -27,7 +27,7 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     // The application will keep track of creatorTokenID
-    uint32_t creatorTokenID = EntityItem::getNextCreatorTokenID();
+    uint32_t creatorTokenID = EntityItemID::getNextCreatorTokenID();
 
     EntityItemID id(NEW_ENTITY, creatorTokenID, false );
 
@@ -48,7 +48,7 @@ EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
     uint32_t actualID = entityID.id;
 
     if (!entityID.isKnownID) {
-        actualID = EntityItem::getIDfromCreatorTokenID(entityID.creatorTokenID);
+        actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
         if (actualID == UNKNOWN_ENTITY_ID) {
             return entityID; // bailing early
         }
@@ -72,7 +72,10 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
         _entityTree->lockForRead();
         EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByID(identity.id, true));
         if (entity) {
-            entity->setSittingPoints(_entityTree->getGeometryForEntity(*entity)->sittingPoints);
+        
+            // TODO: look into sitting points!!!
+            //entity->setSittingPoints(_entityTree->getGeometryForEntity(*entity)->sittingPoints);
+            
             results = entity->getProperties();
         } else {
             results.setIsUnknownID();
@@ -90,7 +93,7 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     
     // if the model is unknown, attempt to look it up
     if (!entityID.isKnownID) {
-        actualID = EntityItem::getIDfromCreatorTokenID(entityID.creatorTokenID);
+        actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
     }
 
     // if at this point, we know the id, send the update to the model server
@@ -126,7 +129,7 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     
     // if the model is unknown, attempt to look it up
     if (!entityID.isKnownID) {
-        actualID = EntityItem::getIDfromCreatorTokenID(entityID.creatorTokenID);
+        actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
     }
 
     // if at this point, we know the id, send the update to the model server

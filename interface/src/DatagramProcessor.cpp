@@ -61,8 +61,9 @@ void DatagramProcessor::processDatagrams() {
                     application->getParticles()->getTree()->handleAddParticleResponse(incomingPacket);
                     break;
                 case PacketTypeEntityAddResponse:
+qDebug() << "DatagramProcessor::processDatagrams() PacketTypeEntityAddResponse...";
                     // this will keep creatorTokenIDs to IDs mapped correctly
-                    EntityItem::handleAddEntityResponse(incomingPacket);
+                    EntityItemID::handleAddEntityResponse(incomingPacket);
                     application->getEntities()->getTree()->handleAddEntityResponse(incomingPacket);
                     break;
                 case PacketTypeParticleData:

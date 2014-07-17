@@ -427,6 +427,35 @@ bool EntityTreeElement::addOrUpdateEntity(EntityItem* entity, const EntityItemPr
     return true;
 }
 
+// TODO: do we need to handle "killing" viewed entities as well???
+void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID) {
+    bool wantDebug = true;
+
+    if (wantDebug) {
+        qDebug() << "EntityTreeElement::updateEntityItemID()... LOOKING FOR entity: " <<
+                    "creatorTokenEntityID=" << creatorTokenEntityID <<
+                    "knownIDEntityID=" << knownIDEntityID;
+    }
+
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
+        EntityItem* thisEntity = (*_entityItems)[i];
+
+        EntityItemID thisEntityID = thisEntity->getEntityItemID();
+        
+        if (thisEntityID == creatorTokenEntityID) {
+            if (wantDebug) {
+                qDebug() << "EntityTreeElement::updateEntityItemID()... FOUND IT entity: " <<
+                            "thisEntityID=" << thisEntityID <<
+                            "creatorTokenEntityID=" << creatorTokenEntityID <<
+                            "knownIDEntityID=" << knownIDEntityID;
+            }
+            thisEntity->setID(knownIDEntityID.id);
+        }
+    }
+}
+
+/*
 void EntityTreeElement::updateEntityItemID(FindAndUpdateEntityItemIDArgs* args) {
     bool wantDebug = false;
     uint16_t numberOfEntities = _entityItems->size();
@@ -466,6 +495,7 @@ void EntityTreeElement::updateEntityItemID(FindAndUpdateEntityItemIDArgs* args) 
         }
     }
 }
+*/
 
 const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const {
     const EntityItem* closestEntity = NULL;

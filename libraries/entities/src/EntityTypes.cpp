@@ -76,6 +76,9 @@ EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const Enti
 }
 
 EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead) {
+
+qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... CALLED BUT NOT IMPLEMENTED!!!";
+
     return NULL; // TODO Implement this for real!
 }
 

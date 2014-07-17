@@ -92,7 +92,7 @@ void Agent::readPendingDatagrams() {
 
             } else if (datagramPacketType == PacketTypeEntityAddResponse) {
                 // this will keep creatorTokenIDs to IDs mapped correctly
-                EntityItem::handleAddEntityResponse(receivedPacket);
+                EntityItemID::handleAddEntityResponse(receivedPacket);
                 
                 // also give our local particle tree a chance to remap any internal locally created particles
                 _entityViewer.getTree()->handleAddEntityResponse(receivedPacket);

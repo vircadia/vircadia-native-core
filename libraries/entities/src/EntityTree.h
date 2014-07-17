@@ -56,6 +56,7 @@ public:
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
 
+    EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 
     // the old API
     void storeEntity(const EntityItem& entity, const SharedNodePointer& senderNode = SharedNodePointer());
@@ -98,6 +99,7 @@ public:
     
     EntityTreeElement* getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
+    void resetContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
     void dumpTree();
 

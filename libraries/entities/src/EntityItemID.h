@@ -27,24 +27,31 @@ const uint32_t UNKNOWN_ENTITY_ID = 0xFFFFFFFF;
 /// correct mapping. This class works with the scripting API an allows the developer to edit models they created.
 class EntityItemID {
 public:
-    EntityItemID() :
-            id(NEW_ENTITY), creatorTokenID(UNKNOWN_ENTITY_TOKEN), isKnownID(false) { 
-    //qDebug() << "EntityItemID::EntityItemID()... isKnownID=" << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
-    };
-
-    EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID) :
-            id(id), creatorTokenID(creatorTokenID), isKnownID(isKnownID) { 
-    //qDebug() << "EntityItemID::EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID)... isKnownID=" << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
-    };
-
-    EntityItemID(uint32_t id) :
-            id(id), creatorTokenID(UNKNOWN_ENTITY_TOKEN), isKnownID(true) { 
-    //qDebug() << "EntityItemID::EntityItemID(uint32_t id)... isKnownID=" << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
-    };
+    EntityItemID();
+    EntityItemID(const EntityItemID& other);
+    EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID);
+    EntityItemID(uint32_t id);
 
     uint32_t id;
     uint32_t creatorTokenID;
     bool isKnownID;
+
+    // these methods will reduce the ID down to half the IDs data to allow for comparisons and searches of known values
+    EntityItemID convertToKnownIDVersion() const;
+    EntityItemID convertToCreatorTokenVersion() const;
+
+    // these methods allow you to create models, and later edit them.
+    static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
+    static uint32_t getNextCreatorTokenID();
+    static void handleAddEntityResponse(const QByteArray& packet);
+    
+private:
+    friend class EntityTree;
+    EntityItemID assignActualIDForToken() const; // only called by EntityTree
+
+    static quint32 _nextID;
+    static uint32_t _nextCreatorTokenID; /// used by the static interfaces for creator token ids
+    static std::map<uint32_t,uint32_t> _tokenIDsToIDs;
 };
 
 inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
@@ -52,7 +59,7 @@ inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
 }
 
 inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
-    if (a.id == UNKNOWN_ENTITY_ID && b.id == UNKNOWN_ENTITY_ID) {
+    if (a.id == UNKNOWN_ENTITY_ID || b.id == UNKNOWN_ENTITY_ID) {
         return a.creatorTokenID == b.creatorTokenID;
     }
     return a.id == b.id;

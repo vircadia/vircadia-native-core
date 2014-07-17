@@ -50,11 +50,12 @@ public:
     bool isKnownID() const { return getID() != UNKNOWN_ENTITY_ID; }
     EntityItemID getEntityItemID() const { return EntityItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_ENTITY_ID); }
 
+/*
     // these methods allow you to create models, and later edit them.
     static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
     static void handleAddEntityResponse(const QByteArray& packet);
-
+*/
     // methods for getting/setting all properties of an entity
     EntityItemProperties getProperties() const;
     void setProperties(const EntityItemProperties& properties, bool forceCopy = false);
@@ -150,9 +151,11 @@ protected:
     void initFromEntityItemID(const EntityItemID& entityItemID);
     virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_ENTITY);
 
+    /*
     static quint32 _nextID;
     static uint32_t _nextCreatorTokenID; /// used by the static interfaces for creator token ids
     static std::map<uint32_t,uint32_t> _tokenIDsToIDs;
+    */
 
     quint32 _id;
     EntityTypes::EntityType_t _type;

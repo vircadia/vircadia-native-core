@@ -29,42 +29,6 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
-uint32_t EntityItem::_nextID = 0;
-
-// for locally created models
-std::map<uint32_t,uint32_t> EntityItem::_tokenIDsToIDs;
-uint32_t EntityItem::_nextCreatorTokenID = 0;
-
-uint32_t EntityItem::getIDfromCreatorTokenID(uint32_t creatorTokenID) {
-    if (_tokenIDsToIDs.find(creatorTokenID) != _tokenIDsToIDs.end()) {
-        return _tokenIDsToIDs[creatorTokenID];
-    }
-    return UNKNOWN_ENTITY_ID;
-}
-
-uint32_t EntityItem::getNextCreatorTokenID() {
-    uint32_t creatorTokenID = _nextCreatorTokenID;
-    _nextCreatorTokenID++;
-    return creatorTokenID;
-}
-
-void EntityItem::handleAddEntityResponse(const QByteArray& packet) {
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data());
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    dataAt += numBytesPacketHeader;
-
-    uint32_t creatorTokenID;
-    memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
-    dataAt += sizeof(creatorTokenID);
-
-    uint32_t entityItemID;
-    memcpy(&entityItemID, dataAt, sizeof(entityItemID));
-    dataAt += sizeof(entityItemID);
-
-    // add our token to id mapping
-    _tokenIDsToIDs[creatorTokenID] = entityItemID;
-}
-
 EntityItem::EntityItem() {
     _type = EntityTypes::Base;
     rgbColor noColor = { 0, 0, 0 };
@@ -118,12 +82,19 @@ EntityItem::~EntityItem() {
 }
 
 void EntityItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t id) {
+    
+    // TODO: is this what we want???
+    /*
     if (id == NEW_ENTITY) {
         _id = _nextID;
         _nextID++;
     } else {
         _id = id;
     }
+    */
+    
+    _id = id;
+    
     quint64 now = usecTimestampNow();
     _lastEdited = now;
     _lastUpdated = now;

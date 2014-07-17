@@ -47,6 +47,9 @@ void EntityServer::beforeRun() {
 }
 
 void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
+
+qDebug() << "EntityServer::entityCreated() newEntity.getEntityItemID()=" << newEntity.getEntityItemID();
+
     unsigned char outputBuffer[MAX_PACKET_SIZE];
     unsigned char* copyAt = outputBuffer;
 
@@ -65,6 +68,8 @@ void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePo
     memcpy(copyAt, &entityID, sizeof(entityID));
     copyAt += sizeof(entityID);
     packetLength += sizeof(entityID);
+
+qDebug() << "EntityServer::entityCreated() writeDatagram()";
 
     NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, senderNode);
 }
