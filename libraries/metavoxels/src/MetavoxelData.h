@@ -27,7 +27,6 @@
 
 class QScriptContext;
 
-class DifferentMetavoxelVisitation;
 class MetavoxelNode;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
@@ -256,8 +255,8 @@ public:
     bool isLODLeaf;
     bool isLeaf;
     
-    MetavoxelInfo(MetavoxelInfo* parentInfo, const glm::vec3& minimum, float size, const QVector<AttributeValue>& inputValues,
-        const QVector<OwnedAttributeValue>& outputValues, bool isLODLeaf = false, bool isLeaf = false);
+    MetavoxelInfo(MetavoxelInfo* parentInfo, int inputValuesSize, int outputValuesSize);
+    MetavoxelInfo();
     
     Box getBounds() const { return Box(minimum, minimum + glm::vec3(size, size, size)); }
     glm::vec3 getCenter() const { return minimum + glm::vec3(size, size, size) * 0.5f; }
@@ -320,12 +319,20 @@ public:
     /// \return whether or not any outputs were set in the info
     virtual bool postVisit(MetavoxelInfo& info);
 
+    /// Acquires the next visitation, incrementing the depth.
+    MetavoxelVisitation& acquireVisitation();
+
+    /// Releases the current visitation, decrementing the depth.
+    void releaseVisitation() { _depth--; }
+
 protected:
 
     QVector<AttributePointer> _inputs;
     QVector<AttributePointer> _outputs;
     MetavoxelLOD _lod;
     float _minimumLODThresholdMultiplier;
+    QList<MetavoxelVisitation> _visitations;
+    int _depth;
 };
 
 /// Base class for visitors to spanners.
@@ -409,7 +416,7 @@ public:
     
     /// Guides the specified visitor to the voxels that differ from a reference.
     /// \return true to keep going, false to short circuit the tour
-    virtual bool guideToDifferent(DifferentMetavoxelVisitation& visitation);
+    virtual bool guideToDifferent(MetavoxelVisitation& visitation);
 };
 
 /// Guides visitors through the explicit content of the system.
@@ -421,7 +428,7 @@ public:
     Q_INVOKABLE DefaultMetavoxelGuide();
     
     virtual bool guide(MetavoxelVisitation& visitation);
-    virtual bool guideToDifferent(DifferentMetavoxelVisitation& visitation);
+    virtual bool guideToDifferent(MetavoxelVisitation& visitation);
 };
 
 /// A temporary test guide that just makes the existing voxels throb with delight.
@@ -485,27 +492,17 @@ class MetavoxelVisitation {
 public:
 
     MetavoxelVisitation* previous;
-    MetavoxelVisitor& visitor;
+    MetavoxelVisitor* visitor;
     QVector<MetavoxelNode*> inputNodes;
     QVector<MetavoxelNode*> outputNodes;
+    QVector<MetavoxelNode*> compareNodes;
     MetavoxelInfo info;
     
-    MetavoxelVisitation(MetavoxelVisitation* previous, MetavoxelVisitor& visitor, const QVector<MetavoxelNode*>& inputNodes,
-        const QVector<MetavoxelNode*>& outputNodes, const MetavoxelInfo& info);
+    MetavoxelVisitation(MetavoxelVisitation* previous, MetavoxelVisitor* visitor, int inputNodesSize, int outputNodesSize);
+    MetavoxelVisitation();
     
     bool allInputNodesLeaves() const;
     AttributeValue getInheritedOutputValue(int index) const;
-};
-
-/// Extends the basic visitation to include state required to visit different metavoxels.
-class DifferentMetavoxelVisitation : public MetavoxelVisitation {
-public:
-    
-    QVector<MetavoxelNode*> compareNodes;
-    
-    DifferentMetavoxelVisitation(MetavoxelVisitation* previous, MetavoxelVisitor& visitor,
-        const QVector<MetavoxelNode*>& inputNodes, const QVector<MetavoxelNode*>& outputNodes,
-        const MetavoxelInfo& info, const QVector<MetavoxelNode*>& compareNodes);
 };
 
 /// An object that spans multiple octree cells.
