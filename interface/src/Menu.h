@@ -159,6 +159,8 @@ public:
     void static goToOrientation(QString orientation);
     void static goToDomain(const QString newDomain);
     void static goTo(QString destination);
+    
+    const QByteArray& getWalletPrivateKey() const { return _walletPrivateKey; }
 
 signals:
     void scriptLocationChanged(const QString& newPath);
@@ -197,6 +199,7 @@ private slots:
     void editPreferences();
     void editAttachments();
     void editAnimations();
+    void changePrivateKey();
     void goToDomainDialog();
     void goToLocation();
     void nameLocation();
@@ -293,6 +296,8 @@ private:
     QAction* _chatAction;
     QString _snapshotsLocation;
     QString _scriptsLocation;
+    QByteArray _walletPrivateKey;
+
 };
 
 namespace MenuOption {
@@ -444,6 +449,7 @@ namespace MenuOption {
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString Voxels = "Voxels";
     const QString VoxelTextures = "Voxel Textures";
+    const QString WalletPrivateKey = "Wallet Private Key";
 }
 
 void sendFakeEnterEvent();
