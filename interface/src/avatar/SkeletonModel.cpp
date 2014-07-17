@@ -597,7 +597,9 @@ void SkeletonModel::updateVisibleJointStates() {
 
 // virtual 
 void SkeletonModel::stepRagdollForward(float deltaTime) {
-    const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.03f;
+    // NOTE: increasing this timescale reduces vibrations in the ragdoll solution and reduces tunneling 
+    // but makes the shapes slower to follow the body (introduces lag).
+    const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.05f;
     float fraction = glm::clamp(deltaTime / RAGDOLL_FOLLOWS_JOINTS_TIMESCALE, 0.0f, 1.0f);
     moveShapesTowardJoints(fraction);
 }
