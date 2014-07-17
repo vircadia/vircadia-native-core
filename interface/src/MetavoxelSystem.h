@@ -131,6 +131,10 @@ class PointBufferAttribute : public SharedPointerAttribute<PointBuffer> {
 public:
     
     Q_INVOKABLE PointBufferAttribute();
+    
+    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 /// Base class for spanner renderers; provides clipping.

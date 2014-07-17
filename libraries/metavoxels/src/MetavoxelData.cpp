@@ -1263,6 +1263,10 @@ void MetavoxelVisitor::prepare() {
     // nothing by default
 }
 
+bool MetavoxelVisitor::postVisit(MetavoxelInfo& info) {
+    return false;
+}
+
 SpannerVisitor::SpannerVisitor(const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& spannerMasks,
         const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
     MetavoxelVisitor(inputs + spannerInputs + spannerMasks, outputs, lod),
@@ -1470,6 +1474,16 @@ static bool defaultGuideToChildren(MetavoxelVisitation& visitation, float lodBas
             value = node->getAttributeValue(value.getAttribute()); 
         }
     }
+    if (visitation.visitor.postVisit(visitation.info)) {
+        for (int i = 0; i < visitation.outputNodes.size(); i++) {
+            OwnedAttributeValue& value = visitation.info.outputValues[i];
+            if (!value.getAttribute()) {
+                continue;
+            }
+            MetavoxelNode*& node = visitation.outputNodes[i];
+            
+        }
+    }
     return true;
 }
 
@@ -1604,6 +1618,16 @@ bool DefaultMetavoxelGuide::guideToDifferent(DifferentMetavoxelVisitation& visit
             MetavoxelNode* node = visitation.outputNodes.at(i);
             node->mergeChildren(value.getAttribute());
             value = node->getAttributeValue(value.getAttribute()); 
+        }
+    }
+    if (visitation.visitor.postVisit(visitation.info)) {
+        for (int i = 0; i < visitation.outputNodes.size(); i++) {
+            OwnedAttributeValue& value = visitation.info.outputValues[i];
+            if (!value.getAttribute()) {
+                continue;
+            }
+            MetavoxelNode*& node = visitation.outputNodes[i];
+            
         }
     }
     return true;

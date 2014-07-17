@@ -270,6 +270,23 @@ PointBufferAttribute::PointBufferAttribute() :
     SharedPointerAttribute<PointBuffer>("pointBuffer") {
 }
 
+MetavoxelNode* PointBufferAttribute::createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const {
+    return new MetavoxelNode(value, original);
+}
+
+bool PointBufferAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        if (!decodeInline<PointBufferPointer>(children[i]).isNull()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+AttributeValue PointBufferAttribute::inherit(const AttributeValue& parentValue) const {
+    return AttributeValue(parentValue.getAttribute());
+}
+
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
     GLdouble coefficients[] = { x, y, z, w };
     glClipPlane(plane, coefficients);

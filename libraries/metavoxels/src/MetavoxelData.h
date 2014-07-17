@@ -311,8 +311,14 @@ public:
     
     /// Visits a metavoxel.
     /// \param info the metavoxel data
-    /// \return the encoded order in which to traverse the children, zero to stop recursion, or -1 to short-circuit the tour
+    /// \return the encoded order in which to traverse the children, zero to stop recursion, or -1 to short-circuit the tour.
+    /// If child traversal is requested, postVisit will be called after we return from traversing the children and have merged
+    /// their values
     virtual int visit(MetavoxelInfo& info) = 0;
+
+    /// Called after we have visited all of a metavoxel's children.
+    /// \return whether or not any outputs were set in the info
+    virtual bool postVisit(MetavoxelInfo& info);
 
 protected:
 
