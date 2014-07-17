@@ -1,4 +1,4 @@
-#  Try to find the PrioVT library
+#  Try to find the PrioVR library
 #
 #  You must provide a PRIOVR_ROOT_DIR which contains lib and include directories
 #

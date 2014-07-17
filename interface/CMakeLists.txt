@@ -206,7 +206,7 @@ if (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
     if (APPLE OR UNIX)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LEAPMOTION_INCLUDE_DIRS}")
     endif ()
-    target_link_libraries(${TARGET_NAME} "${LEAPMOTION_LIBRARIES}")
+    target_link_libraries(${TARGET_NAME} ${LEAPMOTION_LIBRARIES})
 endif (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
 
 # and with SDL for joysticks
