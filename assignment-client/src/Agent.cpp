@@ -214,7 +214,6 @@ void Agent::run() {
     QNetworkDiskCache* cache = new QNetworkDiskCache();
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
-    cache->moveToThread(networkAccessManager.thread());
     networkAccessManager.setCache(cache);
     
     qDebug() << "Downloading script at" << scriptURL.toString();

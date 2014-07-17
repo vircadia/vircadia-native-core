@@ -11,6 +11,7 @@
 
 #include <QHash>
 
+#include <PerfStat.h>
 #include <SharedUtil.h>
 
 #include <FBXReader.h>
@@ -128,6 +129,7 @@ void Visage::update() {
     if (!_active) {
         return;
     }
+    PerformanceTimer perfTimer("visage");
     _headRotation = glm::quat(glm::vec3(-_data->faceRotation[0], -_data->faceRotation[1], _data->faceRotation[2]));    
     _headTranslation = (glm::vec3(_data->faceTranslation[0], _data->faceTranslation[1], _data->faceTranslation[2]) -
         _headOrigin) * TRANSLATION_SCALE;

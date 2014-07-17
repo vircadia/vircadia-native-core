@@ -47,6 +47,7 @@ public:
 public slots:
     
     void setFilter(bool filter);
+    void setLowVelocityFilter(bool lowVelocityFilter) { _lowVelocityFilter = lowVelocityFilter; };
 
 private:
 #ifdef HAVE_SIXENSE
@@ -80,6 +81,8 @@ private:
     bool _bumperPressed[2];
     int _oldX[2];
     int _oldY[2];
+    
+    bool _lowVelocityFilter;
 };
 
 #endif // hifi_SixenseManager_h

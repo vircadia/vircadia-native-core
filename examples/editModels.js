@@ -31,8 +31,7 @@ var toolWidth = 50;
 
 var LASER_WIDTH = 4;
 var LASER_COLOR = { red: 255, green: 0, blue: 0 };
-var LASER_LENGTH_FACTOR = 500
-;
+var LASER_LENGTH_FACTOR = 500;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;

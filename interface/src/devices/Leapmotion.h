@@ -25,8 +25,10 @@ class Leapmotion : public MotionTracker {
 public:
     static const Name NAME;
 
+    static void init();
+
     /// Leapmotion MotionTracker factory
-    static Leapmotion* create();
+    static Leapmotion* getInstance();
 
     bool isActive() const { return _active; }
 

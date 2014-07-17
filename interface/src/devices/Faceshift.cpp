@@ -11,6 +11,7 @@
 
 #include <QTimer>
 
+#include <PerfStat.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
@@ -75,6 +76,7 @@ void Faceshift::update() {
     if (!isActive()) {
         return;
     }
+    PerformanceTimer perfTimer("faceshift");
     // get the euler angles relative to the window
     glm::vec3 eulers = glm::degrees(safeEulerAngles(_headRotation * glm::quat(glm::radians(glm::vec3(
         (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f, (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f, 0.0f)))));

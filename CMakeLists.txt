@@ -32,14 +32,6 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
-if (APPLE)
-   exec_program(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
-   string(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
-   if (DARWIN_VERSION GREATER 12)
-     set(CMAKE_CXX_FLAGS "-stdlib=libstdc++")
-   endif (DARWIN_VERSION GREATER 12)
-endif (APPLE)
-
 # targets not supported on windows
 if (NOT WIN32)
   add_subdirectory(animation-server)

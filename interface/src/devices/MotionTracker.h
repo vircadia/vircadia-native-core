@@ -84,8 +84,8 @@ public:
     /// Access a Joint from it's index.
     /// Index 0 is always the "Root".
     /// if the index is Invalid then returns NULL.
-    const JointTracker* getJointTracker(Index index) const { return ((index > 0) && (index < _jointsArray.size()) ? _jointsArray.data() + index : NULL); }
-    JointTracker* editJointTracker(Index index) { return ((index > 0) && (index < _jointsArray.size()) ? _jointsArray.data() + index : NULL); }
+    const JointTracker* getJointTracker(Index index) const { return ((index > 0) && (index < (Index)(_jointsArray.size())) ? _jointsArray.data() + index : NULL); }
+    JointTracker* editJointTracker(Index index) { return ((index > 0) && (index < (Index)(_jointsArray.size())) ? _jointsArray.data() + index : NULL); }
 
     /// From a semantic, find the Index of the Joint.
     /// \return the index of the mapped Joint or INVALID_SEMANTIC if the semantic is not knowned.

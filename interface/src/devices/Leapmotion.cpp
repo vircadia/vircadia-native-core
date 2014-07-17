@@ -36,27 +36,26 @@ MotionTracker::Index evalJointIndex(bool isRightSide, int finger, int bone) {
     }
 }
 
-Leapmotion* Leapmotion::create() {
-    // check that the Leapmotion hasn't been created yet
+// static
+void Leapmotion::init() {
+    DeviceTracker* device = DeviceTracker::getDevice(NAME);
+
+    if (!device) {
+        // create a new Leapmotion and register it
+        Leapmotion* leap = new Leapmotion();
+        DeviceTracker::registerDevice(NAME, leap);
+    }
+}
+
+// static
+Leapmotion* Leapmotion::getInstance() {
     DeviceTracker* device = DeviceTracker::getDevice(NAME);
     if (!device) {
-        // create a new Leapmotion
-        Leapmotion* leap = new Leapmotion();
-
-        // register it
-        DeviceTracker::registerDevice(NAME, leap);
-
-        return leap;
+        // create a new Leapmotion and register it
+        device = new Leapmotion();
+        DeviceTracker::registerDevice(NAME, device);
     }
-    else
-    {
-        Leapmotion* leap = dynamic_cast< Leapmotion* > (device);
-        if (leap) {
-            return leap;
-        }
-
-        return NULL;
-    }
+    return dynamic_cast< Leapmotion* > (device);
 }
 
 Leapmotion::Leapmotion() :

@@ -19,6 +19,8 @@ Endpoint::Endpoint(const SharedNodePointer& node, PacketRecord* baselineSendReco
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendDatagram(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readMessage(Bitstream&)));
+    connect(&_sequencer, SIGNAL(sendRecorded()), SLOT(recordSend()));
+    connect(&_sequencer, SIGNAL(receiveRecorded()), SLOT(recordReceive()));
     connect(&_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(clearSendRecordsBefore(int)));
     connect(&_sequencer, SIGNAL(receiveAcknowledged(int)), SLOT(clearReceiveRecordsBefore(int)));
     
@@ -37,12 +39,12 @@ Endpoint::~Endpoint() {
 }
 
 void Endpoint::update() {
-    Bitstream& out = _sequencer.startPacket();
-    writeUpdateMessage(out);
-    _sequencer.endPacket();
-
-    // record the send
-    _sendRecords.append(maybeCreateSendRecord());
+    int packetsToSend = _sequencer.notePacketGroup();
+    for (int i = 0; i < packetsToSend; i++) {
+        Bitstream& out = _sequencer.startPacket();
+        writeUpdateMessage(out);
+        _sequencer.endPacket();
+    }
 }
 
 int Endpoint::parseData(const QByteArray& packet) {
@@ -59,8 +61,21 @@ void Endpoint::readMessage(Bitstream& in) {
     QVariant message;
     in >> message;
     handleMessage(message, in);
-    
-    // record the receipt
+}
+
+void Endpoint::handleMessage(const QVariant& message, Bitstream& in) {
+    if (message.userType() == QMetaType::QVariantList) {
+        foreach (const QVariant& element, message.toList()) {
+            handleMessage(element, in);
+        }
+    }
+}
+
+void Endpoint::recordSend() {
+    _sendRecords.append(maybeCreateSendRecord());
+}
+
+void Endpoint::recordReceive() {
     _receiveRecords.append(maybeCreateReceiveRecord());
 }
 
@@ -82,14 +97,6 @@ void Endpoint::clearReceiveRecordsBefore(int index) {
 
 void Endpoint::writeUpdateMessage(Bitstream& out) {
     out << QVariant();
-}
-
-void Endpoint::handleMessage(const QVariant& message, Bitstream& in) {
-    if (message.userType() == QMetaType::QVariantList) {
-        foreach (const QVariant& element, message.toList()) {
-            handleMessage(element, in);
-        }
-    }
 }
 
 PacketRecord* Endpoint::maybeCreateSendRecord() const {
