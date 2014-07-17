@@ -32,6 +32,7 @@
 #include <AccountManager.h>
 #include <XmppClient.h>
 #include <UUID.h>
+#include <UserActivityLogger.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -111,7 +112,8 @@ Menu::Menu() :
     _preferencesDialog(NULL),
     _loginDialog(NULL),
     _snapshotsLocation(),
-    _scriptsLocation()
+    _scriptsLocation(),
+    _walletPrivateKey()
 {
     Application *appInstance = Application::getInstance();
 
@@ -433,8 +435,16 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
-
+    
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisableNackPackets, 0, false);
+    addCheckableActionToQMenuAndActionHash(developerMenu,
+                                           MenuOption::DisableActivityLogger,
+                                           0,
+                                           false,
+                                           &UserActivityLogger::getInstance(),
+                                           SLOT(disable(bool)));
+    
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::WalletPrivateKey, 0, this, SLOT(changePrivateKey()));
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
 
@@ -632,6 +642,8 @@ void Menu::loadSettings(QSettings* settings) {
     _viewFrustumOffset.distance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
     _viewFrustumOffset.up = loadSetting(settings, "viewFrustumOffsetUp", 0.0f);
     settings->endGroup();
+    
+    _walletPrivateKey = settings->value("privateKey").toByteArray();
 
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
@@ -675,6 +687,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffset.distance);
     settings->setValue("viewFrustumOffsetUp", _viewFrustumOffset.up);
     settings->endGroup();
+    settings->setValue("privateKey", _walletPrivateKey);
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
@@ -987,6 +1000,25 @@ void Menu::editAnimations() {
     } else {
         _animationsDialog->close();
     }
+}
+
+void Menu::changePrivateKey() {
+    // setup the dialog
+    QInputDialog privateKeyDialog(Application::getInstance()->getWindow());
+    privateKeyDialog.setWindowTitle("Change Private Key");
+    privateKeyDialog.setLabelText("RSA 2048-bit Private Key:");
+    privateKeyDialog.setWindowFlags(Qt::Sheet);
+    privateKeyDialog.setTextValue(QString(_walletPrivateKey));
+    privateKeyDialog.resize(privateKeyDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
+                            privateKeyDialog.size().height());
+    
+    int dialogReturn = privateKeyDialog.exec();
+    if (dialogReturn == QDialog::Accepted) {
+        // pull the private key from the dialog
+        _walletPrivateKey = privateKeyDialog.textValue().toUtf8();
+    }
+    
+    sendFakeEnterEvent();
 }
 
 void Menu::goToDomain(const QString newDomain) {
