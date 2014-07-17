@@ -27,10 +27,11 @@ else (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
   find_path(LIBOVR_INCLUDE_DIRS OVR.h PATH_SUFFIXES Include HINTS ${LIBOVR_SEARCH_DIRS})
   
   if (APPLE)
-    find_library(LIBOVR_LIBRARIES "Lib/MacOS/Release/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
+    find_library(LIBOVR_LIBRARY_DEBUG "Lib/MacOS/Debug/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
+    find_library(LIBOVR_LIBRARY_RELEASE "Lib/MacOS/Release/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
   elseif (UNIX)
-    find_library(UDEV_LIBRARY libudev.a /usr/lib/x86_64-linux-gnu/)
-    find_library(XINERAMA_LIBRARY libXinerama.a /usr/lib/x86_64-linux-gnu/)
+    find_library(UDEV_LIBRARY_RELEASE libudev.a /usr/lib/x86_64-linux-gnu/)
+    find_library(XINERAMA_LIBRARY_RELEASE libXinerama.a /usr/lib/x86_64-linux-gnu/)
     
     if (CMAKE_CL_64)
       set(LINUX_ARCH_DIR "i386")
@@ -38,17 +39,27 @@ else (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
       set(LINUX_ARCH_DIR "x86_64")
     endif()
     
-    find_library(OVR_LIBRARY "Lib/Linux/${CMAKE_BUILD_TYPE}/${LINUX_ARCH_DIR}/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
+    find_library(LIBOVR_LIBRARY_DEBUG "Lib/Linux/Debug/${LINUX_ARCH_DIR}/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
+    find_library(LIBOVR_LIBRARY_RELEASE "Lib/Linux/Release/${LINUX_ARCH_DIR}/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
+    
     if (UDEV_LIBRARY AND XINERAMA_LIBRARY AND OVR_LIBRARY)
       set(LIBOVR_LIBRARIES "${OVR_LIBRARY};${UDEV_LIBRARY};${XINERAMA_LIBRARY}" CACHE INTERNAL "Oculus libraries")
     endif (UDEV_LIBRARY AND XINERAMA_LIBRARY AND OVR_LIBRARY)
-  elseif (WIN32)      
-    find_library(LIBOVR_RELEASE_LIBRARIES "Lib/Win32/libovr.lib" HINTS ${LIBOVR_SEARCH_DIRS})
-    find_library(LIBOVR_DEBUG_LIBRARIES "Lib/Win32/libovrd.lib" HINTS ${LIBOVR_SEARCH_DIRS})
-    
-    set(LIBOVR_LIBRARIES "${LIBOVR_RELEASE_LIBRARIES} ${LIBOVR_DEBUG_LIBRARIES}")
+  elseif (WIN32)   
+    find_library(LIBOVR_LIBRARY_DEBUG "Lib/Win32/libovrd.lib" HINTS ${LIBOVR_SEARCH_DIRS})   
+    find_library(LIBOVR_LIBRARY_RELEASE "Lib/Win32/libovr.lib" HINTS ${LIBOVR_SEARCH_DIRS})
   endif ()
 
+  include(SelectLibraryConfigurations)
+  select_library_configurations(LIBOVR)
+  
+  if (UNIX)
+    select_library_configurations(UDEV)
+    select_library_configurations(XINERAMA)
+    
+    set(${LIBOVR_LIBRARIES} ${LIBOVR_LIBRARIES} ${UDEV_LIBRARY} ${XINERAMA_LIBRARY})
+  endif ()
+  
   if (LIBOVR_INCLUDE_DIRS AND LIBOVR_LIBRARIES)
      set(LIBOVR_FOUND TRUE)
   endif (LIBOVR_INCLUDE_DIRS AND LIBOVR_LIBRARIES)
