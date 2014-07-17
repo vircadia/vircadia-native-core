@@ -126,22 +126,7 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
         }
     }
 }
-// TODO: Andrew to implement:
-// DONE (1) joints pull points (SpecialCapsuleShape would help solve this)
-// DONE (2) points slam shapes (SpecialCapsuleShape would help solve this)
-// DONE (3) detect collisions
-// DONE (4) collisions move points (SpecialCapsuleShape would help solve this)
-// DONE (5) enforce constraints
-// DONE (6) make sure MyAvatar creates shapes, adds to simulation with ragdoll support
-// DONE (7) support for pairwise collision bypass
-// DONE (8) process collisions
-// DONE (8a) stubbery
-// DONE (8b) shapes actually accumulate movement
-// DONE (9) verify that avatar shapes self collide
-// (10) slave rendered SkeletonModel to physical shapes
-// (10a) give SkeletonModel duplicate JointState data
-// (10b) figure out how to slave dupe JointStates to physical shapes
-// (11) add and enforce angular contraints for joints
+
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
     quint64 now = usecTimestampNow();
     quint64 startTime = now;

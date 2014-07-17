@@ -36,7 +36,7 @@ public:
     QJsonDocument postJson();
     QJsonObject toJson();
     void loadFromJson(const QJsonObject& jsonObject);
-private:
+protected:
     QUuid _uuid;
     QUuid _destinationUUID;
     qint64 _amount;
