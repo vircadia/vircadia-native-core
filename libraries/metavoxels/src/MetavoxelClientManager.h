@@ -63,14 +63,14 @@ public:
 
 protected:
 
+    virtual void dataChanged(const MetavoxelData& oldData);
+
     virtual void writeUpdateMessage(Bitstream& out);
     virtual void handleMessage(const QVariant& message, Bitstream& in);
 
     virtual PacketRecord* maybeCreateSendRecord() const;
     virtual PacketRecord* maybeCreateReceiveRecord() const;
 
-private:
-    
     MetavoxelClientManager* _manager;
     MetavoxelData _data;
     MetavoxelData _remoteData;

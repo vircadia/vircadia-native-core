@@ -124,11 +124,17 @@ void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit, bool reliable)
     
     } else {
         // apply immediately to local tree
+        MetavoxelData oldData = _data;
         edit.apply(_data, _sequencer.getWeakSharedObjectHash());
+        dataChanged(oldData);
 
         // start sending it out
         _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
     }
+}
+
+void MetavoxelClient::dataChanged(const MetavoxelData& oldData) {
+    // nothing by default
 }
 
 void MetavoxelClient::writeUpdateMessage(Bitstream& out) {
@@ -152,12 +158,15 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
             in.reset();
         }
         // copy to local and reapply local edits
+        MetavoxelData oldData = _data;
         _data = _remoteData;
         foreach (const DatagramSequencer::HighPriorityMessage& message, _sequencer.getHighPriorityMessages()) {
             if (message.data.userType() == MetavoxelEditMessage::Type) {
                 message.data.value<MetavoxelEditMessage>().apply(_data, _sequencer.getWeakSharedObjectHash());
             }
         }
+        dataChanged(oldData);
+        
     } else if (userType == MetavoxelDeltaPendingMessage::Type) {
         // check the id to make sure this is not a delta we've already processed
         int id = message.value<MetavoxelDeltaPendingMessage>().id;

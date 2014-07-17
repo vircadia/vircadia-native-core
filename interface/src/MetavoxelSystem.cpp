@@ -45,6 +45,7 @@ void MetavoxelSystem::init() {
     }
     _buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
     _buffer.create();
+    _pointBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(new PointBufferAttribute());
 }
 
 MetavoxelLOD MetavoxelSystem::getLOD() const {
@@ -209,9 +210,64 @@ int MetavoxelSystemClient::parseData(const QByteArray& packet) {
     return packet.size();
 }
 
+class BufferBuilder : public MetavoxelVisitor {
+public:
+
+    BufferBuilder(const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info);
+};
+
+BufferBuilder::BufferBuilder(const MetavoxelLOD& lod) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
+        AttributeRegistry::getInstance()->getNormalAttribute(), QVector<AttributePointer>(), lod) {
+}
+
+int BufferBuilder::visit(MetavoxelInfo& info) {
+    if (info.isLeaf) {
+        
+        return STOP_RECURSION;
+    }
+    return DEFAULT_ORDER;
+}
+
+void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
+    BufferBuilder builder(_remoteDataLOD);
+    _data.guideToDifferent(oldData, builder);
+}
+
 void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
     NodeList::getInstance()->writeDatagram(data, _node);
     Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
+}
+
+PointBuffer::PointBuffer(const QOpenGLBuffer& buffer, const QVector<int>& offsets, int lastLeafCount) :
+    _buffer(buffer),
+    _offsets(offsets),
+    _lastLeafCount(lastLeafCount) {
+}
+
+void PointBuffer::render(int level) {
+    _buffer.bind();
+    
+    BufferPoint* point = 0;
+    glVertexPointer(4, GL_FLOAT, sizeof(BufferPoint), &point->vertex);
+    glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(BufferPoint), &point->color);
+    glNormalPointer(GL_BYTE, sizeof(BufferPoint), &point->normal);
+    
+    int nextLevel = level + 1;
+    if (nextLevel >= _offsets.size()) {
+        glDrawArrays(GL_POINTS, _offsets.last() - _lastLeafCount, _lastLeafCount);
+        
+    } else {
+        int first = _offsets.at(level);
+        glDrawArrays(GL_POINTS, first, _offsets.at(nextLevel) - first);
+    }
+    _buffer.release();
+}
+
+PointBufferAttribute::PointBufferAttribute() :
+    SharedPointerAttribute<PointBuffer>("pointBuffer") {
 }
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {

@@ -80,6 +80,7 @@ private:
     SimulateVisitor _simulateVisitor;
     RenderVisitor _renderVisitor;
     QOpenGLBuffer _buffer;
+    AttributePointer _pointBufferAttribute;
 };
 
 /// A client session associated with a single server.
@@ -94,7 +95,42 @@ public:
 
 protected:
     
+    virtual void dataChanged(const MetavoxelData& oldData);
     virtual void sendDatagram(const QByteArray& data);
+};
+
+/// Describes contents of a point in a point buffer.
+class BufferPoint {
+public:
+    glm::vec4 vertex;
+    quint8 color[3];
+    quint8 normal[3];
+};
+
+/// Contains the information necessary to render a group of points at variable detail levels.
+class PointBuffer {
+public:
+
+    PointBuffer(const QOpenGLBuffer& buffer, const QVector<int>& offsets, int lastLeafCount);
+
+    void render(int level);
+
+private:
+    
+    QOpenGLBuffer _buffer;
+    QVector<int> _offsets;
+    int _lastLeafCount;
+};
+
+typedef QSharedPointer<PointBuffer> PointBufferPointer;
+
+/// A client-side attribute that stores point buffers.
+class PointBufferAttribute : public SharedPointerAttribute<PointBuffer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE PointBufferAttribute();
 };
 
 /// Base class for spanner renderers; provides clipping.
