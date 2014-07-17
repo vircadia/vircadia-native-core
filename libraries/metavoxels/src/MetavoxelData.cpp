@@ -1474,14 +1474,24 @@ static bool defaultGuideToChildren(MetavoxelVisitation& visitation, float lodBas
             value = node->getAttributeValue(value.getAttribute()); 
         }
     }
-    if (visitation.visitor.postVisit(visitation.info)) {
+    visitation.info.outputValues.swap(nextVisitation.info.outputValues);
+    bool changed = visitation.visitor.postVisit(visitation.info);
+    visitation.info.outputValues.swap(nextVisitation.info.outputValues);
+    if (changed) {
         for (int i = 0; i < visitation.outputNodes.size(); i++) {
-            OwnedAttributeValue& value = visitation.info.outputValues[i];
-            if (!value.getAttribute()) {
+            const OwnedAttributeValue& newValue = nextVisitation.info.outputValues.at(i);
+            if (!newValue.getAttribute()) {
                 continue;
             }
+            OwnedAttributeValue& value = visitation.info.outputValues[i];
             MetavoxelNode*& node = visitation.outputNodes[i];
-            
+            if (value.getAttribute()) {
+                node->setAttributeValue(value = newValue);
+                
+            } else if (!(node && node->isLeaf() && newValue.getAttribute()->equal(
+                    newValue.getValue(), node->getAttributeValue()))) {
+                node = newValue.getAttribute()->createMetavoxelNode(value = newValue, node);    
+            }
         }
     }
     return true;
@@ -1620,14 +1630,24 @@ bool DefaultMetavoxelGuide::guideToDifferent(DifferentMetavoxelVisitation& visit
             value = node->getAttributeValue(value.getAttribute()); 
         }
     }
-    if (visitation.visitor.postVisit(visitation.info)) {
+    visitation.info.outputValues.swap(nextVisitation.info.outputValues);
+    bool changed = visitation.visitor.postVisit(visitation.info);
+    visitation.info.outputValues.swap(nextVisitation.info.outputValues);
+    if (changed) {
         for (int i = 0; i < visitation.outputNodes.size(); i++) {
-            OwnedAttributeValue& value = visitation.info.outputValues[i];
-            if (!value.getAttribute()) {
+            const OwnedAttributeValue& newValue = nextVisitation.info.outputValues.at(i);
+            if (!newValue.getAttribute()) {
                 continue;
             }
+            OwnedAttributeValue& value = visitation.info.outputValues[i];
             MetavoxelNode*& node = visitation.outputNodes[i];
-            
+            if (value.getAttribute()) {
+                node->setAttributeValue(value = newValue);
+                
+            } else if (!(node && node->isLeaf() && newValue.getAttribute()->equal(
+                    newValue.getValue(), node->getAttributeValue()))) {
+                node = newValue.getAttribute()->createMetavoxelNode(value = newValue, node);    
+            }
         }
     }
     return true;
