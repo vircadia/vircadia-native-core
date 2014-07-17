@@ -5,8 +5,8 @@ Dependencies
 * [zLib](http://www.zlib.net/) ~> 1.2.8
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.2
 * [qxmpp](https://github.com/qxmpp-project/qxmpp/) ~> 0.7.6
-* [GnuTLS](http://gnutls.org/download.html) ~> 3.2.12
-  * IMPORTANT: GnuTLS 3.2.12 is critical to avoid a security vulnerability.
+* [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
+  * IMPORTANT: OpenSSL 1.0.1e is critical to avoid a security vulnerability.
 
 #####Linux only
 * [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
@@ -30,7 +30,6 @@ The path it needs to be set to will depend on where and how Qt5 was installed. e
     export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.2.1/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
 
-
 ####Generating build files
 Create a build directory in the root of your checkout and then run the CMake build from there. This will keep the rest of the directory clean.
 
@@ -45,6 +44,12 @@ For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generat
 
     cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.2.0/lib/cmake
 
+####OpenSSL
+Some OS X and Linux distributions will come with a pre-installed version of OpenSSL. If this version is not at least 1.0.1g, you will need to install OpenSSL manually in a different location. You can point our [Cmake find module](cmake/modules/FindOpenSSL.cmake) by setting one of the three following variables to the location of the correct version of OpenSSL.
+
+* OPENSSL_ROOT_DIR - pass this variable to Cmake with the -DOPENSSL_ROOT_DIR= flag when running Cmake to generate build files
+* OPENSSL_ROOT_DIR - set this variable in your ENV
+* HIFI_LIB_DIR - set this variable in your ENV to your High Fidelity lib folder, should contain a folder 'openssl'
 
 UNIX
 ===
@@ -54,12 +59,6 @@ In general, as long as external dependencies are placed in OS standard locations
 Should you choose not to install Qt5 via a package manager that handles dependencies for you, you may be missing some Qt5 dependencies. On Ubuntu, for example, the following additional packages are required:
 
     libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack-dev
-
-#####GnuTLS
-
-If `libgnutls28-dev` 3.2.12 or higher is available via your package manager, it would be easiest to grab it from there. At the time of this writing that is not the case for any version of Ubuntu, so it will need to be built from source.
-
-`gmplib` is a dependency for GnuTLS. On Ubuntu, we were unable to build `hogweed` (part of `libnettle`) with `gmpib` 6.x.x. If nettle is not built with `hogweed`, GnuTLS will fail to build. If you run into this problem, try version 4.2.1 of `gmplib`. 
 
 ####OS X
 #####Package Managers
