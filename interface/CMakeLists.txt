@@ -222,7 +222,7 @@ if (QXMPP_FOUND AND NOT DISABLE_QXMPP)
   add_definitions(-DHAVE_QXMPP -DQXMPP_STATIC)
   include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
 
-  target_link_libraries(${TARGET_NAME} "${QXMPP_LIBRARY}")
+  target_link_libraries(${TARGET_NAME} ${QXMPP_LIBRARY})
 endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
 
 # and with RtMidi for RtMidi control
