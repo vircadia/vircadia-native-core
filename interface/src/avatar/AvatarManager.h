@@ -42,8 +42,8 @@ public slots:
     void setAvatarLightDirection(const glm::vec3& direction, int lightIndex, int avatarIndex);
     void removeAvatarLocalLight(int avatarIndex);
     void addAvatarLocalLight(int avatarIndex);
+    int getNumLightsInAvatar(int avatarIndex);
     int getNumAvatars();
-    QString getAvatarHashKey(int index);
     
 private:
     AvatarManager(const AvatarManager& other);

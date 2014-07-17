@@ -162,7 +162,10 @@ public slots:
     void setLocalLightDirection(const glm::vec3& direction, int lightIndex);
     void setLocalLightColor(const glm::vec3& color, int lightIndex);
     void addLocalLight();
-    void removeLocalLight();   
+    void removeLocalLight();
+    int getNumLocalLights();
+    glm::vec3 getLocalLightDirection(int lightIndex);
+    glm::vec3 getLocalLightColor(int lightIndex);
  
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);

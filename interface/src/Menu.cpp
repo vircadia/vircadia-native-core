@@ -32,6 +32,7 @@
 #include <AccountManager.h>
 #include <XmppClient.h>
 #include <UUID.h>
+#include <UserActivityLogger.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -433,8 +434,14 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
-
+    
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisableNackPackets, 0, false);
+    addCheckableActionToQMenuAndActionHash(developerMenu,
+                                           MenuOption::DisableActivityLogger,
+                                           0,
+                                           false,
+                                           &UserActivityLogger::getInstance(),
+                                           SLOT(disable(bool)));
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
 

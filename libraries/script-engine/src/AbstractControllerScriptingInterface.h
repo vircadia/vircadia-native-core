@@ -19,6 +19,28 @@
 
 #include "EventTypes.h"
 
+class AbstractInputController : public QObject {
+    Q_OBJECT
+
+public:
+    typedef unsigned int Key;
+
+    virtual void update() = 0;
+
+    virtual Key getKey() const = 0;
+
+public slots:
+
+    virtual bool isActive() const = 0;
+    virtual glm::vec3 getAbsTranslation() const = 0;
+    virtual glm::quat getAbsRotation() const = 0;
+    virtual glm::vec3 getLocTranslation() const = 0;
+    virtual glm::quat getLocRotation() const = 0;
+
+signals:
+    void spatialEvent(const SpatialEvent& event);
+
+};
 
 /// handles scripting of input controller commands from JS
 class AbstractControllerScriptingInterface : public QObject {
@@ -59,6 +81,9 @@ public slots:
     virtual void releaseJoystick(int joystickIndex) = 0;
 
     virtual glm::vec2 getViewportDimensions() const = 0;
+
+
+    virtual AbstractInputController* createInputController( const QString& category, const QString& tracker ) = 0;
 
 signals:
     void keyPressEvent(const KeyEvent& event);

@@ -187,4 +187,21 @@ VoxelDetail VoxelsScriptingInterface::getVoxelEnclosingPoint(const glm::vec3& po
     return result;
 }
 
+VoxelDetail VoxelsScriptingInterface::getVoxelEnclosingPointBlocking(const glm::vec3& point) {
+    VoxelDetail result = { 0.0f, 0.0f, 0.0f, 0.0f, 0, 0, 0 };
+    if (_tree) {
+        OctreeElement* element = _tree->getElementEnclosingPoint(point / (float)TREE_SCALE, Octree::Lock);
+        if (element) {
+            VoxelTreeElement* voxel = static_cast<VoxelTreeElement*>(element);
+            result.x = voxel->getCorner().x;
+            result.y = voxel->getCorner().y;
+            result.z = voxel->getCorner().z;
+            result.s = voxel->getScale();
+            result.red = voxel->getColor()[0];
+            result.green = voxel->getColor()[1];
+            result.blue = voxel->getColor()[2];
+        }
+    }
+    return result;
+}
 
