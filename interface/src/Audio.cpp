@@ -56,6 +56,10 @@ static const int TIME_GAP_STATS_WINDOW_INTERVALS = 30;
 static const int INCOMING_SEQ_STATS_HISTORY_LENGTH = INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS /
         (TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS / USECS_PER_SECOND);
 
+// the stats for the total frames available in the ring buffer and the audio output buffer
+// will sample every second, update every second, and have a moving window covering 10 seconds
+static const int FRAMES_AVAILABLE_STATS_WINDOW_SECONDS = 10;
+
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
 
@@ -116,7 +120,8 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _consecutiveNotMixedCount(0),
     _outgoingAvatarAudioSequenceNumber(0),
     _incomingMixedAudioSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH),
-    _interframeTimeGapStats(TIME_GAPS_STATS_INTERVAL_SAMPLES, TIME_GAP_STATS_WINDOW_INTERVALS)
+    _interframeTimeGapStats(TIME_GAPS_STATS_INTERVAL_SAMPLES, TIME_GAP_STATS_WINDOW_INTERVALS),
+    _framesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -779,8 +784,8 @@ AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
     stats._timeGapWindowMax = _interframeTimeGapStats.getWindowMax();
     stats._timeGapWindowAverage = _interframeTimeGapStats.getWindowAverage();
 
-    stats._ringBufferFramesAvailable = _ringBuffer.framesAvailable();
-    stats._ringBufferCurrentJitterBufferFrames = 0;
+    stats._ringBufferFramesAvailable = getFramesAvailableInRingAndAudioOutputBuffers();
+    stats._ringBufferFramesAvailableAverage = _framesAvailableStats.getWindowAverage();
     stats._ringBufferDesiredJitterBufferFrames = getDesiredJitterBufferFrames();
     stats._ringBufferStarveCount = _starveCount;
     stats._ringBufferConsecutiveNotMixedCount = _consecutiveNotMixedCount;
@@ -794,6 +799,9 @@ AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
 }
 
 void Audio::sendDownstreamAudioStatsPacket() {
+
+    // since this function is called every second, we'll sample the number of audio frames available here.
+    _framesAvailableStats.update(getFramesAvailableInRingAndAudioOutputBuffers());
 
     // push the current seq number stats into history, which moves the history window forward 1s
     // (since that's how often pushStatsToHistory() is called)
@@ -1597,4 +1605,10 @@ float Audio::calculateDeviceToNetworkInputRatio(int numBytes) {
 int Audio::calculateNumberOfFrameSamples(int numBytes) {
     int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / sizeof(int16_t);
     return frameSamples;
+}
+
+int Audio::getFramesAvailableInRingAndAudioOutputBuffers() const {
+    int framesInAudioOutputBuffer = (_audioOutput->bufferSize() - _audioOutput->bytesFree()) 
+                                    / (sizeof(int16_t) * _ringBuffer.getNumFrameSamples());
+    return _ringBuffer.framesAvailable() + framesInAudioOutputBuffer;
 }
