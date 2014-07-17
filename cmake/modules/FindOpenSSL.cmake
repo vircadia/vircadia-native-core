@@ -139,9 +139,6 @@ if(WIN32 AND NOT CYGWIN)
     include(SelectLibraryConfigurations)
     select_library_configurations(LIB_EAY)
     select_library_configurations(SSL_EAY)
-    
-    message("SSL_EAY:" ${SSL_EAY_LIBRARY})
-    message("LIB_EAY:" ${LIB_EAY_LIBRARY})
 
     set( OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY} )
   elseif(MINGW)
