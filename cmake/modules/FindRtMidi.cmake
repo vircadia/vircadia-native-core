@@ -18,16 +18,10 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-if (RTMIDI_LIBRARIES AND RTMIDI_INCLUDE_DIRS)
-  # in cache already
-  set(RTMIDI_FOUND TRUE)
-else ()
-  
-  set(RTMIDI_SEARCH_DIRS "${RTMIDI_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/rtmidi")
-  
-  find_path(RTMIDI_INCLUDE_DIR RtMidi.h PATH_SUFFIXES include HINTS ${RTMIDI_SEARCH_DIRS})
-  find_library(RTMIDI_LIBRARY NAMES rtmidi PATH_SUFFIXES lib HINTS ${RTMIDI_SEARCH_DIRS})
-  
-  include(FindPackageHandleStandardArgs)
-  find_package_handle_standard_args(RTMIDI DEFAULT_MSG RTMIDI_INCLUDE_DIR RTMIDI_LIBRARY)
-endif ()
+set(RTMIDI_SEARCH_DIRS "${RTMIDI_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/rtmidi")
+
+find_path(RTMIDI_INCLUDE_DIR RtMidi.h PATH_SUFFIXES include HINTS ${RTMIDI_SEARCH_DIRS})
+find_library(RTMIDI_LIBRARY NAMES rtmidi PATH_SUFFIXES lib HINTS ${RTMIDI_SEARCH_DIRS})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(RTMIDI DEFAULT_MSG RTMIDI_INCLUDE_DIR RTMIDI_LIBRARY)
