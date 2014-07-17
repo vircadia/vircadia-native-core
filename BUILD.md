@@ -6,7 +6,7 @@ Dependencies
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.2
 * [qxmpp](https://github.com/qxmpp-project/qxmpp/) ~> 0.7.6
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
-  * IMPORTANT: OpenSSL 1.0.1e is critical to avoid a security vulnerability.
+  * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 
 #####Linux only
 * [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
