@@ -967,14 +967,16 @@ QString getString(const QVariant& value) {
 
 class JointShapeInfo {
 public:
-    JointShapeInfo() : numVertices(0), numProjectedVertices(0), averageVertex(0.f), boneBegin(0.f), averageRadius(0.f) {
-        extents.reset();
+    JointShapeInfo() : numVertices(0), numProjectedVertices(0), 
+            sumVertexWeights(0.0f), sumWeightedRadii(0.0f),
+            averageVertex(0.f), boneBegin(0.f), averageRadius(0.f) {
     }
 
     // NOTE: the points here are in the "joint frame" which has the "jointEnd" at the origin
     int numVertices;            // num vertices from contributing meshes
     int numProjectedVertices;   // num vertices that successfully project onto bone axis
-    Extents extents;            // max and min extents of mesh vertices (in joint frame)
+    float sumVertexWeights;
+    float sumWeightedRadii;
     glm::vec3 averageVertex;    // average of all mesh vertices (in joint frame)
     glm::vec3 boneBegin;        // parent joint location (in joint frame)
     float averageRadius;        // average distance from mesh points to averageVertex
@@ -1740,14 +1742,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
                         if (weight > EXPANSION_WEIGHT_THRESHOLD) {
                             const glm::vec3& vertex = extracted.mesh.vertices.at(it.value());
-                            float proj = glm::dot(boneDirection, vertex - boneEnd);
-                            if (proj < 0.0f && proj > -boneLength) {
+                            float proj = glm::dot(boneDirection, boneEnd - vertex);
+                            if (proj > 0.0f && proj < boneLength) {
                                 joint.boneRadius = glm::max(joint.boneRadius, 
-                                        radiusScale * glm::distance(vertex, boneEnd + boneDirection * proj));
+                                        radiusScale * glm::distance(vertex, boneEnd - boneDirection * proj));
                                 ++jointShapeInfo.numProjectedVertices;
                             }
                             glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));
-                            jointShapeInfo.extents.addPoint(vertexInJointFrame);
                             jointShapeInfo.averageVertex += vertexInJointFrame;
                             ++jointShapeInfo.numVertices;
                         }
@@ -1792,13 +1793,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
             glm::vec3 averageVertex(0.f);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
-                float proj = glm::dot(boneDirection, vertex - boneEnd);
-                if (proj < 0.0f && proj > -boneLength) {
-                    joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(vertex, boneEnd + boneDirection * proj));
+                float proj = glm::dot(boneDirection, boneEnd - vertex);
+                if (proj > 0.0f && proj < boneLength) {
+                    joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(vertex, boneEnd - boneDirection * proj));
                     ++jointShapeInfo.numProjectedVertices;
                 }
                 glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));
-                jointShapeInfo.extents.addPoint(vertexInJointFrame);
                 jointShapeInfo.averageVertex += vertexInJointFrame;
                 averageVertex += vertex;
             }
