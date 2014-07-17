@@ -30,9 +30,8 @@ InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier, 
 
 const uchar MAX_INJECTOR_VOLUME = 255;
 
-int InjectedAudioRingBuffer::parseData(const QByteArray& packet) {
-    timeGapStatsFrameReceived();
-    updateDesiredJitterBufferFrames();
+int InjectedAudioRingBuffer::parseData(const QByteArray& packet, int packetsSkipped) {
+    frameReceivedUpdateTimingStats();
 
     // setup a data stream to read from this packet
     QDataStream packetStream(packet);
@@ -59,8 +58,14 @@ int InjectedAudioRingBuffer::parseData(const QByteArray& packet) {
     packetStream >> attenuationByte;
     _attenuationRatio = attenuationByte / (float) MAX_INJECTOR_VOLUME;
     
-    packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(),
-                                       packet.size() - packetStream.device()->pos()));
+    int numAudioBytes = packet.size() - packetStream.device()->pos();
+    int numAudioSamples = numAudioBytes / sizeof(int16_t);
+
+    // add silent samples for the dropped packets.
+    // ASSUME that each dropped packet had same number of samples as this one
+    addDroppableSilentSamples(numAudioSamples * packetsSkipped);
+
+    packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(), numAudioBytes));
     
     return packetStream.device()->pos();
 }

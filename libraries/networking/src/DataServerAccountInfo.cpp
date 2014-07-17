@@ -18,6 +18,7 @@ DataServerAccountInfo::DataServerAccountInfo() :
     _username(),
     _xmppPassword(),
     _discourseApiKey(),
+    _walletID(),
     _balance(0),
     _hasBalance(false)
 {
@@ -29,6 +30,7 @@ DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherI
     _username = otherInfo._username;
     _xmppPassword = otherInfo._xmppPassword;
     _discourseApiKey = otherInfo._discourseApiKey;
+    _walletID = otherInfo._walletID;
     _balance = otherInfo._balance;
     _hasBalance = otherInfo._hasBalance;
 }
@@ -46,6 +48,7 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_username, otherInfo._username);
     swap(_xmppPassword, otherInfo._xmppPassword);
     swap(_discourseApiKey, otherInfo._discourseApiKey);
+    swap(_walletID, otherInfo._walletID);
     swap(_balance, otherInfo._balance);
     swap(_hasBalance, otherInfo._hasBalance);
 }
@@ -74,6 +77,12 @@ void DataServerAccountInfo::setDiscourseApiKey(const QString& discourseApiKey) {
     }
 }
 
+void DataServerAccountInfo::setWalletID(const QUuid& walletID) {
+    if (_walletID != walletID) {
+        _walletID = walletID;
+    }
+}
+
 void DataServerAccountInfo::setBalance(qint64 balance) {
     if (!_hasBalance || _balance != balance) {
         _balance = balance;
@@ -99,14 +108,15 @@ void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject
     setUsername(user["username"].toString());
     setXMPPPassword(user["xmpp_password"].toString());
     setDiscourseApiKey(user["discourse_api_key"].toString());
+    setWalletID(QUuid(user["wallet_id"].toString()));
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
-    out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey;
+    out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey << info._walletID;
     return out;
 }
 
 QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info) {
-    in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey;
+    in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey >> info._walletID;
     return in;
 }

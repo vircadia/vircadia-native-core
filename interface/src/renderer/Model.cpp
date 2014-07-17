@@ -39,8 +39,7 @@ Model::Model(QObject* parent) :
     _scaledToFit(false),
     _snapModelToCenter(false),
     _snappedToCenter(false),
-    _showTrueJointTransforms(false),
-    _rootIndex(-1),
+    _showTrueJointTransforms(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
     _url("http://invalid.com") {
@@ -126,6 +125,7 @@ void Model::setScaleInternal(const glm::vec3& scale) {
     const float ONE_PERCENT = 0.01f;
     if (relativeDeltaScale > ONE_PERCENT || scaleLength < EPSILON) {
         _scale = scale;
+        initJointTransforms();
         if (_shapes.size() > 0) {
             clearShapes();
             buildShapes();
@@ -165,24 +165,26 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
         state.setFBXJoint(&joint);
         jointStates.append(state);
     }
+    return jointStates;
+};
 
+void Model::initJointTransforms() {
     // compute model transforms
-    int numJoints = jointStates.size();
+    int numJoints = _jointStates.size();
     for (int i = 0; i < numJoints; ++i) {
-        JointState& state = jointStates[i];
+        JointState& state = _jointStates[i];
         const FBXJoint& joint = state.getFBXJoint();
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1) {
-            _rootIndex = i;
+            const FBXGeometry& geometry = _geometry->getFBXGeometry();
             // NOTE: in practice geometry.offset has a non-unity scale (rather than a translation)
             glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-            state.computeTransform(parentTransform);
+            state.initTransform(parentTransform);
         } else {
-            const JointState& parentState = jointStates.at(parentIndex);
-            state.computeTransform(parentState.getTransform());
+            const JointState& parentState = _jointStates.at(parentIndex);
+            state.initTransform(parentState.getTransform());
         }
     }
-    return jointStates;
 }
 
 void Model::init() {
@@ -560,6 +562,7 @@ bool Model::updateGeometry() {
 // virtual
 void Model::setJointStates(QVector<JointState> states) {
     _jointStates = states;
+    initJointTransforms();
 
     int numJoints = _jointStates.size();
     float radius = 0.0f;
@@ -937,7 +940,6 @@ void Model::simulateInternal(float deltaTime) {
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
-    updateVisibleJointStates();
 
     _shapesAreDirty = ! _shapes.isEmpty();
     
@@ -1006,10 +1008,12 @@ void Model::updateJointState(int index) {
 }
 
 void Model::updateVisibleJointStates() {
-    if (!_showTrueJointTransforms) {
-        for (int i = 0; i < _jointStates.size(); i++) {
-            _jointStates[i].slaveVisibleTransform();
-        }
+    if (_showTrueJointTransforms) {
+        // no need to update visible transforms
+        return;
+    }
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].slaveVisibleTransform();
     }
 }
 
@@ -1037,8 +1041,8 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const gl
         if (useRotation) {
             JointState& state = _jointStates[jointIndex];
 
-            state.setRotationFromBindFrame(rotation, priority);
-            endRotation = state.getRotationFromBindToModelFrame();
+            state.setRotationInBindFrame(rotation, priority);
+            endRotation = state.getRotationInBindFrame();
         }    
         
         // then, we go from the joint upwards, rotating the end as close as possible to the target
@@ -1209,7 +1213,7 @@ void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm:
     } while (numIterations < MAX_ITERATION_COUNT && distanceToGo < ACCEPTABLE_IK_ERROR);
 
     // set final rotation of the end joint
-    endState.setRotationFromBindFrame(targetRotation, priority, true);
+    endState.setRotationInBindFrame(targetRotation, priority, true);
      
     _shapesAreDirty = !_shapes.isEmpty();
 }
@@ -1356,6 +1360,7 @@ void Model::deleteGeometry() {
 }
 
 void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows) {
+    updateVisibleJointStates();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     
