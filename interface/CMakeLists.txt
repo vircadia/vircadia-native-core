@@ -153,7 +153,7 @@ if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
   if (APPLE OR UNIX)
       SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${SIXENSE_INCLUDE_DIRS}")
   endif (APPLE OR UNIX)
-  target_link_libraries(${TARGET_NAME} "${SIXENSE_LIBRARIES}")
+  target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
 endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
 
 # likewise with Visage library for webcam feature tracking
