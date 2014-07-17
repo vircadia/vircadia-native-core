@@ -183,7 +183,7 @@ endif (FACEPLUS_FOUND AND NOT DISABLE_FACEPLUS)
 # and with LibOVR for Oculus Rift
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
   add_definitions(-DHAVE_LIBOVR)
-  include_directories(SYSTEM "${LIBOVR_INCLUDE_DIRS}")
+  include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
     
   if (APPLE OR UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
