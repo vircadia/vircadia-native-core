@@ -16,6 +16,8 @@
 #include <QObject>
 #include <QString>
 
+#include "Application.h"
+
 class FaceshiftScriptingInterface : public QObject {
     Q_OBJECT
     FaceshiftScriptingInterface() { };

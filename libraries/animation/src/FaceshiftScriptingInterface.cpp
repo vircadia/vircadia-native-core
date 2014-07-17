@@ -9,14 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Application.h"
 #include "FaceshiftScriptingInterface.h"
 
 FaceshiftScriptingInterface* FaceshiftScriptingInterface::getInstance() {
     static FaceshiftScriptingInterface sharedInstance;
     return &sharedInstance;
 }
-
 
 bool FaceshiftScriptingInterface::isConnectedOrConnecting() const {
     return Application::getInstance()->getFaceshift()->isConnectedOrConnecting();
@@ -98,7 +96,7 @@ void FaceshiftScriptingInterface::update() {
 }
 
 void FaceshiftScriptingInterface::reset() {
-    Application::getInstance()->getFaceshift()->reset;
+    Application::getInstance()->getFaceshift()->reset();
 }
 
 void FaceshiftScriptingInterface::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
