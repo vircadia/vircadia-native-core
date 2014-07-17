@@ -35,16 +35,6 @@ public:
     int _movingItems;
 };
 
-class FindAndUpdateEntityItemIDArgs {
-public:
-    uint32_t entityID;
-    uint32_t creatorTokenID;
-    bool creatorTokenFound;
-    bool viewedEntityFound;
-    bool isViewing;
-};
-
-
 class EntityTreeElementExtraEncodeData {
 public:
     QMap<EntityItemID, EntityPropertyFlags> includedItems;
@@ -125,7 +115,6 @@ public:
     void addEntityItem(EntityItem* entity);
 
 
-    //void updateEntityItemID(FindAndUpdateEntityItemIDArgs* args);
     void updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID);
 
     const EntityItem* getClosestEntity(glm::vec3 position) const;

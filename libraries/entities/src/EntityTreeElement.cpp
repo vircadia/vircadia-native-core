@@ -455,48 +455,6 @@ void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntit
     }
 }
 
-/*
-void EntityTreeElement::updateEntityItemID(FindAndUpdateEntityItemIDArgs* args) {
-    bool wantDebug = false;
-    uint16_t numberOfEntities = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem* thisEntity = (*_entityItems)[i];
-        
-        if (!args->creatorTokenFound) {
-            // first, we're looking for matching creatorTokenIDs, if we find that, then we fix it to know the actual ID
-            if (thisEntity->getCreatorTokenID() == args->creatorTokenID) {
-                if (wantDebug) {
-                    qDebug() << "EntityTreeElement::updateEntityItemID()... found the entity... updating it's ID... "
-                        << "creatorTokenID=" << args->creatorTokenID
-                        << "entityID=" << args->entityID;
-                }
-
-                thisEntity->setID(args->entityID);
-                args->creatorTokenFound = true;
-            }
-        }
-        
-        // if we're in an isViewing tree, we also need to look for an kill any viewed entities
-        if (!args->viewedEntityFound && args->isViewing) {
-            if (thisEntity->getCreatorTokenID() == UNKNOWN_ENTITY_TOKEN && thisEntity->getID() == args->entityID) {
-
-                if (wantDebug) {
-                    qDebug() << "EntityTreeElement::updateEntityItemID()... VIEWED entity FOUND??? "
-                        << "args->creatorTokenID=" << args->creatorTokenID
-                        << "thisEntity->getCreatorTokenID()=" << thisEntity->getCreatorTokenID()
-                        << "args->entityID=" << args->entityID;
-                }
-
-                _entityItems->removeAt(i); // remove the entity at this index
-                numberOfEntities--; // this means we have 1 fewer entity in this list
-                i--; // and we actually want to back up i as well.
-                args->viewedEntityFound = true;
-            }
-        }
-    }
-}
-*/
-
 const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const {
     const EntityItem* closestEntity = NULL;
     float closestEntityDistance = FLT_MAX;
@@ -666,7 +624,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     _myTree->rememberDirtyCube(existingEntityCube);
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
                 } else {
-                    entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead);
+                    entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
                     
                     if (entityItem) {
                         bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);

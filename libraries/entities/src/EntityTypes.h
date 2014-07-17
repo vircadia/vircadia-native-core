@@ -20,7 +20,7 @@
 class EntityItem;
 class EntityItemID;
 class EntityItemProperties;
-
+class ReadBitstreamToTreeParams;
 
 class EntityTypes {
 public:
@@ -40,7 +40,7 @@ public:
     static EntityTypes::EntityType_t getEntityTypeFromName(const QString& name);
 
     static EntityItem* constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
-    static EntityItem* constructEntityItem(const unsigned char* data, int bytesToRead);
+    static EntityItem* constructEntityItem(const unsigned char* data, int bytesToRead, ReadBitstreamToTreeParams& args);
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes, 
                                         EntityItemID& entityID, EntityItemProperties& properties);
 private:

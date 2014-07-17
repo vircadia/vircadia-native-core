@@ -12,6 +12,7 @@
 #include <QtCore/QObject>
 
 #include <ByteCountCoding.h>
+#include <Octree.h>
 
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
@@ -75,9 +76,55 @@ EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const Enti
     return newEntityItem;
 }
 
-EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead) {
+EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
+            ReadBitstreamToTreeParams& args) {
 
-qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... CALLED BUT NOT IMPLEMENTED!!!";
+    //qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... CALLED BUT NOT IMPLEMENTED!!!";
+    
+    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
+        qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... OLD BITSTREAM!!!";
+
+        EntityItemID tempEntityID;
+        EntityItemProperties tempProperties;
+        return new ModelEntityItem(tempEntityID, tempProperties);
+    }
+
+    // Header bytes
+    //    object ID [16 bytes]
+    //    ByteCountCoded(type code) [~1 byte]
+    //    last edited [8 bytes]
+    //    ByteCountCoded(last_edited to last_updated delta) [~1-8 bytes]
+    //    PropertyFlags<>( everything ) [1-2 bytes]
+    // ~27-35 bytes...
+    const int MINIMUM_HEADER_BYTES = 27; // TODO: this is not correct, we don't yet have 16 byte IDs
+
+    int bytesRead = 0;
+    if (bytesToRead >= MINIMUM_HEADER_BYTES) {
+        int originalLength = bytesToRead;
+        QByteArray originalDataBuffer((const char*)data, originalLength);
+
+        // id
+        QByteArray encodedID = originalDataBuffer.mid(bytesRead); // maximum possible size
+        ByteCountCoded<quint32> idCoder = encodedID;
+        encodedID = idCoder; // determine true length
+        bytesRead += encodedID.size();
+
+        // type
+        QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
+        ByteCountCoded<quint32> typeCoder = encodedType;
+        encodedType = typeCoder; // determine true length
+        bytesRead += encodedType.size();
+        quint32 type = typeCoder;
+        EntityTypes::EntityType_t entityType = (EntityTypes::EntityType_t)type;
+        
+        EntityItemID tempEntityID;
+        EntityItemProperties tempProperties;
+
+        qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
+        
+        return constructEntityItem(entityType, tempEntityID, tempProperties);
+    }
+    
 
     return NULL; // TODO Implement this for real!
 }
