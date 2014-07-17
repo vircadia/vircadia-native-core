@@ -65,8 +65,7 @@ int InjectedAudioRingBuffer::parseData(const QByteArray& packet, int packetsSkip
     // ASSUME that each dropped packet had same number of samples as this one
     addDroppableSilentSamples(numAudioSamples * packetsSkipped);
 
-    packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(),
-                             numAudioBytes));
+    packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(), numAudioBytes));
     
     return packetStream.device()->pos();
 }
