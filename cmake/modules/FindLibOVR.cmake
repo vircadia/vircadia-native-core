@@ -18,13 +18,17 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-if (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
+if (LIBOVR_LIBRARIES AND LIBOVR_UTIL_INCLUDE_DIR AND LIBOVR_INCLUDE_DIRS)
   # in cache already
-  set(LIBOVR_FOUND TRUE)
-else (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
+  set(LIBOVR_FIND_QUIETLY TRUE)
+else ()
   set(LIBOVR_SEARCH_DIRS "${LIBOVR_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/oculus")
   
   find_path(LIBOVR_INCLUDE_DIRS OVR.h PATH_SUFFIXES Include HINTS ${LIBOVR_SEARCH_DIRS})
+  find_path(LIBOVR_UTIL_INCLUDE_DIR Util_Render_Stereo.h PATH_SUFFIXES Src/Util HINTS ${LIBOVR_SEARCH_DIRS})
+  
+  # add the util include dir to the general include dirs
+  set(LIBOVR_INCLUDE_DIRS "${LIBOVR_INCLUDE_DIRS} ${LIBOVR_UTIL_INCLUDE_DIR}")
   
   if (APPLE)
     find_library(LIBOVR_LIBRARY_DEBUG "Lib/MacOS/Debug/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
@@ -60,21 +64,7 @@ else (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
     set(${LIBOVR_LIBRARIES} ${LIBOVR_LIBRARIES} ${UDEV_LIBRARY} ${XINERAMA_LIBRARY})
   endif ()
   
-  if (LIBOVR_INCLUDE_DIRS AND LIBOVR_LIBRARIES)
-     set(LIBOVR_FOUND TRUE)
-  endif (LIBOVR_INCLUDE_DIRS AND LIBOVR_LIBRARIES)
- 
-  if (LIBOVR_FOUND)
-    if (NOT LibOVR_FIND_QUIETLY)
-      message(STATUS "Found LibOVR: ${LIBOVR_LIBRARIES}")
-    endif (NOT LibOVR_FIND_QUIETLY)
-  else (LIBOVR_FOUND)
-    if (LibOVR_FIND_REQUIRED)
-      message(FATAL_ERROR "Could not find LibOVR")
-    endif (LibOVR_FIND_REQUIRED)
-  endif (LIBOVR_FOUND)
+  include(FindPackageHandleStandardArgs)
+  find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_UTIL_INCLUDE_DIR LIBOVR_LIBRARIES)
 
-  # show the LIBOVR_INCLUDE_DIRS and LIBOVR_LIBRARIES variables only in the advanced view
-  mark_as_advanced(LIBOVR_INCLUDE_DIRS LIBOVR_LIBRARIES)
-
-endif (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
+endif ()
