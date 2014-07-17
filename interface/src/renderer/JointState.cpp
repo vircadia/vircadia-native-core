@@ -183,7 +183,7 @@ void JointState::mixRotationDelta(const glm::quat& delta, float mixFactor, float
 void JointState::mixVisibleRotationDelta(const glm::quat& delta, float mixFactor) {
     // NOTE: delta is in model-frame
     assert(_fbxJoint != NULL);
-    glm::quat targetRotation = _visibleRotationInConstrainedFrame * glm::inverse(_rotation) * delta * _rotation;
+    glm::quat targetRotation = _visibleRotationInConstrainedFrame * glm::inverse(_visibleRotation) * delta * _visibleRotation;
     if (mixFactor > 0.0f && mixFactor <= 1.0f) {
         //targetRotation = safeMix(targetRotation, _fbxJoint->rotation, mixFactor);
         targetRotation = safeMix(targetRotation, _rotationInConstrainedFrame, mixFactor);
