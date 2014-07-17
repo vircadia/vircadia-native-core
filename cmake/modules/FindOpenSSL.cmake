@@ -37,10 +37,11 @@ if (WIN32)
   # http://www.slproweb.com/products/Win32OpenSSL.html
   set(_OPENSSL_ROOT_HINTS
     ${OPENSSL_ROOT_DIR}
+    $ENV{OPENSSL_ROOT_DIR}
+    $ENV{HIFI_LIB_DIR}/openssl
     "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
     "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
-    ENV OPENSSL_ROOT_DIR
-    )
+  )
   file(TO_CMAKE_PATH "$ENV{PROGRAMFILES}" _programfiles)
   set(_OPENSSL_ROOT_PATHS
     "${_programfiles}/OpenSSL"
