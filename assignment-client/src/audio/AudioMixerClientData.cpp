@@ -301,7 +301,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
     QString result;
     AudioStreamStats streamStats = _downstreamAudioStreamStats;
     result += "DOWNSTREAM.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
-        + " current: ?"
+        + " available_avg_10s:" + QString::number(streamStats._ringBufferFramesAvailableAverage)
         + " available:" + QString::number(streamStats._ringBufferFramesAvailable)
         + " starves:" + QString::number(streamStats._ringBufferStarveCount)
         + " not_mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)
@@ -320,7 +320,8 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
     if (avatarRingBuffer) {
         AudioStreamStats streamStats = getAudioStreamStatsOfStream(avatarRingBuffer);
         result += " UPSTREAM.mic.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
-            + " current:" + QString::number(streamStats._ringBufferFramesAvailableAverage)
+            + " desired_calc:" + QString::number(avatarRingBuffer->getCalculatedDesiredJitterBufferFrames())
+            + " available_avg_10s:" + QString::number(streamStats._ringBufferFramesAvailableAverage)
             + " available:" + QString::number(streamStats._ringBufferFramesAvailable)
             + " starves:" + QString::number(streamStats._ringBufferStarveCount)
             + " not_mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)
@@ -342,7 +343,8 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
             AudioStreamStats streamStats = getAudioStreamStatsOfStream(_ringBuffers[i]);
             result += " UPSTREAM.inj.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
-                + " current:" + QString::number(streamStats._ringBufferFramesAvailableAverage)
+                + " desired_calc:" + QString::number(_ringBuffers[i]->getCalculatedDesiredJitterBufferFrames())
+                + " available_avg_10s:" + QString::number(streamStats._ringBufferFramesAvailableAverage)
                 + " available:" + QString::number(streamStats._ringBufferFramesAvailable)
                 + " starves:" + QString::number(streamStats._ringBufferStarveCount)
                 + " not_mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)
