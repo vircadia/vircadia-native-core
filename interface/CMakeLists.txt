@@ -58,19 +58,6 @@ foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels pa
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)
 
-# windows also includes the faceshift externals, because using a lib doesn't work due to debug/release mismatch
-if (WIN32)
-  set(EXTERNAL_SOURCE_SUBDIRS "faceshift")
-endif ()
-
-foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
-  file(GLOB_RECURSE SUBDIR_SRCS 
-    "external/${EXTERNAL_SOURCE_SUBDIR}/src/*.cpp" 
-    "external/${EXTERNAL_SOURCE_SUBDIR}/src/*.c" 
-    "external/${EXTERNAL_SOURCE_SUBDIR}/src/*.h")
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
-endforeach(EXTERNAL_SOURCE_SUBDIR)
-
 find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
 
 # grab the ui files in resources/ui
@@ -229,16 +216,22 @@ endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
 
 # and with RtMidi for RtMidi control
 if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI)
+  add_definitions(-DHAVE_RTMIDI)
+  include_directories(SYSTEM "${RTMIDI_INCLUDE_DIRS}")
+  target_link_libraries(${TARGET_NAME} ${RTMIDI_LIBRARIES})
   
-    add_definitions(-DHAVE_RTMIDI)
-    include_directories(SYSTEM "${RTMIDI_INCLUDE_DIRS}")
-    target_link_libraries(${TARGET_NAME} ${RTMIDI_LIBRARIES})
-    
-    if (APPLE)
-      find_library(CoreMIDI CoreMIDI)
-      add_definitions(-D__MACOSX_CORE__)
-      target_link_libraries(${TARGET_NAME} ${CoreMIDI})
-    endif()
+  if (APPLE)
+    find_library(CoreMIDI CoreMIDI)
+    add_definitions(-D__MACOSX_CORE__)
+    target_link_libraries(${TARGET_NAME} ${CoreMIDI})
+  endif()
+endif()
+
+# and with Faceshift for depth camera face tracking
+if (FACESHIFT_FOUND AND NOT DISABLE_FACESHIFT)
+  add_definitions(-DAHAVE_FACESHIFT)
+  include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
+  target_link_libraries(${TARGET_NAME} ${FACESHIFT_LIBRARIES})
 endif()
 
 # include headers for interface and InterfaceConfig.
@@ -246,11 +239,10 @@ include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes"
 
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${OPENSSL_INCLUDE_DIR}")
+include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 
 target_link_libraries(
   ${TARGET_NAME}
-  "${FACESHIFT_LIBRARIES}"
   "${ZLIB_LIBRARIES}"
   ${OPENSSL_LIBRARIES}
   Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 

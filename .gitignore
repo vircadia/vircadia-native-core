@@ -46,6 +46,10 @@ interface/resources/visage/*
 interface/external/faceplus/*
 !interface/external/faceplus/readme.txt
 
+# Ignore Faceshift
+interface/external/faceshift/*
+!interface/external/faceshift/readme.txt
+
 # Ignore PrioVR
 interface/external/priovr/*
 !interface/external/priovr/readme.txt
