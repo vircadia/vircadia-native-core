@@ -11,9 +11,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var NUMBER_OF_CELLS_EACH_DIMENSION = 64;
+var NUMBER_OF_CELLS_EACH_DIMENSION = 48;
 var NUMBER_OF_CELLS_REGION_EACH_DIMESION = 16;
 var REGIONS_EACH_DIMENSION = NUMBER_OF_CELLS_EACH_DIMENSION / NUMBER_OF_CELLS_REGION_EACH_DIMESION;
+
+var isLocal = false;
 
 var currentCells = [];
 var nextCells = [];
@@ -24,11 +26,20 @@ var position = {x: 0, y: 0, z: 0 };
 var METER_LENGTH = 1;
 var cellScale = (NUMBER_OF_CELLS_EACH_DIMENSION * METER_LENGTH) / NUMBER_OF_CELLS_EACH_DIMENSION; 
 
+var viewerPosition = {x: cornerPosition.x + (NUMBER_OF_CELLS_EACH_DIMENSION / 2) * cellScale, y: cornerPosition.y + (NUMBER_OF_CELLS_EACH_DIMENSION / 2) * cellScale, z: cornerPosition.z };
+
+viewerPosition.z += 50;
+var yaw = 0;
+var orientation = Quat.fromPitchYawRollDegrees(0, yaw, 0);
+
 //Feel free to add new cell types here. It can be more than three.
 var cellTypes = [];
 cellTypes[0] = { r: 255, g: 0, b: 0 };
 cellTypes[1] = { r: 0, g: 255, b: 0 };
 cellTypes[2] = { r: 0, g:0, b: 255 };
+cellTypes[3] = { r: 0, g:255, b: 255 };
+cellTypes[4] = { r: 255, g:0, b: 255 };
+//cellTypes[5] = { r: 255, g:255, b: 255 };
 
 
 //Check for free region for AC
@@ -76,8 +87,10 @@ for (var i = 0; i < NUMBER_OF_CELLS_REGION_EACH_DIMESION; i++) {
   // create the array to hold this row in the nextCells array
   nextCells[i] = [];
   
+  var randomColor = Math.floor(Math.random() * cellTypes.length);
+  
   for (var j = 0; j < NUMBER_OF_CELLS_REGION_EACH_DIMESION; j++) {
-     currentCells[i][j] = { changed: true, type: Math.floor(Math.random() * cellTypes.length) };
+     currentCells[i][j] = { changed: true, type: randomColor };
      
      // put the same value in the nextCells array for first board draw
      nextCells[i][j] = currentCells[i][j];
@@ -207,6 +220,15 @@ function step(deltaTime) {
     } else {
         // this will be our first board send
         sentFirstBoard = true;
+        
+        print("AHHHH");
+        print(viewerPosition.x + " " + viewerPosition.y + " " + viewerPosition.z);
+        
+        if (isLocal == false) {
+            VoxelViewer.setPosition(viewerPosition);
+            VoxelViewer.setOrientation(orientation);
+            VoxelViewer.queryOctree();
+        }
     }
 
     sendNextCells();  
@@ -219,5 +241,8 @@ function scriptEnding() {
 Script.scriptEnding.connect(scriptEnding);
 
 Script.update.connect(step);
-//Voxels.setMaxPacketSize(1); //this is needed or a bug occurs :(
 Voxels.setPacketsPerSecond(2000);
+
+// test for local...
+Menu.isOptionChecked("Voxels");
+isLocal = true; // will only get here on local client
