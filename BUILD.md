@@ -14,10 +14,6 @@ Dependencies
 * [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
 * [freeglut MSVC](http://www.transmissionzero.co.uk/software/freeglut-devel/) ~> 2.8.1
 
-####Optional
-* [qxmpp](https://github.com/qxmpp-project/qxmpp/) ~> 0.7.6
-  * enables text chat
-
 CMake
 === 
 Hifi uses CMake to generate build files and project files for your platform.
@@ -218,21 +214,6 @@ This package contains only headers, so there's nothing to add to the PATH.
 
 Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
 
-#### qxmpp
-
-Download a source-code release from the [qxmpp GitHub page](https://github.com/qxmpp-project/qxmpp/releases).
-
-Start a Visual Studio Command Prompt.
-
-    mkdir %HIFI_LIB_DIR%\build
-    tar xfz qxmpp-0.7.6.tar.gz -C %HIFI_LIB_DIR%\build
-    cd %HIFI_LIB_DIR%\build\qxmpp-0.7.6
-    qmake PREFIX=%HIFI_LIB_DIR%\qxmpp   # This creates "Makefile"
-    nmake
-    nmake install
-
-Add to the PATH: `%HIFI_LIB_DIR%\qxmpp\lib`
-
 #### Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
 
@@ -250,7 +231,14 @@ If you need to debug Interface, you can run interface from within Visual Studio 
 * Set the "Working Directory" for the Interface debugging sessions to the Debug output directory so that your application can load resources. Do this: right click interface and click Properties, choose Debugging from Configuration Properties, set Working Directory to .\Debug
 * Now you can run and debug interface through Visual Studio
 
+Optional Components
+===
+
+####QXmpp
+
+You can find QXmpp [here](https://github.com/qxmpp-project/qxmpp). The inclusion of the QXmpp enables text chat in the Interface client.
+
 #### Devices
 
-You can support external input/output devices such as Leap Motion, Faceplus, Faceshift PrioVR, RTmidi, SixSense and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in /hifi/interface/external/ for the detailed explanation of the requirements to use the device.
+You can support external input/output devices such as Leap Motion, Faceplus, Faceshift PrioVR, RTmidi, SixSense and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in (interface/external/)[interface/external] for the detailed explanation of the requirements to use the device.
 
