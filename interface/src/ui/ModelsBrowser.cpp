@@ -182,7 +182,7 @@ ModelHandler::ModelHandler(ModelType modelsType, QWidget* parent) :
     QObject(parent),
     _initiateExit(false),
     _type(modelsType),
-    _nameFilter(".*fst")
+    _nameFilter(".*(fst|fbx|FST|FBX)")
 {
     // set headers data
     QStringList headerData;

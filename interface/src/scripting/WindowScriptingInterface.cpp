@@ -205,7 +205,9 @@ QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QS
 /// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
 QScriptValue WindowScriptingInterface::showS3Browse(const QString& nameFilter) {
     ModelsBrowser browser(ENTITY_MODEL);
-    browser.setNameFilter(nameFilter);
+    if (nameFilter != "") {
+        browser.setNameFilter(nameFilter);
+    }
     QEventLoop loop;
     connect(&browser, &ModelsBrowser::selected, &loop, &QEventLoop::quit);
     QMetaObject::invokeMethod(&browser, "browse", Qt::QueuedConnection);
