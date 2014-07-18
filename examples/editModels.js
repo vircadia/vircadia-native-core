@@ -780,8 +780,8 @@ function mousePressEvent(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
     if (newModel == toolBar.clicked(clickedOverlay)) {
-        var url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-        if (url == null) {
+        var url = Window.s3Browse();
+        if (url == null || url == "") {
             return;
         }
         
