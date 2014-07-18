@@ -20,7 +20,7 @@
 
 set(VISAGE_SEARCH_DIRS "${VISAGE_ROOT_DIR}" "$ENV{VISAGE_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/visage")
 
-find_path(VISAGE_INCLUDE_DIR VisageTracker2.h ${VISAGE_ROOT_DIR}/include)
+find_path(VISAGE_INCLUDE_DIR VisageTracker2.h PATH_SUFFIXES include HINTS ${VISAGE_SEARCH_DIRS})
 
 if (APPLE)
   find_path(VISAGE_XML_INCLUDE_DIR libxml/xmlreader.h HINTS ${VISAGE_SEARCH_DIRS} /usr/include/libxml2)
