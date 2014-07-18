@@ -6,7 +6,7 @@
 #
 #  GLEW_FOUND
 #  GLEW_INCLUDE_DIRS
-#  GLEW_LIBRARY
+#  GLEW_LIBRARIES
 # 
 #  Created on 2/6/2014 by Stephen Birarda
 #  Copyright 2014 High Fidelity, Inc.
@@ -30,5 +30,9 @@ if (WIN32)
   select_library_configurations(GLEW)
 endif ()
 
+set(GLEW_LIBRARIES "${GLEW_LIBRARY}")
+
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARY)
+find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARIES)
+
+mark_as_advanced(GLEW_INCLUDE_DIRS GLEW_LIBRARIES)

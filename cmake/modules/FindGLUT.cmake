@@ -7,7 +7,6 @@
 #  GLUT_FOUND
 #  GLUT_INCLUDE_DIRS
 #  GLUT_LIBRARIES
-#  GLUT_DLL_PATH - Optionally defined for Win32, if not in path
 #
 #  Created on 2/6/2014 by Stephen Birarda
 #  Copyright 2014 High Fidelity, Inc.
@@ -33,6 +32,8 @@ endif ()
 
 include(FindPackageHandleStandardArgs)
 
+set(GLUT_LIBRARIES "${GLUT_LIBRARY}" "${XMU_LIBRARY}" "${XI_LIBRARY}")
+
 if (UNIX)
   find_library(XI_LIBRARY Xi PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
   find_library(XMU_LIBRARY Xmu PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
@@ -42,4 +43,4 @@ else ()
   find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIRS GLUT_LIBRARIES)
 endif ()
 
-set(GLUT_LIBRARIES ${GLUT_LIBRARY} ${XMU_LIBRARY} ${XI_LIBRARY})
+mark_as_advanced(GLUT_INCLUDE_DIRS GLUT_LIBRARIES GLUT_LIBRARY XI_LIBRARY XMU_LIBRARY)

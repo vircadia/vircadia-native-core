@@ -21,5 +21,4 @@ endif (WIN32)
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(PRIOVR DEFAULT_MSG PRIOVR_INCLUDE_DIRS PRIOVR_LIBRARIES)
 
-# show the PRIOVR_INCLUDE_DIRS and PRIOVR_LIBRARIES variables only in the advanced view
 mark_as_advanced(PRIOVR_INCLUDE_DIRS PRIOVR_LIBRARIES)

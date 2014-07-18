@@ -27,5 +27,9 @@ endif (APPLE)
 include(SelectLibraryConfigurations)
 select_library_configurations(LEAPMOTION)
 
+set(LEAPMOTION_LIBRARIES "${LEAPMOTION_LIBARIES}")
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(LEAPMOTION DEFAULT_MSG LEAPMOTION_INCLUDE_DIRS LEAPMOTION_LIBRARIES)
+
+mark_as_advanced(LEAPMOTION_INCLUDE_DIRS LEAPMOTION_LIBRARIES)

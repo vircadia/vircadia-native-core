@@ -20,3 +20,5 @@ endif (WIN32)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(FACEPLUS DEFAULT_MSG FACEPLUS_INCLUDE_DIRS FACEPLUS_LIBRARIES)
+
+mark_as_advanced(FACEPLUS_INCLUDE_DIRS FACEPLUS_LIBRARIES)
