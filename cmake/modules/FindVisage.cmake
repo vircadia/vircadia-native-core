@@ -23,7 +23,7 @@ set(VISAGE_SEARCH_DIRS "${VISAGE_ROOT_DIR}" "$ENV{VISAGE_ROOT_DIR}" "$ENV{HIFI_L
 find_path(VISAGE_INCLUDE_DIR VisageTracker2.h PATH_SUFFIXES include HINTS ${VISAGE_SEARCH_DIRS})
 
 if (APPLE)
-  find_path(VISAGE_XML_INCLUDE_DIR libxml/xmlreader.h HINTS ${VISAGE_SEARCH_DIRS} /usr/include/libxml2)
+  find_path(VISAGE_XML_INCLUDE_DIR libxml/xmlreader.h HINTS /usr/include/libxml2 ${VISAGE_SEARCH_DIRS})
   find_path(VISAGE_OPENCV_INCLUDE_DIR cv.h PATH_SUFFIXES dependencies/OpenCV_MacOSX/include HINTS ${VISAGE_SEARCH_DIRS})
   find_path(VISAGE_OPENCV2_INCLUDE_DIR opencv.hpp PATH_SUFFIXES dependencies/OpenCV_MacOSX/include/opencv2 HINTS ${VISAGE_SEARCH_DIRS})
   
