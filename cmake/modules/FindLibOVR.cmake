@@ -26,6 +26,8 @@ find_path(LIBOVR_UTIL_INCLUDE_DIR Util_Render_Stereo.h PATH_SUFFIXES Src/Util HI
 # add the util include dir to the general include dirs
 set(LIBOVR_INCLUDE_DIRS "${LIBOVR_INCLUDE_DIRS}" "${LIBOVR_UTIL_INCLUDE_DIR}")
 
+include(SelectLibraryConfigurations)
+
 if (APPLE)
   find_library(LIBOVR_LIBRARY_DEBUG "Lib/MacOS/Debug/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
   find_library(LIBOVR_LIBRARY_RELEASE "Lib/MacOS/Release/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
@@ -42,20 +44,17 @@ elseif (UNIX)
   find_library(LIBOVR_LIBRARY_DEBUG "Lib/Linux/Debug/${LINUX_ARCH_DIR}/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
   find_library(LIBOVR_LIBRARY_RELEASE "Lib/Linux/Release/${LINUX_ARCH_DIR}/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
   
+  select_library_configurations(UDEV)
+  select_library_configurations(XINERAMA)
+  
 elseif (WIN32)   
   find_library(LIBOVR_LIBRARY_DEBUG "Lib/Win32/libovrd.lib" HINTS ${LIBOVR_SEARCH_DIRS})   
   find_library(LIBOVR_LIBRARY_RELEASE "Lib/Win32/libovr.lib" HINTS ${LIBOVR_SEARCH_DIRS})
 endif ()
 
-include(SelectLibraryConfigurations)
 select_library_configurations(LIBOVR)
 
-if (UNIX)
-  select_library_configurations(UDEV)
-  select_library_configurations(XINERAMA)
-  
-  set(LIBOVR_LIBRARIES ${LIBOVR_LIBRARIES} ${UDEV_LIBRARY} ${XINERAMA_LIBRARY})
-endif ()
+set(LIBOVR_LIBRARIES "${LIBOVR_LIBRARIES}" "${UDEV_LIBRARY}" "${XINERAMA_LIBRARY}")
 
 include(FindPackageHandleStandardArgs)
 if (UNIX)
@@ -63,3 +62,5 @@ if (UNIX)
 elseif ()
   find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_UTIL_INCLUDE_DIR LIBOVR_LIBRARIES UDEV_LIBRARY XINERAMA_LIBRARY)
 endif ()
+
+mark_as_advanced(LIBOVR_INCLUDE_DIRS LIBOVR_LIBRARIES)

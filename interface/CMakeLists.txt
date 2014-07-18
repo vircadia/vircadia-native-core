@@ -222,17 +222,17 @@ endif (SDL_FOUND AND NOT DISABLE_SDL)
 # and with qxmpp for chat
 if (QXMPP_FOUND AND NOT DISABLE_QXMPP)
   add_definitions(-DHAVE_QXMPP -DQXMPP_STATIC)
-  include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
+  include_directories(SYSTEM "${QXMPP_INCLUDE_DIRS}")
 
-  target_link_libraries(${TARGET_NAME} ${QXMPP_LIBRARY})
+  target_link_libraries(${TARGET_NAME} ${QXMPP_LIBRARIES})
 endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
 
 # and with RtMidi for RtMidi control
 if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI)
   
     add_definitions(-DHAVE_RTMIDI)
-    include_directories(SYSTEM ${RTMIDI_INCLUDE_DIR})
-    target_link_libraries(${TARGET_NAME} "${RTMIDI_LIBRARY}")
+    include_directories(SYSTEM "${RTMIDI_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} ${RTMIDI_LIBRARIES})
     
     if (APPLE)
       find_library(CoreMIDI CoreMIDI)
