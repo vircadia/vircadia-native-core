@@ -2,6 +2,9 @@
 Instructions for adding the Faceshift library to Interface
 Stephen Birarda, July 18th, 2014
 
+OS X users: You can also use homebrew to get the Faceshift library by tapping our repo - highfidelity/homebrew-formulas
+and then calling 'brew install highfidelity/formulas/faceshift'.
+
 You can download the Faceshift SDK from http://download.faceshift.com/faceshift-network.zip.
 
 Create a ‘faceshift’ folder under interface/externals.    
