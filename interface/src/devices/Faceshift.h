@@ -35,8 +35,6 @@ public:
     bool isConnectedOrConnecting() const; 
 
     bool isActive() const;
-    
-#ifdef HAVE_FACESHIFT
 
     const glm::vec3& getHeadAngularVelocity() const { return _headAngularVelocity; }
 
@@ -93,7 +91,11 @@ private:
     
     QTcpSocket _tcpSocket;
     QUdpSocket _udpSocket;
+
+#ifdef HAVE_FACESHIFT
     fs::fsBinaryStream _stream;
+#endif
+    
     bool _tcpEnabled;
     int _tcpRetryCount;
     bool _tracking;
@@ -129,7 +131,6 @@ private:
     float _longTermAverageEyeYaw;
     bool _longTermAverageInitialized;
     
-#endif // HAVE_FACESHIFT
 };
 
 #endif // hifi_Faceshift_h

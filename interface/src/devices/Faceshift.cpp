@@ -63,37 +63,31 @@ Faceshift::Faceshift() :
     _udpSocket.bind(FACESHIFT_PORT);
 }
 
-void Faceshift::init() {
-    setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
-}
-
-bool Faceshift::isConnectedOrConnecting() const {
-    return _tcpSocket.state() == QAbstractSocket::ConnectedState ||
-        (_tcpRetryCount == 0 && _tcpSocket.state() != QAbstractSocket::UnconnectedState);
-}
-
-bool Faceshift::isActive() const {
-    const quint64 ACTIVE_TIMEOUT_USECS = 1000000;
-    return (usecTimestampNow() - _lastTrackingStateReceived) < ACTIVE_TIMEOUT_USECS;
-}
-
 #else
 
 Faceshift::Faceshift() {
     
 }
 
+#endif
+
+void Faceshift::init() {
+    setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
+}
+
 bool Faceshift::isConnectedOrConnecting() const {
-    return false;
+    return _tcpSocket.state() == QAbstractSocket::ConnectedState ||
+    (_tcpRetryCount == 0 && _tcpSocket.state() != QAbstractSocket::UnconnectedState);
 }
 
 bool Faceshift::isActive() const {
-    return false;
-}
-
-#endif
-
 #ifdef HAVE_FACESHIFT
+    const quint64 ACTIVE_TIMEOUT_USECS = 1000000;
+    return (usecTimestampNow() - _lastTrackingStateReceived) < ACTIVE_TIMEOUT_USECS;
+#else
+    return false;
+#endif
+}
 
 void Faceshift::update() {
     if (!isActive()) {
@@ -120,12 +114,14 @@ void Faceshift::update() {
 }
 
 void Faceshift::reset() {
+#ifdef HAVE_FACESHIFT
     if (_tcpSocket.state() == QAbstractSocket::ConnectedState) {
         string message;
         fsBinaryStream::encode_message(message, fsMsgCalibrateNeutral());
         send(message);
     }
     _longTermAverageInitialized = false;
+#endif
 }
 
 void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
@@ -161,11 +157,13 @@ void Faceshift::connectSocket() {
 }
 
 void Faceshift::noteConnected() {
+#ifdef HAVE_FACESHIFT
     qDebug("Faceshift: Connected.");
     // request the list of blendshape names
     string message;
     fsBinaryStream::encode_message(message, fsMsgSendBlendshapeNames());
     send(message);
+#endif
 }
 
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
@@ -202,6 +200,7 @@ void Faceshift::send(const std::string& message) {
 }
 
 void Faceshift::receive(const QByteArray& buffer) {
+#ifdef HAVE_FACESHIFT
     _stream.received(buffer.size(), buffer.constData());
     fsMsgPtr msg;
     for (fsMsgPtr msg; (msg = _stream.get_message()); ) {
@@ -282,6 +281,5 @@ void Faceshift::receive(const QByteArray& buffer) {
                 break;
         }
     }
-}
-
 #endif
+}
