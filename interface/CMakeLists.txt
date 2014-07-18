@@ -18,7 +18,9 @@ set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/oculus")
 set(PRIOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/priovr")
 set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense")
 set(VISAGE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/visage")
+set(LEAPMOTION_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/leapmotion")
 set(RTMIDI_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/rtmidi")
+
 
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
@@ -131,7 +133,7 @@ link_hifi_library(audio ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
 
-# find any optional libraries
+# find any optional and required libraries
 find_package(Faceplus)
 find_package(Faceshift)
 find_package(LibOVR)
@@ -139,9 +141,11 @@ find_package(PrioVR)
 find_package(SDL)
 find_package(Sixense)
 find_package(Visage)
+find_package(LeapMotion)
 find_package(ZLIB)
 find_package(Qxmpp)
 find_package(RtMidi)
+find_package(OpenSSL REQUIRED)
 
 # include the Sixense library for Razer Hydra if available
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
@@ -199,6 +203,17 @@ if (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
   target_link_libraries(${TARGET_NAME} "${PRIOVR_LIBRARIES}")
 endif (PRIOVR_FOUND AND NOT DISABLE_PRIOVR)
 
+# and with LeapMotion library
+if (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
+    add_definitions(-DHAVE_LEAPMOTION)
+    include_directories(SYSTEM "${LEAPMOTION_INCLUDE_DIRS}")
+
+    if (APPLE OR UNIX)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LEAPMOTION_INCLUDE_DIRS}")
+    endif ()
+    target_link_libraries(${TARGET_NAME} "${LEAPMOTION_LIBRARIES}")
+endif (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
+
 # and with SDL for joysticks
 if (SDL_FOUND AND NOT DISABLE_SDL)
   add_definitions(-DHAVE_SDL)
@@ -233,12 +248,13 @@ include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes"
 
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
+include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${OPENSSL_INCLUDE_DIR}")
 
 target_link_libraries(
   ${TARGET_NAME}
   "${FACESHIFT_LIBRARIES}"
   "${ZLIB_LIBRARIES}"
+  ${OPENSSL_LIBRARIES}
   Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
   Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
 )

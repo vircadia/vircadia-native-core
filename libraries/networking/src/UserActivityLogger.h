@@ -26,6 +26,7 @@ public:
     static UserActivityLogger& getInstance();
     
 public slots:
+    void disable(bool disable);
     void logAction(QString action, QJsonObject details = QJsonObject(), JSONCallbackParameters params = JSONCallbackParameters());
     
     void launch(QString applicationVersion);
@@ -43,6 +44,7 @@ private slots:
     
 private:
     UserActivityLogger();
+    bool _disabled;
 };
 
 #endif // hifi_UserActivityLogger_h

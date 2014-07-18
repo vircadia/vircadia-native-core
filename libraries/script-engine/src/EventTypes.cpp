@@ -19,6 +19,7 @@ void registerEventTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, mouseEventToScriptValue, mouseEventFromScriptValue);
     qScriptRegisterMetaType(engine, touchEventToScriptValue, touchEventFromScriptValue);
     qScriptRegisterMetaType(engine, wheelEventToScriptValue, wheelEventFromScriptValue);
+    qScriptRegisterMetaType(engine, spatialEventToScriptValue, spatialEventFromScriptValue);
 }
 
 KeyEvent::KeyEvent() :
@@ -600,3 +601,34 @@ void wheelEventFromScriptValue(const QScriptValue& object, WheelEvent& event) {
 }
 
 
+
+SpatialEvent::SpatialEvent() : 
+    locTranslation(0.0f), 
+    locRotation(),
+    absTranslation(0.0f), 
+    absRotation()
+{ 
+}; 
+
+SpatialEvent::SpatialEvent(const SpatialEvent& event) {
+    locTranslation = event.locTranslation;
+    locRotation = event.locRotation;
+    absTranslation = event.absTranslation;
+    absRotation = event.absRotation;
+}
+
+
+QScriptValue spatialEventToScriptValue(QScriptEngine* engine, const SpatialEvent& event) {
+    QScriptValue obj = engine->newObject();
+
+    obj.setProperty("locTranslation", vec3toScriptValue(engine, event.locTranslation) );
+    obj.setProperty("locRotation", quatToScriptValue(engine, event.locRotation) );
+    obj.setProperty("absTranslation", vec3toScriptValue(engine, event.absTranslation) );
+    obj.setProperty("absRotation", quatToScriptValue(engine, event.absRotation) );
+
+    return obj;
+}
+
+void spatialEventFromScriptValue(const QScriptValue& object,SpatialEvent& event) {
+    // nothing for now...
+}

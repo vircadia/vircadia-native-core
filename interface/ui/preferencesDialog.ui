@@ -135,7 +135,7 @@ color: #0e7077</string>
      <x>0</x>
      <y>30</y>
      <width>494</width>
-     <height>384</height>
+     <height>361</height>
     </rect>
    </property>
    <property name="frameShape">
@@ -155,8 +155,8 @@ color: #0e7077</string>
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>600</width>
-      <height>1091</height>
+      <width>494</width>
+      <height>1456</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -789,6 +789,132 @@ padding: 10px;margin-top:10px</string>
         </item>
        </layout>
       </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="privacyLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>30</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>Arial</family>
+         <pointsize>16</pointsize>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">color: #0e7077</string>
+       </property>
+       <property name="text">
+        <string>Privacy</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+       </property>
+       <property name="margin">
+        <number>0</number>
+       </property>
+       <property name="buddy">
+        <cstring>snapshotLocationEdit</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_18">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>10</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_15">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(51, 51, 51)</string>
+         </property>
+         <property name="text">
+          <string>Send data</string>
+         </property>
+         <property name="indent">
+          <number>15</number>
+         </property>
+         <property name="buddy">
+          <cstring>maxVoxelsSpin</cstring>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_18">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="sendDataCheckBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>32</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
       <spacer name="verticalSpacer">
@@ -2073,8 +2199,8 @@ padding: 10px;margin-top:10px</string>
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>495</x>
-     <y>749</y>
+     <x>966</x>
+     <y>557</y>
     </hint>
     <hint type="destinationlabel">
      <x>528</x>
@@ -2089,8 +2215,8 @@ padding: 10px;margin-top:10px</string>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>504</x>
-     <y>749</y>
+     <x>1070</x>
+     <y>557</y>
     </hint>
     <hint type="destinationlabel">
      <x>20</x>

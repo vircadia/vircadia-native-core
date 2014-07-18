@@ -20,7 +20,7 @@ class AvatarAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
     AvatarAudioRingBuffer(bool isStereo = false, bool dynamicJitterBuffer = false);
     
-    int parseData(const QByteArray& packet);
+    int parseData(const QByteArray& packet, int packetsSkipped = 0);
 private:
     // disallow copying of AvatarAudioRingBuffer objects
     AvatarAudioRingBuffer(const AvatarAudioRingBuffer&);

@@ -200,14 +200,17 @@ void AvatarManager::setAvatarLightColor(const glm::vec3& color, int lightIndex, 
     }
 }
 
+int AvatarManager::getNumLightsInAvatar(int avatarIndex) {
+    int numLights = 0;
+    
+    Avatar* avatar = getAvatarFromIndex(avatarIndex);
+    if (avatar) {
+        numLights = avatar->getNumLocalLights();
+    }
+    
+    return numLights;
+}
+
 int AvatarManager::getNumAvatars() {
     return _avatarHash.count();
 }
-
-QString AvatarManager::getAvatarHashKey(int index) {
-    QString id = ((_avatarHash.keys())[index]).toString();
-    std::string idString = id.toStdString();
-    return id;
-}
-
-

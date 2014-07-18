@@ -17,7 +17,7 @@ var currentSelection = 0;
 var currentNumLights = 1;
 var maxNumLights = 2;
 var currentNumAvatars = 0;
-var avatarHashIDs = [];
+var changeDelta = 0.1;
 
 function keyPressEvent(event) {
 
@@ -40,7 +40,7 @@ function keyPressEvent(event) {
     	print("light selection = " + currentSelection);
     }
     else if (event.text == "5" ) {
-    	localLightColors[currentSelection].x += 0.01;
+    	localLightColors[currentSelection].x += changeDelta;
     	if ( localLightColors[currentSelection].x > 1.0) {
     		localLightColors[currentSelection].x = 0.0;
     	}
@@ -49,7 +49,7 @@ function keyPressEvent(event) {
     	print("CHANGE RED light " + currentSelection + " color (" + localLightColors[currentSelection].x + ", " + localLightColors[currentSelection].y + ", " + localLightColors[currentSelection].z + " )" );
     }
     else if (event.text == "6" ) {
-    	localLightColors[currentSelection].y += 0.01;
+    	localLightColors[currentSelection].y += changeDelta;
     	if ( localLightColors[currentSelection].y > 1.0) {
     		localLightColors[currentSelection].y = 0.0;
     	}
@@ -58,7 +58,7 @@ function keyPressEvent(event) {
     	print("CHANGE GREEN light " + currentSelection + " color (" + localLightColors[currentSelection].x + ", " + localLightColors[currentSelection].y + ", " + localLightColors[currentSelection].z + " )" );
     }
     else if (event.text == "7" ) {
-    	localLightColors[currentSelection].z += 0.01;
+    	localLightColors[currentSelection].z += changeDelta;
     	if ( localLightColors[currentSelection].z > 1.0) {
     		localLightColors[currentSelection].z = 0.0;
     	}
@@ -67,7 +67,7 @@ function keyPressEvent(event) {
     	print("CHANGE BLUE light " + currentSelection + " color (" + localLightColors[currentSelection].x + ", " + localLightColors[currentSelection].y + ", " + localLightColors[currentSelection].z + " )" );
     }
     else if (event.text == "8" ) {
-    	localLightDirections[currentSelection].x += 0.01;
+    	localLightDirections[currentSelection].x += changeDelta;
     	if (localLightDirections[currentSelection].x > 1.0) {
     		localLightDirections[currentSelection].x = -1.0;
     	}
@@ -76,7 +76,7 @@ function keyPressEvent(event) {
     	print("PLUS X light " + currentSelection + " direction (" + localLightDirections[currentSelection].x + ", " + localLightDirections[currentSelection].y + ", " + localLightDirections[currentSelection].z + " )" );
     }
     else if (event.text == "9" ) {
-    	localLightDirections[currentSelection].x -= 0.01;
+    	localLightDirections[currentSelection].x -= changeDelta;
     	if (localLightDirections[currentSelection].x < -1.0) {
     		localLightDirections[currentSelection].x = 1.0;
     	}
@@ -85,7 +85,7 @@ function keyPressEvent(event) {
     	print("MINUS X light " + currentSelection + " direction (" + localLightDirections[currentSelection].x + ", " + localLightDirections[currentSelection].y + ", " + localLightDirections[currentSelection].z + " )" );
     }
     else if (event.text == "0" ) {
-    	localLightDirections[currentSelection].y += 0.01;
+    	localLightDirections[currentSelection].y += changeDelta;
     	if (localLightDirections[currentSelection].y > 1.0) {
     		localLightDirections[currentSelection].y = -1.0;
     	}
@@ -94,7 +94,7 @@ function keyPressEvent(event) {
     	print("PLUS Y light " + currentSelection + " direction (" + localLightDirections[currentSelection].x + ", " + localLightDirections[currentSelection].y + ", " + localLightDirections[currentSelection].z + " )" );
     }
     else if (event.text == "-" ) {
-    	localLightDirections[currentSelection].y -= 0.01;
+    	localLightDirections[currentSelection].y -= changeDelta;
     	if (localLightDirections[currentSelection].y < -1.0) {
     		localLightDirections[currentSelection].y = 1.0;
     	}
@@ -142,23 +142,12 @@ function updateLocalLights()
 	// new avatars, so add lights
 	var numAvatars = AvatarManager.getNumAvatars();
 	if (numAvatars != currentNumAvatars) {
-		
+			
 		for (var i = 0; i < numAvatars; i++) {
-			var id = AvatarManager.getAvatarHashKey(i);
+			var numLights = AvatarManager.getNumLightsInAvatar(i);
 			
-			// check if avatar has already been registered
-			var hasRegistered = false;
-			for (var j = 0; j < numAvatars; j++) {
-				if (avatarHashIDs[j] == id) {
-					hasRegistered = true;
-					break;
-				}
-			}
-			
-			// add new id and set light params
-			if (!hasRegistered) {
-				
-				avatarHashIDs.push(id);
+			// check if new avatar has lights
+			if (numLights <= 0) {
 				AvatarManager.addAvatarLocalLight(i);
 				
 				// set color and direction for new avatar

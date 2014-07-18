@@ -29,6 +29,11 @@ const int TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS = 10;
 const int TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
 const int TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS = 30;
 
+// the stats for calculating the average frames available  will recalculate every ~1 second
+// and will include data for the past ~2 seconds 
+const int FRAMES_AVAILABLE_STATS_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
+const int FRAMES_AVAILABLE_STATS_WINDOW_INTERVALS = 2;
+
 const int AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
 class PositionalAudioRingBuffer : public AudioRingBuffer {
@@ -40,7 +45,8 @@ public:
     
     PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false, bool dynamicJitterBuffers = false);
     
-    int parseData(const QByteArray& packet);
+    virtual int parseData(const QByteArray& packet, int packetsSkipped = 0) = 0;
+
     int parsePositionalData(const QByteArray& positionalByteArray);
     int parseListenModeData(const QByteArray& listenModeByteArray);
     
@@ -69,7 +75,7 @@ public:
 
     int getCalculatedDesiredJitterBufferFrames() const; /// returns what we would calculate our desired as if asked
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
-    int getCurrentJitterBufferFrames() const { return _currentJitterBufferFrames; }
+    double getFramesAvailableAverage() const { return _framesAvailableStats.getWindowAverage(); }
 
     int getConsecutiveNotMixedCount() const { return _consecutiveNotMixedCount; }
     int getStarveCount() const { return _starveCount; }
@@ -80,8 +86,8 @@ protected:
     PositionalAudioRingBuffer(const PositionalAudioRingBuffer&);
     PositionalAudioRingBuffer& operator= (const PositionalAudioRingBuffer&);
 
-    void timeGapStatsFrameReceived();
-    void updateDesiredJitterBufferFrames();
+    void frameReceivedUpdateTimingStats();
+    void addDroppableSilentSamples(int numSilentSamples);
     
     PositionalAudioRingBuffer::Type _type;
     glm::vec3 _position;
@@ -97,9 +103,9 @@ protected:
     quint64 _lastFrameReceivedTime;
     MovingMinMaxAvg<quint64> _interframeTimeGapStatsForJitterCalc;
     MovingMinMaxAvg<quint64> _interframeTimeGapStatsForStatsPacket;
+    MovingMinMaxAvg<int> _framesAvailableStats;
     
     int _desiredJitterBufferFrames;
-    int _currentJitterBufferFrames;
     bool _dynamicJitterBuffers;
 
     // extra stats

@@ -135,6 +135,7 @@ void MyAvatar::simulate(float deltaTime) {
         setScale(scale);
         Application::getInstance()->getCamera()->setScale(scale);
     }
+    _skeletonModel.setShowTrueJointTransforms(! Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll));
 
     // no extra movement of the hand here any more ...
     _handState = HAND_STATE_NULL;
@@ -428,6 +429,7 @@ glm::vec3 MyAvatar::getLeftPalmPosition() {
     leftHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftRotation);
     return leftHandPosition;
 }
+
 glm::vec3 MyAvatar::getRightPalmPosition() {
     glm::vec3 rightHandPosition;
     getSkeletonModel().getRightHandPosition(rightHandPosition);

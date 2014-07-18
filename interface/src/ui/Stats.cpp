@@ -315,10 +315,10 @@ void Stats::display(
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
 
             char audioMixerStatsLabelString[] = "AudioMixer stats:";
-            char streamStatsFormatLabelString[] = "lost%/30s_lost%";
-            char streamStatsFormatLabelString2[] = "avail/currJ/desiredJ";
+            char streamStatsFormatLabelString[] = "lost%/lost_30s%";
+            char streamStatsFormatLabelString2[] = "desired/avail_avg_10s/avail";
             char streamStatsFormatLabelString3[] = "gaps: min/max/avg, starv/ovfl";
-            char streamStatsFormatLabelString4[] = "30s gaps: (same), notmix/sdrop";
+            char streamStatsFormatLabelString4[] = "gaps_30s: (same), notmix/sdrop";
             
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerStatsLabelString, color);
@@ -339,9 +339,10 @@ void Stats::display(
 
             AudioStreamStats downstreamAudioStreamStats = audio->getDownstreamAudioStreamStats();
 
-            sprintf(downstreamAudioStatsString, " mix: %.2f%%/%.2f%%, %u/?/%u", downstreamAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
+            sprintf(downstreamAudioStatsString, " mix: %.2f%%/%.2f%%, %u/%u/%u", downstreamAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
                 downstreamAudioStreamStats._packetStreamWindowStats.getLostRate() * 100.0f,
-                downstreamAudioStreamStats._ringBufferFramesAvailable, downstreamAudioStreamStats._ringBufferDesiredJitterBufferFrames);
+                downstreamAudioStreamStats._ringBufferDesiredJitterBufferFrames, downstreamAudioStreamStats._ringBufferFramesAvailableAverage,
+                downstreamAudioStreamStats._ringBufferFramesAvailable);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
@@ -373,8 +374,8 @@ void Stats::display(
 
             sprintf(upstreamAudioStatsString, " mic: %.2f%%/%.2f%%, %u/%u/%u", audioMixerAvatarAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
                 audioMixerAvatarAudioStreamStats._packetStreamWindowStats.getLostRate() * 100.0f,
-                audioMixerAvatarAudioStreamStats._ringBufferFramesAvailable, audioMixerAvatarAudioStreamStats._ringBufferCurrentJitterBufferFrames,
-                audioMixerAvatarAudioStreamStats._ringBufferDesiredJitterBufferFrames);
+                audioMixerAvatarAudioStreamStats._ringBufferDesiredJitterBufferFrames, audioMixerAvatarAudioStreamStats._ringBufferFramesAvailableAverage,
+                audioMixerAvatarAudioStreamStats._ringBufferFramesAvailable);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
@@ -399,8 +400,8 @@ void Stats::display(
 
                 sprintf(upstreamAudioStatsString, " inj: %.2f%%/%.2f%%, %u/%u/%u", injectedStreamAudioStats._packetStreamStats.getLostRate()*100.0f,
                     injectedStreamAudioStats._packetStreamWindowStats.getLostRate() * 100.0f,
-                    injectedStreamAudioStats._ringBufferFramesAvailable, injectedStreamAudioStats._ringBufferCurrentJitterBufferFrames,
-                    injectedStreamAudioStats._ringBufferDesiredJitterBufferFrames);
+                    injectedStreamAudioStats._ringBufferDesiredJitterBufferFrames, injectedStreamAudioStats._ringBufferFramesAvailableAverage,
+                    injectedStreamAudioStats._ringBufferFramesAvailable);
 
                 verticalOffset += STATS_PELS_PER_LINE;
                 drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
@@ -812,5 +813,26 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
 
     }
+    
+    // draw local light stats
+    int numLocalLights = myAvatar->getNumLocalLights();
+    verticalOffset = 400;
+    horizontalOffset = 20;
+     
+    char buffer[128];
+    for (int i = 0; i < numLocalLights; i++) {
+        glm::vec3 lightDirection = myAvatar->getLocalLightDirection(i); 
+        snprintf(buffer, sizeof(buffer), "Light %d direction (%.2f, %.2f, %.2f)", i, lightDirection.x, lightDirection.y, lightDirection.z);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, buffer, color);
+        
+        verticalOffset += STATS_PELS_PER_LINE;
+
+        glm::vec3 lightColor = myAvatar->getLocalLightColor(i);
+        snprintf(buffer, sizeof(buffer), "Light %d color (%.2f, %.2f, %.2f)", i, lightColor.x, lightColor.y, lightColor.z);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, buffer, color);
+        
+        verticalOffset += STATS_PELS_PER_LINE;
+    }
+    
 
 }
