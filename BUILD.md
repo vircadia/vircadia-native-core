@@ -20,7 +20,7 @@ CMake
 Hifi uses CMake to generate build files and project files for your platform.
 
 ####Qt
-In order for CMake to find the Qt5 find modules, you will need to set an ENV variable pointing to your CMake installation.
+In order for CMake to find the Qt5 find modules, you will need to set an ENV variable pointing to your Qt installation.
 
 For example, a Qt5 5.2.0 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
 
