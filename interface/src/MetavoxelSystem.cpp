@@ -216,19 +216,46 @@ public:
     BufferBuilder(const MetavoxelLOD& lod);
     
     virtual int visit(MetavoxelInfo& info);
+    virtual bool postVisit(MetavoxelInfo& info);
+
+private:
+    
+    QVector<BufferPointVectorPair> _depthPoints;
 };
 
 BufferBuilder::BufferBuilder(const MetavoxelLOD& lod) :
     MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
-        AttributeRegistry::getInstance()->getNormalAttribute(), QVector<AttributePointer>(), lod) {
+        AttributeRegistry::getInstance()->getNormalAttribute(), QVector<AttributePointer>() <<
+            Application::getInstance()->getMetavoxels()->getPointBufferAttribute(), lod) {
 }
 
+const int ALPHA_RENDER_THRESHOLD = 0;
+
 int BufferBuilder::visit(MetavoxelInfo& info) {
+    if (_depth >= _depthPoints.size()) {
+        _depthPoints.resize(_depth + 1);
+    }
+    QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
+    quint8 alpha = qAlpha(color);
+    if (alpha <= ALPHA_RENDER_THRESHOLD) {
+        return info.isLeaf ? STOP_RECURSION : DEFAULT_ORDER;
+    }
+    QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
+    BufferPoint point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+        { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)) }, 
+        { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
     if (info.isLeaf) {
-        
+        _depthPoints[_depth].first.append(point);
         return STOP_RECURSION;
     }
+    _depthPoints[_depth].second.append(point);
     return DEFAULT_ORDER;
+}
+
+const int BUFFER_LEAF_THRESHOLD = 1024;
+
+bool BufferBuilder::postVisit(MetavoxelInfo& info) {
+    return false;
 }
 
 void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {

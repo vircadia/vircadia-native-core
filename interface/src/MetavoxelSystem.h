@@ -32,6 +32,8 @@ public:
 
     MetavoxelSystem();
 
+    const AttributePointer& getPointBufferAttribute() const { return _pointBufferAttribute; }
+
     virtual void init();
 
     virtual MetavoxelLOD getLOD() const;
@@ -106,6 +108,9 @@ public:
     quint8 color[3];
     quint8 normal[3];
 };
+
+typedef QVector<BufferPoint> BufferPointVector;
+typedef QPair<BufferPointVector, BufferPointVector> BufferPointVectorPair;
 
 /// Contains the information necessary to render a group of points at variable detail levels.
 class PointBuffer {
