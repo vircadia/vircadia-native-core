@@ -240,5 +240,5 @@ You can find QXmpp [here](https://github.com/qxmpp-project/qxmpp). The inclusion
 
 #### Devices
 
-You can support external input/output devices such as Leap Motion, Faceplus, Faceshift PrioVR, RTmidi, SixSense and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in (interface/external/)[interface/external] for the detailed explanation of the requirements to use the device.
+You can support external input/output devices such as Leap Motion, Faceplus, Faceshift PrioVR, RTmidi, SixSense and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.
 
