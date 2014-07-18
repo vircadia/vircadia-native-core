@@ -24,11 +24,11 @@ set(GLUT_HINT_DIRS "${GLUT_ROOT_DIR}" "$ENV{GLUT_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/
 if (WIN32)
   set(GLUT_HINT_DIRS "${GLUT_HINT_DIRS}" "${OPENGL_INCLUDE_DIR}")
   
-  find_path(GLUT_INCLUDE_DIR GL/glut.h PATH_SUFFIXES include HINTS ${GLUT_HINT_DIRS})
+  find_path(GLUT_INCLUDE_DIRS GL/glut.h PATH_SUFFIXES include HINTS ${GLUT_HINT_DIRS})
   find_library(GLUT_LIBRARY_RELEASE freeglut PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
 else ()
-    find_path(GLUT_INCLUDE_DIR GL/glut.h PATH_SUFFIXES include HINTS ${GLUT_HINT_DIRS})
-    find_library(GLUT_LIBRARY glut PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
+  find_path(GLUT_INCLUDE_DIRS GL/glut.h PATH_SUFFIXES include HINTS ${GLUT_HINT_DIRS})
+  find_library(GLUT_LIBRARY glut PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
 endif ()
 
 include(FindPackageHandleStandardArgs)
