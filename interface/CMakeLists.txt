@@ -184,9 +184,11 @@ endif (FACEPLUS_FOUND AND NOT DISABLE_FACEPLUS)
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
   add_definitions(-DHAVE_LIBOVR)
   include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
-    
-  if (APPLE OR UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
+  
+  if (APPLE)
+    foreach(LIBOVR_DIR ${LIBOVR_INCLUDE_DIRS})
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_DIR}")
+    endforeach()
   endif ()
   
   target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
@@ -204,7 +206,7 @@ if (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
     add_definitions(-DHAVE_LEAPMOTION)
     include_directories(SYSTEM "${LEAPMOTION_INCLUDE_DIRS}")
 
-    if (APPLE OR UNIX)
+    if (APPLE)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LEAPMOTION_INCLUDE_DIRS}")
     endif ()
     target_link_libraries(${TARGET_NAME} ${LEAPMOTION_LIBRARIES})
