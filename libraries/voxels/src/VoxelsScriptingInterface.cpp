@@ -81,11 +81,17 @@ void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
             DeleteVoxelCommand* deleteCommand = new DeleteVoxelCommand(_tree,
                                                                        addVoxelDetail,
                                                                        getVoxelPacketSender());
+            static QMutex mutex;
+            mutex.lock();
+
             _undoStack->beginMacro(addCommand->text());
             // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
             _undoStack->push(deleteCommand);
             _undoStack->push(addCommand);
             _undoStack->endMacro();
+
+            //Unlock the mutex
+            mutex.unlock();
         } else {
             // queue the destructive add
             queueVoxelAdd(PacketTypeVoxelSetDestructive, addVoxelDetail);

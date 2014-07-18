@@ -29,9 +29,7 @@ var cellTypes = [];
 cellTypes[0] = { r: 255, g: 0, b: 0 };
 cellTypes[1] = { r: 0, g: 255, b: 0 };
 cellTypes[2] = { r: 0, g:0, b: 255 };
-cellTypes[3] = { r: 255, g: 255, b: 255 };
-cellTypes[4] = { r: 255, g: 0, b: 255 };
-cellTypes[5] = { r: 0, g: 255, b: 255 };
+
 
 //Check for free region for AC
 var regionMarkerX = -1;
@@ -152,11 +150,11 @@ function updateCells() {
             } else {
           
                 if (currentCells[y][x].type == ((cell.type + 1) % cellTypes.length)) {
-                    nextCells[i][j] = currentCells[y][x];
+                    nextCells[i][j].type = currentCells[y][x].type;
                     nextCells[i][j].changed = true;
                 } else {
                     //indicate no update
-                    nextCells[i][j].changed = true;
+                    nextCells[i][j].changed = false;
                 }
             }
         }
@@ -192,7 +190,7 @@ function sendNextCells() {
 
 var sentFirstBoard = false;
 
-var UPDATES_PER_SECOND = 3.0;
+var UPDATES_PER_SECOND = 6.0;
 var frameIndex = 1.0;
 var oldFrameIndex = 0;
 
