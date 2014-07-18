@@ -185,8 +185,8 @@ public:
     void setClampedTargetScale(float targetScale);
 
     //  Hand State
-    void setHandState(char s) { _handState = s; }
-    char getHandState() const { return _handState; }
+    Q_INVOKABLE void setHandState(char s) { _handState = s; }
+    Q_INVOKABLE char getHandState() const { return _handState; }
 
     const QVector<JointData>& getJointData() const { return _jointData; }
     void setJointData(const QVector<JointData>& jointData) { _jointData = jointData; }
