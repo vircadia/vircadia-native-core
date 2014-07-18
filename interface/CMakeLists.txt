@@ -322,6 +322,6 @@ else (APPLE)
     # add a definition for ssize_t so that windows doesn't bail
     add_definitions(-Dssize_t=long)
     
-    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARY}" wsock32.lib opengl32.lib)
+    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
   endif()
 endif (APPLE)
