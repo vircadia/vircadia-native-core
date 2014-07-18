@@ -2805,8 +2805,11 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
-
+        
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
+
+        //Render the sixense lasers
+        _myAvatar->renderLaserPointers();
     }
 
     if (!selfAvatarOnly) {

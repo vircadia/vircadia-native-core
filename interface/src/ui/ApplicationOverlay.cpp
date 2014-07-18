@@ -64,6 +64,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
 
     _textureFov = Menu::getInstance()->getOculusUIAngularSize() * RADIANS_PER_DEGREE;
 
+
     Application* application = Application::getInstance();
 
     Overlays& overlays = application->getOverlays();
@@ -272,7 +273,7 @@ QPoint ApplicationOverlay::getOculusPalmClickLocation(const PalmData *palm) cons
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
     
-    glm::vec3 tip = OculusManager::getLaserPointerTipPosition(palm);
+    glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
     glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
     glm::quat orientation = glm::inverse(myAvatar->getOrientation());
     glm::vec3 dir = orientation * glm::normalize(application->getCamera()->getPosition() - tip); //direction of ray goes towards camera
@@ -340,7 +341,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     MyAvatar* myAvatar = application->getAvatar();
    
     //Render the sixense lasers
-    OculusManager::renderLaserPointers();
+    myAvatar->renderLaserPointers();
 
     glActiveTexture(GL_TEXTURE0);
    
@@ -700,7 +701,7 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
         if (palm.isActive()) {
-            glm::vec3 tip = OculusManager::getLaserPointerTipPosition(&palm);
+            glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
             glm::vec3 tipPos = (tip - eyePos);
                 
             float length = glm::length(eyePos - tip);
