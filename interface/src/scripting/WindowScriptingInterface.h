@@ -31,6 +31,7 @@ public slots:
     QScriptValue form(const QString& title, QScriptValue array);
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    QScriptValue s3Browse(const QString& nameFilter = "");
 
 private slots:
     QScriptValue showAlert(const QString& message);
@@ -38,6 +39,7 @@ private slots:
     QScriptValue showForm(const QString& title, QScriptValue form);
     QScriptValue showPrompt(const QString& message, const QString& defaultText);
     QScriptValue showBrowse(const QString& title, const QString& directory, const QString& nameFilter);
+    QScriptValue showS3Browse(const QString& nameFilter);
     
 private:
     WindowScriptingInterface();

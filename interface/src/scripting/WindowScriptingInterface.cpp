@@ -18,6 +18,7 @@
 
 #include "Application.h"
 #include "Menu.h"
+#include "ui/ModelsBrowser.h"
 
 #include "WindowScriptingInterface.h"
 
@@ -63,6 +64,14 @@ QScriptValue WindowScriptingInterface::browse(const QString& title, const QStrin
     QMetaObject::invokeMethod(this, "showBrowse", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(QScriptValue, retVal),
                               Q_ARG(const QString&, title), Q_ARG(const QString&, directory), Q_ARG(const QString&, nameFilter));
+    return retVal;
+}
+
+QScriptValue WindowScriptingInterface::s3Browse(const QString& nameFilter) {
+    QScriptValue retVal;
+    QMetaObject::invokeMethod(this, "showS3Browse", Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(QScriptValue, retVal),
+                              Q_ARG(const QString&, nameFilter));
     return retVal;
 }
 
@@ -182,13 +191,29 @@ QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QS
         fileInfo.setFile(directory, "__HIFI_INVALID_FILE__");
         path = fileInfo.filePath();
     }
-
+    
     QFileDialog fileDialog(Application::getInstance()->getWindow(), title, path, nameFilter);
     fileDialog.setFileMode(QFileDialog::ExistingFile);
     if (fileDialog.exec()) {
         return QScriptValue(fileDialog.selectedFiles().first());
     }
     return QScriptValue::NullValue;
+}
+
+/// Display a browse window for S3 models
+/// \param const QString& nameFilter filter to filter filenames
+/// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
+QScriptValue WindowScriptingInterface::showS3Browse(const QString& nameFilter) {
+    ModelsBrowser browser(ENTITY_MODEL);
+    if (nameFilter != "") {
+        browser.setNameFilter(nameFilter);
+    }
+    QEventLoop loop;
+    connect(&browser, &ModelsBrowser::selected, &loop, &QEventLoop::quit);
+    QMetaObject::invokeMethod(&browser, "browse", Qt::QueuedConnection);
+    loop.exec();
+    
+    return browser.getSelectedFile();
 }
 
 int WindowScriptingInterface::getInnerWidth() {
