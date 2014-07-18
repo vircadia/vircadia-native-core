@@ -54,7 +54,7 @@ if (UNIX)
   select_library_configurations(UDEV)
   select_library_configurations(XINERAMA)
   
-  set(${LIBOVR_LIBRARIES} ${LIBOVR_LIBRARIES} ${UDEV_LIBRARY} ${XINERAMA_LIBRARY})
+  set(LIBOVR_LIBRARIES ${LIBOVR_LIBRARIES} ${UDEV_LIBRARY} ${XINERAMA_LIBRARY})
 endif ()
 
 include(FindPackageHandleStandardArgs)
