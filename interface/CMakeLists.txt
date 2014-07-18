@@ -303,7 +303,7 @@ else (APPLE)
   find_package(OpenGL REQUIRED)
   find_package(GLUT REQUIRED)
   
-  include_directories(SYSTEM "${GLUT_INCLUDE_DIR}")
+  include_directories(SYSTEM "${GLUT_INCLUDE_DIRS}")
   
   if (${OPENGL_INCLUDE_DIR})
     include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
