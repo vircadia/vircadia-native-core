@@ -15,7 +15,11 @@
 #include <QTcpSocket>
 #include <QUdpSocket>
 
+#ifdef HAVE_FACESHIFT
+
 #include <fsbinarystream.h>
+
+#endif
 
 #include "FaceTracker.h"
 
@@ -24,7 +28,6 @@ class Faceshift : public FaceTracker {
     Q_OBJECT
 
 public:
-
     Faceshift();
 
     void init();
@@ -32,6 +35,8 @@ public:
     bool isConnectedOrConnecting() const; 
 
     bool isActive() const;
+    
+#ifdef HAVE_FACESHIFT
 
     const glm::vec3& getHeadAngularVelocity() const { return _headAngularVelocity; }
 
@@ -123,6 +128,8 @@ private:
     float _longTermAverageEyePitch;
     float _longTermAverageEyeYaw;
     bool _longTermAverageInitialized;
+    
+#endif // HAVE_FACESHIFT
 };
 
 #endif // hifi_Faceshift_h

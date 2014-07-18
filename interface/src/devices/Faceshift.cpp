@@ -19,10 +19,15 @@
 #include "Menu.h"
 #include "Util.h"
 
+#ifdef HAVE_FACESHIFT
 using namespace fs;
+#endif
+
 using namespace std;
 
 const quint16 FACESHIFT_PORT = 33433;
+
+#ifdef HAVE_FACESHIFT
 
 Faceshift::Faceshift() :
     _tcpEnabled(true),
@@ -71,6 +76,24 @@ bool Faceshift::isActive() const {
     const quint64 ACTIVE_TIMEOUT_USECS = 1000000;
     return (usecTimestampNow() - _lastTrackingStateReceived) < ACTIVE_TIMEOUT_USECS;
 }
+
+#else
+
+Faceshift::Faceshift() {
+    
+}
+
+bool Faceshift::isConnectedOrConnecting() const {
+    return false;
+}
+
+bool Faceshift::isActive() const {
+    return false;
+}
+
+#endif
+
+#ifdef HAVE_FACESHIFT
 
 void Faceshift::update() {
     if (!isActive()) {
@@ -260,3 +283,5 @@ void Faceshift::receive(const QByteArray& buffer) {
         }
     }
 }
+
+#endif
