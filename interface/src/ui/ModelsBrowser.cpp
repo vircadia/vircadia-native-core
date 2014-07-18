@@ -23,7 +23,7 @@
 
 #include "ModelsBrowser.h"
 
-const char* MODEL_TYPE_NAMES[] = { "heads", "skeletons", "attachments" };
+const char* MODEL_TYPE_NAMES[] = { "entities", "heads", "skeletons", "attachments" };
 
 static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
 static const QString PUBLIC_URL = "http://public.highfidelity.io";
@@ -122,11 +122,7 @@ void ModelsBrowser::applyFilter(const QString &filter) {
         }
         
         // Hid the row if it doesn't match (Make sure it's not it it does)
-        if (match) {
-            _view.setRowHidden(i, QModelIndex(), false);
-        } else {
-            _view.setRowHidden(i, QModelIndex(), true);
-        }
+        _view.setRowHidden(i, QModelIndex(), !match);
     }
     _handler->unlockModel();
 }
@@ -142,7 +138,13 @@ void ModelsBrowser::enableSearchBar() {
     _searchBar->setEnabled(true);
 }
 
+void ModelsBrowser::setNameFilter(QString nameFilter) {
+    _handler->setNameFilter(nameFilter);
+}
+
 void ModelsBrowser::browse() {
+    _selectedFile = "";
+    
     QDialog dialog;
     dialog.setWindowTitle("Browse models");
     dialog.setMinimumSize(570, 500);
@@ -160,14 +162,16 @@ void ModelsBrowser::browse() {
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
     
+    QVariant selectedFile;
     if (dialog.exec() == QDialog::Accepted) {
         _handler->lockModel();
-        QVariant selectedFile = _handler->getModel()->data(_view.currentIndex(), Qt::UserRole);
+        selectedFile = _handler->getModel()->data(_view.currentIndex(), Qt::UserRole);
         _handler->unlockModel();
         if (selectedFile.isValid()) {
-            emit selected(selectedFile.toString());
+            _selectedFile = selectedFile.toString();
         }
     }
+    emit selected(_selectedFile);
     
     // So that we don't have to reconstruct the view
     _view.setParent(NULL);
@@ -177,7 +181,8 @@ void ModelsBrowser::browse() {
 ModelHandler::ModelHandler(ModelType modelsType, QWidget* parent) :
     QObject(parent),
     _initiateExit(false),
-    _type(modelsType)
+    _type(modelsType),
+    _nameFilter(".*(fst|fbx|FST|FBX)")
 {
     // set headers data
     QStringList headerData;
@@ -185,6 +190,10 @@ ModelHandler::ModelHandler(ModelType modelsType, QWidget* parent) :
         headerData << propertiesNames[i];
     }
     _model.setHorizontalHeaderLabels(headerData);
+}
+
+void ModelHandler::setNameFilter(QString nameFilter) {
+    _nameFilter = nameFilter;
 }
 
 void ModelHandler::download() {
@@ -278,7 +287,7 @@ bool ModelHandler::parseXML(QByteArray xmlFile) {
     }
     
     QXmlStreamReader xml(xmlFile);
-    QRegExp rx(".*fst");
+    QRegExp rx(_nameFilter);
     bool truncated = false;
     QString lastKey;
     
