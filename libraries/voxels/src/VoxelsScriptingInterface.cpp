@@ -116,11 +116,16 @@ void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale
         }
         
         if (_undoStack) {
+            
             DeleteVoxelCommand* command = new DeleteVoxelCommand(_tree,
                                                                  deleteVoxelDetail,
                                                                  getVoxelPacketSender());
+
+            static QMutex mutex;
+            mutex.lock();
             // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
             _undoStack->push(command);
+            mutex.unlock();
         } else {
             getVoxelPacketSender()->queueVoxelEditMessages(PacketTypeVoxelErase, 1, &deleteVoxelDetail);
             _tree->deleteVoxelAt(deleteVoxelDetail.x, deleteVoxelDetail.y, deleteVoxelDetail.z, deleteVoxelDetail.s);

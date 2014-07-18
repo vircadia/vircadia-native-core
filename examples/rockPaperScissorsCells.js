@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var NUMBER_OF_CELLS_EACH_DIMENSION = 48;
+var NUMBER_OF_CELLS_EACH_DIMENSION = 64;
 var NUMBER_OF_CELLS_REGION_EACH_DIMESION = 16;
 var REGIONS_EACH_DIMENSION = NUMBER_OF_CELLS_EACH_DIMENSION / NUMBER_OF_CELLS_REGION_EACH_DIMESION;
 
@@ -37,8 +37,8 @@ var cellTypes = [];
 cellTypes[0] = { r: 255, g: 0, b: 0 };
 cellTypes[1] = { r: 0, g: 255, b: 0 };
 cellTypes[2] = { r: 0, g:0, b: 255 };
-cellTypes[3] = { r: 0, g:255, b: 255 };
-cellTypes[4] = { r: 255, g:0, b: 255 };
+cellTypes[3] = { r: 0, g: 255, b: 255 };
+//cellTypes[4] = { r: 255, g:0, b: 255 };
 //cellTypes[5] = { r: 255, g:255, b: 255 };
 
 
@@ -50,51 +50,45 @@ var regionMarkerJ = -1;
 
 var regionMarkerColor = {r: 255, g: 0, b: 255};
 
-for (var i = 0; i < REGIONS_EACH_DIMENSION; i++) {
-    for (var j = 0; j < REGIONS_EACH_DIMENSION; j++) {
-        var x = cornerPosition.x + (j) * cellScale;
-        var y = cornerPosition.y + (i + NUMBER_OF_CELLS_EACH_DIMENSION) * cellScale;
-        var z = cornerPosition.z;
-        var voxel = Voxels.getVoxelAt(x, y, z, cellScale);
-        if (voxel.x != x || voxel.y != y || voxel.z != z || voxel.s != cellScale ||
-            voxel.red != regionMarkerColor.r || voxel.green != regionMarkerColor.g || voxel.blue != regionMarkerColor.b) {
-            regionMarkerX = x;
-            regionMarkerY = y;
-            regionMarkerI = i;
-            regionMarkerJ = j;
-            i = REGIONS_EACH_DIMENSION; //force quit loop
-            break;
+
+function init() {
+
+    for (var i = 0; i < REGIONS_EACH_DIMENSION; i++) {
+        for (var j = 0; j < REGIONS_EACH_DIMENSION; j++) {
+            var x = cornerPosition.x + (j) * cellScale;
+            var y = cornerPosition.y + (i + NUMBER_OF_CELLS_EACH_DIMENSION) * cellScale;
+            var z = cornerPosition.z;
+            var voxel = Voxels.getVoxelAt(x, y, z, cellScale);
+            if (voxel.x != x || voxel.y != y || voxel.z != z || voxel.s != cellScale ||
+                voxel.red != regionMarkerColor.r || voxel.green != regionMarkerColor.g || voxel.blue != regionMarkerColor.b) {
+                regionMarkerX = x;
+                regionMarkerY = y;
+                regionMarkerI = i;
+                regionMarkerJ = j;
+                i = REGIONS_EACH_DIMENSION; //force quit loop
+                break;
+            }
         }
     }
-}
+    
+    Voxels.setVoxel(regionMarkerX, regionMarkerY, position.z, cellScale, regionMarkerColor.r, regionMarkerColor.g, regionMarkerColor.b);
 
-if (regionMarkerX == -1) {
-    print("No available Cellular Automata regions found!")
-    Script.stop();
-}
-
-position.x = cornerPosition.x + regionMarkerJ * NUMBER_OF_CELLS_REGION_EACH_DIMESION * cellScale;
-position.y = cornerPosition.y + regionMarkerI * NUMBER_OF_CELLS_REGION_EACH_DIMESION * cellScale;
-position.z = cornerPosition.z;
-
-Voxels.setVoxel(regionMarkerX, regionMarkerY, position.z, cellScale, regionMarkerColor.r, regionMarkerColor.g, regionMarkerColor.b);
-
-// randomly populate the cell start values
-for (var i = 0; i < NUMBER_OF_CELLS_REGION_EACH_DIMESION; i++) {
-  // create the array to hold this row
-  currentCells[i] = [];
-  
-  // create the array to hold this row in the nextCells array
-  nextCells[i] = [];
-  
-  var randomColor = Math.floor(Math.random() * cellTypes.length);
-  
-  for (var j = 0; j < NUMBER_OF_CELLS_REGION_EACH_DIMESION; j++) {
-     currentCells[i][j] = { changed: true, type: randomColor };
-     
-     // put the same value in the nextCells array for first board draw
-     nextCells[i][j] = currentCells[i][j];
-  }
+    // randomly populate the cell start values
+    var randomColor = Math.floor(Math.random() * cellTypes.length);
+    for (var i = 0; i < NUMBER_OF_CELLS_REGION_EACH_DIMESION; i++) {
+      // create the array to hold this row
+      currentCells[i] = [];
+      
+      // create the array to hold this row in the nextCells array
+      nextCells[i] = [];
+      
+      for (var j = 0; j < NUMBER_OF_CELLS_REGION_EACH_DIMESION; j++) {
+         currentCells[i][j] = { changed: true, type: randomColor };
+         
+         // put the same value in the nextCells array for first board draw
+         nextCells[i][j] = currentCells[i][j];
+      }
+    }
 }
 
 function updateCells() {
@@ -202,35 +196,49 @@ function sendNextCells() {
 }
 
 var sentFirstBoard = false;
+var voxelViewerInit = false;
 
 var UPDATES_PER_SECOND = 6.0;
 var frameIndex = 1.0;
 var oldFrameIndex = 0;
 
+var framesToWait = UPDATES_PER_SECOND;
+
 function step(deltaTime) {
+    
+    if (isLocal == false) {
+        if (voxelViewerInit == false) {
+            VoxelViewer.setPosition(viewerPosition);
+            VoxelViewer.setOrientation(orientation);   
+            voxelViewerInit = true;
+        }
+        VoxelViewer.queryOctree();
+    }
+    
     frameIndex += deltaTime * UPDATES_PER_SECOND;
     if (Math.floor(frameIndex) == oldFrameIndex) {
         return;
     }
     oldFrameIndex++;
+    
+    if (frameIndex <= framesToWait) {
+        return;
+    }
 
+    print("UPDATE");
+    
     if (sentFirstBoard) {
         // we've already sent the first full board, perform a step in time
         updateCells();
     } else {
         // this will be our first board send
         sentFirstBoard = true;
-        
-        print("AHHHH");
-        print(viewerPosition.x + " " + viewerPosition.y + " " + viewerPosition.z);
-        
-        if (isLocal == false) {
-            VoxelViewer.setPosition(viewerPosition);
-            VoxelViewer.setOrientation(orientation);
-            VoxelViewer.queryOctree();
-        }
+        init();
     }
-
+    
+    if (isLocal == false) {
+        VoxelViewer.queryOctree();
+    }
     sendNextCells();  
 }
 
