@@ -4,7 +4,6 @@ Dependencies
 * [Qt](http://qt-project.org/downloads) ~> 5.2.0
 * [zLib](http://www.zlib.net/) ~> 1.2.8
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.2
-* [qxmpp](https://github.com/qxmpp-project/qxmpp/) ~> 0.7.6
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 
@@ -14,6 +13,10 @@ Dependencies
 #####Windows only
 * [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
 * [freeglut MSVC](http://www.transmissionzero.co.uk/software/freeglut-devel/) ~> 2.8.1
+
+####Optional
+* [qxmpp](https://github.com/qxmpp-project/qxmpp/) ~> 0.7.6
+  * enables text chat
 
 CMake
 === 
@@ -150,11 +153,8 @@ The recommended route for CMake to find the external dependencies is to place al
         -> glm
             -> glm
                 -> glm.hpp
-        -> gnutls
+        -> openssl
             -> bin
-            -> include
-            -> lib
-        -> qxmpp
             -> include
             -> lib
         -> zlib
