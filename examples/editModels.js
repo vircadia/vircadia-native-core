@@ -9,12 +9,12 @@
 //
 //  If using the hydras :
 //  grab grab models with the triggers, you can then move the models around or scale them with both hands.
-//  You can switch mode using the bumpers so that you can move models roud more easily.
+//  You can switch mode using the bumpers so that you can move models around more easily.
 //
 //  If using the mouse :
 //  - left click lets you move the model in the plane facing you.
-//    If pressing shift, it will move on the horizontale plane it's in.
-//  - right click lets you rotate the model. z and x give you access to more axix of rotation while shift allows for finer control.
+//    If pressing shift, it will move on the horizontal plane it's in.
+//  - right click lets you rotate the model. z and x give access to more axes of rotation while shift provides finer control.
 //  - left + right click lets you scale the model.
 //  - you can press r while holding the model to reset its rotation
 //
@@ -39,26 +39,121 @@ var MAX_ANGULAR_SIZE = 45;
 var LEFT = 0;
 var RIGHT = 1;
 
-
 var SPAWN_DISTANCE = 1;
-var radiusDefault = 0.10;
+var DEFAULT_RADIUS = 0.10;
 
 var modelURLs = [
-                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
-                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
-                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
-                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
-                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
-                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
-                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/orc.fbx",
-                 "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx",
-                 ];
-
-var toolBar;
+        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
+        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
+        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
+        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
+        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
+        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
+        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/orc.fbx",
+        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx"
+    ];
 
 var jointList = MyAvatar.getJointNames();
 
 var mode = 0;
+
+
+var toolBar = (function () {
+    var that = {},
+        toolBar,
+        newModelButton,
+        browseModelsButton;
+
+    function initialize() {
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
+        newModelButton = toolBar.addTool({
+            imageURL: toolIconUrl + "add-model-tool.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            visible: true,
+            alpha: 0.9
+        });
+        browseModelsButton = toolBar.addTool({
+            imageURL: toolIconUrl + "list-icon.png",
+            width: toolWidth,
+            height: toolHeight,
+            visible: true,
+            alpha: 0.7
+        });
+    }
+
+    function addModel(url) {
+        var position;
+
+        position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+
+        if (position.x > 0 && position.y > 0 && position.z > 0) {
+            Models.addModel({
+                position: position,
+                radius: DEFAULT_RADIUS,
+                modelURL: url
+            });
+        } else {
+            print("Can't create model: Model would be out of bounds.");
+        }
+    }
+
+    that.move = function () {
+        var newViewPort,
+            toolsX,
+            toolsY;
+
+        newViewPort = Controller.getViewportDimensions();
+
+        if (toolBar === undefined) {
+            initialize();
+
+        } else if (windowDimensions.x === newViewPort.x &&
+                   windowDimensions.y === newViewPort.y) {
+            return;
+        }
+
+        windowDimensions = newViewPort;
+        toolsX = windowDimensions.x - 8 - toolBar.width;
+        toolsY = (windowDimensions.y - toolBar.height) / 2;
+
+        toolBar.move(toolsX, toolsY);
+    };
+
+    that.mousePressEvent = function (event) {
+        var clickedOverlay,
+            url,
+            position;
+
+        clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+
+        if (newModelButton === toolBar.clicked(clickedOverlay)) {
+            url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+            if (url !== null && url !== "") {
+                addModel(url);
+            }
+            return true;
+        }
+
+        if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
+            url = Window.s3Browse();
+            if (url !== null && url !== "") {
+                addModel(url);
+            }
+            return true;
+        }
+
+        return false;
+    };
+
+    that.cleanup = function () {
+        toolBar.cleanup();
+    };
+
+    return that;
+}());
+
 
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
@@ -663,45 +758,7 @@ function checkController(deltaTime) {
         }
     }
     
-    moveOverlays();
-}
-var newModel;
-var browser;
-function initToolBar() {
-    toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
-    // New Model
-    newModel = toolBar.addTool({
-                               imageURL: toolIconUrl + "add-model-tool.svg",
-                               subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-                               width: toolWidth, height: toolHeight,
-                               visible: true,
-                               alpha: 0.9
-                               });
-    browser = toolBar.addTool({
-                               imageURL: toolIconUrl + "list-icon.png",
-                               width: toolWidth, height: toolHeight,
-                               visible: true,
-                               alpha: 0.7
-                               });
-}
-
-function moveOverlays() {
-    var newViewPort = Controller.getViewportDimensions();
-    
-    if (typeof(toolBar) === 'undefined') {
-        initToolBar();
-        
-    } else if (windowDimensions.x == newViewPort.x &&
-               windowDimensions.y == newViewPort.y) {
-        return;
-    }
-    
-    
-    windowDimensions = newViewPort;
-    var toolsX = windowDimensions.x - 8 - toolBar.width;
-    var toolsY = (windowDimensions.y - toolBar.height) / 2;
-    
-    toolBar.move(toolsX, toolsY);
+    toolBar.move();
 }
 
 
@@ -784,42 +841,9 @@ function mousePressEvent(event) {
     
     mouseLastPosition = { x: event.x, y: event.y };
     modelSelected = false;
-    var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
-    if (newModel == toolBar.clicked(clickedOverlay)) {
-        var url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-        if (url == null || url == "") {
-            return;
-        }
-        
-        var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-        
-        if (position.x > 0 && position.y > 0 && position.z > 0) {
-            Models.addModel({ position: position,
-                            radius: radiusDefault,
-                            modelURL: url
-                            });
-        } else {
-            print("Can't create model: Model would be out of bounds.");
-        }
-        
-    } else if (browser == toolBar.clicked(clickedOverlay)) {
-        var url = Window.s3Browse();
-        if (url == null || url == "") {
-            return;
-        }
-        
-        var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-        
-        if (position.x > 0 && position.y > 0 && position.z > 0) {
-            Models.addModel({ position: position,
-                            radius: radiusDefault,
-                            modelURL: url
-                            });
-        } else {
-            print("Can't create model: Model would be out of bounds.");
-        }
-        
+    if (toolBar.mousePressEvent(event)) {
+        // Event handled; do nothing.
     } else {
         var pickRay = Camera.computePickRay(event.x, event.y);
         Vec3.print("[Mouse] Looking at: ", pickRay.origin);
