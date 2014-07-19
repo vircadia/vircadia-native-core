@@ -62,25 +62,72 @@ var toolBar = (function () {
     var that = {},
         toolBar,
         newModelButton,
-        browseModelsButton;
+        browseModelsButton,
+        loadURLMenuItem,
+        loadFileMenuItem,
+        menuItemWidth = 90,
+        menuItemOffset = 2,
+        menuItemHeight = Tool.IMAGE_HEIGHT / 2 - menuItemOffset,
+        menuItemMargin = 5,
+        menuTextColor = { red: 255, green: 255, blue: 255 },
+        menuBackgoundColor = { red: 18, green: 66, blue: 66 };
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
+
         newModelButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-model-tool.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
-            visible: true,
-            alpha: 0.9
-        });
+            alpha: 0.9,
+            visible: true
+        }, true);
+
         browseModelsButton = toolBar.addTool({
             imageURL: toolIconUrl + "list-icon.png",
             width: toolWidth,
             height: toolHeight,
-            visible: true,
-            alpha: 0.7
+            alpha: 0.7,
+            visible: true
         });
+
+        loadURLMenuItem = Overlays.addOverlay("text", {
+            x: newModelButton.x - menuItemWidth,
+            y: newModelButton.y + menuItemOffset,
+            width: menuItemWidth,
+            height: menuItemHeight,
+            backgroundColor: menuBackgoundColor,
+            topMargin: menuItemMargin,
+            text: "Model URL",
+            alpha: 0.9,
+            visible: false
+        });
+
+        loadFileMenuItem = Overlays.addOverlay("text", {
+            x: newModelButton.x - menuItemWidth,
+            y: newModelButton.y + menuItemOffset + menuItemHeight,
+            width: menuItemWidth,
+            height: menuItemHeight,
+            backgroundColor: menuBackgoundColor,
+            topMargin: menuItemMargin,
+            text: "Model File",
+            alpha: 0.9,
+            visible: false
+        });
+    }
+
+    function toggleToolbar(active) {
+        if (active === undefined) {
+            print("active === undefine");
+            active = toolBar.toolSelected(newModelButton);
+        } else {
+            print("active !== undefine");
+            toolBar.selectTool(newModelButton, active);
+        }
+
+        Overlays.editOverlay(loadURLMenuItem, { visible: active });
+        Overlays.editOverlay(loadFileMenuItem, { visible: active });
     }
 
     function addModel(url) {
@@ -119,6 +166,9 @@ var toolBar = (function () {
         toolsY = (windowDimensions.y - toolBar.height) / 2;
 
         toolBar.move(toolsX, toolsY);
+
+        Overlays.editOverlay(loadURLMenuItem, { x: toolsX - menuItemWidth, y: toolsY + menuItemOffset });
+        Overlays.editOverlay(loadFileMenuItem, { x: toolsX - menuItemWidth, y: toolsY + menuItemOffset + menuItemHeight });
     };
 
     that.mousePressEvent = function (event) {
@@ -129,6 +179,12 @@ var toolBar = (function () {
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
         if (newModelButton === toolBar.clicked(clickedOverlay)) {
+            toggleToolbar();
+            return true;
+        }
+
+        if (clickedOverlay === loadURLMenuItem) {
+            toggleToolbar(false);
             url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
             if (url !== null && url !== "") {
                 addModel(url);
@@ -136,7 +192,14 @@ var toolBar = (function () {
             return true;
         }
 
+        if (clickedOverlay === loadFileMenuItem) {
+            toggleToolbar(false);
+            print("TODO: Upload model file");
+            return true;
+        }
+
         if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
+            toggleToolbar(false);
             url = Window.s3Browse();
             if (url !== null && url !== "") {
                 addModel(url);
@@ -149,6 +212,8 @@ var toolBar = (function () {
 
     that.cleanup = function () {
         toolBar.cleanup();
+        Overlays.deleteOverlay(loadURLMenuItem);
+        Overlays.deleteOverlay(loadFileMenuItem);
     };
 
     return that;

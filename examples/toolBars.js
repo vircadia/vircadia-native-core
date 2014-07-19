@@ -186,6 +186,14 @@ ToolBar = function(x, y, direction) {
         return this.tools.length;
     }
     
+    this.selectTool = function (tool, select) {
+        this.tools[tool].select(select);
+    }
+
+    this.toolSelected = function (tool) {
+        return this.tools[tool].selected();
+    }
+
     this.cleanup = function() {
         for(var tool in this.tools) {
             this.tools[tool].cleanup();
