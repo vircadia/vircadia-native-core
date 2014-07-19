@@ -174,6 +174,7 @@ var toolBar = (function () {
     that.mousePressEvent = function (event) {
         var clickedOverlay,
             url,
+            file,
             position;
 
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
@@ -185,7 +186,7 @@ var toolBar = (function () {
 
         if (clickedOverlay === loadURLMenuItem) {
             toggleToolbar(false);
-            url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+            url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
             if (url !== null && url !== "") {
                 addModel(url);
             }
@@ -194,7 +195,10 @@ var toolBar = (function () {
 
         if (clickedOverlay === loadFileMenuItem) {
             toggleToolbar(false);
-            print("TODO: Upload model file");
+            file = Window.browse("Model File", "", "FST, FBX, or SVO files (*.fst *.fbx *.svo)");
+            if (file !== null) {
+                print("TODO: Upload model file: " + file);
+            }
             return true;
         }
 
