@@ -404,29 +404,6 @@ public:
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
-/// Template for attributes that take the form of shared pointers.
-template<class T> class SharedPointerAttribute : public InlineAttribute<QSharedPointer<T> > {
-public:
-    
-    SharedPointerAttribute(const QString& name, const QSharedPointer<T>& defaultValue = QSharedPointer<T>()) :
-        InlineAttribute<QSharedPointer<T> >(name, defaultValue) { }
-    
-    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
-};
-
-template<class T> inline bool SharedPointerAttribute<T>::merge(
-        void*& parent, void* children[], bool postRead) const {
-    QSharedPointer<T> firstChild = decodeInline<QSharedPointer<T> >(children[0]);
-    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
-        if (firstChild != decodeInline<QSharedPointer<T> >(children[i])) {
-            *(QSharedPointer<T>*)&parent = InlineAttribute<QSharedPointer<T> >::_defaultValue;
-            return false;
-        }
-    }
-    *(QSharedPointer<T>*)&parent = firstChild;
-    return true;
-}
-
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
 class SharedObjectAttribute : public InlineAttribute<SharedObjectPointer> {
     Q_OBJECT

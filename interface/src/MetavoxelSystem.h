@@ -113,7 +113,7 @@ typedef QVector<BufferPoint> BufferPointVector;
 typedef QPair<BufferPointVector, BufferPointVector> BufferPointVectorPair;
 
 /// Contains the information necessary to render a group of points at variable detail levels.
-class PointBuffer {
+class PointBuffer : public QSharedData {
 public:
 
     PointBuffer(const QOpenGLBuffer& buffer, const QVector<int>& offsets, int lastLeafCount);
@@ -127,10 +127,10 @@ private:
     int _lastLeafCount;
 };
 
-typedef QSharedPointer<PointBuffer> PointBufferPointer;
+typedef QExplicitlySharedDataPointer<PointBuffer> PointBufferPointer;
 
 /// A client-side attribute that stores point buffers.
-class PointBufferAttribute : public SharedPointerAttribute<PointBuffer> {
+class PointBufferAttribute : public InlineAttribute<PointBufferPointer> {
     Q_OBJECT
     
 public:

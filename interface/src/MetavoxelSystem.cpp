@@ -225,13 +225,17 @@ private:
 
 BufferBuilder::BufferBuilder(const MetavoxelLOD& lod) :
     MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
-        AttributeRegistry::getInstance()->getNormalAttribute(), QVector<AttributePointer>() <<
-            Application::getInstance()->getMetavoxels()->getPointBufferAttribute(), lod) {
+        AttributeRegistry::getInstance()->getNormalAttribute() <<
+            Application::getInstance()->getMetavoxels()->getPointBufferAttribute(), QVector<AttributePointer>() <<
+                Application::getInstance()->getMetavoxels()->getPointBufferAttribute(), lod) {
 }
 
 const int ALPHA_RENDER_THRESHOLD = 0;
 
 int BufferBuilder::visit(MetavoxelInfo& info) {
+    if (info.inputValues.at(2).getInlineValue<PointBufferPointer>()) {
+        info.outputValues[0] = AttributeValue(_outputs.at(0));
+    }
     if (_depth >= _depthPoints.size()) {
         _depthPoints.resize(_depth + 1);
     }
@@ -252,10 +256,51 @@ int BufferBuilder::visit(MetavoxelInfo& info) {
     return DEFAULT_ORDER;
 }
 
-const int BUFFER_LEAF_THRESHOLD = 1024;
+const int BUFFER_LEVELS = 5;
 
 bool BufferBuilder::postVisit(MetavoxelInfo& info) {
-    return false;
+    if (_depth % BUFFER_LEVELS != 0) {
+        return false;
+    }
+    QVector<int> offsets;
+    offsets.append(0);
+    int leafCount = 0;
+    int totalPoints = 0;
+    int lastDepth = qMin(_depth + BUFFER_LEVELS, _depthPoints.size());
+    for (int i = _depth; i < lastDepth; i++) {
+        const BufferPointVectorPair& pair = _depthPoints.at(i);
+        offsets.append(totalPoints += ((leafCount += pair.first.size()) + pair.second.size()));
+    }
+    QOpenGLBuffer buffer;
+    buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    buffer.create();
+    buffer.bind();
+    buffer.allocate(totalPoints * sizeof(BufferPoint));
+    int offset = 0;
+    for (int i = _depth; i < lastDepth; i++) {
+        // write the internal nodes from the current level
+        BufferPointVector& internal = _depthPoints[i].second;
+        int length = internal.size() * sizeof(BufferPoint);
+        buffer.write(offset, internal.constData(), length);
+        offset += length;
+        internal.clear();
+        
+        // and the leaves from the top down
+        for (int j = _depth; j <= i; j++) {
+            const BufferPointVector& leaves = _depthPoints.at(j).first;
+            length = leaves.size() * sizeof(BufferPoint);
+            buffer.write(offset, leaves.constData(), length);
+            offset += length;
+        }
+    }
+    // clear the leaves now that we're done with them
+    for (int i = _depth; i < lastDepth; i++) {
+        _depthPoints[i].first.clear();
+    }
+    buffer.release();
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(PointBufferPointer(
+        new PointBuffer(buffer, offsets, leafCount))));
+    return true;
 }
 
 void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
@@ -294,7 +339,7 @@ void PointBuffer::render(int level) {
 }
 
 PointBufferAttribute::PointBufferAttribute() :
-    SharedPointerAttribute<PointBuffer>("pointBuffer") {
+    InlineAttribute<PointBufferPointer>("pointBuffer") {
 }
 
 MetavoxelNode* PointBufferAttribute::createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const {
@@ -303,7 +348,7 @@ MetavoxelNode* PointBufferAttribute::createMetavoxelNode(const AttributeValue& v
 
 bool PointBufferAttribute::merge(void*& parent, void* children[], bool postRead) const {
     for (int i = 0; i < MERGE_COUNT; i++) {
-        if (!decodeInline<PointBufferPointer>(children[i]).isNull()) {
+        if (decodeInline<PointBufferPointer>(children[i])) {
             return false;
         }
     }
