@@ -381,8 +381,9 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         triggerButton = Qt::LeftButton;
     }
 
-    if (OculusManager::isConnected()) {
-        pos = application->getApplicationOverlay().getOculusPalmClickLocation(palm);
+    const bool useLasers = true;
+    if (useLasers) {
+        pos = application->getApplicationOverlay().getPalmClickLocation(palm);
     } else {
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();

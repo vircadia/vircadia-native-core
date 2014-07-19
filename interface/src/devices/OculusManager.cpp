@@ -310,7 +310,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
         Matrix4f proj = ovrMatrix4f_Projection(_eyeRenderDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);
         proj.Transpose();
-
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glLoadMatrixf((GLfloat *)proj.M);
