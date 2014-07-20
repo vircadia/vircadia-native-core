@@ -60,44 +60,80 @@ var mode = 0;
 
 var modelUploader = (function () {
     var that = {},
-        urlBase = "http://public.highfidelity.io/meshes/";
+        urlBase = "http://public.highfidelity.io/meshes/",
+        model;
 
-    that.upload = function (file, callback) {
+    function readModel(file) {
         var url,
-            reqRead,
-            reqSend;
+            req;
 
-        // Read model content ...
+        print("Reading model from " + file);
+
         url = "file:///" + file;
-        print("Reading model from " + url);
-        reqRead = new XMLHttpRequest();
-        reqRead.open("GET", url, false);
-        reqRead.responseType = "arraybuffer";
-        reqRead.send();
-        if (reqRead.status !== 200) {
-            print("Error reading file: " + reqRead.status + " " + reqRead.statusText);
-            Window.alert("Could not read file " + reqRead.status + " " + reqRead.statusText);
-            return;
+        req = new XMLHttpRequest();
+        req.open("GET", url, false);
+        req.responseType = "arraybuffer";
+        req.send();
+        if (req.status !== 200) {
+            print("Error reading file: " + req.status + " " + req.statusText);
+            Window.alert("Could not read file " + req.status + " " + req.statusText);
+            return false;
         }
+        model = req.response;
 
-        // Upload to High Fidelity ...
-        url = urlBase + file.replace(/^(.*[\/\\])*/, "");
-        print("Uploading model to " + url);
-        reqSend = new XMLHttpRequest();
-        reqSend.open("PUT", url, true);
-        reqSend.responseType = "arraybuffer";
-        reqSend.onreadystatechange = function () {
-            if (reqSend.readyState === reqSend.DONE) {
-                if (reqSend.status === 200) {
-                    print("Uploaded model");
+        return true;
+    }
+
+    function setProperties() {
+        print("Setting model properties");
+        return true;
+    }
+
+    function createHttpMessage() {
+        print("Putting model into HTTP message");
+        return true;
+    }
+
+    function sendToHighFidelity(url, callback) {
+        var req;
+
+        print("Sending model to High Fidelity");
+
+        req = new XMLHttpRequest();
+        req.open("PUT", url, true);
+        req.responseType = "arraybuffer";
+        req.onreadystatechange = function () {
+            if (req.readyState === req.DONE) {
+                if (req.status === 200) {
+                    print("Uploaded model: " + url);
                     callback(url);
                 } else {
-                    print("Error uploading file: " + reqSend.status + " " + reqSend.statusText);
-                    Window.alert("Could not upload file: " + reqSend.status + " " + reqSend.statusText);
+                    print("Error uploading file: " + req.status + " " + req.statusText);
+                    Window.alert("Could not upload file: " + req.status + " " + req.statusText);
                 }
             }
         };
-        reqSend.send(reqRead.response);
+        req.send(model);
+    }
+
+    that.upload = function (file, callback) {
+        var url = urlBase + file.replace(/^(.*[\/\\])*/, ""),
+            ok;
+
+        // Read model content ...
+        ok = readModel(file);
+        if (!ok) { return; }
+
+        // Set model properties ...
+        ok = setProperties();
+        if (!ok) { return; }
+
+        // Put model in HTTP message ...
+        ok = createHttpMessage();
+        if (!ok) { return; }
+
+        // Send model to High Fidelity ...
+        sendToHighFidelity(url, callback);
     };
 
     return that;
