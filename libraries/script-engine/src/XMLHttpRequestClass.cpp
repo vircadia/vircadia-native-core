@@ -194,10 +194,10 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
 }
 
 void XMLHttpRequestClass::send() {
-    send(QString::Null());
+    send(QString());
 }
 
-void XMLHttpRequestClass::send(const QString& data) {
+void XMLHttpRequestClass::send(const QVariant& data) {
     if (_readyState == OPENED && !_reply) {
         if (!data.isNull()) {
             if (_url.isLocalFile()) {
@@ -205,7 +205,12 @@ void XMLHttpRequestClass::send(const QString& data) {
                 return;
             } else {
                 _sendData = new QBuffer(this);
-                _sendData->setData(data.toUtf8());
+                if (_responseType == "arraybuffer") {
+                    QByteArray ba = qvariant_cast<QByteArray>(data);
+                    _sendData->setData(ba);
+                } else {
+                    _sendData->setData(data.toString().toUtf8());
+                }
             }
         }
 
@@ -274,7 +279,7 @@ void XMLHttpRequestClass::requestFinished() {
                 _responseData = QScriptValue::NullValue;
             }
         } else if (_responseType == "arraybuffer") {
-            _responseData = QScriptValue(_rawResponseData.data());
+            _responseData = _engine->newVariant(QVariant::fromValue(_rawResponseData));
         } else {
             _responseData = QScriptValue(QString(_rawResponseData.data()));
         }

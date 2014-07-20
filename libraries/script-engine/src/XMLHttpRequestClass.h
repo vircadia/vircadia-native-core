@@ -84,7 +84,7 @@ public slots:
     void open(const QString& method, const QString& url, bool async = true, const QString& username = "",
               const QString& password = "");
     void send();
-    void send(const QString& data);
+    void send(const QVariant& data);
     QScriptValue getAllResponseHeaders() const;
     QScriptValue getResponseHeader(const QString& name) const;
 
