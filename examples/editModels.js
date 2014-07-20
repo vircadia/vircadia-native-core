@@ -58,6 +58,51 @@ var jointList = MyAvatar.getJointNames();
 var mode = 0;
 
 
+var modelUploader = (function () {
+    var that = {},
+        urlBase = "http://public.highfidelity.io/meshes/";
+
+    that.upload = function (file, callback) {
+        var url,
+            reqRead,
+            reqSend;
+
+        // Read model content ...
+        url = "file:///" + file;
+        print("Reading model from " + url);
+        reqRead = new XMLHttpRequest();
+        reqRead.open("GET", url, false);
+        reqRead.responseType = "arraybuffer";
+        reqRead.send();
+        if (reqRead.status !== 200) {
+            print("Error reading file: " + reqRead.status + " " + reqRead.statusText);
+            Window.alert("Could not read file " + reqRead.status + " " + reqRead.statusText);
+            return;
+        }
+
+        // Upload to High Fidelity ...
+        url = urlBase + file.replace(/^(.*[\/\\])*/, "");
+        print("Uploading model to " + url);
+        reqSend = new XMLHttpRequest();
+        reqSend.open("PUT", url, true);
+        reqSend.responseType = "arraybuffer";
+        reqSend.onreadystatechange = function () {
+            if (reqSend.readyState === reqSend.DONE) {
+                if (reqSend.status === 200) {
+                    print("Uploaded model");
+                    callback(url);
+                } else {
+                    print("Error uploading file: " + reqSend.status + " " + reqSend.statusText);
+                    Window.alert("Could not upload file: " + reqSend.status + " " + reqSend.statusText);
+                }
+            }
+        };
+        reqSend.send(reqRead.response);
+    };
+
+    return that;
+}());
+
 var toolBar = (function () {
     var that = {},
         toolBar,
@@ -119,10 +164,8 @@ var toolBar = (function () {
 
     function toggleToolbar(active) {
         if (active === undefined) {
-            print("active === undefine");
             active = toolBar.toolSelected(newModelButton);
         } else {
-            print("active !== undefine");
             toolBar.selectTool(newModelButton, active);
         }
 
@@ -174,8 +217,7 @@ var toolBar = (function () {
     that.mousePressEvent = function (event) {
         var clickedOverlay,
             url,
-            file,
-            position;
+            file;
 
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
@@ -195,9 +237,9 @@ var toolBar = (function () {
 
         if (clickedOverlay === loadFileMenuItem) {
             toggleToolbar(false);
-            file = Window.browse("Model File", "", "FST, FBX, or SVO files (*.fst *.fbx *.svo)");
+            file = Window.browse("Select your model file ...", "", "Model files (*.fst *.fbx *.svo)");
             if (file !== null) {
-                print("TODO: Upload model file: " + file);
+                modelUploader.upload(file, addModel);
             }
             return true;
         }
