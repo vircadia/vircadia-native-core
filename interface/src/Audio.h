@@ -80,6 +80,7 @@ public:
     const SequenceNumberStats& getIncomingMixedAudioSequenceNumberStats() const { return _incomingMixedAudioSequenceNumberStats; }
 
     int getFramesAvailableInAudioOutputBuffer() const;
+    int getAverageFramesAvailableInAudioOutputBuffer() const { return (int)_audioOutputBufferFramesAvailableStats.getWindowAverage(); }
 
 public slots:
     void start();
@@ -268,7 +269,8 @@ private:
     SequenceNumberStats _incomingMixedAudioSequenceNumberStats;
 
     MovingMinMaxAvg<quint64> _interframeTimeGapStats;
-    MovingMinMaxAvg<int> _framesAvailableStats;
+    MovingMinMaxAvg<int> _ringBufferFramesAvailableStats;
+    MovingMinMaxAvg<int> _audioOutputBufferFramesAvailableStats;
 };
 
 

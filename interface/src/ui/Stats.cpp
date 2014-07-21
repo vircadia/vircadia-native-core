@@ -339,9 +339,10 @@ void Stats::display(
 
             AudioStreamStats downstreamAudioStreamStats = audio->getDownstreamAudioStreamStats();
 
-            sprintf(downstreamAudioStatsString, " mix: %.2f%%/%.2f%%, %u/%u/%u+%u", downstreamAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
+            sprintf(downstreamAudioStatsString, " mix: %.2f%%/%.2f%%, %u/%u+%d/%u+%d", downstreamAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
                 downstreamAudioStreamStats._packetStreamWindowStats.getLostRate() * 100.0f,
                 downstreamAudioStreamStats._ringBufferDesiredJitterBufferFrames, downstreamAudioStreamStats._ringBufferFramesAvailableAverage,
+                audio->getAverageFramesAvailableInAudioOutputBuffer(),
                 downstreamAudioStreamStats._ringBufferFramesAvailable, audio->getFramesAvailableInAudioOutputBuffer());
 
             verticalOffset += STATS_PELS_PER_LINE;

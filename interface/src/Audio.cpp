@@ -130,7 +130,8 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _outgoingAvatarAudioSequenceNumber(0),
     _incomingMixedAudioSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH),
     _interframeTimeGapStats(TIME_GAPS_STATS_INTERVAL_SAMPLES, TIME_GAP_STATS_WINDOW_INTERVALS),
-    _framesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS)
+    _ringBufferFramesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
+    _audioOutputBufferFramesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -794,7 +795,7 @@ AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
     stats._timeGapWindowAverage = _interframeTimeGapStats.getWindowAverage();
 
     stats._ringBufferFramesAvailable = _ringBuffer.framesAvailable();
-    stats._ringBufferFramesAvailableAverage = _framesAvailableStats.getWindowAverage();
+    stats._ringBufferFramesAvailableAverage = _ringBufferFramesAvailableStats.getWindowAverage();
     stats._ringBufferDesiredJitterBufferFrames = getDesiredJitterBufferFrames();
     stats._ringBufferStarveCount = _starveCount;
     stats._ringBufferConsecutiveNotMixedCount = _consecutiveNotMixedCount;
@@ -810,7 +811,8 @@ AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
 void Audio::sendDownstreamAudioStatsPacket() {
 
     // since this function is called every second, we'll sample the number of audio frames available here.
-    _framesAvailableStats.update(_ringBuffer.framesAvailable() + getFramesAvailableInAudioOutputBuffer());
+    _ringBufferFramesAvailableStats.update(_ringBuffer.framesAvailable());
+    _audioOutputBufferFramesAvailableStats.update(getFramesAvailableInAudioOutputBuffer());
 
     // push the current seq number stats into history, which moves the history window forward 1s
     // (since that's how often pushStatsToHistory() is called)
