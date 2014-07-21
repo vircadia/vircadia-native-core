@@ -58,28 +58,115 @@ var jointList = MyAvatar.getJointNames();
 var mode = 0;
 
 
+if (typeof String.prototype.fileName !== 'function') {
+    String.prototype.fileName = function (str) {
+        return this.replace(/^(.*[\/\\])*/, "");
+    };
+}
+
+if (typeof String.prototype.path !== 'function') {
+    String.prototype.path = function (str) {
+        return this.replace(/[\\\/][^\\\/]*$/, "");
+    };
+}
+
+
 var modelUploader = (function () {
     var that = {},
         urlBase = "http://public.highfidelity.io/meshes/",
-        model;
+        fstBuffer,
+        fbxBuffer,
+        svoBuffer,
+        mapping = {},
+        NAME_FIELD = "name",
+        SCALE_FIELD = "scale",
+        FILENAME_FIELD = "filename",
+        TEXDIR_FIELD = "texdir",
+        fbxDataView;
 
-    function readModel(file) {
-        var url,
-            req;
+    function error(message) {
+        Window.alert(message);
+        print(message);
+    }
 
-        print("Reading model from " + file);
+    function readFile(filename, buffer, length) {
+        var url = "file:///" + filename,
+            req = new XMLHttpRequest();
 
-        url = "file:///" + file;
-        req = new XMLHttpRequest();
         req.open("GET", url, false);
         req.responseType = "arraybuffer";
         req.send();
         if (req.status !== 200) {
-            print("Error reading file: " + req.status + " " + req.statusText);
-            Window.alert("Could not read file " + req.status + " " + req.statusText);
-            return false;
+            error("Could not read file: " + filename + " : " + req.status + " " + req.statusText);
+            return null;
         }
-        model = req.response;
+
+        return {
+            buffer: req.response,
+            length: parseInt(req.getResponseHeader("Content-Length"), 10)
+        };
+    }
+
+    function readMapping(buffer) {
+        return {};  // DJRTODO
+    }
+
+    function readGeometry(buffer) {
+        return {};  // DJRTODO
+    }
+
+    function readModel(filename) {
+        var url,
+            req,
+            fbxFilename,
+            geometry;
+
+        if (filename.toLowerCase().slice(-4) === ".svo") {
+            svoBuffer = readFile(filename);
+            if (svoBuffer === null) {
+                return false;
+            }
+
+        } else {
+
+            if (filename.toLowerCase().slice(-4) === ".fst") {
+                fstBuffer = readFile(filename);
+                if (fstBuffer === null) {
+                    return false;
+                }
+                mapping = readMapping(fstBuffer);
+                fbxFilename = filename.path() + "\\" + mapping[FILENAME_FIELD];
+
+            } else if (filename.toLowerCase().slice(-4) === ".fbx") {
+                fbxFilename = filename;
+                mapping[FILENAME_FIELD] = filename.fileName();
+
+            } else {
+                error("Unrecognized file type: " + filename);
+                return false;
+            }
+
+            fbxBuffer = readFile(fbxFilename);
+            if (fbxBuffer === null) {
+                return false;
+            }
+
+            geometry = readGeometry(fbxBuffer);
+            if (!mapping.hasOwnProperty(SCALE_FIELD)) {
+                mapping[SCALE_FIELD] = (geometry.author === "www.makehuman.org" ? 150.0 : 15.0);
+            }
+        }
+
+        // Add any missing basic mappings
+        if (!mapping.hasOwnProperty(NAME_FIELD)) {
+            mapping[NAME_FIELD] = filename.fileName().slice(0, -4);
+        }
+        if (!mapping.hasOwnProperty(TEXDIR_FIELD)) {
+            mapping[TEXDIR_FIELD] = ".";
+        }
+        if (!mapping.hasOwnProperty(SCALE_FIELD)) {
+            mapping[SCALE_FIELD] = 0.2;  // For SVO models.
+        }
 
         return true;
     }
@@ -99,6 +186,8 @@ var modelUploader = (function () {
 
         print("Sending model to High Fidelity");
 
+        // DJRTODO
+
         req = new XMLHttpRequest();
         req.open("PUT", url, true);
         req.responseType = "arraybuffer";
@@ -113,24 +202,31 @@ var modelUploader = (function () {
                 }
             }
         };
-        req.send(model);
+
+        if (fbxBuffer !== null) {
+            req.send(fbxBuffer.buffer);
+        } else {
+            req.send(svoBuffer.buffer);
+        }
     }
 
     that.upload = function (file, callback) {
-        var url = urlBase + file.replace(/^(.*[\/\\])*/, ""),
-            ok;
+        var url = urlBase + file.fileName();
 
         // Read model content ...
-        ok = readModel(file);
-        if (!ok) { return; }
+        if (!readModel(file)) {
+            return;
+        }
 
         // Set model properties ...
-        ok = setProperties();
-        if (!ok) { return; }
+        if (!setProperties()) {
+            return;
+        }
 
         // Put model in HTTP message ...
-        ok = createHttpMessage();
-        if (!ok) { return; }
+        if (!createHttpMessage()) {
+            return;
+        }
 
         // Send model to High Fidelity ...
         sendToHighFidelity(url, callback);
