@@ -269,7 +269,6 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
 
-
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
@@ -310,16 +309,17 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
             rv.setY(INT_MAX);
         }
     } else {
-    
-        float xTheta = atan2(dir.z, dir.x);
-        float yTheta = atan2(dir.y, dir.x);
+        glm::dmat4 projection;
+        application->getProjectionMatrix(&projection);
 
-        float fov = application->getCamera()->getFieldOfView() * RADIANS_PER_DEGREE;
-        float aspectRatio = glWidget->width() / glWidget->height();
+        glm::vec4 clipSpacePos = glm::vec4(projection * glm::dvec4(tipPos, 1.0));
+        glm::vec3 ndcSpacePos;
+        if (clipSpacePos.w != 0) {
+            ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;
+        }
 
-        rv.setX(xTheta / fov * aspectRatio * glWidget->width());
-        rv.setY(yTheta / fov * glWidget->height());
-        glMatrixMode(GL_PROJECTION);
+        rv.setX(((ndcSpacePos.x + 1.0) / 2.0) * glWidget->width());
+        rv.setY((1.0 - ((ndcSpacePos.y + 1.0) / 2.0)) * glWidget->height());
     }
     return rv;
 }
@@ -660,8 +660,6 @@ void ApplicationOverlay::renderControllerPointers() {
         QPoint res = getPalmClickLocation(palmData);
         mouseX = res.x();
         mouseY = res.y();
-
-        printf("%d %d\n", mouseX, mouseY);
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
