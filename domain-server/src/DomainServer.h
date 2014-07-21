@@ -108,7 +108,7 @@ private:
     QString _oauthClientSecret;
     QString _hostname;
     QMap<QNetworkReply*, QUuid> _networkReplyUUIDMap;
-    QHash<QUuid, bool> _sessionAuthenticationHash;
+    QHash<QUuid, QString> _sessionAuthenticationHash;
     
     DomainServerSettingsManager _settingsManager;
 };

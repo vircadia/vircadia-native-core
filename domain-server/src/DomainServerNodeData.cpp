@@ -21,6 +21,7 @@ DomainServerNodeData::DomainServerNodeData() :
     _sessionSecretHash(),
     _assignmentUUID(),
     _walletUUID(),
+    _username(),
     _paymentIntervalTimer(),
     _statsJSONObject(),
     _sendingSockAddr(),

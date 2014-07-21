@@ -426,11 +426,14 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         }
 
     }
+    
+    QString connectedUsername;
 
     if (!isAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
         // this is an Agent, and we require authentication so we can compare the user's roles to our list of allowed ones
         if (_sessionAuthenticationHash.contains(packetUUID)) {
-            if (!_sessionAuthenticationHash.value(packetUUID)) {
+            connectedUsername = _sessionAuthenticationHash.take(packetUUID);
+            if (connectedUsername.isEmpty()) {
                 // we've decided this is a user that isn't allowed in, return out
                 // TODO: provide information to the user so they know why they can't connect
                 return;
@@ -473,6 +476,9 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
             // now that we've pulled the wallet UUID and added the node to our list, delete the pending assignee data
             delete pendingAssigneeData;
         }
+        
+        // if we have a username from an OAuth connect request, set it on the DomainServerNodeData
+        nodeData->setUsername(connectedUsername);
 
         nodeData->setSendingSockAddr(senderSockAddr);
 
@@ -860,6 +866,7 @@ const char JSON_KEY_LOCAL_SOCKET[] = "local";
 const char JSON_KEY_POOL[] = "pool";
 const char JSON_KEY_PENDING_CREDITS[] = "pending_credits";
 const char JSON_KEY_WAKE_TIMESTAMP[] = "wake_timestamp";
+const char JSON_KEY_USERNAME[] = "username";
 
 QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     QJsonObject nodeJson;
@@ -884,6 +891,10 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
 
     // if the node has pool information, add it
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    
+    // add the node username, if it exists
+    nodeJson[JSON_KEY_USERNAME] = nodeData->getUsername();
+    
     SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
     if (matchingAssignment) {
         nodeJson[JSON_KEY_POOL] = matchingAssignment->getPool();
@@ -1254,22 +1265,30 @@ void DomainServer::handleProfileRequestFinished() {
 
             QJsonArray allowedRolesArray = _argumentVariantMap.value(ALLOWED_ROLES_CONFIG_KEY).toJsonValue().toArray();
 
-            bool shouldAllowUserToConnect = false;
+            QString connectableUsername;
+            QString profileUsername = profileJSON.object()["data"].toObject()["user"].toObject()["username"].toString();
 
             foreach(const QJsonValue& roleValue, userRolesArray) {
                 if (allowedRolesArray.contains(roleValue)) {
                     // the user has a role that lets them in
                     // set the bool to true and break
-                    shouldAllowUserToConnect = true;
+                    connectableUsername = profileUsername;
                     break;
                 }
             }
-
-            qDebug() << "Confirmed authentication state for user" << uuidStringWithoutCurlyBraces(matchingSessionUUID)
-                << "-" << shouldAllowUserToConnect;
+            
+            if (connectableUsername.isEmpty()) {
+                qDebug() << "User" << profileUsername << "with session UUID"
+                    << uuidStringWithoutCurlyBraces(matchingSessionUUID)
+                    << "does not have an allowable role. Refusing connection.";
+            } else {
+                qDebug() << "User" << profileUsername << "with session UUID"
+                    << uuidStringWithoutCurlyBraces(matchingSessionUUID)
+                    << "has an allowable role. Can connect.";
+            }
 
             // insert this UUID and a flag that indicates if they are allowed to connect
-            _sessionAuthenticationHash.insert(matchingSessionUUID, shouldAllowUserToConnect);
+            _sessionAuthenticationHash.insert(matchingSessionUUID, connectableUsername);
         }
     }
 }
