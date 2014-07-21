@@ -21,6 +21,7 @@ const char* HTTPConnection::StatusCode200 = "200 OK";
 const char* HTTPConnection::StatusCode301 = "301 Moved Permanently";
 const char* HTTPConnection::StatusCode302 = "302 Found";
 const char* HTTPConnection::StatusCode400 = "400 Bad Request";
+const char* HTTPConnection::StatusCode401 = "401 Unauthorized";
 const char* HTTPConnection::StatusCode404 = "404 Not Found";
 const char* HTTPConnection::DefaultContentType = "text/plain; charset=ISO-8859-1";
 

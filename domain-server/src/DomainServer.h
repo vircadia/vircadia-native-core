@@ -85,8 +85,12 @@ private:
     QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
     
+    bool isAuthenticatedRequest(HTTPConnection* connection, const QUrl& url);
+
     void handleTokenRequestFinished();
+    QNetworkReply* profileRequestGivenTokenReply(QNetworkReply* tokenReply);
     void handleProfileRequestFinished();
+    Headers setupCookieHeadersFromProfileReply(QNetworkReply* profileReply);
     
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
@@ -109,6 +113,9 @@ private:
     QString _hostname;
     QMap<QNetworkReply*, QUuid> _networkReplyUUIDMap;
     QHash<QUuid, QString> _sessionAuthenticationHash;
+    
+    QSet<QUuid> _webAuthenticationStateSet;
+    QHash<QUuid, QJsonObject> _cookieProfileJSONHash;
     
     DomainServerSettingsManager _settingsManager;
 };
