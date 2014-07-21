@@ -431,6 +431,7 @@ namespace MenuOption {
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString SimpleShadows = "Simple";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
+    const QString SixenseLasers = "Enable Sixense UI Lasers";
     const QString StandOnNearbyFloors = "Stand on nearby floors";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
