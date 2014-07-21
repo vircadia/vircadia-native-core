@@ -26,8 +26,8 @@
             <td><a href="stats/?uuid=<%- node.uuid %>"><%- node.uuid %></a></td>
             <td><%- node.pool %></td>
             <td><%- node.username %></td>
-            <td><%- node.public.ip %><span class='port'><%- node.public.port %></span></td>
-            <td><%- node.local.ip %><span class='port'><%- node.local.port %></span></td>
+            <td><%- node.public.ip %><span class='port'>:<%- node.public.port %></span></td>
+            <td><%- node.local.ip %><span class='port'>:<%- node.local.port %></span></td>
             <td><%- ((Date.now() - node.wake_timestamp) /  1000).toLocaleString() %></td>
             <td><%- (typeof node.pending_credits == 'number' ? node.pending_credits.toLocaleString() : 'N/A') %></td>
             <td><span class='glyphicon glyphicon-remove' data-uuid="<%- node.uuid %>"></span></td>
