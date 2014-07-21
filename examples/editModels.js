@@ -665,7 +665,8 @@ function checkController(deltaTime) {
     
     moveOverlays();
 }
-
+var newModel;
+var browser;
 function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
     // New Model
@@ -675,6 +676,12 @@ function initToolBar() {
                                width: toolWidth, height: toolHeight,
                                visible: true,
                                alpha: 0.9
+                               });
+    browser = toolBar.addTool({
+                               imageURL: toolIconUrl + "list-icon.png",
+                               width: toolWidth, height: toolHeight,
+                               visible: true,
+                               alpha: 0.7
                                });
 }
 
@@ -780,8 +787,25 @@ function mousePressEvent(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
     if (newModel == toolBar.clicked(clickedOverlay)) {
-        var url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-        if (url == null) {
+        var url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+        if (url == null || url == "") {
+            return;
+        }
+        
+        var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+        
+        if (position.x > 0 && position.y > 0 && position.z > 0) {
+            Models.addModel({ position: position,
+                            radius: radiusDefault,
+                            modelURL: url
+                            });
+        } else {
+            print("Can't create model: Model would be out of bounds.");
+        }
+        
+    } else if (browser == toolBar.clicked(clickedOverlay)) {
+        var url = Window.s3Browse();
+        if (url == null || url == "") {
             return;
         }
         
