@@ -85,8 +85,11 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     // slower than real time (or at least the desired sample rate). If you increase the size of the ring buffer, then it 
     // this delay will slowly add up and the longer someone runs, they more delayed their audio will be.
     _inputRingBuffer(0),
+#ifdef _WIN32
+    _ringBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, false, 100),
+#else
     _ringBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO), // DO NOT CHANGE THIS UNLESS YOU SOLVE THE AUDIO DEVICE DRIFT PROBLEM!!!
-    
+#endif  
     _isStereoInput(false),
     _averagedLatency(0.0),
     _measuredJitter(0),
@@ -127,7 +130,8 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _outgoingAvatarAudioSequenceNumber(0),
     _incomingMixedAudioSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH),
     _interframeTimeGapStats(TIME_GAPS_STATS_INTERVAL_SAMPLES, TIME_GAP_STATS_WINDOW_INTERVALS),
-    _framesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS)
+    _ringBufferFramesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
+    _audioOutputBufferFramesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -790,8 +794,8 @@ AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
     stats._timeGapWindowMax = _interframeTimeGapStats.getWindowMax();
     stats._timeGapWindowAverage = _interframeTimeGapStats.getWindowAverage();
 
-    stats._ringBufferFramesAvailable = getFramesAvailableInRingAndAudioOutputBuffers();
-    stats._ringBufferFramesAvailableAverage = _framesAvailableStats.getWindowAverage();
+    stats._ringBufferFramesAvailable = _ringBuffer.framesAvailable();
+    stats._ringBufferFramesAvailableAverage = _ringBufferFramesAvailableStats.getWindowAverage();
     stats._ringBufferDesiredJitterBufferFrames = getDesiredJitterBufferFrames();
     stats._ringBufferStarveCount = _starveCount;
     stats._ringBufferConsecutiveNotMixedCount = _consecutiveNotMixedCount;
@@ -807,7 +811,8 @@ AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
 void Audio::sendDownstreamAudioStatsPacket() {
 
     // since this function is called every second, we'll sample the number of audio frames available here.
-    _framesAvailableStats.update(getFramesAvailableInRingAndAudioOutputBuffers());
+    _ringBufferFramesAvailableStats.update(_ringBuffer.framesAvailable());
+    _audioOutputBufferFramesAvailableStats.update(getFramesAvailableInAudioOutputBuffer());
 
     // push the current seq number stats into history, which moves the history window forward 1s
     // (since that's how often pushStatsToHistory() is called)
@@ -1613,8 +1618,10 @@ int Audio::calculateNumberOfFrameSamples(int numBytes) {
     return frameSamples;
 }
 
-int Audio::getFramesAvailableInRingAndAudioOutputBuffers() const {
-    int framesInAudioOutputBuffer = (_audioOutput->bufferSize() - _audioOutput->bytesFree()) 
+int Audio::getFramesAvailableInAudioOutputBuffer() const {
+    float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float)_outputFormat.sampleRate())
+        * (_desiredOutputFormat.channelCount() / (float)_outputFormat.channelCount());
+
+    return (_audioOutput->bufferSize() - _audioOutput->bytesFree()) * networkOutputToOutputRatio
                                     / (sizeof(int16_t) * _ringBuffer.getNumFrameSamples());
-    return _ringBuffer.framesAvailable() + framesInAudioOutputBuffer;
 }
