@@ -89,6 +89,8 @@
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
 
+#include "devices/Leapmotion.h"
+
 using namespace std;
 
 //  Starfield information
@@ -1720,6 +1722,8 @@ void Application::init() {
     _faceplus.init();
     _visage.init();
 
+    Leapmotion::init();
+
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
 
@@ -2053,11 +2057,13 @@ void Application::update(float deltaTime) {
     updateMouseRay(); // check what's under the mouse and update the mouse voxel
     {
         PerformanceTimer perfTimer("devices");
+        DeviceTracker::updateAll();
         updateFaceshift();
         updateVisage();
         _sixenseManager.update(deltaTime);
         _joystickManager.update();
         _prioVR.update(deltaTime);
+
     }
     {
         PerformanceTimer perfTimer("myAvatar");
@@ -2065,6 +2071,10 @@ void Application::update(float deltaTime) {
         updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     }
     
+
+    // Dispatch input events
+    _controllerScriptingInterface.updateInputControllers();
+
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     
     _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
@@ -2795,8 +2805,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
-
+        
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
+
+        //Render the sixense lasers
+        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+            _myAvatar->renderLaserPointers();
+        }
     }
 
     if (!selfAvatarOnly) {
@@ -3177,6 +3192,7 @@ void Application::resetSensors() {
     OculusManager::reset();
 
     _prioVR.reset();
+    //_leapmotion.reset();
 
     QCursor::setPos(_mouseX, _mouseY);
     _myAvatar->reset();

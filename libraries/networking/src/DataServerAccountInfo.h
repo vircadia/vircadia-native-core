@@ -13,6 +13,7 @@
 #define hifi_DataServerAccountInfo_h
 
 #include <QtCore/QObject>
+#include <QtCore/QUuid>
 
 #include "OAuthAccessToken.h"
 
@@ -36,6 +37,9 @@ public:
 
     const QString& getDiscourseApiKey() const { return _discourseApiKey; }
     void setDiscourseApiKey(const QString& discourseApiKey);
+    
+    const QUuid& getWalletID() const { return _walletID; }
+    void setWalletID(const QUuid& walletID);
 
     qint64 getBalance() const { return _balance; }
     float getBalanceInSatoshis() const { return _balance / SATOSHIS_PER_CREDIT; }
@@ -59,6 +63,7 @@ private:
     QString _username;
     QString _xmppPassword;
     QString _discourseApiKey;
+    QUuid _walletID;
     qint64 _balance;
     bool _hasBalance;
 };

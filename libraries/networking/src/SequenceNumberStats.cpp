@@ -30,7 +30,9 @@ void SequenceNumberStats::reset() {
 
 static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
 
-void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderUUID, const bool wantExtraDebugging) {
+SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderUUID, const bool wantExtraDebugging) {
+
+    SequenceNumberStats::ArrivalInfo arrivalInfo;
 
     // if the sender node has changed, reset all stats
     if (senderUUID != _lastSenderUUID) {
@@ -46,6 +48,7 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
     _stats._numReceived++;
 
     if (incoming == expected) { // on time
+        arrivalInfo._status = OnTime;
         _lastReceived = incoming;
     } else { // out of order
 
@@ -67,21 +70,29 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
                 expectedInt -= UINT16_RANGE;
             }
         } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
+            arrivalInfo._status = Unreasonable;
+
             // ignore packet if gap is unreasonable
             qDebug() << "ignoring unreasonable sequence number:" << incoming
                 << "previous:" << _lastReceived;
             _stats._numUnreasonable++;
-            return;
+
+            return arrivalInfo;
         }
 
-        // now that rollover has been corrected for (if it occurred), incoming and expected can be
+        // now that rollover has been corrected for (if it occurred), incomingInt and expectedInt can be
         // compared to each other directly, though one of them might be negative
+
+        arrivalInfo._seqDiffFromExpected = incomingInt - expectedInt;
+
         if (incomingInt > expectedInt) { // early
+            arrivalInfo._status = Early;
+
             if (wantExtraDebugging) {
                 qDebug() << "this packet is earlier than expected...";
                 qDebug() << ">>>>>>>> missing gap=" << (incomingInt - expectedInt);
             }
-
+            
             _stats._numEarly++;
             _stats._numLost += (incomingInt - expectedInt);
             _lastReceived = incoming;
@@ -100,18 +111,23 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
             if (wantExtraDebugging) {
                 qDebug() << "this packet is later than expected...";
             }
+
             _stats._numLate++;
 
             // do not update _lastReceived; it shouldn't become smaller
 
             // remove this from missing sequence number if it's in there
             if (_missingSet.remove(incoming)) {
+                arrivalInfo._status = Late;
+
                 if (wantExtraDebugging) {
                     qDebug() << "found it in _missingSet";
                 }
                 _stats._numLost--;
                 _stats._numRecovered++;
             } else {
+                arrivalInfo._status = Duplicate;
+
                 if (wantExtraDebugging) {
                     qDebug() << "sequence:" << incoming << "was NOT found in _missingSet and is probably a duplicate";
                 }
@@ -119,6 +135,7 @@ void SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderU
             }
         }
     }
+    return arrivalInfo;
 }
 
 void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {

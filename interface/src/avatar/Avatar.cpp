@@ -928,27 +928,34 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
 
 void Avatar::setLocalLightDirection(const glm::vec3& direction, int lightIndex) {
     _localLightDirections[lightIndex] = direction;
-    qDebug( "set light %d direction ( %f, %f, %f )\n", lightIndex, direction.x, direction.y, direction.z );
 }
 
 void Avatar::setLocalLightColor(const glm::vec3& color, int lightIndex) {
     _localLightColors[lightIndex] = color;
-    qDebug( "set light %d color ( %f, %f, %f )\n", lightIndex, color.x, color.y, color.z );
 }
 
 void Avatar::addLocalLight() {
     if (_numLocalLights + 1 <= MAX_LOCAL_LIGHTS) {
         ++_numLocalLights;
     }
-
-    qDebug("ADD LOCAL LIGHT (numLocalLights = %d)\n", _numLocalLights);
 }
 
 void Avatar::removeLocalLight() {
     if (_numLocalLights - 1 >= 0) {
         --_numLocalLights;
     }
-    
-    qDebug("REMOVE LOCAL LIGHT (numLocalLights = %d)\n", _numLocalLights);
 }
+
+int Avatar::getNumLocalLights() {
+    return _numLocalLights;
+}
+
+glm::vec3 Avatar::getLocalLightDirection(int lightIndex) {
+    return _localLightDirections[lightIndex];
+}
+
+glm::vec3 Avatar::getLocalLightColor(int lightIndex) {
+    return _localLightColors[lightIndex];
+}
+ 
 

@@ -135,6 +135,7 @@ void MyAvatar::simulate(float deltaTime) {
         setScale(scale);
         Application::getInstance()->getCamera()->setScale(scale);
     }
+    _skeletonModel.setShowTrueJointTransforms(! Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll));
 
     // no extra movement of the hand here any more ...
     _handState = HAND_STATE_NULL;
@@ -428,6 +429,7 @@ glm::vec3 MyAvatar::getLeftPalmPosition() {
     leftHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftRotation);
     return leftHandPosition;
 }
+
 glm::vec3 MyAvatar::getRightPalmPosition() {
     glm::vec3 rightHandPosition;
     getSkeletonModel().getRightHandPosition(rightHandPosition);
@@ -1847,3 +1849,43 @@ void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& pe
     }
 }
 
+//Renders sixense laser pointers for UI selection with controllers
+void MyAvatar::renderLaserPointers() {
+    const float PALM_TIP_ROD_RADIUS = 0.002f;
+
+    //If the Oculus is enabled, we will draw a blue cursor ray
+
+    for (size_t i = 0; i < getHand()->getNumPalms(); ++i) {
+        PalmData& palm = getHand()->getPalms()[i];
+        if (palm.isActive()) {
+            glColor4f(0, 1, 1, 1);
+            glm::vec3 tip = getLaserPointerTipPosition(&palm);
+            glm::vec3 root = palm.getPosition();
+
+            //Scale the root vector with the avatar scale
+            scaleVectorRelativeToPosition(root);
+
+            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS);
+        }
+    }
+}
+
+//Gets the tip position for the laser pointer
+glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
+    const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
+    const float PALM_TIP_ROD_LENGTH_MULT = 40.0f;
+
+    glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
+
+    glm::vec3 position = palm->getPosition();
+    //scale the position with the avatar
+    scaleVectorRelativeToPosition(position);
+
+
+    glm::vec3 result;
+    if (applicationOverlay.calculateRayUICollisionPoint(position, direction, result)) {
+        return result;
+    }
+
+    return palm->getPosition();
+}

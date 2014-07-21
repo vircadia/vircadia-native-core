@@ -27,7 +27,7 @@ public:
         _timeGapWindowMax(0),
         _timeGapWindowAverage(0.0f),
         _ringBufferFramesAvailable(0),
-        _ringBufferCurrentJitterBufferFrames(0),
+        _ringBufferFramesAvailableAverage(0),
         _ringBufferDesiredJitterBufferFrames(0),
         _ringBufferStarveCount(0),
         _ringBufferConsecutiveNotMixedCount(0),
@@ -48,7 +48,7 @@ public:
     float _timeGapWindowAverage;
 
     quint32 _ringBufferFramesAvailable;
-    quint16 _ringBufferCurrentJitterBufferFrames;
+    quint16 _ringBufferFramesAvailableAverage;
     quint16 _ringBufferDesiredJitterBufferFrames;
     quint32 _ringBufferStarveCount;
     quint32 _ringBufferConsecutiveNotMixedCount;

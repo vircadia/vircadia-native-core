@@ -239,6 +239,8 @@ private:
     void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
     void renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray);
 
+    int getFramesAvailableInRingAndAudioOutputBuffers() const;
+
     // Audio scope data
     static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
     static const unsigned int DEFAULT_FRAMES_PER_SCOPE = 5;
@@ -266,6 +268,7 @@ private:
     SequenceNumberStats _incomingMixedAudioSequenceNumberStats;
 
     MovingMinMaxAvg<quint64> _interframeTimeGapStats;
+    MovingMinMaxAvg<int> _framesAvailableStats;
 };
 
 
