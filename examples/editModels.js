@@ -108,7 +108,32 @@ var modelUploader = (function () {
     }
 
     function readMapping(buffer) {
-        return {};  // DJRTODO
+        var mapping = {},
+            lines,
+            line,
+            values,
+            name,
+            i;
+
+        // Simplified to target values relevant to model uploading.
+        lines = String(buffer.buffer).split(/\r\n|\r|\n/);
+        for (i = 0; i < lines.length; i += 1) {
+            line = lines[i].trim();
+            if (line.length > 0 && line[0] !== "#") {
+                values = line.split(/\s*=\s*/);
+                name = values[0].toLowerCase();
+                if (values.length === 2) {
+                    mapping[name] = values[1];
+                } else if (values.length === 3 && name === "lod") {
+                    if (mapping[name] === undefined) {
+                        mapping[name] = {};
+                    }
+                    mapping[name][values[1]] = values[2];
+                }
+            }
+        }
+
+        return mapping;
     }
 
     function readGeometry(buffer) {
@@ -120,6 +145,8 @@ var modelUploader = (function () {
             req,
             fbxFilename,
             geometry;
+
+        print("Reading model file: " + filename);
 
         if (filename.toLowerCase().slice(-4) === ".svo") {
             svoBuffer = readFile(filename);
