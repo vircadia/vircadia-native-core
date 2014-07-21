@@ -245,10 +245,16 @@ void EntityTreeElement::update(EntityTreeUpdateArgs& args) {
         // how do we want to handle this??? We really only want to consider an element changed when it is
         // edited... not just animated...
         entity->update(_lastChanged);
-
+        
+        
         // If the entity wants to die, or if it's left our bounding box, then move it
         // into the arguments moving entities. These will be added back or deleted completely
         if (entity->getShouldBeDeleted() || !bestFitEntityBounds(entity)) {
+            qDebug() << "EntityTreeElement::update()... OLD DELETE LOGIC CALLED BUT NOT IMPLEMENTED...";
+
+        /***        
+        // TODO: What to do about this???
+
             args._movingEntities.push_back(entity);
 
             // erase this entity
@@ -262,6 +268,8 @@ void EntityTreeElement::update(EntityTreeUpdateArgs& args) {
             // TODO: is this a good place to change the containing element map???
             qDebug() << "EntityTreeElement::update()... calling _myTree->setContainingElement(entity.getEntityItemID(), NULL); ********";
             _myTree->setContainingElement(entity->getEntityItemID(), NULL);
+        **/
+
 
         } else {
             ++entityItr;
@@ -413,15 +421,30 @@ bool EntityTreeElement::addOrUpdateEntity(EntityItem* entity, const EntityItemPr
             }
             thisEntity->setProperties(properties);
             markWithChangedTime();
+
+qDebug() << "***** EntityTreeElement::addOrUpdateEntity() setting properties of existing entity... no need to setContainingElement()?????";
+qDebug() << "***** EntityTreeElement::addOrUpdateEntity() this=" << this;
+qDebug() << "***** EntityTreeElement::addOrUpdateEntity() _myTree->getContainingElement(entityID)=" << _myTree->getContainingElement(entity->getEntityItemID());
+
+            if (_myTree->getContainingElement(entity->getEntityItemID()) != this) {
+                qDebug() << "EntityTreeElement::addOrUpdateEntity() huh?? what??? looks like our containing element is wrong??";
+                _myTree->setContainingElement(entity->getEntityItemID(), this);
+                qDebug() << "EntityTreeElement::addOrUpdateEntity() CHANGED IT... NOW... _myTree->getContainingElement(entity->getEntityItemID())=" <<
+                        _myTree->getContainingElement(entity->getEntityItemID());
+            }
             return true;
         }
     }
     
     // If we didn't find the entity here, then let's check to see if we should add it...
+qDebug() << "EntityTreeElement::addOrUpdateEntity() BEFORE _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
     _entityItems->push_back(entity);
+qDebug() << "EntityTreeElement::addOrUpdateEntity() AFTER _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
     entity->setProperties(properties); // still need to update the properties!
+qDebug() << "EntityTreeElement::addOrUpdateEntity() AFTER entity->setProperties(properties); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
     markWithChangedTime();
     // Since we're adding this item to this element, we need to let the tree know about it
+qDebug() << "EntityTreeElement::addOrUpdateEntity() _myTree->setContainingElement(entity->getEntityItemID(), this)........";
     _myTree->setContainingElement(entity->getEntityItemID(), this);
 
     return true;
@@ -540,7 +563,10 @@ bool EntityTreeElement::removeEntityWithID(uint32_t id) {
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i]->getID() == id) {
             foundEntity = true;
+EntityItem* entityItem = (*_entityItems)[i];
+qDebug() << "EntityTreeElement::removeEntityWithID() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             _entityItems->removeAt(i);
+qDebug() << "EntityTreeElement::removeEntityWithID() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             
             break;
         }
@@ -554,7 +580,10 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i]->getEntityItemID() == id) {
             foundEntity = true;
+EntityItem* entityItem = (*_entityItems)[i];
+qDebug() << "EntityTreeElement::removeEntityWithEntityItemID() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             _entityItems->removeAt(i);
+qDebug() << "EntityTreeElement::removeEntityWithEntityItemID() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             break;
         }
     }
@@ -567,7 +596,10 @@ bool EntityTreeElement::removeEntityItem(const EntityItem* entity) {
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i] == entity) {
             foundEntity = true;
+EntityItem* entityItem = (*_entityItems)[i];
+qDebug() << "EntityTreeElement::removeEntityItem() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             _entityItems->removeAt(i);
+qDebug() << "EntityTreeElement::removeEntityItem() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             break;
         }
     }
@@ -628,7 +660,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     
                     if (entityItem) {
                         bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+qDebug() << "EntityTreeElement::readElementDataFromBuffer() BEFORE addEntityItem(entity); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
                         addEntityItem(entityItem); // add this new entity to this elements entities
+qDebug() << "EntityTreeElement::readElementDataFromBuffer() AFTER addEntityItem(entity); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
                         _myTree->setContainingElement(entityItem->getEntityItemID(), this);
                         newEntity = true;
                     }
@@ -661,7 +695,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
 }
 
 void EntityTreeElement::addEntityItem(EntityItem* entity) {
+qDebug() << "EntityTreeElement::addEntityItem() BEFORE _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
     _entityItems->push_back(entity);
+qDebug() << "EntityTreeElement::addEntityItem() AFTER _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
 }
 
 // will average a "common reduced LOD view" from the the child elements...

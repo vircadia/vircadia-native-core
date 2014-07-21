@@ -63,7 +63,11 @@ void EntityTreeRenderer::update() {
 }
 
 void EntityTreeRenderer::render(RenderMode renderMode) {
+    qDebug() << "EntityTreeRenderer::render() ************";
     OctreeRenderer::render(renderMode);
+    qDebug() << "-------------------- EntityTreeRenderer::render() ------------";
+    static_cast<EntityTree*>(_tree)->debugDumpMap();
+    qDebug() << "******* DONE ******* EntityTreeRenderer::render() ************";
 }
 
 const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem& entityItem) {
@@ -144,8 +148,12 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
     QList<EntityItem*>& entityItems = entityTreeElement->getEntities();
+    
 
     uint16_t numberOfEntities = entityItems.size();
+
+    qDebug() << "EntityTreeRenderer::renderElement() element=" << element 
+                    << "numberOfEntities=" << numberOfEntities;
     
     bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
 
@@ -220,6 +228,14 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
 
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem* entityItem = entityItems[i];
+
+        bool isBestFit = entityTreeElement->bestFitEntityBounds(entityItem);
+        qDebug() << "EntityTreeRenderer::renderElement() "
+                 << "entityTreeElement=" << entityTreeElement 
+                 << "entityItems[" << i << "]=" << entityItem
+                 << "ID=" << entityItem->getEntityItemID()
+                 << "isBestFit=" << isBestFit;
+
         // render entityItem aspoints
         AACube entityCube = entityItem->getAACube();
         entityCube.scale(TREE_SCALE);

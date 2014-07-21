@@ -100,7 +100,21 @@ public:
 
     glm::vec3 getMinimumPointTreeUnits() const { return getMinimumPointMeters() / (float)TREE_SCALE; }
     glm::vec3 getMaximumPointTreeUnits() const { return getMaximumPointMeters() / (float)TREE_SCALE; }
-    AACube getAACubeTreeUnits() const { return AACube(getMinimumPointMeters()/(float)TREE_SCALE, getMaxDimension()/(float)TREE_SCALE); } /// AACube in domain scale units (0.0 - 1.0)
+    /// AACube in domain scale units (0.0 - 1.0)
+    AACube getAACubeTreeUnits() const { 
+        glm::vec3 cornerInTreeUnits = getMinimumPointMeters()/(float)TREE_SCALE;
+        float dimensionInTreeUnits = getMaxDimension()/(float)TREE_SCALE;
+    
+    qDebug() << "getAACubeTreeUnits()";
+    qDebug() << "   corner in meters=" << getMinimumPointMeters().x << "," << getMinimumPointMeters().y << "," << getMinimumPointMeters().z;
+    qDebug() << "   dimension in meters=" << getMaxDimension();
+    qDebug() << "   corner in tree units=" << cornerInTreeUnits.x << "," << cornerInTreeUnits.y << "," << cornerInTreeUnits.z;
+    qDebug() << "   dimension in tree units=" << dimensionInTreeUnits;
+
+        return AACube(cornerInTreeUnits, dimensionInTreeUnits); 
+    }
+
+
     void debugDump() const;
 
     // properties of all entities
@@ -121,6 +135,8 @@ public:
     
     // NOTE: how do we handle _defaultSettings???
     bool containsBoundsProperties() const { return (_positionChanged || _radiusChanged); }
+    bool containsPositionChange() const { return _positionChanged; }
+    bool containsRadiusChange() const { return _radiusChanged; }
 
 #ifdef HIDE_SUBCLASS_METHODS
     // properties we want to move to just models and particles

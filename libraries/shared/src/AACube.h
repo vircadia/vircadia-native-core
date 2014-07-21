@@ -75,8 +75,12 @@ inline bool operator==(const AACube& a, const AACube& b) {
 }
 
 inline QDebug operator<<(QDebug debug, const AACube& cube) {
-    debug << "AACube[ (" << cube.getCorner().x << "," << cube.getCorner().y << "," << cube.getCorner().z << " ) to ("
-            << cube.calcTopFarLeft().x << "," << cube.calcTopFarLeft().y << "," << cube.calcTopFarLeft().z << ")]";
+    const int TREE_SCALE = 16384; // ~10 miles.. This is the number of meters of the 0.0 to 1.0 voxel universe
+    debug << "AACube[ (" 
+            << cube.getCorner().x * (float)TREE_SCALE << "," << cube.getCorner().y * (float)TREE_SCALE << "," << cube.getCorner().z * (float)TREE_SCALE << " ) to ("
+            << cube.calcTopFarLeft().x * (float)TREE_SCALE << "," << cube.calcTopFarLeft().y * (float)TREE_SCALE << "," << cube.calcTopFarLeft().z * (float)TREE_SCALE << ") size: ("
+            << cube.getDimensions().x * (float)TREE_SCALE << "," << cube.getDimensions().y * (float)TREE_SCALE << "," << cube.getDimensions().z * (float)TREE_SCALE << ")"
+            << "]";
     return debug;
 }
 

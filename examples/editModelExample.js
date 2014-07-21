@@ -21,11 +21,11 @@ var roll = 180.0;
 var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll)
 
 var originalProperties = {
-    position: { x: 10,
-                y: 0,
-                z: 0 },
+    position: { x: 2.0,
+                y: 2.0,
+                z: 0.5 },
 
-    radius : 0.1,
+    radius : 0.25,
 
     color: { red: 0,
              green: 255,
@@ -41,7 +41,7 @@ var originalProperties = {
     rotation: rotation
 };
 
-var positionDelta = { x: 0, y: 0, z: 0 };
+var positionDelta = { x: 0.002, y: 0.002, z: 0.0 };
 
 
 var entityID = Entities.addEntity(originalProperties);
@@ -76,8 +76,6 @@ function moveEntity(deltaTime) {
                 y: originalProperties.position.y + (count * positionDelta.y),
                 z: originalProperties.position.z + (count * positionDelta.z)
         },
-        radius : 0.25,
-
     };
 
 
