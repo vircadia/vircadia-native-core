@@ -127,6 +127,9 @@ public:
 
     void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
 
+    /// Renders a laser pointer for UI picking
+    void renderLaserPointers();
+    glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
 public slots:
     void goHome();
     void increaseSize();
