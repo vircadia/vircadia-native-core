@@ -343,7 +343,8 @@ public:
         const QVector<AttributePointer>& spannerMasks = QVector<AttributePointer>(),
         const QVector<AttributePointer>& inputs = QVector<AttributePointer>(),
         const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
-        const MetavoxelLOD& lod = MetavoxelLOD());
+        const MetavoxelLOD& lod = MetavoxelLOD(),
+        int order = DEFAULT_ORDER);
     
     /// Visits a spanner (or part thereof).
     /// \param clipSize the size of the clip volume, or zero if unclipped
@@ -357,6 +358,7 @@ protected:
     
     int _spannerInputCount;
     int _spannerMaskCount;
+    int _order;
 };
 
 /// Base class for ray intersection visitors.

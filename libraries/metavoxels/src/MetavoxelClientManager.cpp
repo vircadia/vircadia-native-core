@@ -103,6 +103,18 @@ void MetavoxelClientManager::updateClient(MetavoxelClient* client) {
     client->update();
 }
 
+void MetavoxelClientManager::guide(MetavoxelVisitor& visitor) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
+            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            if (client) {
+                client->guide(visitor);
+            }
+        }
+    }
+}
+
 MetavoxelClient::MetavoxelClient(const SharedNodePointer& node, MetavoxelClientManager* manager) :
     Endpoint(node, new PacketRecord(), new PacketRecord()),
     _manager(manager),

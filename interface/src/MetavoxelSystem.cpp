@@ -29,11 +29,6 @@ REGISTER_META_OBJECT(StaticModelRenderer)
 ProgramObject MetavoxelSystem::_program;
 int MetavoxelSystem::_pointScaleLocation;
 
-MetavoxelSystem::MetavoxelSystem() :
-    _simulateVisitor(_points),
-    _buffer(QOpenGLBuffer::VertexBuffer) {
-}
-
 void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
     
@@ -41,10 +36,10 @@ void MetavoxelSystem::init() {
         _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/metavoxel_point.vert");
         _program.link();
        
+        _program.bind();
         _pointScaleLocation = _program.uniformLocation("pointScale");
+        _program.release();
     }
-    _buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    _buffer.create();
     _pointBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(new PointBufferAttribute());
 }
 
@@ -55,21 +50,85 @@ MetavoxelLOD MetavoxelSystem::getLOD() const {
         BASE_LOD_THRESHOLD * Menu::getInstance()->getAvatarLODDistanceMultiplier());
 }
 
+class SpannerSimulateVisitor : public SpannerVisitor {
+public:
+    
+    SpannerSimulateVisitor(float deltaTime);
+    
+    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
+
+private:
+    
+    float _deltaTime;
+};
+
+SpannerSimulateVisitor::SpannerSimulateVisitor(float deltaTime) :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(),
+            Application::getInstance()->getMetavoxels()->getLOD()),
+    _deltaTime(deltaTime) {
+}
+
+bool SpannerSimulateVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
+    spanner->getRenderer()->simulate(_deltaTime);
+    return true;
+}
+
 void MetavoxelSystem::simulate(float deltaTime) {
     // update the clients
-    _points.clear();
-    _simulateVisitor.setDeltaTime(deltaTime);
-    _simulateVisitor.setOrder(-Application::getInstance()->getViewFrustum()->getDirection());
     update();
     
-    _buffer.bind();
-    int bytes = _points.size() * sizeof(Point);
-    if (_buffer.size() < bytes) {
-        _buffer.allocate(_points.constData(), bytes);
-    } else {
-        _buffer.write(0, _points.constData(), bytes);
+    SpannerSimulateVisitor spannerSimulateVisitor(deltaTime);
+    guide(spannerSimulateVisitor);
+}
+
+class PointBufferRenderVisitor : public MetavoxelVisitor {
+public:
+    
+    PointBufferRenderVisitor();
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    int _order;
+};
+
+PointBufferRenderVisitor::PointBufferRenderVisitor() :
+    MetavoxelVisitor(QVector<AttributePointer>() << Application::getInstance()->getMetavoxels()->getPointBufferAttribute(),
+        QVector<AttributePointer>(), Application::getInstance()->getMetavoxels()->getLOD()),
+    _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())) {
+}
+
+int PointBufferRenderVisitor::visit(MetavoxelInfo& info) {
+    PointBufferPointer buffer = info.inputValues.at(0).getInlineValue<PointBufferPointer>();
+    if (buffer) {
+        buffer->render(1000);
     }
-    _buffer.release();
+    if (info.isLeaf) {
+        return STOP_RECURSION;
+    }
+    return _order;
+}
+
+class SpannerRenderVisitor : public SpannerVisitor {
+public:
+    
+    SpannerRenderVisitor();
+    
+    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
+};
+
+SpannerRenderVisitor::SpannerRenderVisitor() :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannerMaskAttribute(),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), Application::getInstance()->getMetavoxels()->getLOD(),
+        encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())) {
+}
+
+bool SpannerRenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
+    spanner->getRenderer()->render(1.0f, SpannerRenderer::DEFAULT_MODE, clipMinimum, clipSize);
+    return true;
 }
 
 void MetavoxelSystem::render() {
@@ -87,20 +146,14 @@ void MetavoxelSystem::render() {
     _program.setUniformValue(_pointScaleLocation, viewportDiagonal *
         Application::getInstance()->getViewFrustum()->getNearClip() / worldDiagonal);
         
-    _buffer.bind();
-
-    Point* pt = 0;
-    glVertexPointer(4, GL_FLOAT, sizeof(Point), &pt->vertex);
-    glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Point), &pt->color);
-    glNormalPointer(GL_BYTE, sizeof(Point), &pt->normal);    
-
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
 
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
 
-    glDrawArrays(GL_POINTS, 0, _points.size());
+    PointBufferRenderVisitor pointBufferRenderVisitor;
+    guide(pointBufferRenderVisitor);
     
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
     
@@ -108,19 +161,10 @@ void MetavoxelSystem::render() {
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     
-    _buffer.release();
-    
     _program.release();
     
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getType() == NodeType::MetavoxelServer) {
-            QMutexLocker locker(&node->getMutex());
-            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
-            if (client) {
-                client->guide(_renderVisitor);
-            }
-        }
-    }
+    SpannerRenderVisitor spannerRenderVisitor;
+    guide(spannerRenderVisitor);
 }
 
 MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
@@ -129,74 +173,6 @@ MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
 
 void MetavoxelSystem::updateClient(MetavoxelClient* client) {
     MetavoxelClientManager::updateClient(client);
-    client->guide(_simulateVisitor);
-}
-
-MetavoxelSystem::SimulateVisitor::SimulateVisitor(QVector<Point>& points) :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>(), QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
-            AttributeRegistry::getInstance()->getNormalAttribute() <<
-            AttributeRegistry::getInstance()->getSpannerColorAttribute() <<
-            AttributeRegistry::getInstance()->getSpannerNormalAttribute()),
-    _points(points) {
-}
-
-bool MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
-    spanner->getRenderer()->simulate(_deltaTime);
-    return true;
-}
-
-int MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
-    SpannerVisitor::visit(info);
-
-    if (!info.isLeaf) {
-        return _order;
-    }
-    QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
-    QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
-    quint8 alpha = qAlpha(color);
-    if (!info.isLODLeaf) {
-        if (alpha > 0) {
-            Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
-                { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)), alpha }, 
-                { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
-            _points.append(point);
-        }
-    } else {
-        QRgb spannerColor = info.inputValues.at(2).getInlineValue<QRgb>();
-        QRgb spannerNormal = info.inputValues.at(3).getInlineValue<QRgb>();
-        quint8 spannerAlpha = qAlpha(spannerColor);
-        if (spannerAlpha > 0) {
-            if (alpha > 0) {
-                Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
-                    { quint8(qRed(spannerColor)), quint8(qGreen(spannerColor)), quint8(qBlue(spannerColor)), spannerAlpha }, 
-                    { quint8(qRed(spannerNormal)), quint8(qGreen(spannerNormal)), quint8(qBlue(spannerNormal)) } };
-                _points.append(point);
-                
-            } else {
-                Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
-                    { quint8(qRed(spannerColor)), quint8(qGreen(spannerColor)), quint8(qBlue(spannerColor)), spannerAlpha }, 
-                    { quint8(qRed(spannerNormal)), quint8(qGreen(spannerNormal)), quint8(qBlue(spannerNormal)) } };
-                _points.append(point);
-            }
-        } else if (alpha > 0) {
-            Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
-                { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)), alpha }, 
-                { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
-            _points.append(point);
-        }
-    }
-    return STOP_RECURSION;
-}
-
-MetavoxelSystem::RenderVisitor::RenderVisitor() :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannerMaskAttribute()) {
-}
-
-bool MetavoxelSystem::RenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
-    spanner->getRenderer()->render(1.0f, SpannerRenderer::DEFAULT_MODE, clipMinimum, clipSize);
-    return true;
 }
 
 MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelSystem* system) :
@@ -232,6 +208,9 @@ BufferBuilder::BufferBuilder(const MetavoxelLOD& lod) :
 
 const int ALPHA_RENDER_THRESHOLD = 0;
 
+const int BUFFER_LEVELS = 5;
+const int LAST_BUFFER_LEVEL = BUFFER_LEVELS - 1;
+
 int BufferBuilder::visit(MetavoxelInfo& info) {
     if (info.inputValues.at(2).getInlineValue<PointBufferPointer>()) {
         info.outputValues[0] = AttributeValue(_outputs.at(0));
@@ -253,10 +232,8 @@ int BufferBuilder::visit(MetavoxelInfo& info) {
         return STOP_RECURSION;
     }
     _depthPoints[_depth].second.append(point);
-    return DEFAULT_ORDER;
+    return DEFAULT_ORDER | ((_depth % BUFFER_LEVELS) == LAST_BUFFER_LEVEL ? 0 : ALL_NODES);
 }
-
-const int BUFFER_LEVELS = 5;
 
 bool BufferBuilder::postVisit(MetavoxelInfo& info) {
     if (_depth % BUFFER_LEVELS != 0) {
@@ -305,7 +282,17 @@ bool BufferBuilder::postVisit(MetavoxelInfo& info) {
 
 void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
     BufferBuilder builder(_remoteDataLOD);
-    _data.guideToDifferent(oldData, builder);
+    const AttributePointer& pointBufferAttribute = Application::getInstance()->getMetavoxels()->getPointBufferAttribute();
+    MetavoxelNode* oldRoot = oldData.getRoot(pointBufferAttribute);
+    if (oldRoot && oldData.getSize() == _data.getSize()) {
+        oldRoot->incrementReferenceCount();
+        _data.setRoot(pointBufferAttribute, oldRoot);
+        _data.guideToDifferent(oldData, builder);    
+    
+    } else {
+        _data.clear(pointBufferAttribute);
+        _data.guide(builder);
+    }
 }
 
 void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
@@ -320,6 +307,19 @@ PointBuffer::PointBuffer(const QOpenGLBuffer& buffer, const QVector<int>& offset
 }
 
 void PointBuffer::render(int level) {
+    int first, count;
+    int nextLevel = level + 1;
+    if (nextLevel >= _offsets.size()) {
+        first = _offsets.last() - _lastLeafCount;
+        count = _lastLeafCount;
+        
+    } else {
+        first = _offsets.at(level);
+        count = _offsets.at(nextLevel) - first;
+    }
+    if (count == 0) {
+        return;
+    }
     _buffer.bind();
     
     BufferPoint* point = 0;
@@ -327,14 +327,8 @@ void PointBuffer::render(int level) {
     glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(BufferPoint), &point->color);
     glNormalPointer(GL_BYTE, sizeof(BufferPoint), &point->normal);
     
-    int nextLevel = level + 1;
-    if (nextLevel >= _offsets.size()) {
-        glDrawArrays(GL_POINTS, _offsets.last() - _lastLeafCount, _lastLeafCount);
-        
-    } else {
-        int first = _offsets.at(level);
-        glDrawArrays(GL_POINTS, first, _offsets.at(nextLevel) - first);
-    }
+    glDrawArrays(GL_POINTS, first, count);
+    
     _buffer.release();
 }
 

@@ -30,8 +30,6 @@ class MetavoxelSystem : public MetavoxelClientManager {
 
 public:
 
-    MetavoxelSystem();
-
     const AttributePointer& getPointBufferAttribute() const { return _pointBufferAttribute; }
 
     virtual void init();
@@ -48,40 +46,9 @@ protected:
 
 private:
     
-    class Point {
-    public:
-        glm::vec4 vertex;
-        quint8 color[4];
-        quint8 normal[3];
-    };
-    
-    class SimulateVisitor : public SpannerVisitor {
-    public:
-        SimulateVisitor(QVector<Point>& points);
-        void setDeltaTime(float deltaTime) { _deltaTime = deltaTime; }
-        void setOrder(const glm::vec3& direction) { _order = encodeOrder(direction); }
-        virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
-        virtual int visit(MetavoxelInfo& info);
-    
-    private:
-        QVector<Point>& _points;
-        float _deltaTime;
-        int _order;
-    };
-    
-    class RenderVisitor : public SpannerVisitor {
-    public:
-        RenderVisitor();
-        virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
-    };
-    
     static ProgramObject _program;
     static int _pointScaleLocation;
     
-    QVector<Point> _points;
-    SimulateVisitor _simulateVisitor;
-    RenderVisitor _renderVisitor;
-    QOpenGLBuffer _buffer;
     AttributePointer _pointBufferAttribute;
 };
 

@@ -45,6 +45,8 @@ protected:
     
     virtual MetavoxelClient* createClient(const SharedNodePointer& node);
     virtual void updateClient(MetavoxelClient* client);
+    
+    void guide(MetavoxelVisitor& visitor);
 };
 
 /// Base class for metavoxel clients.
