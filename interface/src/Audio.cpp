@@ -79,8 +79,14 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _loopbackOutputDevice(NULL),
     _proceduralAudioOutput(NULL),
     _proceduralOutputDevice(NULL),
+
+    // NOTE: Be very careful making changes to the initializers of these ring buffers. There is a known problem with some
+    // Mac audio devices that slowly introduce additional delay in the audio device because they play out audio slightly
+    // slower than real time (or at least the desired sample rate). If you increase the size of the ring buffer, then it 
+    // this delay will slowly add up and the longer someone runs, they more delayed their audio will be.
     _inputRingBuffer(0),
-    _ringBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, false, 100),
+    _ringBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO), // DO NOT CHANGE THIS UNLESS YOU SOLVE THE AUDIO DEVICE DRIFT PROBLEM!!!
+    
     _isStereoInput(false),
     _averagedLatency(0.0),
     _measuredJitter(0),
