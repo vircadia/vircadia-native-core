@@ -130,7 +130,8 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _outgoingAvatarAudioSequenceNumber(0),
     _incomingMixedAudioSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH),
     _interframeTimeGapStats(TIME_GAPS_STATS_INTERVAL_SAMPLES, TIME_GAP_STATS_WINDOW_INTERVALS),
-    _ringBufferFramesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
+    _inputRingBufferFramesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
+    _outputRingBufferFramesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _audioOutputBufferFramesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS)
 {
     // clear the array of locally injected samples
@@ -795,7 +796,7 @@ AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
     stats._timeGapWindowAverage = _interframeTimeGapStats.getWindowAverage();
 
     stats._ringBufferFramesAvailable = _ringBuffer.framesAvailable();
-    stats._ringBufferFramesAvailableAverage = _ringBufferFramesAvailableStats.getWindowAverage();
+    stats._ringBufferFramesAvailableAverage = _outputRingBufferFramesAvailableStats.getWindowAverage();
     stats._ringBufferDesiredJitterBufferFrames = getDesiredJitterBufferFrames();
     stats._ringBufferStarveCount = _starveCount;
     stats._ringBufferConsecutiveNotMixedCount = _consecutiveNotMixedCount;
@@ -810,9 +811,11 @@ AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
 
 void Audio::sendDownstreamAudioStatsPacket() {
 
+    _inputRingBufferFramesAvailableStats.update(getInputRingBufferFramesAvailable());
+
     // since this function is called every second, we'll sample the number of audio frames available here.
-    _ringBufferFramesAvailableStats.update(_ringBuffer.framesAvailable());
-    _audioOutputBufferFramesAvailableStats.update(getFramesAvailableInAudioOutputBuffer());
+    _outputRingBufferFramesAvailableStats.update(_ringBuffer.framesAvailable());
+    _audioOutputBufferFramesAvailableStats.update(getOutputRingBufferFramesAvailable());
 
     // push the current seq number stats into history, which moves the history window forward 1s
     // (since that's how often pushStatsToHistory() is called)
@@ -1596,7 +1599,7 @@ const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 
-int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) {
+int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const {
     int numInputCallbackBytes = (int)(((NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL 
         * format.channelCount()
         * (format.sampleRate() / SAMPLE_RATE))
@@ -1605,7 +1608,7 @@ int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) {
     return numInputCallbackBytes;
 }
 
-float Audio::calculateDeviceToNetworkInputRatio(int numBytes) {
+float Audio::calculateDeviceToNetworkInputRatio(int numBytes) const {
     float inputToNetworkInputRatio = (int)((_numInputCallbackBytes 
         * CALLBACK_ACCELERATOR_RATIO
         / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL) + 0.5f);
@@ -1613,15 +1616,20 @@ float Audio::calculateDeviceToNetworkInputRatio(int numBytes) {
     return inputToNetworkInputRatio;
 }
 
-int Audio::calculateNumberOfFrameSamples(int numBytes) {
+int Audio::calculateNumberOfFrameSamples(int numBytes) const {
     int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / sizeof(int16_t);
     return frameSamples;
 }
 
-int Audio::getFramesAvailableInAudioOutputBuffer() const {
+int Audio::getOutputRingBufferFramesAvailable() const {
     float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float)_outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float)_outputFormat.channelCount());
 
     return (_audioOutput->bufferSize() - _audioOutput->bytesFree()) * networkOutputToOutputRatio
                                     / (sizeof(int16_t) * _ringBuffer.getNumFrameSamples());
+}
+
+int Audio::getInputRingBufferFramesAvailable() const {
+    float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio(_numInputCallbackBytes);
+    return _inputRingBuffer.samplesAvailable() / inputToNetworkInputRatio / _inputRingBuffer.getNumFrameSamples();
 }

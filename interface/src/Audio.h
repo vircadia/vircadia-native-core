@@ -79,8 +79,11 @@ public:
 
     const SequenceNumberStats& getIncomingMixedAudioSequenceNumberStats() const { return _incomingMixedAudioSequenceNumberStats; }
 
-    int getFramesAvailableInAudioOutputBuffer() const;
-    int getAverageFramesAvailableInAudioOutputBuffer() const { return (int)_audioOutputBufferFramesAvailableStats.getWindowAverage(); }
+    int getInputRingBufferFramesAvailable() const;
+    int getInputRingBufferAverageFramesAvailable() const { return (int)_inputRingBufferFramesAvailableStats.getWindowAverage(); }
+
+    int getOutputRingBufferFramesAvailable() const;
+    int getOutputRingBufferAverageFramesAvailable() const { return (int)_audioOutputBufferFramesAvailableStats.getWindowAverage(); }
 
 public slots:
     void start();
@@ -224,9 +227,9 @@ private:
 
     // Callback acceleration dependent calculations
     static const float CALLBACK_ACCELERATOR_RATIO;
-    int calculateNumberOfInputCallbackBytes(const QAudioFormat& format);
-    int calculateNumberOfFrameSamples(int numBytes);
-    float calculateDeviceToNetworkInputRatio(int numBytes);
+    int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
+    int calculateNumberOfFrameSamples(int numBytes) const;
+    float calculateDeviceToNetworkInputRatio(int numBytes) const;
 
     // Audio scope methods for allocation/deallocation
     void allocateScope();
@@ -269,7 +272,10 @@ private:
     SequenceNumberStats _incomingMixedAudioSequenceNumberStats;
 
     MovingMinMaxAvg<quint64> _interframeTimeGapStats;
-    MovingMinMaxAvg<int> _ringBufferFramesAvailableStats;
+
+    MovingMinMaxAvg<int> _inputRingBufferFramesAvailableStats;
+
+    MovingMinMaxAvg<int> _outputRingBufferFramesAvailableStats;
     MovingMinMaxAvg<int> _audioOutputBufferFramesAvailableStats;
 };
 
