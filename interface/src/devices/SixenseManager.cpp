@@ -381,8 +381,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         triggerButton = Qt::LeftButton;
     }
 
-    const bool useLasers = true;
-    if (useLasers) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
         pos = application->getApplicationOverlay().getPalmClickLocation(palm);
     } else {
         // Get directon relative to avatar orientation

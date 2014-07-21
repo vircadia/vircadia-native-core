@@ -2809,7 +2809,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
 
         //Render the sixense lasers
-        _myAvatar->renderLaserPointers();
+        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+            _myAvatar->renderLaserPointers();
+        }
     }
 
     if (!selfAvatarOnly) {

@@ -353,9 +353,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     Application* application = Application::getInstance();
 
     MyAvatar* myAvatar = application->getAvatar();
-   
-    //Render the sixense lasers
-    myAvatar->renderLaserPointers();
 
     glActiveTexture(GL_TEXTURE0);
    
@@ -656,10 +653,24 @@ void ApplicationOverlay::renderControllerPointers() {
         }
 
         int mouseX, mouseY;
+        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+            QPoint res = getPalmClickLocation(palmData);
+            mouseX = res.x();
+            mouseY = res.y();
+        } else {
+            // Get directon relative to avatar orientation
+            glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
-        QPoint res = getPalmClickLocation(palmData);
-        mouseX = res.x();
-        mouseY = res.y();
+            // Get the angles, scaled between (-0.5,0.5)
+            float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+            float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
+
+            // Get the pixel range over which the xAngle and yAngle are scaled
+            float cursorRange = glWidget->width() * application->getSixenseManager()->getCursorPixelRangeMult();
+
+            mouseX = (glWidget->width() / 2.0f + cursorRange * xAngle);
+            mouseY = (glWidget->height() / 2.0f + cursorRange * yAngle);
+        }
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
