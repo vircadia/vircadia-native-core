@@ -168,7 +168,7 @@ if (localFile !== null) {
         this.assertEquals(200, req.status, "status should be `200`");
         this.assertEquals("OK", req.statusText, "statusText should be `OK`");
         this.assertEquals(0, req.errorCode);
-        this.assertEquals("", req.getAllResponseHeaders(), "headers should be null");
+        this.assertNotEquals("", req.getAllResponseHeaders(), "headers should not be null");
         this.assertContains("High Fidelity", req.response.substring(0, 100), "expected text not found in response")
 
         for (var i = 0; i <= req.DONE; i++) {

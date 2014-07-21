@@ -54,7 +54,8 @@ QScriptValue XMLHttpRequestClass::constructor(QScriptContext* context, QScriptEn
 QScriptValue XMLHttpRequestClass::getStatus() const {
     if (_reply) {
         return QScriptValue(_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt());
-    } else if(_url.isLocalFile()) {
+    } 
+    if(_url.isLocalFile()) {
         switch (_errorCode) {
             case QNetworkReply::NoError:
                 return QScriptValue(200);
@@ -74,7 +75,8 @@ QScriptValue XMLHttpRequestClass::getStatus() const {
 QString XMLHttpRequestClass::getStatusText() const {
     if (_reply) {
         return _reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
-    } else if (_url.isLocalFile()) {
+    }
+    if (_url.isLocalFile()) {
         switch (_errorCode) {
             case QNetworkReply::NoError:
                 return "OK";
@@ -132,12 +134,27 @@ QScriptValue XMLHttpRequestClass::getAllResponseHeaders() const {
         }
         return QString(headers.data());
     }
+    if (_url.isLocalFile()) {
+        QString headers = QString("Content-Type: application/octet-stream\n");
+        headers.append("Content-Length: ");
+        headers.append(QString("%1").arg(_rawResponseData.length()));
+        headers.append("\n");
+        return headers;
+    }
     return QScriptValue("");
 }
 
 QScriptValue XMLHttpRequestClass::getResponseHeader(const QString& name) const {
     if (_reply && _reply->hasRawHeader(name.toLatin1())) {
         return QScriptValue(QString(_reply->rawHeader(name.toLatin1())));
+    }
+    if (_url.isLocalFile()) {
+        if (name.toLower() == "content-type") {
+            return QString("application/octet-stream");
+        }
+        if (name.toLower() == "content-length") {
+            return QString("%1").arg(_rawResponseData.length());
+        }
     }
     return QScriptValue::NullValue;
 }
