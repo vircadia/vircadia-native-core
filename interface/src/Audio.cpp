@@ -148,9 +148,6 @@ void Audio::init(QGLWidget *parent) {
 
 void Audio::reset() {
     _ringBuffer.reset();
-    
-    _starveCount = 0;
-    _consecutiveNotMixedCount = 0;
 
     _outgoingAvatarAudioSequenceNumber = 0;
 
@@ -158,6 +155,9 @@ void Audio::reset() {
 }
 
 void Audio::resetStats() {
+    _starveCount = 0;
+    _consecutiveNotMixedCount = 0;
+
     _audioMixerAvatarStreamAudioStats = AudioStreamStats();
     _audioMixerInjectedStreamAudioStatsMap.clear();
 
