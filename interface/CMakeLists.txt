@@ -58,19 +58,6 @@ foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels pa
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)
 
-# windows also includes the faceshift externals, because using a lib doesn't work due to debug/release mismatch
-if (WIN32)
-  set(EXTERNAL_SOURCE_SUBDIRS "faceshift")
-endif ()
-
-foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
-  file(GLOB_RECURSE SUBDIR_SRCS 
-    "external/${EXTERNAL_SOURCE_SUBDIR}/src/*.cpp" 
-    "external/${EXTERNAL_SOURCE_SUBDIR}/src/*.c" 
-    "external/${EXTERNAL_SOURCE_SUBDIR}/src/*.h")
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
-endforeach(EXTERNAL_SOURCE_SUBDIR)
-
 find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
 
 # grab the ui files in resources/ui
@@ -154,7 +141,7 @@ if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
   if (APPLE OR UNIX)
       SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${SIXENSE_INCLUDE_DIRS}")
   endif (APPLE OR UNIX)
-  target_link_libraries(${TARGET_NAME} "${SIXENSE_LIBRARIES}")
+  target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
 endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
 
 # likewise with Visage library for webcam feature tracking
@@ -183,17 +170,15 @@ endif (FACEPLUS_FOUND AND NOT DISABLE_FACEPLUS)
 # and with LibOVR for Oculus Rift
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
   add_definitions(-DHAVE_LIBOVR)
-  include_directories(SYSTEM "${LIBOVR_INCLUDE_DIRS}")
-    
-  if (APPLE OR UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
+  include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
+  
+  if (APPLE)
+    foreach(LIBOVR_DIR ${LIBOVR_INCLUDE_DIRS})
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_DIR}")
+    endforeach()
   endif ()
-    
-  if (WIN32)
-    target_link_libraries(${TARGET_NAME} optimized "${LIBOVR_RELEASE_LIBRARIES}" debug "${LIBOVR_DEBUG_LIBRARIES}")
-  else ()
-    target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
-  endif ()
+  
+  target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
 # and with PrioVR library
@@ -208,10 +193,10 @@ if (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
     add_definitions(-DHAVE_LEAPMOTION)
     include_directories(SYSTEM "${LEAPMOTION_INCLUDE_DIRS}")
 
-    if (APPLE OR UNIX)
+    if (APPLE)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LEAPMOTION_INCLUDE_DIRS}")
     endif ()
-    target_link_libraries(${TARGET_NAME} "${LEAPMOTION_LIBRARIES}")
+    target_link_libraries(${TARGET_NAME} ${LEAPMOTION_LIBRARIES})
 endif (LEAPMOTION_FOUND AND NOT DISABLE_LEAPMOTION)
 
 # and with SDL for joysticks
@@ -224,23 +209,29 @@ endif (SDL_FOUND AND NOT DISABLE_SDL)
 # and with qxmpp for chat
 if (QXMPP_FOUND AND NOT DISABLE_QXMPP)
   add_definitions(-DHAVE_QXMPP -DQXMPP_STATIC)
-  include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
+  include_directories(SYSTEM "${QXMPP_INCLUDE_DIRS}")
 
-  target_link_libraries(${TARGET_NAME} "${QXMPP_LIBRARY}")
+  target_link_libraries(${TARGET_NAME} ${QXMPP_LIBRARIES})
 endif (QXMPP_FOUND AND NOT DISABLE_QXMPP)
 
 # and with RtMidi for RtMidi control
 if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI)
+  add_definitions(-DHAVE_RTMIDI)
+  include_directories(SYSTEM "${RTMIDI_INCLUDE_DIRS}")
+  target_link_libraries(${TARGET_NAME} ${RTMIDI_LIBRARIES})
   
-    add_definitions(-DHAVE_RTMIDI)
-    include_directories(SYSTEM ${RTMIDI_INCLUDE_DIR})
-    target_link_libraries(${TARGET_NAME} "${RTMIDI_LIBRARY}")
-    
-    if (APPLE)
-      find_library(CoreMIDI CoreMIDI)
-      add_definitions(-D__MACOSX_CORE__)
-      target_link_libraries(${TARGET_NAME} ${CoreMIDI})
-    endif()
+  if (APPLE)
+    find_library(CoreMIDI CoreMIDI)
+    add_definitions(-D__MACOSX_CORE__)
+    target_link_libraries(${TARGET_NAME} ${CoreMIDI})
+  endif()
+endif()
+
+# and with Faceshift for depth camera face tracking
+if (FACESHIFT_FOUND AND NOT DISABLE_FACESHIFT)
+  add_definitions(-DAHAVE_FACESHIFT)
+  include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
+  target_link_libraries(${TARGET_NAME} ${FACESHIFT_LIBRARIES})
 endif()
 
 # include headers for interface and InterfaceConfig.
@@ -248,11 +239,10 @@ include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes"
 
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}" "${OPENSSL_INCLUDE_DIR}")
+include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 
 target_link_libraries(
   ${TARGET_NAME}
-  "${FACESHIFT_LIBRARIES}"
   "${ZLIB_LIBRARIES}"
   ${OPENSSL_LIBRARIES}
   Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
@@ -305,7 +295,7 @@ else (APPLE)
   find_package(OpenGL REQUIRED)
   find_package(GLUT REQUIRED)
   
-  include_directories(SYSTEM "${GLUT_INCLUDE_DIR}")
+  include_directories(SYSTEM "${GLUT_INCLUDE_DIRS}")
   
   if (${OPENGL_INCLUDE_DIR})
     include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
@@ -324,6 +314,6 @@ else (APPLE)
     # add a definition for ssize_t so that windows doesn't bail
     add_definitions(-Dssize_t=long)
     
-    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARY}" wsock32.lib opengl32.lib)
+    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
   endif()
 endif (APPLE)
