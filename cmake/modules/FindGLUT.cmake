@@ -5,9 +5,8 @@
 #  Once done this will define
 #
 #  GLUT_FOUND
-#  GLUT_INCLUDE_DIR
+#  GLUT_INCLUDE_DIRS
 #  GLUT_LIBRARIES
-#  GLUT_DLL_PATH - Optionally defined for Win32, if not in path
 #
 #  Created on 2/6/2014 by Stephen Birarda
 #  Copyright 2014 High Fidelity, Inc.
@@ -19,73 +18,29 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-if (GLUT_INCLUDE_DIR AND GLUT_LIBRARIES)
-  set(GLUT_FOUND TRUE)
-else ()
-  if (WIN32)
-    set(WIN_GLUT_SEARCH_DIRS "${GLUT_ROOT_DIR}" "$ENV{GLUT_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/freeglut" "${OPENGL_INCLUDE_DIR}")
-    find_path(GLUT_INCLUDE_DIR GL/glut.h PATH_SUFFIXES include HINTS ${WIN_GLUT_SEARCH_DIRS})
+set(GLUT_HINT_DIRS "${GLUT_ROOT_DIR}" "$ENV{GLUT_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/freeglut")
 
-    find_library(GLUT_glut_LIBRARY freeglut PATH_SUFFIXES lib HINTS ${WIN_GLUT_SEARCH_DIRS})
-  else ()
-      find_path(GLUT_INCLUDE_DIR GL/glut.h
-          "${GLUT_LOCATION}/include"
-          "$ENV{GLUT_LOCATION}/include"
-          /usr/include
-          /usr/include/GL
-          /usr/local/include
-          /usr/openwin/share/include
-          /usr/openwin/include
-          /usr/X11R6/include
-          /usr/include/X11
-          /opt/graphics/OpenGL/include
-          /opt/graphics/OpenGL/contrib/libglut
-      )
-      find_library(GLUT_glut_LIBRARY glut
-          "${GLUT_LOCATION}/lib"
-          "$ENV{GLUT_LOCATION}/lib"
-          /usr/lib
-          /usr/local/lib
-          /usr/openwin/lib
-          /usr/X11R6/lib
-      )
-      find_library(GLUT_Xi_LIBRARY Xi
-          "${GLUT_LOCATION}/lib"
-          "$ENV{GLUT_LOCATION}/lib"
-          /usr/lib
-          /usr/local/lib
-          /usr/openwin/lib
-          /usr/X11R6/lib
-      )
-      find_library(GLUT_Xmu_LIBRARY Xmu
-          "${GLUT_LOCATION}/lib"
-          "$ENV{GLUT_LOCATION}/lib"
-          /usr/lib
-          /usr/local/lib
-          /usr/openwin/lib
-          /usr/X11R6/lib
-      )
-  endif ()
-
-  if (GLUT_INCLUDE_DIR AND GLUT_glut_LIBRARY)
-    # Is -lXi and -lXmu required on all platforms that have it?
-    # If not, we need some way to figure out what platform we are on.
-    set(GLUT_LIBRARIES ${GLUT_glut_LIBRARY} ${GLUT_Xmu_LIBRARY} ${GLUT_Xi_LIBRARY})
-  endif ()
-
-  include(FindPackageHandleStandardArgs)
-  find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIR GLUT_LIBRARIES)
+if (WIN32)
+  set(GLUT_HINT_DIRS "${GLUT_HINT_DIRS}" "${OPENGL_INCLUDE_DIR}")
   
-  if (GLUT_FOUND)
-    if (NOT GLUT_FIND_QUIETLY)
-      message(STATUS "Found GLUT: ${GLUT_LIBRARIES}")
-    endif ()
-  else ()
-    if (GLUT_FIND_REQUIRED)
-      message(FATAL_ERROR "Could not find GLUT")
-    endif ()
-  endif ()
-
-  mark_as_advanced(GLUT_glut_LIBRARY GLUT_Xmu_LIBRARY GLUT_Xi_LIBRARY)
-
+  find_path(GLUT_INCLUDE_DIRS GL/glut.h PATH_SUFFIXES include HINTS ${GLUT_HINT_DIRS})
+  find_library(GLUT_LIBRARY freeglut PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
+else ()
+  find_path(GLUT_INCLUDE_DIRS GL/glut.h PATH_SUFFIXES include HINTS ${GLUT_HINT_DIRS})
+  find_library(GLUT_LIBRARY glut PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
 endif ()
+
+include(FindPackageHandleStandardArgs)
+
+set(GLUT_LIBRARIES "${GLUT_LIBRARY}" "${XMU_LIBRARY}" "${XI_LIBRARY}")
+
+if (UNIX)
+  find_library(XI_LIBRARY Xi PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
+  find_library(XMU_LIBRARY Xmu PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
+  
+  find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIRS GLUT_LIBRARIES XI_LIBRARY XMU_LIBRARY)
+else ()
+  find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIRS GLUT_LIBRARIES)
+endif ()
+
+mark_as_advanced(GLUT_INCLUDE_DIRS GLUT_LIBRARIES GLUT_LIBRARY XI_LIBRARY XMU_LIBRARY)
