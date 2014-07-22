@@ -1289,13 +1289,25 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             if (_argumentVariantMap.value(ADMIN_USERS_CONFIG_KEY).toJsonValue().toArray().contains(profileUsername)) {
                 // this is an authenticated user
                 return true;
-            } else {
-                QString unauthenticatedRequest = "You do not have permission to access this domain-server.";
-                connection->respond(HTTPConnection::StatusCode401, unauthenticatedRequest.toUtf8());
-                
-                // the user does not have allowed username or role, return 401
-                return false;
             }
+            
+            // loop the roles of this user and see if they are in the admin-roles array
+            QJsonArray adminRolesArray = _argumentVariantMap.value(ADMIN_ROLES_CONFIG_KEY).toJsonValue().toArray();
+            
+            if (!adminRolesArray.isEmpty()) {
+                foreach(const QString& userRole, sessionData.getRoles()) {
+                    if (adminRolesArray.contains(userRole)) {
+                        // this user has a role that allows them to administer the domain-server
+                        return true;
+                    }
+                }
+            }
+            
+            QString unauthenticatedRequest = "You do not have permission to access this domain-server.";
+            connection->respond(HTTPConnection::StatusCode401, unauthenticatedRequest.toUtf8());
+            
+            // the user does not have allowed username or role, return 401
+            return false;
         } else {
             // re-direct this user to OAuth page
             
@@ -1402,9 +1414,10 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     QUuid cookieUUID = QUuid::createUuid();
     
     QJsonDocument profileDocument = QJsonDocument::fromJson(profileReply->readAll());
+    QJsonObject userObject = profileDocument.object()["data"].toObject()["user"].toObject();
     
     // add the profile to our in-memory data structure so we know who the user is when they send us their cookie
-    _cookieSessionHash.insert(cookieUUID, DomainServerWebSessionData(profileDocument));
+    _cookieSessionHash.insert(cookieUUID, DomainServerWebSessionData(userObject));
     
     // setup expiry for cookie to 1 month from today
     QDateTime cookieExpiry = QDateTime::currentDateTimeUtc().addMonths(1);

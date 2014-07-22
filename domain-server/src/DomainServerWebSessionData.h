@@ -19,7 +19,7 @@ class DomainServerWebSessionData : public QObject {
     Q_OBJECT
 public:
     DomainServerWebSessionData();
-    DomainServerWebSessionData(const QJsonDocument& profileDocument);
+    DomainServerWebSessionData(const QJsonObject& userObject);
     DomainServerWebSessionData(const DomainServerWebSessionData& otherSessionData);
     DomainServerWebSessionData& operator=(const DomainServerWebSessionData& otherSessionData);
     

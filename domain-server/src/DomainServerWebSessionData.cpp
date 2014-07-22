@@ -9,7 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QJsonDocument>
+#include <QtCore/QDebug>
+#include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
 
 #include "DomainServerWebSessionData.h"
@@ -21,13 +22,13 @@ DomainServerWebSessionData::DomainServerWebSessionData() :
     
 }
 
-DomainServerWebSessionData::DomainServerWebSessionData(const QJsonDocument& profileDocument) :
+DomainServerWebSessionData::DomainServerWebSessionData(const QJsonObject& userObject) :
     _roles()
 {
-    _username = profileDocument.object()["user"].toObject()["username"].toString();
+    _username = userObject["username"].toString();
     
     // pull each of the roles and throw them into our set
-    foreach(const QJsonValue& rolesValue, profileDocument.object()["user"].toObject()["roles"].toObject()) {
+    foreach(const QJsonValue& rolesValue, userObject["roles"].toArray()) {
         _roles.insert(rolesValue.toString());
     }
 }
