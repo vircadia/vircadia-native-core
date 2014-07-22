@@ -229,7 +229,7 @@ endif()
 
 # and with Faceshift for depth camera face tracking
 if (FACESHIFT_FOUND AND NOT DISABLE_FACESHIFT)
-  add_definitions(-DAHAVE_FACESHIFT)
+  add_definitions(-DHAVE_FACESHIFT)
   include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
   target_link_libraries(${TARGET_NAME} ${FACESHIFT_LIBRARIES})
 endif()
