@@ -43,7 +43,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _networkReplyUUIDMap(),
     _sessionAuthenticationHash(),
     _webAuthenticationStateSet(),
-    _cookieProfileJSONHash(),
+    _cookieSessionHash(),
     _settingsManager()
 {
     setOrganizationName("High Fidelity");
@@ -1281,10 +1281,10 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             cookieUUID = cookieUUIDRegex.cap(1);
         }
         
-        if (!cookieUUID.isNull() && _cookieProfileJSONHash.contains(cookieUUID)) {
+        if (!cookieUUID.isNull() && _cookieSessionHash.contains(cookieUUID)) {
             // pull the QJSONObject for the user with this cookie UUID
-            QJsonObject profileObject = _cookieProfileJSONHash.value(cookieUUID);
-            QString profileUsername = profileObject.value("username").toString();
+            DomainServerWebSessionData sessionData = _cookieSessionHash.value(cookieUUID);
+            QString profileUsername = sessionData.getUsername();
             
             if (_argumentVariantMap.value(ADMIN_USERS_CONFIG_KEY).toJsonValue().toArray().contains(profileUsername)) {
                 // this is an authenticated user
@@ -1404,7 +1404,7 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     QJsonDocument profileDocument = QJsonDocument::fromJson(profileReply->readAll());
     
     // add the profile to our in-memory data structure so we know who the user is when they send us their cookie
-    _cookieProfileJSONHash.insert(cookieUUID, profileDocument.object()["data"].toObject()["user"].toObject());
+    _cookieSessionHash.insert(cookieUUID, DomainServerWebSessionData(profileDocument));
     
     // setup expiry for cookie to 1 month from today
     QDateTime cookieExpiry = QDateTime::currentDateTimeUtc().addMonths(1);

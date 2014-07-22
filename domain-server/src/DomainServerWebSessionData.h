@@ -18,12 +18,17 @@
 class DomainServerWebSessionData : public QObject {
     Q_OBJECT
 public:
+    DomainServerWebSessionData();
     DomainServerWebSessionData(const QJsonDocument& profileDocument);
+    DomainServerWebSessionData(const DomainServerWebSessionData& otherSessionData);
+    DomainServerWebSessionData& operator=(const DomainServerWebSessionData& otherSessionData);
     
     const QString& getUsername() const { return _username; }
     const QSet<QString>& getRoles() const { return _roles; }
     
 private:
+    void swap(DomainServerWebSessionData& otherSessionData);
+    
     QString _username;
     QSet<QString> _roles;
 };

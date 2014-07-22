@@ -25,6 +25,7 @@
 #include <LimitedNodeList.h>
 
 #include "DomainServerSettingsManager.h"
+#include "DomainServerWebSessionData.h"
 #include "WalletTransaction.h"
 
 #include "PendingAssignedNodeData.h"
@@ -115,7 +116,7 @@ private:
     QHash<QUuid, QString> _sessionAuthenticationHash;
     
     QSet<QUuid> _webAuthenticationStateSet;
-    QHash<QUuid, QJsonObject> _cookieProfileJSONHash;
+    QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
     
     DomainServerSettingsManager _settingsManager;
 };

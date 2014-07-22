@@ -14,6 +14,13 @@
 
 #include "DomainServerWebSessionData.h"
 
+DomainServerWebSessionData::DomainServerWebSessionData() :
+    _username(),
+    _roles()
+{
+    
+}
+
 DomainServerWebSessionData::DomainServerWebSessionData(const QJsonDocument& profileDocument) :
     _roles()
 {
@@ -24,3 +31,22 @@ DomainServerWebSessionData::DomainServerWebSessionData(const QJsonDocument& prof
         _roles.insert(rolesValue.toString());
     }
 }
+
+DomainServerWebSessionData::DomainServerWebSessionData(const DomainServerWebSessionData& otherSessionData) {
+    _username = otherSessionData._username;
+    _roles = otherSessionData._roles;
+}
+
+DomainServerWebSessionData& DomainServerWebSessionData::operator=(const DomainServerWebSessionData& otherSessionData) {
+    DomainServerWebSessionData temp(otherSessionData);
+    swap(temp);
+    return *this;
+}
+
+void DomainServerWebSessionData::swap(DomainServerWebSessionData& otherSessionData) {
+    using std::swap;
+    
+    swap(_username, otherSessionData._username);
+    swap(_roles, otherSessionData._roles);
+}
+
