@@ -396,8 +396,11 @@ var toolBar = (function () {
 
         if (clickedOverlay === loadFileMenuItem) {
             toggleToolbar(false);
-            file = Window.browse("Select your model file ...", "", "Model files (*.fst *.fbx *.svo)");
+            file = Window.browse("Select your model file ...",
+                Settings.getValue("LastModelUploadLocation").path(),
+                "Model files (*.fst *.fbx *.svo)");
             if (file !== null) {
+                Settings.setValue("LastModelUploadLocation", file);
                 modelUploader.upload(file, addModel);
             }
             return true;
