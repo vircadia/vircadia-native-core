@@ -977,8 +977,9 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisableQAudioOutputOverflowCheck)) {
         numNetworkOutputSamples = _ringBuffer.samplesAvailable();
     } else {
-        int numSamplesAudioOutputRoomFor = _audioOutput->bytesFree() / sizeof(int16_t);
-        numNetworkOutputSamples = std::min(_ringBuffer.samplesAvailable(), (int)(numSamplesAudioOutputRoomFor * networkOutputToOutputRatio));
+        // make sure to push a whole number of frames to the audio output
+        int numFramesAudioOutputRoomFor = _audioOutput->bytesFree() / sizeof(int16_t) * networkOutputToOutputRatio / _ringBuffer.getNumFrameSamples();
+        numNetworkOutputSamples = std::min(_ringBuffer.samplesAvailable(), numFramesAudioOutputRoomFor * _ringBuffer.getNumFrameSamples());
     }
     
     // if there is data in the ring buffer and room in the audio output, decide what to do
