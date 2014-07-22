@@ -26,6 +26,8 @@
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
+class QScriptEngine;
+
 class AnimationHandle;
 class Shape;
 
@@ -39,6 +41,9 @@ class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
     
 public:
+
+    /// Registers the script types associated with models.
+    static void registerMetaTypes(QScriptEngine* engine);
 
     Model(QObject* parent = NULL);
     virtual ~Model();
@@ -145,9 +150,14 @@ public:
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
-    void setLocalLightDirection(const glm::vec3& direction, int lightIndex);
-    void setLocalLightColor(const glm::vec3& color, int lightIndex);
-    void setNumLocalLights(int numLocalLights);   
+    class LocalLight {
+    public:
+        glm::vec3 color;
+        glm::vec3 direction;
+    };
+    
+    void setLocalLights(const QVector<LocalLight>& localLights) { _localLights = localLights; }
+    const QVector<LocalLight>& getLocalLights() const { return _localLights; }
 
     void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
  
@@ -165,10 +175,8 @@ protected:
     bool _snappedToCenter; /// are we currently snapped to center
     bool _showTrueJointTransforms;
     
-    glm::vec3 _localLightDirections[MAX_LOCAL_LIGHTS];
-    glm::vec3 _localLightColors[MAX_LOCAL_LIGHTS];
-    int _numLocalLights;
- 
+    QVector<LocalLight> _localLights;
+    
     QVector<JointState> _jointStates;
 
     class MeshState {
@@ -326,6 +334,8 @@ private:
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
+Q_DECLARE_METATYPE(Model::LocalLight)
+Q_DECLARE_METATYPE(QVector<Model::LocalLight>)
 
 /// Represents a handle to a model animation.
 class AnimationHandle : public QObject {

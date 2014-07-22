@@ -245,19 +245,9 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         
         
         // local lights directions and colors
-        getSkeletonModel().setNumLocalLights(_numLocalLights);
-        getHead()->getFaceModel().setNumLocalLights(_numLocalLights);
-        for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
-            glm::vec3 normalized = glm::normalize(_localLightDirections[i]);
-            
-            // body
-            getSkeletonModel().setLocalLightColor(_localLightColors[i], i);
-            getSkeletonModel().setLocalLightDirection(normalized, i);
-            
-            // head
-            getHead()->getFaceModel().setLocalLightColor(_localLightColors[i], i);
-            getHead()->getFaceModel().setLocalLightDirection(_localLightDirections[i], i);
-        }
+        const QVector<Model::LocalLight>& localLights = Application::getInstance()->getAvatarManager().getLocalLights();
+        _skeletonModel.setLocalLights(localLights);
+        getHead()->getFaceModel().setLocalLights(localLights);
         
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {

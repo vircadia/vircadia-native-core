@@ -10,14 +10,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var localLightDirections = [ {x: 1.0, y:1.0, z: 0.0}, {x: 0.0, y:1.0, z: 1.0} ];
-var localLightColors = [ {x: 0.0, y:1.0, z: 0.0}, {x: 1.0, y:0.0, z: 0.0} ];
+var localLightDirections = [ {x: 1.0, y:0.0, z: 0.0}, {x: 0.0, y:0.0, z: 1.0} ];
+var localLightColors = [ {x: 1.0, y:1.0, z: 1.0}, {x: 1.0, y:1.0, z: 1.0} ];
 
 var currentSelection = 0;
-var currentNumLights = 1;
+var currentNumLights = 2;
 var maxNumLights = 2;
 var currentNumAvatars = 0;
 var changeDelta = 0.1;
+var lightsDirty = true;
 
 function keyPressEvent(event) {
 
@@ -45,7 +46,7 @@ function keyPressEvent(event) {
     		localLightColors[currentSelection].x = 0.0;
     	}
     	
-    	setAllLightColors();
+    	lightsDirty = true;
     	print("CHANGE RED light " + currentSelection + " color (" + localLightColors[currentSelection].x + ", " + localLightColors[currentSelection].y + ", " + localLightColors[currentSelection].z + " )" );
     }
     else if (event.text == "6" ) {
@@ -54,7 +55,7 @@ function keyPressEvent(event) {
     		localLightColors[currentSelection].y = 0.0;
     	}
     	
-    	setAllLightColors();
+    	lightsDirty = true;
     	print("CHANGE GREEN light " + currentSelection + " color (" + localLightColors[currentSelection].x + ", " + localLightColors[currentSelection].y + ", " + localLightColors[currentSelection].z + " )" );
     }
     else if (event.text == "7" ) {
@@ -63,7 +64,7 @@ function keyPressEvent(event) {
     		localLightColors[currentSelection].z = 0.0;
     	}
     	
-    	setAllLightColors();
+    	lightsDirty = true;
     	print("CHANGE BLUE light " + currentSelection + " color (" + localLightColors[currentSelection].x + ", " + localLightColors[currentSelection].y + ", " + localLightColors[currentSelection].z + " )" );
     }
     else if (event.text == "8" ) {
@@ -72,7 +73,7 @@ function keyPressEvent(event) {
     		localLightDirections[currentSelection].x = -1.0;
     	}
     	
-    	setAllLightDirections();
+    	lightsDirty = true;
     	print("PLUS X light " + currentSelection + " direction (" + localLightDirections[currentSelection].x + ", " + localLightDirections[currentSelection].y + ", " + localLightDirections[currentSelection].z + " )" );
     }
     else if (event.text == "9" ) {
@@ -81,7 +82,7 @@ function keyPressEvent(event) {
     		localLightDirections[currentSelection].x = 1.0;
     	}
     	
-    	setAllLightDirections();
+    	lightsDirty = true;
     	print("MINUS X light " + currentSelection + " direction (" + localLightDirections[currentSelection].x + ", " + localLightDirections[currentSelection].y + ", " + localLightDirections[currentSelection].z + " )" );
     }
     else if (event.text == "0" ) {
@@ -90,7 +91,7 @@ function keyPressEvent(event) {
     		localLightDirections[currentSelection].y = -1.0;
     	}
     	
-    	setAllLightDirections();
+    	lightsDirty = true;
     	print("PLUS Y light " + currentSelection + " direction (" + localLightDirections[currentSelection].x + ", " + localLightDirections[currentSelection].y + ", " + localLightDirections[currentSelection].z + " )" );
     }
     else if (event.text == "-" ) {
@@ -99,21 +100,13 @@ function keyPressEvent(event) {
     		localLightDirections[currentSelection].y = 1.0;
     	}
     	
-    	setAllLightDirections();
+    	lightsDirty = true;
     	print("MINUS Y light " + currentSelection + " direction (" + localLightDirections[currentSelection].x + ", " + localLightDirections[currentSelection].y + ", " + localLightDirections[currentSelection].z + " )" );
     }
     else if (event.text == "," ) {
     	if (currentNumLights + 1 <= maxNumLights) {
     		++currentNumLights;
-    		
-    		for (var i = 0; i < currentNumAvatars; i++) {
-    			AvatarManager.addAvatarLocalLight(i);
-    		
-    			for (var j = 0; j < currentNumLights; j++) {
-    				AvatarManager.setAvatarLightColor(localLightColors[j], j, i); 
-					AvatarManager.setAvatarLightDirection(localLightDirections[j], j, i);
-    			}
-    		}
+    		lightsDirty = true;
     	}
     	
     	print("ADD LIGHT, number of lights " + currentNumLights);
@@ -121,16 +114,7 @@ function keyPressEvent(event) {
     else if (event.text == "." ) {
     	if (currentNumLights - 1 >= 0 ) {
     		--currentNumLights;	
-    		
-    		for (var i = 0; i < currentNumAvatars; i++) {
-    			AvatarManager.removeAvatarLocalLight(i);
-    		
-    			for (var j = 0; j < currentNumLights; j++) {
-    				AvatarManager.setAvatarLightColor(localLightColors[j], j, i); 
-					AvatarManager.setAvatarLightDirection(localLightDirections[j], j, i);
-    			}
-    		}
-    	
+    		lightsDirty = true;
     	}
     	
     	print("REMOVE LIGHT, number of lights " + currentNumLights);
@@ -139,45 +123,14 @@ function keyPressEvent(event) {
 
 function updateLocalLights()
 {
-	// new avatars, so add lights
-	var numAvatars = AvatarManager.getNumAvatars();
-	if (numAvatars != currentNumAvatars) {
-			
-		for (var i = 0; i < numAvatars; i++) {
-			var numLights = AvatarManager.getNumLightsInAvatar(i);
-			
-			// check if new avatar has lights
-			if (numLights <= 0) {
-				AvatarManager.addAvatarLocalLight(i);
-				
-				// set color and direction for new avatar
-				for (var j = 0; j < maxNumLights; j++) {
-					AvatarManager.setAvatarLightColor(localLightColors[j], j, i); 
-					AvatarManager.setAvatarLightDirection(localLightDirections[j], j, i);
-				}
-			}
-		}
-		
-		currentNumAvatars = numAvatars;
-	}
-}
-
-function setAllLightColors()
-{
-	for (var i = 0; i < currentNumAvatars; i++) {
-		for (var j = 0; j < maxNumLights; j++) {
-			AvatarManager.setAvatarLightColor(localLightColors[j], j, i); 
-		}
-	}
-}
-
-function setAllLightDirections()
-{
-	for (var i = 0; i < currentNumAvatars; i++) {
-		for (var j = 0; j < maxNumLights; j++) {
-			AvatarManager.setAvatarLightDirection(localLightDirections[j], j, i); 
-		}
-	}
+	if (lightsDirty) {
+	    var localLights = [];
+	    for (var i = 0; i < currentNumLights; i++) {
+	        localLights.push({ direction: localLightDirections[i], color: localLightColors[i] });
+	    }
+	    AvatarManager.setLocalLights(localLights);
+        lightsDirty = false;
+    }
 }
 
 // main
