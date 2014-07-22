@@ -315,6 +315,7 @@ namespace MenuOption {
     const QString AudioScopeFrames = "Display Frames";
     const QString AudioScopePause = "Pause Audio Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
+    const QString AudioStats = "Audio Stats";
     const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
     const QString AudioSpatialProcessing = "Audio Spatial Processing";
     const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";

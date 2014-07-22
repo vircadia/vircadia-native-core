@@ -589,6 +589,12 @@ Menu::Menu() :
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_U,
                                            false);
 
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
+                                            0,
+                                            false,
+                                            appInstance->getAudio(),
+                                            SLOT(toggleStats()));
+
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, true);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,

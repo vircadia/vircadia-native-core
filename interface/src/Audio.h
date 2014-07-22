@@ -71,6 +71,7 @@ public:
     
     void renderToolBox(int x, int y, bool boxed);
     void renderScope(int width, int height);
+    void renderStats(const float* color, int width, int height);
     
     int getNetworkSampleRate() { return SAMPLE_RATE; }
     int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
@@ -100,6 +101,7 @@ public slots:
     void toggleToneInjection();
     void toggleScope();
     void toggleScopePause();
+    void toggleStats();
     void toggleAudioSpatialProcessing();
     void toggleStereoInput();
     void selectAudioScopeFiveFrames();
@@ -262,6 +264,10 @@ private:
     QByteArray* _scopeInput;
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
+
+    static const unsigned int STATS_WIDTH = 600;
+    static const unsigned int STATS_HEIGHT_PER_LINE = 20;
+    bool _statsEnabled;
 
     int _starveCount;
     int _consecutiveNotMixedCount;
