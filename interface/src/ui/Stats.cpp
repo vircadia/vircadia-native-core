@@ -314,14 +314,14 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
 
-            char inputAudioLabelString[] = "Input: (avail_avg_10s/avail)";
+            char inputAudioLabelString[] = "Input: avail_avg_10s/avail";
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, inputAudioLabelString, color);
 
             char inputAudioStatsString[512];
-            sprintf(inputAudioStatsString, " %d/%d", audio->getInputRingBufferFramesAvailable(),
-                audio->getInputRingBufferAverageFramesAvailable());
+            sprintf(inputAudioStatsString, " %d/%d", audio->getInputRingBufferAverageFramesAvailable(),
+                audio->getInputRingBufferFramesAvailable());
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, inputAudioStatsString, color);
