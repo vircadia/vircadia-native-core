@@ -44,6 +44,7 @@ void MetavoxelServer::run() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(maybeAttachSession(const SharedNodePointer&)));
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(maybeDeleteSession(const SharedNodePointer&)));
     
     _lastSend = QDateTime::currentMSecsSinceEpoch();
     _sendTimer.start(SEND_INTERVAL);
@@ -93,6 +94,17 @@ void MetavoxelServer::maybeAttachSession(const SharedNodePointer& node) {
     if (node->getType() == NodeType::Agent) {
         QMutexLocker locker(&node->getMutex());
         node->setLinkedData(new MetavoxelSession(node, this));
+    }
+}
+
+void MetavoxelServer::maybeDeleteSession(const SharedNodePointer& node) {
+    if (node->getType() == NodeType::Agent) {
+        QMutexLocker locker(&node->getMutex());
+        MetavoxelSession* session = static_cast<MetavoxelSession*>(node->getLinkedData());
+        if (session) {
+            node->setLinkedData(NULL);
+            session->deleteLater();
+        }
     }
 }
 

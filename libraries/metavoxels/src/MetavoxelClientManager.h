@@ -40,7 +40,8 @@ public:
 private slots:
 
     void maybeAttachClient(const SharedNodePointer& node);
-
+    void maybeDeleteClient(const SharedNodePointer& node);
+    
 protected:
     
     virtual MetavoxelClient* createClient(const SharedNodePointer& node);

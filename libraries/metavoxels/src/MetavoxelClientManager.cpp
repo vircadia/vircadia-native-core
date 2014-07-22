@@ -16,6 +16,7 @@
 
 void MetavoxelClientManager::init() {
     connect(NodeList::getInstance(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(maybeAttachClient(const SharedNodePointer&)));
+    connect(NodeList::getInstance(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(maybeDeleteClient(const SharedNodePointer&)));
 }
 
 void MetavoxelClientManager::update() {
@@ -95,6 +96,17 @@ void MetavoxelClientManager::maybeAttachClient(const SharedNodePointer& node) {
     }
 }
 
+void MetavoxelClientManager::maybeDeleteClient(const SharedNodePointer& node) {
+    if (node->getType() == NodeType::MetavoxelServer) {
+        QMutexLocker locker(&node->getMutex());
+        MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+        if (client) {
+            node->setLinkedData(NULL);
+            client->deleteLater();
+        }
+    }
+}
+
 MetavoxelClient* MetavoxelClientManager::createClient(const SharedNodePointer& node) {
     return new MetavoxelClient(node, this);
 }
@@ -138,8 +150,10 @@ void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit, bool reliable)
         // apply immediately to local tree
         MetavoxelData oldData = _data;
         edit.apply(_data, _sequencer.getWeakSharedObjectHash());
-        dataChanged(oldData);
-
+        if (_data != oldData) {
+            dataChanged(oldData);
+        }
+        
         // start sending it out
         _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
     }
@@ -177,8 +191,9 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
                 message.data.value<MetavoxelEditMessage>().apply(_data, _sequencer.getWeakSharedObjectHash());
             }
         }
-        dataChanged(oldData);
-        
+        if (_data != oldData) {
+            dataChanged(oldData);
+        }
     } else if (userType == MetavoxelDeltaPendingMessage::Type) {
         // check the id to make sure this is not a delta we've already processed
         int id = message.value<MetavoxelDeltaPendingMessage>().id;

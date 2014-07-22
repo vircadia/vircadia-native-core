@@ -52,22 +52,6 @@ private:
     AttributePointer _pointBufferAttribute;
 };
 
-/// A client session associated with a single server.
-class MetavoxelSystemClient : public MetavoxelClient {
-    Q_OBJECT    
-    
-public:
-    
-    MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelSystem* system);
-    
-    virtual int parseData(const QByteArray& packet);
-
-protected:
-    
-    virtual void dataChanged(const MetavoxelData& oldData);
-    virtual void sendDatagram(const QByteArray& data);
-};
-
 /// Describes contents of a point in a point buffer.
 class BufferPoint {
 public:
@@ -78,6 +62,33 @@ public:
 
 typedef QVector<BufferPoint> BufferPointVector;
 typedef QPair<BufferPointVector, BufferPointVector> BufferPointVectorPair;
+
+Q_DECLARE_METATYPE(BufferPointVector)
+
+/// A client session associated with a single server.
+class MetavoxelSystemClient : public MetavoxelClient {
+    Q_OBJECT    
+    
+public:
+    
+    MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelSystem* system);
+    
+    void render();
+
+    Q_INVOKABLE void setPoints(const BufferPointVector& points);
+    
+    virtual int parseData(const QByteArray& packet);
+
+protected:
+    
+    virtual void dataChanged(const MetavoxelData& oldData);
+    virtual void sendDatagram(const QByteArray& data);
+
+private:
+    
+    QOpenGLBuffer _buffer;
+    int _pointCount;
+};
 
 /// Contains the information necessary to render a group of points at variable detail levels.
 class PointBuffer : public QSharedData {

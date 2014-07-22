@@ -49,7 +49,7 @@ void Endpoint::update() {
 
 int Endpoint::parseData(const QByteArray& packet) {
     // process through sequencer
-    _sequencer.receivedDatagram(packet);
+    QMetaObject::invokeMethod(&_sequencer, "receivedDatagram", Q_ARG(const QByteArray&, packet));
     return packet.size();
 }
 

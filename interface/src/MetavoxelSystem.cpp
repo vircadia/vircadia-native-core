@@ -26,6 +26,8 @@
 REGISTER_META_OBJECT(SphereRenderer)
 REGISTER_META_OBJECT(StaticModelRenderer)
 
+static int bufferPointVectorMetaTypeId = qRegisterMetaType<BufferPointVector>();
+
 ProgramObject MetavoxelSystem::_program;
 int MetavoxelSystem::_pointScaleLocation;
 
@@ -152,8 +154,22 @@ void MetavoxelSystem::render() {
 
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
 
-    PointBufferRenderVisitor pointBufferRenderVisitor;
-    guide(pointBufferRenderVisitor);
+    glDisable(GL_BLEND);
+
+    //PointBufferRenderVisitor pointBufferRenderVisitor;
+    //guide(pointBufferRenderVisitor);
+    
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
+            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
+            if (client) {
+                client->render();
+            }
+        }
+    }
+    
+    glEnable(GL_BLEND);
     
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
     
@@ -176,7 +192,35 @@ void MetavoxelSystem::updateClient(MetavoxelClient* client) {
 }
 
 MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelSystem* system) :
-    MetavoxelClient(node, system) {
+    MetavoxelClient(node, system),
+    _pointCount(0) {
+    
+    _buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    _buffer.create();
+}
+
+void MetavoxelSystemClient::render() {
+    _buffer.bind();
+    
+    BufferPoint* point = 0;
+    glVertexPointer(4, GL_FLOAT, sizeof(BufferPoint), &point->vertex);
+    glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(BufferPoint), &point->color);
+    glNormalPointer(GL_BYTE, sizeof(BufferPoint), &point->normal);
+    
+    glDrawArrays(GL_POINTS, 0, _pointCount);
+    
+    _buffer.release();
+}
+
+void MetavoxelSystemClient::setPoints(const BufferPointVector& points) {
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    _buffer.bind();
+    _buffer.allocate(points.constData(), points.size() * sizeof(BufferPoint));
+    _buffer.release();
+    _pointCount = points.size();
+    qDebug() << "upload" << (QDateTime::currentMSecsSinceEpoch() - now);
+    qDebug() << _pointCount;
+    
 }
 
 int MetavoxelSystemClient::parseData(const QByteArray& packet) {
@@ -280,8 +324,73 @@ bool BufferBuilder::postVisit(MetavoxelInfo& info) {
     return true;
 }
 
+class PointCollector : public MetavoxelVisitor {
+public:
+    
+    QVector<BufferPoint> points;
+    
+    PointCollector(const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info);
+};
+
+PointCollector::PointCollector(const MetavoxelLOD& lod) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
+        AttributeRegistry::getInstance()->getNormalAttribute(), QVector<AttributePointer>(), lod) {
+}
+
+int PointCollector::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
+    quint8 alpha = qAlpha(color);
+    if (alpha <= ALPHA_RENDER_THRESHOLD) {
+        return STOP_RECURSION;
+    }
+    QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
+    BufferPoint point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+        { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)) }, 
+        { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
+    points.append(point);
+    return STOP_RECURSION;
+}
+
+/// Builds a point buffer.
+class PointBufferBuilder : public QRunnable {
+public:
+    
+    PointBufferBuilder(const SharedNodePointer& node, const MetavoxelData& data, const MetavoxelLOD& lod);
+    
+    virtual void run();
+
+private:
+    
+    QWeakPointer<Node> _node;
+    MetavoxelData _data;
+    MetavoxelLOD _lod;
+};
+
+PointBufferBuilder::PointBufferBuilder(const SharedNodePointer& node, const MetavoxelData& data, const MetavoxelLOD& lod) :
+    _node(node),
+    _data(data),
+    _lod(lod) {
+}
+
+void PointBufferBuilder::run() {
+    SharedNodePointer node = _node;
+    if (!node) {
+        return;
+    }
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    PointCollector collector(_lod);
+    _data.guide(collector);
+    QMetaObject::invokeMethod(node->getLinkedData(), "setPoints", Q_ARG(const BufferPointVector&, collector.points));
+    qDebug() << "collect" << (QDateTime::currentMSecsSinceEpoch() - now);
+}
+
 void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
-    BufferBuilder builder(_remoteDataLOD);
+    /* BufferBuilder builder(_remoteDataLOD);
     const AttributePointer& pointBufferAttribute = Application::getInstance()->getMetavoxels()->getPointBufferAttribute();
     MetavoxelNode* oldRoot = oldData.getRoot(pointBufferAttribute);
     if (oldRoot && oldData.getSize() == _data.getSize()) {
@@ -292,7 +401,8 @@ void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
     } else {
         _data.clear(pointBufferAttribute);
         _data.guide(builder);
-    }
+    } */
+    QThreadPool::globalInstance()->start(new PointBufferBuilder(_node, _data, _remoteDataLOD));
 }
 
 void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {

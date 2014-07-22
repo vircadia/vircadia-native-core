@@ -21,6 +21,7 @@
 
 class MetavoxelEditMessage;
 class MetavoxelPersister;
+class MetavoxelSender;
 class MetavoxelSession;
 
 /// Maintains a shared metavoxel system, accepting change requests and broadcasting updates.
@@ -46,6 +47,7 @@ public:
 private slots:
 
     void maybeAttachSession(const SharedNodePointer& node);
+    void maybeDeleteSession(const SharedNodePointer& node);
     void sendDeltas();    
     
 private:
