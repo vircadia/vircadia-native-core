@@ -391,12 +391,15 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollideAsRagdoll);
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
+#ifdef HAVE_FACESHIFT
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
                                            MenuOption::Faceshift,
                                            0,
                                            true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+#endif
+    
 #ifdef HAVE_FACEPLUS
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Faceplus, 0, true,
         appInstance->getFaceplus(), SLOT(updateEnabled()));

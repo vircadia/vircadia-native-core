@@ -3628,6 +3628,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
     scriptEngine->getModelsScriptingInterface()->setModelTree(_models.getTree());
 
+    // model has some custom types
+    Model::registerMetaTypes(scriptEngine->getEngine());
+
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
 

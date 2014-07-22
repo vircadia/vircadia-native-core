@@ -11,6 +11,7 @@
 
 #include <QMetaType>
 #include <QRunnable>
+#include <QScriptEngine>
 #include <QThreadPool>
 
 #include <glm/gtx/transform.hpp>
@@ -19,6 +20,7 @@
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
 #include <PhysicsEntity.h>
+#include <RegisteredMetaTypes.h>
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 
@@ -30,6 +32,23 @@ using namespace std;
 static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
 static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
+
+static QScriptValue localLightToScriptValue(QScriptEngine* engine, const Model::LocalLight& light) {
+    QScriptValue object = engine->newObject();
+    object.setProperty("direction", vec3toScriptValue(engine, light.direction));
+    object.setProperty("color", vec3toScriptValue(engine, light.color));
+    return object;
+}
+
+static void localLightFromScriptValue(const QScriptValue& value, Model::LocalLight& light) {
+    vec3FromScriptValue(value.property("direction"), light.direction);
+    vec3FromScriptValue(value.property("color"), light.color);
+}
+
+void Model::registerMetaTypes(QScriptEngine* engine) {
+    qScriptRegisterMetaType(engine, localLightToScriptValue, localLightFromScriptValue);
+    qScriptRegisterSequenceMetaType<QVector<Model::LocalLight> >(engine);
+}
 
 Model::Model(QObject* parent) :
     QObject(parent),
@@ -609,6 +628,20 @@ bool Model::render(float alpha, RenderMode mode, bool receiveShadows) {
         glEnable(GL_CULL_FACE);
         if (mode == SHADOW_RENDER_MODE) {
             glCullFace(GL_FRONT);
+        
+        } else if (mode == DEFAULT_RENDER_MODE) {
+            // set up the local lights
+            for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
+                glm::vec4 color;
+                GLenum lightName = GL_LIGHT0 + i + 1;
+                if (i < _localLights.size()) {
+                    const LocalLight& light = _localLights.at(i);
+                    color = glm::vec4(light.color, 1.0f);
+                    glm::vec4 position = glm::vec4(_rotation * light.direction, 0.0f);
+                    glLightfv(lightName, GL_POSITION, (GLfloat*)&position);
+                }
+                glLightfv(lightName, GL_DIFFUSE, (GLfloat*)&color);
+            }
         }
     }
     
@@ -1493,11 +1526,6 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
             if (cascadedShadows) {
                 program->setUniform(skinLocations->shadowDistances, Application::getInstance()->getShadowDistances());
             }
-            
-            // local light uniforms
-            skinProgram->setUniformValue("numLocalLights", _numLocalLights);
-            skinProgram->setUniformArray("localLightDirections", _localLightDirections, MAX_LOCAL_LIGHTS);
-            skinProgram->setUniformArray("localLightColors", _localLightColors, MAX_LOCAL_LIGHTS);
         } else {
             glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
             program->bind();
@@ -1630,20 +1658,6 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
 
         activeProgram->release();
     }
-}
-
-void Model::setLocalLightDirection(const glm::vec3& direction, int lightIndex) {
-    assert(lightIndex >= 0 && lightIndex < MAX_LOCAL_LIGHTS);
-    _localLightDirections[lightIndex] = direction;
-}
-
-void Model::setLocalLightColor(const glm::vec3& color, int lightIndex) {
-    assert(lightIndex >= 0 && lightIndex < MAX_LOCAL_LIGHTS);
-    _localLightColors[lightIndex] = color;
-}
-
-void Model::setNumLocalLights(int numLocalLights) {
-    _numLocalLights = numLocalLights;
 }
 
 void AnimationHandle::setURL(const QUrl& url) {
