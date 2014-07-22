@@ -93,18 +93,6 @@ void Faceshift::reset() {
     _longTermAverageInitialized = false;
 }
 
-void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
-        float jawOpen, QVector<float>& coefficients) const {
-    coefficients.resize(max((int)coefficients.size(), _facialAnimationData._jawOpenIndex + 1));
-    qFill(coefficients.begin(), coefficients.end(), 0.0f);
-    coefficients[_facialAnimationData._leftBlinkIndex] = leftBlink;
-    coefficients[_facialAnimationData._rightBlinkIndex] = rightBlink;
-    coefficients[_facialAnimationData._browUpCenterIndex] = browUp;
-    coefficients[_facialAnimationData._browUpLeftIndex] = browUp;
-    coefficients[_facialAnimationData._browUpRightIndex] = browUp;
-    coefficients[_facialAnimationData._jawOpenIndex] = jawOpen;
-}
-
 void Faceshift::setTCPEnabled(bool enabled) {
     if ((_tcpEnabled = enabled)) {
         connectSocket();

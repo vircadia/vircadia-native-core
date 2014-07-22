@@ -206,6 +206,11 @@ public:
 
     Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
 
+    // Facial Animation
+    Q_INVOKABLE void setLeftEyebrow(float f) {
+        _headData->setLeftEyebrow(f);
+    }
+
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
     KeyState keyState() const { return _keyState; }
