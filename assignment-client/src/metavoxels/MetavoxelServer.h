@@ -32,27 +32,59 @@ public:
     
     MetavoxelServer(const QByteArray& packet);
 
-    void applyEdit(const MetavoxelEditMessage& edit);
+    Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit);
 
     const MetavoxelData& getData() const { return _data; }
     
-    Q_INVOKABLE void setData(const MetavoxelData& data) { _data = data; }
+    Q_INVOKABLE void setData(const MetavoxelData& data);
 
     virtual void run();
     
     virtual void readPendingDatagrams();
     
     virtual void aboutToFinish();
-    
+
+signals:
+
+    void dataChanged(const MetavoxelData& data);
+
 private slots:
 
     void maybeAttachSession(const SharedNodePointer& node);
-    void maybeDeleteSession(const SharedNodePointer& node);
-    void sendDeltas();    
+    void maybeDeleteSession(const SharedNodePointer& node);   
     
 private:
     
+    QVector<MetavoxelSender*> _senders;
+    int _nextSender;
+    
     MetavoxelPersister* _persister;
+    
+    MetavoxelData _data;
+};
+
+/// Handles update sending for one thread.
+class MetavoxelSender : public QObject {
+    Q_OBJECT
+
+public:
+    
+    MetavoxelSender(MetavoxelServer* server);
+    
+    MetavoxelServer* getServer() const { return _server; }
+    
+    const MetavoxelData& getData() const { return _data; }
+    
+    Q_INVOKABLE void start();
+    
+private slots:
+    
+    void setData(const MetavoxelData& data) { _data = data; }
+    void sendDeltas();
+    
+private:
+    
+    MetavoxelServer* _server;
     
     QTimer _sendTimer;
     qint64 _lastSend;
@@ -66,7 +98,7 @@ class MetavoxelSession : public Endpoint {
     
 public:
     
-    MetavoxelSession(const SharedNodePointer& node, MetavoxelServer* server);
+    MetavoxelSession(const SharedNodePointer& node, MetavoxelSender* sender);
 
     virtual void update();
 
@@ -85,7 +117,7 @@ private:
     
     void sendPacketGroup(int alreadySent = 0);
     
-    MetavoxelServer* _server;
+    MetavoxelSender* _sender;
     
     MetavoxelLOD _lod;
     

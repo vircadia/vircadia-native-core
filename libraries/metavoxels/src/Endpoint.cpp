@@ -15,7 +15,7 @@
 
 Endpoint::Endpoint(const SharedNodePointer& node, PacketRecord* baselineSendRecord, PacketRecord* baselineReceiveRecord) :
     _node(node),
-    _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData)) {
+    _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData), this) {
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendDatagram(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readMessage(Bitstream&)));
