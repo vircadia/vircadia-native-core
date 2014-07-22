@@ -18,6 +18,7 @@
 #include <fsbinarystream.h>
 
 #include "FaceTracker.h"
+#include "FacialAnimationData.h"
 
 /// Handles interaction with the Faceshift software, which provides head position/orientation and facial features.
 class Faceshift : public FaceTracker {
@@ -42,20 +43,20 @@ public:
     float getEyeGazeRightPitch() const { return _eyeGazeRightPitch; }
     float getEyeGazeRightYaw() const { return _eyeGazeRightYaw; }
 
-    float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
-    float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }
-    float getLeftEyeOpen() const { return getBlendshapeCoefficient(_leftEyeOpenIndex); }
-    float getRightEyeOpen() const { return getBlendshapeCoefficient(_rightEyeOpenIndex); }
+    float getLeftBlink() const { return getBlendshapeCoefficient(_facialAnimationData._leftBlinkIndex); }
+    float getRightBlink() const { return getBlendshapeCoefficient(_facialAnimationData._rightBlinkIndex); }
+    float getLeftEyeOpen() const { return getBlendshapeCoefficient(_facialAnimationData._leftEyeOpenIndex); }
+    float getRightEyeOpen() const { return getBlendshapeCoefficient(_facialAnimationData._rightEyeOpenIndex); }
 
-    float getBrowDownLeft() const { return getBlendshapeCoefficient(_browDownLeftIndex); }
-    float getBrowDownRight() const { return getBlendshapeCoefficient(_browDownRightIndex); }
-    float getBrowUpCenter() const { return getBlendshapeCoefficient(_browUpCenterIndex); }
-    float getBrowUpLeft() const { return getBlendshapeCoefficient(_browUpLeftIndex); }
-    float getBrowUpRight() const { return getBlendshapeCoefficient(_browUpRightIndex); }
+    float getBrowDownLeft() const { return getBlendshapeCoefficient(_facialAnimationData._browDownLeftIndex); }
+    float getBrowDownRight() const { return getBlendshapeCoefficient(_facialAnimationData._browDownRightIndex); }
+    float getBrowUpCenter() const { return getBlendshapeCoefficient(_facialAnimationData._browUpCenterIndex); }
+    float getBrowUpLeft() const { return getBlendshapeCoefficient(_facialAnimationData._browUpLeftIndex); }
+    float getBrowUpRight() const { return getBlendshapeCoefficient(_facialAnimationData._browUpRightIndex); }
 
-    float getMouthSize() const { return getBlendshapeCoefficient(_jawOpenIndex); }
-    float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
-    float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
+    float getMouthSize() const { return getBlendshapeCoefficient(_facialAnimationData._jawOpenIndex); }
+    float getMouthSmileLeft() const { return getBlendshapeCoefficient(_facialAnimationData._mouthSmileLeftIndex); }
+    float getMouthSmileRight() const { return getBlendshapeCoefficient(_facialAnimationData._mouthSmileRightIndex); }
 
     void update();
     void reset();
@@ -102,23 +103,9 @@ private:
     float _eyeGazeRightPitch;
     float _eyeGazeRightYaw;
     
-    int _leftBlinkIndex;
-    int _rightBlinkIndex;
-    int _leftEyeOpenIndex;
-    int _rightEyeOpenIndex;
+    // stores blendshape indexes
+    FacialAnimationData _facialAnimationData;
 
-    // Brows
-    int _browDownLeftIndex;
-    int _browDownRightIndex;
-    int _browUpCenterIndex;
-    int _browUpLeftIndex;
-    int _browUpRightIndex;
-    
-    int _mouthSmileLeftIndex;
-    int _mouthSmileRightIndex;
-    
-    int _jawOpenIndex;
-    
     // degrees
     float _longTermAverageEyePitch;
     float _longTermAverageEyeYaw;

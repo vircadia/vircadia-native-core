@@ -92,7 +92,7 @@ function playRandomSound() {
 botNumber = getRandomInt(1, 100);
 
 if (botNumber <= 20) {
-  newFaceFilePrefix = "bot" + botNumber;
+  newFaceFilePrefix = "amber";
   newBodyFilePrefix = "defaultAvatar_body"
 } else {
   if (botNumber <= 40) {
