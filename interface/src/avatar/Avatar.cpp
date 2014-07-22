@@ -60,7 +60,6 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
-    _numLocalLights(0),
     _initialized(false),
     _shouldRenderBillboard(true)
 {
@@ -915,37 +914,4 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
     }
 
 }
-
-void Avatar::setLocalLightDirection(const glm::vec3& direction, int lightIndex) {
-    _localLightDirections[lightIndex] = direction;
-}
-
-void Avatar::setLocalLightColor(const glm::vec3& color, int lightIndex) {
-    _localLightColors[lightIndex] = color;
-}
-
-void Avatar::addLocalLight() {
-    if (_numLocalLights + 1 <= MAX_LOCAL_LIGHTS) {
-        ++_numLocalLights;
-    }
-}
-
-void Avatar::removeLocalLight() {
-    if (_numLocalLights - 1 >= 0) {
-        --_numLocalLights;
-    }
-}
-
-int Avatar::getNumLocalLights() {
-    return _numLocalLights;
-}
-
-glm::vec3 Avatar::getLocalLightDirection(int lightIndex) {
-    return _localLightDirections[lightIndex];
-}
-
-glm::vec3 Avatar::getLocalLightColor(int lightIndex) {
-    return _localLightColors[lightIndex];
-}
- 
 
