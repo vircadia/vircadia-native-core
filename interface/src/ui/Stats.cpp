@@ -280,7 +280,7 @@ void Stats::display(
         Audio* audio = Application::getInstance()->getAudio();
         const QHash<QUuid, AudioStreamStats>& audioMixerInjectedStreamAudioStatsMap = audio->getAudioMixerInjectedStreamAudioStatsMap();
 
-        lines = _expanded ? 11 + (audioMixerInjectedStreamAudioStatsMap.size() + 2) * 3 : 3;
+        lines = _expanded ? 13 + (audioMixerInjectedStreamAudioStatsMap.size() + 2) * 3 : 3;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
 
@@ -314,6 +314,18 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
 
+            char inputAudioLabelString[] = "Input: avail_avg_10s/avail";
+
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, inputAudioLabelString, color);
+
+            char inputAudioStatsString[512];
+            sprintf(inputAudioStatsString, " %d/%d", audio->getInputRingBufferAverageFramesAvailable(),
+                audio->getInputRingBufferFramesAvailable());
+
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, inputAudioStatsString, color);
+
             char audioMixerStatsLabelString[] = "AudioMixer stats:";
             char streamStatsFormatLabelString[] = "lost%/lost_30s%";
             char streamStatsFormatLabelString2[] = "desired/avail_avg_10s/avail";
@@ -339,10 +351,11 @@ void Stats::display(
 
             AudioStreamStats downstreamAudioStreamStats = audio->getDownstreamAudioStreamStats();
 
-            sprintf(downstreamAudioStatsString, " mix: %.2f%%/%.2f%%, %u/%u/%u", downstreamAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
+            sprintf(downstreamAudioStatsString, " mix: %.2f%%/%.2f%%, %u/%u+%d/%u+%d", downstreamAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
                 downstreamAudioStreamStats._packetStreamWindowStats.getLostRate() * 100.0f,
                 downstreamAudioStreamStats._ringBufferDesiredJitterBufferFrames, downstreamAudioStreamStats._ringBufferFramesAvailableAverage,
-                downstreamAudioStreamStats._ringBufferFramesAvailable);
+                audio->getOutputRingBufferAverageFramesAvailable(),
+                downstreamAudioStreamStats._ringBufferFramesAvailable, audio->getOutputRingBufferFramesAvailable());
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
