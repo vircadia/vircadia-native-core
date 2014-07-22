@@ -152,11 +152,28 @@ void Audio::reset() {
     _starveCount = 0;
     _consecutiveNotMixedCount = 0;
 
+    _outgoingAvatarAudioSequenceNumber = 0;
+
+    resetStats();
+}
+
+void Audio::resetStats() {
     _audioMixerAvatarStreamAudioStats = AudioStreamStats();
     _audioMixerInjectedStreamAudioStatsMap.clear();
 
-    _outgoingAvatarAudioSequenceNumber = 0;
     _incomingMixedAudioSequenceNumberStats.reset();
+
+    _interframeTimeGapStats.reset();
+
+    _inputRingBufferFramesAvailableStats.reset();
+
+    _outputRingBufferFramesAvailableStats.reset();
+    _audioOutputBufferFramesAvailableStats.reset();
+}
+
+void Audio::audioMixerKilled() {
+    _outgoingAvatarAudioSequenceNumber = 0;
+    resetStats();
 }
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
