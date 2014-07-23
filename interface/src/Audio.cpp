@@ -1480,7 +1480,7 @@ void Audio::renderStats(const float* color, int width, int height) {
     verticalOffset += STATS_HEIGHT_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamLabelString, color);
 
-    renderAudioStreamStats(getDownstreamAudioStreamStats(), horizontalOffset, verticalOffset, scale, rotation, font, color);
+    renderAudioStreamStats(getDownstreamAudioStreamStats(), horizontalOffset, verticalOffset, scale, rotation, font, color, true);
 
 
     verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
@@ -1507,29 +1507,39 @@ void Audio::renderStats(const float* color, int width, int height) {
 }
 
 void Audio::renderAudioStreamStats(const AudioStreamStats& streamStats, int horizontalOffset, int& verticalOffset,
-    float scale, float rotation, int font, const float* color) {
+    float scale, float rotation, int font, const float* color, bool isDownstreamStats) {
     
     char stringBuffer[512];
 
-    sprintf(stringBuffer, "                      Packet loss | overall: %5.2f%%, last_30s: %5.2f%%",
+    sprintf(stringBuffer, "                      Packet loss | overall: %5.2f%% (%d lost), last_30s: %5.2f%% (%d lost)",
         streamStats._packetStreamStats.getLostRate()*100.0f,
-        streamStats._packetStreamWindowStats.getLostRate() * 100.0f);
+        streamStats._packetStreamStats._numLost,
+        streamStats._packetStreamWindowStats.getLostRate() * 100.0f,
+        streamStats._packetStreamWindowStats._numLost);
     verticalOffset += STATS_HEIGHT_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
 
-    sprintf(stringBuffer, "                Ringbuffer frames | desired: %u, avg_available(10s): %u+%d, available: %u+%d",
-        streamStats._ringBufferDesiredJitterBufferFrames,
-        streamStats._ringBufferFramesAvailableAverage,
-        getOutputRingBufferAverageFramesAvailable(),
-        streamStats._ringBufferFramesAvailable,
-        getOutputRingBufferFramesAvailable());
+    if (isDownstreamStats) {
+        sprintf(stringBuffer, "                Ringbuffer frames | desired: %u, avg_available(10s): %u+%d, available: %u+%d",
+            streamStats._ringBufferDesiredJitterBufferFrames,
+            streamStats._ringBufferFramesAvailableAverage,
+            getOutputRingBufferAverageFramesAvailable(),
+            streamStats._ringBufferFramesAvailable,
+            getOutputRingBufferFramesAvailable());
+    } else {
+        sprintf(stringBuffer, "                Ringbuffer frames | desired: %u, avg_available(10s): %u, available: %u",
+            streamStats._ringBufferDesiredJitterBufferFrames,
+            streamStats._ringBufferFramesAvailableAverage,
+            streamStats._ringBufferFramesAvailable);
+    }
+    
     verticalOffset += STATS_HEIGHT_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
 
     sprintf(stringBuffer, "                 Ringbuffer stats | starves: %u, prev_starve_lasted: %u, frames_dropped: %u, overflows: %u",
         streamStats._ringBufferStarveCount,
-        streamStats._ringBufferStarveCount,
         streamStats._ringBufferConsecutiveNotMixedCount,
+        streamStats._ringBufferSilentFramesDropped,
         streamStats._ringBufferOverflowCount);
     verticalOffset += STATS_HEIGHT_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);

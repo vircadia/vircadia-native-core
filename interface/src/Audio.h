@@ -250,7 +250,7 @@ private:
 
     // audio stats methods for rendering
     void renderAudioStreamStats(const AudioStreamStats& streamStats, int horizontalOffset, int& verticalOffset,
-        float scale, float rotation, int font, const float* color);
+        float scale, float rotation, int font, const float* color, bool isDownstreamStats = false);
 
     // Audio scope data
     static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
