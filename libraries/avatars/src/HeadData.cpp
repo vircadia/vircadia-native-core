@@ -16,6 +16,8 @@
 #include "AvatarData.h"
 #include "HeadData.h"
 
+#include "../fbx/src/FBXReader.h"
+
 HeadData::HeadData(AvatarData* owningAvatar) :
     _baseYaw(0.0f),
     _basePitch(0.0f),
@@ -50,6 +52,26 @@ void HeadData::setOrientation(const glm::quat& orientation) {
     _basePitch = eulers.x;
     _baseYaw = eulers.y;
     _baseRoll = eulers.z;
+}
+
+void HeadData::setBlendshape(QString name, float val) {
+    static bool hasInitializedLookupMap = false;
+    static QMap<QString, int> blendshapeLookupMap;
+    //Lazily construct a lookup map from the blendshapes
+    if (!hasInitializedLookupMap) {
+        for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+            blendshapeLookupMap[FACESHIFT_BLENDSHAPES[i]] = i; 
+        }
+    }
+
+    //Check to see if the named blendshape exists, and then set its value if it does
+    auto it = blendshapeLookupMap.find(name);
+    if (it != blendshapeLookupMap.end()) {
+        if (_blendshapeCoefficients.size() <= it.value()) {
+            _blendshapeCoefficients.resize(it.value() + 1);
+        }
+        _blendshapeCoefficients[it.value()] = val;
+    }
 }
 
 void HeadData::addYaw(float yaw) {

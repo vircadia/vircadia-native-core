@@ -206,6 +206,10 @@ public:
 
     Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
 
+    Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
+
+    void setForceFaceshiftConnected(bool connected) { _forceFaceshiftConnected = connected; }
+
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
     KeyState keyState() const { return _keyState; }
@@ -300,7 +304,7 @@ protected:
     std::string _chatMessage;
 
     bool _isChatCirclingEnabled;
-
+    bool _forceFaceshiftConnected;
     bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;
