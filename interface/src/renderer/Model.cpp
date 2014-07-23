@@ -588,10 +588,8 @@ bool Model::render(float alpha, RenderMode mode, bool receiveShadows) {
             // update the local lights
             for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
                 if (i < _localLights.size()) {
-                    const LocalLight& light = _localLights.at(i);
-                    _localLightColors[i] = glm::vec4(light.color, 1.0f);
                     _localLightDirections[i] = glm::normalize(Application::getInstance()->getUntranslatedViewMatrix() *
-                        glm::vec4(_rotation * light.direction, 0.0f));
+                        glm::vec4(_rotation * _localLights.at(i).direction, 0.0f));
                 } else {
                     _localLightColors[i] = glm::vec4();
                 }
@@ -1488,8 +1486,6 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
         if (cascadedShadows) {
             activeProgram->setUniform(activeLocations->shadowDistances, Application::getInstance()->getShadowDistances());
         }
-        activeProgram->setUniformValueArray(activeLocations->localLightColors,
-            (const GLfloat*)_localLightColors, MAX_LOCAL_LIGHTS, 4);
         activeProgram->setUniformValueArray(activeLocations->localLightDirections,
             (const GLfloat*)_localLightDirections, MAX_LOCAL_LIGHTS, 4);
                 
@@ -1543,6 +1539,12 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
                 glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
                 glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
+            
+                for (int k = 0; k < qMin(MAX_LOCAL_LIGHTS, _localLights.size()); k++) {
+                    _localLightColors[k] = glm::vec4(_localLights.at(k).color, 1.0f) * diffuse;
+                }
+                activeProgram->setUniformValueArray(activeLocations->localLightColors,
+                    (const GLfloat*)_localLightColors, MAX_LOCAL_LIGHTS, 4);
             
                 Texture* diffuseMap = networkPart.diffuseTexture.data();
                 if (mesh.isEye && diffuseMap) {
