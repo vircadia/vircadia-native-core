@@ -16,5 +16,25 @@
         "default": false
       }
     }
+  },
+  "voxels": {
+    "label": "Voxels",
+    "assignment-types": [3],
+    "settings": {
+      "per-voxel-cost": {
+        "label": "Per Voxel Cost",
+        "help": "Credit cost to change each voxel",
+        "placeholder": "0.00001",
+        "default": "0.00001",
+        "input_addon": "₵"
+      },
+      "volume-cost": {
+        "label": "Volume Cost",
+        "help": "Credit cost to change each cubed meter of voxel space",
+        "placeholder": "0.0005",
+        "default": "0.0005",
+        "input_addon": "₵"
+      }
+    }
   }
 }
