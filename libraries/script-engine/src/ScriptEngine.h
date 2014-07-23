@@ -59,6 +59,7 @@ public:
 
     QScriptEngine* getEngine() { return &_engine; }
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
+    AnimationCache* getAnimationCache() { return &_animationCache; }
     
     /// sets the script contents, will return false if failed, will fail if script is already running
     bool setScriptContents(const QString& scriptContents, const QString& fileNameString = QString(""));
