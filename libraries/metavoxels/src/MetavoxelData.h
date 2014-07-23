@@ -212,7 +212,7 @@ public:
     void writeSpannerSubdivision(MetavoxelStreamState& state) const;
 
     /// Increments the node's reference count.
-    void incrementReferenceCount() { _referenceCount++; }
+    void incrementReferenceCount() { _referenceCount.ref(); }
 
     /// Decrements the node's reference count.  If the resulting reference count is zero, destroys the node
     /// and calls delete this.
@@ -238,7 +238,7 @@ private:
     
     friend class MetavoxelVisitation;
     
-    int _referenceCount;
+    QAtomicInt _referenceCount;
     void* _attributeValue;
     MetavoxelNode* _children[CHILD_COUNT];
 };

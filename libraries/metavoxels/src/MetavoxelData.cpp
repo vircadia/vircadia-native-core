@@ -1117,7 +1117,7 @@ void MetavoxelNode::writeSpannerSubdivision(MetavoxelStreamState& state) const {
 }
 
 void MetavoxelNode::decrementReferenceCount(const AttributePointer& attribute) {
-    if (--_referenceCount == 0) {
+    if (!_referenceCount.deref()) {
         destroy(attribute);
         delete this;
     }
