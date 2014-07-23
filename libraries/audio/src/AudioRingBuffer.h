@@ -47,6 +47,7 @@ public:
     void resizeForFrameSize(int numFrameSamples);
     
     int getSampleCapacity() const { return _sampleCapacity; }
+    int getFrameCapacity() const { return _frameCapacity; }
     
     int parseData(const QByteArray& packet);
     

@@ -152,9 +152,6 @@ void Audio::init(QGLWidget *parent) {
 void Audio::reset() {
     _ringBuffer.reset();
 
-    // we don't want to reset seq numbers when space-bar reset occurs.
-    //_outgoingAvatarAudioSequenceNumber = 0;
-
     resetStats();
 }
 
