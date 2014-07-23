@@ -80,11 +80,11 @@ public:
 
     const SequenceNumberStats& getIncomingMixedAudioSequenceNumberStats() const { return _incomingMixedAudioSequenceNumberStats; }
     
-    float getInputRingBufferMsecsDataAvailable() const;
-    float getInputRingBufferAverageMsecsDataAvailable() const { return (float)_inputRingBufferMsecsDataAvailableStats.getWindowAverage(); }
+    float getInputRingBufferMsecsAvailable() const;
+    float getInputRingBufferAverageMsecsAvailable() const { return (float)_inputRingBufferMsecsAvailableStats.getWindowAverage(); }
 
-    int getOutputRingBufferFramesAvailable() const;
-    int getOutputRingBufferAverageFramesAvailable() const { return (int)_audioOutputBufferFramesAvailableStats.getWindowAverage(); }
+    float getAudioOutputMsecsUnplayed() const;
+    float getAudioOutputAverageMsecsUnplayed() const { return (float)_audioOutputMsecsUnplayedStats.getWindowAverage(); }
 
 public slots:
     void start();
@@ -287,11 +287,11 @@ private:
 
     MovingMinMaxAvg<quint64> _interframeTimeGapStats;
 
-    MovingMinMaxAvg<float> _audioInputBufferMsecsDataAvailableStats;
-    MovingMinMaxAvg<float> _inputRingBufferMsecsDataAvailableStats;
+    MovingMinMaxAvg<float> _audioInputMsecsReadStats;
+    MovingMinMaxAvg<float> _inputRingBufferMsecsAvailableStats;
 
     MovingMinMaxAvg<int> _outputRingBufferFramesAvailableStats;
-    MovingMinMaxAvg<int> _audioOutputBufferFramesAvailableStats;
+    MovingMinMaxAvg<float> _audioOutputMsecsUnplayedStats;
 };
 
 
