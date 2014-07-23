@@ -1512,7 +1512,7 @@ void Audio::renderAudioStreamStats(const AudioStreamStats& streamStats, int hori
     char stringBuffer[512];
 
     sprintf(stringBuffer, "                      Packet loss | overall: %5.2f%% (%d lost), last_30s: %5.2f%% (%d lost)",
-        streamStats._packetStreamStats.getLostRate()*100.0f,
+        streamStats._packetStreamStats.getLostRate() * 100.0f,
         streamStats._packetStreamStats._numLost,
         streamStats._packetStreamWindowStats.getLostRate() * 100.0f,
         streamStats._packetStreamWindowStats._numLost);
