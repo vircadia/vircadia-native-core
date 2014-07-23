@@ -705,19 +705,19 @@ void Stats::display(
     }
     
     // draw local light stats
-    int numLocalLights = myAvatar->getNumLocalLights();
+    QVector<Model::LocalLight> localLights = Application::getInstance()->getAvatarManager().getLocalLights();
     verticalOffset = 400;
     horizontalOffset = 20;
      
     char buffer[128];
-    for (int i = 0; i < numLocalLights; i++) {
-        glm::vec3 lightDirection = myAvatar->getLocalLightDirection(i); 
+    for (int i = 0; i < localLights.size(); i++) {
+        glm::vec3 lightDirection = localLights.at(i).direction;
         snprintf(buffer, sizeof(buffer), "Light %d direction (%.2f, %.2f, %.2f)", i, lightDirection.x, lightDirection.y, lightDirection.z);
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, buffer, color);
         
         verticalOffset += STATS_PELS_PER_LINE;
 
-        glm::vec3 lightColor = myAvatar->getLocalLightColor(i);
+        glm::vec3 lightColor = localLights.at(i).color;
         snprintf(buffer, sizeof(buffer), "Light %d color (%.2f, %.2f, %.2f)", i, lightColor.x, lightColor.y, lightColor.z);
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, buffer, color);
         

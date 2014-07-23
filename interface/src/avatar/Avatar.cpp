@@ -52,6 +52,8 @@ Avatar::Avatar() :
     _lastVelocity(0.0f, 0.0f, 0.0f),
     _acceleration(0.0f, 0.0f, 0.0f),
     _angularVelocity(0.0f, 0.0f, 0.0f),
+    _lastAngularVelocity(0.0f, 0.0f, 0.0f),
+    _angularAcceleration(0.0f, 0.0f, 0.0f),
     _lastOrientation(),
     _leanScale(0.5f),
     _scale(1.0f),
@@ -60,7 +62,6 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
-    _numLocalLights(0),
     _initialized(false),
     _shouldRenderBillboard(true)
 {
@@ -151,7 +152,8 @@ void Avatar::simulate(float deltaTime) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
             PerformanceTimer perfTimer("hair");
             _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setAngularVelocity(getAngularVelocity() + getHead()->getAngularVelocity() * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
             _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
             _hair.simulate(deltaTime);
         }
@@ -187,6 +189,7 @@ void Avatar::updateAcceleration(float deltaTime) {
     glm::quat orientation = getOrientation();
     glm::quat delta = glm::inverse(_lastOrientation) * orientation;
     _angularVelocity = safeEulerAngles(delta) * (1.f / deltaTime);
+    _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * (1.f / deltaTime);
     _lastOrientation = getOrientation();
 }
 
@@ -245,19 +248,9 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         
         
         // local lights directions and colors
-        getSkeletonModel().setNumLocalLights(_numLocalLights);
-        getHead()->getFaceModel().setNumLocalLights(_numLocalLights);
-        for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
-            glm::vec3 normalized = glm::normalize(_localLightDirections[i]);
-            
-            // body
-            getSkeletonModel().setLocalLightColor(_localLightColors[i], i);
-            getSkeletonModel().setLocalLightDirection(normalized, i);
-            
-            // head
-            getHead()->getFaceModel().setLocalLightColor(_localLightColors[i], i);
-            getHead()->getFaceModel().setLocalLightDirection(_localLightDirections[i], i);
-        }
+        const QVector<Model::LocalLight>& localLights = Application::getInstance()->getAvatarManager().getLocalLights();
+        _skeletonModel.setLocalLights(localLights);
+        getHead()->getFaceModel().setLocalLights(localLights);
         
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
@@ -925,37 +918,4 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
     }
 
 }
-
-void Avatar::setLocalLightDirection(const glm::vec3& direction, int lightIndex) {
-    _localLightDirections[lightIndex] = direction;
-}
-
-void Avatar::setLocalLightColor(const glm::vec3& color, int lightIndex) {
-    _localLightColors[lightIndex] = color;
-}
-
-void Avatar::addLocalLight() {
-    if (_numLocalLights + 1 <= MAX_LOCAL_LIGHTS) {
-        ++_numLocalLights;
-    }
-}
-
-void Avatar::removeLocalLight() {
-    if (_numLocalLights - 1 >= 0) {
-        --_numLocalLights;
-    }
-}
-
-int Avatar::getNumLocalLights() {
-    return _numLocalLights;
-}
-
-glm::vec3 Avatar::getLocalLightDirection(int lightIndex) {
-    return _localLightDirections[lightIndex];
-}
-
-glm::vec3 Avatar::getLocalLightColor(int lightIndex) {
-    return _localLightColors[lightIndex];
-}
- 
 

@@ -344,6 +344,8 @@ void AudioMixer::readPendingDatagrams() {
 
 void AudioMixer::sendStatsPacket() {
     static QJsonObject statsObject;
+    
+    statsObject["useDynamicJitterBuffers"] = _useDynamicJitterBuffers;
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
@@ -480,6 +482,7 @@ void AudioMixer::run() {
             _useDynamicJitterBuffers = true;
         } else {
             qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
+            _useDynamicJitterBuffers = false;
         }
     }
     
