@@ -187,7 +187,8 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("hair");
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
             _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setAngularVelocity(getAngularVelocity() + getHead()->getAngularVelocity() * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
             _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
             _hair.simulate(deltaTime);
         }
