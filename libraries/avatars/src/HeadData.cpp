@@ -55,6 +55,55 @@ void HeadData::setOrientation(const glm::quat& orientation) {
     _baseRoll = eulers.z;
 }
 
+void HeadData::setLeftBlink(float val) {
+    _facialAnimationData->setLeftBlink(val);
+}
+
+void HeadData::setRightBlink(float val) {
+    _facialAnimationData->setRightBlink(val);
+}
+
+void HeadData::setLeftEyeOpen(float val) {
+    _facialAnimationData->setLeftEyeOpen(val);
+}
+
+void HeadData::setRightEyeOpen(float val) {
+    _facialAnimationData->setRightEyeOpen(val);
+}
+
+void HeadData::setBrowDownLeft(float val) {
+    _facialAnimationData->setBrowDownLeft(val);
+}
+
+void HeadData::setBrowDownRight(float val) {
+    _facialAnimationData->setBrowDownRight(val);
+}
+
+void HeadData::setBrowUpCenter(float val) {
+    _facialAnimationData->setBrowUpCenter(val);
+}
+
+void HeadData::setBrowUpLeft(float val) {
+    _facialAnimationData->setBrowUpLeft(val);
+}
+
+void HeadData::setBrowUpRight(float val) {
+    _facialAnimationData->setBrowUpRight(val);
+}
+
+void HeadData::setMouthSize(float val) {
+    _facialAnimationData->setMouthSize(val);
+}
+
+void HeadData::setMouthSmileLeft(float val) {
+    _facialAnimationData->setLeftBlink(val);
+}
+
+void HeadData::setMouthSmileRight(float val) {
+    _facialAnimationData->setMouthSmileRight(val);
+}
+
+
 void HeadData::addYaw(float yaw) {
     setBaseYaw(_baseYaw + yaw);
 }

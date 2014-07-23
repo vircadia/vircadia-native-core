@@ -229,11 +229,13 @@ void Agent::run() {
     
     // setup an Avatar for the script to use
     AvatarData scriptedAvatar;
-    
+    // Pretend faceshift is active so we can modify facial data
+    scriptedAvatar.setIsFaceshiftConnected(true);
+
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar.setFaceModelURL(QUrl());
     scriptedAvatar.setSkeletonModelURL(QUrl());
-    
+
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
     _scriptEngine.setAvatarHashMap(&_avatarHashMap, "AvatarList");
@@ -263,6 +265,7 @@ void Agent::run() {
     _scriptEngine.getModelsScriptingInterface()->setModelTree(_modelViewer.getTree());
 
     _scriptEngine.setScriptContents(scriptContents);
+
     _scriptEngine.run();
     setFinished(true);
 }

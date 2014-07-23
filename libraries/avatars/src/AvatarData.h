@@ -207,9 +207,20 @@ public:
     Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
 
     // Facial Animation
-    Q_INVOKABLE void setLeftEyebrow(float f) {
-        _headData->setLeftEyebrow(f);
-    }
+    Q_INVOKABLE void setLeftBlink(float val) { _headData->setLeftBlink(val); }
+    Q_INVOKABLE void setRightBlink(float val) { _headData->setRightBlink(val); }
+    Q_INVOKABLE void setLeftEyeOpen(float val) { _headData->setLeftEyeOpen(val); }
+    Q_INVOKABLE void setRightEyeOpen(float val) { _headData->setRightEyeOpen(val); }
+    Q_INVOKABLE void setBrowDownLeft(float val) { _headData->setBrowDownLeft(val); }
+    Q_INVOKABLE void setBrowDownRight(float val) { _headData->setBrowDownRight(val); }
+    Q_INVOKABLE void setBrowUpCenter(float val) { _headData->setBrowUpCenter(val); }
+    Q_INVOKABLE void setBrowUpLeft(float val) { _headData->setBrowUpLeft(val); }
+    Q_INVOKABLE void setBrowUpRight(float val) { _headData->setBrowUpRight(val); }
+    Q_INVOKABLE void setMouthSize(float val) { _headData->setMouthSize(val); }
+    Q_INVOKABLE void setMouthSmileLeft(float val) { _headData->setMouthSmileLeft(val); }
+    Q_INVOKABLE void setMouthSmileRight(float val) { _headData->setMouthSmileRight(val); }
+
+    void setIsFaceshiftConnected(bool isFaceshift) { _forceFaceshiftIsConnected = isFaceshift; }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -305,6 +316,7 @@ protected:
     std::string _chatMessage;
 
     bool _isChatCirclingEnabled;
+    bool _forceFaceshiftIsConnected;
 
     bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
 

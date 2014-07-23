@@ -29,12 +29,18 @@ _mouthSmileRightIndex(29),
 _jawOpenIndex(21) {
 }
 
+void FacialAnimationData::setBlendshapeCoefficient(int index, float val) {
+    _blendshapeCoefficients.resize(max((int)_blendshapeCoefficients.size(), _jawOpenIndex + 1));
+    if (index >= 0 && index < (int)_blendshapeCoefficients.size()) {
+        _blendshapeCoefficients[index] = val;
+    }
+}
+
 float FacialAnimationData::getBlendshapeCoefficient(int index) const {
     return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
 }
 
-void FacialAnimationData::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
-                                       float jawOpen) {
+void FacialAnimationData::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp, float jawOpen) {
     _blendshapeCoefficients.resize(max((int)_blendshapeCoefficients.size(), _jawOpenIndex + 1));
     qFill(_blendshapeCoefficients.begin(), _blendshapeCoefficients.end(), 0.0f);
     _blendshapeCoefficients[_leftBlinkIndex] = leftBlink;
