@@ -18,6 +18,7 @@
 #include <NetworkAccessManager.h>
 
 #include "XMLHttpRequestClass.h"
+#include "ScriptEngine.h"
 
 XMLHttpRequestClass::XMLHttpRequestClass(QScriptEngine* engine) :
     _engine(engine),
@@ -296,7 +297,8 @@ void XMLHttpRequestClass::requestFinished() {
                 _responseData = QScriptValue::NullValue;
             }
         } else if (_responseType == "arraybuffer") {
-            _responseData = _engine->newVariant(QVariant::fromValue(_rawResponseData));
+            QScriptValue data = _engine->newVariant(QVariant::fromValue(_rawResponseData));
+            _responseData = _engine->newObject(reinterpret_cast<ScriptEngine*>(_engine)->getArrayBufferClass(), data);
         } else {
             _responseData = QScriptValue(QString(_rawResponseData.data()));
         }
