@@ -79,9 +79,9 @@ public:
     bool getProcessSpatialAudio() const { return _processSpatialAudio; }
 
     const SequenceNumberStats& getIncomingMixedAudioSequenceNumberStats() const { return _incomingMixedAudioSequenceNumberStats; }
-
-    int getInputRingBufferFramesAvailable() const;
-    int getInputRingBufferAverageFramesAvailable() const { return (int)_inputRingBufferFramesAvailableStats.getWindowAverage(); }
+    
+    float getInputRingBufferMsecsDataAvailable() const;
+    float getInputRingBufferAverageMsecsDataAvailable() const { return (float)_inputRingBufferMsecsDataAvailableStats.getWindowAverage(); }
 
     int getOutputRingBufferFramesAvailable() const;
     int getOutputRingBufferAverageFramesAvailable() const { return (int)_audioOutputBufferFramesAvailableStats.getWindowAverage(); }
@@ -280,7 +280,8 @@ private:
 
     MovingMinMaxAvg<quint64> _interframeTimeGapStats;
 
-    MovingMinMaxAvg<int> _inputRingBufferFramesAvailableStats;
+    MovingMinMaxAvg<float> _audioInputBufferMsecsDataAvailableStats;
+    MovingMinMaxAvg<float> _inputRingBufferMsecsDataAvailableStats;
 
     MovingMinMaxAvg<int> _outputRingBufferFramesAvailableStats;
     MovingMinMaxAvg<int> _audioOutputBufferFramesAvailableStats;
