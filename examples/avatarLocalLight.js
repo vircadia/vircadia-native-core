@@ -11,7 +11,7 @@
 //
 
 var localLightDirections = [ {x: 1.0, y:0.0, z: 0.0}, {x: 0.0, y:0.0, z: 1.0} ];
-var localLightColors = [ {x: 1.0, y:1.0, z: 1.0}, {x: 1.0, y:1.0, z: 1.0} ];
+var localLightColors = [ {x: 0.4, y:0.335, z: 0.266}, {x: 0.4, y:0.335, z: 0.266} ];
 
 var currentSelection = 0;
 var currentNumLights = 2;

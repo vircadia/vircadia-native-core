@@ -52,6 +52,8 @@ Avatar::Avatar() :
     _lastVelocity(0.0f, 0.0f, 0.0f),
     _acceleration(0.0f, 0.0f, 0.0f),
     _angularVelocity(0.0f, 0.0f, 0.0f),
+    _lastAngularVelocity(0.0f, 0.0f, 0.0f),
+    _angularAcceleration(0.0f, 0.0f, 0.0f),
     _lastOrientation(),
     _leanScale(0.5f),
     _scale(1.0f),
@@ -150,7 +152,8 @@ void Avatar::simulate(float deltaTime) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
             PerformanceTimer perfTimer("hair");
             _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setAngularVelocity(getAngularVelocity() + getHead()->getAngularVelocity() * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
             _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
             _hair.simulate(deltaTime);
         }
@@ -186,6 +189,7 @@ void Avatar::updateAcceleration(float deltaTime) {
     glm::quat orientation = getOrientation();
     glm::quat delta = glm::inverse(_lastOrientation) * orientation;
     _angularVelocity = safeEulerAngles(delta) * (1.f / deltaTime);
+    _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * (1.f / deltaTime);
     _lastOrientation = getOrientation();
 }
 

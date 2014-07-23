@@ -152,6 +152,8 @@ public:
     
     glm::vec3 getAcceleration() const { return _acceleration; }
     glm::vec3 getAngularVelocity() const { return _angularVelocity; }
+    glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
+    
 
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
@@ -172,6 +174,8 @@ protected:
     glm::vec3 _lastVelocity;
     glm::vec3 _acceleration;
     glm::vec3 _angularVelocity;
+    glm::vec3 _lastAngularVelocity;
+    glm::vec3 _angularAcceleration;
     glm::quat _lastOrientation;
     float _leanScale;
     float _scale;
