@@ -37,13 +37,8 @@ public:
     
     void clearOtherAvatars();
     
-public slots:
-    void setAvatarLightColor(const glm::vec3& color, int lightIndex, int avatarIndex);
-    void setAvatarLightDirection(const glm::vec3& direction, int lightIndex, int avatarIndex);
-    void removeAvatarLocalLight(int avatarIndex);
-    void addAvatarLocalLight(int avatarIndex);
-    int getNumLightsInAvatar(int avatarIndex);
-    int getNumAvatars();
+    Q_INVOKABLE void setLocalLights(const QVector<Model::LocalLight>& localLights);
+    Q_INVOKABLE QVector<Model::LocalLight> getLocalLights() const;
     
 private:
     AvatarManager(const AvatarManager& other);
@@ -53,13 +48,13 @@ private:
     
     AvatarSharedPointer newSharedAvatar();
     
-    Avatar* getAvatarFromIndex(int avatarIndex);
-    
     // virtual override
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
     
     QVector<AvatarSharedPointer> _avatarFades;
     QSharedPointer<MyAvatar> _myAvatar;
+    
+    QVector<Model::LocalLight> _localLights;
 };
 
 #endif // hifi_AvatarManager_h
