@@ -2601,7 +2601,9 @@ void Application::updateShadowMap() {
     glViewport(0, 0, _glWidget->width(), _glWidget->height());
 }
 
-const GLfloat WHITE_SPECULAR_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
+const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
+const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
 const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 void Application::setupWorldLight() {
@@ -2613,13 +2615,10 @@ void Application::setupWorldLight() {
     glm::vec3 sunDirection = getSunDirection();
     GLfloat light_position0[] = { sunDirection.x, sunDirection.y, sunDirection.z, 0.0 };
     glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-    GLfloat ambient_color[] = { 0.7f, 0.7f, 0.8f };
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-    GLfloat diffuse_color[] = { 0.8f, 0.7f, 0.7f };
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-
-    glLightfv(GL_LIGHT0, GL_SPECULAR, WHITE_SPECULAR_COLOR);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, WORLD_AMBIENT_COLOR);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, WORLD_DIFFUSE_COLOR);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, WORLD_SPECULAR_COLOR);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
@@ -2797,7 +2796,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
 
         // restore default, white specular
-        glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
 
         _nodeBoundsDisplay.draw();
 
@@ -3628,6 +3627,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
     scriptEngine->getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
     scriptEngine->getModelsScriptingInterface()->setModelTree(_models.getTree());
+
+    // model has some custom types
+    Model::registerMetaTypes(scriptEngine->getEngine());
 
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
