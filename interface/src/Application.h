@@ -258,6 +258,8 @@ public:
     /// the view matrix translation.
     void updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation = glm::vec3());
 
+    const glm::mat4& getUntranslatedViewMatrix() const { return _untranslatedViewMatrix; }
+
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
     /// result from matrix multiplication at high translation magnitudes.
     void loadTranslatedViewMatrix(const glm::vec3& translation);

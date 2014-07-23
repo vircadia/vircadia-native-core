@@ -18,7 +18,8 @@
 const float HAIR_DAMPING = 0.99f;
 const float CONSTRAINT_RELAXATION = 10.0f;
 const float HAIR_ACCELERATION_COUPLING = 0.025f;
-const float HAIR_ANGULAR_VELOCITY_COUPLING = 0.10f;
+const float HAIR_ANGULAR_VELOCITY_COUPLING = 0.01f;
+const float HAIR_ANGULAR_ACCELERATION_COUPLING = 0.001f;
 const float HAIR_MAX_LINEAR_ACCELERATION = 4.0f;
 const float HAIR_STIFFNESS = 0.005f;
 const glm::vec3 HAIR_COLOR1(0.98f, 0.92f, 0.843f);
@@ -36,6 +37,7 @@ Hair::Hair(int strands,
     _radius(radius),
     _acceleration(0.0f),
     _angularVelocity(0.0f),
+    _angularAcceleration(0.0f),
     _gravity(0.0f)
 {
     _hairPosition = new glm::vec3[_strands * _links];
@@ -127,13 +129,15 @@ void Hair::simulate(float deltaTime) {
                 const float ANGULAR_VELOCITY_MIN = 0.001f;
                 if (glm::length(_angularVelocity) > ANGULAR_VELOCITY_MIN) {
                     glm::vec3 yawVector = _hairPosition[vertexIndex];
+                    glm::vec3 angularVelocity = _angularVelocity * HAIR_ANGULAR_VELOCITY_COUPLING;
+                    glm::vec3 angularAcceleration = _angularAcceleration * HAIR_ANGULAR_ACCELERATION_COUPLING;
                     yawVector.y = 0.f;
                     if (glm::length(yawVector) > EPSILON) {
                         float radius = glm::length(yawVector);
                         yawVector = glm::normalize(yawVector);
                         float angle = atan2f(yawVector.x, -yawVector.z) + PI;
                         glm::vec3 delta = glm::vec3(-1.f, 0.f, 0.f) * glm::angleAxis(angle, glm::vec3(0, 1, 0));
-                        _hairPosition[vertexIndex] -= delta * radius * _angularVelocity.y * HAIR_ANGULAR_VELOCITY_COUPLING * deltaTime;
+                        _hairPosition[vertexIndex] -= delta * radius * (angularVelocity.y - angularAcceleration.y) * deltaTime;
                     }
                     glm::vec3 pitchVector = _hairPosition[vertexIndex];
                     pitchVector.x = 0.f;
@@ -142,7 +146,7 @@ void Hair::simulate(float deltaTime) {
                         pitchVector = glm::normalize(pitchVector);
                         float angle = atan2f(pitchVector.y, -pitchVector.z) + PI;
                         glm::vec3 delta = glm::vec3(0.0f, 1.0f, 0.f) * glm::angleAxis(angle, glm::vec3(1, 0, 0));
-                        _hairPosition[vertexIndex] -= delta * radius * _angularVelocity.x * HAIR_ANGULAR_VELOCITY_COUPLING * deltaTime;
+                        _hairPosition[vertexIndex] -= delta * radius * (angularVelocity.x - angularAcceleration.x) * deltaTime;
                     }
                     glm::vec3 rollVector = _hairPosition[vertexIndex];
                     rollVector.z = 0.f;
@@ -151,7 +155,7 @@ void Hair::simulate(float deltaTime) {
                         pitchVector = glm::normalize(rollVector);
                         float angle = atan2f(rollVector.x, rollVector.y) + PI;
                         glm::vec3 delta = glm::vec3(-1.0f, 0.0f, 0.f) * glm::angleAxis(angle, glm::vec3(0, 0, 1));
-                        _hairPosition[vertexIndex] -= delta * radius * _angularVelocity.z * HAIR_ANGULAR_VELOCITY_COUPLING * deltaTime;
+                        _hairPosition[vertexIndex] -= delta * radius * (angularVelocity.z - angularAcceleration.z) * deltaTime;
                     }
                 }
                 

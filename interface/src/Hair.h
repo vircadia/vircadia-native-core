@@ -40,6 +40,7 @@ public:
     void render();
     void setAcceleration(const glm::vec3& acceleration) { _acceleration = acceleration; }
     void setAngularVelocity(const glm::vec3& angularVelocity) { _angularVelocity = angularVelocity; }
+    void setAngularAcceleration(const glm::vec3& angularAcceleration) { _angularAcceleration = angularAcceleration; }
     void setGravity(const glm::vec3& gravity) { _gravity = gravity; }
     
 private:
@@ -58,6 +59,7 @@ private:
     int* _hairConstraints;     
     glm::vec3 _acceleration;
     glm::vec3 _angularVelocity;
+    glm::vec3 _angularAcceleration;
     glm::vec3 _gravity;
     
     

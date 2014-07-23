@@ -79,6 +79,12 @@ public:
 
     const SequenceNumberStats& getIncomingMixedAudioSequenceNumberStats() const { return _incomingMixedAudioSequenceNumberStats; }
 
+    int getInputRingBufferFramesAvailable() const;
+    int getInputRingBufferAverageFramesAvailable() const { return (int)_inputRingBufferFramesAvailableStats.getWindowAverage(); }
+
+    int getOutputRingBufferFramesAvailable() const;
+    int getOutputRingBufferAverageFramesAvailable() const { return (int)_audioOutputBufferFramesAvailableStats.getWindowAverage(); }
+
 public slots:
     void start();
     void stop();
@@ -221,9 +227,9 @@ private:
 
     // Callback acceleration dependent calculations
     static const float CALLBACK_ACCELERATOR_RATIO;
-    int calculateNumberOfInputCallbackBytes(const QAudioFormat& format);
-    int calculateNumberOfFrameSamples(int numBytes);
-    float calculateDeviceToNetworkInputRatio(int numBytes);
+    int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
+    int calculateNumberOfFrameSamples(int numBytes) const;
+    float calculateDeviceToNetworkInputRatio(int numBytes) const;
 
     // Audio scope methods for allocation/deallocation
     void allocateScope();
@@ -238,8 +244,6 @@ private:
     void renderBackground(const float* color, int x, int y, int width, int height);
     void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
     void renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray);
-
-    int getFramesAvailableInRingAndAudioOutputBuffers() const;
 
     // Audio scope data
     static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
@@ -268,7 +272,11 @@ private:
     SequenceNumberStats _incomingMixedAudioSequenceNumberStats;
 
     MovingMinMaxAvg<quint64> _interframeTimeGapStats;
-    MovingMinMaxAvg<int> _framesAvailableStats;
+
+    MovingMinMaxAvg<int> _inputRingBufferFramesAvailableStats;
+
+    MovingMinMaxAvg<int> _outputRingBufferFramesAvailableStats;
+    MovingMinMaxAvg<int> _audioOutputBufferFramesAvailableStats;
 };
 
 
