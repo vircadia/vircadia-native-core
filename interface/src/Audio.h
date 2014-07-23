@@ -248,6 +248,10 @@ private:
     void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
     void renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray);
 
+    // audio stats methods for rendering
+    void renderAudioStreamStats(const AudioStreamStats& streamStats, int horizontalOffset, int& verticalOffset,
+        float scale, float rotation, int font, const float* color);
+
     // Audio scope data
     static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
     static const unsigned int DEFAULT_FRAMES_PER_SCOPE = 5;
@@ -265,7 +269,7 @@ private:
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
 
-    static const unsigned int STATS_WIDTH = 600;
+    static const unsigned int STATS_WIDTH = 1500;
     static const unsigned int STATS_HEIGHT_PER_LINE = 20;
     bool _statsEnabled;
 
