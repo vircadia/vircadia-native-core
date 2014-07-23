@@ -258,6 +258,9 @@ private:
 
     QList<AnimationHandlePointer> _runningAnimations;
 
+    glm::vec4 _localLightColors[MAX_LOCAL_LIGHTS];
+    glm::vec4 _localLightDirections[MAX_LOCAL_LIGHTS];
+
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;
@@ -304,13 +307,35 @@ private:
     static int _cascadedShadowSpecularMapDistancesLocation;
     static int _cascadedShadowNormalSpecularMapDistancesLocation;
     
-    class SkinLocations {
+    class Locations {
+    public:
+        int localLightColors;
+        int localLightDirections; 
+        int tangent;
+        int shadowDistances;
+    };
+    
+    static Locations _locations;
+    static Locations _normalMapLocations;
+    static Locations _specularMapLocations;
+    static Locations _normalSpecularMapLocations;
+    static Locations _shadowMapLocations;
+    static Locations _shadowNormalMapLocations;
+    static Locations _shadowSpecularMapLocations;
+    static Locations _shadowNormalSpecularMapLocations;
+    static Locations _cascadedShadowMapLocations;
+    static Locations _cascadedShadowNormalMapLocations;
+    static Locations _cascadedShadowSpecularMapLocations;
+    static Locations _cascadedShadowNormalSpecularMapLocations;
+    
+    static void initProgram(ProgramObject& program, Locations& locations,
+        int specularTextureUnit = 1, int shadowTextureUnit = 1);
+        
+    class SkinLocations : public Locations {
     public:
         int clusterMatrices;
         int clusterIndices;
-        int clusterWeights;
-        int tangent;
-        int shadowDistances;
+        int clusterWeights;    
     };
     
     static SkinLocations _skinLocations;

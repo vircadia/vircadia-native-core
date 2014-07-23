@@ -14,6 +14,12 @@
 // the maximum number of local lights to apply
 const int MAX_LOCAL_LIGHTS = 2;
 
+// the color of each local light
+uniform vec4 localLightColors[MAX_LOCAL_LIGHTS];
+
+// the direction of each local light
+uniform vec4 localLightDirections[MAX_LOCAL_LIGHTS];
+
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
@@ -36,8 +42,8 @@ void main(void) {
     // add up the local lights
     vec4 normalizedNormal = normalize(normal);
     vec4 localLight = vec4(0.0, 0.0, 0.0, 0.0);
-    for (int i = 1; i <= MAX_LOCAL_LIGHTS; i++) {
-        localLight += gl_FrontLightProduct[i].diffuse * max(0.0, dot(normalizedNormal, gl_LightSource[i].position));
+    for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
+        localLight += localLightColors[i] * max(0.0, dot(normalizedNormal, localLightDirections[i]));
     }
     
     // compute the base color based on OpenGL lighting model
