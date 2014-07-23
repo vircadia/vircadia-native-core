@@ -1408,8 +1408,8 @@ void Audio::renderStats(const float* color, int width, int height) {
 
     static const float backgroundColor[4] = { 0.2f, 0.2f, 0.2f, 0.6f };
 
-    int x = (width - STATS_WIDTH) / 2;
-    int y = (height - CENTERED_BACKGROUND_HEIGHT) / 2;
+    int x = std::max((width - (int)STATS_WIDTH) / 2, 0);
+    int y = std::max((height - CENTERED_BACKGROUND_HEIGHT) / 2, 0);
     int w = STATS_WIDTH;
     int h = statsHeight;
     renderBackground(backgroundColor, x, y, w, h);

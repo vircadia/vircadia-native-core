@@ -268,8 +268,11 @@ private:
     QByteArray* _scopeInput;
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
-
+#ifdef _WIN32
     static const unsigned int STATS_WIDTH = 1500;
+#else
+    static const unsigned int STATS_WIDTH = 650;
+#endif
     static const unsigned int STATS_HEIGHT_PER_LINE = 20;
     bool _statsEnabled;
 
