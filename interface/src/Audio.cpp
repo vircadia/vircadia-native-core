@@ -155,7 +155,7 @@ void Audio::reset() {
     _audioMixerAvatarStreamAudioStats = AudioStreamStats();
     _audioMixerInjectedStreamAudioStatsMap.clear();
 
-    _outgoingAvatarAudioSequenceNumber = 0;
+    //_outgoingAvatarAudioSequenceNumber = 0;
     _incomingMixedAudioSequenceNumberStats.reset();
 }
 
