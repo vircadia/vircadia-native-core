@@ -21,8 +21,6 @@ class FacialAnimationData : public QObject {
 
 public:
     friend class Faceshift;
-    friend class HeadData;
-    friend class AvatarData;
 
     FacialAnimationData();
 
@@ -40,11 +38,6 @@ public:
     float getMouthSize() const { return getBlendshapeCoefficient(_jawOpenIndex); }
     float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
     float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
-
-    void updateFakeCoefficients(float leftBlink, float rightBlink, float browUp, float jawOpen);
-
-    void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
-    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
 private:
     float getBlendshapeCoefficient(int index) const;
@@ -65,6 +58,7 @@ private:
 
     int _jawOpenIndex;
 
+    //Only used by agents, since FaceTracker has its own _blendshapeCoefficients;
     QVector<float> _blendshapeCoefficients;
 };
 

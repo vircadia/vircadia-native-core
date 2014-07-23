@@ -61,6 +61,9 @@ public:
     void update();
     void reset();
     
+    void updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
+        float jawOpen, QVector<float>& coefficients) const;
+    
 signals:
 
     void connectionStateChanged();

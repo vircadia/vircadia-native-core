@@ -28,7 +28,6 @@ const float MIN_HEAD_ROLL = -50.f;
 const float MAX_HEAD_ROLL = 50.f;
 
 class AvatarData;
-class FacialAnimationData;
 
 class HeadData {
 public:
@@ -55,16 +54,11 @@ public:
     float getAudioAverageLoudness() const { return _audioAverageLoudness; }
 	void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
 
-    const QVector<float>& getBlendshapeCoefficients() const;
+    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
     float getPupilDilation() const { return _pupilDilation; }
     void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
     
-    // Facial animation
-    void setLeftEyebrow(float f) {
-
-    }
-
     // degrees
     void addYaw(float yaw);
     void addPitch(float pitch);
@@ -91,7 +85,7 @@ protected:
     float _averageLoudness;
     float _browAudioLift;
     float _audioAverageLoudness;
-    FacialAnimationData* _facialAnimationData;
+    QVector<float> _blendshapeCoefficients;
     float _pupilDilation;
     AvatarData* _owningAvatar;
     

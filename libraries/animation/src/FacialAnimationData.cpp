@@ -11,10 +11,6 @@
 
 #include "FacialAnimationData.h"
 
-#ifndef max
-inline int max(int a, int b) { return a > b ? a : b; }
-#endif
-
 FacialAnimationData::FacialAnimationData() :_leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
 _rightBlinkIndex(1),
 _leftEyeOpenIndex(8),
@@ -31,16 +27,4 @@ _jawOpenIndex(21) {
 
 float FacialAnimationData::getBlendshapeCoefficient(int index) const {
     return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
-}
-
-void FacialAnimationData::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
-                                       float jawOpen) {
-    _blendshapeCoefficients.resize(max((int)_blendshapeCoefficients.size(), _jawOpenIndex + 1));
-    qFill(_blendshapeCoefficients.begin(), _blendshapeCoefficients.end(), 0.0f);
-    _blendshapeCoefficients[_leftBlinkIndex] = leftBlink;
-    _blendshapeCoefficients[_rightBlinkIndex] = rightBlink;
-    _blendshapeCoefficients[_browUpCenterIndex] = browUp;
-    _blendshapeCoefficients[_browUpLeftIndex] = browUp;
-    _blendshapeCoefficients[_browUpRightIndex] = browUp;
-    _blendshapeCoefficients[_jawOpenIndex] = jawOpen;
 }

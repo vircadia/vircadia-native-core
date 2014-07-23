@@ -66,7 +66,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     if (isMine) {
 		FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
         if ((_isFaceshiftConnected = faceTracker)) {
-            _facialAnimationData->setBlendshapeCoefficients(faceTracker->getBlendshapeCoefficients());
+            _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
             _isFaceshiftConnected = true;   
         }
     }
@@ -141,10 +141,11 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         
         // use data to update fake Faceshift blendshape coefficients
         const float JAW_OPEN_SCALE = 10.f;
-        _facialAnimationData->updateFakeCoefficients(_leftEyeBlink,
-                                                    _rightEyeBlink,
-                                                    _browAudioLift,
-                                                    glm::clamp(log(_averageLoudness) / JAW_OPEN_SCALE, 0.0f, 1.0f));
+        Application::getInstance()->getFaceshift()->updateFakeCoefficients(_leftEyeBlink,
+                                                                           _rightEyeBlink,
+            _browAudioLift,
+            glm::clamp(log(_averageLoudness) / JAW_OPEN_SCALE, 0.0f, 1.0f),
+            _blendshapeCoefficients);
     }
     
     if (!isMine) {

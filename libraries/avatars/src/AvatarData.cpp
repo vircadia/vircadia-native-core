@@ -29,8 +29,6 @@
 
 #include "AvatarData.h"
 
-#include "../animation/src/FacialAnimationData.h"
-
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
 using namespace std;
@@ -153,12 +151,10 @@ QByteArray AvatarData::toByteArray() {
         memcpy(destinationBuffer, &_headData->_browAudioLift, sizeof(float));
         destinationBuffer += sizeof(float);
         
-        const QVector<float>& blendshapeCoefficients = _headData->_facialAnimationData->getBlendshapeCoefficients();
-
-        *destinationBuffer++ = blendshapeCoefficients.size();
-        memcpy(destinationBuffer, blendshapeCoefficients.data(),
-               blendshapeCoefficients.size() * sizeof(float));
-        destinationBuffer += blendshapeCoefficients.size() * sizeof(float);
+        *destinationBuffer++ = _headData->_blendshapeCoefficients.size();
+        memcpy(destinationBuffer, _headData->_blendshapeCoefficients.data(),
+            _headData->_blendshapeCoefficients.size() * sizeof(float));
+        destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
     }
     
     // pupil dilation
@@ -433,8 +429,8 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
                 return maxAvailableSize;
             }
 
-            _headData->_facialAnimationData->_blendshapeCoefficients.resize(numCoefficients);
-            memcpy(_headData->_facialAnimationData->_blendshapeCoefficients.data(), sourceBuffer, blendDataSize);
+            _headData->_blendshapeCoefficients.resize(numCoefficients);
+            memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, blendDataSize);
             sourceBuffer += numCoefficients * sizeof(float);
     
             //bitItemsDataSize = 4 * sizeof(float) + 1 + blendDataSize;

@@ -16,8 +16,6 @@
 #include "AvatarData.h"
 #include "HeadData.h"
 
-#include "../animation/src/FacialAnimationData.h"
-
 HeadData::HeadData(AvatarData* owningAvatar) :
     _baseYaw(0.0f),
     _basePitch(0.0f),
@@ -31,7 +29,6 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _rightEyeBlink(0.0f),
     _averageLoudness(0.0f),
     _browAudioLift(0.0f),
-    _facialAnimationData(new FacialAnimationData),
     _owningAvatar(owningAvatar)
 {
     
@@ -67,6 +64,3 @@ void HeadData::addRoll(float roll) {
     setBaseRoll(_baseRoll + roll);
 }
 
-const QVector<float>& HeadData::getBlendshapeCoefficients() const { 
-    return _facialAnimationData->_blendshapeCoefficients;
-}
