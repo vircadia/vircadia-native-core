@@ -58,15 +58,59 @@ var jointList = MyAvatar.getJointNames();
 var mode = 0;
 
 
-if (typeof String.prototype.fileName !== 'function') {
+if (typeof String.prototype.fileName !== "function") {
     String.prototype.fileName = function (str) {
         return this.replace(/^(.*[\/\\])*/, "");
     };
 }
 
-if (typeof String.prototype.path !== 'function') {
+if (typeof String.prototype.path !== "function") {
     String.prototype.path = function (str) {
         return this.replace(/[\\\/][^\\\/]*$/, "");
+    };
+}
+
+if (typeof DataView.prototype.indexOf !== "function") {
+    DataView.prototype.indexOf = function (searchString, position) {
+        var searchLength = searchString.length,
+            byteArrayLength = this.byteLength,
+            maxSearchIndex = byteArrayLength - searchLength,
+            searchCharCodes = [],
+            found,
+            i,
+            j;
+
+        searchCharCodes[searchLength] = 0;
+        for (j = 0; j < searchLength; j += 1) {
+            searchCharCodes[j] = searchString.charCodeAt(j);
+        }
+
+        i = position;
+        found = false;
+        while (i < maxSearchIndex && !found) {
+            j = 0;
+            while (j < searchLength && this.getUint8(i + j) === searchCharCodes[j]) {
+                j += 1;
+            }
+            found = (j === searchLength);
+            i += 1;
+        }
+
+        return found ? i - 1 : -1;
+    };
+}
+
+if (typeof DataView.prototype.string !== "function") {
+    DataView.prototype.string = function (i, length) {
+        var charCodes = [],
+            end = i + length,
+            j;
+
+        for (j = i; j < end; j += 1) {
+            charCodes.push(this.getUint8(j));
+        }
+
+        return String.fromCharCode.apply(String, charCodes);
     };
 }
 
@@ -136,8 +180,51 @@ var modelUploader = (function () {
         return mapping;
     }
 
-    function readGeometry(buffer) {
-        return {};  // DJRTODO
+    function readGeometry(fbxBuffer) {
+        var dv = new DataView(fbxBuffer.buffer),
+            geometry = {},
+            pathLength,
+            filename,
+            author,
+            i;
+
+        // Simple direct search of FBX file for relevant texture filenames (excl. paths) instead of interpreting FBX format.
+        // - "RelativeFilename"     Record type
+        // - char                   Subtype
+        // - Uint8                  Length of path string
+        // - 00 00 00               3 null chars
+        // - <path>                 Path and name of texture file
+        geometry.textures = [];
+        i = 0;
+        while (i !== -1) {
+            i = dv.indexOf("RelativeFilename", i);
+            if (i !== -1) {
+                i += 17;    // Record type and subtype
+                pathLength = dv.getUint8(i);
+                i += 4;     // Path length and null chars
+                filename = dv.string(i, pathLength).fileName();
+                geometry.textures.push(filename);
+                i += pathLength;
+            }
+        }
+
+        // Simple direct search of FBX file for the first author record.
+        // - "Author"               Record type
+        // - char                   Subtype
+        // - Uint8                  Length of path string
+        // - 00 00 00               3 null chars
+        // - <path>                 Path and name of texture file
+        i = dv.indexOf("Author", 0);
+        if (i !== -1) {
+            i += 7;
+            pathLength = dv.getUint8(i);
+            if (pathLength > 0) {
+                author = dv.string(i, pathLength);
+                geometry.author = author;
+            }
+        }
+
+        return geometry;
     }
 
     function readModel(filename) {
