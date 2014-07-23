@@ -159,9 +159,9 @@ public:
     void focusOutEvent(QFocusEvent* event);
     void focusInEvent(QFocusEvent* event);
 
-    void mouseMoveEvent(QMouseEvent* event);
-    void mousePressEvent(QMouseEvent* event);
-    void mouseReleaseEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
 
     void touchBeginEvent(QTouchEvent* event);
     void touchEndEvent(QTouchEvent* event);
@@ -207,7 +207,7 @@ public:
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     int getMouseX() const { return _mouseX; }
     int getMouseY() const { return _mouseY; }
-    unsigned int getLastMouseMoveType() const { return _lastMouseMoveType; }
+    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated;; }
     Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
@@ -507,7 +507,7 @@ private:
     int _mouseDragStartedX;
     int _mouseDragStartedY;
     quint64 _lastMouseMove;
-    unsigned int _lastMouseMoveType;
+    bool _lastMouseMoveWasSimulated;
     bool _mouseHidden;
     bool _seenMouseMove;
 
