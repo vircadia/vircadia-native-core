@@ -145,7 +145,12 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
         // we don't continue if this key is not present in our descriptionObject
         if (descriptionObject.contains(key)) {
             if (rootValue.isString()) {
-                settingsVariant[key] = rootValue.toString();
+                if (rootValue.toString().isEmpty()) {
+                    // this is an empty value, clear it in settings variant so the default is sent
+                    settingsVariant.remove(key);
+                } else {
+                	settingsVariant[key] = rootValue.toString();
+                }
             } else if (rootValue.isBool()) {
                 settingsVariant[key] = rootValue.toBool();
             } else if (rootValue.isObject()) {
@@ -158,9 +163,16 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                         settingsVariant[key] = QVariantMap();
                     }
                     
+                    QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingsVariant[key].data());
+                    
                     recurseJSONObjectAndOverwriteSettings(rootValue.toObject(),
-                                                          *reinterpret_cast<QVariantMap*>(settingsVariant[key].data()),
+                                                          thisMap,
                                                           nextDescriptionObject[DESCRIPTION_SETTINGS_KEY].toObject());
+                    
+                    if (thisMap.isEmpty()) {
+                        // we've cleared all of the settings below this value, so remove this one too
+                        settingsVariant.remove(key);
+                    }
                 }
             }
         }
