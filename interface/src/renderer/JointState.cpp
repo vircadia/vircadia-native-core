@@ -20,6 +20,7 @@
 JointState::JointState() :
     _animationPriority(0.0f),
     _positionInParentFrame(0.0f),
+    _distanceToParent(0.0f),
     _fbxJoint(NULL),
     _constraint(NULL) {
 }
@@ -29,6 +30,7 @@ JointState::JointState(const JointState& other) : _constraint(NULL) {
     _rotation = other._rotation;
     _rotationInConstrainedFrame = other._rotationInConstrainedFrame;
     _positionInParentFrame = other._positionInParentFrame;
+    _distanceToParent = other._distanceToParent;
     _animationPriority = other._animationPriority;
     _fbxJoint = other._fbxJoint;
     // DO NOT copy _constraint
@@ -72,6 +74,7 @@ void JointState::copyState(const JointState& state) {
     _rotation = extractRotation(_transform);
     _rotationInConstrainedFrame = state._rotationInConstrainedFrame;
     _positionInParentFrame = state._positionInParentFrame;
+    _distanceToParent = state._distanceToParent;
 
     _visibleTransform = state._visibleTransform;
     _visibleRotation = extractRotation(_visibleTransform);
@@ -82,6 +85,7 @@ void JointState::copyState(const JointState& state) {
 void JointState::initTransform(const glm::mat4& parentTransform) {
     computeTransform(parentTransform);
     _positionInParentFrame = glm::inverse(extractRotation(parentTransform)) * (extractTranslation(_transform) - extractTranslation(parentTransform));
+    _distanceToParent = glm::length(_positionInParentFrame);
 }
 
 void JointState::computeTransform(const glm::mat4& parentTransform) {
