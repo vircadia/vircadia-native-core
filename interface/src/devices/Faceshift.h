@@ -16,9 +16,7 @@
 #include <QUdpSocket>
 
 #ifdef HAVE_FACESHIFT
-
 #include <fsbinarystream.h>
-
 #endif
 
 #include "FaceTracker.h"
