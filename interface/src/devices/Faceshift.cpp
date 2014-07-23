@@ -32,6 +32,18 @@ Faceshift::Faceshift() :
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
     _eyeGazeRightYaw(0.0f),
+    _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+    _rightBlinkIndex(1),
+    _leftEyeOpenIndex(8),
+    _rightEyeOpenIndex(9),
+    _browDownLeftIndex(14),
+    _browDownRightIndex(15),
+    _browUpCenterIndex(16),
+    _browUpLeftIndex(17),
+    _browUpRightIndex(18),
+    _mouthSmileLeftIndex(28),
+    _mouthSmileRightIndex(29),
+    _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
     _longTermAverageInitialized(false)
@@ -95,14 +107,14 @@ void Faceshift::reset() {
 
 void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
         float jawOpen, QVector<float>& coefficients) const {
-    coefficients.resize(max((int)coefficients.size(), _facialAnimationData._jawOpenIndex + 1));
+    coefficients.resize(max((int)coefficients.size(), _jawOpenIndex + 1));
     qFill(coefficients.begin(), coefficients.end(), 0.0f);
-    coefficients[_facialAnimationData._leftBlinkIndex] = leftBlink;
-    coefficients[_facialAnimationData._rightBlinkIndex] = rightBlink;
-    coefficients[_facialAnimationData._browUpCenterIndex] = browUp;
-    coefficients[_facialAnimationData._browUpLeftIndex] = browUp;
-    coefficients[_facialAnimationData._browUpRightIndex] = browUp;
-    coefficients[_facialAnimationData._jawOpenIndex] = jawOpen;
+    coefficients[_leftBlinkIndex] = leftBlink;
+    coefficients[_rightBlinkIndex] = rightBlink;
+    coefficients[_browUpCenterIndex] = browUp;
+    coefficients[_browUpLeftIndex] = browUp;
+    coefficients[_browUpRightIndex] = browUp;
+    coefficients[_jawOpenIndex] = jawOpen;
 }
 
 void Faceshift::setTCPEnabled(bool enabled) {
@@ -205,40 +217,40 @@ void Faceshift::receive(const QByteArray& buffer) {
                 const vector<string>& names = static_cast<fsMsgBlendshapeNames*>(msg.get())->blendshape_names();
                 for (size_t i = 0; i < names.size(); i++) {
                     if (names[i] == "EyeBlink_L") {
-                        _facialAnimationData._leftBlinkIndex = i;
+                        _leftBlinkIndex = i;
 
                     } else if (names[i] == "EyeBlink_R") {
-                        _facialAnimationData._rightBlinkIndex = i;
+                        _rightBlinkIndex = i;
 
                     } else if (names[i] == "EyeOpen_L") {
-                        _facialAnimationData._leftEyeOpenIndex = i;
+                        _leftEyeOpenIndex = i;
 
                     } else if (names[i] == "EyeOpen_R") {
-                        _facialAnimationData._rightEyeOpenIndex = i;
+                        _rightEyeOpenIndex = i;
 
                     } else if (names[i] == "BrowsD_L") {
-                        _facialAnimationData._browDownLeftIndex = i;
+                        _browDownLeftIndex = i;
 
                     } else if (names[i] == "BrowsD_R") {
-                        _facialAnimationData._browDownRightIndex = i;
+                        _browDownRightIndex = i;
 
                     } else if (names[i] == "BrowsU_C") {
-                        _facialAnimationData._browUpCenterIndex = i;
+                        _browUpCenterIndex = i;
 
                     } else if (names[i] == "BrowsU_L") {
-                        _facialAnimationData._browUpLeftIndex = i;
+                        _browUpLeftIndex = i;
 
                     } else if (names[i] == "BrowsU_R") {
-                        _facialAnimationData._browUpRightIndex = i;
+                        _browUpRightIndex = i;
 
                     } else if (names[i] == "JawOpen") {
-                        _facialAnimationData._jawOpenIndex = i;
+                        _jawOpenIndex = i;
 
                     } else if (names[i] == "MouthSmile_L") {
-                        _facialAnimationData._mouthSmileLeftIndex = i;
+                        _mouthSmileLeftIndex = i;
 
                     } else if (names[i] == "MouthSmile_R") {
-                        _facialAnimationData._mouthSmileRightIndex = i;
+                        _mouthSmileRightIndex = i;
                     }
                 }
                 break;
