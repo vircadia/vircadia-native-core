@@ -24,11 +24,11 @@ function printVector(string, vector) {
     print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
 }
 
-var CHANCE_OF_MOVING = 0.0; 
-var CHANCE_OF_SOUND = 0.0;
+var CHANCE_OF_MOVING = 0.005; 
+var CHANCE_OF_SOUND = 0.005;
 var CHANCE_OF_HEAD_TURNING = 0.05;
-var CHANCE_OF_BIG_MOVE = 0.0;
-var CHANCE_OF_WAVING = 0.0;     
+var CHANCE_OF_BIG_MOVE = 0.1;
+var CHANCE_OF_WAVING = 0.009;     
 
 var shouldReceiveVoxels = true; 
 var VOXEL_FPS = 60.0;
@@ -147,13 +147,6 @@ function updateBehavior(deltaTime) {
   if (CHANCE_OF_MOVING == 0.000) {
       Avatar.position = firstPosition;
   }
-  //print("hi");
-  Avatar.setLeftBlink(1.0);
-  Avatar.setRightBlink(0.5);
-  Avatar.setBrowDownLeft(1.0);
-  Avatar.setMouthSize(1.0);
-  Avatar.setMouthSmileRight(1.0);
-  //print("ho");
 
   if (shouldReceiveVoxels && ((cumulativeTime - lastVoxelQueryTime) > (1.0 / VOXEL_FPS))) {
     VoxelViewer.setPosition(Avatar.position);

@@ -146,7 +146,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
                                                     _browAudioLift,
                                                     glm::clamp(log(_averageLoudness) / JAW_OPEN_SCALE, 0.0f, 1.0f));
     }
-
+    
     if (!isMine) {
         _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
     }

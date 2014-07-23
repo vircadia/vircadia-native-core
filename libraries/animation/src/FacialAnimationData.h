@@ -26,23 +26,6 @@ public:
 
     FacialAnimationData();
 
-    // Setters
-    void setLeftBlink(float val) { setBlendshapeCoefficient(_leftBlinkIndex, val); }
-    void setRightBlink(float val) { setBlendshapeCoefficient(_rightBlinkIndex, val); }
-    void setLeftEyeOpen(float val) { setBlendshapeCoefficient(_leftBlinkIndex, val); }
-    void setRightEyeOpen(float val) { setBlendshapeCoefficient(_rightBlinkIndex, val); }
-
-    void setBrowDownLeft(float val) { setBlendshapeCoefficient(_browDownLeftIndex, val); }
-    void setBrowDownRight(float val) { setBlendshapeCoefficient(_browDownRightIndex, val); }
-    void setBrowUpCenter(float val) { setBlendshapeCoefficient(_browUpCenterIndex, val); }
-    void setBrowUpLeft(float val) { setBlendshapeCoefficient(_browUpLeftIndex, val); }
-    void setBrowUpRight(float val) { setBlendshapeCoefficient(_browUpRightIndex, val); }
-
-    void setMouthSize(float val) { setBlendshapeCoefficient(_jawOpenIndex, val); }
-    void setMouthSmileLeft(float val) { setBlendshapeCoefficient(_mouthSmileLeftIndex, val); }
-    void setMouthSmileRight(float val) { setBlendshapeCoefficient(_mouthSmileRightIndex, val); }
-
-    // Getters
     float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
     float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }
     float getLeftEyeOpen() const { return getBlendshapeCoefficient(_leftEyeOpenIndex); }
@@ -64,7 +47,6 @@ public:
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
 private:
-    void setBlendshapeCoefficient(int index, float val);
     float getBlendshapeCoefficient(int index) const;
 
     int _leftBlinkIndex;

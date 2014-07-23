@@ -45,7 +45,6 @@ AvatarData::AvatarData() :
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
-    _forceFaceshiftIsConnected(false),
     _hasNewJointRotations(true),
     _headData(NULL),
     _handData(NULL),
@@ -83,10 +82,6 @@ QByteArray AvatarData::toByteArray() {
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);
-        // In some cases, for instance for AC avatars, we might want to force faceshift to appear connected
-        if (_forceFaceshiftIsConnected) {
-            _headData->setIsFaceshiftConnected(true);
-        }
     }
     
     QByteArray avatarDataByteArray;

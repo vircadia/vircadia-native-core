@@ -61,20 +61,9 @@ public:
     void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
     
     // Facial animation
-    void setLeftBlink(float val);
-    void setRightBlink(float val);
-    void setLeftEyeOpen(float val);
-    void setRightEyeOpen(float val);
-    void setBrowDownLeft(float val);
-    void setBrowDownRight(float val);
-    void setBrowUpCenter(float val);
-    void setBrowUpLeft(float val);
-    void setBrowUpRight(float val);
-    void setMouthSize(float val);
-    void setMouthSmileLeft(float val);
-    void setMouthSmileRight(float val);
+    void setLeftEyebrow(float f) {
 
-    void setIsFaceshiftConnected(bool isFaceshiftConnected) { _isFaceshiftConnected = isFaceshiftConnected; }
+    }
 
     // degrees
     void addYaw(float yaw);
