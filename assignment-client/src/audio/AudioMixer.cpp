@@ -237,14 +237,6 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] += delayBufferSample[1];
         }
         
-        // The following code is pretty gross and redundant, but AFAIK it's the best way to avoid
-        // too many conditionals in handling the delay samples at the beginning of _clientSamples.
-        // Basically we try to take the samples in batches of four, and then handle the remainder
-        // conditionally to get rid of the rest.
-        
-        const int DOUBLE_STEREO_OFFSET = 4;
-        const int TRIPLE_STEREO_OFFSET = 6;
-        
         if (numSamplesDelay > 0) {
             // if there was a sample delay for this buffer, we need to pull samples prior to the nextOutput
             // to stick at the beginning

@@ -278,7 +278,6 @@ void Stats::display(
 
 
         Audio* audio = Application::getInstance()->getAudio();
-        const QHash<QUuid, AudioStreamStats>& audioMixerInjectedStreamAudioStatsMap = audio->getAudioMixerInjectedStreamAudioStatsMap();
 
         lines = _expanded ? 4 : 3;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
