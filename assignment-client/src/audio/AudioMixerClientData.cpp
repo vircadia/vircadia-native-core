@@ -95,7 +95,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             }
             case SequenceNumberStats::OnTime: {
                 // ask the AvatarAudioRingBuffer instance to parse the data
-                avatarRingBuffer->parseData(packet);
+                avatarRingBuffer->parseData(packet, 0);
                 break;
             }
             default: {
@@ -139,7 +139,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             }
             case SequenceNumberStats::OnTime: {
                 // ask the AvatarAudioRingBuffer instance to parse the data
-                matchingInjectedRingBuffer->parseData(packet);
+                matchingInjectedRingBuffer->parseData(packet, 0);
                 break;
             }
             default: {
