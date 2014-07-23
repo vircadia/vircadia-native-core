@@ -522,7 +522,7 @@ void Audio::handleAudioInput() {
 
     _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
     
-    float audioInputMsecsRead = inputByteArray.size() / (float)(_inputFormat.channelCount() * _inputFormat.sampleRate() * sizeof(int16_t)) * MSECS_PER_SECOND;
+    float audioInputMsecsRead = inputByteArray.size() / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
     _audioInputMsecsReadStats.update(audioInputMsecsRead);
 
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
