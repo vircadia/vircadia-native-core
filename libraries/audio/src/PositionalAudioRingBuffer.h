@@ -45,7 +45,7 @@ public:
     
     PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false, bool dynamicJitterBuffers = false);
     
-    virtual int parseData(const QByteArray& packet, int packetsSkipped) = 0;
+    virtual int parseDataAndHandleDroppedPackets(const QByteArray& packet, int packetsSkipped) = 0;
 
     int parsePositionalData(const QByteArray& positionalByteArray);
     int parseListenModeData(const QByteArray& listenModeByteArray);
