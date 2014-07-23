@@ -65,7 +65,7 @@ colors[4] = { red: 236, green: 174,  blue: 0 };
 colors[5] = { red: 234, green: 133,  blue: 0 };
 colors[6] = { red: 211, green: 115,  blue: 0 };
 colors[7] = { red: 48,  green: 116,  blue: 119 };
-colors[8] = { red: 31,  green: 64,  blue: 64 };
+colors[8] = { red: 36,  green: 64,  blue: 64 };
 var numColors = 9;
 var whichColor = 0;            //  Starting color is 'Copy' mode
 

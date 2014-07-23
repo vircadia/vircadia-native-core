@@ -280,7 +280,7 @@ void Stats::display(
         Audio* audio = Application::getInstance()->getAudio();
         const QHash<QUuid, AudioStreamStats>& audioMixerInjectedStreamAudioStatsMap = audio->getAudioMixerInjectedStreamAudioStatsMap();
 
-        lines = _expanded ? 11 + (audioMixerInjectedStreamAudioStatsMap.size() + 2) * 3 : 3;
+        lines = _expanded ? 13 + (audioMixerInjectedStreamAudioStatsMap.size() + 2) * 3 : 3;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
 
@@ -314,6 +314,18 @@ void Stats::display(
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
 
+            char inputAudioLabelString[] = "Input: avail_avg_10s/avail";
+
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, inputAudioLabelString, color);
+
+            char inputAudioStatsString[512];
+            sprintf(inputAudioStatsString, " %d/%d", audio->getInputRingBufferAverageFramesAvailable(),
+                audio->getInputRingBufferFramesAvailable());
+
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, inputAudioStatsString, color);
+
             char audioMixerStatsLabelString[] = "AudioMixer stats:";
             char streamStatsFormatLabelString[] = "lost%/lost_30s%";
             char streamStatsFormatLabelString2[] = "desired/avail_avg_10s/avail";
@@ -342,8 +354,8 @@ void Stats::display(
             sprintf(downstreamAudioStatsString, " mix: %.2f%%/%.2f%%, %u/%u+%d/%u+%d", downstreamAudioStreamStats._packetStreamStats.getLostRate()*100.0f,
                 downstreamAudioStreamStats._packetStreamWindowStats.getLostRate() * 100.0f,
                 downstreamAudioStreamStats._ringBufferDesiredJitterBufferFrames, downstreamAudioStreamStats._ringBufferFramesAvailableAverage,
-                audio->getAverageFramesAvailableInAudioOutputBuffer(),
-                downstreamAudioStreamStats._ringBufferFramesAvailable, audio->getFramesAvailableInAudioOutputBuffer());
+                audio->getOutputRingBufferAverageFramesAvailable(),
+                downstreamAudioStreamStats._ringBufferFramesAvailable, audio->getOutputRingBufferFramesAvailable());
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
@@ -816,19 +828,19 @@ void Stats::display(
     }
     
     // draw local light stats
-    int numLocalLights = myAvatar->getNumLocalLights();
+    QVector<Model::LocalLight> localLights = Application::getInstance()->getAvatarManager().getLocalLights();
     verticalOffset = 400;
     horizontalOffset = 20;
      
     char buffer[128];
-    for (int i = 0; i < numLocalLights; i++) {
-        glm::vec3 lightDirection = myAvatar->getLocalLightDirection(i); 
+    for (int i = 0; i < localLights.size(); i++) {
+        glm::vec3 lightDirection = localLights.at(i).direction;
         snprintf(buffer, sizeof(buffer), "Light %d direction (%.2f, %.2f, %.2f)", i, lightDirection.x, lightDirection.y, lightDirection.z);
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, buffer, color);
         
         verticalOffset += STATS_PELS_PER_LINE;
 
-        glm::vec3 lightColor = myAvatar->getLocalLightColor(i);
+        glm::vec3 lightColor = localLights.at(i).color;
         snprintf(buffer, sizeof(buffer), "Light %d color (%.2f, %.2f, %.2f)", i, lightColor.x, lightColor.y, lightColor.z);
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, buffer, color);
         
