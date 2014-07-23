@@ -151,8 +151,9 @@ var modelUploader = (function () {
         };
     }
 
-    function readMapping(buffer) {
-        var mapping = {},
+    function readMapping(fstBuffer) {
+        var dv = new DataView(fstBuffer.buffer),
+            mapping = {},
             lines,
             line,
             values,
@@ -160,7 +161,7 @@ var modelUploader = (function () {
             i;
 
         // Simplified to target values relevant to model uploading.
-        lines = String(buffer.buffer).split(/\r\n|\r|\n/);
+        lines = dv.string(0, dv.byteLength).split(/\r\n|\r|\n/);
         for (i = 0; i < lines.length; i += 1) {
             line = lines[i].trim();
             if (line.length > 0 && line[0] !== "#") {
