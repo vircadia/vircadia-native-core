@@ -183,43 +183,68 @@ var modelUploader = (function () {
     function readGeometry(fbxBuffer) {
         var dv = new DataView(fbxBuffer.buffer),
             geometry = {},
-            pathLength,
+            binary,
+            stringLength,
             filename,
             author,
             i;
 
+        binary = (dv.string(0, 18) === "Kaydara FBX Binary");
+
         // Simple direct search of FBX file for relevant texture filenames (excl. paths) instead of interpreting FBX format.
-        // - "RelativeFilename"     Record type
+        // Binary format:
+        // - 'RelativeFilename'     Record type
         // - char                   Subtype
         // - Uint8                  Length of path string
         // - 00 00 00               3 null chars
         // - <path>                 Path and name of texture file
+        // Text format:
+        // - 'RelativeFilename'     Record type
+        // - ': " '                 Pre-string colon and quote
+        // - <path>                 Path and name of texture file
+        // - '"'                    End-of-string quote
         geometry.textures = [];
         i = 0;
         while (i !== -1) {
             i = dv.indexOf("RelativeFilename", i);
             if (i !== -1) {
-                i += 17;    // Record type and subtype
-                pathLength = dv.getUint8(i);
-                i += 4;     // Path length and null chars
-                filename = dv.string(i, pathLength).fileName();
+                if (binary) {
+                    i += 17;
+                    stringLength = dv.getUint8(i);
+                    i += 4;
+                } else {
+                    i = dv.indexOf("\"", i) + 1;
+                    stringLength = dv.indexOf("\"", i) - i;
+                }
+                filename = dv.string(i, stringLength).fileName();
                 geometry.textures.push(filename);
-                i += pathLength;
+                i += stringLength;
             }
         }
 
         // Simple direct search of FBX file for the first author record.
-        // - "Author"               Record type
+        // Binary format:
+        // - 'Author'               Record type
         // - char                   Subtype
         // - Uint8                  Length of path string
         // - 00 00 00               3 null chars
-        // - <path>                 Path and name of texture file
+        // - <author>               Author name
+        // Text format:
+        // - 'Author'               Record type
+        // - ': "'                  Pre-string colon and quote
+        // - <author>               Author name; may be empty
+        // - '"'                    End-of-string quote
         i = dv.indexOf("Author", 0);
         if (i !== -1) {
-            i += 7;
-            pathLength = dv.getUint8(i);
-            if (pathLength > 0) {
-                author = dv.string(i, pathLength);
+            if (binary) {
+                i += 7;
+                stringLength = dv.getUint8(i);
+            } else {
+                i = dv.indexOf("\"", i) + 1;
+                stringLength = dv.indexOf("\"", i) - i;
+            }
+            if (stringLength > 0) {
+                author = dv.string(i, stringLength);
                 geometry.author = author;
             }
         }
