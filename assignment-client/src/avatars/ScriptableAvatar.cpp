@@ -17,6 +17,7 @@ ScriptableAvatar::ScriptableAvatar(ScriptEngine* scriptEngine) : _scriptEngine(s
     connect(_scriptEngine, SIGNAL(update(float)), this, SLOT(update(float)));
 }
 
+// hold and priority unused but kept so that client side JS can run.
 void ScriptableAvatar::startAnimation(const QString& url, float fps, float priority,
                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
     if (QThread::currentThread() != thread()) {
@@ -27,22 +28,22 @@ void ScriptableAvatar::startAnimation(const QString& url, float fps, float prior
     }
     _animation = _scriptEngine->getAnimationCache()->getAnimation(url);
     _animationDetails = AnimationDetails("", QUrl(url), fps, 0, loop, hold, false, firstFrame, lastFrame, true, firstFrame);
+    _maskedJoints = maskedJoints;
 }
 
-void ScriptableAvatar::stopAnimation(const QString& url) {
+void ScriptableAvatar::stopAnimation() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stopAnimation", Q_ARG(const QString&, url));
+        QMetaObject::invokeMethod(this, "stopAnimation");
         return;
     }
     _animation.clear();
 }
 
-AnimationDetails ScriptableAvatar::getAnimationDetails(const QString& url) {
+AnimationDetails ScriptableAvatar::getAnimationDetails() {
     if (QThread::currentThread() != thread()) {
         AnimationDetails result;
         QMetaObject::invokeMethod(this, "getAnimationDetails", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(AnimationDetails, result),
-                                  Q_ARG(const QString&, url));
+                                  Q_RETURN_ARG(AnimationDetails, result));
         return result;
     }
     return _animationDetails;
@@ -72,11 +73,11 @@ void ScriptableAvatar::update(float deltatime) {
             
             for (int i = 0; i < modelJoints.size(); i++) {
                 int mapping = animationJoints.indexOf(modelJoints[i]);
-                if (mapping != -1) {
+                if (mapping != -1 && !_maskedJoints.contains(modelJoints[i])) {
                     JointData& data = _jointData[i];
                     data.valid = true;
                     data.rotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
-                } else if (i < _jointData.size()) {
+                } else {
                     _jointData[i].valid = false;
                 }
             }
