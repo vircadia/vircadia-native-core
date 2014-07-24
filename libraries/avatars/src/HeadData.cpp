@@ -65,7 +65,7 @@ void HeadData::setBlendshape(QString name, float val) {
     }
 
     //Check to see if the named blendshape exists, and then set its value if it does
-    auto it = blendshapeLookupMap.find(name);
+    QMap<QString, int>::iterator it = blendshapeLookupMap.find(name);
     if (it != blendshapeLookupMap.end()) {
         if (_blendshapeCoefficients.size() <= it.value()) {
             _blendshapeCoefficients.resize(it.value() + 1);
