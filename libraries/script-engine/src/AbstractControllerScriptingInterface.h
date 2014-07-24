@@ -89,9 +89,9 @@ signals:
     void keyPressEvent(const KeyEvent& event);
     void keyReleaseEvent(const KeyEvent& event);
 
-    void mouseMoveEvent(const MouseEvent& event);
-    void mousePressEvent(const MouseEvent& event);
-    void mouseReleaseEvent(const MouseEvent& event);
+    void mouseMoveEvent(const MouseEvent& event, unsigned int deviceID = 0);
+    void mousePressEvent(const MouseEvent& event, unsigned int deviceID = 0);
+    void mouseReleaseEvent(const MouseEvent& event, unsigned int deviceID = 0);
 
     void touchBeginEvent(const TouchEvent& event);
     void touchEndEvent(const TouchEvent& event);

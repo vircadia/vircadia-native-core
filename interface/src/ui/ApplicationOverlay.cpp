@@ -535,7 +535,7 @@ void ApplicationOverlay::renderPointers() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     
-    if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
+    if (OculusManager::isConnected() && !application->getLastMouseMoveWasSimulated()) {
         //If we are in oculus, render reticle later
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = true;
@@ -546,7 +546,7 @@ void ApplicationOverlay::renderPointers() {
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
         
-    } else if (application->getLastMouseMoveType() == CONTROLLER_MOVE_EVENT && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+    } else if (application->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;
