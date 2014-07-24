@@ -856,7 +856,7 @@ QJsonObject DomainServer::jsonForSocket(const HifiSockAddr& socket) {
     QJsonObject socketJSON;
 
     socketJSON["ip"] = socket.getAddress().toString();
-    socketJSON["port"] = ntohs(socket.getPort());
+    socketJSON["port"] = socket.getPort();
 
     return socketJSON;
 }
