@@ -43,19 +43,13 @@ AvatarAudioRingBuffer* AudioMixerClientData::getAvatarAudioRingBuffer() const {
 }
 
 int AudioMixerClientData::parseData(const QByteArray& packet) {
-
-    // parse sequence number for this packet
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const char* sequenceAt = packet.constData() + numBytesPacketHeader;
-    quint16 sequence = *(reinterpret_cast<const quint16*>(sequenceAt));
-
     PacketType packetType = packetTypeForPacket(packet);
     if (packetType == PacketTypeAudioStreamStats) {
 
         const char* dataAt = packet.data();
 
         // skip over header, appendFlag, and num stats packed
-        dataAt += (numBytesPacketHeader + sizeof(quint8) + sizeof(quint16));
+        dataAt += (numBytesForPacketHeader(packet) + sizeof(quint8) + sizeof(quint16));
 
         // read the downstream audio stream stats
         memcpy(&_downstreamAudioStreamStats, dataAt, sizeof(AudioStreamStats));
