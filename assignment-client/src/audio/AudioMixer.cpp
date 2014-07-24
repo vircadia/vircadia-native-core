@@ -98,15 +98,18 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     // if the frame to be mixed is silent, don't mix it
     if (bufferToAdd->getNextOutputTrailingLoudness() == 0.0f) {
         bufferToAdd->popFrames(1);
+        printf("trailing loudness too soft: not mixing!\n");
         return;
     }
 
     // get pointer to frame to be mixed.  If the stream cannot provide a frame (is starved), bail
     AudioRingBuffer::ConstIterator nextOutputStart;
     if (!bufferToAdd->popFrames(&nextOutputStart, 1)) {
+        printf("stream is starved! not mixing!\n");
         return;
     }
 
+    printf("mixing stream\n");
 
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
@@ -312,7 +315,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
             QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i, end = otherNodeRingBuffers.constEnd();
             for (i = otherNodeRingBuffers.begin(); i != end; i++) {
                 PositionalAudioRingBuffer* otherNodeBuffer = i.value();
-                
+
                 if (*otherNode != *node || otherNodeBuffer->shouldLoopbackForNode()) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }

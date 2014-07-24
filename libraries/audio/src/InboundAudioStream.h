@@ -79,6 +79,9 @@ public:
     int getSilentFramesDropped() const { return _silentFramesDropped; }
     int getOverflowCount() const { return _ringBuffer.getOverflowCount(); }
 
+private:
+    bool shouldPop(int numSamples, bool starveOnFail);
+
 protected:
     // disallow copying of InboundAudioStream objects
     InboundAudioStream(const InboundAudioStream&);

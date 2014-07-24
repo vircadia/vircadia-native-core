@@ -22,15 +22,15 @@
 #include <UUID.h>
 
 PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo, bool dynamicJitterBuffers) :
-InboundAudioStream(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, dynamicJitterBuffers),
-_type(type),
-_position(0.0f, 0.0f, 0.0f),
-_orientation(0.0f, 0.0f, 0.0f, 0.0f),
-_shouldLoopbackForNode(false),
-_isStereo(isStereo),
-_nextOutputTrailingLoudness(0.0f),
-_listenerUnattenuatedZone(NULL)
+    InboundAudioStream(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+    AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, dynamicJitterBuffers),
+    _type(type),
+    _position(0.0f, 0.0f, 0.0f),
+    _orientation(0.0f, 0.0f, 0.0f, 0.0f),
+    _shouldLoopbackForNode(false),
+    _isStereo(isStereo),
+    _nextOutputTrailingLoudness(0.0f),
+    _listenerUnattenuatedZone(NULL)
 {
 }
 
