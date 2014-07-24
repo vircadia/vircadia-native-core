@@ -18,7 +18,8 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-set(QXMPP_SEARCH_DIRS "${QXMPP_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/qxmpp")
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("QXMPP" "qxmpp")
 
 find_path(QXMPP_INCLUDE_DIRS QXmppClient.h PATH_SUFFIXES include/qxmpp HINTS ${QXMPP_SEARCH_DIRS})
 

@@ -14,7 +14,8 @@
 # 
 
 # setup hints for GLM search
-set(GLM_HEADER_SEARCH_HINTS "${GLM_ROOT_DIR}" "$ENV{GLM_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/glm")
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("GLM" "glm")
 
 # locate header
 find_path(GLM_INCLUDE_DIR "glm/glm.hpp" HINTS ${GLM_HEADER_SEARCH_HINTS})

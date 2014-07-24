@@ -18,7 +18,8 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-set(RTMIDI_SEARCH_DIRS "${RTMIDI_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/rtmidi")
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("RTMIDI" "rtmidi")
 
 find_path(RTMIDI_INCLUDE_DIRS RtMidi.h PATH_SUFFIXES include HINTS ${RTMIDI_SEARCH_DIRS})
 find_library(RTMIDI_LIBRARIES NAMES rtmidi PATH_SUFFIXES lib HINTS ${RTMIDI_SEARCH_DIRS})

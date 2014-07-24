@@ -12,22 +12,22 @@
 #  Copyright (c) 2014 High Fidelity
 #
 
-set(LEAPMOTION_SEARCH_DIRS "${LEAPMOTION_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/leapmotion")
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("LEAPMOTION" "leapmotion")
 
 find_path(LEAPMOTION_INCLUDE_DIRS Leap.h PATH_SUFFIXES include HINTS ${LEAPMOTION_SEARCH_DIRS})
 
 if (WIN32)
-  find_library(LEAPMOTION_LIBRARY_DEBUG "lib/x86/Leapd.lib" HINTS ${LEAPMOTION_SEARCH_DIRS})
-  find_library(LEAPMOTION_LIBRARY_RELEASE "lib/x86/Leap.lib" HINTS ${LEAPMOTION_SEARCH_DIRS})
-endif (WIN32)
-if (APPLE)
-  find_library(LEAPMOTION_LIBRARY_RELEASE "lib/libLeap.dylib" HINTS ${LEAPMOTION_SEARCH_DIRS})
-endif (APPLE)
+  find_library(LEAPMOTION_LIBRARY_DEBUG Leapd PATH_SUFFIXES lib/x86 HINTS ${LEAPMOTION_SEARCH_DIRS})
+  find_library(LEAPMOTION_LIBRARY_RELEASE Leap PATH_SUFFIXES lib/x86 HINTS ${LEAPMOTION_SEARCH_DIRS})
+elseif (APPLE)
+  find_library(LEAPMOTION_LIBRARY_RELEASE Leap PATH_SUFFIXES lib/libc++ lib HINTS ${LEAPMOTION_SEARCH_DIRS})
+endif ()
 
 include(SelectLibraryConfigurations)
 select_library_configurations(LEAPMOTION)
 
-set(LEAPMOTION_LIBRARIES "${LEAPMOTION_LIBARIES}")
+set(LEAPMOTION_LIBRARIES "${LEAPMOTION_LIBRARY}")
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(LEAPMOTION DEFAULT_MSG LEAPMOTION_INCLUDE_DIRS LEAPMOTION_LIBRARIES)

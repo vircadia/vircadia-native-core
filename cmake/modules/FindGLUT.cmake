@@ -18,10 +18,11 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-set(GLUT_HINT_DIRS "${GLUT_ROOT_DIR}" "$ENV{GLUT_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/freeglut")
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("GLUT" "freeglut")
 
 if (WIN32)
-  set(GLUT_HINT_DIRS "${GLUT_HINT_DIRS}" "${OPENGL_INCLUDE_DIR}")
+  set(GLUT_HINT_DIRS "${GLUT_HINT_DIRS} ${OPENGL_INCLUDE_DIR}")s
   
   find_path(GLUT_INCLUDE_DIRS GL/glut.h PATH_SUFFIXES include HINTS ${GLUT_HINT_DIRS})
   find_library(GLUT_LIBRARY freeglut PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})

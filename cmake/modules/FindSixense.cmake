@@ -18,7 +18,8 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-set(SIXENSE_SEARCH_DIRS "${SIXENSE_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/sixense")
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("SIXENSE" "sixense")
 
 find_path(SIXENSE_INCLUDE_DIRS sixense.h PATH_SUFFIXES include HINTS ${SIXENSE_SEARCH_DIRS})
 

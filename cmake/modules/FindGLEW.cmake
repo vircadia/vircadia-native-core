@@ -19,7 +19,8 @@
 # 
 
 if (WIN32)
-  set(WIN_GLEW_SEARCH_DIRS "${GLEW_ROOT_DIR}" "$ENV{GLEW_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/glew")
+  include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+  hifi_library_search_hints("GLEW" "glew")
      
 	find_path(GLEW_INCLUDE_DIRS GL/glew.h PATH_SUFFIXES include HINTS ${WIN_GLEW_SEARCH_DIRS})
   

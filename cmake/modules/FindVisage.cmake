@@ -18,7 +18,8 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-set(VISAGE_SEARCH_DIRS "${VISAGE_ROOT_DIR}" "$ENV{VISAGE_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/visage")
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("VISAGE" "visage")
 
 find_path(VISAGE_BASE_INCLUDE_DIR VisageTracker2.h PATH_SUFFIXES include HINTS ${VISAGE_SEARCH_DIRS})
 

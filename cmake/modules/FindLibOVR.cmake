@@ -18,7 +18,8 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-set(LIBOVR_SEARCH_DIRS "${LIBOVR_ROOT_DIR}" "$ENV{LIBOVR_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/oculus")
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("LIBOVR" "oculus")
 
 find_path(LIBOVR_INCLUDE_DIRS OVR.h PATH_SUFFIXES Include HINTS ${LIBOVR_SEARCH_DIRS})
 find_path(LIBOVR_UTIL_INCLUDE_DIR Util_Render_Stereo.h PATH_SUFFIXES Src/Util HINTS ${LIBOVR_SEARCH_DIRS})
