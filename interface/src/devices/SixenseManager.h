@@ -27,8 +27,9 @@ const unsigned int BUTTON_3 = 1U << 3;
 const unsigned int BUTTON_4 = 1U << 4;
 const unsigned int BUTTON_FWD = 1U << 7;
 
-// Event type that represents moving the controller
-const unsigned int CONTROLLER_MOVE_EVENT = 1500U;
+// Event type that represents using the controller
+const unsigned int CONTROLLER_0_EVENT = 1500U;
+const unsigned int CONTROLLER_1_EVENT = 1501U;
 
 const float DEFAULT_SIXENSE_RETICLE_MOVE_SPEED = 37.5f;
 const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
