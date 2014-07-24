@@ -57,9 +57,9 @@ public:
     void emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
     void emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }
 
-    void emitMouseMoveEvent(QMouseEvent* event) { emit mouseMoveEvent(MouseEvent(*event)); }
-    void emitMousePressEvent(QMouseEvent* event) { emit mousePressEvent(MouseEvent(*event)); }
-    void emitMouseReleaseEvent(QMouseEvent* event) { emit mouseReleaseEvent(MouseEvent(*event)); }
+    void emitMouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseMoveEvent(MouseEvent(*event, deviceID)); }
+    void emitMousePressEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mousePressEvent(MouseEvent(*event, deviceID)); }
+    void emitMouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseReleaseEvent(MouseEvent(*event, deviceID)); }
 
     void emitTouchBeginEvent(const TouchEvent& event) { emit touchBeginEvent(event); }
     void emitTouchEndEvent(const TouchEvent& event) { emit touchEndEvent(event); }
