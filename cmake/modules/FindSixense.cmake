@@ -24,10 +24,10 @@ find_path(SIXENSE_INCLUDE_DIRS sixense.h PATH_SUFFIXES include HINTS ${SIXENSE_S
 
 if (APPLE)
   find_library(SIXENSE_LIBRARY_RELEASE lib/osx_x64/release_dll/libsixense_x64.dylib HINTS ${SIXENSE_SEARCH_DIRS})
-  # find_library(SIXENSE_LIBRARY_DEBUG lib/osx_x64/debug_dll/libsixensed_x64.dylib HINTS ${SIXENSE_SEARCH_DIRS})
+  find_library(SIXENSE_LIBRARY_DEBUG lib/osx_x64/debug_dll/libsixensed_x64.dylib HINTS ${SIXENSE_SEARCH_DIRS})
 elseif (UNIX)
   find_library(SIXENSE_LIBRARY_RELEASE lib/linux_x64/release/libsixense_x64.so HINTS ${SIXENSE_SEARCH_DIRS})
-  find_library(SIXENSE_LIBRARY_DEBUG lib/linux_x64/debug/libsixensed_x64.so HINTS ${SIXENSE_SEARCH_DIRS})
+  # find_library(SIXENSE_LIBRARY_DEBUG lib/linux_x64/debug/libsixensed_x64.so HINTS ${SIXENSE_SEARCH_DIRS})
 elseif (WIN32)
   find_library(SIXENSE_LIBRARY_RELEASE lib/win32/release_dll/sixense.lib HINTS ${SIXENSE_SEARCH_DIRS})
   find_library(SIXENSE_LIBRARY_DEBUG lib/win32/debug_dll/sixensed.lib HINTS ${SIXENSE_SEARCH_DIRS})
