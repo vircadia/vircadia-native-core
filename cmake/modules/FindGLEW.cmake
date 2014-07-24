@@ -20,12 +20,12 @@
 
 if (WIN32)
   include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-  hifi_library_search_hints("GLEW" "glew")
+  hifi_library_search_hints("glew")
      
-	find_path(GLEW_INCLUDE_DIRS GL/glew.h PATH_SUFFIXES include HINTS ${WIN_GLEW_SEARCH_DIRS})
+	find_path(GLEW_INCLUDE_DIRS GL/glew.h PATH_SUFFIXES include HINTS ${GLEW_SEARCH_DIRS})
   
-	find_library(GLEW_LIBRARY_RELEASE glew32s PATH_SUFFIXES "lib/Release/Win32" "lib" HINTS ${WIN_GLEW_SEARCH_DIRS})
-  find_library(GLEW_LIBRARY_DEBUG glew32s PATH_SUFFIXES "lib/Debug/Win32" "lib" HINTS ${WIN_GLEW_SEARCH_DIRS})
+	find_library(GLEW_LIBRARY_RELEASE glew32s PATH_SUFFIXES "lib/Release/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
+  find_library(GLEW_LIBRARY_DEBUG glew32s PATH_SUFFIXES "lib/Debug/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
   
   include(SelectLibraryConfigurations)
   select_library_configurations(GLEW)
@@ -36,4 +36,4 @@ set(GLEW_LIBRARIES "${GLEW_LIBRARY}")
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARIES)
 
-mark_as_advanced(GLEW_INCLUDE_DIRS GLEW_LIBRARIES)
+mark_as_advanced(GLEW_INCLUDE_DIRS GLEW_LIBRARIES GLEW_SEARCH_DIRS)

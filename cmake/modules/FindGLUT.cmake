@@ -19,16 +19,16 @@
 # 
 
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-hifi_library_search_hints("GLUT" "freeglut")
+hifi_library_search_hints("freeglut")
 
 if (WIN32)
-  set(GLUT_HINT_DIRS "${GLUT_HINT_DIRS} ${OPENGL_INCLUDE_DIR}")s
+  set(GLUT_HINT_DIRS "${FREEGLUT_SEARCH_DIRS} ${OPENGL_INCLUDE_DIR}")s
   
-  find_path(GLUT_INCLUDE_DIRS GL/glut.h PATH_SUFFIXES include HINTS ${GLUT_HINT_DIRS})
-  find_library(GLUT_LIBRARY freeglut PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
+  find_path(GLUT_INCLUDE_DIRS GL/glut.h PATH_SUFFIXES include HINTS ${FREEGLUT_SEARCH_DIRS})
+  find_library(GLUT_LIBRARY freeglut PATH_SUFFIXES lib HINTS ${FREEGLUT_SEARCH_DIRS})
 else ()
-  find_path(GLUT_INCLUDE_DIRS GL/glut.h PATH_SUFFIXES include HINTS ${GLUT_HINT_DIRS})
-  find_library(GLUT_LIBRARY glut PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
+  find_path(GLUT_INCLUDE_DIRS GL/glut.h PATH_SUFFIXES include HINTS ${FREEGLUT_SEARCH_DIRS})
+  find_library(GLUT_LIBRARY glut PATH_SUFFIXES lib HINTS ${FREEGLUT_SEARCH_DIRS})
 endif ()
 
 include(FindPackageHandleStandardArgs)
@@ -36,12 +36,12 @@ include(FindPackageHandleStandardArgs)
 set(GLUT_LIBRARIES "${GLUT_LIBRARY}" "${XMU_LIBRARY}" "${XI_LIBRARY}")
 
 if (UNIX)
-  find_library(XI_LIBRARY Xi PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
-  find_library(XMU_LIBRARY Xmu PATH_SUFFIXES lib HINTS ${GLUT_HINT_DIRS})
+  find_library(XI_LIBRARY Xi PATH_SUFFIXES lib HINTS ${FREEGLUT_SEARCH_DIRS})
+  find_library(XMU_LIBRARY Xmu PATH_SUFFIXES lib HINTS ${FREEGLUT_SEARCH_DIRS})
   
   find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIRS GLUT_LIBRARIES XI_LIBRARY XMU_LIBRARY)
 else ()
   find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIRS GLUT_LIBRARIES)
 endif ()
 
-mark_as_advanced(GLUT_INCLUDE_DIRS GLUT_LIBRARIES GLUT_LIBRARY XI_LIBRARY XMU_LIBRARY)
+mark_as_advanced(GLUT_INCLUDE_DIRS GLUT_LIBRARIES GLUT_LIBRARY XI_LIBRARY XMU_LIBRARY FREEGLUT_SEARCH_DIRS)

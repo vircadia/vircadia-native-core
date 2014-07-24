@@ -13,7 +13,7 @@
 #
 
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-hifi_library_search_hints("LEAPMOTION" "leapmotion")
+hifi_library_search_hints("leapmotion")
 
 find_path(LEAPMOTION_INCLUDE_DIRS Leap.h PATH_SUFFIXES include HINTS ${LEAPMOTION_SEARCH_DIRS})
 
@@ -32,4 +32,4 @@ set(LEAPMOTION_LIBRARIES "${LEAPMOTION_LIBRARY}")
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(LEAPMOTION DEFAULT_MSG LEAPMOTION_INCLUDE_DIRS LEAPMOTION_LIBRARIES)
 
-mark_as_advanced(LEAPMOTION_INCLUDE_DIRS LEAPMOTION_LIBRARIES)
+mark_as_advanced(LEAPMOTION_INCLUDE_DIRS LEAPMOTION_LIBRARIES LEAPMOTION_SEARCH_DIRS)

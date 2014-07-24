@@ -19,7 +19,7 @@
 # 
 
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-hifi_library_search_hints("FACESHIFT" "faceshift")
+hifi_library_search_hints("faceshift")
 
 find_path(FACESHIFT_INCLUDE_DIRS fsbinarystream.h PATH_SUFFIXES include HINTS ${FACESHIFT_SEARCH_DIRS})
 
@@ -42,4 +42,4 @@ set(FACESHIFT_LIBRARIES ${FACESHIFT_LIBRARY})
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(FACESHIFT DEFAULT_MSG FACESHIFT_INCLUDE_DIRS FACESHIFT_LIBRARIES)
 
-mark_as_advanced(FACESHIFT_INCLUDE_DIRS FACESHIFT_LIBRARIES)
+mark_as_advanced(FACESHIFT_INCLUDE_DIRS FACESHIFT_LIBRARIES FACESHIFT_SEARCH_DIRS)
