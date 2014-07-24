@@ -14,6 +14,8 @@
 
 #include <VerletCapsuleShape.h>
 #include <VerletSphereShape.h>
+#include <DistanceConstraint.h>
+#include <FixedConstraint.h>
 
 #include "Application.h"
 #include "Avatar.h"
