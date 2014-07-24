@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef HAVE_QXMPP
 
 #include <AccountManager.h>
 
@@ -84,5 +83,3 @@ XmppClient::XmppClient(const XmppClient& other) {
 void XmppClient::operator =(XmppClient const& other) {
     Q_UNUSED(other);
 }
-
-#endif
