@@ -88,7 +88,6 @@ public:
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
-    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     glm::vec3 getFilteredEyePosition() const { return _filteredEyePosition; }
     /// \return the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
@@ -110,6 +109,8 @@ public:
     void addLeanDeltas(float sideways, float forward);
     
 private:
+    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
+
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
     Head& operator= (const Head&);

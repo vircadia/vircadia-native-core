@@ -908,7 +908,7 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
     const Head* head = getHead();
     return (renderMode != NORMAL_RENDER_MODE) || 
-        (glm::length(cameraPosition - head->calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
+        (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
 float MyAvatar::computeDistanceToFloor(const glm::vec3& startPoint) {
