@@ -680,16 +680,17 @@ void SkeletonModel::moveShapesTowardJoints(float deltaTime) {
         return;
     }
 
+    // fraction = 0 means keep old position, = 1 means slave 100% to target position
     const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.05f;
     float fraction = glm::clamp(deltaTime / RAGDOLL_FOLLOWS_JOINTS_TIMESCALE, 0.0f, 1.0f);
 
-    // SIMPLE LINEAR_SLAVING -- KEEP this implementation for reference
+    // SIMPLE LINEAR SLAVING -- KEEP this implementation for reference
     //float oneMinusFraction = 1.0f - fraction; 
     //for (int i = 0; i < numStates; ++i) {
     //    _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
     //    _ragdollPoints[i]._position = oneMinusFraction * _ragdollPoints[i]._position + fraction * _jointStates.at(i).getPosition();
     //}
-    // LINEAR_SLAVING -- KEEP
+    // SIMPLE LINEAR SLAVING -- KEEP
 
     // parent-relative linear slaving
     for (int i = 0; i < numStates; ++i) {
@@ -706,17 +707,17 @@ void SkeletonModel::moveShapesTowardJoints(float deltaTime) {
             continue;
         }
 
+        glm::vec3 bone = _ragdollPoints.at(i)._lastPosition - _ragdollPoints.at(p)._lastPosition;
         const JointState& parentState = _jointStates.at(p);
         glm::vec3 targetBone = state.getPosition() - parentState.getPosition();
-        glm::vec3 bone = _ragdollPoints.at(i)._lastPosition - _ragdollPoints.at(p)._lastPosition;
 
         glm::vec3 newBone = (1.0f - fraction) * bone + fraction * targetBone;
         float boneLength = glm::length(newBone);
         if (boneLength > EPSILON) {
-            // slam newBone's lenght to that of the joint, which helps maintain distance constraints
+            // slam newBone's length to that of the joint helps maintain distance constraints
             newBone *= state.getDistanceToParent() / boneLength;
         }
-        // we set the new position relative to parent
+        // set the new position relative to parent's new position
         _ragdollPoints[i]._position = _ragdollPoints.at(p)._position + newBone;
     }
 }
