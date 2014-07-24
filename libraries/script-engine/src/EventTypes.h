@@ -44,9 +44,10 @@ public:
 class MouseEvent {
 public:
     MouseEvent(); 
-    MouseEvent(const QMouseEvent& event);
+    MouseEvent(const QMouseEvent& event, const unsigned int deviceID = 0);
     int x;
     int y;
+    unsigned int deviceID;
     QString button;
     bool isLeftButton;
     bool isRightButton;
