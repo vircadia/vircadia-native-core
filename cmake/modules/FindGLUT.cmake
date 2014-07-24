@@ -22,7 +22,7 @@ include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("freeglut")
 
 if (WIN32)
-  set(GLUT_HINT_DIRS "${FREEGLUT_SEARCH_DIRS} ${OPENGL_INCLUDE_DIR}")s
+  set(GLUT_HINT_DIRS "${FREEGLUT_SEARCH_DIRS} ${OPENGL_INCLUDE_DIR}")
   
   find_path(GLUT_INCLUDE_DIRS GL/glut.h PATH_SUFFIXES include HINTS ${FREEGLUT_SEARCH_DIRS})
   find_library(GLUT_LIBRARY freeglut PATH_SUFFIXES lib HINTS ${FREEGLUT_SEARCH_DIRS})
