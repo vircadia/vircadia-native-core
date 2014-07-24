@@ -12,15 +12,15 @@ project(${TARGET_NAME})
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
-set(FACEPLUS_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceplus")
-set(FACESHIFT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift")
-set(LIBOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/oculus")
-set(PRIOVR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/priovr")
-set(SIXENSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/sixense")
-set(VISAGE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/visage")
-set(LEAPMOTION_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/leapmotion")
-set(RTMIDI_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/rtmidi")
 
+# set a default root dir for each of our optional externals if it was not passed
+set(OPTIONAL_EXTERNALS "faceplus" "faceshift" "oculus" "priovr" "sixense" "visage" "leapmotion" "rtmidi")
+foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
+  string(TOUPPER ${EXTERNAL} UPPER_EXTERNAL)
+  if (NOT ${UPPER_EXTERNAL}_ROOT_DIR)
+    set(${UPPER_EXTERNAL}_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/${EXTERNAL}")
+  endif ()
+endforeach()
 
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
