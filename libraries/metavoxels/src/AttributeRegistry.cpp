@@ -35,7 +35,9 @@ AttributeRegistry* AttributeRegistry::getInstance() {
 
 AttributeRegistry::AttributeRegistry() :
     _guideAttribute(registerAttribute(new SharedObjectAttribute("guide", &MetavoxelGuide::staticMetaObject,
-        SharedObjectPointer(new DefaultMetavoxelGuide())))),
+        new DefaultMetavoxelGuide()))),
+    _rendererAttribute(registerAttribute(new SharedObjectAttribute("renderer", &MetavoxelRenderer::staticMetaObject,
+        new PointMetavoxelRenderer()))),
     _spannersAttribute(registerAttribute(new SpannerSetAttribute("spanners", &Spanner::staticMetaObject))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new PackedNormalAttribute("normal"))),

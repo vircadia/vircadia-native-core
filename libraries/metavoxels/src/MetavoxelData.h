@@ -28,6 +28,7 @@
 class QScriptContext;
 
 class MetavoxelNode;
+class MetavoxelRendererImplementation;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
 class NetworkValue;
@@ -505,6 +506,51 @@ public:
     
     bool allInputNodesLeaves() const;
     AttributeValue getInheritedOutputValue(int index) const;
+};
+
+/// Base class for objects that render metavoxels.
+class MetavoxelRenderer : public SharedObject {
+    Q_OBJECT
+
+public:
+
+    MetavoxelRenderer();
+
+    /// Returns a pointer to the implementation, creating it if necessary.
+    MetavoxelRendererImplementation* getImplementation();
+
+protected:
+
+    MetavoxelRendererImplementation* _implementation;
+    
+    /// Returns the name of the class to instantiate for the implementation.
+    virtual QByteArray getImplementationClassName() const;
+};
+
+/// Base class for renderer implementations.
+class MetavoxelRendererImplementation : public SharedObject {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE MetavoxelRendererImplementation();
+    
+    virtual void init(MetavoxelRenderer* renderer);
+
+protected:
+    
+    MetavoxelRenderer* _renderer;
+};
+
+/// Renders metavoxels as points.
+class PointMetavoxelRenderer : public MetavoxelRenderer {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE PointMetavoxelRenderer();
+    
+    virtual QByteArray getImplementationClassName() const;
 };
 
 /// An object that spans multiple octree cells.

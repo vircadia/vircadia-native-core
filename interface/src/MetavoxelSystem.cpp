@@ -25,6 +25,7 @@
 #include "MetavoxelSystem.h"
 #include "renderer/Model.h"
 
+REGISTER_META_OBJECT(PointMetavoxelRendererImplementation)
 REGISTER_META_OBJECT(SphereRenderer)
 REGISTER_META_OBJECT(StaticModelRenderer)
 
@@ -474,6 +475,9 @@ bool PointBufferAttribute::merge(void*& parent, void* children[], bool postRead)
 
 AttributeValue PointBufferAttribute::inherit(const AttributeValue& parentValue) const {
     return AttributeValue(parentValue.getAttribute());
+}
+
+PointMetavoxelRendererImplementation::PointMetavoxelRendererImplementation() {
 }
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {

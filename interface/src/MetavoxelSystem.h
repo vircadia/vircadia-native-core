@@ -126,6 +126,15 @@ public:
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
+/// Renders metavoxels as points.
+class PointMetavoxelRendererImplementation : public MetavoxelRendererImplementation {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE PointMetavoxelRendererImplementation();
+};
+
 /// Base class for spanner renderers; provides clipping.
 class ClippedRenderer : public SpannerRenderer {
     Q_OBJECT

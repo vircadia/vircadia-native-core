@@ -24,6 +24,8 @@ REGISTER_META_OBJECT(MetavoxelGuide)
 REGISTER_META_OBJECT(DefaultMetavoxelGuide)
 REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
 REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
+REGISTER_META_OBJECT(MetavoxelRenderer)
+REGISTER_META_OBJECT(PointMetavoxelRenderer)
 REGISTER_META_OBJECT(Spanner)
 REGISTER_META_OBJECT(Sphere)
 REGISTER_META_OBJECT(StaticModel)
@@ -1843,6 +1845,43 @@ AttributeValue MetavoxelVisitation::getInheritedOutputValue(int index) const {
         }
     }
     return AttributeValue(visitor->getOutputs().at(index));
+}
+
+MetavoxelRenderer::MetavoxelRenderer() :
+    _implementation(NULL) {
+}
+
+MetavoxelRendererImplementation* MetavoxelRenderer::getImplementation() {
+    if (!_implementation) {
+        QByteArray className = getImplementationClassName();
+        const QMetaObject* metaObject = Bitstream::getMetaObject(className);
+        if (!metaObject) {
+            qDebug() << "Unknown class name:" << className;
+            metaObject = &MetavoxelRendererImplementation::staticMetaObject;
+        }
+        _implementation = static_cast<MetavoxelRendererImplementation*>(metaObject->newInstance());
+        connect(this, &QObject::destroyed, _implementation, &QObject::deleteLater);
+        _implementation->init(this);
+    }
+    return _implementation;
+}
+
+MetavoxelRendererImplementation::MetavoxelRendererImplementation() {
+}
+
+void MetavoxelRendererImplementation::init(MetavoxelRenderer* renderer) {
+    _renderer = renderer;
+}
+
+QByteArray MetavoxelRenderer::getImplementationClassName() const {
+    return "MetavoxelRendererImplementation";
+}
+
+PointMetavoxelRenderer::PointMetavoxelRenderer() {
+}
+
+QByteArray PointMetavoxelRenderer::getImplementationClassName() const {
+    return "PointMetavoxelRendererImplementation";
 }
 
 const float DEFAULT_PLACEMENT_GRANULARITY = 0.01f;
