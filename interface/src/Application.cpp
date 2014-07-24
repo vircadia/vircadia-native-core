@@ -592,7 +592,7 @@ void Application::paintGL() {
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->getFilteredEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {

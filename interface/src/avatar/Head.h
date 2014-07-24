@@ -89,7 +89,7 @@ public:
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
     glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
-    
+    glm::vec3 getFilteredEyePosition() const { return _filteredEyePosition; }
     /// \return the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
 
@@ -120,6 +120,8 @@ private:
     glm::vec3 _leftEyePosition;
     glm::vec3 _rightEyePosition;
     glm::vec3 _eyePosition;
+    glm::vec3 _filteredEyePosition;          // velocity filtered world space eye position
+    
     float _scale;
     float _lastLoudness;
     float _audioAttack;
