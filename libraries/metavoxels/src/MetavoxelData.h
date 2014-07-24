@@ -14,6 +14,7 @@
 
 #include <QBitArray>
 #include <QHash>
+#include <QMutex>
 #include <QSharedData>
 #include <QSharedPointer>
 #include <QScriptString>
@@ -159,15 +160,22 @@ template<> void Bitstream::readDelta(MetavoxelData& value, const MetavoxelData& 
 
 Q_DECLARE_METATYPE(MetavoxelData)
 
-/// Holds the state used in streaming metavoxel data.
-class MetavoxelStreamState {
+/// Holds the base state used in streaming metavoxel data.
+class MetavoxelStreamBase {
 public:
-    glm::vec3 minimum;
-    float size;
     const AttributePointer& attribute;
     Bitstream& stream;
     const MetavoxelLOD& lod;
     const MetavoxelLOD& referenceLOD;
+    int visit;
+};
+
+/// Holds the state used in streaming a metavoxel node.
+class MetavoxelStreamState {
+public:
+    MetavoxelStreamBase& base;
+    glm::vec3 minimum;
+    float size;
     
     bool shouldSubdivide() const;
     bool shouldSubdivideReference() const;
@@ -360,6 +368,7 @@ protected:
     int _spannerInputCount;
     int _spannerMaskCount;
     int _order;
+    int _visit;
 };
 
 /// Base class for ray intersection visitors.
@@ -405,6 +414,7 @@ protected:
     
     int _spannerInputCount;
     int _spannerMaskCount;
+    int _visit;
 };
 
 /// Interface for objects that guide metavoxel visitors.
@@ -563,8 +573,8 @@ class Spanner : public SharedObject {
     
 public:
     
-    /// Increments the value of the global visit counter.
-    static void incrementVisit() { _visit++; }
+    /// Returns the value of the global visit counter and increments it.
+    static int getAndIncrementNextVisit() { return _nextVisit.fetchAndAddOrdered(1); }
     
     Spanner();
     
@@ -597,7 +607,7 @@ public:
     
     /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
     /// If we haven't, sets the last visit identifier and returns true.
-    bool testAndSetVisited();
+    bool testAndSetVisited(int visit);
 
     /// Returns a pointer to the renderer, creating it if necessary.
     SpannerRenderer* getRenderer();
@@ -625,9 +635,10 @@ private:
     float _placementGranularity;
     float _voxelizationGranularity;
     bool _masked;
-    int _lastVisit; ///< the identifier of the last visit
+    QHash<QThread*, int> _lastVisits; ///< last visit identifiers for each thread
+    QMutex _lastVisitsMutex;
     
-    static int _visit; ///< the global visit counter
+    static QAtomicInt _nextVisit; ///< the global visit counter
 };
 
 /// Base class for objects that can render spanners.
