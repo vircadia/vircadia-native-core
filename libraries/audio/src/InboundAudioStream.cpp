@@ -86,7 +86,6 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     }
 
     if (_isStarved && _ringBuffer.samplesAvailable() >= _desiredJitterBufferFrames * _ringBuffer.getNumFrameSamples()) {
-        printf("\nstream refilled from starve!\n");
         _isStarved = false;
     }
 
@@ -130,26 +129,25 @@ bool InboundAudioStream::popFrames(AudioRingBuffer::ConstIterator* nextOutput, i
 }
 
 bool InboundAudioStream::shouldPop(int numSamples, bool starveOnFail) {
-    printf("\nshouldPop()\n");
-
     if (_isStarved) {
-        printf("\t we're starved, not popping\n");
+        // we're still refilling; don't mix
         _consecutiveNotMixedCount++;
         return false;
     }
 
     if (_ringBuffer.samplesAvailable() >= numSamples) {
-        printf("have requested samples and not starved, popping\n");
+        // we have enough samples to pop, so we're good to mix
         _hasStarted = true;
         return true;
-    } else {
-        if (starveOnFail) {
-            printf("don't have enough samples; starved!\n");
-            setToStarved();
-            _consecutiveNotMixedCount++;
-        }
-        return false;
     }
+    
+    // we don't have enough samples, so set this stream to starve
+    // if starveOnFail is true
+    if (starveOnFail) {
+        setToStarved();
+        _consecutiveNotMixedCount++;
+    }
+    return false;
 }
 
 void InboundAudioStream::setToStarved() {

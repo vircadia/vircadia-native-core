@@ -34,6 +34,12 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
 {
 }
 
+int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
+    int bytesRead = InboundAudioStream::parseData(packet);
+    updateNextOutputTrailingLoudness();
+    return bytesRead;
+}
+
 void PositionalAudioRingBuffer::updateNextOutputTrailingLoudness() {
     float nextLoudness = _ringBuffer.getNextOutputFrameLoudness();
 
