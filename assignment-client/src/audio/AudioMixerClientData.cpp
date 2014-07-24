@@ -28,7 +28,7 @@ AudioMixerClientData::AudioMixerClientData() :
 
 AudioMixerClientData::~AudioMixerClientData() {
     QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i, end = _ringBuffers.constEnd();
-    for (i = _ringBuffers.begin(); i != end; i++) {
+    for (i = _ringBuffers.constBegin(); i != end; i++) {
         // delete this attached InboundAudioStream
         delete i.value();
     }
@@ -38,7 +38,6 @@ AvatarAudioRingBuffer* AudioMixerClientData::getAvatarAudioRingBuffer() const {
     if (_ringBuffers.contains(QUuid())) {
         return (AvatarAudioRingBuffer*)_ringBuffers.value(QUuid());
     }
-
     // no mic stream found - return NULL
     return NULL;
 }
@@ -277,8 +276,8 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
         result = "mic unknown";
     }
     
-    QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i, end = _ringBuffers.end();
-    for (i = _ringBuffers.begin(); i != end; i++) {
+    QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i, end = _ringBuffers.constEnd();
+    for (i = _ringBuffers.constBegin(); i != end; i++) {
         if (i.value()->getType() == PositionalAudioRingBuffer::Injector) {
             AudioStreamStats streamStats = i.value()->getAudioStreamStats();
             result += " UPSTREAM.inj.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
