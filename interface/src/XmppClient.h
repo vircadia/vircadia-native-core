@@ -22,13 +22,14 @@
 /// Generalized threaded processor for handling received inbound packets. 
 class XmppClient : public QObject {
     Q_OBJECT
-#ifdef HAVE_QXMPP
 public:
     static XmppClient& getInstance();
 
+#ifdef HAVE_QXMPP
     QXmppClient& getXMPPClient() { return _xmppClient; }
     const QXmppMucRoom* getPublicChatRoom() const { return _publicChatRoom; }
-
+#endif
+    
 signals:
     void joinedPublicChatRoom();
 
@@ -44,6 +45,7 @@ private:
     XmppClient(XmppClient const& other); // not implemented
     void operator=(XmppClient const& other); // not implemented
 
+#ifdef HAVE_QXMPP
     QXmppClient _xmppClient;
     QXmppMucManager _xmppMUCManager;
     QXmppMucRoom* _publicChatRoom;
