@@ -2,25 +2,25 @@ Dependencies
 ===
 * [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.12.2
 * [Qt](http://qt-project.org/downloads) ~> 5.2.0
-* [zLib](http://www.zlib.net/) ~> 1.2.8
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.2
-* [qxmpp](https://github.com/qxmpp-project/qxmpp/) ~> 0.7.6
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 
 #####Linux only
 * [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
+* [zLib](http://www.zlib.net/) ~> 1.2.8
 
 #####Windows only
 * [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
 * [freeglut MSVC](http://www.transmissionzero.co.uk/software/freeglut-devel/) ~> 2.8.1
+* [zLib](http://www.zlib.net/) ~> 1.2.8
 
 CMake
 === 
 Hifi uses CMake to generate build files and project files for your platform.
 
 ####Qt
-In order for CMake to find the Qt5 find modules, you will need to set an ENV variable pointing to your CMake installation.
+In order for CMake to find the Qt5 find modules, you will need to set an ENV variable pointing to your Qt installation.
 
 For example, a Qt5 5.2.0 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
 
@@ -70,9 +70,8 @@ Should you choose not to install Qt5 via a package manager that handles dependen
     brew install cmake glm openssl
     brew install highfidelity/formulas/qt5
     brew link qt5 --force
-    brew install highfidelity/formulas/qxmpp
 
-We have a [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) that you can use/tap to install some of the dependencies. In the code block above qt5 and qxmpp are installed from formulas in this repository.
+We have a [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) that you can use/tap to install some of the dependencies. In the code block above qt5 is installed from a formula in this repository.
 
 *Our [qt5 homebrew formula](https://raw.github.com/highfidelity/homebrew-formulas/master/qt5.rb) is for a patched version of Qt 5.2.0 stable that removes wireless network scanning that can reduce real-time audio performance. We recommended you use this formula to install Qt.*
 
@@ -150,11 +149,8 @@ The recommended route for CMake to find the external dependencies is to place al
         -> glm
             -> glm
                 -> glm.hpp
-        -> gnutls
+        -> openssl
             -> bin
-            -> include
-            -> lib
-        -> qxmpp
             -> include
             -> lib
         -> zlib
@@ -218,21 +214,6 @@ This package contains only headers, so there's nothing to add to the PATH.
 
 Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
 
-#### qxmpp
-
-Download a source-code release from the [qxmpp GitHub page](https://github.com/qxmpp-project/qxmpp/releases).
-
-Start a Visual Studio Command Prompt.
-
-    mkdir %HIFI_LIB_DIR%\build
-    tar xfz qxmpp-0.7.6.tar.gz -C %HIFI_LIB_DIR%\build
-    cd %HIFI_LIB_DIR%\build\qxmpp-0.7.6
-    qmake PREFIX=%HIFI_LIB_DIR%\qxmpp   # This creates "Makefile"
-    nmake
-    nmake install
-
-Add to the PATH: `%HIFI_LIB_DIR%\qxmpp\lib`
-
 #### Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
 
@@ -250,7 +231,16 @@ If you need to debug Interface, you can run interface from within Visual Studio 
 * Set the "Working Directory" for the Interface debugging sessions to the Debug output directory so that your application can load resources. Do this: right click interface and click Properties, choose Debugging from Configuration Properties, set Working Directory to .\Debug
 * Now you can run and debug interface through Visual Studio
 
+Optional Components
+===
+
+####QXmpp
+
+You can find QXmpp [here](https://github.com/qxmpp-project/qxmpp). The inclusion of the QXmpp enables text chat in the Interface client.
+
+OS X users who tap our [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) can install QXmpp via homebrew - `brew install highfidelity/formulas/qxmpp`.
+
 #### Devices
 
-You can support external input/output devices such as Leap Motion, Faceplus, Faceshift PrioVR, RTmidi, SixSense and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in /hifi/interface/external/ for the detailed explanation of the requirements to use the device.
+You can support external input/output devices such as Leap Motion, Faceplus, Faceshift, PrioVR, MIDI, Razr Hydra and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.
 
