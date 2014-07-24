@@ -66,6 +66,16 @@ glm::quat Quat::mix(const glm::quat& q1, const glm::quat& q2, float alpha) {
     return safeMix(q1, q2, alpha);
 }
 
+/// Spherical Linear Interpolation
+glm::quat Quat::slerp(const glm::quat& q1, const glm::quat& q2, float alpha) {
+    return glm::slerp(q1, q2, alpha);
+}
+
+// Spherical Quadratic Interpolation
+glm::quat Quat::squad(const glm::quat& q1, const glm::quat& q2, const glm::quat& s1, const glm::quat& s2, float h) {
+    return glm::squad(q1, q2, s1, s2, h);
+}
+
 void Quat::print(const QString& lable, const glm::quat& q) {
     qDebug() << qPrintable(lable) << q.x << "," << q.y << "," << q.z << "," << q.w;
 }
