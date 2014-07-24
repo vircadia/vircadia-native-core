@@ -155,7 +155,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mouseX(0),
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
-        _lastMouseMoveType(QEvent::MouseMove),
+        _lastMouseMoveWasSimulated(false),
         _mouseHidden(false),
         _seenMouseMove(false),
         _touchAvgX(0.0f),
@@ -1141,18 +1141,19 @@ void Application::focusOutEvent(QFocusEvent* event) {
     _keysPressed.clear();
 }
 
-void Application::mouseMoveEvent(QMouseEvent* event) {
+void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 
     bool showMouse = true;
+
+    // Used by application overlay to determine how to draw cursor(s)
+    _lastMouseMoveWasSimulated = deviceID > 0;
+
     // If this mouse move event is emitted by a controller, dont show the mouse cursor
-    if (event->type() == CONTROLLER_MOVE_EVENT) {
+    if (_lastMouseMoveWasSimulated) {
         showMouse = false;
     }
 
-    // Used by application overlay to determine how to draw cursor(s)
-    _lastMouseMoveType = event->type();
-
-    _controllerScriptingInterface.emitMouseMoveEvent(event); // send events to any registered scripts
+    _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1171,7 +1172,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     _mouseY = event->y();
 }
 
-void Application::mousePressEvent(QMouseEvent* event) {
+void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1204,7 +1205,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
     }
 }
 
-void Application::mouseReleaseEvent(QMouseEvent* event) {
+void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -2981,6 +2982,13 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             attachment->setTranslation(attachment->getTranslation() + delta);
         }
 
+        // and lo, even the shadow matrices
+        glm::mat4 savedShadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];
+        for (int i = 0; i < CASCADED_SHADOW_MATRIX_COUNT; i++) {
+            savedShadowMatrices[i] = _shadowMatrices[i];
+            _shadowMatrices[i] = glm::transpose(glm::transpose(_shadowMatrices[i]) * glm::translate(-delta));
+        }
+
         displaySide(_mirrorCamera, true);
 
         // restore absolute translations
@@ -2988,6 +2996,11 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
         for (int i = 0; i < absoluteAttachmentTranslations.size(); i++) {
             _myAvatar->getAttachmentModels().at(i)->setTranslation(absoluteAttachmentTranslations.at(i));
+        }
+        
+        // restore the shadow matrices
+        for (int i = 0; i < CASCADED_SHADOW_MATRIX_COUNT; i++) {
+            _shadowMatrices[i] = savedShadowMatrices[i];
         }
     } else {
         displaySide(_mirrorCamera, true);

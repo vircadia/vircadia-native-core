@@ -373,6 +373,8 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     Qt::MouseButton bumperButton;
     Qt::MouseButton triggerButton;
 
+    unsigned int deviceID = index == 0 ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
+
     if (Menu::getInstance()->getInvertSixenseButtons()) {
         bumperButton = Qt::LeftButton;
         triggerButton = Qt::RightButton;
@@ -405,14 +407,14 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         if (_bumperPressed[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 
-            application->mouseReleaseEvent(&mouseEvent);
+            application->mouseReleaseEvent(&mouseEvent, deviceID);
 
             _bumperPressed[index] = false;
         }
         if (_triggerPressed[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
 
-            application->mouseReleaseEvent(&mouseEvent);
+            application->mouseReleaseEvent(&mouseEvent, deviceID);
 
             _triggerPressed[index] = false;
         }
@@ -421,17 +423,17 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
     //If position has changed, emit a mouse move to the application
     if (pos.x() != _oldX[index] || pos.y() != _oldY[index]) {
-        QMouseEvent mouseEvent(static_cast<QEvent::Type>(CONTROLLER_MOVE_EVENT), pos, Qt::NoButton, Qt::NoButton, 0);
+        QMouseEvent mouseEvent(QEvent::MouseMove, pos, Qt::NoButton, Qt::NoButton, 0);
 
         //Only send the mouse event if the opposite left button isnt held down.
         //This is specifically for edit voxels
         if (triggerButton == Qt::LeftButton) {
             if (!_triggerPressed[(int)(!index)]) {
-                application->mouseMoveEvent(&mouseEvent);
+                application->mouseMoveEvent(&mouseEvent, deviceID);
             }
         } else {
             if (!_bumperPressed[(int)(!index)]) {
-                application->mouseMoveEvent(&mouseEvent);
+                application->mouseMoveEvent(&mouseEvent, deviceID);
             }
         } 
     }
@@ -456,12 +458,12 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         
             QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, bumperButton, bumperButton, 0);
 
-            application->mousePressEvent(&mouseEvent);
+            application->mousePressEvent(&mouseEvent, deviceID);
         }
     } else if (_bumperPressed[index]) {
         QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 
-        application->mouseReleaseEvent(&mouseEvent);
+        application->mouseReleaseEvent(&mouseEvent, deviceID);
 
         _bumperPressed[index] = false;
     }
@@ -473,12 +475,12 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
             QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, triggerButton, triggerButton, 0);
 
-            application->mousePressEvent(&mouseEvent);
+            application->mousePressEvent(&mouseEvent, deviceID);
         }
     } else if (_triggerPressed[index]) {
         QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
 
-        application->mouseReleaseEvent(&mouseEvent);
+        application->mouseReleaseEvent(&mouseEvent, deviceID);
 
         _triggerPressed[index] = false;
     }
