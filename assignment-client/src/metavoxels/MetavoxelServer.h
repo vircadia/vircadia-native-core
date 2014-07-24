@@ -77,14 +77,18 @@ public:
     
     Q_INVOKABLE void start();
     
+    Q_INVOKABLE void addSession(QObject* session);
+    
 private slots:
     
     void setData(const MetavoxelData& data) { _data = data; }
     void sendDeltas();
+    void removeSession(QObject* session);
     
 private:
     
     MetavoxelServer* _server;
+    QSet<MetavoxelSession*> _sessions;
     
     QTimer _sendTimer;
     qint64 _lastSend;
@@ -99,7 +103,7 @@ class MetavoxelSession : public Endpoint {
 public:
     
     MetavoxelSession(const SharedNodePointer& node, MetavoxelSender* sender);
-
+    
     virtual void update();
 
 protected:

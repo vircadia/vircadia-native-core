@@ -14,6 +14,7 @@
 
 #include <QList>
 #include <QOpenGLBuffer>
+#include <QReadWriteLock>
 #include <QVector>
 
 #include <glm/glm.hpp>
@@ -22,7 +23,11 @@
 
 #include "renderer/ProgramObject.h"
 
+class BufferPoint;
 class Model;
+
+typedef QVector<BufferPoint> BufferPointVector;
+typedef QPair<BufferPointVector, BufferPointVector> BufferPointVectorPair;
 
 /// Renders a metavoxel tree.
 class MetavoxelSystem : public MetavoxelClientManager {
@@ -34,15 +39,16 @@ public:
 
     virtual void init();
 
-    virtual MetavoxelLOD getLOD() const;
+    virtual MetavoxelLOD getLOD();
     
     void simulate(float deltaTime);
     void render();
 
+    Q_INVOKABLE void setClientPoints(const SharedNodePointer& node, const BufferPointVector& points);
+
 protected:
 
     virtual MetavoxelClient* createClient(const SharedNodePointer& node);
-    virtual void updateClient(MetavoxelClient* client); 
 
 private:
     
@@ -50,6 +56,9 @@ private:
     static int _pointScaleLocation;
     
     AttributePointer _pointBufferAttribute;
+    
+    MetavoxelLOD _lod;
+    QReadWriteLock _lodLock;
 };
 
 /// Describes contents of a point in a point buffer.
@@ -60,9 +69,6 @@ public:
     quint8 normal[3];
 };
 
-typedef QVector<BufferPoint> BufferPointVector;
-typedef QPair<BufferPointVector, BufferPointVector> BufferPointVectorPair;
-
 Q_DECLARE_METATYPE(BufferPointVector)
 
 /// A client session associated with a single server.
@@ -71,11 +77,11 @@ class MetavoxelSystemClient : public MetavoxelClient {
     
 public:
     
-    MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelSystem* system);
+    MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelUpdater* updater);
     
     void render();
 
-    Q_INVOKABLE void setPoints(const BufferPointVector& points);
+    void setPoints(const BufferPointVector& points);
     
     virtual int parseData(const QByteArray& packet);
 

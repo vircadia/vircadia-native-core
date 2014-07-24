@@ -1899,7 +1899,7 @@ SpannerRenderer* Spanner::getRenderer() {
             metaObject = &SpannerRenderer::staticMetaObject;
         }
         _renderer = static_cast<SpannerRenderer*>(metaObject->newInstance());
-        _renderer->setParent(this);
+        connect(this, &QObject::destroyed, _renderer, &QObject::deleteLater);
         _renderer->init(this);
     }
     return _renderer;
@@ -1920,7 +1920,7 @@ SpannerRenderer::SpannerRenderer() {
 }
 
 void SpannerRenderer::init(Spanner* spanner) {
-    // nothing by default
+    _spanner = spanner;
 }
 
 void SpannerRenderer::simulate(float deltaTime) {

@@ -599,6 +599,10 @@ public:
     virtual void render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& clipMinimum, float clipSize, float& distance) const;
+
+protected:
+    
+    Spanner* _spanner;
 };
 
 /// An object with a 3D transform.

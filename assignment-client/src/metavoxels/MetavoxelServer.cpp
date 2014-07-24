@@ -21,8 +21,6 @@
 
 #include "MetavoxelServer.h"
 
-const int SEND_INTERVAL = 50;
-
 MetavoxelServer::MetavoxelServer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _nextSender(0) {
@@ -48,8 +46,8 @@ void MetavoxelServer::run() {
     NodeList* nodeList = NodeList::getInstance();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
-    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(maybeAttachSession(const SharedNodePointer&)));
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(maybeDeleteSession(const SharedNodePointer&)));
+    connect(nodeList, &NodeList::nodeAdded, this, &MetavoxelServer::maybeAttachSession);
+    connect(nodeList, &NodeList::nodeKilled, this, &MetavoxelServer::maybeDeleteSession);
     
     // initialize Bitstream before using it in multiple threads
     Bitstream::preThreadingInit();
@@ -65,7 +63,7 @@ void MetavoxelServer::run() {
         QThread* thread = new QThread(this);
         MetavoxelSender* sender = new MetavoxelSender(this);
         sender->moveToThread(thread);
-        sender->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
+        connect(thread, &QThread::finished, sender, &QObject::deleteLater);
         thread->start();
         QMetaObject::invokeMethod(sender, "start");
         _senders.append(sender);
@@ -75,7 +73,7 @@ void MetavoxelServer::run() {
     _persister = new MetavoxelPersister(this);
     QThread* persistenceThread = new QThread(this);
     _persister->moveToThread(persistenceThread);
-    _persister->connect(persistenceThread, SIGNAL(finished()), SLOT(deleteLater()));
+    connect(persistenceThread, &QThread::finished, _persister, &QObject::deleteLater);
     persistenceThread->start();
     
     // queue up the load
@@ -121,15 +119,16 @@ void MetavoxelServer::maybeAttachSession(const SharedNodePointer& node) {
         _nextSender = (_nextSender + 1) % _senders.size();
         MetavoxelSession* session = new MetavoxelSession(node, sender);
         session->moveToThread(sender->thread());
+        QMetaObject::invokeMethod(sender, "addSession", Q_ARG(QObject*, session));
         node->setLinkedData(session);
     }
 }
 
 void MetavoxelServer::maybeDeleteSession(const SharedNodePointer& node) {
     if (node->getType() == NodeType::Agent) {
-        QMutexLocker locker(&node->getMutex());
+        // we assume the node is already locked
         MetavoxelSession* session = static_cast<MetavoxelSession*>(node->getLinkedData());
-        if (session) {
+        if (session) {    
             node->setLinkedData(NULL);
             session->deleteLater();
         }
@@ -141,26 +140,27 @@ MetavoxelSender::MetavoxelSender(MetavoxelServer* server) :
     _sendTimer(this) {
     
     _sendTimer.setSingleShot(true);
-    connect(&_sendTimer, SIGNAL(timeout()), SLOT(sendDeltas()));
+    connect(&_sendTimer, &QTimer::timeout, this, &MetavoxelSender::sendDeltas);
     
     connect(_server, &MetavoxelServer::dataChanged, this, &MetavoxelSender::setData);
 }
+
+const int SEND_INTERVAL = 50;
 
 void MetavoxelSender::start() {
     _lastSend = QDateTime::currentMSecsSinceEpoch();
     _sendTimer.start(SEND_INTERVAL);
 }
 
+void MetavoxelSender::addSession(QObject* session) {
+    _sessions.insert(static_cast<MetavoxelSession*>(session));
+    connect(session, &QObject::destroyed, this, &MetavoxelSender::removeSession);
+}
+
 void MetavoxelSender::sendDeltas() {
     // send deltas for all sessions associated with our thread
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getType() == NodeType::Agent) {
-            QMutexLocker locker(&node->getMutex());
-            MetavoxelSession* session = static_cast<MetavoxelSession*>(node->getLinkedData());
-            if (session && session->thread() == QThread::currentThread()) {
-                session->update();
-            }
-        }
+    foreach (MetavoxelSession* session, _sessions) {
+        session->update();
     }
     
     // restart the send timer
@@ -169,6 +169,10 @@ void MetavoxelSender::sendDeltas() {
     _lastSend = now;
     
     _sendTimer.start(qMax(0, 2 * SEND_INTERVAL - qMax(elapsed, SEND_INTERVAL)));
+}
+
+void MetavoxelSender::removeSession(QObject* session) {
+    _sessions.remove(static_cast<MetavoxelSession*>(session));
 }
 
 MetavoxelSession::MetavoxelSession(const SharedNodePointer& node, MetavoxelSender* sender) :

@@ -10,6 +10,8 @@
 //
 
 #include <QMutexLocker>
+#include <QReadLocker>
+#include <QWriteLocker>
 #include <QtDebug>
 
 #include <glm/gtx/transform.hpp>
@@ -45,11 +47,9 @@ void MetavoxelSystem::init() {
     _pointBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(new PointBufferAttribute());
 }
 
-MetavoxelLOD MetavoxelSystem::getLOD() const {
-    // the LOD threshold is temporarily tied to the avatar LOD parameter
-    const float BASE_LOD_THRESHOLD = 0.01f;
-    return MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(),
-        BASE_LOD_THRESHOLD * Menu::getInstance()->getAvatarLODDistanceMultiplier());
+MetavoxelLOD MetavoxelSystem::getLOD() {
+    QReadLocker locker(&_lodLock);
+    return _lod;
 }
 
 class SpannerSimulateVisitor : public SpannerVisitor {
@@ -77,9 +77,15 @@ bool SpannerSimulateVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimu
 }
 
 void MetavoxelSystem::simulate(float deltaTime) {
-    // update the clients
-    update();
-    
+    // update the lod
+    {
+        // the LOD threshold is temporarily tied to the avatar LOD parameter
+        QWriteLocker locker(&_lodLock);
+        const float BASE_LOD_THRESHOLD = 0.01f;
+        _lod = MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(),
+            BASE_LOD_THRESHOLD * Menu::getInstance()->getAvatarLODDistanceMultiplier());
+    }
+
     SpannerSimulateVisitor spannerSimulateVisitor(deltaTime);
     guide(spannerSimulateVisitor);
 }
@@ -183,16 +189,20 @@ void MetavoxelSystem::render() {
     guide(spannerRenderVisitor);
 }
 
+void MetavoxelSystem::setClientPoints(const SharedNodePointer& node, const BufferPointVector& points) {
+    QMutexLocker locker(&node->getMutex());
+    MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
+    if (client) {
+        client->setPoints(points);
+    }
+}
+
 MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
-    return new MetavoxelSystemClient(node, this);
+    return new MetavoxelSystemClient(node, _updater);
 }
 
-void MetavoxelSystem::updateClient(MetavoxelClient* client) {
-    MetavoxelClientManager::updateClient(client);
-}
-
-MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelSystem* system) :
-    MetavoxelClient(node, system),
+MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelUpdater* updater) :
+    MetavoxelClient(node, updater),
     _pointCount(0) {
     
     _buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
@@ -385,11 +395,14 @@ void PointBufferBuilder::run() {
     qint64 now = QDateTime::currentMSecsSinceEpoch();
     PointCollector collector(_lod);
     _data.guide(collector);
-    QMetaObject::invokeMethod(node->getLinkedData(), "setPoints", Q_ARG(const BufferPointVector&, collector.points));
+    QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "setClientPoints",
+        Q_ARG(const SharedNodePointer&, node), Q_ARG(const BufferPointVector&, collector.points));
     qDebug() << "collect" << (QDateTime::currentMSecsSinceEpoch() - now);
 }
 
 void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
+    MetavoxelClient::dataChanged(oldData);
+    
     /* BufferBuilder builder(_remoteDataLOD);
     const AttributePointer& pointBufferAttribute = Application::getInstance()->getMetavoxels()->getPointBufferAttribute();
     MetavoxelNode* oldRoot = oldData.getRoot(pointBufferAttribute);
@@ -500,7 +513,7 @@ void SphereRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum
         return;
     }
     // slight performance optimization: don't render if clip bounds are entirely within sphere
-    Sphere* sphere = static_cast<Sphere*>(parent());
+    Sphere* sphere = static_cast<Sphere*>(_spanner);
     Box clipBox(clipMinimum, clipMinimum + glm::vec3(clipSize, clipSize, clipSize));
     for (int i = 0; i < Box::VERTEX_COUNT; i++) {
         const float CLIP_PROPORTION = 0.95f;
@@ -512,7 +525,7 @@ void SphereRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum
 }
 
 void SphereRenderer::renderUnclipped(float alpha, Mode mode) {
-    Sphere* sphere = static_cast<Sphere*>(parent());
+    Sphere* sphere = static_cast<Sphere*>(_spanner);
     const QColor& color = sphere->getColor();
     glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF() * alpha);
     
@@ -533,6 +546,8 @@ StaticModelRenderer::StaticModelRenderer() :
 }
 
 void StaticModelRenderer::init(Spanner* spanner) {
+    SpannerRenderer::init(spanner);
+
     _model->init();
     
     StaticModel* staticModel = static_cast<StaticModel*>(spanner);
@@ -554,7 +569,7 @@ void StaticModelRenderer::simulate(float deltaTime) {
         const Extents& extents = _model->getGeometry()->getFBXGeometry().meshExtents;
         bounds = Box(extents.minimum, extents.maximum);
     }
-    static_cast<StaticModel*>(parent())->setBounds(glm::translate(_model->getTranslation()) *
+    static_cast<StaticModel*>(_spanner)->setBounds(glm::translate(_model->getTranslation()) *
         glm::mat4_cast(_model->getRotation()) * glm::scale(_model->getScale()) * bounds);
     _model->simulate(deltaTime);
 }
