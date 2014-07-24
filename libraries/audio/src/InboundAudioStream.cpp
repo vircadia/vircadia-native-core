@@ -13,19 +13,19 @@
 #include "PacketHeaders.h"
 
 InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers) :
-_ringBuffer(numFrameSamples, false, numFramesCapacity),
-_dynamicJitterBuffers(dynamicJitterBuffers),
-_desiredJitterBufferFrames(1),
-_isStarved(true),
-_hasStarted(false),
-_consecutiveNotMixedCount(0),
-_starveCount(0),
-_silentFramesDropped(0),
-_incomingSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS),
-_lastFrameReceivedTime(0),
-_interframeTimeGapStatsForJitterCalc(TIME_GAPS_FOR_JITTER_CALC_INTERVAL_SAMPLES, TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS),
-_interframeTimeGapStatsForStatsPacket(TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES, TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS),
-_framesAvailableStats(FRAMES_AVAILABLE_STATS_INTERVAL_SAMPLES, FRAMES_AVAILABLE_STATS_WINDOW_INTERVALS)
+    _ringBuffer(numFrameSamples, false, numFramesCapacity),
+    _dynamicJitterBuffers(dynamicJitterBuffers),
+    _desiredJitterBufferFrames(1),
+    _isStarved(true),
+    _hasStarted(false),
+    _consecutiveNotMixedCount(0),
+    _starveCount(0),
+    _silentFramesDropped(0),
+    _incomingSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS),
+    _lastFrameReceivedTime(0),
+    _interframeTimeGapStatsForJitterCalc(TIME_GAPS_FOR_JITTER_CALC_INTERVAL_SAMPLES, TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS),
+    _interframeTimeGapStatsForStatsPacket(TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES, TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS),
+    _framesAvailableStats(FRAMES_AVAILABLE_STATS_INTERVAL_SAMPLES, FRAMES_AVAILABLE_STATS_WINDOW_INTERVALS)
 {
 }
 
@@ -94,19 +94,19 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     return readBytes;
 }
 
-bool InboundAudioStream::popFrames(int16_t* dest, int numFrames, bool starveOnFail) {
+bool InboundAudioStream::popFrames(int numFrames, bool starveOnFail) {
     if (_isStarved) {
         _consecutiveNotMixedCount++;
         return false;
     }
 
-    bool framesPopped = false;
+    bool popped = false;
 
     int numSamplesRequested = numFrames * _ringBuffer.getNumFrameSamples();
-    if (_ringBuffer.samplesAvailable >= numSamplesRequested) {
-        _ringBuffer.readSamples(dest, numSamplesRequested);
+    if (_ringBuffer.samplesAvailable() >= numSamplesRequested) {
+        _ringBuffer.shiftReadPosition(numSamplesRequested);
         _hasStarted = true;
-        framesPopped = true;
+        popped = true;
     } else {
         if (starveOnFail) {
             setToStarved();
@@ -116,7 +116,58 @@ bool InboundAudioStream::popFrames(int16_t* dest, int numFrames, bool starveOnFa
 
     _framesAvailableStats.update(_ringBuffer.framesAvailable());
 
-    return framesPopped;
+    return popped;
+}
+
+bool InboundAudioStream::popFrames(int16_t* dest, int numFrames, bool starveOnFail) {
+    if (_isStarved) {
+        _consecutiveNotMixedCount++;
+        return false;
+    }
+
+    bool popped = false;
+
+    int numSamplesRequested = numFrames * _ringBuffer.getNumFrameSamples();
+    if (_ringBuffer.samplesAvailable() >= numSamplesRequested) {
+        _ringBuffer.readSamples(dest, numSamplesRequested);
+        _hasStarted = true;
+        popped = true;
+    } else {
+        if (starveOnFail) {
+            setToStarved();
+            _consecutiveNotMixedCount++;
+        }
+    }
+
+    _framesAvailableStats.update(_ringBuffer.framesAvailable());
+
+    return popped;
+}
+
+bool InboundAudioStream::popFrames(AudioRingBuffer::ConstIterator* nextOutput, int numFrames, bool starveOnFail) {
+    if (_isStarved) {
+        _consecutiveNotMixedCount++;
+        return false;
+    }
+
+    bool popped = false;
+
+    int numSamplesRequested = numFrames * _ringBuffer.getNumFrameSamples();
+    if (_ringBuffer.samplesAvailable() >= numSamplesRequested) {
+        *nextOutput = _ringBuffer.nextOutput();
+        _ringBuffer.shiftReadPosition(numSamplesRequested);
+        _hasStarted = true;
+        popped = true;
+    } else {
+        if (starveOnFail) {
+            setToStarved();
+            _consecutiveNotMixedCount++;
+        }
+    }
+
+    _framesAvailableStats.update(_ringBuffer.framesAvailable());
+
+    return popped;
 }
 
 void InboundAudioStream::setToStarved() {

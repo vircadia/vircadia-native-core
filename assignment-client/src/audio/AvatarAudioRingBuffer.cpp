@@ -14,57 +14,50 @@
 #include "AvatarAudioRingBuffer.h"
 
 AvatarAudioRingBuffer::AvatarAudioRingBuffer(bool isStereo, bool dynamicJitterBuffer) :
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone, isStereo, dynamicJitterBuffer) {
-    
+PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone, isStereo, dynamicJitterBuffer) {
+
 }
 
-int AvatarAudioRingBuffer::parseDataAndHandleDroppedPackets(const QByteArray& packet, int packetsSkipped) {
-    frameReceivedUpdateTimingStats();
+int AvatarAudioRingBuffer::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
 
-    _shouldLoopbackForNode = (packetTypeForPacket(packet) == PacketTypeMicrophoneAudioWithEcho);
+    _shouldLoopbackForNode = (type == PacketTypeMicrophoneAudioWithEcho);
 
-    // skip the packet header (includes the source UUID)
-    int readBytes = numBytesForPacketHeader(packet);
+    int readBytes = 0;
 
-    // skip the sequence number
-    readBytes += sizeof(quint16);
-
-    // hop over the channel flag that has already been read in AudioMixerClientData
+    // read the channel flag
+    quint8 channelFlag = packetAfterSeqNum.at(readBytes);
+    bool isStereo = channelFlag == 1;
     readBytes += sizeof(quint8);
+
+    // if isStereo value has changed, restart the ring buffer with new frame size
+    if (isStereo != _isStereo) {
+        _ringBuffer.resizeForFrameSize(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+        _isStereo = isStereo;
+    }
+
     // read the positional data
-    readBytes += parsePositionalData(packet.mid(readBytes));
+    readBytes += parsePositionalData(packetAfterSeqNum.mid(readBytes));
 
-    if (packetTypeForPacket(packet) == PacketTypeSilentAudioFrame) {
-        // this source had no audio to send us, but this counts as a packet
-        // write silence equivalent to the number of silent samples they just sent us
+    if (type == PacketTypeSilentAudioFrame) {
         int16_t numSilentSamples;
-
-        memcpy(&numSilentSamples, packet.data() + readBytes, sizeof(int16_t));
+        memcpy(&numSilentSamples, packetAfterSeqNum.data() + readBytes, sizeof(int16_t));
         readBytes += sizeof(int16_t);
 
-        // add silent samples for the dropped packets as well. 
-        // ASSUME that each dropped packet had same number of silent samples as this one
-        numSilentSamples *= (packetsSkipped + 1);
-
-        // NOTE: fixes a bug in old clients that would send garbage for their number of silentSamples
-        // CAN'T DO THIS because ScriptEngine.cpp sends frames of different size due to having a different sending interval
-        // (every 16.667ms) than Audio.cpp (every 10.667ms)
-        //numSilentSamples = getSamplesPerFrame();
-
-        addDroppableSilentSamples(numSilentSamples);
-
+        numAudioSamples = numSilentSamples;
     } else {
-        int numAudioBytes = packet.size() - readBytes;
-        int numAudioSamples = numAudioBytes / sizeof(int16_t);
+        int numAudioBytes = packetAfterSeqNum.size() - readBytes;
+        numAudioSamples = numAudioBytes / sizeof(int16_t);
+    }
+    return readBytes;
+}
 
-        // add silent samples for the dropped packets.
-        // ASSUME that each dropped packet had same number of samples as this one
-        if (packetsSkipped > 0) {
-            addDroppableSilentSamples(packetsSkipped * numAudioSamples);
-        }
-
+int AvatarAudioRingBuffer::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
+    int readBytes = 0;
+    if (type == PacketTypeSilentAudioFrame) {
+        writeDroppableSilentSamples(numAudioSamples);
+    } else {
         // there is audio data to read
-        readBytes += writeData(packet.data() + readBytes, numAudioBytes);
+        readBytes += _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
     }
     return readBytes;
 }

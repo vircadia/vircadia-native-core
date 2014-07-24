@@ -19,12 +19,14 @@
 class AvatarAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
     AvatarAudioRingBuffer(bool isStereo = false, bool dynamicJitterBuffer = false);
-    
-    int parseDataAndHandleDroppedPackets(const QByteArray& packet, int packetsSkipped);
+
 private:
     // disallow copying of AvatarAudioRingBuffer objects
     AvatarAudioRingBuffer(const AvatarAudioRingBuffer&);
     AvatarAudioRingBuffer& operator= (const AvatarAudioRingBuffer&);
+
+    int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
+    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
 };
 
 #endif // hifi_AvatarAudioRingBuffer_h

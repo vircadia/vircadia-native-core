@@ -20,52 +20,50 @@
 #include "InjectedAudioRingBuffer.h"
 
 InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier, bool dynamicJitterBuffer) :
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Injector, false, dynamicJitterBuffer),
-    _streamIdentifier(streamIdentifier),
-    _radius(0.0f),
-    _attenuationRatio(0)
+PositionalAudioRingBuffer(PositionalAudioRingBuffer::Injector, false, dynamicJitterBuffer),
+_streamIdentifier(streamIdentifier),
+_radius(0.0f),
+_attenuationRatio(0)
 {
-    
+
 }
 
 const uchar MAX_INJECTOR_VOLUME = 255;
 
-int InjectedAudioRingBuffer::parseDataAndHandleDroppedPackets(const QByteArray& packet, int packetsSkipped) {
-    frameReceivedUpdateTimingStats();
-
+int InjectedAudioRingBuffer::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
     // setup a data stream to read from this packet
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
-    
-    // push past the sequence number
-    packetStream.skipRawData(sizeof(quint16));
+    QDataStream packetStream(packetAfterSeqNum);
 
-    // push past the stream identifier
+    // skip the stream identifier
     packetStream.skipRawData(NUM_BYTES_RFC4122_UUID);
-    
+
     // pull the loopback flag and set our boolean
     uchar shouldLoopback;
     packetStream >> shouldLoopback;
     _shouldLoopbackForNode = (shouldLoopback == 1);
-    
+
     // use parsePositionalData in parent PostionalAudioRingBuffer class to pull common positional data
-    packetStream.skipRawData(parsePositionalData(packet.mid(packetStream.device()->pos())));
-    
+    packetStream.skipRawData(parsePositionalData(packetAfterSeqNum.mid(packetStream.device()->pos())));
+
     // pull out the radius for this injected source - if it's zero this is a point source
     packetStream >> _radius;
-    
+
     quint8 attenuationByte = 0;
     packetStream >> attenuationByte;
-    _attenuationRatio = attenuationByte / (float) MAX_INJECTOR_VOLUME;
-    
-    int numAudioBytes = packet.size() - packetStream.device()->pos();
-    int numAudioSamples = numAudioBytes / sizeof(int16_t);
+    _attenuationRatio = attenuationByte / (float)MAX_INJECTOR_VOLUME;
 
-    // add silent samples for the dropped packets.
-    // ASSUME that each dropped packet had same number of samples as this one
-    addDroppableSilentSamples(numAudioSamples * packetsSkipped);
+    int numAudioBytes = packetAfterSeqNum.size() - packetStream.device()->pos();
+    numAudioSamples = numAudioBytes / sizeof(int16_t);
 
-    packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(), numAudioBytes));
-    
     return packetStream.device()->pos();
+}
+
+int InjectedAudioRingBuffer::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
+    return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
+}
+
+AudioStreamStats InjectedAudioRingBuffer::getAudioStreamStats() const {
+    AudioStreamStats streamStats = PositionalAudioRingBuffer::getAudioStreamStats();
+    streamStats._streamIdentifier = _streamIdentifier;
+    return streamStats;
 }

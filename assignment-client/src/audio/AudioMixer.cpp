@@ -95,6 +95,19 @@ const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
                                                           AvatarAudioRingBuffer* listeningNodeBuffer) {
+    // if the frame to be mixed is silent, don't mix it
+    if (bufferToAdd->getNextOutputTrailingLoudness() == 0.0f) {
+        bufferToAdd->popFrames(1);
+        return;
+    }
+
+    // get pointer to frame to be mixed.  If the stream cannot provide a frame (is starved), bail
+    AudioRingBuffer::ConstIterator nextOutputStart;
+    if (!bufferToAdd->popFrames(&nextOutputStart, 1)) {
+        return;
+    }
+
+
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
     int numSamplesDelay = 0;
@@ -203,7 +216,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         }
     }
     
-    const int16_t* nextOutputStart = bufferToAdd->getNextOutput();
+
     
     if (!bufferToAdd->isStereo() && shouldAttenuate) {
         // this is a mono buffer, which means it gets full attenuation and spatialization
@@ -212,8 +225,8 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
         int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
         
-        const int16_t* bufferStart = bufferToAdd->getBuffer();
-        int ringBufferSampleCapacity = bufferToAdd->getSampleCapacity();
+        //const int16_t* bufferStart = bufferToAdd->getBuffer();
+        //int ringBufferSampleCapacity = bufferToAdd->getSampleCapacity();
         
         int16_t correctBufferSample[2], delayBufferSample[2];
         int delayedChannelIndex = 0;
@@ -241,14 +254,15 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             // if there was a sample delay for this buffer, we need to pull samples prior to the nextOutput
             // to stick at the beginning
             float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
-            const int16_t* delayNextOutputStart = nextOutputStart - numSamplesDelay;
-            if (delayNextOutputStart < bufferStart) {
-                delayNextOutputStart = bufferStart + ringBufferSampleCapacity - numSamplesDelay;
-            }
+            AudioRingBuffer::ConstIterator delayNextOutputStart = nextOutputStart - numSamplesDelay;
+            //if (delayNextOutputStart < bufferStart) {
+                //delayNextOutputStart = bufferStart + ringBufferSampleCapacity - numSamplesDelay;
+            //}
             
             for (int i = 0; i < numSamplesDelay; i++) {
                 int parentIndex = i * 2;
-                _clientSamples[parentIndex + delayedChannelOffset] += delayNextOutputStart[i] * attenuationAndWeakChannelRatio;
+                _clientSamples[parentIndex + delayedChannelOffset] += *delayNextOutputStart * attenuationAndWeakChannelRatio;
+                ++delayNextOutputStart;
             }
         }
     } else {
@@ -293,20 +307,19 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
-            for (int i = 0; i < otherNodeClientData->getRingBuffers().size(); i++) {
-                PositionalAudioRingBuffer* otherNodeBuffer = otherNodeClientData->getRingBuffers()[i];
+
+            const QHash<QUuid, PositionalAudioRingBuffer*>& otherNodeRingBuffers = otherNodeClientData->getRingBuffers();
+            QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i, end = otherNodeRingBuffers.constEnd();
+            for (i = otherNodeRingBuffers.begin(); i != end; i++) {
+                PositionalAudioRingBuffer* otherNodeBuffer = i.value();
                 
-                if ((*otherNode != *node
-                     || otherNodeBuffer->shouldLoopbackForNode())
-                    && otherNodeBuffer->willBeAddedToMix()
-                    && otherNodeBuffer->getNextOutputTrailingLoudness() > 0.0f) {
+                if (*otherNode != *node || otherNodeBuffer->shouldLoopbackForNode()) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
             }
         }
     }
 }
-
 
 void AudioMixer::readPendingDatagrams() {
     QByteArray receivedPacket;
@@ -500,12 +513,12 @@ void AudioMixer::run() {
 
     while (!_isFinished) {
         
-        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        /*foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(_sourceUnattenuatedZone,
                                                                                              _listenerUnattenuatedZone);
             }
-        }
+        }*/
         
         const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
         const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
@@ -599,13 +612,13 @@ void AudioMixer::run() {
                 ++_sumListeners;
             }
         }
-        
+        /*
         // push forward the next output pointers for any audio buffers we used
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
             }
-        }
+        }*/
         
         ++_numStatFrames;
         

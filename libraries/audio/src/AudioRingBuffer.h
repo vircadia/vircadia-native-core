@@ -65,6 +65,8 @@ public:
     const int16_t& operator[] (const int index) const;
     
     void shiftReadPosition(unsigned int numSamples);
+
+    float getNextOutputFrameLoudness() const;
     
     int samplesAvailable() const;
     int framesAvailable() const { return samplesAvailable() / _numFrameSamples; }
@@ -99,6 +101,86 @@ protected:
     bool _isStarved;
     bool _hasStarted;
     bool _randomAccessMode; /// will this ringbuffer be used for random access? if so, do some special processing
+
+public:
+    class ConstIterator { //public std::iterator < std::forward_iterator_tag, int16_t > {
+    public:
+        ConstIterator()
+            : _capacity(0),
+            _bufferFirst(NULL),
+            _bufferLast(NULL),
+            _at(NULL) {}
+
+        ConstIterator(int16_t* bufferFirst, int capacity, int16_t* at)
+            : _capacity(capacity),
+            _bufferFirst(bufferFirst),
+            _bufferLast(bufferFirst + capacity - 1),
+            _at(at) {}
+
+        bool operator==(const ConstIterator& rhs) { return _at == rhs._at; }
+        bool operator!=(const ConstIterator& rhs) { return _at != rhs._at; }
+        int16_t operator*() { return *_at; }
+
+        ConstIterator& operator=(const ConstIterator& rhs) {
+            _capacity = rhs._capacity;
+            _bufferFirst = rhs._bufferFirst;
+            _bufferLast = rhs._bufferLast;
+            _at = rhs._at;
+            return *this;
+        }
+
+        ConstIterator& operator++() {
+            _at = (_at == _bufferLast) ? _bufferFirst : _at + 1;
+            return *this;
+        }
+
+        ConstIterator operator++(int) {
+            ConstIterator tmp(*this);
+            ++(*this);
+            return tmp;
+        }
+
+        ConstIterator& operator--() {
+            _at = (_at == _bufferFirst) ? _bufferLast : _at - 1;
+            return *this;
+        }
+
+        ConstIterator operator--(int) {
+            ConstIterator tmp(*this);
+            --(*this);
+            return tmp;
+        }
+
+        int16_t operator[] (int i) {
+            return *atShiftedBy(i);
+        }
+
+        ConstIterator operator+(int i) {
+            return ConstIterator(_bufferFirst, _capacity, atShiftedBy(i));
+        }
+
+        ConstIterator operator-(int i) {
+            return ConstIterator(_bufferFirst, _capacity, atShiftedBy(-i));
+        }
+    
+    private:
+        int16_t* atShiftedBy(int i) {
+            i = (_at - _bufferFirst + i) % _capacity;
+            if (i < 0) {
+                i += _capacity;
+            }
+            return _bufferFirst + i;
+        }
+
+    private:
+        int _capacity;
+        int16_t* _bufferFirst;
+        int16_t* _bufferLast;
+        int16_t* _at;
+    };
+
+
+    ConstIterator nextOutput() const { return ConstIterator(_buffer, _sampleCapacity, _nextOutput); }
 };
 
 #endif // hifi_AudioRingBuffer_h

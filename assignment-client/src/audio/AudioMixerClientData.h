@@ -13,29 +13,23 @@
 #define hifi_AudioMixerClientData_h
 
 #include <AABox.h>
-#include <NodeData.h>
-#include <PositionalAudioRingBuffer.h>
 
+#include "PositionalAudioRingBuffer.h"
 #include "AvatarAudioRingBuffer.h"
-#include "AudioStreamStats.h"
-#include "SequenceNumberStats.h"
-
-
-const int INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS = 30;
 
 class AudioMixerClientData : public NodeData {
 public:
     AudioMixerClientData();
     ~AudioMixerClientData();
     
-    const QList<PositionalAudioRingBuffer*> getRingBuffers() const { return _ringBuffers; }
+    const QHash<QUuid, PositionalAudioRingBuffer*>& getRingBuffers() const { return _ringBuffers; }
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
     
     int parseData(const QByteArray& packet);
-    void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
-    void pushBuffersAfterFrameSend();
+    //void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
+    //void pushBuffersAfterFrameSend();
 
-    AudioStreamStats getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer) const;
+    //AudioStreamStats getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer) const;
     QString getAudioStreamStatsString() const;
     
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
@@ -44,11 +38,9 @@ public:
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
 private:
-    QList<PositionalAudioRingBuffer*> _ringBuffers;
+    QHash<QUuid, PositionalAudioRingBuffer*> _ringBuffers;     // mic stream stored under key of null UUID
 
     quint16 _outgoingMixedAudioSequenceNumber;
-    SequenceNumberStats _incomingAvatarAudioSequenceNumberStats;
-    QHash<QUuid, SequenceNumberStats> _incomingInjectedAudioSequenceNumberStatsMap;
 
     AudioStreamStats _downstreamAudioStreamStats;
 };

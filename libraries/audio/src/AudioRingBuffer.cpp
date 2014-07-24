@@ -231,3 +231,18 @@ int16_t* AudioRingBuffer::shiftedPositionAccomodatingWrap(int16_t* position, int
         return position + numSamplesShift;
     }
 }
+
+float AudioRingBuffer::getNextOutputFrameLoudness() const {
+    float loudness = 0.0f;
+    int16_t* sampleAt = _nextOutput;
+    int16_t* _bufferLastAt = _buffer + _sampleCapacity - 1;
+    if (samplesAvailable() >= _numFrameSamples) {
+        for (int i = 0; i < _numFrameSamples; ++i) {
+            loudness += fabsf(*sampleAt);
+            sampleAt = sampleAt == _bufferLastAt ? _buffer : sampleAt + 1;
+        }
+        loudness /= _numFrameSamples;
+        loudness /= MAX_SAMPLE_VALUE;
+    }
+    return loudness;
+}

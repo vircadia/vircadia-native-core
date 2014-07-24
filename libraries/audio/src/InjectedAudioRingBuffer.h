@@ -19,18 +19,22 @@
 class InjectedAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
     InjectedAudioRingBuffer(const QUuid& streamIdentifier = QUuid(), bool dynamicJitterBuffer = false);
-    
-    int parseDataAndHandleDroppedPackets(const QByteArray& packet, int packetsSkipped);
-    
-    const QUuid& getStreamIdentifier() const { return _streamIdentifier; }
+
     float getRadius() const { return _radius; }
     float getAttenuationRatio() const { return _attenuationRatio; }
+
+    QUuid getStreamIdentifier() const { return _streamIdentifier; }
+
 private:
     // disallow copying of InjectedAudioRingBuffer objects
     InjectedAudioRingBuffer(const InjectedAudioRingBuffer&);
     InjectedAudioRingBuffer& operator= (const InjectedAudioRingBuffer&);
-    
-    QUuid _streamIdentifier;
+
+    AudioStreamStats getAudioStreamStats() const;
+    int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
+    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
+
+    const QUuid _streamIdentifier;
     float _radius;
     float _attenuationRatio;
 };

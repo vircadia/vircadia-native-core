@@ -52,14 +52,15 @@ public:
 
 
     int parseData(const QByteArray& packet);
-    
-    bool popFrames(int16_t* dest, int numFrames, bool starveOnFail = true);
 
+    bool popFrames(int numFrames, bool starveOnFail = true);
+    bool popFrames(int16_t* dest, int numFrames, bool starveOnFail = true);
+    bool popFrames(AudioRingBuffer::ConstIterator* nextOutput, int numFrames, bool starveOnFail = true);
 
     void setToStarved();
 
 
-
+    /// this function should be called once per second to ensure the seq num stats history spans ~30 seconds
     AudioStreamStats updateSeqHistoryAndGetAudioStreamStats();
     virtual AudioStreamStats getAudioStreamStats() const;
 
