@@ -310,7 +310,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
         Matrix4f proj = ovrMatrix4f_Projection(_eyeRenderDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);
         proj.Transpose();
-
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glLoadMatrixf((GLfloat *)proj.M);
@@ -462,52 +461,4 @@ QSize OculusManager::getRenderTargetSize() {
 #else
     return QSize(100, 100);
 #endif
-}
-
-//Renders sixense laser pointers for UI selection in the oculus
-void OculusManager::renderLaserPointers() {
-#ifdef HAVE_LIBOVR
-    const float PALM_TIP_ROD_RADIUS = 0.002f;
-
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-
-    //If the Oculus is enabled, we will draw a blue cursor ray
-   
-    for (size_t i = 0; i < myAvatar->getHand()->getNumPalms(); ++i) {
-        PalmData& palm = myAvatar->getHand()->getPalms()[i];
-        if (palm.isActive()) {
-            glColor4f(0, 1, 1, 1);
-            glm::vec3 tip = getLaserPointerTipPosition(&palm);
-            glm::vec3 root = palm.getPosition();
-
-            //Scale the root vector with the avatar scale
-            myAvatar->scaleVectorRelativeToPosition(root);
-
-            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS);
-        }
-    }
-#endif
-}
-
-//Gets the tip position for the laser pointer
-glm::vec3 OculusManager::getLaserPointerTipPosition(const PalmData* palm) {
-#ifdef HAVE_LIBOVR
-    const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
-    const float PALM_TIP_ROD_LENGTH_MULT = 40.0f;
-
-    glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
-
-    glm::vec3 position = palm->getPosition();
-    //scale the position with the avatar
-    Application::getInstance()->getAvatar()->scaleVectorRelativeToPosition(position);
-
-   
-    glm::vec3 result;
-    if (applicationOverlay.calculateRayUICollisionPoint(position, direction, result)) {
-        return result;
-    }
-
-    return palm->getPosition();
-#endif
-    return glm::vec3(0.0f);
 }

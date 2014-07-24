@@ -30,9 +30,9 @@ const int TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFE
 const int TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS = 30;
 
 // the stats for calculating the average frames available  will recalculate every ~1 second
-// and will include data for the past ~2 seconds 
+// and will include data for the past ~10 seconds 
 const int FRAMES_AVAILABLE_STATS_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
-const int FRAMES_AVAILABLE_STATS_WINDOW_INTERVALS = 2;
+const int FRAMES_AVAILABLE_STATS_WINDOW_INTERVALS = 10;
 
 const int AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
