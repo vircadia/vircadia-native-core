@@ -1913,14 +1913,6 @@ void Application::updateMyAvatarLookAtPosition() {
             lookAtSpot = _myAvatar->getHead()->getEyePosition() +
                 (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.f, 0.f, -TREE_SCALE));
         }
-        // TODO:  Add saccade to mouse pointer when stable, IF not looking at someone (since we know we are looking at it)
-        /*
-        const float FIXED_MIN_EYE_DISTANCE = 0.3f;
-        float minEyeDistance = FIXED_MIN_EYE_DISTANCE + (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON ? 0.0f :
-            glm::distance(_mouseRayOrigin, _myAvatar->getHead()->getAverageEyePosition()));
-        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * qMax(minEyeDistance, distance);
-         */
-
     }
     //
     //  Deflect the eyes a bit to match the detected Gaze from 3D camera if active
