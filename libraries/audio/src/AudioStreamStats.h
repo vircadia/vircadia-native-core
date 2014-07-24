@@ -12,13 +12,12 @@
 #ifndef hifi_AudioStreamStats_h
 #define hifi_AudioStreamStats_h
 
-#include "PositionalAudioRingBuffer.h"
 #include "SequenceNumberStats.h"
 
 class AudioStreamStats {
 public:
     AudioStreamStats()
-        : _streamType(PositionalAudioRingBuffer::Microphone),
+        : _streamType(-1),
         _streamIdentifier(),
         _timeGapMin(0),
         _timeGapMax(0),
@@ -37,7 +36,7 @@ public:
         _packetStreamWindowStats()
     {}
 
-    PositionalAudioRingBuffer::Type _streamType;
+    qint32 _streamType;
     QUuid _streamIdentifier;
 
     quint64 _timeGapMin;
