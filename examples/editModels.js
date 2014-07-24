@@ -275,7 +275,12 @@ var modelUploader = (function () {
                     return false;
                 }
                 mapping = readMapping(fstBuffer);
-                fbxFilename = filename.path() + "\\" + mapping[FILENAME_FIELD];
+                if (mapping.hasOwnProperty(FILENAME_FIELD)) {
+                    fbxFilename = filename.path() + "\\" + mapping[FILENAME_FIELD];
+                } else {
+                    error("FBX file name not found in FST file!");
+                    return false;
+                }
 
             } else if (filename.toLowerCase().slice(-4) === ".fbx") {
                 fbxFilename = filename;
