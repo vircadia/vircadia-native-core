@@ -1022,6 +1022,8 @@ void ApplicationOverlay::renderAudioMeter() {
 
     audio->renderScope(glWidget->width(), glWidget->height());
 
+    audio->renderStats(WHITE_TEXT, glWidget->width(), glWidget->height());
+
     glBegin(GL_QUADS);
     if (isClipping) {
         glColor3f(1, 0, 0);

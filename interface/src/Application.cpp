@@ -3355,7 +3355,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _modelEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
-        QMetaObject::invokeMethod(&_audio, "resetIncomingMixedAudioSequenceNumberStats");
+        QMetaObject::invokeMethod(&_audio, "audioMixerKilled");
     }
 
     if (node->getType() == NodeType::VoxelServer) {
