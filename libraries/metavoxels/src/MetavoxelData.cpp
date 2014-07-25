@@ -10,6 +10,7 @@
 //
 
 #include <QDateTime>
+#include <QDebugStateSaver>
 #include <QScriptEngine>
 #include <QtDebug>
 
@@ -46,13 +47,8 @@ bool MetavoxelLOD::becameSubdivided(const glm::vec3& minimum, float size,
     if (!shouldSubdivide(minimum, size, multiplier)) {
         return false; // this one must be subdivided
     }
-    // the general check is whether we've gotten closer (as multiplied by the threshold) to any point in the volume,
-    // which we approximate as a sphere for simplicity
-    float halfSize = size * 0.5f;
-    glm::vec3 center = minimum + glm::vec3(halfSize, halfSize, halfSize);
-    float radius = sqrtf(3 * halfSize * halfSize);
-    return qMax(0.0f, glm::distance(position, center) - radius) * threshold <=
-        qMax(0.0f, glm::distance(reference.position, center) - radius) * reference.threshold;
+    // TODO: find some way of culling subtrees that can't possibly contain subdivided nodes
+    return true;
 }
 
 MetavoxelData::MetavoxelData() : _size(1.0f) {
@@ -602,12 +598,18 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, const MetavoxelLO
     }
 }
 
-MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
-    MetavoxelNode*& root = _roots[attribute];
-    if (root) {
-        root->decrementReferenceCount(attribute);
+void MetavoxelData::setRoot(const AttributePointer& attribute, MetavoxelNode* root) {
+    MetavoxelNode*& rootReference = _roots[attribute];
+    if (rootReference) {
+        rootReference->decrementReferenceCount(attribute);
     }
-    return root = new MetavoxelNode(attribute);
+    rootReference = root;
+}
+
+MetavoxelNode* MetavoxelData::createRoot(const AttributePointer& attribute) {
+    MetavoxelNode* root = new MetavoxelNode(attribute);
+    setRoot(attribute, root);
+    return root;
 }
 
 bool MetavoxelData::deepEquals(const MetavoxelData& other, const MetavoxelLOD& lod) const {
@@ -625,6 +627,33 @@ bool MetavoxelData::deepEquals(const MetavoxelData& other, const MetavoxelLOD& l
         }
     }
     return true;
+}
+
+void MetavoxelData::countNodes(int& internal, int& leaves, const MetavoxelLOD& lod) const {
+    glm::vec3 minimum = getMinimum();
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        it.value()->countNodes(it.key(), minimum, _size, lod, internal, leaves);
+    }
+}
+
+void MetavoxelData::dumpStats(QDebug debug) const {
+    QDebugStateSaver saver(debug);
+    debug.nospace() << "[size=" << _size << ", roots=[";
+    int totalInternal = 0, totalLeaves = 0;
+    glm::vec3 minimum = getMinimum();
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        if (it != _roots.constBegin()) {
+            debug << ", ";
+        }
+        debug << it.key()->getName() << " (" << it.key()->metaObject()->className() << "): ";
+        int internal = 0, leaves = 0;
+        it.value()->countNodes(it.key(), minimum, _size, MetavoxelLOD(), internal, leaves);
+        debug << internal << " internal, " << leaves << " leaves, " << (internal + leaves) << " total";
+        totalInternal += internal;
+        totalLeaves += leaves;
+    }
+    debug << "], totalInternal=" << totalInternal << ", totalLeaves=" << totalLeaves <<
+        ", grandTotal=" << (totalInternal + totalLeaves) << "]";
 }
 
 bool MetavoxelData::operator==(const MetavoxelData& other) const {
@@ -733,7 +762,7 @@ void MetavoxelNode::mergeChildren(const AttributePointer& attribute, bool postRe
         childValues[i] = _children[i]->_attributeValue;
         allLeaves &= _children[i]->isLeaf();
     }
-    if (attribute->merge(_attributeValue, childValues, postRead) && allLeaves) {
+    if (attribute->merge(_attributeValue, childValues, postRead) && allLeaves && !postRead) {
         clearChildren(attribute);
     }
 }
@@ -815,10 +844,14 @@ void MetavoxelNode::readDelta(const MetavoxelNode& reference, MetavoxelStreamSta
                     _children[i] = new MetavoxelNode(state.attribute);
                     _children[i]->readDelta(*reference._children[i], nextState);
                 } else {
-                    _children[i] = reference._children[i];
-                    _children[i]->incrementReferenceCount();
                     if (nextState.becameSubdivided()) {
-                        _children[i]->readSubdivision(nextState);
+                        _children[i] = reference._children[i]->readSubdivision(nextState);
+                        if (_children[i] == reference._children[i]) {
+                            _children[i]->incrementReferenceCount();
+                        }
+                    } else {
+                        _children[i] = reference._children[i];
+                        _children[i]->incrementReferenceCount();    
                     }
                 }
             }
@@ -860,58 +893,68 @@ void MetavoxelNode::writeDelta(const MetavoxelNode& reference, MetavoxelStreamSt
     }
 }
 
-void MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
-    bool leaf;
-    bool subdivideReference = state.shouldSubdivideReference();
-    if (!subdivideReference) {
+MetavoxelNode* MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
+    if (!state.shouldSubdivideReference()) {
+        bool leaf;
         state.stream >> leaf;
-    } else {
-        leaf = isLeaf();
-    }
-    if (leaf) {
-        clearChildren(state.attribute);
-        
-    } else {
+        if (leaf) {
+            return isLeaf() ? this : new MetavoxelNode(getAttributeValue(state.attribute));
+            
+        } else {
+            MetavoxelNode* newNode = new MetavoxelNode(getAttributeValue(state.attribute));
+            MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+                state.stream, state.lod, state.referenceLOD };
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                newNode->_children[i] = new MetavoxelNode(state.attribute);
+                newNode->_children[i]->read(nextState);
+            }
+            return newNode;
+        }
+    } else if (!isLeaf()) {
+        MetavoxelNode* node = this;
         MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
             state.stream, state.lod, state.referenceLOD };
-        if (!subdivideReference) {
-            clearChildren(state.attribute);
-            for (int i = 0; i < CHILD_COUNT; i++) {
-                nextState.setMinimum(state.minimum, i);
-                _children[i] = new MetavoxelNode(state.attribute);
-                _children[i]->read(nextState);
-            }
-        } else {
-            for (int i = 0; i < CHILD_COUNT; i++) {
-                nextState.setMinimum(state.minimum, i);
-                if (nextState.becameSubdivided()) {
-                    _children[i]->readSubdivision(nextState);
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            nextState.setMinimum(state.minimum, i);
+            if (nextState.becameSubdivided()) {
+                MetavoxelNode* child = _children[i]->readSubdivision(nextState);
+                if (child != _children[i]) {
+                    if (node == this) {
+                        node = new MetavoxelNode(state.attribute, this);
+                    }
+                    node->_children[i] = child;   
+                    _children[i]->decrementReferenceCount(state.attribute);
                 }
             }
         }
+        if (node != this) {
+            node->mergeChildren(state.attribute, true);
+        }
+        return node;
     }
+    return this;
 }
 
 void MetavoxelNode::writeSubdivision(MetavoxelStreamState& state) const {
     bool leaf = isLeaf();
-    bool subdivideReference = state.shouldSubdivideReference();
-    if (!subdivideReference) {
+    if (!state.shouldSubdivideReference()) {
         state.stream << leaf;
-    }
-    if (!leaf) {
-        MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
-            state.stream, state.lod, state.referenceLOD };
-        if (!subdivideReference) {
+        if (!leaf) {
+            MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+                state.stream, state.lod, state.referenceLOD };
             for (int i = 0; i < CHILD_COUNT; i++) {
                 nextState.setMinimum(state.minimum, i);
                 _children[i]->write(nextState);
             }
-        } else {
-            for (int i = 0; i < CHILD_COUNT; i++) {
-                nextState.setMinimum(state.minimum, i);
-                if (nextState.becameSubdivided()) {
-                    _children[i]->writeSubdivision(nextState);
-                }
+        }
+    } else if (!leaf) {
+        MetavoxelStreamState nextState = { glm::vec3(), state.size * 0.5f, state.attribute,
+            state.stream, state.lod, state.referenceLOD };
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            nextState.setMinimum(state.minimum, i);
+            if (nextState.becameSubdivided()) {
+                _children[i]->writeSubdivision(nextState);
             }
         }
     }
@@ -1014,13 +1057,16 @@ void MetavoxelNode::destroy(const AttributePointer& attribute) {
     }
 }
 
-void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
+bool MetavoxelNode::clearChildren(const AttributePointer& attribute) {
+    bool cleared = false;
     for (int i = 0; i < CHILD_COUNT; i++) {
         if (_children[i]) {
             _children[i]->decrementReferenceCount(attribute);
             _children[i] = NULL;
+            cleared = true;
         }
     }
+    return cleared;
 }
 
 bool MetavoxelNode::deepEquals(const AttributePointer& attribute, const MetavoxelNode& other,
@@ -1056,8 +1102,20 @@ void MetavoxelNode::getSpanners(const AttributePointer& attribute, const glm::ve
     }
     float nextSize = size * 0.5f;
     for (int i = 0; i < CHILD_COUNT; i++) {
-        glm::vec3 nextMinimum = getNextMinimum(minimum, nextSize, i);
-        _children[i]->getSpanners(attribute, nextMinimum, nextSize, lod, results);
+        _children[i]->getSpanners(attribute, getNextMinimum(minimum, nextSize, i), nextSize, lod, results);
+    }
+}
+
+void MetavoxelNode::countNodes(const AttributePointer& attribute, const glm::vec3& minimum,
+        float size, const MetavoxelLOD& lod, int& internal, int& leaves) const {
+    if (isLeaf() || !lod.shouldSubdivide(minimum, size, attribute->getLODThresholdMultiplier())) {
+        leaves++;
+        return;
+    }
+    internal++;
+    float nextSize = size * 0.5f;
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        _children[i]->countNodes(attribute, getNextMinimum(minimum, nextSize, i), nextSize, lod, internal, leaves);
     }
 }
 

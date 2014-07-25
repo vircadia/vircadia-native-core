@@ -121,7 +121,7 @@ static void maybeRelease(QOpenGLFramebufferObject* fbo) {
 }
 
 QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
-    PerformanceTimer perfTimer("paintGL/glowEffect");
+    PerformanceTimer perfTimer("glowEffect");
 
     QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
     primaryFBO->release();

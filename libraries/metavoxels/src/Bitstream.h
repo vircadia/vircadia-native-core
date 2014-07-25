@@ -32,6 +32,7 @@
 class QByteArray;
 class QColor;
 class QDataStream;
+class QScriptEngine;
 class QScriptValue;
 class QUrl;
 
@@ -290,6 +291,11 @@ public:
         QHash<int, SharedObjectPointer> sharedObjectValues;
     };
 
+    /// Performs all of the various lazily initializations (of object streamers, etc.)  If multiple threads need to use
+    /// Bitstream instances, call this beforehand to prevent errors from occurring when multiple threads attempt lazy
+    /// initialization simultaneously.
+    static void preThreadingInit();
+
     /// Registers a metaobject under its name so that instances of it can be streamed.  Consider using the REGISTER_META_OBJECT
     /// at the top level of the source file associated with the class rather than calling this function directly.
     /// \return zero; the function only returns a value so that it can be used in static initialization
@@ -314,6 +320,10 @@ public:
     /// themselves as subclasses of all of their parents, mostly in order to allow editors to provide lists of available
     /// subclasses.
     static QList<const QMetaObject*> getMetaObjectSubClasses(const QMetaObject* metaObject);
+
+    /// Configures the supplied script engine with our registered meta-objects, allowing all of them to be instantiated from
+    /// scripts.
+    static void registerTypes(QScriptEngine* engine);
 
     enum MetadataType { NO_METADATA, HASH_METADATA, FULL_METADATA };
 

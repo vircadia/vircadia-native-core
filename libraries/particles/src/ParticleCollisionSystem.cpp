@@ -181,9 +181,6 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
     }
 }
 
-// MIN_VALID_SPEED is obtained by computing speed gained at one gravity after the shortest expected frame
-const float MIN_EXPECTED_FRAME_PERIOD = 0.0167f;  // 1/60th of a second
-
 void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     // particles that are in hand, don't collide with avatars
     if (!_avatars || particle->getInHand()) {

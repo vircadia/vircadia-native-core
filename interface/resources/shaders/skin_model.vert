@@ -34,6 +34,7 @@ void main(void) {
         position += clusterMatrix * gl_Vertex * clusterWeight;
         normal += clusterMatrix * vec4(gl_Normal, 0.0) * clusterWeight;
     }
+    
     position = gl_ModelViewMatrix * position;
     normal = normalize(gl_ModelViewMatrix * normal);
     

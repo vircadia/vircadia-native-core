@@ -32,7 +32,9 @@ public:
     void displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov);
     void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
     void getClickLocation(int &x, int &y) const;
-    void resize();
+    QPoint getPalmClickLocation(const PalmData *palm) const;
+    bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
+
 
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();
@@ -49,7 +51,7 @@ private:
 
     void renderPointers();
     void renderControllerPointers();
-    void renderControllerPointersOculus();
+    void renderPointersOculus(const glm::vec3& eyePos);
     void renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const;
     void renderAudioMeter();
     void renderStatsAndLogs();
@@ -69,6 +71,7 @@ private:
     float _magSizeMult[NUMBER_OF_MAGNIFIERS];
     
     float _alpha;
+    float _oculusuiRadius;
 
     GLuint _crosshairTexture;
 };

@@ -21,9 +21,9 @@
 enum AvatarHandState
 {
     HAND_STATE_NULL = 0,
-    HAND_STATE_OPEN,
-    HAND_STATE_GRASPING,
-    HAND_STATE_POINTING,
+    HAND_STATE_LEFT_POINTING,
+    HAND_STATE_RIGHT_POINTING,
+    HAND_STATE_BOTH_POINTING,
     NUM_HAND_STATES
 };
 
@@ -127,6 +127,9 @@ public:
 
     void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
 
+    /// Renders a laser pointer for UI picking
+    void renderLaserPointers();
+    glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
 public slots:
     void goHome();
     void increaseSize();

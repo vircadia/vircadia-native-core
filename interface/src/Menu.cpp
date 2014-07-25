@@ -32,6 +32,7 @@
 #include <AccountManager.h>
 #include <XmppClient.h>
 #include <UUID.h>
+#include <UserActivityLogger.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -111,7 +112,8 @@ Menu::Menu() :
     _preferencesDialog(NULL),
     _loginDialog(NULL),
     _snapshotsLocation(),
-    _scriptsLocation()
+    _scriptsLocation(),
+    _walletPrivateKey()
 {
     Application *appInstance = Application::getInstance();
 
@@ -276,7 +278,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
                                             appInstance, SLOT(cameraMenuChanged()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::UserInterface, Qt::Key_Slash);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::UserInterface, Qt::Key_Slash, true);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
@@ -389,12 +391,15 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollideAsRagdoll);
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
+#ifdef HAVE_FACESHIFT
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
                                            MenuOption::Faceshift,
                                            0,
                                            true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+#endif
+    
 #ifdef HAVE_FACEPLUS
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Faceplus, 0, true,
         appInstance->getFaceplus(), SLOT(updateEnabled()));
@@ -407,9 +412,11 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::FocusIndicators, 0, false);
 
     QMenu* sixenseOptionsMenu = developerMenu->addMenu("Sixense Options");
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLasers, 0, true);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
@@ -419,27 +426,40 @@ Menu::Menu() :
                                            true,
                                            appInstance->getSixenseManager(),
                                            SLOT(setFilter(bool)));
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu,
+                                           MenuOption::LowVelocityFilter,
+                                           0,
+                                           true,
+                                           appInstance,
+                                           SLOT(setLowVelocityFilter(bool)));
+
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandsCollideWithSelf, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
-
+    
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisableNackPackets, 0, false);
+    addCheckableActionToQMenuAndActionHash(developerMenu,
+                                           MenuOption::DisableActivityLogger,
+                                           0,
+                                           false,
+                                           &UserActivityLogger::getInstance(),
+                                           SLOT(disable(bool)));
+    
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::WalletPrivateKey, 0, this, SLOT(changePrivateKey()));
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
 
     QMenu* timingMenu = developerMenu->addMenu("Timing and Statistics Tools");
     QMenu* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayTimingDetails, 0, true);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandDisplaySideTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandAvatarSimulateTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandAvatarUpdateTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMiscAvatarTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandIdleTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandUpdateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarSimulateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandOtherAvatarTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
 
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
@@ -573,7 +593,13 @@ Menu::Menu() :
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_U,
                                            false);
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, false);
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
+                                            0,
+                                            false,
+                                            appInstance->getAudio(),
+                                            SLOT(toggleStats()));
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, true);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
@@ -626,6 +652,8 @@ void Menu::loadSettings(QSettings* settings) {
     _viewFrustumOffset.distance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
     _viewFrustumOffset.up = loadSetting(settings, "viewFrustumOffsetUp", 0.0f);
     settings->endGroup();
+    
+    _walletPrivateKey = settings->value("privateKey").toByteArray();
 
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
@@ -669,6 +697,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffset.distance);
     settings->setValue("viewFrustumOffsetUp", _viewFrustumOffset.up);
     settings->endGroup();
+    settings->setValue("privateKey", _walletPrivateKey);
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
@@ -981,6 +1010,25 @@ void Menu::editAnimations() {
     } else {
         _animationsDialog->close();
     }
+}
+
+void Menu::changePrivateKey() {
+    // setup the dialog
+    QInputDialog privateKeyDialog(Application::getInstance()->getWindow());
+    privateKeyDialog.setWindowTitle("Change Private Key");
+    privateKeyDialog.setLabelText("RSA 2048-bit Private Key:");
+    privateKeyDialog.setWindowFlags(Qt::Sheet);
+    privateKeyDialog.setTextValue(QString(_walletPrivateKey));
+    privateKeyDialog.resize(privateKeyDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
+                            privateKeyDialog.size().height());
+    
+    int dialogReturn = privateKeyDialog.exec();
+    if (dialogReturn == QDialog::Accepted) {
+        // pull the private key from the dialog
+        _walletPrivateKey = privateKeyDialog.textValue().toUtf8();
+    }
+    
+    sendFakeEnterEvent();
 }
 
 void Menu::goToDomain(const QString newDomain) {

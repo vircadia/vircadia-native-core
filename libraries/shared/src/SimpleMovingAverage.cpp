@@ -14,8 +14,8 @@
 
 SimpleMovingAverage::SimpleMovingAverage(int numSamplesToAverage) :
     _numSamples(0),
-    _average(0),
-    _eventDeltaAverage(0),
+    _average(0.0f),
+    _eventDeltaAverage(0.0f),
     WEIGHTING(1.0f / numSamplesToAverage),
     ONE_MINUS_WEIGHTING(1 - WEIGHTING) {
         
@@ -45,8 +45,8 @@ int SimpleMovingAverage::updateAverage(float sample) {
 
 void SimpleMovingAverage::reset() {
     _numSamples = 0;
-    _average = 0;
-    _eventDeltaAverage = 0;
+    _average = 0.0f;
+    _eventDeltaAverage = 0.0f;
 }
 
 float SimpleMovingAverage::getEventDeltaAverage() const {
@@ -55,5 +55,5 @@ float SimpleMovingAverage::getEventDeltaAverage() const {
 }
 
 float SimpleMovingAverage::getAverageSampleValuePerSecond() const {
-    return _average * (1 / getEventDeltaAverage());
+    return _average * (1.0f / getEventDeltaAverage());
 }

@@ -35,6 +35,10 @@ void ModelOverlay::update(float deltatime) {
 }
 
 void ModelOverlay::render() {
+    if (!_visible) {
+        return;
+    }
+    
     if (_model.isActive()) {
         
         if (_model.isRenderable()) {

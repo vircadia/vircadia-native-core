@@ -42,7 +42,7 @@ public:
     STREAM glm::vec3 minimum;
     STREAM glm::vec3 maximum;
     
-    Box(const glm::vec3& minimum = glm::vec3(), const glm::vec3& maximum = glm::vec3());
+    explicit Box(const glm::vec3& minimum = glm::vec3(), const glm::vec3& maximum = glm::vec3());
     
     bool contains(const glm::vec3& point) const;
     

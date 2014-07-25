@@ -32,6 +32,8 @@ public:
         PacketRecord* baselineReceiveRecord = NULL);
     virtual ~Endpoint();
     
+    const DatagramSequencer& getSequencer() const { return _sequencer; }
+    
     virtual void update();
     
     virtual int parseData(const QByteArray& packet);

@@ -20,6 +20,7 @@
 #include <QtCore/QIODevice>
 
 #include "NodeData.h"
+#include "SharedUtil.h"
 
 const int SAMPLE_RATE = 24000;
 
@@ -29,7 +30,7 @@ const int NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL = 512;
 const int NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL / sizeof(int16_t);
 
 const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                                                        / (float) SAMPLE_RATE) * 1000 * 1000);
+                                                        / (float) SAMPLE_RATE) * USECS_PER_SECOND);
 
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
@@ -65,6 +66,9 @@ public:
     void shiftReadPosition(unsigned int numSamples);
     
     int samplesAvailable() const;
+    int framesAvailable() const { return samplesAvailable() / _numFrameSamples; }
+
+    int getNumFrameSamples() const { return _numFrameSamples; }
     
     bool isNotStarvedOrHasMinimumSamples(int numRequiredSamples) const;
     

@@ -78,6 +78,8 @@ PacketVersion versionForPacketType(PacketType type) {
             return 2;
         case PacketTypeModelErase:
             return 1;
+        case PacketTypeAudioStreamStats:
+            return 1;
         default:
             return 0;
     }

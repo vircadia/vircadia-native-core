@@ -24,6 +24,7 @@
 #include "InterfaceConfig.h"
 #include "Menu.h"
 #include "Util.h"
+#include "SequenceNumberStats.h"
 
 using namespace std;
 
@@ -161,36 +162,25 @@ void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int heigh
 }
 
 bool Stats::includeTimingRecord(const QString& name) {
-    bool included = false;
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
-
-        if (name == "idle/update") {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming) ||
-                       Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
-        } else if (name == "idle/updateGL") {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
-        } else if (name.startsWith("idle/update")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming);
-        } else if (name.startsWith("idle/")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandIdleTiming);
-        } else if (name.startsWith("MyAvatar::simulate")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandAvatarSimulateTiming);
-        } else if (name.startsWith("MyAvatar::update/") || name.startsWith("updateMyAvatar")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandAvatarUpdateTiming);
-        } else if (name.startsWith("MyAvatar::")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandMiscAvatarTiming);
-        } else if (name == "paintGL/displaySide") {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandDisplaySideTiming) ||
-                       Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
-        } else if (name.startsWith("paintGL/displaySide/")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandDisplaySideTiming);
-        } else if (name.startsWith("paintGL/")) {
-            included = Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
-        } else {
-            included = true; // include everything else
+        if (name.startsWith("/idle/update/")) {
+            if (name.startsWith("/idle/update/myAvatar/")) {
+                if (name.startsWith("/idle/update/myAvatar/simulate/")) {
+                    return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
+                }
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarTiming);
+            } else if (name.startsWith("/idle/update/otherAvatars/")) {
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandOtherAvatarTiming);
+            }
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming);
+        } else if (name.startsWith("/idle/updateGL/paintGL/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+        } else if (name.startsWith("/paintGL/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
         }
+        return true;
     }
-    return included;
+    return false;
 }
 
 // display expanded or contracted stats
@@ -288,14 +278,10 @@ void Stats::display(
 
 
         Audio* audio = Application::getInstance()->getAudio();
-        const AudioStreamStats& audioMixerAvatarStreamStats = audio->getAudioMixerAvatarStreamStats();
-        const QHash<QUuid, AudioStreamStats>& audioMixerInjectedStreamStatsMap = audio->getAudioMixerInjectedStreamStatsMap();
 
-        lines = _expanded ? 10 + audioMixerInjectedStreamStatsMap.size(): 3;
+        lines = _expanded ? 4 : 3;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
-
-        
 
         char audioJitter[30];
         sprintf(audioJitter,
@@ -326,48 +312,6 @@ void Stats::display(
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
-
-            char audioMixerStatsLabelString[] = "AudioMixer stats:";
-            char streamStatsFormatLabelString[] = "early/late/lost, jframes";
-            
-            verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioMixerStatsLabelString, color);
-            verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, streamStatsFormatLabelString, color);
-
-
-            char downstreamLabelString[] = " Downstream:";
-            verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamLabelString, color);
-
-            const SequenceNumberStats& downstreamAudioSequenceNumberStats = audio->getIncomingMixedAudioSequenceNumberStats();
-            char downstreamAudioStatsString[30];
-            sprintf(downstreamAudioStatsString, "  mix: %d/%d/%d, %d", downstreamAudioSequenceNumberStats.getNumEarly(),
-                downstreamAudioSequenceNumberStats.getNumLate(), downstreamAudioSequenceNumberStats.getNumLost(),
-                audio->getJitterBufferSamples() / NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
-
-            verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamAudioStatsString, color);
-            
-            char upstreamLabelString[] = " Upstream:";
-            verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamLabelString, color);
-
-            char upstreamAudioStatsString[30];
-            sprintf(upstreamAudioStatsString, "  mic: %d/%d/%d, %d", audioMixerAvatarStreamStats._packetsEarly,
-                audioMixerAvatarStreamStats._packetsLate, audioMixerAvatarStreamStats._packetsLost,
-                audioMixerAvatarStreamStats._jitterBufferFrames);
-
-            verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
-
-            foreach(AudioStreamStats injectedStreamStats, audioMixerInjectedStreamStatsMap) {
-                sprintf(upstreamAudioStatsString, "  inj: %d/%d/%d, %d", injectedStreamStats._packetsEarly,
-                    injectedStreamStats._packetsLate, injectedStreamStats._packetsLost, injectedStreamStats._jitterBufferFrames);
-                
-                verticalOffset += STATS_PELS_PER_LINE;
-                drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamAudioStatsString, color);
-            }
         }
 
         verticalOffset = 0;
@@ -377,7 +321,7 @@ void Stats::display(
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 
-    lines = _expanded ? 5 : 3;
+    lines = _expanded ? 8 : 3;
 
     drawBackground(backgroundColor, horizontalOffset, 0, _geoStatsWidth, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
@@ -419,6 +363,41 @@ void Stats::display(
         
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, downloads.str().c_str(), color);
+        
+        int internal = 0, leaves = 0;
+        int sendProgress = 0, sendTotal = 0;
+        int receiveProgress = 0, receiveTotal = 0;
+        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+            if (node->getType() == NodeType::MetavoxelServer) {
+                QMutexLocker locker(&node->getMutex());
+                MetavoxelClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
+                if (client) {
+                    client->getData().countNodes(internal, leaves, Application::getInstance()->getMetavoxels()->getLOD());
+                    client->getSequencer().addReliableChannelStats(sendProgress, sendTotal, receiveProgress, receiveTotal);
+                }
+            }
+        }
+        stringstream nodes;
+        nodes << "Metavoxels: " << (internal + leaves);
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodes.str().c_str(), color);
+        
+        stringstream nodeTypes;
+        nodeTypes << "Internal: " << internal << "  Leaves: " << leaves;
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodeTypes.str().c_str(), color);
+        
+        if (sendTotal > 0 || receiveTotal > 0) {
+            stringstream reliableStats;
+            if (sendTotal > 0) {
+                reliableStats << "Upload: " << (sendProgress * 100 / sendTotal) << "%  ";
+            }
+            if (receiveTotal > 0) {
+                reliableStats << "Download: " << (receiveProgress * 100 / receiveTotal) << "%";
+            }
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, reliableStats.str().c_str(), color);
+        }
     }
 
     verticalOffset = 0;
@@ -601,6 +580,8 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
+    PerformanceTimer::tallyAllTimerRecords();
+
     // TODO: the display of these timing details should all be moved to JavaScript
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
         // Timing details...
@@ -722,5 +703,26 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
 
     }
+    
+    // draw local light stats
+    QVector<Model::LocalLight> localLights = Application::getInstance()->getAvatarManager().getLocalLights();
+    verticalOffset = 400;
+    horizontalOffset = 20;
+     
+    char buffer[128];
+    for (int i = 0; i < localLights.size(); i++) {
+        glm::vec3 lightDirection = localLights.at(i).direction;
+        snprintf(buffer, sizeof(buffer), "Light %d direction (%.2f, %.2f, %.2f)", i, lightDirection.x, lightDirection.y, lightDirection.z);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, buffer, color);
+        
+        verticalOffset += STATS_PELS_PER_LINE;
+
+        glm::vec3 lightColor = localLights.at(i).color;
+        snprintf(buffer, sizeof(buffer), "Light %d color (%.2f, %.2f, %.2f)", i, lightColor.x, lightColor.y, lightColor.z);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, buffer, color);
+        
+        verticalOffset += STATS_PELS_PER_LINE;
+    }
+    
 
 }

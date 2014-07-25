@@ -15,7 +15,7 @@
 
 #ifdef HAVE_LIBOVR
 #include <OVR.h>
-#include "../src/Util/Util_Render_Stereo.h"
+#include <Util_Render_Stereo.h>
 #endif
 
 #include "renderer/ProgramObject.h"
@@ -23,6 +23,7 @@
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
 
 class Camera;
+class PalmData;
 
 /// Handles interaction with the Oculus Rift.
 class OculusManager {

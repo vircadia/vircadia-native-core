@@ -20,6 +20,7 @@
 #include <Endpoint.h>
 
 class MetavoxelEditMessage;
+class MetavoxelPersister;
 class MetavoxelSession;
 
 /// Maintains a shared metavoxel system, accepting change requests and broadcasting updates.
@@ -33,10 +34,14 @@ public:
     void applyEdit(const MetavoxelEditMessage& edit);
 
     const MetavoxelData& getData() const { return _data; }
+    
+    Q_INVOKABLE void setData(const MetavoxelData& data) { _data = data; }
 
     virtual void run();
     
     virtual void readPendingDatagrams();
+    
+    virtual void aboutToFinish();
     
 private slots:
 
@@ -44,6 +49,8 @@ private slots:
     void sendDeltas();    
     
 private:
+    
+    MetavoxelPersister* _persister;
     
     QTimer _sendTimer;
     qint64 _lastSend;
@@ -86,6 +93,22 @@ private:
     MetavoxelLOD _reliableDeltaLOD;
     Bitstream::WriteMappings _reliableDeltaWriteMappings;
     int _reliableDeltaID;
+};
+
+/// Handles persistence in a separate thread.
+class MetavoxelPersister : public QObject {
+    Q_OBJECT
+
+public:
+    
+    MetavoxelPersister(MetavoxelServer* server);
+
+    Q_INVOKABLE void load();
+    Q_INVOKABLE void save(const MetavoxelData& data);
+
+private:
+    
+    MetavoxelServer* _server;
 };
 
 #endif // hifi_MetavoxelServer_h

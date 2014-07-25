@@ -14,6 +14,7 @@
 
 #include <QHash>
 #include <QObject>
+#include <QReadWriteLock>
 #include <QSharedPointer>
 #include <QString>
 #include <QWidget>
@@ -61,10 +62,13 @@ public:
     void deregisterAttribute(const QString& name);
     
     /// Retrieves an attribute by name.
-    AttributePointer getAttribute(const QString& name) const { return _attributes.value(name); }
+    AttributePointer getAttribute(const QString& name);
     
     /// Returns a reference to the attribute hash.
     const QHash<QString, AttributePointer>& getAttributes() const { return _attributes; }
+    
+    /// Returns a reference to the attributes lock.
+    QReadWriteLock& getAttributesLock() { return _attributesLock; }    
     
     /// Returns a reference to the standard SharedObjectPointer "guide" attribute.
     const AttributePointer& getGuideAttribute() const { return _guideAttribute; }
@@ -92,6 +96,8 @@ private:
     static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
 
     QHash<QString, AttributePointer> _attributes;
+    QReadWriteLock _attributesLock;
+    
     AttributePointer _guideAttribute;
     AttributePointer _spannersAttribute;
     AttributePointer _colorAttribute;

@@ -26,6 +26,7 @@
 
 #include "MetavoxelUtil.h"
 #include "ScriptCache.h"
+#include "StreamUtils.h"
 
 static int scriptHashType = qRegisterMetaType<ScriptHash>();
 static int parameterizedURLType = qRegisterMetaType<ParameterizedURL>();
@@ -310,9 +311,8 @@ Box operator*(const glm::mat4& matrix, const Box& box) {
     return newBox;
 }
 
-QDebug& operator<<(QDebug& out, const Box& box) {
-    return out << '(' << box.minimum.x << box.minimum.y << box.minimum.z << ") (" <<
-        box.maximum.x << box.maximum.y << box.maximum.z << ')';
+QDebug& operator<<(QDebug& dbg, const Box& box) {
+    return dbg.nospace() << "{type='Box', minimum=" << box.minimum << ", maximum=" << box.maximum << "}";
 }
 
 QMetaObjectEditor::QMetaObjectEditor(QWidget* parent) : QWidget(parent) {

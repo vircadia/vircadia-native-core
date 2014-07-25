@@ -108,6 +108,9 @@ public:
     /// Returns the intput channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableInputChannel(int index = 0);
     
+    /// Adds stats for all reliable channels to the referenced variables.
+    void addReliableChannelStats(int& sendProgress, int& sendTotal, int& receiveProgress, int& receiveTotal) const;
+    
     /// Notes that we're sending a group of packets.
     /// \param desiredPackets the number of packets we'd like to write in the group
     /// \return the number of packets to write in the group
@@ -376,6 +379,14 @@ public:
     /// writes the message to the bitstream, then calls endMessage).
     void sendMessage(const QVariant& message);
 
+    /// Determines the number of bytes uploaded towards the currently pending message.
+    /// \return true if there is a message pending, in which case the sent and total arguments will be set
+    bool getMessageSendProgress(int& sent, int& total) const;
+
+    /// Determines the number of bytes downloaded towards the currently pending message.
+    /// \return true if there is a message pending, in which case the received and total arguments will be set
+    bool getMessageReceiveProgress(int& received, int& total) const;
+
 signals:
 
     /// Fired when a framed message has been received on this channel.
@@ -415,7 +426,9 @@ private:
     int _writePositionResetPacketNumber;
     SpanList _acknowledged;
     bool _messagesEnabled;
-    int _messageLengthPlaceholder;
+    int _messageLengthPlaceholder; ///< the location in the buffer of the message length for the current message
+    int _messageReceivedOffset; ///< when reached, indicates that the most recent sent message has been received
+    int _messageSize; ///< the size of the most recent sent message; only valid when _messageReceivedOffset has been set
 };
 
 #endif // hifi_DatagramSequencer_h

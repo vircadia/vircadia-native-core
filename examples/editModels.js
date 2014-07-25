@@ -31,8 +31,7 @@ var toolWidth = 50;
 
 var LASER_WIDTH = 4;
 var LASER_COLOR = { red: 255, green: 0, blue: 0 };
-var LASER_LENGTH_FACTOR = 500
-;
+var LASER_LENGTH_FACTOR = 500;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
@@ -1058,7 +1057,8 @@ function checkController(deltaTime) {
     
     moveOverlays();
 }
-
+var newModel;
+var browser;
 function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
     // New Model
@@ -1068,6 +1068,12 @@ function initToolBar() {
                                width: toolWidth, height: toolHeight,
                                visible: true,
                                alpha: 0.9
+                               });
+    browser = toolBar.addTool({
+                               imageURL: toolIconUrl + "list-icon.png",
+                               width: toolWidth, height: toolHeight,
+                               visible: true,
+                               alpha: 0.7
                                });
 }
 
@@ -1173,8 +1179,25 @@ function mousePressEvent(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
     if (newModel == toolBar.clicked(clickedOverlay)) {
-        var url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-        if (url == null) {
+        var url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+        if (url == null || url == "") {
+            return;
+        }
+        
+        var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+        
+        if (position.x > 0 && position.y > 0 && position.z > 0) {
+            Models.addModel({ position: position,
+                            radius: radiusDefault,
+                            modelURL: url
+                            });
+        } else {
+            print("Can't create model: Model would be out of bounds.");
+        }
+        
+    } else if (browser == toolBar.clicked(clickedOverlay)) {
+        var url = Window.s3Browse();
+        if (url == null || url == "") {
             return;
         }
         
@@ -1527,14 +1550,34 @@ function handeMenuEvent(menuItem){
         }
         if (editModelID != -1) {
             print("  Edit Properties.... about to edit properties...");
-            var propertyName = Window.prompt("Which property would you like to change?", "modelURL");
-            var properties = Models.getModelProperties(editModelID);
-            var oldValue = properties[propertyName];
-            var newValue = Window.prompt("New value for: " + propertyName, oldValue);
-            if (newValue != "") {
-                properties[propertyName] = newValue;
-                Models.editModel(editModelID, properties);
-            }
+            var array = new Array();
+            var decimals = 3;
+            array.push({ label: "Model URL:", value: selectedModelProperties.modelURL });
+            array.push({ label: "Animation URL:", value: selectedModelProperties.animationURL });
+            array.push({ label: "X:", value: selectedModelProperties.position.x.toFixed(decimals) });
+            array.push({ label: "Y:", value: selectedModelProperties.position.y.toFixed(decimals) });
+            array.push({ label: "Z:", value: selectedModelProperties.position.z.toFixed(decimals) });
+            var angles = Quat.safeEulerAngles(selectedModelProperties.modelRotation);
+            array.push({ label: "Pitch:", value: angles.x.toFixed(decimals) });
+            array.push({ label: "Yaw:", value: angles.y.toFixed(decimals) });
+            array.push({ label: "Roll:", value: angles.z.toFixed(decimals) });
+            array.push({ label: "Scale:", value: 2 * selectedModelProperties.radius.toFixed(decimals) });
+            
+            var propertyName = Window.form("Edit Properties", array);
+            modelSelected = false;
+            
+            selectedModelProperties.modelURL = array[0].value;
+            selectedModelProperties.animationURL = array[1].value;
+            selectedModelProperties.position.x = array[2].value;
+            selectedModelProperties.position.y = array[3].value;
+            selectedModelProperties.position.z = array[4].value;
+            angles.x = array[5].value;
+            angles.y = array[6].value;
+            angles.z = array[7].value;
+            selectedModelProperties.modelRotation = Quat.fromVec3Degrees(angles);
+            selectedModelProperties.radius = array[8].value / 2;
+
+            Models.editModel(selectedModelID, selectedModelProperties);
         }
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();

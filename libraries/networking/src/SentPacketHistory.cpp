@@ -14,8 +14,6 @@
 
 SentPacketHistory::SentPacketHistory(int size)
     : _sentPackets(size),
-    _newestPacketAt(0),
-    _numExistingPackets(0),
     _newestSequenceNumber(std::numeric_limits<uint16_t>::max())
 {
 }
@@ -29,16 +27,8 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& pa
         qDebug() << "Unexpected sequence number passed to SentPacketHistory::packetSent()!"
             << "Expected:" << expectedSequenceNumber << "Actual:" << sequenceNumber;
     }
-
     _newestSequenceNumber = sequenceNumber;
-
-    // increment _newestPacketAt cyclically, insert new packet there.
-    // this will overwrite the oldest packet in the buffer
-    _newestPacketAt = (_newestPacketAt == _sentPackets.size() - 1) ? 0 : _newestPacketAt + 1;
-    _sentPackets[_newestPacketAt] = packet;
-    if (_numExistingPackets < _sentPackets.size()) {
-        _numExistingPackets++;
-    }
+    _sentPackets.insert(packet);
 }
 
 const QByteArray* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
@@ -51,13 +41,6 @@ const QByteArray* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
     if (seqDiff < 0) {
         seqDiff += UINT16_RANGE;
     }
-    // if desired sequence number is too old to be found in the history, return null
-    if (seqDiff >= _numExistingPackets) {
-        return NULL;
-    }
-    int packetAt = _newestPacketAt - seqDiff;
-    if (packetAt < 0) {
-        packetAt += _sentPackets.size();
-    }
-    return &_sentPackets.at(packetAt);
+
+    return _sentPackets.get(seqDiff);
 }

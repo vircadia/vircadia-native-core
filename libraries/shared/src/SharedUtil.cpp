@@ -733,6 +733,13 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
         }
     } else {
         axis = glm::normalize(glm::cross(v1, v2));
+        // It is possible for axis to be nan even when angle is not less than EPSILON.
+        // For example when angle is small but not tiny but v1 and v2 and have very short lengths.
+        if (glm::isnan(glm::dot(axis, axis))) {
+            // set angle and axis to values that will generate an identity rotation
+            angle = 0.0f;
+            axis = glm::vec3(1.0f, 0.0f, 0.0f);
+        }
     }
     return glm::angleAxis(angle, axis);
 }
@@ -836,4 +843,21 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
 
 QByteArray createByteArray(const glm::vec3& vector) {
     return QByteArray::number(vector.x) + ',' + QByteArray::number(vector.y) + ',' + QByteArray::number(vector.z);
+}
+
+QString formatUsecTime(float usecs, int prec) {
+    static const quint64 SECONDS_PER_MINUTE = 60;
+    static const quint64 USECS_PER_MINUTE = USECS_PER_SECOND * SECONDS_PER_MINUTE;
+
+    QString result;
+    if (usecs > USECS_PER_MINUTE) {
+        result = QString::number(usecs / USECS_PER_MINUTE, 'f', prec) + "min";
+    } else if (usecs > USECS_PER_SECOND) {
+        result = QString::number(usecs / USECS_PER_SECOND, 'f', prec) + 's';
+    } else if (usecs > USECS_PER_MSEC) {
+        result = QString::number(usecs / USECS_PER_MSEC, 'f', prec) + "ms";
+    } else {
+        result = QString::number(usecs, 'f', prec) + "us";
+    }
+    return result;
 }

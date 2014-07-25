@@ -25,7 +25,8 @@ public:
     
     virtual void render();
     virtual void setProperties(const QScriptValue& properties);
-
+    void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }
+    
 private slots:
     void replyFinished();
 
@@ -36,6 +37,8 @@ private:
     QByteArray _billboard;
     QSize _size;
     QScopedPointer<Texture> _billboardTexture;
+    
+    QRect _fromImage; // where from in the image to sample
     
     glm::quat _rotation;
     float _scale;

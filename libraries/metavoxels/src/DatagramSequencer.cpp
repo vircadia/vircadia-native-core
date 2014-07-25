@@ -79,6 +79,24 @@ ReliableChannel* DatagramSequencer::getReliableInputChannel(int index) {
     return channel;
 }
 
+void DatagramSequencer::addReliableChannelStats(int& sendProgress, int& sendTotal,
+        int& receiveProgress, int& receiveTotal) const {
+    foreach (ReliableChannel* channel, _reliableOutputChannels) {
+        int sent, total;
+        if (channel->getMessageSendProgress(sent, total)) {
+            sendProgress += sent;
+            sendTotal += total;
+        }
+    }
+    foreach (ReliableChannel* channel, _reliableInputChannels) {
+        int received, total;
+        if (channel->getMessageReceiveProgress(received, total)) {
+            receiveProgress += received;
+            receiveTotal += total;
+        }
+    }
+}
+
 int DatagramSequencer::notePacketGroup(int desiredPackets) {
     // figure out how much data we have enqueued and increase the number of packets desired
     int totalAvailable = 0;
@@ -684,12 +702,34 @@ void ReliableChannel::endMessage() {
     
     quint32 length = _buffer.pos() - _messageLengthPlaceholder;
     _buffer.writeBytes(_messageLengthPlaceholder, sizeof(quint32), (const char*)&length);
+    _messageReceivedOffset = getBytesWritten();
+    _messageSize = length;
 }
 
 void ReliableChannel::sendMessage(const QVariant& message) {
     startMessage();
     _bitstream << message;
     endMessage();
+}
+
+bool ReliableChannel::getMessageSendProgress(int& sent, int& total) const {
+    if (!_messagesEnabled || _offset >= _messageReceivedOffset) {
+        return false;
+    }
+    sent = qMax(0, _messageSize - (_messageReceivedOffset - _offset));
+    total = _messageSize;
+    return true;
+}
+
+bool ReliableChannel::getMessageReceiveProgress(int& received, int& total) const {
+    if (!_messagesEnabled || _buffer.bytesAvailable() < (int)sizeof(quint32)) {
+        return false;
+    }
+    quint32 length;
+    _buffer.readBytes(_buffer.pos(), sizeof(quint32), (char*)&length);
+    total = length;
+    received = _buffer.bytesAvailable();
+    return true;
 }
 
 void ReliableChannel::sendClearSharedObjectMessage(int id) {
@@ -717,7 +757,8 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
     _offset(0),
     _writePosition(0),
     _writePositionResetPacketNumber(0),
-    _messagesEnabled(true) {
+    _messagesEnabled(true),
+    _messageReceivedOffset(0) {
     
     _buffer.open(output ? QIODevice::WriteOnly : QIODevice::ReadOnly);
     _dataStream.setByteOrder(QDataStream::LittleEndian);

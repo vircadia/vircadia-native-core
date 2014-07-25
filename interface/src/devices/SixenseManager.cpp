@@ -11,8 +11,11 @@
 
 #include <vector>
 
+#include <PerfStat.h>
+
 #include "Application.h"
 #include "SixenseManager.h"
+#include "devices/OculusManager.h"
 #include "UserActivityLogger.h"
 
 #ifdef HAVE_SIXENSE
@@ -32,6 +35,7 @@ SixenseManager::SixenseManager() {
 #ifdef HAVE_SIXENSE
     _lastMovement = 0;
     _amountMoved = glm::vec3(0.0f);
+    _lowVelocityFilter = false;
 
     _calibrationState = CALIBRATION_STATE_IDLE;
     // By default we assume the _neckBase (in orb frame) is as high above the orb 
@@ -60,10 +64,8 @@ SixenseManager::~SixenseManager() {
 void SixenseManager::setFilter(bool filter) {
 #ifdef HAVE_SIXENSE
     if (filter) {
-        qDebug("Sixense Filter ON");
         sixenseSetFilterEnabled(1);
     } else {
-        qDebug("Sixense Filter OFF");
         sixenseSetFilterEnabled(0);
     }
 #endif
@@ -84,7 +86,10 @@ void SixenseManager::update(float deltaTime) {
     if (sixenseGetNumActiveControllers() == 0) {
         _hydrasConnected = false;
         return;
-    } else if (!_hydrasConnected) {
+    } 
+
+    PerformanceTimer perfTimer("sixense");
+    if (!_hydrasConnected) {
         _hydrasConnected = true;
         UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
     }
@@ -160,17 +165,23 @@ void SixenseManager::update(float deltaTime) {
         }
         palm->setRawVelocity(rawVelocity);   //  meters/sec
     
-        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-        //  no latency.
-        float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-        palm->setRawPosition(palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter));
-
         // adjustment for hydra controllers fit into hands
         float sign = (i == 0) ? -1.0f : 1.0f;
         rotation *= glm::angleAxis(sign * PI/4.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 
-        palm->setRawRotation(safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter));
-        
+        if (_lowVelocityFilter) {
+            //  Use a velocity sensitive filter to damp small motions and preserve large ones with
+            //  no latency.
+            float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
+            position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
+            rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
+            palm->setRawPosition(position);
+            palm->setRawRotation(rotation);
+        } else {
+            palm->setRawPosition(position);
+            palm->setRawRotation(rotation);
+        }
+
         // use the velocity to determine whether there's any movement (if the hand isn't new)
         const float MOVEMENT_DISTANCE_THRESHOLD = 0.003f;
         _amountMoved += rawVelocity * deltaTime;
@@ -358,11 +369,11 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     MyAvatar* avatar = application->getAvatar();
     QGLWidget* widget = application->getGLWidget();
     QPoint pos;
-    // Get directon relative to avatar orientation
-    glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
-
+    
     Qt::MouseButton bumperButton;
     Qt::MouseButton triggerButton;
+
+    unsigned int deviceID = index == 0 ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
 
     if (Menu::getInstance()->getInvertSixenseButtons()) {
         bumperButton = Qt::LeftButton;
@@ -372,30 +383,38 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         triggerButton = Qt::LeftButton;
     }
 
-    // Get the angles, scaled between (-0.5,0.5)
-    float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-    float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+        pos = application->getApplicationOverlay().getPalmClickLocation(palm);
+    } else {
+        // Get directon relative to avatar orientation
+        glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
 
-    // Get the pixel range over which the xAngle and yAngle are scaled
-    float cursorRange = widget->width() * getCursorPixelRangeMult();
+        // Get the angles, scaled between (-0.5,0.5)
+        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+        float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
-    pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
-    pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
+        // Get the pixel range over which the xAngle and yAngle are scaled
+        float cursorRange = widget->width() * getCursorPixelRangeMult();
+
+        pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
+        pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
+
+    }
 
     //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
     //we should unpress them.
-    if (pos.x() < 0 || pos.x() > widget->width() || pos.y() < 0 || pos.y() > widget->height()) {
+    if (pos.x() == INT_MAX) {
         if (_bumperPressed[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 
-            application->mouseReleaseEvent(&mouseEvent);
+            application->mouseReleaseEvent(&mouseEvent, deviceID);
 
             _bumperPressed[index] = false;
         }
         if (_triggerPressed[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
 
-            application->mouseReleaseEvent(&mouseEvent);
+            application->mouseReleaseEvent(&mouseEvent, deviceID);
 
             _triggerPressed[index] = false;
         }
@@ -404,17 +423,17 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
     //If position has changed, emit a mouse move to the application
     if (pos.x() != _oldX[index] || pos.y() != _oldY[index]) {
-        QMouseEvent mouseEvent(static_cast<QEvent::Type>(CONTROLLER_MOVE_EVENT), pos, Qt::NoButton, Qt::NoButton, 0);
+        QMouseEvent mouseEvent(QEvent::MouseMove, pos, Qt::NoButton, Qt::NoButton, 0);
 
         //Only send the mouse event if the opposite left button isnt held down.
         //This is specifically for edit voxels
         if (triggerButton == Qt::LeftButton) {
             if (!_triggerPressed[(int)(!index)]) {
-                application->mouseMoveEvent(&mouseEvent);
+                application->mouseMoveEvent(&mouseEvent, deviceID);
             }
         } else {
             if (!_bumperPressed[(int)(!index)]) {
-                application->mouseMoveEvent(&mouseEvent);
+                application->mouseMoveEvent(&mouseEvent, deviceID);
             }
         } 
     }
@@ -439,12 +458,12 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         
             QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, bumperButton, bumperButton, 0);
 
-            application->mousePressEvent(&mouseEvent);
+            application->mousePressEvent(&mouseEvent, deviceID);
         }
     } else if (_bumperPressed[index]) {
         QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 
-        application->mouseReleaseEvent(&mouseEvent);
+        application->mouseReleaseEvent(&mouseEvent, deviceID);
 
         _bumperPressed[index] = false;
     }
@@ -456,12 +475,12 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
             QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, triggerButton, triggerButton, 0);
 
-            application->mousePressEvent(&mouseEvent);
+            application->mousePressEvent(&mouseEvent, deviceID);
         }
     } else if (_triggerPressed[index]) {
         QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
 
-        application->mouseReleaseEvent(&mouseEvent);
+        application->mouseReleaseEvent(&mouseEvent, deviceID);
 
         _triggerPressed[index] = false;
     }

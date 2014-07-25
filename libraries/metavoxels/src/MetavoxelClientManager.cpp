@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QThread>
+
 #include "MetavoxelClientManager.h"
 #include "MetavoxelMessages.h"
 
@@ -53,7 +55,24 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
     return closestSpanner;
 }
 
+void MetavoxelClientManager::setSphere(const glm::vec3& center, float radius, const QColor& color) {
+    Sphere* sphere = new Sphere();
+    sphere->setTranslation(center);
+    sphere->setScale(radius);
+    sphere->setColor(color);
+    setSpanner(sphere);
+}
+
+void MetavoxelClientManager::setSpanner(const SharedObjectPointer& object, bool reliable) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(SetSpannerEdit(object)) };
+    applyEdit(edit, reliable);
+}
+
 void MetavoxelClientManager::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "applyEdit", Q_ARG(const MetavoxelEditMessage&, edit), Q_ARG(bool, reliable));
+        return;
+    }
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());

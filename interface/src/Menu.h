@@ -159,6 +159,8 @@ public:
     void static goToOrientation(QString orientation);
     void static goToDomain(const QString newDomain);
     void static goTo(QString destination);
+    
+    const QByteArray& getWalletPrivateKey() const { return _walletPrivateKey; }
 
 signals:
     void scriptLocationChanged(const QString& newPath);
@@ -197,6 +199,7 @@ private slots:
     void editPreferences();
     void editAttachments();
     void editAnimations();
+    void changePrivateKey();
     void goToDomainDialog();
     void goToLocation();
     void nameLocation();
@@ -293,6 +296,8 @@ private:
     QAction* _chatAction;
     QString _snapshotsLocation;
     QString _scriptsLocation;
+    QByteArray _walletPrivateKey;
+
 };
 
 namespace MenuOption {
@@ -305,13 +310,15 @@ namespace MenuOption {
     const QString Attachments = "Attachments...";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Audio Scope";
-    const QString AudioScopePause = "Pause Audio Scope";
-    const QString AudioScopeFrames = "Display Frames";
-    const QString AudioScopeFiveFrames = "Five";
-    const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioScopeFiftyFrames = "Fifty";
-    const QString AudioToneInjection = "Inject Test Tone";
+    const QString AudioScopeFiveFrames = "Five";
+    const QString AudioScopeFrames = "Display Frames";
+    const QString AudioScopePause = "Pause Audio Scope";
+    const QString AudioScopeTwentyFrames = "Twenty";
+    const QString AudioStats = "Audio Stats";
+    const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
     const QString AudioSpatialProcessing = "Audio Spatial Processing";
+    const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
     const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
     const QString AudioSpatialProcessingIncludeOriginal = "Includes Network Original";
     const QString AudioSpatialProcessingPreDelay = "Add Pre-Delay";
@@ -321,14 +328,12 @@ namespace MenuOption {
     const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
     const QString AudioSpatialProcessingStereoSource = "Stereo Source";
     const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
-    const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
-    const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
+    const QString AudioToneInjection = "Inject Test Tone";
     const QString Avatars = "Avatars";
     const QString AvatarsReceiveShadows = "Avatars Receive Shadows";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BuckyBalls = "Bucky Balls";
-    const QString StringHair = "String Hair";
     const QString CascadedShadows = "Cascaded";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
@@ -341,33 +346,33 @@ namespace MenuOption {
     const QString Console = "Console...";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
+    const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableNackPackets = "Disable NACK Packets";
-    const QString DisableQAudioOutputOverflowCheck = "Disable QAudioOutput Overflow Check";
+    const QString DisableQAudioOutputOverflowCheck = "Disable Audio Output Overflow Check";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
     const QString DisplayModelBounds = "Display Model Bounds";
-    const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
+    const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayTimingDetails = "Display Timing Details";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
-    const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString EnableVRMode = "Enable VR Mode";
-    const QString ExpandMiscAvatarTiming = "Expand Misc MyAvatar Timing";
-    const QString ExpandAvatarUpdateTiming = "Expand MyAvatar update Timing";
-    const QString ExpandAvatarSimulateTiming = "Expand MyAvatar simulate Timing";
-    const QString ExpandDisplaySideTiming = "Expand Display Side Timing";
-    const QString ExpandIdleTiming = "Expand Idle Timing";
-    const QString ExpandPaintGLTiming = "Expand PaintGL Timing";
-    const QString ExpandUpdateTiming = "Expand Update Timing";
+    const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
+    const QString ExpandMyAvatarTiming = "Expand /myAvatar";
+    const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
+    const QString ExpandPaintGLTiming = "Expand /paintGL";
+    const QString ExpandUpdateTiming = "Expand /update";
     const QString Faceplus = "Faceplus";
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
+    const QString FocusIndicators = "Focus Indicators";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
@@ -375,10 +380,9 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString GoHome = "Go Home";
-    const QString GoTo = "Go To...";
     const QString GoToDomain = "Go To Domain...";
+    const QString GoTo = "Go To...";
     const QString GoToLocation = "Go To Location...";
-    const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
     const QString HandsCollideWithSelf = "Collide With Self";
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
@@ -386,21 +390,23 @@ namespace MenuOption {
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
-    const QString Log = "Log";
     const QString Login = "Login";
+    const QString Log = "Log";
     const QString Logout = "Logout";
     const QString LookAtVectors = "Look-at Vectors";
+    const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
-    const QString Models = "Models";
     const QString ModelOptions = "Model Options";
+    const QString Models = "Models";
     const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MyLocations = "My Locations...";
     const QString NameLocation = "Name this location";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
+    const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
     const QString OctreeStats = "Voxel and Particle Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
@@ -420,17 +426,19 @@ namespace MenuOption {
     const QString ScriptEditor = "Script Editor...";
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
-    const QString SimpleShadows = "Simple";
-    const QString SixenseMouseInput = "Enable Sixense Mouse Input";
-    const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowBordersModelNodes = "Show Model Nodes";
     const QString ShowBordersParticleNodes = "Show Particle Nodes";
+    const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
+    const QString SimpleShadows = "Simple";
+    const QString SixenseMouseInput = "Enable Sixense Mouse Input";
+    const QString SixenseLasers = "Enable Sixense UI Lasers";
     const QString StandOnNearbyFloors = "Stand on nearby floors";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StereoAudio = "Stereo Audio";
     const QString StopAllScripts = "Stop All Scripts";
+    const QString StringHair = "String Hair";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
     const QString TransmitterDrive = "Transmitter Drive";
@@ -438,11 +446,12 @@ namespace MenuOption {
     const QString UploadAttachment = "Upload Attachment Model";
     const QString UploadHead = "Upload Head Model";
     const QString UploadSkeleton = "Upload Skeleton Model";
-    const QString UserInterface = "UserInterface";
+    const QString UserInterface = "User Interface";
     const QString Visage = "Visage";
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString Voxels = "Voxels";
     const QString VoxelTextures = "Voxel Textures";
+    const QString WalletPrivateKey = "Wallet Private Key";
 }
 
 void sendFakeEnterEvent();

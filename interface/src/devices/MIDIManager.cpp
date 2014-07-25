@@ -44,7 +44,9 @@ MIDIManager::~MIDIManager() {
 #endif
 }
 
+#ifdef HAVE_RTMIDI
 const int DEFAULT_MIDI_PORT = 0;
+#endif
 
 void MIDIManager::openDefaultPort() {
 #ifdef HAVE_RTMIDI

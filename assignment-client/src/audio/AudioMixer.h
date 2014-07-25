@@ -21,6 +21,8 @@ class AvatarAudioRingBuffer;
 
 const int SAMPLE_PHASE_DELAY_AT_90 = 20;
 
+const quint64 TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS = 1 * USECS_PER_SECOND;
+
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
 class AudioMixer : public ThreadedAssignment {
     Q_OBJECT

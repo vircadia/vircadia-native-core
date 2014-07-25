@@ -577,6 +577,8 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     ""
 };
 
+const int NUM_FACESHIFT_BLENDSHAPES = sizeof(FACESHIFT_BLENDSHAPES) / sizeof(char*);
+
 const char* HUMANIK_JOINTS[] = {
     "RightHand",
     "RightForeArm",
@@ -967,17 +969,19 @@ QString getString(const QVariant& value) {
 
 class JointShapeInfo {
 public:
-    JointShapeInfo() : numVertices(0), numProjectedVertices(0), averageVertex(0.f), boneBegin(0.f), averageRadius(0.f) {
-        extents.reset();
+    JointShapeInfo() : numVertices(0), 
+            sumVertexWeights(0.0f), sumWeightedRadii(0.0f), numVertexWeights(0), 
+            averageVertex(0.f), boneBegin(0.f), averageRadius(0.f) {
     }
 
     // NOTE: the points here are in the "joint frame" which has the "jointEnd" at the origin
-    int numVertices;            // num vertices from contributing meshes
-    int numProjectedVertices;   // num vertices that successfully project onto bone axis
-    Extents extents;            // max and min extents of mesh vertices (in joint frame)
-    glm::vec3 averageVertex;    // average of all mesh vertices (in joint frame)
-    glm::vec3 boneBegin;        // parent joint location (in joint frame)
-    float averageRadius;        // average distance from mesh points to averageVertex
+    int numVertices;        // num vertices from contributing meshes
+    float sumVertexWeights; // sum of all vertex weights
+    float sumWeightedRadii; // sum of weighted vertices
+    int numVertexWeights;   // num vertices that contributed to sums
+    glm::vec3 averageVertex;// average of all mesh vertices (in joint frame)
+    glm::vec3 boneBegin;    // parent joint location (in joint frame)
+    float averageRadius;    // average distance from mesh points to averageVertex
 };
 
 class AnimationCurve {
@@ -1740,14 +1744,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
                         if (weight > EXPANSION_WEIGHT_THRESHOLD) {
                             const glm::vec3& vertex = extracted.mesh.vertices.at(it.value());
-                            float proj = glm::dot(boneDirection, vertex - boneEnd);
-                            if (proj < 0.0f && proj > -boneLength) {
-                                joint.boneRadius = glm::max(joint.boneRadius, 
-                                        radiusScale * glm::distance(vertex, boneEnd + boneDirection * proj));
-                                ++jointShapeInfo.numProjectedVertices;
-                            }
+                            float proj = glm::dot(boneDirection, boneEnd - vertex);
+                            float radiusWeight = (proj < 0.0f || proj > boneLength) ? 0.5f * weight : weight;
+
+                            jointShapeInfo.sumVertexWeights += radiusWeight;
+                            jointShapeInfo.sumWeightedRadii += radiusWeight * radiusScale * glm::distance(vertex, boneEnd - boneDirection * proj);
+                            ++jointShapeInfo.numVertexWeights;
+
                             glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));
-                            jointShapeInfo.extents.addPoint(vertexInJointFrame);
                             jointShapeInfo.averageVertex += vertexInJointFrame;
                             ++jointShapeInfo.numVertices;
                         }
@@ -1792,13 +1796,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
             glm::vec3 averageVertex(0.f);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
-                float proj = glm::dot(boneDirection, vertex - boneEnd);
-                if (proj < 0.0f && proj > -boneLength) {
-                    joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(vertex, boneEnd + boneDirection * proj));
-                    ++jointShapeInfo.numProjectedVertices;
-                }
+                float proj = glm::dot(boneDirection, boneEnd - vertex);
+                float radiusWeight = (proj < 0.0f || proj > boneLength) ? 0.5f : 1.0f;
+                jointShapeInfo.sumVertexWeights += radiusWeight;
+                jointShapeInfo.sumWeightedRadii += radiusWeight * radiusScale * glm::distance(vertex, boneEnd - boneDirection * proj);
+                ++jointShapeInfo.numVertexWeights;
+
                 glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));
-                jointShapeInfo.extents.addPoint(vertexInJointFrame);
                 jointShapeInfo.averageVertex += vertexInJointFrame;
                 averageVertex += vertex;
             }
@@ -1832,9 +1836,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             jointShapeInfo.boneBegin = inverseRotation * (extractTranslation(parentJoint.transform) - extractTranslation(joint.transform));
         }
 
-        // we use a capsule if the joint ANY mesh vertices successfully projected onto the bone
+        if (jointShapeInfo.sumVertexWeights > 0.0f) {
+            joint.boneRadius = jointShapeInfo.sumWeightedRadii / jointShapeInfo.sumVertexWeights;
+        }
+
+        // we use a capsule if the joint had ANY mesh vertices successfully projected onto the bone
         // AND its boneRadius is not too close to zero
-        bool collideLikeCapsule = jointShapeInfo.numProjectedVertices > 0
+        bool collideLikeCapsule = jointShapeInfo.numVertexWeights > 0
                 && glm::length(jointShapeInfo.boneBegin) > EPSILON;
 
         if (collideLikeCapsule) {
@@ -1850,7 +1858,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             } else {
                 joint.shapePosition = glm::vec3(0.f);
             }
-            if (jointShapeInfo.numProjectedVertices == 0
+            if (jointShapeInfo.numVertexWeights == 0
                    && jointShapeInfo.numVertices > 0) {
                 // the bone projection algorithm was not able to compute the joint radius
                 // so we use an alternative measure

@@ -269,8 +269,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     // We only need to render the overlays to a texture once, then we just render the texture on the hemisphere
     // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
     applicationOverlay.renderOverlay(true);
-    const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::UserInterface);
-
+   
     //Bind our framebuffer object. If we are rendering the glow effect, we let the glow effect shader take care of it
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
         Application::getInstance()->getGlowEffect()->prepare();
@@ -311,7 +310,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
         Matrix4f proj = ovrMatrix4f_Projection(_eyeRenderDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);
         proj.Transpose();
-
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glLoadMatrixf((GLfloat *)proj.M);
@@ -325,9 +323,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
         Application::getInstance()->displaySide(*_camera);
 
-        if (displayOverlays) {
-            applicationOverlay.displayOverlayTextureOculus(*_camera);
-        }
+        applicationOverlay.displayOverlayTextureOculus(*_camera);
     }
 
     //Wait till time-warp to reduce latency
@@ -443,7 +439,15 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
         ovrPosef pose = ss.Predicted.Pose;
         Quatf orientation = Quatf(pose.Orientation);
         orientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
+    } else {
+        yaw = 0.0f;
+        pitch = 0.0f;
+        roll = 0.0f;
     }
+#else
+    yaw = 0.0f;
+    pitch = 0.0f;
+    roll = 0.0f;
 #endif
 }
 
@@ -458,4 +462,3 @@ QSize OculusManager::getRenderTargetSize() {
     return QSize(100, 100);
 #endif
 }
-

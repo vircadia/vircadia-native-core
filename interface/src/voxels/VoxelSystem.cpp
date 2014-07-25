@@ -21,6 +21,8 @@
 #include <SharedUtil.h>
 #include <NodeList.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "Menu.h"
@@ -57,6 +59,8 @@ GLubyte identityIndicesRight[]  = {  1, 2, 6,  1, 6, 5 };
 GLubyte identityIndicesFront[]  = {  0, 2, 1,  0, 3, 2 };
 GLubyte identityIndicesBack[]   = {  4, 5, 6,  4, 6, 7 };
 
+static glm::vec3 grayColor = glm::vec3(0.3f, 0.3f, 0.3f);
+
 VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
     : NodeData(),
     _treeScale(treeScale),
@@ -67,7 +71,10 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
     _inOcclusions(false),
     _showCulledSharedFaces(false),
     _usePrimitiveRenderer(false),
-    _renderer(0) 
+    _renderer(0),
+    _drawHaze(false),
+    _farHazeDistance(300.0f),
+    _hazeColor(grayColor)
 {
 
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
@@ -373,6 +380,7 @@ void VoxelSystem::cleanupVoxelMemory() {
         delete[] _readVoxelDirtyArray;
         _writeVoxelDirtyArray = _readVoxelDirtyArray = NULL;
         _readArraysLock.unlock();
+    
     }
 }
 
@@ -454,6 +462,7 @@ void VoxelSystem::initVoxelMemory() {
 
         _readVoxelShaderData = new VoxelShaderVBOData[_maxVoxels];
         _memoryUsageRAM += (sizeof(VoxelShaderVBOData) * _maxVoxels);
+        
     } else {
 
         // Global Normals mode uses a technique of not including normals on any voxel vertices, and instead
@@ -521,13 +530,23 @@ void VoxelSystem::initVoxelMemory() {
             _shadowDistancesLocation = _cascadedShadowMapProgram.uniformLocation("shadowDistances");
             _cascadedShadowMapProgram.release();
         }
+        
     }
     _renderer = new PrimitiveRenderer(_maxVoxels);
 
     _initialized = true;
-
+    
     _writeArraysLock.unlock();
     _readArraysLock.unlock();
+    
+    // fog for haze
+    if (_drawHaze) {
+        GLfloat fogColor[] = {_hazeColor.x, _hazeColor.y, _hazeColor.z, 1.0f};
+        glFogi(GL_FOG_MODE, GL_LINEAR);
+        glFogfv(GL_FOG_COLOR, fogColor);
+        glFogf(GL_FOG_START, 0.0f);
+        glFogf(GL_FOG_END, _farHazeDistance);
+    }
 }
 
 int VoxelSystem::parseData(const QByteArray& packet) {
@@ -1114,6 +1133,7 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
                     node->setBufferIndex(nodeIndex);
                     node->setVoxelSystem(this);
                 }
+                
                 // populate the array with points for the 8 vertices and RGB color for each added vertex
                 updateArraysDetails(nodeIndex, startVertex, voxelScale, node->getColor());
             }
@@ -1131,11 +1151,13 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
 
 void VoxelSystem::updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                      float voxelScale, const nodeColor& color) {
-
+    
     if (_initialized && nodeIndex <= _maxVoxels) {
         _writeVoxelDirtyArray[nodeIndex] = true;
-
+        
         if (_useVoxelShader) {
+            // write in position, scale, and color for the voxel
+            
             if (_writeVoxelShaderData) {
                 VoxelShaderVBOData* writeVerticesAt = &_writeVoxelShaderData[nodeIndex];
                 writeVerticesAt->x = startVertex.x * TREE_SCALE;
@@ -1157,6 +1179,7 @@ void VoxelSystem::updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& 
                 }
             }
         }
+    
     }
 }
 
@@ -1407,6 +1430,10 @@ void VoxelSystem::render() {
         }
     } else 
     if (!_usePrimitiveRenderer) {
+        if (_drawHaze) {
+            glEnable(GL_FOG);
+        }
+
         PerformanceWarning warn(showWarnings, "render().. TRIANGLES...");
 
         {
@@ -1477,6 +1504,10 @@ void VoxelSystem::render() {
             // bind with 0 to switch back to normal operation
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        }
+        
+        if (_drawHaze) {
+            glDisable(GL_FOG);
         }
     }
     else {

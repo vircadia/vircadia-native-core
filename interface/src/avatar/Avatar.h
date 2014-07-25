@@ -152,15 +152,21 @@ public:
     
     glm::vec3 getAcceleration() const { return _acceleration; }
     glm::vec3 getAngularVelocity() const { return _angularVelocity; }
+    glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
+    
+
+    /// Scales a world space position vector relative to the avatar position and scale
+    /// \param vector position to be scaled. Will store the result
+    void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
     
 public slots:
     void updateCollisionGroups();
-
+    
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
 protected:
-    QVector<Hair*> _hairs;
+    Hair _hair;
     SkeletonModel _skeletonModel;
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
@@ -168,6 +174,8 @@ protected:
     glm::vec3 _lastVelocity;
     glm::vec3 _acceleration;
     glm::vec3 _angularVelocity;
+    glm::vec3 _lastAngularVelocity;
+    glm::vec3 _angularAcceleration;
     glm::quat _lastOrientation;
     float _leanScale;
     float _scale;
@@ -176,9 +184,9 @@ protected:
     glm::vec3 _mouseRayDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-
+    
     quint32 _collisionGroups;
-
+ 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
@@ -201,18 +209,6 @@ protected:
     virtual void renderAttachments(RenderMode renderMode);
 
     virtual void updateJointMappings();
-    
-    glm::vec3 _hairPosition[HAIR_STRANDS * HAIR_LINKS];
-    glm::vec3 _hairOriginalPosition[HAIR_STRANDS * HAIR_LINKS];
-    glm::vec3 _hairLastPosition[HAIR_STRANDS * HAIR_LINKS];
-    glm::vec3 _hairQuadDelta[HAIR_STRANDS * HAIR_LINKS];
-    glm::vec3 _hairNormals[HAIR_STRANDS * HAIR_LINKS];
-    glm::vec3 _hairColors[HAIR_STRANDS * HAIR_LINKS];
-    int _hairIsMoveable[HAIR_STRANDS * HAIR_LINKS];
-    int _hairConstraints[HAIR_STRANDS * HAIR_LINKS * 2];     // Hair can link to two others
-    void renderHair();
-    void simulateHair(float deltaTime);
-    void initializeHair();
 
 private:
 
@@ -224,6 +220,7 @@ private:
     void renderBillboard();
     
     float getBillboardSize() const;
+    
     
 };
 

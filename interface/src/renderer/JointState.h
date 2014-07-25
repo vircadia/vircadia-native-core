@@ -32,6 +32,7 @@ public:
     void updateConstraint();
     void copyState(const JointState& state);
 
+    void initTransform(const glm::mat4& parentTransform);
     void computeTransform(const glm::mat4& parentTransform);
 
     void computeVisibleTransform(const glm::mat4& parentTransform);
@@ -45,7 +46,14 @@ public:
     glm::vec3 getPosition() const { return extractTranslation(_transform); }
 
     /// \return rotation from bind to model frame
-    glm::quat getRotationFromBindToModelFrame() const;
+    glm::quat getRotationInBindFrame() const;
+
+    glm::quat getRotationInParentFrame() const;
+    glm::quat getVisibleRotationInParentFrame() const;
+    const glm::vec3& getPositionInParentFrame() const { return _positionInParentFrame; }
+    float getDistanceToParent() const { return _distanceToParent; }
+
+    int getParentIndex() const { return _fbxJoint->parentIndex; }
 
     /// \param rotation rotation of joint in model-frame
     void setRotation(const glm::quat& rotation, bool constrain, float priority);
@@ -59,6 +67,7 @@ public:
     /// \param mixFactor fraction in range [0,1] of how much default pose to blend in (0 is none, 1 is all)
     /// \param priority priority level of this animation blend
     void mixRotationDelta(const glm::quat& delta, float mixFactor, float priority = 1.0f);
+    void mixVisibleRotationDelta(const glm::quat& delta, float mixFactor);
 
     /// Blends a fraciton of default pose into joint rotation.
     /// \param fraction fraction in range [0,1] of how much default pose to blend in (0 is none, 1 is all)
@@ -66,14 +75,18 @@ public:
     void restoreRotation(float fraction, float priority);
 
     /// \param rotation is from bind- to model-frame
-    /// computes and sets new _rotationInParentFrame
+    /// computes and sets new _rotationInConstrainedFrame
     /// NOTE: the JointState's model-frame transform/rotation are NOT updated!
-    void setRotationFromBindFrame(const glm::quat& rotation, float priority, bool constrain = false);
+    void setRotationInBindFrame(const glm::quat& rotation, float priority, bool constrain = false);
 
-    void setRotationInParentFrame(const glm::quat& targetRotation);
-    const glm::quat& getRotationInParentFrame() const { return _rotationInParentFrame; }
+    void setRotationInConstrainedFrame(const glm::quat& targetRotation);
+    void setVisibleRotationInConstrainedFrame(const glm::quat& targetRotation);
+    const glm::quat& getRotationInConstrainedFrame() const { return _rotationInConstrainedFrame; }
+    const glm::quat& getVisibleRotationInConstrainedFrame() const { return _visibleRotationInConstrainedFrame; }
 
-    const glm::vec3& getDefaultTranslationInParentFrame() const;
+    const bool rotationIsDefault(const glm::quat& rotation, float tolerance = EPSILON) const;
+
+    const glm::vec3& getDefaultTranslationInConstrainedFrame() const;
 
 
     void clearTransformTranslation();
@@ -82,21 +95,24 @@ public:
 
     float _animationPriority; // the priority of the animation affecting this joint
 
-private:
     /// \return parent model-frame rotation 
     // (used to keep _rotation consistent when modifying _rotationInWorldFrame directly)
     glm::quat computeParentRotation() const;
+    glm::quat computeVisibleParentRotation() const;
 
+private:
     /// debug helper function
     void loadBindRotation();
 
     glm::mat4 _transform; // joint- to model-frame
     glm::quat _rotation;  // joint- to model-frame
-    glm::quat _rotationInParentFrame; // joint- to parentJoint-frame
+    glm::quat _rotationInConstrainedFrame; // rotation in frame where angular constraints would be applied
+    glm::vec3 _positionInParentFrame; // only changes when the Model is scaled
+    float _distanceToParent;
 
     glm::mat4 _visibleTransform;
     glm::quat _visibleRotation;
-    glm::quat _visibleRotationInParentFrame;
+    glm::quat _visibleRotationInConstrainedFrame;
 
     const FBXJoint* _fbxJoint; // JointState does NOT own its FBXJoint
     AngularConstraint* _constraint; // JointState owns its AngularConstraint

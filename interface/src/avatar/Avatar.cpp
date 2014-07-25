@@ -14,12 +14,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
-
-#include <NodeList.h>
-#include <PacketHeaders.h>
-#include <SharedUtil.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <GeometryUtil.h>
+#include <NodeList.h>
+#include <PacketHeaders.h>
+#include <PerfStat.h>
+#include <SharedUtil.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -51,6 +52,8 @@ Avatar::Avatar() :
     _lastVelocity(0.0f, 0.0f, 0.0f),
     _acceleration(0.0f, 0.0f, 0.0f),
     _angularVelocity(0.0f, 0.0f, 0.0f),
+    _lastAngularVelocity(0.0f, 0.0f, 0.0f),
+    _angularAcceleration(0.0f, 0.0f, 0.0f),
     _lastOrientation(),
     _leanScale(0.5f),
     _scale(1.0f),
@@ -80,7 +83,6 @@ void Avatar::init() {
     _skeletonModel.init();
     _initialized = true;
     _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
-    initializeHair();
 }
 
 glm::vec3 Avatar::getChestPosition() const {
@@ -99,6 +101,7 @@ float Avatar::getLODDistance() const {
 }
 
 void Avatar::simulate(float deltaTime) {
+    PerformanceTimer perfTimer("simulate");
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
@@ -118,36 +121,42 @@ void Avatar::simulate(float deltaTime) {
     bool inViewFrustum = Application::getInstance()->getViewFrustum()->sphereInFrustum(_position, boundingRadius) !=
         ViewFrustum::OUTSIDE;
 
-    getHand()->simulate(deltaTime, false);
+    {
+        PerformanceTimer perfTimer("hand");
+        getHand()->simulate(deltaTime, false);
+    }
     _skeletonModel.setLODDistance(getLODDistance());
     
     if (!_shouldRenderBillboard && inViewFrustum) {
-        if (_hasNewJointRotations) {
-            for (int i = 0; i < _jointData.size(); i++) {
-                const JointData& data = _jointData.at(i);
-                _skeletonModel.setJointState(i, data.valid, data.rotation);
+        {
+            PerformanceTimer perfTimer("skeleton");
+            if (_hasNewJointRotations) {
+                for (int i = 0; i < _jointData.size(); i++) {
+                    const JointData& data = _jointData.at(i);
+                    _skeletonModel.setJointState(i, data.valid, data.rotation);
+                }
             }
-            _skeletonModel.simulate(deltaTime);
+            _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
+            simulateAttachments(deltaTime);
+            _hasNewJointRotations = false;
         }
-        _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
-        simulateAttachments(deltaTime);
-        _hasNewJointRotations = false;
-
-        glm::vec3 headPosition = _position;
-        _skeletonModel.getHeadPosition(headPosition);
-        Head* head = getHead();
-        head->setPosition(headPosition);
-        head->setScale(_scale);
-        head->simulate(deltaTime, false, _shouldRenderBillboard);
-        
+        {
+            PerformanceTimer perfTimer("head");
+            glm::vec3 headPosition = _position;
+            _skeletonModel.getHeadPosition(headPosition);
+            Head* head = getHead();
+            head->setPosition(headPosition);
+            head->setScale(_scale);
+            head->simulate(deltaTime, false, _shouldRenderBillboard);
+        }
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
-            simulateHair(deltaTime);
+            PerformanceTimer perfTimer("hair");
+            _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.simulate(deltaTime);
         }
-        
-        foreach (Hair* hair, _hairs) {
-            hair->simulate(deltaTime);
-        }
-
     }
     
     // update position by velocity, and subtract the change added earlier for gravity
@@ -180,6 +189,7 @@ void Avatar::updateAcceleration(float deltaTime) {
     glm::quat orientation = getOrientation();
     glm::quat delta = glm::inverse(_lastOrientation) * orientation;
     _angularVelocity = safeEulerAngles(delta) * (1.f / deltaTime);
+    _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * (1.f / deltaTime);
     _lastOrientation = getOrientation();
 }
 
@@ -208,6 +218,52 @@ static TextRenderer* textRenderer(TextRendererType type) {
 }
 
 void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
+    
+    if (glm::distance(Application::getInstance()->getAvatar()->getPosition(),
+                      _position) < 10.0f) {
+        // render pointing lasers
+        glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
+        float laserLength = 50.0f;
+        if (_handState == HAND_STATE_LEFT_POINTING ||
+            _handState == HAND_STATE_BOTH_POINTING) {
+            int leftIndex = _skeletonModel.getLeftHandJointIndex();
+            glm::vec3 leftPosition;
+            glm::quat leftRotation;
+            _skeletonModel.getJointPositionInWorldFrame(leftIndex, leftPosition);
+            _skeletonModel.getJointRotationInWorldFrame(leftIndex, leftRotation);
+            glPushMatrix(); {
+                glTranslatef(leftPosition.x, leftPosition.y, leftPosition.z);
+                float angle = glm::degrees(glm::angle(leftRotation));
+                glm::vec3 axis = glm::axis(leftRotation);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glBegin(GL_LINES);
+                glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, laserLength, 0.0f);
+                glEnd();
+            } glPopMatrix();
+        }
+        if (_handState == HAND_STATE_RIGHT_POINTING ||
+            _handState == HAND_STATE_BOTH_POINTING) {
+            int rightIndex = _skeletonModel.getRightHandJointIndex();
+            glm::vec3 rightPosition;
+            glm::quat rightRotation;
+            _skeletonModel.getJointPositionInWorldFrame(rightIndex, rightPosition);
+            _skeletonModel.getJointRotationInWorldFrame(rightIndex, rightRotation);
+            glPushMatrix(); {
+                glTranslatef(rightPosition.x, rightPosition.y, rightPosition.z);
+                float angle = glm::degrees(glm::angle(rightRotation));
+                glm::vec3 axis = glm::axis(rightRotation);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glBegin(GL_LINES);
+                glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, laserLength, 0.0f);
+                glEnd();
+            } glPopMatrix();
+        }
+    }
+    
     // simple frustum check
     float boundingRadius = getBillboardSize();
     ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
@@ -224,7 +280,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         const float GLOW_DISTANCE = 20.0f;
         const float GLOW_MAX_LOUDNESS = 2500.0f;
         const float MAX_GLOW = 0.5f;
-        
+     
         float GLOW_FROM_AVERAGE_LOUDNESS = ((this == Application::getInstance()->getAvatar())
                                             ? 0.0f
                                             : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
@@ -235,7 +291,13 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
                       ? 1.0f
                       : GLOW_FROM_AVERAGE_LOUDNESS;
-
+        
+        
+        // local lights directions and colors
+        const QVector<Model::LocalLight>& localLights = Application::getInstance()->getAvatarManager().getLocalLights();
+        _skeletonModel.setLocalLights(localLights);
+        getHead()->getFaceModel().setLocalLights(localLights);
+        
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode, glowLevel);
@@ -257,7 +319,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             }
 
             // If this is the avatar being looked at, render a little ball above their head
-            if (_isLookAtTarget) {
+            if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::FocusIndicators)) {
                 const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
                 const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
                 const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.75f };
@@ -383,235 +445,18 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
         getHand()->render(false, modelRenderMode);
     }
     getHead()->render(1.0f, modelRenderMode);
+    
     if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
-        renderHair();
-        foreach (Hair* hair, _hairs) {
-            hair->render();
-        }
+        // Render Hair
+        glPushMatrix();
+        glm::vec3 headPosition = getHead()->getPosition();
+        glTranslatef(headPosition.x, headPosition.y, headPosition.z);
+        const glm::quat& rotation = getHead()->getFinalOrientationInWorldFrame();
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+        _hair.render();
+        glPopMatrix();
     }
-}
-
-//
-//  Constants for the Hair Simulation
-//
-
-const float HAIR_LENGTH = 0.2f;
-const float HAIR_LINK_LENGTH = HAIR_LENGTH / HAIR_LINKS;
-const float HAIR_DAMPING = 0.99f;
-const float HEAD_RADIUS = 0.21f;
-const float CONSTRAINT_RELAXATION = 10.0f;
-const glm::vec3 HAIR_GRAVITY(0.0f, -0.007f, 0.0f);
-const float HAIR_ACCELERATION_COUPLING = 0.025f;
-const float HAIR_ANGULAR_VELOCITY_COUPLING = 0.10f;
-const float HAIR_MAX_LINEAR_ACCELERATION = 4.0f;
-const float HAIR_THICKNESS = 0.015f;
-const float HAIR_STIFFNESS = 0.0000f;
-const glm::vec3 HAIR_COLOR1(0.98f, 0.92f, 0.843f);
-const glm::vec3 HAIR_COLOR2(0.545f, 0.533f, 0.47f);
-const glm::vec3 WIND_DIRECTION(0.5f, -1.0f, 0.0f);
-const float MAX_WIND_STRENGTH = 0.02f;
-const float FINGER_LENGTH = 0.25f;
-const float FINGER_RADIUS = 0.10f;
-
-void Avatar::renderHair() {
-    //
-    //  Render the avatar's moveable hair
-    //
-    
-    glm::vec3 headPosition = getHead()->getPosition();
-    glPushMatrix();
-    glTranslatef(headPosition.x, headPosition.y, headPosition.z);
-    const glm::quat& rotation = getHead()->getFinalOrientationInWorldFrame();
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-    glBegin(GL_QUADS);
-    for (int strand = 0; strand < HAIR_STRANDS; strand++) {
-        for (int link = 0; link < HAIR_LINKS - 1; link++) {
-            int vertexIndex = strand * HAIR_LINKS + link;
-            glColor3fv(&_hairColors[vertexIndex].x);
-            glNormal3fv(&_hairNormals[vertexIndex].x);
-            glVertex3f(_hairPosition[vertexIndex].x - _hairQuadDelta[vertexIndex].x,
-                       _hairPosition[vertexIndex].y - _hairQuadDelta[vertexIndex].y,
-                       _hairPosition[vertexIndex].z - _hairQuadDelta[vertexIndex].z);
-            glVertex3f(_hairPosition[vertexIndex].x + _hairQuadDelta[vertexIndex].x,
-                       _hairPosition[vertexIndex].y + _hairQuadDelta[vertexIndex].y,
-                       _hairPosition[vertexIndex].z + _hairQuadDelta[vertexIndex].z);
-            
-            glVertex3f(_hairPosition[vertexIndex + 1].x + _hairQuadDelta[vertexIndex].x,
-                       _hairPosition[vertexIndex + 1].y + _hairQuadDelta[vertexIndex].y,
-                       _hairPosition[vertexIndex + 1].z + _hairQuadDelta[vertexIndex].z);
-            glVertex3f(_hairPosition[vertexIndex + 1].x - _hairQuadDelta[vertexIndex].x,
-                       _hairPosition[vertexIndex + 1].y - _hairQuadDelta[vertexIndex].y,
-                       _hairPosition[vertexIndex + 1].z - _hairQuadDelta[vertexIndex].z);
-        }
-    }
-    glEnd();
-    
-    glPopMatrix();
-
-}
-
-void Avatar::simulateHair(float deltaTime) {
-
-    deltaTime = glm::clamp(deltaTime, 0.0f, 1.0f / 30.0f);
-    glm::vec3 acceleration = getAcceleration();
-    if (glm::length(acceleration) > HAIR_MAX_LINEAR_ACCELERATION) {
-        acceleration = glm::normalize(acceleration) * HAIR_MAX_LINEAR_ACCELERATION;
-    }
-    const glm::quat& rotation = getHead()->getFinalOrientationInWorldFrame();
-    acceleration = acceleration * rotation;
-    glm::vec3 angularVelocity = getAngularVelocity() + getHead()->getAngularVelocity();
-    
-    //  Get hand positions to allow touching hair
-    glm::vec3 leftHandPosition, rightHandPosition;
-    getSkeletonModel().getLeftHandPosition(leftHandPosition);
-    getSkeletonModel().getRightHandPosition(rightHandPosition);
-    leftHandPosition -= getHead()->getPosition();
-    rightHandPosition -= getHead()->getPosition();
-    glm::quat leftRotation, rightRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
-    leftHandPosition += glm::vec3(0.0f, FINGER_LENGTH, 0.0f) * glm::inverse(leftRotation);
-    rightHandPosition += glm::vec3(0.0f, FINGER_LENGTH, 0.0f) * glm::inverse(rightRotation);
-    leftHandPosition = leftHandPosition * rotation;
-    rightHandPosition = rightHandPosition * rotation;
-    
-    float windIntensity = randFloat() * MAX_WIND_STRENGTH;
-    
-    for (int strand = 0; strand < HAIR_STRANDS; strand++) {
-        for (int link = 0; link < HAIR_LINKS; link++) {
-            int vertexIndex = strand * HAIR_LINKS + link;
-            if (vertexIndex % HAIR_LINKS == 0) {
-                //  Base Joint - no integration
-             } else {
-                //
-                //  Vertlet Integration
-                //
-                //  Add velocity from last position, with damping
-                glm::vec3 thisPosition = _hairPosition[vertexIndex];
-                glm::vec3 diff = thisPosition - _hairLastPosition[vertexIndex];
-                _hairPosition[vertexIndex] += diff * HAIR_DAMPING;
-                //  Resolve collision with head sphere
-                if (glm::length(_hairPosition[vertexIndex]) < HEAD_RADIUS) {
-                    _hairPosition[vertexIndex] += glm::normalize(_hairPosition[vertexIndex]) *
-                    (HEAD_RADIUS - glm::length(_hairPosition[vertexIndex]));
-                }
-                //  Resolve collision with hands
-                if (glm::length(_hairPosition[vertexIndex] - leftHandPosition) < FINGER_RADIUS) {
-                     _hairPosition[vertexIndex] += glm::normalize(_hairPosition[vertexIndex] - leftHandPosition) *
-                     (FINGER_RADIUS - glm::length(_hairPosition[vertexIndex] - leftHandPosition));
-                }
-                 if (glm::length(_hairPosition[vertexIndex] - rightHandPosition) < FINGER_RADIUS) {
-                     _hairPosition[vertexIndex] += glm::normalize(_hairPosition[vertexIndex] - rightHandPosition) *
-                     (FINGER_RADIUS - glm::length(_hairPosition[vertexIndex] - rightHandPosition));
-                 }
-
-                 
-                //  Add a little gravity
-                _hairPosition[vertexIndex] += HAIR_GRAVITY * rotation * deltaTime;
-                
-                //  Add linear acceleration of the avatar body
-                _hairPosition[vertexIndex] -= acceleration * HAIR_ACCELERATION_COUPLING * deltaTime;
-                
-                //  Add stiffness (like hair care products do)
-                _hairPosition[vertexIndex] += (_hairOriginalPosition[vertexIndex] - _hairPosition[vertexIndex])
-                                                * powf(1.f - link / HAIR_LINKS, 2.f) * HAIR_STIFFNESS;
-                
-                //  Add some wind
-                glm::vec3 wind = WIND_DIRECTION * windIntensity;
-                _hairPosition[vertexIndex] += wind * deltaTime;
-                
-                const float ANGULAR_VELOCITY_MIN = 0.001f;
-                //  Add angular acceleration of the avatar body
-                if (glm::length(angularVelocity) > ANGULAR_VELOCITY_MIN) {
-                    glm::vec3 yawVector = _hairPosition[vertexIndex];
-                    yawVector.y = 0.f;
-                    if (glm::length(yawVector) > EPSILON) {
-                        float radius = glm::length(yawVector);
-                        yawVector = glm::normalize(yawVector);
-                        float angle = atan2f(yawVector.x, -yawVector.z) + PI;
-                        glm::vec3 delta = glm::vec3(-1.f, 0.f, 0.f) * glm::angleAxis(angle, glm::vec3(0, 1, 0));
-                        _hairPosition[vertexIndex] -= delta * radius * angularVelocity.y * HAIR_ANGULAR_VELOCITY_COUPLING * deltaTime;
-                    }
-                    glm::vec3 pitchVector = _hairPosition[vertexIndex];
-                    pitchVector.x = 0.f;
-                    if (glm::length(pitchVector) > EPSILON) {
-                        float radius = glm::length(pitchVector);
-                        pitchVector = glm::normalize(pitchVector);
-                        float angle = atan2f(pitchVector.y, -pitchVector.z) + PI;
-                        glm::vec3 delta = glm::vec3(0.0f, 1.0f, 0.f) * glm::angleAxis(angle, glm::vec3(1, 0, 0));
-                        _hairPosition[vertexIndex] -= delta * radius * angularVelocity.x * HAIR_ANGULAR_VELOCITY_COUPLING * deltaTime;
-                    }
-                    glm::vec3 rollVector = _hairPosition[vertexIndex];
-                    rollVector.z = 0.f;
-                    if (glm::length(rollVector) > EPSILON) {
-                        float radius = glm::length(rollVector);
-                        pitchVector = glm::normalize(rollVector);
-                        float angle = atan2f(rollVector.x, rollVector.y) + PI;
-                        glm::vec3 delta = glm::vec3(-1.0f, 0.0f, 0.f) * glm::angleAxis(angle, glm::vec3(0, 0, 1));
-                        _hairPosition[vertexIndex] -= delta * radius * angularVelocity.z * HAIR_ANGULAR_VELOCITY_COUPLING * deltaTime;
-                    }
-                }
-                
-                //  Iterate length constraints to other links
-                for (int link = 0; link < HAIR_MAX_CONSTRAINTS; link++) {
-                    if (_hairConstraints[vertexIndex * HAIR_MAX_CONSTRAINTS + link] > -1) {
-                        //  If there is a constraint, try to enforce it
-                        glm::vec3 vectorBetween = _hairPosition[_hairConstraints[vertexIndex * HAIR_MAX_CONSTRAINTS + link]] - _hairPosition[vertexIndex];
-                        _hairPosition[vertexIndex] += glm::normalize(vectorBetween) * (glm::length(vectorBetween) - HAIR_LINK_LENGTH) * CONSTRAINT_RELAXATION * deltaTime;
-                    }
-                }
-                //  Store start position for next vertlet pass
-                _hairLastPosition[vertexIndex] = thisPosition;
-            }
-        }
-    }
-}
-
-void Avatar::initializeHair() {
-    const float FACE_WIDTH =  PI / 4.0f;
-    glm::vec3 thisVertex;
-    for (int strand = 0; strand < HAIR_STRANDS; strand++) {
-        float strandAngle = randFloat() * PI;
-        float azimuth = FACE_WIDTH / 2.0f + (randFloat() * (2.0 * PI - FACE_WIDTH));
-        float elevation = PI_OVER_TWO - (randFloat() * 0.75 * PI);
-        glm::vec3 thisStrand(sinf(azimuth) * cosf(elevation), sinf(elevation), -cosf(azimuth) * cosf(elevation));
-        thisStrand *= HEAD_RADIUS;
-        
-        for (int link = 0; link < HAIR_LINKS; link++) {
-            int vertexIndex = strand * HAIR_LINKS + link;
-            //  Clear constraints
-            for (int link2 = 0; link2 < HAIR_MAX_CONSTRAINTS; link2++) {
-                _hairConstraints[vertexIndex * HAIR_MAX_CONSTRAINTS + link2] = -1;
-            }
-            if (vertexIndex % HAIR_LINKS == 0) {
-                //  start of strand
-                thisVertex = thisStrand;
-            } else {
-                thisVertex+= glm::normalize(thisStrand) * HAIR_LINK_LENGTH;
-                //  Set constraints to vertex before and maybe vertex after in strand
-                _hairConstraints[vertexIndex * HAIR_MAX_CONSTRAINTS] = vertexIndex - 1;
-                if (link < (HAIR_LINKS - 1)) {
-                    _hairConstraints[vertexIndex * HAIR_MAX_CONSTRAINTS + 1] = vertexIndex + 1;
-                }
-            }
-            _hairPosition[vertexIndex] = thisVertex;
-            _hairLastPosition[vertexIndex] = _hairPosition[vertexIndex];
-            _hairOriginalPosition[vertexIndex] = _hairPosition[vertexIndex];
-
-            _hairQuadDelta[vertexIndex] = glm::vec3(cos(strandAngle) * HAIR_THICKNESS, 0.f, sin(strandAngle) * HAIR_THICKNESS);
-            _hairQuadDelta[vertexIndex] *= 1.f - (link / HAIR_LINKS);
-            _hairNormals[vertexIndex] = glm::normalize(randVector());
-            if (randFloat() < elevation / PI_OVER_TWO) {
-                _hairColors[vertexIndex] = HAIR_COLOR1 * ((float)(link + 1) / (float)HAIR_LINKS);
-            } else {
-                _hairColors[vertexIndex] = HAIR_COLOR2 * ((float)(link + 1) / (float)HAIR_LINKS);
-            }
-            
-        }
-    }
-    qDebug() << "Initialize Hair";
 }
 
 bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
@@ -926,6 +771,11 @@ glm::quat Avatar::getJointCombinedRotation(const QString& name) const {
     glm::quat rotation;
     _skeletonModel.getJointCombinedRotation(getJointIndex(name), rotation);
     return rotation;
+}
+
+void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
+    //Scale a world space vector as if it was relative to the position
+    positionToScale = _position + _scale * (positionToScale - _position);
 }
 
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {

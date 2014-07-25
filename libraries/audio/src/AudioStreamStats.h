@@ -13,34 +13,50 @@
 #define hifi_AudioStreamStats_h
 
 #include "PositionalAudioRingBuffer.h"
+#include "SequenceNumberStats.h"
 
 class AudioStreamStats {
 public:
     AudioStreamStats()
         : _streamType(PositionalAudioRingBuffer::Microphone),
         _streamIdentifier(),
-        _jitterBufferFrames(0),
-        _packetsReceived(0),
-        _packetsUnreasonable(0),
-        _packetsEarly(0),
-        _packetsLate(0),
-        _packetsLost(0),
-        _packetsRecovered(0),
-        _packetsDuplicate(0)
+        _timeGapMin(0),
+        _timeGapMax(0),
+        _timeGapAverage(0.0f),
+        _timeGapWindowMin(0),
+        _timeGapWindowMax(0),
+        _timeGapWindowAverage(0.0f),
+        _ringBufferFramesAvailable(0),
+        _ringBufferFramesAvailableAverage(0),
+        _ringBufferDesiredJitterBufferFrames(0),
+        _ringBufferStarveCount(0),
+        _ringBufferConsecutiveNotMixedCount(0),
+        _ringBufferOverflowCount(0),
+        _ringBufferSilentFramesDropped(0),
+        _packetStreamStats(),
+        _packetStreamWindowStats()
     {}
 
     PositionalAudioRingBuffer::Type _streamType;
     QUuid _streamIdentifier;
 
-    quint16 _jitterBufferFrames;
+    quint64 _timeGapMin;
+    quint64 _timeGapMax;
+    float _timeGapAverage;
+    quint64 _timeGapWindowMin;
+    quint64 _timeGapWindowMax;
+    float _timeGapWindowAverage;
 
-    quint32 _packetsReceived;
-    quint32 _packetsUnreasonable;
-    quint32 _packetsEarly;
-    quint32 _packetsLate;
-    quint32 _packetsLost;
-    quint32 _packetsRecovered;
-    quint32 _packetsDuplicate;
+    quint32 _ringBufferFramesAvailable;
+    quint16 _ringBufferFramesAvailableAverage;
+    quint16 _ringBufferDesiredJitterBufferFrames;
+    quint32 _ringBufferStarveCount;
+    quint32 _ringBufferConsecutiveNotMixedCount;
+    quint32 _ringBufferOverflowCount;
+    quint32 _ringBufferSilentFramesDropped;
+
+    PacketStreamStats _packetStreamStats;
+    PacketStreamStats _packetStreamWindowStats;
 };
 
 #endif  // hifi_AudioStreamStats_h

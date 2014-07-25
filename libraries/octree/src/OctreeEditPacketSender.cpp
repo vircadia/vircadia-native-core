@@ -34,7 +34,6 @@ OctreeEditPacketSender::OctreeEditPacketSender() :
     _maxPendingMessages(DEFAULT_MAX_PENDING_MESSAGES),
     _releaseQueuedMessagesPending(false),
     _serverJurisdictions(NULL),
-    _sequenceNumber(0),
     _maxPacketSize(MAX_PACKET_SIZE) {
 }
 
@@ -88,7 +87,7 @@ bool OctreeEditPacketSender::serversExist() const {
 
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
 // a known nodeID.
-void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, const unsigned char* buffer, ssize_t length) {
+void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer, ssize_t length) {
     NodeList* nodeList = NodeList::getInstance();
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
@@ -96,13 +95,18 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, const unsi
         if (node->getType() == getMyNodeType() &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
             if (node->getActiveSocket()) {
+
+                // pack sequence number
+                int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<char*>(buffer));
+                unsigned char* sequenceAt = buffer + numBytesPacketHeader;
+                quint16 sequence = _outgoingSequenceNumbers[nodeUUID]++;
+                memcpy(sequenceAt, &sequence, sizeof(quint16));
+
+                // send packet
                 QByteArray packet(reinterpret_cast<const char*>(buffer), length);
                 queuePacketForSending(node, packet);
 
-                // extract sequence number and add packet to history
-                int numBytesPacketHeader = numBytesForPacketHeader(packet);
-                const char* dataAt = reinterpret_cast<const char*>(packet.data()) + numBytesPacketHeader;
-                unsigned short int sequence = *((unsigned short int*)dataAt);
+                // add packet to history
                 _sentPacketHistories[nodeUUID].packetSent(sequence, packet);
 
                 // debugging output...
@@ -312,11 +316,8 @@ void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer)
 void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PacketType type) {
     packetBuffer._currentSize = populatePacketHeader(reinterpret_cast<char*>(&packetBuffer._currentBuffer[0]), type);
 
-    // pack in sequence numbers
-    unsigned short int* sequenceAt = (unsigned short int*)&packetBuffer._currentBuffer[packetBuffer._currentSize];
-    *sequenceAt = _sequenceNumber;
-    packetBuffer._currentSize += sizeof(unsigned short int); // nudge past sequence
-    _sequenceNumber++;
+    // skip over sequence number for now; will be packed when packet is ready to be sent out
+    packetBuffer._currentSize += sizeof(quint16);
 
     // pack in timestamp
     quint64 now = usecTimestampNow();
@@ -373,5 +374,6 @@ void OctreeEditPacketSender::nodeKilled(SharedNodePointer node) {
     // TODO: add locks
     QUuid nodeUUID = node->getUUID();
     _pendingEditPackets.remove(nodeUUID);
+    _outgoingSequenceNumbers.remove(nodeUUID);
     _sentPacketHistories.remove(nodeUUID);
 }
