@@ -94,14 +94,18 @@ const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
 const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
-                                                          AvatarAudioRingBuffer* listeningNodeBuffer) {
-    // if the frame to be mixed is silent, don't mix it
-    if (bufferToAdd->getNextOutputTrailingLoudness() == 0.0f) {
+                                                          AvatarAudioRingBuffer* listeningNodeBuffer,
+                                                          bool bufferToAddBelongsToListener) {
+
+    // if the buffer to be added belongs to the listener and it should not be echoed or
+    // if the buffer frame to be added is too soft, pop a frame from the buffer without mixing it.
+    if ((bufferToAddBelongsToListener && !bufferToAdd->shouldLoopbackForNode())
+        || bufferToAdd->getNextOutputTrailingLoudness() == 0.0f) {
         bufferToAdd->popFrames(1);
         return;
     }
 
-    // get pointer to frame to be mixed.  If the stream cannot provide a frame (is starved), bail
+    // get pointer to the frame to be mixed.  If the stream cannot provide a frame (is starved), bail
     AudioRingBuffer::ConstIterator nextOutputStart;
     if (!bufferToAdd->popFrames(&nextOutputStart, 1)) {
         return;
@@ -217,15 +221,12 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     
 
     
-    if (!bufferToAdd->isStereo() && shouldAttenuate && false) {
+    if (!bufferToAdd->isStereo() && shouldAttenuate) {
         // this is a mono buffer, which means it gets full attenuation and spatialization
         
         // if the bearing relative angle to source is > 0 then the delayed channel is the right one
         int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
         int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
-        
-        //const int16_t* bufferStart = bufferToAdd->getBuffer();
-        //int ringBufferSampleCapacity = bufferToAdd->getSampleCapacity();
         
         int16_t correctBufferSample[2], delayBufferSample[2];
         int delayedChannelIndex = 0;
@@ -276,6 +277,31 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(nextOutputStart[s / stereoDivider] * attenuationCoefficient),
                                             MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
+
+        /*for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
+
+            int stereoDivider = bufferToAdd->isStereo() ? 1 : 2;
+
+            if (!shouldAttenuate) {
+                attenuationCoefficient = 1.0f;
+            }
+
+            _clientSamples[s] = glm::clamp(_clientSamples[s]
+                + (int)(nextOutputStart[(s / stereoDivider)] * attenuationCoefficient),
+                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + 1] = glm::clamp(_clientSamples[s + 1]
+                + (int)(nextOutputStart[(s / stereoDivider) + (1 / stereoDivider)]
+                * attenuationCoefficient),
+                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + 2] = glm::clamp(_clientSamples[s + 2]
+                + (int)(nextOutputStart[(s / stereoDivider) + (2 / stereoDivider)]
+                * attenuationCoefficient),
+                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + 3] = glm::clamp(_clientSamples[s + 3]
+                + (int)(nextOutputStart[(s / stereoDivider) + (3 / stereoDivider)]
+                * attenuationCoefficient),
+                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+        }*/
     }
 }
 
@@ -298,11 +324,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
             for (i = otherNodeRingBuffers.begin(); i != end; i++) {
                 PositionalAudioRingBuffer* otherNodeBuffer = i.value();
 
-                if (*otherNode != *node || otherNodeBuffer->shouldLoopbackForNode()) {
-                    addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
-                } else {
-                    otherNodeBuffer->popFrames(1);
-                }
+                addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer, *otherNode == *node);
             }
         }
     }

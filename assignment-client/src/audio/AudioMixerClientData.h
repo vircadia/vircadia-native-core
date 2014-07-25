@@ -26,10 +26,7 @@ public:
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
     
     int parseData(const QByteArray& packet);
-    //void checkBuffersBeforeFrameSend(AABox* checkSourceZone = NULL, AABox* listenerZone = NULL);
-    //void pushBuffersAfterFrameSend();
 
-    //AudioStreamStats getAudioStreamStatsOfStream(const PositionalAudioRingBuffer* ringBuffer) const;
     QString getAudioStreamStatsString() const;
     
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);

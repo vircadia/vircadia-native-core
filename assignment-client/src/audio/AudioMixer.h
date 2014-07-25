@@ -42,7 +42,8 @@ public slots:
 private:
     /// adds one buffer to the mix for a listening node
     void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
-                                                  AvatarAudioRingBuffer* listeningNodeBuffer);
+                                                  AvatarAudioRingBuffer* listeningNodeBuffer,
+                                                  bool bufferToAddBelongsToListener);
     
     /// prepares and sends a mix to one Node
     void prepareMixForListeningNode(Node* node);

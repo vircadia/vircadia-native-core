@@ -66,7 +66,6 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 
     // TODO: handle generalized silent packet here?????
 
-
     // parse the info after the seq number and before the audio data.(the stream properties)
     int numAudioSamples;
     readBytes += parseStreamProperties(packetType, packet.mid(readBytes), numAudioSamples);
@@ -75,18 +74,18 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     // For now, late packets are ignored.  It may be good in the future to insert the late audio frame
     // into the ring buffer to fill in the missing frame if it hasn't been mixed yet.
     switch (arrivalInfo._status) {
-    case SequenceNumberStats::Early: {
-        int packetsDropped = arrivalInfo._seqDiffFromExpected;
-        writeSamplesForDroppedPackets(packetsDropped * numAudioSamples);
-        // fall through to OnTime case
-    }
-    case SequenceNumberStats::OnTime: {
-        readBytes += parseAudioData(packetType, packet.mid(readBytes), numAudioSamples);
-        break;
-    }
-    default: {
-        break;
-    }
+        case SequenceNumberStats::Early: {
+            int packetsDropped = arrivalInfo._seqDiffFromExpected;
+            writeSamplesForDroppedPackets(packetsDropped * numAudioSamples);
+            // fall through to OnTime case
+        }
+        case SequenceNumberStats::OnTime: {
+            readBytes += parseAudioData(packetType, packet.mid(readBytes), numAudioSamples);
+            break;
+        }
+        default: {
+            break;
+        }
     }
 
     if (_isStarved && _ringBuffer.framesAvailable() >= _desiredJitterBufferFrames) {
