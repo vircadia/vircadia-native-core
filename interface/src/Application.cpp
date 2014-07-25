@@ -524,8 +524,8 @@ void Application::initializeGL() {
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
-    _viewFrustumOffsetCamera.setNearClip(0.1f);
-    _viewFrustumOffsetCamera.setFarClip(500.0f * TREE_SCALE);
+    _viewFrustumOffsetCamera.setNearClip(DEFAULT_NEAR_CLIP);
+    _viewFrustumOffsetCamera.setFarClip(DEFAULT_FAR_CLIP);
 
     initDisplay();
     qDebug( "Initialized Display.");
