@@ -716,9 +716,6 @@ void Audio::handleAudioInput() {
 }
 
 void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
-    const int NUM_INITIAL_PACKETS_DISCARD = 3;
-    const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
-
     if (_audioOutput) {
         // Audio output must exist and be correctly set up if we're going to process received audio
         processReceivedAudio(audioByteArray);

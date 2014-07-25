@@ -51,8 +51,6 @@ void InboundAudioStream::resetStats() {
 }
 
 int InboundAudioStream::parseData(const QByteArray& packet) {
-    frameReceivedUpdateTimingStats();
-
     PacketType packetType = packetTypeForPacket(packet);
     QUuid senderUUID = uuidFromPacketHeader(packet);
 
@@ -64,7 +62,7 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     // parse sequence number and track it
     quint16 sequence = *(reinterpret_cast<const quint16*>(sequenceAt));
     readBytes += sizeof(quint16);
-    SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence, senderUUID);
+    SequenceNumberStats::ArrivalInfo arrivalInfo = frameReceivedUpdateNetworkStats(sequence, senderUUID);
 
     // TODO: handle generalized silent packet here?????
 
@@ -150,10 +148,14 @@ int InboundAudioStream::getCalculatedDesiredJitterBufferFrames() const {
 }
 
 
-void InboundAudioStream::frameReceivedUpdateTimingStats() {
+SequenceNumberStats::ArrivalInfo InboundAudioStream::frameReceivedUpdateNetworkStats(quint16 sequenceNumber, const QUuid& senderUUID) {
+    const int NUM_INITIAL_PACKETS_DISCARD = 3;
+
+    SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequenceNumber, senderUUID);
+
     // update the two time gap stats we're keeping
     quint64 now = usecTimestampNow();
-    if (_lastFrameReceivedTime != 0) {
+    if (_incomingSequenceNumberStats.getNumReceived() >= NUM_INITIAL_PACKETS_DISCARD) {
         quint64 gap = now - _lastFrameReceivedTime;
         _interframeTimeGapStatsForJitterCalc.update(gap);
         _interframeTimeGapStatsForStatsPacket.update(gap);
@@ -174,6 +176,8 @@ void InboundAudioStream::frameReceivedUpdateTimingStats() {
         }
         _interframeTimeGapStatsForJitterCalc.clearNewStatsAvailableFlag();
     }
+
+    return arrivalInfo;
 }
 
 int InboundAudioStream::writeDroppableSilentSamples(int numSilentSamples) {

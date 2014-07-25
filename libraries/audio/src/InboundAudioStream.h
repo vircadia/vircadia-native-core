@@ -101,7 +101,7 @@ protected:
 
     int writeDroppableSilentSamples(int numSilentSamples);
     int writeSamplesForDroppedPackets(int numSamples);
-    void frameReceivedUpdateTimingStats();
+    SequenceNumberStats::ArrivalInfo frameReceivedUpdateNetworkStats(quint16 sequenceNumber, const QUuid& senderUUID);
 
 protected:
 
