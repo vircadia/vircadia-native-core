@@ -127,8 +127,10 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
             if (item.property("button").toString() != "") {
                 cancelButton = cancelButton || item.property("button").toString().toLower() == "cancel";
             } else {
-                edits.push_back(new QLineEdit(item.property("value").toString()));
-                formLayout->addRow(item.property("label").toString(), edits.back());
+                QLineEdit* edit = new QLineEdit(item.property("value").toString());
+                edit->setMinimumWidth(200);
+                edits.push_back(edit);
+                formLayout->addRow(new QLabel(item.property("label").toString()), edit);
             }
         }
 
