@@ -218,6 +218,52 @@ static TextRenderer* textRenderer(TextRendererType type) {
 }
 
 void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
+    
+    if (glm::distance(Application::getInstance()->getAvatar()->getPosition(),
+                      _position) < 10.0f) {
+        // render pointing lasers
+        glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
+        float laserLength = 50.0f;
+        if (_handState == HAND_STATE_LEFT_POINTING ||
+            _handState == HAND_STATE_BOTH_POINTING) {
+            int leftIndex = _skeletonModel.getLeftHandJointIndex();
+            glm::vec3 leftPosition;
+            glm::quat leftRotation;
+            _skeletonModel.getJointPositionInWorldFrame(leftIndex, leftPosition);
+            _skeletonModel.getJointRotationInWorldFrame(leftIndex, leftRotation);
+            glPushMatrix(); {
+                glTranslatef(leftPosition.x, leftPosition.y, leftPosition.z);
+                float angle = glm::degrees(glm::angle(leftRotation));
+                glm::vec3 axis = glm::axis(leftRotation);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glBegin(GL_LINES);
+                glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, laserLength, 0.0f);
+                glEnd();
+            } glPopMatrix();
+        }
+        if (_handState == HAND_STATE_RIGHT_POINTING ||
+            _handState == HAND_STATE_BOTH_POINTING) {
+            int rightIndex = _skeletonModel.getRightHandJointIndex();
+            glm::vec3 rightPosition;
+            glm::quat rightRotation;
+            _skeletonModel.getJointPositionInWorldFrame(rightIndex, rightPosition);
+            _skeletonModel.getJointRotationInWorldFrame(rightIndex, rightRotation);
+            glPushMatrix(); {
+                glTranslatef(rightPosition.x, rightPosition.y, rightPosition.z);
+                float angle = glm::degrees(glm::angle(rightRotation));
+                glm::vec3 axis = glm::axis(rightRotation);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glBegin(GL_LINES);
+                glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, laserLength, 0.0f);
+                glEnd();
+            } glPopMatrix();
+        }
+    }
+    
     // simple frustum check
     float boundingRadius = getBillboardSize();
     ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
