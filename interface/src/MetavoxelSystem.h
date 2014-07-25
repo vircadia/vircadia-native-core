@@ -52,6 +52,8 @@ protected:
 
 private:
     
+    void guideToAugmented(MetavoxelVisitor& visitor);
+    
     static ProgramObject _program;
     static int _pointScaleLocation;
     
@@ -82,6 +84,11 @@ public:
     void render();
 
     void setPoints(const BufferPointVector& points);
+
+    Q_INVOKABLE void setAugmentedData(const MetavoxelData& data);
+    
+    /// Returns a copy of the augmented data.  This function is thread-safe.
+    MetavoxelData getAugmentedData();
     
     virtual int parseData(const QByteArray& packet);
 
@@ -94,6 +101,9 @@ private:
     
     QOpenGLBuffer _buffer;
     int _pointCount;
+    
+    MetavoxelData _augmentedData;
+    QReadWriteLock _augmentedDataLock;
 };
 
 /// Contains the information necessary to render a group of points at variable detail levels.
@@ -134,7 +144,8 @@ public:
     
     Q_INVOKABLE PointMetavoxelRendererImplementation();
     
-    virtual void render(MetavoxelInfo& info);
+    virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
+    virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
 };
 
 /// Base class for spanner renderers; provides clipping.

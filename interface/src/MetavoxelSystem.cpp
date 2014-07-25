@@ -158,13 +158,13 @@ int RenderVisitor::visit(MetavoxelInfo& info) {
         return DEFAULT_ORDER;
     }
     static_cast<MetavoxelRenderer*>(info.inputValues.at(0).getInlineValue<
-        SharedObjectPointer>().data())->getImplementation()->render(info);
+        SharedObjectPointer>().data())->getImplementation()->render(*_data, info, _lod);
     return STOP_RECURSION;
 }
 
 void MetavoxelSystem::render() {
     RenderVisitor renderVisitor(getLOD());
-    guide(renderVisitor);
+    guideToAugmented(renderVisitor);
 
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
@@ -227,6 +227,18 @@ MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
     return new MetavoxelSystemClient(node, _updater);
 }
 
+void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
+            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
+            if (client) {
+                client->getAugmentedData().guide(visitor);
+            }
+        }
+    }
+}
+
 MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelUpdater* updater) :
     MetavoxelClient(node, updater),
     _pointCount(0) {
@@ -257,6 +269,16 @@ void MetavoxelSystemClient::setPoints(const BufferPointVector& points) {
     qDebug() << "upload" << (QDateTime::currentMSecsSinceEpoch() - now);
     qDebug() << _pointCount;
     
+}
+
+void MetavoxelSystemClient::setAugmentedData(const MetavoxelData& data) {
+    QWriteLocker locker(&_augmentedDataLock);
+    _augmentedData = data;
+}
+
+MetavoxelData MetavoxelSystemClient::getAugmentedData() {
+    QReadLocker locker(&_augmentedDataLock);
+    return _augmentedData;
 }
 
 int MetavoxelSystemClient::parseData(const QByteArray& packet) {
@@ -426,6 +448,67 @@ void PointBufferBuilder::run() {
     qDebug() << "collect" << (QDateTime::currentMSecsSinceEpoch() - now);
 }
 
+class AugmentVisitor : public MetavoxelVisitor {
+public:
+    
+    AugmentVisitor(const MetavoxelLOD& lod, const MetavoxelData& previousData);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    const MetavoxelData& _previousData;
+};
+
+AugmentVisitor::AugmentVisitor(const MetavoxelLOD& lod, const MetavoxelData& previousData) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getRendererAttribute(),
+        QVector<AttributePointer>(), lod),
+    _previousData(previousData) {
+}
+
+int AugmentVisitor::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    static_cast<MetavoxelRenderer*>(info.inputValues.at(0).getInlineValue<
+        SharedObjectPointer>().data())->getImplementation()->augment(*_data, _previousData, info, _lod);
+    return STOP_RECURSION;
+}
+
+class Augmenter : public QRunnable {
+public:
+    
+    Augmenter(const SharedNodePointer& node, const MetavoxelData& data,
+        const MetavoxelData& previousData, const MetavoxelLOD& lod);
+    
+    virtual void run();
+
+private:
+    
+    QWeakPointer<Node> _node;
+    MetavoxelData _data;
+    MetavoxelData _previousData;
+    MetavoxelLOD _lod;
+};
+
+Augmenter::Augmenter(const SharedNodePointer& node, const MetavoxelData& data,
+        const MetavoxelData& previousData, const MetavoxelLOD& lod) :
+    _node(node),
+    _data(data),
+    _previousData(previousData),
+    _lod(lod) {
+}
+
+void Augmenter::run() {
+    SharedNodePointer node = _node;
+    if (!node) {
+        return;
+    }
+    AugmentVisitor visitor(_lod, _previousData);
+    _data.guide(visitor);
+    QMetaObject::invokeMethod(node.data(), "setAugmentedData", Q_ARG(const MetavoxelData&, _data));
+}
+
 void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
     MetavoxelClient::dataChanged(oldData);
     
@@ -442,6 +525,8 @@ void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
         _data.guide(builder);
     } */
     QThreadPool::globalInstance()->start(new PointBufferBuilder(_node, _data, _remoteDataLOD));
+    
+    QThreadPool::globalInstance()->start(new Augmenter(_node, _data, getAugmentedData(), _remoteDataLOD));
 }
 
 void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
@@ -505,7 +590,56 @@ AttributeValue PointBufferAttribute::inherit(const AttributeValue& parentValue) 
 PointMetavoxelRendererImplementation::PointMetavoxelRendererImplementation() {
 }
 
-void PointMetavoxelRendererImplementation::render(MetavoxelInfo& info) {
+class PointAugmentVisitor : public MetavoxelVisitor {
+public:
+
+    PointAugmentVisitor(const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info);
+};
+
+PointAugmentVisitor::PointAugmentVisitor(const MetavoxelLOD& lod) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
+        AttributeRegistry::getInstance()->getNormalAttribute(), QVector<AttributePointer>() <<
+            Application::getInstance()->getMetavoxels()->getPointBufferAttribute(), lod) {
+}
+
+int PointAugmentVisitor::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    return STOP_RECURSION;
+}
+
+void PointMetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
+        MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    PointAugmentVisitor visitor(lod);
+    data.guideToDifferent(previous, visitor, &info);
+}
+
+class PointRenderVisitor : public MetavoxelVisitor {
+public:
+    
+    PointRenderVisitor(const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info);
+};
+
+PointRenderVisitor::PointRenderVisitor(const MetavoxelLOD& lod) :
+    MetavoxelVisitor(QVector<AttributePointer>() << Application::getInstance()->getMetavoxels()->getPointBufferAttribute(),
+        QVector<AttributePointer>(), lod) {
+}
+
+int PointRenderVisitor::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    return STOP_RECURSION;
+}
+
+void PointMetavoxelRendererImplementation::render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    PointRenderVisitor visitor(lod);
+    data.guide(visitor, &info);
 }
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {

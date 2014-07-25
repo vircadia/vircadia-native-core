@@ -28,6 +28,7 @@
 
 class QScriptContext;
 
+class MetavoxelInfo;
 class MetavoxelNode;
 class MetavoxelRendererImplementation;
 class MetavoxelVisitation;
@@ -80,10 +81,12 @@ public:
     Box getBounds() const;
 
     /// Applies the specified visitor to the contained voxels.
-    void guide(MetavoxelVisitor& visitor);
+    /// \param start the location at which to start, or NULL for the root
+    void guide(MetavoxelVisitor& visitor, const MetavoxelInfo* start = NULL);
    
     /// Guides the specified visitor to the voxels that differ from those of the specified other.
-    void guideToDifferent(const MetavoxelData& other, MetavoxelVisitor& visitor);
+    /// \param start the location at which to start, or NULL for the root
+    void guideToDifferent(const MetavoxelData& other, MetavoxelVisitor& visitor, const MetavoxelInfo* start = NULL);
     
     /// Inserts a spanner into the specified attribute layer.
     void insert(const AttributePointer& attribute, const SharedObjectPointer& object);
@@ -533,6 +536,7 @@ public:
 protected:
 
     MetavoxelRendererImplementation* _implementation;
+    QMutex _implementationMutex;
     
     /// Returns the name of the class to instantiate for the implementation.
     virtual QByteArray getImplementationClassName() const;
@@ -547,7 +551,8 @@ public:
     Q_INVOKABLE MetavoxelRendererImplementation();
     
     virtual void init(MetavoxelRenderer* renderer);
-    virtual void render(MetavoxelInfo& info);
+    virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
+    virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
 
 protected:
     

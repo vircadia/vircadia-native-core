@@ -81,7 +81,7 @@ Box MetavoxelData::getBounds() const {
     return Box(glm::vec3(-halfSize, -halfSize, -halfSize), glm::vec3(halfSize, halfSize, halfSize));
 }
 
-void MetavoxelData::guide(MetavoxelVisitor& visitor) {
+void MetavoxelData::guide(MetavoxelVisitor& visitor, const MetavoxelInfo* start) {
     // let the visitor know we're about to begin a tour
     visitor.prepare(this);
 
@@ -128,7 +128,7 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     visitor.releaseVisitation();
 }
 
-void MetavoxelData::guideToDifferent(const MetavoxelData& other, MetavoxelVisitor& visitor) {
+void MetavoxelData::guideToDifferent(const MetavoxelData& other, MetavoxelVisitor& visitor, const MetavoxelInfo* start) {
     // if the other data is smaller, we need to expand it to compare
     const MetavoxelData* expandedOther = &other;
     if (_size > other._size) {
@@ -1847,6 +1847,7 @@ MetavoxelRenderer::MetavoxelRenderer() :
 }
 
 MetavoxelRendererImplementation* MetavoxelRenderer::getImplementation() {
+    QMutexLocker locker(&_implementationMutex);
     if (!_implementation) {
         QByteArray className = getImplementationClassName();
         const QMetaObject* metaObject = Bitstream::getMetaObject(className);
@@ -1868,7 +1869,11 @@ void MetavoxelRendererImplementation::init(MetavoxelRenderer* renderer) {
     _renderer = renderer;
 }
 
-void MetavoxelRendererImplementation::render(MetavoxelInfo& info) {
+void MetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
+        MetavoxelInfo& info, const MetavoxelLOD& lod) {
+}
+
+void MetavoxelRendererImplementation::render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod) {
 }
 
 QByteArray MetavoxelRenderer::getImplementationClassName() const {
