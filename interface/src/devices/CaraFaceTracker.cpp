@@ -386,9 +386,14 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
         //qDebug() << "Parsing took: " << timer.elapsed() << " msecs";
 
         //do some noise filtering to the head poses
-        person.pose.roll = glm::round(person.pose.roll);
-        person.pose.pitch = glm::round(person.pose.pitch);
-        person.pose.yaw = glm::round(person.pose.yaw);
+        //person.pose.roll = glm::round(person.pose.roll);
+        //person.pose.pitch = glm::round(person.pose.pitch);
+        //person.pose.yaw = glm::round(person.pose.yaw);
+
+        //reduce the noise first by truncating to 1 dp
+        person.pose.roll = glm::floor(person.pose.roll * 10) / 10;
+        person.pose.pitch = glm::floor(person.pose.pitch * 10) / 10;
+        person.pose.yaw = glm::floor(person.pose.yaw * 10) / 10;
 
         qDebug() << person.toString();
 
@@ -403,32 +408,39 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
             float AVERAGE_CARA_FRAME_TIME = 0.033f;
             _headAngularVelocity = theta / AVERAGE_CARA_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
 
-            if(glm::abs(_headAngularVelocity.x) < 1.0f) 
+            //use the angular velocity for roll and pitch, if it's below the threshold don't move
+            if(glm::abs(_headAngularVelocity.x) < 1.2f) 
             {
                 person.pose.pitch = _previousPitch;
                 //qDebug() << "NO change in pitch";
             }
-            if(glm::abs(person.pose.yaw - _previousYaw) < 2.5f)
-            {
-                qDebug() << "Yaw Diff: " << glm::abs(person.pose.yaw - _previousYaw);
-                person.pose.yaw = _previousYaw;
-            }
-            if(glm::abs(_headAngularVelocity.z) < 1.0f)
+            if(glm::abs(_headAngularVelocity.z) < 1.2f)
             {
                 //qDebug() << "NO change in roll";
                 person.pose.roll = _previousRoll;
             }
 
+            //for yaw, the jitter is great, you can't use angular velocity because it swings too much
+            //use the previous and current yaw, calculate the 
+            //abs difference and move it the difference is above a certain angle. (this will introduce some
+            //jerks but will not encounter lag)
+            if(glm::abs(person.pose.yaw - _previousYaw) < 2.5f) // < than 2.5 deg, no move
+            {
+                qDebug() << "Yaw Diff: " << glm::abs(person.pose.yaw - _previousYaw);
+                person.pose.yaw = _previousYaw;
+            }
+
+            //update the previous angles
             _previousPitch = person.pose.pitch;
             _previousYaw = person.pose.yaw;
             _previousRoll = person.pose.roll;
 
-            newRotation = glm::quat(glm::vec3(DEGTORAD(person.pose.pitch), DEGTORAD(person.pose.yaw), DEGTORAD(person.pose.roll)));
+            //set the new rotation
+            newRotation = glm::quat(glm::vec3(DEGTORAD(person.pose.pitch), DEGTORAD(person.pose.yaw), DEGTORAD(-person.pose.roll)));
         } 
         else 
         {
             //no change in position
-            //qDebug() << "NO change in rotation";
             newRotation = glm::quat(glm::vec3(DEGTORAD(_previousPitch), DEGTORAD(_previousYaw), DEGTORAD(_previousRoll)));
             _headAngularVelocity = glm::vec3(0,0,0);
         }
