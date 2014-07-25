@@ -172,11 +172,16 @@ if (VISAGE_FOUND AND NOT DISABLE_VISAGE AND APPLE)
 endif ()
 
 # special OS X modifications for RtMidi library
-if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLY)  
+if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)  
   find_library(CoreMIDI CoreMIDI)
   add_definitions(-D__MACOSX_CORE__)
   target_link_libraries(${TARGET_NAME} ${CoreMIDI})
-endif()
+endif ()
+
+if (QXMPP_FOUND AND NOT DISABLE_QXMPP AND WIN32)
+  # assume we're linking a static Qt on windows
+  add_definitions(-DQXMPP_STATIC) 
+endif ()
 
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
