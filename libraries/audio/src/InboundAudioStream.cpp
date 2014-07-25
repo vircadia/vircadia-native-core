@@ -33,6 +33,8 @@ InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacit
 
 void InboundAudioStream::reset() {
     _ringBuffer.reset();
+    _lastPopSucceeded = false;
+    _lastPopOutput = AudioRingBuffer::ConstIterator();
     _isStarved = true;
     _hasStarted = false;
     resetStats();
@@ -47,6 +49,11 @@ void InboundAudioStream::resetStats() {
     _lastFrameReceivedTime = 0;
     _interframeTimeGapStatsForJitterCalc.reset();
     _interframeTimeGapStatsForStatsPacket.reset();
+    _framesAvailableStats.reset();
+}
+
+void InboundAudioStream::clearBuffer() {
+    _ringBuffer.clear();
     _framesAvailableStats.reset();
 }
 

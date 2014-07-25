@@ -47,10 +47,8 @@ AudioRingBuffer::~AudioRingBuffer() {
 }
 
 void AudioRingBuffer::reset() {
+    clear();
     _overflowCount = 0;
-    _isFull = false;
-    _endOfLastWrite = _buffer;
-    _nextOutput = _buffer;
 }
 
 void AudioRingBuffer::resizeForFrameSize(int numFrameSamples) {
@@ -62,6 +60,12 @@ void AudioRingBuffer::resizeForFrameSize(int numFrameSamples) {
         memset(_buffer, 0, _sampleCapacity * sizeof(int16_t));
     }
     reset();
+}
+
+void AudioRingBuffer::clear() {
+    _isFull = false;
+    _endOfLastWrite = _buffer;
+    _nextOutput = _buffer;
 }
 
 int AudioRingBuffer::parseData(const QByteArray& packet) {

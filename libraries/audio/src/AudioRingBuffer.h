@@ -46,6 +46,8 @@ public:
     void reset();
     void resizeForFrameSize(int numFrameSamples);
     
+    void clear();
+
     int getSampleCapacity() const { return _sampleCapacity; }
     int getFrameCapacity() const { return _frameCapacity; }
     

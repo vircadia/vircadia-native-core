@@ -19,7 +19,6 @@
 #include <QtCore/QUrl>
 
 #include <AvatarHashMap.h>
-#include <MixedAudioRingBuffer.h>
 #include <ModelEditPacketSender.h>
 #include <ModelTree.h>
 #include <ModelTreeHeadlessViewer.h>
@@ -30,6 +29,8 @@
 #include <ThreadedAssignment.h>
 #include <VoxelEditPacketSender.h>
 #include <VoxelTreeHeadlessViewer.h>
+
+#include "InboundMixedAudioStream.h"
 
 
 class Agent : public ThreadedAssignment {
@@ -51,7 +52,7 @@ public:
     void setIsListeningToAudioStream(bool isListeningToAudioStream)
         { _scriptEngine.setIsListeningToAudioStream(isListeningToAudioStream); }
     
-    float getLastReceivedAudioLoudness() const { return _receivedAudioBuffer.getLastReadFrameAverageLoudness(); }
+    float getLastReceivedAudioLoudness() const { return _lastReceivedAudioLoudness; }
 
     virtual void aboutToFinish();
     
@@ -70,7 +71,8 @@ private:
     VoxelTreeHeadlessViewer _voxelViewer;
     ModelTreeHeadlessViewer _modelViewer;
     
-    MixedAudioRingBuffer _receivedAudioBuffer;
+    InboundMixedAudioStream _receivedAudioBuffer;
+    float _lastReceivedAudioLoudness;
 
     AvatarHashMap _avatarHashMap;
 };

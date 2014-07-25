@@ -47,9 +47,8 @@ public:
     InboundAudioStream(int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers);
 
     void reset();
-    void flushBuffer() { _ringBuffer.reset(); }
     void resetStats();
-
+    void clearBuffer();
 
     virtual int parseData(const QByteArray& packet);
 
