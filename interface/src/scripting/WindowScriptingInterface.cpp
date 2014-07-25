@@ -94,11 +94,14 @@ QScriptValue WindowScriptingInterface::showConfirm(const QString& message) {
 /// Display a form layout with an edit box
 /// \param const QString& title title to display
 /// \param const QScriptValue form to display (array containing labels and values)
-/// \return QScriptValue result form (unchanged is dialog canceled)
+/// \return QScriptValue `true` if 'OK' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptValue form) {
+
     if (form.isArray() && form.property("length").toInt32() > 0) {
         QDialog* editDialog = new QDialog(Application::getInstance()->getWindow());
         editDialog->setWindowTitle(title);
+
+        bool cancelButton = false;
         
         QVBoxLayout* layout = new QVBoxLayout();
         editDialog->setLayout(layout);
@@ -120,42 +123,60 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
         QVector<QLineEdit*> edits;
         for (int i = 0; i < form.property("length").toInt32(); ++i) {
             QScriptValue item = form.property(i);
-            edits.push_back(new QLineEdit(item.property("value").toString()));
-            formLayout->addRow(item.property("label").toString(), edits.back());
+
+            if (item.property("button").toString() != "") {
+                cancelButton = cancelButton || item.property("button").toString().toLower() == "cancel";
+            } else {
+                edits.push_back(new QLineEdit(item.property("value").toString()));
+                formLayout->addRow(item.property("label").toString(), edits.back());
+            }
         }
-        QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok);
+
+        QDialogButtonBox* buttons = new QDialogButtonBox(
+            QDialogButtonBox::Ok 
+            | (cancelButton ? QDialogButtonBox::Cancel : QDialogButtonBox::NoButton)
+            );
         connect(buttons, SIGNAL(accepted()), editDialog, SLOT(accept()));
+        connect(buttons, SIGNAL(rejected()), editDialog, SLOT(reject()));
         layout->addWidget(buttons);
         
-        if (editDialog->exec() == QDialog::Accepted) {
+        int result = editDialog->exec();
+        if (result == QDialog::Accepted) {
+            int j = -1;
             for (int i = 0; i < form.property("length").toInt32(); ++i) {
                 QScriptValue item = form.property(i);
                 QScriptValue value = item.property("value");
                 bool ok = true;
-                if (value.isNumber()) {
-                    value = edits.at(i)->text().toDouble(&ok);
-                } else if (value.isString()) {
-                    value = edits.at(i)->text();
-                } else if (value.isBool()) {
-                    if (edits.at(i)->text() == "true") {
-                        value = true;
-                    } else if (edits.at(i)->text() == "false") {
-                        value = false;
-                    } else {
-                        ok = false;
+                qDebug() << "item.property(""button"").toString() = " << item.property("button").toString();
+                if (item.property("button").toString() == "") {
+                    j += 1;
+                    if (value.isNumber()) {
+                        value = edits.at(j)->text().toDouble(&ok);
+                    } else if (value.isString()) {
+                        value = edits.at(j)->text();
+                    } else if (value.isBool()) {
+                        if (edits.at(j)->text() == "true") {
+                            value = true;
+                        } else if (edits.at(j)->text() == "false") {
+                            value = false;
+                        } else {
+                            ok = false;
+                        }
                     }
-                }
-                if (ok) {
-                    item.setProperty("value", value);
-                    form.setProperty(i, item);
+                    if (ok) {
+                        item.setProperty("value", value);
+                        form.setProperty(i, item);
+                    }
                 }
             }
         }
         
         delete editDialog;
+
+        return (result == QDialog::Accepted);
     }
     
-    return form;
+    return false;
 }
 
 /// Display a prompt with a text box
