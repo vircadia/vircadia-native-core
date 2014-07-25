@@ -73,13 +73,7 @@ public:
 
     int getNumFrameSamples() const { return _numFrameSamples; }
     
-    bool isNotStarvedOrHasMinimumSamples(int numRequiredSamples) const;
-    
-    bool isStarved() const { return _isStarved; }
-    void setIsStarved(bool isStarved) { _isStarved = isStarved; }
-    
     int getOverflowCount() const { return _overflowCount; } /// how many times has the ring buffer has overwritten old data
-    bool hasStarted() const { return _hasStarted; }
     
     int addSilentFrame(int numSilentSamples);
 protected:
@@ -89,8 +83,6 @@ protected:
     
     int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
 
-    int _overflowCount; /// how many times has the ring buffer has overwritten old data
-    
     int _frameCapacity;
     int _sampleCapacity;
     bool _isFull;
@@ -98,9 +90,13 @@ protected:
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;
     int16_t* _buffer;
-    bool _isStarved;
-    bool _hasStarted;
     bool _randomAccessMode; /// will this ringbuffer be used for random access? if so, do some special processing
+
+    int _overflowCount; /// how many times has the ring buffer has overwritten old data
+
+    //bool _isStarved;
+    //bool _hasStarted;
+    
 
 public:
     class ConstIterator { //public std::iterator < std::forward_iterator_tag, int16_t > {
@@ -161,6 +157,14 @@ public:
 
         ConstIterator operator-(int i) {
             return ConstIterator(_bufferFirst, _capacity, atShiftedBy(-i));
+        }
+
+        void readSamples(int16_t* dest, int numSamples) {
+            for (int i = 0; i < numSamples; i++) {
+                *dest = *(*this);
+                ++dest;
+                ++(*this);
+            }
         }
     
     private:

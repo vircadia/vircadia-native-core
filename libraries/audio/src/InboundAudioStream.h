@@ -48,7 +48,7 @@ public:
 
     void reset();
     void flushBuffer() { _ringBuffer.reset(); }
-    void resetSequenceNumberStats() { _incomingSequenceNumberStats.reset(); }
+    void resetStats();
 
 
     virtual int parseData(const QByteArray& packet);
@@ -69,6 +69,7 @@ public:
 
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
     int getNumFrameSamples() const { return _ringBuffer.getNumFrameSamples(); }
+    int getFrameCapacity() const { return _ringBuffer.getFrameCapacity(); }
     int getFramesAvailable() const { return _ringBuffer.framesAvailable(); }
     double getFramesAvailableAverage() const { return _framesAvailableStats.getWindowAverage(); }
 
@@ -82,6 +83,7 @@ public:
 
 private:
     bool shouldPop(int numSamples, bool starveOnFail);
+    void starved();
 
 protected:
     // disallow copying of InboundAudioStream objects

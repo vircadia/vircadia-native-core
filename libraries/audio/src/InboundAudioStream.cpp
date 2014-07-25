@@ -31,9 +31,13 @@ InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacit
 
 void InboundAudioStream::reset() {
     _ringBuffer.reset();
-    _desiredJitterBufferFrames = 1;
     _isStarved = true;
     _hasStarted = false;
+    resetStats();
+}
+
+void InboundAudioStream::resetStats() {
+    _desiredJitterBufferFrames = 1;
     _consecutiveNotMixedCount = 0;
     _starveCount = 0;
     _silentFramesDropped = 0;
@@ -85,7 +89,7 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     }
     }
 
-    if (_isStarved && _ringBuffer.samplesAvailable() >= _desiredJitterBufferFrames * _ringBuffer.getNumFrameSamples()) {
+    if (_isStarved && _ringBuffer.framesAvailable() >= _desiredJitterBufferFrames) {
         _isStarved = false;
     }
 
@@ -144,13 +148,19 @@ bool InboundAudioStream::shouldPop(int numSamples, bool starveOnFail) {
     // we don't have enough samples, so set this stream to starve
     // if starveOnFail is true
     if (starveOnFail) {
-        setToStarved();
+        starved();
         _consecutiveNotMixedCount++;
     }
     return false;
 }
 
 void InboundAudioStream::setToStarved() {
+    if (!_isStarved && _ringBuffer.framesAvailable() < _desiredJitterBufferFrames) {
+        starved();
+    }
+}
+
+void InboundAudioStream::starved() {
     _isStarved = true;
     _consecutiveNotMixedCount = 0;
     _starveCount++;

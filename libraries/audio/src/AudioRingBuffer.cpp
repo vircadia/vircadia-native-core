@@ -21,13 +21,11 @@
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode, int numFramesCapacity) :
     NodeData(),
-    _overflowCount(0),
     _frameCapacity(numFramesCapacity),
     _sampleCapacity(numFrameSamples * numFramesCapacity),
     _isFull(false),
     _numFrameSamples(numFrameSamples),
-    _isStarved(true),
-    _hasStarted(false),
+    _overflowCount(0),
     _randomAccessMode(randomAccessMode)
 {
     if (numFrameSamples) {
@@ -53,7 +51,6 @@ void AudioRingBuffer::reset() {
     _isFull = false;
     _endOfLastWrite = _buffer;
     _nextOutput = _buffer;
-    _isStarved = true;
 }
 
 void AudioRingBuffer::resizeForFrameSize(int numFrameSamples) {
@@ -209,14 +206,6 @@ int AudioRingBuffer::addSilentFrame(int numSilentSamples) {
     }
 
     return numSilentSamples * sizeof(int16_t);
-}
-
-bool AudioRingBuffer::isNotStarvedOrHasMinimumSamples(int numRequiredSamples) const {
-    if (!_isStarved) {
-        return true;
-    } else {
-        return samplesAvailable() >= numRequiredSamples;
-    }
 }
 
 int16_t* AudioRingBuffer::shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const {

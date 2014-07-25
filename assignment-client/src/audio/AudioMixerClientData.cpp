@@ -215,7 +215,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
         // pack the calculated number of stream stats
         for (int i = 0; i < numStreamStatsToPack; i++) {
-            AudioStreamStats streamStats = ringBuffersIterator.value()->getAudioStreamStats();
+            AudioStreamStats streamStats = ringBuffersIterator.value()->updateSeqHistoryAndGetAudioStreamStats();
             memcpy(dataAt, &streamStats, sizeof(AudioStreamStats));
             dataAt += sizeof(AudioStreamStats);
 
