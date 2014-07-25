@@ -592,7 +592,7 @@ void Application::paintGL() {
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->getFilteredEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -611,10 +611,10 @@ void Application::paintGL() {
         if (OculusManager::isConnected()) {
             _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition() + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0));
+            _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition() + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0));
         } else {
             _myCamera.setTightness(0.0f);
-            glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
+            glm::vec3 eyePosition = _myAvatar->getHead()->getFilteredEyePosition();
             float headHeight = eyePosition.y - _myAvatar->getPosition().y;
             _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
@@ -1911,17 +1911,9 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            lookAtSpot = _myAvatar->getHead()->calculateAverageEyePosition() + 
+            lookAtSpot = _myAvatar->getHead()->getEyePosition() +
                 (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.f, 0.f, -TREE_SCALE));
         }
-        // TODO:  Add saccade to mouse pointer when stable, IF not looking at someone (since we know we are looking at it)
-        /*
-        const float FIXED_MIN_EYE_DISTANCE = 0.3f;
-        float minEyeDistance = FIXED_MIN_EYE_DISTANCE + (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON ? 0.0f :
-            glm::distance(_mouseRayOrigin, _myAvatar->getHead()->calculateAverageEyePosition()));
-        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * qMax(minEyeDistance, distance);
-         */
-
     }
     //
     //  Deflect the eyes a bit to match the detected Gaze from 3D camera if active
@@ -1931,7 +1923,7 @@ void Application::updateMyAvatarLookAtPosition() {
         float eyeYaw = tracker->getEstimatedEyeYaw();
         const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
         // deflect using Faceshift gaze data
-        glm::vec3 origin = _myAvatar->getHead()->calculateAverageEyePosition();
+        glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
         float deflection = Menu::getInstance()->getFaceshiftEyeDeflection();
         if (isLookingAtSomeone) {
@@ -2935,7 +2927,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             _mirrorCamera.setTargetPosition(glm::vec3());
 
         } else {
-            _mirrorCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+            _mirrorCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition());
         }
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
@@ -2964,7 +2956,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
 
         // get the eye position relative to the body
-        glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();     
+        glm::vec3 eyePosition = _myAvatar->getHead()->getEyePosition();
         float eyeHeight = eyePosition.y - _myAvatar->getPosition().y;
 
         // set the translation of the face relative to the neck position
