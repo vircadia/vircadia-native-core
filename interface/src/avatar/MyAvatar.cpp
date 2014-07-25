@@ -137,9 +137,6 @@ void MyAvatar::simulate(float deltaTime) {
     }
     _skeletonModel.setShowTrueJointTransforms(! Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll));
 
-    // no extra movement of the hand here any more ...
-    _handState = HAND_STATE_NULL;
-
     {
         PerformanceTimer perfTimer("transform");
         updateOrientation(deltaTime);
