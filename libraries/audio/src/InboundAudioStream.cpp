@@ -14,6 +14,8 @@
 
 InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers) :
     _ringBuffer(numFrameSamples, false, numFramesCapacity),
+    _lastPopSucceeded(false),
+    _lastPopOutput(),
     _dynamicJitterBuffers(dynamicJitterBuffers),
     _desiredJitterBufferFrames(1),
     _isStarved(true),
@@ -98,37 +100,30 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 }
 
 bool InboundAudioStream::popFrames(int numFrames, bool starveOnFail) {
-    bool popped;
     int numSamplesRequested = numFrames * _ringBuffer.getNumFrameSamples();
-    if (popped = shouldPop(numSamplesRequested, starveOnFail)) {
-        _ringBuffer.shiftReadPosition(numSamplesRequested);
+    if (_isStarved) {
+        // we're still refilling; don't pop
+        _consecutiveNotMixedCount++;
+        _lastPopSucceeded = false;
+    } else {
+        if (_ringBuffer.samplesAvailable() >= numSamplesRequested) {
+            // we have enough samples to pop, so we're good to mix
+            _lastPopOutput = _ringBuffer.nextOutput();
+            _ringBuffer.shiftReadPosition(numSamplesRequested);
+
+            _hasStarted = true;
+            _lastPopSucceeded = true;
+        } else {
+            // we don't have enough samples, so set this stream to starve
+            // if starveOnFail is true
+            if (starveOnFail) {
+                starved();
+                _consecutiveNotMixedCount++;
+            }
+            _lastPopSucceeded = false;
+        }
     }
-    _framesAvailableStats.update(_ringBuffer.framesAvailable());
-
-    return popped;
-}
-
-bool InboundAudioStream::popFrames(int16_t* dest, int numFrames, bool starveOnFail) {
-    bool popped;
-    int numSamplesRequested = numFrames * _ringBuffer.getNumFrameSamples();
-    if (popped = shouldPop(numSamplesRequested, starveOnFail)) {
-        _ringBuffer.readSamples(dest, numSamplesRequested);
-    }
-    _framesAvailableStats.update(_ringBuffer.framesAvailable());
-
-    return popped;
-}
-
-bool InboundAudioStream::popFrames(AudioRingBuffer::ConstIterator* nextOutput, int numFrames, bool starveOnFail) {
-    bool popped;
-    int numSamplesRequested = numFrames * _ringBuffer.getNumFrameSamples();
-    if (popped = shouldPop(numSamplesRequested, starveOnFail)) {
-        *nextOutput = _ringBuffer.nextOutput();
-        _ringBuffer.shiftReadPosition(numSamplesRequested);
-    }
-    _framesAvailableStats.update(_ringBuffer.framesAvailable());
-
-    return popped;
+    return _lastPopSucceeded;
 }
 
 bool InboundAudioStream::shouldPop(int numSamples, bool starveOnFail) {

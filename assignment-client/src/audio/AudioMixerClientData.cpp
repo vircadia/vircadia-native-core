@@ -98,6 +98,13 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     return 0;
 }
 
+void AudioMixerClientData::audioStreamsPopFrameForMixing() {
+    QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i, end = _ringBuffers.constEnd();
+    for (i = _ringBuffers.constBegin(); i != end; i++) {
+        i.value()->popFrames(1);
+    }
+}
+
 void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) {
     char packet[MAX_PACKET_SIZE];
     NodeList* nodeList = NodeList::getInstance();

@@ -53,9 +53,12 @@ public:
 
     virtual int parseData(const QByteArray& packet);
 
+
     bool popFrames(int numFrames, bool starveOnFail = true);
-    bool popFrames(int16_t* dest, int numFrames, bool starveOnFail = true);
-    bool popFrames(AudioRingBuffer::ConstIterator* nextOutput, int numFrames, bool starveOnFail = true);
+
+    bool lastPopSucceeded() const { return _lastPopSucceeded; };
+    const AudioRingBuffer::ConstIterator& getLastPopOutput() const { return _lastPopOutput; }
+
 
     void setToStarved();
 
@@ -104,6 +107,9 @@ protected:
 protected:
 
     AudioRingBuffer _ringBuffer;
+
+    bool _lastPopSucceeded;
+    AudioRingBuffer::ConstIterator _lastPopOutput;
 
     bool _dynamicJitterBuffers;
     int _desiredJitterBufferFrames;

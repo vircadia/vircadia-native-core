@@ -925,8 +925,7 @@ void Audio::pushAudioToOutput() {
 
     // if there is data in the ring buffer and room in the audio output, decide what to do
 
-    AudioRingBuffer::ConstIterator ringBufferNextOutput;
-    if (numFramesToPush > 0 && _ringBuffer.popFrames(&ringBufferNextOutput, numFramesToPush, false)) {
+    if (numFramesToPush > 0 && _ringBuffer.popFrames(numFramesToPush, false)) {
 
         int numNetworkOutputSamples = numFramesToPush * NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
         int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
@@ -934,6 +933,7 @@ void Audio::pushAudioToOutput() {
         QByteArray outputBuffer;
         outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
 
+        AudioRingBuffer::ConstIterator ringBufferPopOutput = _ringBuffer.getLastPopOutput();
 
         int16_t* ringBufferSamples = new int16_t[numNetworkOutputSamples];
         if (_processSpatialAudio) {
@@ -941,7 +941,7 @@ void Audio::pushAudioToOutput() {
             QByteArray buffer;
             buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
 
-            ringBufferNextOutput.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
+            ringBufferPopOutput.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
 
             // Accumulate direct transmission of audio from sender to receiver
             if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
@@ -961,7 +961,7 @@ void Audio::pushAudioToOutput() {
         } else {
             // copy the samples we'll resample from the ring buffer - this also
             // pushes the read pointer of the ring buffer forwards
-            ringBufferNextOutput.readSamples(ringBufferSamples, numNetworkOutputSamples);
+            ringBufferPopOutput.readSamples(ringBufferSamples, numNetworkOutputSamples);
         }
 
         // copy the packet from the RB to the output

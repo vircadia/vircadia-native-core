@@ -27,6 +27,8 @@ public:
     
     int parseData(const QByteArray& packet);
 
+    void audioStreamsPopFrameForMixing();
+
     QString getAudioStreamStatsString() const;
     
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);

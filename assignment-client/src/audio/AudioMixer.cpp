@@ -94,23 +94,7 @@ const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
 const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
-                                                          AvatarAudioRingBuffer* listeningNodeBuffer,
-                                                          bool bufferToAddBelongsToListener) {
-
-    // if the buffer to be added belongs to the listener and it should not be echoed or
-    // if the buffer frame to be added is too soft, pop a frame from the buffer without mixing it.
-    if ((bufferToAddBelongsToListener && !bufferToAdd->shouldLoopbackForNode())
-        || bufferToAdd->getNextOutputTrailingLoudness() == 0.0f) {
-        bufferToAdd->popFrames(1);
-        return;
-    }
-
-    // get pointer to the frame to be mixed.  If the stream cannot provide a frame (is starved), bail
-    AudioRingBuffer::ConstIterator nextOutputStart;
-    if (!bufferToAdd->popFrames(&nextOutputStart, 1)) {
-        return;
-    }
-
+                                                          AvatarAudioRingBuffer* listeningNodeBuffer) {
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
     int numSamplesDelay = 0;
@@ -219,7 +203,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         }
     }
     
-
+    AudioRingBuffer::ConstIterator bufferPopOutput = bufferToAdd->getLastPopOutput();
     
     if (!bufferToAdd->isStereo() && shouldAttenuate) {
         // this is a mono buffer, which means it gets full attenuation and spatialization
@@ -236,8 +220,8 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
             
             // setup the int16_t variables for the two sample sets
-            correctBufferSample[0] = nextOutputStart[s / 2] * attenuationCoefficient;
-            correctBufferSample[1] = nextOutputStart[(s / 2) + 1] * attenuationCoefficient;
+            correctBufferSample[0] = bufferPopOutput[s / 2] * attenuationCoefficient;
+            correctBufferSample[1] = bufferPopOutput[(s / 2) + 1] * attenuationCoefficient;
             
             delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
             
@@ -254,15 +238,15 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             // if there was a sample delay for this buffer, we need to pull samples prior to the nextOutput
             // to stick at the beginning
             float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
-            AudioRingBuffer::ConstIterator delayNextOutputStart = nextOutputStart - numSamplesDelay;
+            AudioRingBuffer::ConstIterator delayBufferPopOutput = bufferPopOutput - numSamplesDelay;
 
-            // TODO: delayNextOutputStart may be inside the last frame written if the ringbuffer is completely full
+            // TODO: delayBufferPopOutput may be inside the last frame written if the ringbuffer is completely full
             // maybe make AudioRingBuffer have 1 extra frame in its buffer
             
             for (int i = 0; i < numSamplesDelay; i++) {
                 int parentIndex = i * 2;
-                _clientSamples[parentIndex + delayedChannelOffset] += *delayNextOutputStart * attenuationAndWeakChannelRatio;
-                ++delayNextOutputStart;
+                _clientSamples[parentIndex + delayedChannelOffset] += *delayBufferPopOutput * attenuationAndWeakChannelRatio;
+                ++delayBufferPopOutput;
             }
         }
     } else {
@@ -274,34 +258,9 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         }
 
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
-            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(nextOutputStart[s / stereoDivider] * attenuationCoefficient),
+            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(bufferPopOutput[s / stereoDivider] * attenuationCoefficient),
                                             MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
-
-        /*for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
-
-            int stereoDivider = bufferToAdd->isStereo() ? 1 : 2;
-
-            if (!shouldAttenuate) {
-                attenuationCoefficient = 1.0f;
-            }
-
-            _clientSamples[s] = glm::clamp(_clientSamples[s]
-                + (int)(nextOutputStart[(s / stereoDivider)] * attenuationCoefficient),
-                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _clientSamples[s + 1] = glm::clamp(_clientSamples[s + 1]
-                + (int)(nextOutputStart[(s / stereoDivider) + (1 / stereoDivider)]
-                * attenuationCoefficient),
-                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _clientSamples[s + 2] = glm::clamp(_clientSamples[s + 2]
-                + (int)(nextOutputStart[(s / stereoDivider) + (2 / stereoDivider)]
-                * attenuationCoefficient),
-                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _clientSamples[s + 3] = glm::clamp(_clientSamples[s + 3]
-                + (int)(nextOutputStart[(s / stereoDivider) + (3 / stereoDivider)]
-                * attenuationCoefficient),
-                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-        }*/
     }
 }
 
@@ -324,7 +283,12 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
             for (i = otherNodeRingBuffers.begin(); i != end; i++) {
                 PositionalAudioRingBuffer* otherNodeBuffer = i.value();
 
-                addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer, *otherNode == *node);
+                if ((*otherNode != *node || otherNodeBuffer->shouldLoopbackForNode())
+                    && otherNodeBuffer->lastPopSucceeded()
+                    && otherNodeBuffer->getNextOutputTrailingLoudness() > 0.0f) {
+
+                    addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
+                }
             }
         }
     }
@@ -581,36 +545,43 @@ void AudioMixer::run() {
         }
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
-                && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
-
+            if (node->getActiveSocket() && node->getLinkedData()) {
+                
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 
-                prepareMixForListeningNode(node.data());
-                
-                // pack header
-                int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
-                char* dataAt = clientMixBuffer + numBytesPacketHeader;
+                // request a frame from each audio stream. a pointer to the popped data is stored as a member
+                // in InboundAudioStream.  That's how the popped audio data will be read for mixing
+                nodeData->audioStreamsPopFrameForMixing();
 
-                // pack sequence number
-                quint16 sequence = nodeData->getOutgoingSequenceNumber();
-                memcpy(dataAt, &sequence, sizeof(quint16));
-                dataAt += sizeof(quint16);
+                if (node->getType() == NodeType::Agent //&& node->getActiveSocket() && node->getLinkedData()
+                    && ((AudioMixerClientData*)node->getLinkedData())->getAvatarAudioRingBuffer()) {
 
-                // pack mixed audio samples
-                memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+                    prepareMixForListeningNode(node.data());
 
-                // send mixed audio packet
-                nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
-                nodeData->incrementOutgoingMixedAudioSequenceNumber();
-                
-                // send an audio stream stats packet if it's time
-                if (sendAudioStreamStats) {
-                    nodeData->sendAudioStreamStatsPackets(node);
+                    // pack header
+                    int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
+                    char* dataAt = clientMixBuffer + numBytesPacketHeader;
+
+                    // pack sequence number
+                    quint16 sequence = nodeData->getOutgoingSequenceNumber();
+                    memcpy(dataAt, &sequence, sizeof(quint16));
+                    dataAt += sizeof(quint16);
+
+                    // pack mixed audio samples
+                    memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                    dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+
+                    // send mixed audio packet
+                    nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
+                    nodeData->incrementOutgoingMixedAudioSequenceNumber();
+
+                    // send an audio stream stats packet if it's time
+                    if (sendAudioStreamStats) {
+                        nodeData->sendAudioStreamStatsPackets(node);
+                    }
+
+                    ++_sumListeners;
                 }
-
-                ++_sumListeners;
             }
         }
         
