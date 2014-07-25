@@ -105,7 +105,35 @@ void AudioMixerClientData::audioStreamsPopFrameForMixing() {
     }
 }
 
+void AudioMixerClientData::removeDeadInjectedStreams() {
+
+    const int INJECTOR_CONSECUTIVE_NOT_MIXED_AFTER_STARTED_THRESHOLD = 100;
+
+    // we have this second threshold in case the injected audio is so short that the ringbuffer
+    // never even reaches its desired size, which means it will never start.
+    const int INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD = 1000;
+
+    QHash<QUuid, PositionalAudioRingBuffer*>::Iterator i = _ringBuffers.begin(), end = _ringBuffers.end();
+    while (i != end) {
+        PositionalAudioRingBuffer* audioStream = i.value();
+        if (audioStream->getType() == PositionalAudioRingBuffer::Injector && audioStream->isStarved()) {
+            int notMixedThreshold = audioStream->hasStarted() ? INJECTOR_CONSECUTIVE_NOT_MIXED_AFTER_STARTED_THRESHOLD
+                                                              : INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD;
+            if (audioStream->getConsecutiveNotMixedCount() >= notMixedThreshold) {
+                delete audioStream;
+                i = _ringBuffers.erase(i);
+                continue;
+            }
+        }
+        ++i;
+    }
+}
+
 void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) {
+
+    // since audio stream stats packets are sent periodically, this is a good place to remove our dead injected streams.
+    removeDeadInjectedStreams();
+
     char packet[MAX_PACKET_SIZE];
     NodeList* nodeList = NodeList::getInstance();
 

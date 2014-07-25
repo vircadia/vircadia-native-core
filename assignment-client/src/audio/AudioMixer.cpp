@@ -553,7 +553,7 @@ void AudioMixer::run() {
                 // in InboundAudioStream.  That's how the popped audio data will be read for mixing
                 nodeData->audioStreamsPopFrameForMixing();
 
-                if (node->getType() == NodeType::Agent //&& node->getActiveSocket() && node->getLinkedData()
+                if (node->getType() == NodeType::Agent
                     && ((AudioMixerClientData*)node->getLinkedData())->getAvatarAudioRingBuffer()) {
 
                     prepareMixForListeningNode(node.data());

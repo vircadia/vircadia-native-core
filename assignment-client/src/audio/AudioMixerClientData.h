@@ -29,6 +29,8 @@ public:
 
     void audioStreamsPopFrameForMixing();
 
+    void removeDeadInjectedStreams();
+
     QString getAudioStreamStatsString() const;
     
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
