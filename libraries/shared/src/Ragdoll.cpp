@@ -21,6 +21,13 @@ Ragdoll::Ragdoll() {
 Ragdoll::~Ragdoll() {
     clearRagdollConstraintsAndPoints();
 }
+
+void Ragdoll::stepRagdollForward(float deltaTime) {
+    int numPoints = _ragdollPoints.size();
+    for (int i = 0; i < numPoints; ++i) {
+        _ragdollPoints[i].integrateForward();
+    }
+}
     
 void Ragdoll::clearRagdollConstraintsAndPoints() {
     int numConstraints = _ragdollConstraints.size();

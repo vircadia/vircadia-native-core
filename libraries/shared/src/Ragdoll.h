@@ -26,7 +26,7 @@ public:
     Ragdoll();
     virtual ~Ragdoll();
 
-    virtual void stepRagdollForward(float deltaTime) = 0;
+    virtual void stepRagdollForward(float deltaTime);
 
     /// \return max distance of point movement
     float enforceRagdollConstraints();
