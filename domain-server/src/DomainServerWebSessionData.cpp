@@ -51,3 +51,13 @@ void DomainServerWebSessionData::swap(DomainServerWebSessionData& otherSessionDa
     swap(_roles, otherSessionData._roles);
 }
 
+QDataStream& operator<<(QDataStream &out, const DomainServerWebSessionData& session) {
+    out << session._username << session._roles;
+    return out;
+}
+
+QDataStream& operator>>(QDataStream &in, DomainServerWebSessionData& session) {
+    in >> session._username >> session._roles;
+    return in;
+}
+

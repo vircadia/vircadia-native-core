@@ -50,6 +50,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
+    
+    qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
+    qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
 
     _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
 
@@ -59,6 +62,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
         qDebug() << "Setting up LimitedNodeList and assignments.";
         setupNodeListAndAssignments();
+        
+        loadExistingSessionsFromSettings();
     }
 }
 
@@ -1407,6 +1412,9 @@ void DomainServer::handleProfileRequestFinished() {
     }
 }
 
+
+const QString DS_SETTINGS_SESSIONS_GROUP = "web-sessions";
+
 Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileReply) {
     Headers cookieHeaders;
     
@@ -1417,7 +1425,14 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     QJsonObject userObject = profileDocument.object()["data"].toObject()["user"].toObject();
     
     // add the profile to our in-memory data structure so we know who the user is when they send us their cookie
-    _cookieSessionHash.insert(cookieUUID, DomainServerWebSessionData(userObject));
+    DomainServerWebSessionData sessionData(userObject);
+    _cookieSessionHash.insert(cookieUUID, sessionData);
+    
+    // persist the cookie to settings file so we can get it back on DS relaunch
+    QSettings localSettings;
+    localSettings.beginGroup(DS_SETTINGS_SESSIONS_GROUP);
+    QVariant sessionVariant = QVariant::fromValue(sessionData);
+    localSettings.setValue(cookieUUID.toString(), QVariant::fromValue(sessionData));
     
     // setup expiry for cookie to 1 month from today
     QDateTime cookieExpiry = QDateTime::currentDateTimeUtc().addMonths(1);
@@ -1433,6 +1448,17 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     cookieHeaders.insert("Location", redirectString.toUtf8());
     
     return cookieHeaders;
+}
+
+void DomainServer::loadExistingSessionsFromSettings() {
+    // read data for existing web sessions into memory so existing sessions can be leveraged
+    QSettings domainServerSettings;
+    domainServerSettings.beginGroup(DS_SETTINGS_SESSIONS_GROUP);
+    
+    foreach(const QString& uuidKey, domainServerSettings.childKeys()) {
+        _cookieSessionHash.insert(QUuid(uuidKey), domainServerSettings.value(uuidKey).value<DomainServerWebSessionData>());
+        qDebug() << "Pulled web session from settings - cookie UUID is" << uuidKey;
+    }
 }
 
 void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment) {

@@ -93,6 +93,8 @@ private:
     void handleProfileRequestFinished();
     Headers setupCookieHeadersFromProfileReply(QNetworkReply* profileReply);
     
+    void loadExistingSessionsFromSettings();
+    
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
     

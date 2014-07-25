@@ -26,11 +26,16 @@ public:
     const QString& getUsername() const { return _username; }
     const QSet<QString>& getRoles() const { return _roles; }
     
+    friend QDataStream& operator<<(QDataStream &out, const DomainServerWebSessionData& session);
+    friend QDataStream& operator>>(QDataStream &in, DomainServerWebSessionData& session);
+    
 private:
     void swap(DomainServerWebSessionData& otherSessionData);
     
     QString _username;
     QSet<QString> _roles;
 };
+
+Q_DECLARE_METATYPE(DomainServerWebSessionData)
 
 #endif // hifi_DomainServerWebSessionData_h
