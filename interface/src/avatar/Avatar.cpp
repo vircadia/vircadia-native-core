@@ -240,7 +240,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
                 glEnd();
             } glPopMatrix();
         }
-        if (_handState == HAND_STATE_RIGTH_POINTING ||
+        if (_handState == HAND_STATE_RIGHT_POINTING ||
             _handState == HAND_STATE_BOTH_POINTING) {
             int rightIndex = _skeletonModel.getRightHandJointIndex();
             glm::vec3 rightPosition;
