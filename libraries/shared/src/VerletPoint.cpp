@@ -11,6 +11,12 @@
 
 #include "VerletPoint.h"
 
+void VerletPoint::integrateForward() {
+    glm::vec3 oldPosition = _position;
+    _position += 0.6f * (_position - _lastPosition);
+    _lastPosition = oldPosition;
+}
+
 void VerletPoint::accumulateDelta(const glm::vec3& delta) {
     _accumulatedDelta += delta;
     ++_numDeltas;

@@ -18,6 +18,8 @@ class VerletPoint {
 public:
     VerletPoint() : _position(0.0f), _lastPosition(0.0f), _mass(1.0f), _accumulatedDelta(0.0f), _numDeltas(0) {}
 
+    void initPosition(const glm::vec3& position) { _position = position; _lastPosition = position; }
+    void integrateForward();
     void accumulateDelta(const glm::vec3& delta);
     void applyAccumulatedDelta();
 
