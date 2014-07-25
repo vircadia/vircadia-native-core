@@ -27,6 +27,7 @@
 
 // Generic client side Octree renderer class.
 class ModelTreeRenderer : public OctreeRenderer, public ModelItemFBXService {
+    Q_OBJECT
 public:
     ModelTreeRenderer();
     virtual ~ModelTreeRenderer();
@@ -56,7 +57,7 @@ public:
 
 protected:
     void clearModelsCache();
-    Model* getModel(const ModelItem& modelItem);
+    Q_INVOKABLE Model* getModel(const ModelItem& modelItem);
     QMap<uint32_t, Model*> _knownModelsItemModels;
     QMap<uint32_t, Model*> _unknownModelsItemModels;
 };

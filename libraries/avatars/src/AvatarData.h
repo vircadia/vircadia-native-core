@@ -185,8 +185,8 @@ public:
     void setClampedTargetScale(float targetScale);
 
     //  Hand State
-    void setHandState(char s) { _handState = s; }
-    char getHandState() const { return _handState; }
+    Q_INVOKABLE void setHandState(char s) { _handState = s; }
+    Q_INVOKABLE char getHandState() const { return _handState; }
 
     const QVector<JointData>& getJointData() const { return _jointData; }
     void setJointData(const QVector<JointData>& jointData) { _jointData = jointData; }
@@ -205,6 +205,10 @@ public:
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; } 
 
     Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
+
+    Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
+
+    void setForceFaceshiftConnected(bool connected) { _forceFaceshiftConnected = connected; }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -300,7 +304,7 @@ protected:
     std::string _chatMessage;
 
     bool _isChatCirclingEnabled;
-
+    bool _forceFaceshiftConnected;
     bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;
