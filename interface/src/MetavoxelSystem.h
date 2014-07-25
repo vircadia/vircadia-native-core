@@ -133,6 +133,8 @@ class PointMetavoxelRendererImplementation : public MetavoxelRendererImplementat
 public:
     
     Q_INVOKABLE PointMetavoxelRendererImplementation();
+    
+    virtual void render(MetavoxelInfo& info);
 };
 
 /// Base class for spanner renderers; provides clipping.

@@ -315,7 +315,7 @@ public:
     float getMinimumLODThresholdMultiplier() const { return _minimumLODThresholdMultiplier; }
     
     /// Prepares for a new tour of the metavoxel data.
-    virtual void prepare();
+    virtual void prepare(MetavoxelData* data);
     
     /// Visits a metavoxel.
     /// \param info the metavoxel data
@@ -340,6 +340,7 @@ protected:
     QVector<AttributePointer> _outputs;
     MetavoxelLOD _lod;
     float _minimumLODThresholdMultiplier;
+    MetavoxelData* _data;
     QList<MetavoxelVisitation> _visitations;
     int _depth;
 };
@@ -360,7 +361,7 @@ public:
     /// \return true to continue, false to short-circuit the tour
     virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) = 0;
     
-    virtual void prepare();
+    virtual void prepare(MetavoxelData* data);
     virtual int visit(MetavoxelInfo& info);
 
 protected:
@@ -407,7 +408,7 @@ public:
     /// \return true to continue, false to short-circuit the tour
     virtual bool visitSpanner(Spanner* spanner, float distance) = 0;
     
-    virtual void prepare();
+    virtual void prepare(MetavoxelData* data);
     virtual int visit(MetavoxelInfo& info, float distance);
     
 protected:
@@ -546,6 +547,7 @@ public:
     Q_INVOKABLE MetavoxelRendererImplementation();
     
     virtual void init(MetavoxelRenderer* renderer);
+    virtual void render(MetavoxelInfo& info);
 
 protected:
     

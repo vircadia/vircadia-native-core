@@ -83,7 +83,7 @@ Box MetavoxelData::getBounds() const {
 
 void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     // let the visitor know we're about to begin a tour
-    visitor.prepare();
+    visitor.prepare(this);
 
     // start with the root values/defaults (plus the guide attribute)
     const QVector<AttributePointer>& inputs = visitor.getInputs();
@@ -140,7 +140,7 @@ void MetavoxelData::guideToDifferent(const MetavoxelData& other, MetavoxelVisito
     }
     
     // let the visitor know we're about to begin a tour
-    visitor.prepare();
+    visitor.prepare(this);
 
     // start with the root values/defaults (plus the guide attribute)
     const QVector<AttributePointer>& inputs = visitor.getInputs();
@@ -1270,8 +1270,8 @@ MetavoxelVisitor::MetavoxelVisitor(const QVector<AttributePointer>& inputs,
 MetavoxelVisitor::~MetavoxelVisitor() {
 }
 
-void MetavoxelVisitor::prepare() {
-    // nothing by default
+void MetavoxelVisitor::prepare(MetavoxelData* data) {
+    _data = data;
 }
 
 bool MetavoxelVisitor::postVisit(MetavoxelInfo& info) {
@@ -1295,7 +1295,8 @@ SpannerVisitor::SpannerVisitor(const QVector<AttributePointer>& spannerInputs, c
     _order(order) {
 }
 
-void SpannerVisitor::prepare() {
+void SpannerVisitor::prepare(MetavoxelData* data) {
+    MetavoxelVisitor::prepare(data);
     _visit = Spanner::getAndIncrementNextVisit();
 }
 
@@ -1354,7 +1355,8 @@ RaySpannerIntersectionVisitor::RaySpannerIntersectionVisitor(const glm::vec3& or
     _spannerMaskCount(spannerMasks.size()) {
 }
 
-void RaySpannerIntersectionVisitor::prepare() {
+void RaySpannerIntersectionVisitor::prepare(MetavoxelData* data) {
+    MetavoxelVisitor::prepare(data);
     _visit = Spanner::getAndIncrementNextVisit();
 }
 
@@ -1864,6 +1866,9 @@ MetavoxelRendererImplementation::MetavoxelRendererImplementation() {
 
 void MetavoxelRendererImplementation::init(MetavoxelRenderer* renderer) {
     _renderer = renderer;
+}
+
+void MetavoxelRendererImplementation::render(MetavoxelInfo& info) {
 }
 
 QByteArray MetavoxelRenderer::getImplementationClassName() const {

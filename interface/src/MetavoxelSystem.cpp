@@ -140,7 +140,32 @@ bool SpannerRenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum,
     return true;
 }
 
+class RenderVisitor : public MetavoxelVisitor {
+public:
+    
+    RenderVisitor(const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info);
+};
+
+RenderVisitor::RenderVisitor(const MetavoxelLOD& lod) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getRendererAttribute(),
+        QVector<AttributePointer>(), lod) {
+}
+
+int RenderVisitor::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    static_cast<MetavoxelRenderer*>(info.inputValues.at(0).getInlineValue<
+        SharedObjectPointer>().data())->getImplementation()->render(info);
+    return STOP_RECURSION;
+}
+
 void MetavoxelSystem::render() {
+    RenderVisitor renderVisitor(getLOD());
+    guide(renderVisitor);
+
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     const int VIEWPORT_WIDTH_INDEX = 2;
@@ -478,6 +503,9 @@ AttributeValue PointBufferAttribute::inherit(const AttributeValue& parentValue) 
 }
 
 PointMetavoxelRendererImplementation::PointMetavoxelRendererImplementation() {
+}
+
+void PointMetavoxelRendererImplementation::render(MetavoxelInfo& info) {
 }
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
