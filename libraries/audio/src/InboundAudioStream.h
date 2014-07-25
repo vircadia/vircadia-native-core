@@ -85,7 +85,6 @@ public:
     int getOverflowCount() const { return _ringBuffer.getOverflowCount(); }
 
 private:
-    bool shouldPop(int numSamples, bool starveOnFail);
     void starved();
 
 protected:
@@ -116,7 +115,6 @@ protected:
 
     bool _isStarved;
     bool _hasStarted;
-
 
     // stats
 

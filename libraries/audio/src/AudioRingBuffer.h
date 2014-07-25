@@ -94,10 +94,6 @@ protected:
 
     int _overflowCount; /// how many times has the ring buffer has overwritten old data
 
-    //bool _isStarved;
-    //bool _hasStarted;
-    
-
 public:
     class ConstIterator { //public std::iterator < std::forward_iterator_tag, int16_t > {
     public:
@@ -182,7 +178,6 @@ public:
         int16_t* _bufferLast;
         int16_t* _at;
     };
-
 
     ConstIterator nextOutput() const { return ConstIterator(_buffer, _sampleCapacity, _nextOutput); }
 };

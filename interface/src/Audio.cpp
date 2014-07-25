@@ -902,7 +902,6 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     pushAudioToOutput();
 }
 
-
 void Audio::pushAudioToOutput() {
 
     if (_audioOutput->bytesFree() == _audioOutput->bufferSize()) {
@@ -1001,7 +1000,6 @@ void Audio::pushAudioToOutput() {
         delete[] ringBufferSamples;
     }
 }
-
 
 void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
 

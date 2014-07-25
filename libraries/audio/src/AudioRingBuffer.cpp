@@ -25,8 +25,8 @@ AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode, int
     _sampleCapacity(numFrameSamples * numFramesCapacity),
     _isFull(false),
     _numFrameSamples(numFrameSamples),
-    _overflowCount(0),
-    _randomAccessMode(randomAccessMode)
+    _randomAccessMode(randomAccessMode),
+    _overflowCount(0)
 {
     if (numFrameSamples) {
         _buffer = new int16_t[_sampleCapacity];

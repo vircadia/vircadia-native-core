@@ -14,8 +14,8 @@
 #include "AvatarAudioRingBuffer.h"
 
 AvatarAudioRingBuffer::AvatarAudioRingBuffer(bool isStereo, bool dynamicJitterBuffer) :
-PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone, isStereo, dynamicJitterBuffer) {
-
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone, isStereo, dynamicJitterBuffer)
+{
 }
 
 int AvatarAudioRingBuffer::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {

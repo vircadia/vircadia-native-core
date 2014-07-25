@@ -118,34 +118,12 @@ bool InboundAudioStream::popFrames(int numFrames, bool starveOnFail) {
             // if starveOnFail is true
             if (starveOnFail) {
                 starved();
-                _consecutiveNotMixedCount++;
             }
+            _consecutiveNotMixedCount++;
             _lastPopSucceeded = false;
         }
     }
     return _lastPopSucceeded;
-}
-
-bool InboundAudioStream::shouldPop(int numSamples, bool starveOnFail) {
-    if (_isStarved) {
-        // we're still refilling; don't mix
-        _consecutiveNotMixedCount++;
-        return false;
-    }
-
-    if (_ringBuffer.samplesAvailable() >= numSamples) {
-        // we have enough samples to pop, so we're good to mix
-        _hasStarted = true;
-        return true;
-    }
-    
-    // we don't have enough samples, so set this stream to starve
-    // if starveOnFail is true
-    if (starveOnFail) {
-        starved();
-        _consecutiveNotMixedCount++;
-    }
-    return false;
 }
 
 void InboundAudioStream::setToStarved() {
