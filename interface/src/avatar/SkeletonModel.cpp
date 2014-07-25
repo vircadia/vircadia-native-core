@@ -533,6 +533,7 @@ void SkeletonModel::buildRagdollConstraints() {
             _ragdollConstraints.push_back(anchor);
         } else { 
             DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[i]), &(_ragdollPoints[parentIndex]));
+            bone->setDistance(state.getDistanceToParent());
             _ragdollConstraints.push_back(bone);
             families.insert(parentIndex, i);
         }
@@ -597,11 +598,7 @@ void SkeletonModel::updateVisibleJointStates() {
 
 // virtual 
 void SkeletonModel::stepRagdollForward(float deltaTime) {
-    // NOTE: increasing this timescale reduces vibrations in the ragdoll solution and reduces tunneling 
-    // but makes the shapes slower to follow the body (introduces lag).
-    const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.05f;
-    float fraction = glm::clamp(deltaTime / RAGDOLL_FOLLOWS_JOINTS_TIMESCALE, 0.0f, 1.0f);
-    moveShapesTowardJoints(fraction);
+    moveShapesTowardJoints(deltaTime);
 }
 
 float DENSITY_OF_WATER = 1000.0f; // kg/m^3
@@ -676,17 +673,52 @@ void SkeletonModel::buildShapes() {
     enforceRagdollConstraints();
 }
 
-void SkeletonModel::moveShapesTowardJoints(float fraction) {
+void SkeletonModel::moveShapesTowardJoints(float deltaTime) {
     const int numStates = _jointStates.size();
     assert(_jointStates.size() == _ragdollPoints.size());
-    assert(fraction >= 0.0f && fraction <= 1.0f);
-    if (_ragdollPoints.size() == numStates) {
-        float oneMinusFraction = 1.0f - fraction; 
-        int numJoints = _jointStates.size();
-        for (int i = 0; i < numJoints; ++i) {
-            _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
-            _ragdollPoints[i]._position = oneMinusFraction * _ragdollPoints[i]._position + fraction * _jointStates.at(i).getPosition();
+    if (_ragdollPoints.size() != numStates) {
+        return;
+    }
+
+    // fraction = 0 means keep old position, = 1 means slave 100% to target position
+    const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.05f;
+    float fraction = glm::clamp(deltaTime / RAGDOLL_FOLLOWS_JOINTS_TIMESCALE, 0.0f, 1.0f);
+
+    // SIMPLE LINEAR SLAVING -- KEEP this implementation for reference
+    //float oneMinusFraction = 1.0f - fraction; 
+    //for (int i = 0; i < numStates; ++i) {
+    //    _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
+    //    _ragdollPoints[i]._position = oneMinusFraction * _ragdollPoints[i]._position + fraction * _jointStates.at(i).getPosition();
+    //}
+    // SIMPLE LINEAR SLAVING -- KEEP
+
+    // parent-relative linear slaving
+    for (int i = 0; i < numStates; ++i) {
+        JointState& state = _jointStates[i];
+        _ragdollPoints[i]._lastPosition = _ragdollPoints.at(i)._position;
+
+        int p = state.getParentIndex();
+        if (p == -1) {
+            _ragdollPoints[i]._position = glm::vec3(0.0f);
+            continue;
         }
+        if (state.getDistanceToParent() < EPSILON) {
+            _ragdollPoints[i]._position = _ragdollPoints.at(p)._position;
+            continue;
+        }
+
+        glm::vec3 bone = _ragdollPoints.at(i)._lastPosition - _ragdollPoints.at(p)._lastPosition;
+        const JointState& parentState = _jointStates.at(p);
+        glm::vec3 targetBone = state.getPosition() - parentState.getPosition();
+
+        glm::vec3 newBone = (1.0f - fraction) * bone + fraction * targetBone;
+        float boneLength = glm::length(newBone);
+        if (boneLength > EPSILON) {
+            // slam newBone's length to that of the joint helps maintain distance constraints
+            newBone *= state.getDistanceToParent() / boneLength;
+        }
+        // set the new position relative to parent's new position
+        _ragdollPoints[i]._position = _ragdollPoints.at(p)._position + newBone;
     }
 }
 

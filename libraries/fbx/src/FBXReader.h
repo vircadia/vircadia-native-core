@@ -29,6 +29,8 @@ typedef QList<FBXNode> FBXNodeList;
 
 /// The names of the blendshapes expected by Faceshift, terminated with an empty string.
 extern const char* FACESHIFT_BLENDSHAPES[];
+/// The size of FACESHIFT_BLENDSHAPES
+extern const int NUM_FACESHIFT_BLENDSHAPES;
 
 /// The names of the joints in the Maya HumanIK rig, terminated with an empty string.
 extern const char* HUMANIK_JOINTS[];

@@ -51,7 +51,6 @@ var lastVoxelScale = 0;
 var dragStart = { x: 0, y: 0 };
 var wheelPixelsMoved = 0;
 
-
 var mouseX = 0;
 var mouseY = 0;
 
@@ -168,7 +167,16 @@ var voxelPreview = Overlays.addOverlay("cube", {
                                        lineWidth: 4
                                        });
 
-var linePreviewTop = Overlays.addOverlay("line3d", {
+var linePreviewTop = [];
+var linePreviewBottom = [];
+var linePreviewLeft = [];
+var linePreviewRight = [];
+
+// Currend cursor index
+var currentCursor = 0;
+                        
+function addLineOverlay() {
+    return Overlays.addOverlay("line3d", {
                                          position: { x: 0, y: 0, z: 0},
                                          end: { x: 0, y: 0, z: 0},
                                          color: { red: 255, green: 255, blue: 255},
@@ -176,34 +184,24 @@ var linePreviewTop = Overlays.addOverlay("line3d", {
                                          visible: false,
                                          lineWidth: previewLineWidth
                                          });
+}
+                  
+//Cursor line previews for up to three cursors                  
+linePreviewTop[0] = addLineOverlay();       
+linePreviewTop[1] = addLineOverlay();
+linePreviewTop[2] = addLineOverlay();
 
-var linePreviewBottom = Overlays.addOverlay("line3d", {
-                                            position: { x: 0, y: 0, z: 0},
-                                            end: { x: 0, y: 0, z: 0},
-                                            color: { red: 255, green: 255, blue: 255},
-                                            alpha: 1,
-                                            visible: false,
-                                            lineWidth: previewLineWidth
-                                            });
-
-var linePreviewLeft = Overlays.addOverlay("line3d", {
-                                          position: { x: 0, y: 0, z: 0},
-                                          end: { x: 0, y: 0, z: 0},
-                                          color: { red: 255, green: 255, blue: 255},
-                                          alpha: 1,
-                                          visible: false,
-                                          lineWidth: previewLineWidth
-                                          });
-
-var linePreviewRight = Overlays.addOverlay("line3d", {
-                                           position: { x: 0, y: 0, z: 0},
-                                           end: { x: 0, y: 0, z: 0},
-                                           color: { red: 255, green: 255, blue: 255},
-                                           alpha: 1,
-                                           visible: false,
-                                           lineWidth: previewLineWidth
-                                           });
-
+linePreviewBottom[0] = addLineOverlay();
+linePreviewBottom[1] = addLineOverlay();
+linePreviewBottom[2] = addLineOverlay();
+                                            
+linePreviewLeft[0] = addLineOverlay();
+linePreviewLeft[1] = addLineOverlay();
+linePreviewLeft[2] = addLineOverlay();
+                                          
+linePreviewRight[0] = addLineOverlay();
+linePreviewRight[1] = addLineOverlay();
+linePreviewRight[2] = addLineOverlay();
 
 // these will be used below
 var scaleSelectorWidth = 144;
@@ -829,21 +827,21 @@ function showPreviewLines() {
         var pasteVoxel = getNewPasteVoxel(pickRay);
         
         // X axis
-        Overlays.editOverlay(linePreviewBottom, {
+        Overlays.editOverlay(linePreviewBottom[currentCursor], {
                              position: pasteVoxel.origin,
                              end: {x: pasteVoxel.origin.x + pasteVoxel.voxelSize, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z },
                              visible: true
                              });
         
         // Y axis
-        Overlays.editOverlay(linePreviewRight, {
+        Overlays.editOverlay(linePreviewRight[currentCursor], {
                              position: pasteVoxel.origin,
                              end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y + pasteVoxel.voxelSize, z: pasteVoxel.origin.z },
                              visible: true
                              });
         
         // Z axis
-        Overlays.editOverlay(linePreviewTop, {
+        Overlays.editOverlay(linePreviewTop[currentCursor], {
                              position: pasteVoxel.origin,
                              end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z - pasteVoxel.voxelSize },
                              visible: true
@@ -857,10 +855,10 @@ function showPreviewLines() {
     if (intersection.intersects) {
         resultVoxel = calculateVoxelFromIntersection(intersection,"");
         Overlays.editOverlay(voxelPreview, { visible: false });
-        Overlays.editOverlay(linePreviewTop, { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
-        Overlays.editOverlay(linePreviewBottom, { position: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
-        Overlays.editOverlay(linePreviewLeft, { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
-        Overlays.editOverlay(linePreviewRight, { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
+        Overlays.editOverlay(linePreviewTop[currentCursor], { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
+        Overlays.editOverlay(linePreviewBottom[currentCursor], { position: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
+        Overlays.editOverlay(linePreviewLeft[currentCursor], { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
+        Overlays.editOverlay(linePreviewRight[currentCursor], { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
         colors[0] = {red: intersection.voxel.red, green: intersection.voxel.green , blue: intersection.voxel.blue };
         
         if (copyScale) {
@@ -869,10 +867,10 @@ function showPreviewLines() {
         moveTools();
     } else if (intersection.accurate) {
         Overlays.editOverlay(voxelPreview, { visible: false });
-        Overlays.editOverlay(linePreviewTop, { visible: false });
-        Overlays.editOverlay(linePreviewBottom, { visible: false });
-        Overlays.editOverlay(linePreviewLeft, { visible: false });
-        Overlays.editOverlay(linePreviewRight, { visible: false });
+        Overlays.editOverlay(linePreviewTop[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewBottom[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewLeft[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewRight[currentCursor], { visible: false });
     }
 }
 
@@ -882,20 +880,20 @@ function showPreviewGuides() {
             showPreviewVoxel();
             
             // make sure alternative is hidden
-            Overlays.editOverlay(linePreviewTop, { visible: false });
-            Overlays.editOverlay(linePreviewBottom, { visible: false });
-            Overlays.editOverlay(linePreviewLeft, { visible: false });
-            Overlays.editOverlay(linePreviewRight, { visible: false });
+            Overlays.editOverlay(linePreviewTop[currentCursor], { visible: false });
+            Overlays.editOverlay(linePreviewBottom[currentCursor], { visible: false });
+            Overlays.editOverlay(linePreviewLeft[currentCursor], { visible: false });
+            Overlays.editOverlay(linePreviewRight[currentCursor], { visible: false });
         } else {
             showPreviewLines();
         }
     } else {
         // make sure all previews are off
         Overlays.editOverlay(voxelPreview, { visible: false });
-        Overlays.editOverlay(linePreviewTop, { visible: false });
-        Overlays.editOverlay(linePreviewBottom, { visible: false });
-        Overlays.editOverlay(linePreviewLeft, { visible: false });
-        Overlays.editOverlay(linePreviewRight, { visible: false });
+        Overlays.editOverlay(linePreviewTop[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewBottom[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewLeft[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewRight[currentCursor], { visible: false });
     }
 }
 
@@ -986,6 +984,14 @@ function mousePressEvent(event) {
     }
     if (inspectJsIsRunning) {
         return;
+    }
+    
+    if (event.deviceID == 1500) { // Left Hydra Controller
+        currentCursor = 0;
+    } else if (event.deviceID == 1501) { // Right Hydra Controller
+        currentCursor = 1;
+    } else {
+        currentCursor = 2;
     }
     
     var clickedOnSomething = false;
@@ -1239,9 +1245,17 @@ function menuItemEvent(menuItem) {
     }
 }
 
-function mouseMoveEvent(event, deviceID) {
-    if (deviceID != 0 || !editToolsOn || inspectJsIsRunning) {
-        return;
+function mouseMoveEvent(event) {
+    if (!editToolsOn || inspectJsIsRunning) {
+      return;
+    }
+    
+    if (event.deviceID == 1500) { // Left Hydra Controller
+        currentCursor = 0;
+    } else if (event.deviceID == 1501) { // Right Hydra Controller
+        currentCursor = 1;
+    } else {
+        currentCursor = 2;
     }
     
     // Move Import Preview
@@ -1492,10 +1506,12 @@ Controller.captureKeyEvents({ text: "-" });
 
 function scriptEnding() {
     Overlays.deleteOverlay(voxelPreview);
-    Overlays.deleteOverlay(linePreviewTop);
-    Overlays.deleteOverlay(linePreviewBottom);
-    Overlays.deleteOverlay(linePreviewLeft);
-    Overlays.deleteOverlay(linePreviewRight);
+    for (var i = 0; i < linePreviewTop.length; i++) {
+        Overlays.deleteOverlay(linePreviewTop[i]);
+        Overlays.deleteOverlay(linePreviewBottom[i]);
+        Overlays.deleteOverlay(linePreviewLeft[i]);
+        Overlays.deleteOverlay(linePreviewRight[i]);
+    }
     for (s = 0; s < numColors; s++) {
         Overlays.deleteOverlay(swatches[s]);
     }

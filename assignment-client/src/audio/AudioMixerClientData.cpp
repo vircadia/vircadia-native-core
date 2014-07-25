@@ -90,12 +90,12 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
         switch (packetArrivalInfo._status) {
             case SequenceNumberStats::Early: {
                 int packetsLost = packetArrivalInfo._seqDiffFromExpected;
-                avatarRingBuffer->parseData(packet, packetsLost);
+                avatarRingBuffer->parseDataAndHandleDroppedPackets(packet, packetsLost);
                 break;
             }
             case SequenceNumberStats::OnTime: {
                 // ask the AvatarAudioRingBuffer instance to parse the data
-                avatarRingBuffer->parseData(packet);
+                avatarRingBuffer->parseDataAndHandleDroppedPackets(packet, 0);
                 break;
             }
             default: {
@@ -134,12 +134,12 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
         switch (packetArrivalInfo._status) {
             case SequenceNumberStats::Early: {
                 int packetsLost = packetArrivalInfo._seqDiffFromExpected;
-                matchingInjectedRingBuffer->parseData(packet, packetsLost);
+                matchingInjectedRingBuffer->parseDataAndHandleDroppedPackets(packet, packetsLost);
                 break;
             }
             case SequenceNumberStats::OnTime: {
                 // ask the AvatarAudioRingBuffer instance to parse the data
-                matchingInjectedRingBuffer->parseData(packet);
+                matchingInjectedRingBuffer->parseDataAndHandleDroppedPackets(packet, 0);
                 break;
             }
             default: {

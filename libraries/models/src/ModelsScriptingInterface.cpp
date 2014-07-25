@@ -70,7 +70,7 @@ ModelItemProperties ModelsScriptingInterface::getModelProperties(ModelItemID mod
     if (_modelTree) {
         _modelTree->lockForRead();
         ModelItem* model = const_cast<ModelItem*>(_modelTree->findModelByID(identity.id, true));
-        if (model) {
+        if (model && _modelTree->getGeometryForModel(*model)) {
             model->setSittingPoints(_modelTree->getGeometryForModel(*model)->sittingPoints);
             results.copyFromModelItem(*model);
         } else {
