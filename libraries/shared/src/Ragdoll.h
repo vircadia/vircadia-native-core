@@ -28,11 +28,7 @@ public:
     void applyAccumulatedDelta();
 
     glm::vec3 getAccumulatedDelta() const { 
-        glm::vec3 foo(0.0f); 
-        if (_numDeltas > 0) { 
-            foo = _accumulatedDelta / (float)_numDeltas; 
-        } 
-        return foo; 
+        return (_numDeltas > 0) ?  _accumulatedDelta / (float)_numDeltas : glm::vec3(0.0f);
     }
 
     glm::vec3 _position;

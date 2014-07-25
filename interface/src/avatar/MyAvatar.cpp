@@ -162,9 +162,16 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _jointData.resize(_skeletonModel.getJointStateCount());
-        for (int i = 0; i < _jointData.size(); i++) {
-            JointData& data = _jointData[i];
-            data.valid = _skeletonModel.getJointState(i, data.rotation);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+            for (int i = 0; i < _jointData.size(); i++) {
+                JointData& data = _jointData[i];
+                data.valid = _skeletonModel.getVisibleJointState(i, data.rotation);
+            }
+        } else {
+            for (int i = 0; i < _jointData.size(); i++) {
+                JointData& data = _jointData[i];
+                data.valid = _skeletonModel.getJointState(i, data.rotation);
+            }
         }
     }
 
