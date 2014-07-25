@@ -37,7 +37,7 @@ var WHITE_COLOR = { red: 255, green: 255, blue: 255 };
 var MAX_PASTE_VOXEL_SCALE = 256;
 var MIN_PASTE_VOXEL_SCALE = .256;
 
-var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
+var zFightingSizeAdjustRatio = 0.004; // used to adjust preview voxels to prevent z fighting
 var previewLineWidth = 1.5;
 
 var inspectJsIsRunning = false;
@@ -698,79 +698,99 @@ function calculateVoxelFromIntersection(intersection, operation) {
     if (wantDebug) {
         print("wantAddAdjust="+wantAddAdjust);
     }
+
+    var zFightingSizeAdjust = zFightingSizeAdjustRatio * intersection.distance;
     
     // now we also want to calculate the "edge square" for the face for this voxel
     if (intersection.face == "MIN_X_FACE") {
-        
+
         highlightAt.x = x - zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.x -= voxelSize;
         }
         
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z + voxelSize };
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z + voxelSize };
         
     } else if (intersection.face == "MAX_X_FACE") {
         
         highlightAt.x = x + voxelSize + zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.x += resultVoxel.s;
         }
         
-        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
-        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z + voxelSize };
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z + voxelSize };
         
     } else if (intersection.face == "MIN_Y_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
         highlightAt.y = y - zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.y -= voxelSize;
         }
         
-        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust  };
-        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z  + voxelSize - zFightingSizeAdjust };
-        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.topRight = {x: highlightAt.x , y: highlightAt.y, z: highlightAt.z  };
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x , y: highlightAt.y, z: highlightAt.z  + voxelSize };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z + voxelSize };
         
     } else if (intersection.face == "MAX_Y_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
         highlightAt.y = y + voxelSize + zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.y += voxelSize;
         }
         
-        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust};
-        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z  + voxelSize - zFightingSizeAdjust};
-        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + voxelSize - zFightingSizeAdjust};
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z  + voxelSize};
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z + voxelSize};
         
     } else if (intersection.face == "MIN_Z_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
         highlightAt.z = z - zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.z -= voxelSize;
         }
         
-        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z};
-        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z};
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y + voxelSize, z: highlightAt.z};
         
     } else if (intersection.face == "MAX_Z_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
         highlightAt.z = z + voxelSize + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.z += voxelSize;
         }
         
-        resultVoxel.bottomLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z};
-        resultVoxel.topLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.topRight = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z};
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x + voxelSize, y: highlightAt.y + voxelSize, z: highlightAt.z};
         
     }
     
@@ -847,7 +867,7 @@ function showPreviewLines() {
             scaleSelector.setScale(intersection.voxel.s);
         }
         moveTools();
-    } else {
+    } else if (intersection.accurate) {
         Overlays.editOverlay(voxelPreview, { visible: false });
         Overlays.editOverlay(linePreviewTop, { visible: false });
         Overlays.editOverlay(linePreviewBottom, { visible: false });
@@ -1219,11 +1239,8 @@ function menuItemEvent(menuItem) {
     }
 }
 
-function mouseMoveEvent(event) {
-    if (!editToolsOn) {
-        return;
-    }
-    if (inspectJsIsRunning) {
+function mouseMoveEvent(event, deviceID) {
+    if (deviceID != 0 || !editToolsOn || inspectJsIsRunning) {
         return;
     }
     
