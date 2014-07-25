@@ -1,5 +1,5 @@
 //
-//  CaraManager.h
+//  CaraFaceTracker.h
 //  interface/src/devices
 //
 //  Created by Li Zuwei on 7/22/14.
@@ -9,18 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hi_fi_Cara_h
-#define hi_fi_Cara_h
+#ifndef hi_fi_CaraFaceTracker_h
+#define hi_fi_CaraFaceTracker_h
 
 #include <QUdpSocket>
 
 #include "FaceTracker.h"
 
 /*!
- * \class   CaraManager
+ * \class   CaraFaceTracker
  *
  * \brief   Handles interaction with the Cara software, 
  *          which provides head position/orientation and facial features.
+ * \details By default, opens a udp socket with IPV4_ANY_ADDR with port 36555.
+ *          User needs to run the Cara Face Detection UDP Client with the destination
+ *          host address (eg: 127.0.0.1 for localhost) and destination port 36555.
 **/
 
 class CaraFaceTracker : public FaceTracker
@@ -118,4 +121,4 @@ private:
     int _jawOpenIndex;
 };
 
-#endif //endif hi_fi_CaraManager_h
+#endif //endif hi_fi_CaraFaceTracker_h

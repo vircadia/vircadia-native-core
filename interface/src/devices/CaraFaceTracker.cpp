@@ -1,5 +1,5 @@
 //
-//  CaraManager.cpp
+//  CaraFaceTracker.cpp
 //  interface/src/devices
 //
 //  Created by Li Zuwei on 7/22/14.
@@ -376,6 +376,7 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
     QElapsedTimer timer;
     timer.start();
 
+    //decode the incoming udp packet
     QJsonParseError jsonError;
     CaraPerson person = CaraPacketDecoder::extractOne(buffer, &jsonError);
 
@@ -401,6 +402,22 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
             float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
             float AVERAGE_CARA_FRAME_TIME = 0.033f;
             _headAngularVelocity = theta / AVERAGE_CARA_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
+
+            if(glm::abs(_headAngularVelocity.x) < 1.0f) 
+            {
+                person.pose.pitch = _previousPitch;
+                //qDebug() << "NO change in pitch";
+            }
+            if(glm::abs(person.pose.yaw - _previousYaw) < 2.5f)
+            {
+                qDebug() << "Yaw Diff: " << glm::abs(person.pose.yaw - _previousYaw);
+                person.pose.yaw = _previousYaw;
+            }
+            if(glm::abs(_headAngularVelocity.z) < 1.0f)
+            {
+                //qDebug() << "NO change in roll";
+                person.pose.roll = _previousRoll;
+            }
 
             _previousPitch = person.pose.pitch;
             _previousYaw = person.pose.yaw;
