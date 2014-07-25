@@ -23,8 +23,8 @@ static const QString CLASS_NAME = "ArrayBuffer";
 Q_DECLARE_METATYPE(QByteArray*)
 
 ArrayBufferClass::ArrayBufferClass(ScriptEngine* scriptEngine) :
-QObject(scriptEngine->getEngine()),
-QScriptClass(scriptEngine->getEngine()),
+QObject(scriptEngine),
+QScriptClass(scriptEngine),
 _scriptEngine(scriptEngine) {
     qScriptRegisterMetaType<QByteArray>(engine(), toScriptValue, fromScriptValue);
     QScriptValue global = engine()->globalObject();
