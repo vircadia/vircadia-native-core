@@ -1171,7 +1171,7 @@ function handeMenuEvent(menuItem){
             angles.y = array[index++].value;
             angles.z = array[index++].value;
             selectedModelProperties.modelRotation = Quat.fromVec3Degrees(angles);
-            selectedModelProperties.radius = array[9].value / 2;
+            selectedModelProperties.radius = array[index++].value / 2;
             print(selectedModelProperties.radius);
 
             Models.editModel(selectedModelID, selectedModelProperties);
@@ -1205,6 +1205,7 @@ Controller.keyPressEvent.connect(function(event) {
         somethingChanged = true;
     }
 });
+
 Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "z" || event.text == "Z") {
         zIsPressed = false;
