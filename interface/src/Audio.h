@@ -215,6 +215,9 @@ private:
     // Process received audio
     void processReceivedAudio(const QByteArray& audioByteArray);
 
+    // Pushes frames from the output ringbuffer to the audio output device
+    void pushAudioToOutput();
+
     bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
 

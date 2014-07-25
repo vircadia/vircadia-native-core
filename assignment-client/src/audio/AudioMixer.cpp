@@ -499,14 +499,6 @@ void AudioMixer::run() {
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
 
     while (!_isFinished) {
-        
-        /*foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getLinkedData()) {
-                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(_sourceUnattenuatedZone,
-                                                                                             _listenerUnattenuatedZone);
-            }
-        }*/
-        
         const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
         const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
         
@@ -599,13 +591,6 @@ void AudioMixer::run() {
                 ++_sumListeners;
             }
         }
-        /*
-        // push forward the next output pointers for any audio buffers we used
-        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getLinkedData()) {
-                ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
-            }
-        }*/
         
         ++_numStatFrames;
         

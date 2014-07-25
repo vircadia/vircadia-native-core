@@ -899,6 +899,11 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     // parse audio data
     _ringBuffer.parseData(audioByteArray);
 
+    pushAudioToOutput();
+}
+
+
+void Audio::pushAudioToOutput() {
 
     if (_audioOutput->bytesFree() == _audioOutput->bufferSize()) {
         // the audio output has no samples to play.  set the downstream audio to starved so that it
@@ -906,10 +911,8 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
         _ringBuffer.setToStarved();
     }
 
-
-    
-    float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
-        * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
+    float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float)_outputFormat.sampleRate())
+        * (_desiredOutputFormat.channelCount() / (float)_outputFormat.channelCount());
 
     int numFramesToPush;
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisableQAudioOutputOverflowCheck)) {
@@ -925,89 +928,80 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     AudioRingBuffer::ConstIterator ringBufferNextOutput;
     if (numFramesToPush > 0 && _ringBuffer.popFrames(&ringBufferNextOutput, numFramesToPush, false)) {
 
-        /*int numSamplesNeededToStartPlayback = std::min(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2),
-            _ringBuffer.getSampleCapacity());
-        
-        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
-            //  We are still waiting for enough samples to begin playback
-            // qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
-            _consecutiveNotMixedCount++;
-        } else {*/
-
         int numNetworkOutputSamples = numFramesToPush * NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
         int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
 
-            QByteArray outputBuffer;
-            outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
+        QByteArray outputBuffer;
+        outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
 
 
-            int16_t* ringBufferSamples = new int16_t[numNetworkOutputSamples];
-            if (_processSpatialAudio) {
-                unsigned int sampleTime = _spatialAudioStart;
-                QByteArray buffer;
-                buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
+        int16_t* ringBufferSamples = new int16_t[numNetworkOutputSamples];
+        if (_processSpatialAudio) {
+            unsigned int sampleTime = _spatialAudioStart;
+            QByteArray buffer;
+            buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
 
-                ringBufferNextOutput.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
+            ringBufferNextOutput.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
 
-                // Accumulate direct transmission of audio from sender to receiver
-                if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
-                    emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
-                    addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
-                }
-
-                // Send audio off for spatial processing
-                emit processInboundAudio(sampleTime, buffer, _desiredOutputFormat);
-
-                // copy the samples we'll resample from the spatial audio ring buffer - this also
-                // pushes the read pointer of the spatial audio ring buffer forwards
-                _spatialAudioRingBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
-
-                // Advance the start point for the next packet of audio to arrive
-                _spatialAudioStart += numNetworkOutputSamples / _desiredOutputFormat.channelCount();
-            } else {
-                // copy the samples we'll resample from the ring buffer - this also
-                // pushes the read pointer of the ring buffer forwards
-                ringBufferNextOutput.readSamples(ringBufferSamples, numNetworkOutputSamples);
+            // Accumulate direct transmission of audio from sender to receiver
+            if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
+                emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
+                addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
             }
 
-            // copy the packet from the RB to the output
-            linearResampling(ringBufferSamples,
-                             (int16_t*) outputBuffer.data(),
-                             numNetworkOutputSamples,
-                             numDeviceOutputSamples,
-                             _desiredOutputFormat, _outputFormat);
+            // Send audio off for spatial processing
+            emit processInboundAudio(sampleTime, buffer, _desiredOutputFormat);
 
-            if (_outputDevice) {
-                _outputDevice->write(outputBuffer);
+            // copy the samples we'll resample from the spatial audio ring buffer - this also
+            // pushes the read pointer of the spatial audio ring buffer forwards
+            _spatialAudioRingBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
+
+            // Advance the start point for the next packet of audio to arrive
+            _spatialAudioStart += numNetworkOutputSamples / _desiredOutputFormat.channelCount();
+        } else {
+            // copy the samples we'll resample from the ring buffer - this also
+            // pushes the read pointer of the ring buffer forwards
+            ringBufferNextOutput.readSamples(ringBufferSamples, numNetworkOutputSamples);
+        }
+
+        // copy the packet from the RB to the output
+        linearResampling(ringBufferSamples,
+            (int16_t*)outputBuffer.data(),
+            numNetworkOutputSamples,
+            numDeviceOutputSamples,
+            _desiredOutputFormat, _outputFormat);
+
+        if (_outputDevice) {
+            _outputDevice->write(outputBuffer);
+        }
+
+        if (_scopeEnabled && !_scopeEnabledPause) {
+            unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
+            int16_t* samples = ringBufferSamples;
+            for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
+
+                unsigned int audioChannel = 0;
+                addBufferToScope(
+                    _scopeOutputLeft,
+                    _scopeOutputOffset,
+                    samples, audioChannel, numAudioChannels);
+
+                audioChannel = 1;
+                addBufferToScope(
+                    _scopeOutputRight,
+                    _scopeOutputOffset,
+                    samples, audioChannel, numAudioChannels);
+
+                _scopeOutputOffset += NETWORK_SAMPLES_PER_FRAME;
+                _scopeOutputOffset %= _samplesPerScope;
+                samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
             }
+        }
 
-            if (_scopeEnabled && !_scopeEnabledPause) {
-                unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
-                int16_t* samples = ringBufferSamples;
-                for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
-
-                    unsigned int audioChannel = 0;
-                    addBufferToScope(
-                        _scopeOutputLeft, 
-                        _scopeOutputOffset, 
-                        samples, audioChannel, numAudioChannels); 
-
-                    audioChannel = 1;
-                    addBufferToScope(
-                        _scopeOutputRight, 
-                        _scopeOutputOffset, 
-                        samples, audioChannel, numAudioChannels); 
-                
-                    _scopeOutputOffset += NETWORK_SAMPLES_PER_FRAME;
-                    _scopeOutputOffset %= _samplesPerScope;
-                    samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
-                }
-            }
-
-            delete[] ringBufferSamples;
-        //}
+        delete[] ringBufferSamples;
     }
 }
+
 
 void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
 
