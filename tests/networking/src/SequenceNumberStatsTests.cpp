@@ -254,8 +254,7 @@ void SequenceNumberStatsTests::pruneTest() {
             numSent++;
             numEarly++;
             numLost += 10;
-
-            const QSet<quint16>& missingSet = stats.getMissingSet();
+            
             assert(missingSet.size() <= 1000);
 
             for (int i = 0; i < 10; i++) {
