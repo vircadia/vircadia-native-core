@@ -35,16 +35,14 @@ class MetavoxelSystem : public MetavoxelClientManager {
 
 public:
 
-    const AttributePointer& getPointBufferAttribute() const { return _pointBufferAttribute; }
-
     virtual void init();
 
     virtual MetavoxelLOD getLOD();
     
+    const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
+    
     void simulate(float deltaTime);
     void render();
-
-    Q_INVOKABLE void setClientPoints(const SharedNodePointer& node, const BufferPointVector& points);
 
 protected:
 
@@ -53,9 +51,6 @@ protected:
 private:
     
     void guideToAugmented(MetavoxelVisitor& visitor);
-    
-    static ProgramObject _program;
-    static int _pointScaleLocation;
     
     AttributePointer _pointBufferAttribute;
     
@@ -81,10 +76,6 @@ public:
     
     MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelUpdater* updater);
     
-    void render();
-
-    void setPoints(const BufferPointVector& points);
-
     Q_INVOKABLE void setAugmentedData(const MetavoxelData& data);
     
     /// Returns a copy of the augmented data.  This function is thread-safe.
@@ -99,9 +90,6 @@ protected:
 
 private:
     
-    QOpenGLBuffer _buffer;
-    int _pointCount;
-    
     MetavoxelData _augmentedData;
     QReadWriteLock _augmentedDataLock;
 };
@@ -110,12 +98,13 @@ private:
 class PointBuffer : public QSharedData {
 public:
 
-    PointBuffer(const QOpenGLBuffer& buffer, const QVector<int>& offsets, int lastLeafCount);
+    PointBuffer(const QVector<BufferPointVectorPair>& levelPoints);
 
     void render(int level);
 
 private:
     
+    QVector<BufferPointVectorPair> _levelPoints;
     QOpenGLBuffer _buffer;
     QVector<int> _offsets;
     int _lastLeafCount;
@@ -142,10 +131,17 @@ class PointMetavoxelRendererImplementation : public MetavoxelRendererImplementat
 
 public:
     
+    static void init();
+    
     Q_INVOKABLE PointMetavoxelRendererImplementation();
     
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
+
+private:
+
+    static ProgramObject _program;
+    static int _pointScaleLocation;    
 };
 
 /// Base class for spanner renderers; provides clipping.
