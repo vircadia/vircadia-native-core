@@ -118,14 +118,19 @@ if (typeof DataView.prototype.string !== "function") {
 var modelUploader = (function () {
     var that = {},
         urlBase = "http://public.highfidelity.io/meshes/",
+        modelFile,
         fstBuffer,
         fbxBuffer,
         svoBuffer,
-        mapping = {},
+        mapping,
         NAME_FIELD = "name",
         SCALE_FIELD = "scale",
         FILENAME_FIELD = "filename",
         TEXDIR_FIELD = "texdir",
+        ANIMATION_URL_FIELD = "animationurl",
+        PITCH_FIELD = "pitch",
+        YAW_FIELD = "yaw",
+        ROLL_FIELD = "roll",
         fbxDataView;
 
     function error(message) {
@@ -253,41 +258,41 @@ var modelUploader = (function () {
         return geometry;
     }
 
-    function readModel(filename) {
-        var url,
-            req,
-            fbxFilename,
+    function readModel() {
+        var fbxFilename,
             geometry;
 
-        print("Reading model file: " + filename);
+        print("Reading model file: " + modelFile);
 
-        if (filename.toLowerCase().slice(-4) === ".svo") {
-            svoBuffer = readFile(filename);
+        mapping = {};
+
+        if (modelFile.toLowerCase().slice(-4) === ".svo") {
+            svoBuffer = readFile(modelFile);
             if (svoBuffer === null) {
                 return false;
             }
 
         } else {
 
-            if (filename.toLowerCase().slice(-4) === ".fst") {
-                fstBuffer = readFile(filename);
+            if (modelFile.toLowerCase().slice(-4) === ".fst") {
+                fstBuffer = readFile(modelFile);
                 if (fstBuffer === null) {
                     return false;
                 }
                 mapping = readMapping(fstBuffer);
                 if (mapping.hasOwnProperty(FILENAME_FIELD)) {
-                    fbxFilename = filename.path() + "\\" + mapping[FILENAME_FIELD];
+                    fbxFilename = modelFile.path() + "\\" + mapping[FILENAME_FIELD];
                 } else {
                     error("FBX file name not found in FST file!");
                     return false;
                 }
 
-            } else if (filename.toLowerCase().slice(-4) === ".fbx") {
-                fbxFilename = filename;
-                mapping[FILENAME_FIELD] = filename.fileName();
+            } else if (modelFile.toLowerCase().slice(-4) === ".fbx") {
+                fbxFilename = modelFile;
+                mapping[FILENAME_FIELD] = modelFile.fileName();
 
             } else {
-                error("Unrecognized file type: " + filename);
+                error("Unrecognized file type: " + modelFile);
                 return false;
             }
 
@@ -304,7 +309,7 @@ var modelUploader = (function () {
 
         // Add any missing basic mappings
         if (!mapping.hasOwnProperty(NAME_FIELD)) {
-            mapping[NAME_FIELD] = filename.fileName().slice(0, -4);
+            mapping[NAME_FIELD] = modelFile.fileName().slice(0, -4);
         }
         if (!mapping.hasOwnProperty(TEXDIR_FIELD)) {
             mapping[TEXDIR_FIELD] = ".";
@@ -317,7 +322,50 @@ var modelUploader = (function () {
     }
 
     function setProperties() {
-        print("Setting model properties");
+        var form = [],
+            decimals = 3,
+            directory,
+            displayAs,
+            validateAs;
+
+        form.push({ label: "Name:", value: mapping[NAME_FIELD] });
+
+        directory = modelFile.path() + "/" + mapping[TEXDIR_FIELD];
+        displayAs = new RegExp("^" + modelFile.path().replace(/[\\\\\\\/]/, "[\\\\\\\/]") + "[\\\\\\\/](.*)");
+        validateAs = new RegExp("^" + modelFile.path().replace(/[\\\\\\\/]/, "[\\\\\\\/]") + "([\\\\\\\/].*)?");
+
+        form.push({
+            label: "Texture directory:",
+            directory: modelFile.path() + "/" + mapping[TEXDIR_FIELD],
+            title: "Choose Texture Directory",
+            displayAs: displayAs,
+            validateAs: validateAs,
+            errorMessage: "Texture directory must be subdirectory of model directory."
+        });
+
+        form.push({ label: "Animation URL:", value: "" });
+        form.push({ label: "Pitch:", value: (0).toFixed(decimals) });
+        form.push({ label: "Yaw:", value: (0).toFixed(decimals) });
+        form.push({ label: "Roll:", value: (0).toFixed(decimals) });
+        form.push({ label: "Scale:", value: mapping[SCALE_FIELD].toFixed(decimals) });
+        form.push({ button: "Cancel" });
+
+        if (!Window.form("Set Model Properties", form)) {
+            print("User cancelled uploading model");
+            return false;
+        }
+
+        mapping[NAME_FIELD] = form[0].value;
+        mapping[TEXDIR_FIELD] = form[1].directory.slice(modelFile.path().length + 1);
+        if (mapping[TEXDIR_FIELD] === "") {
+            mapping[TEXDIR_FIELD] = ".";
+        }
+        mapping[ANIMATION_URL_FIELD] = form[2].value;
+        mapping[PITCH_FIELD] = form[3].value;
+        mapping[YAW_FIELD] = form[4].value;
+        mapping[ROLL_FIELD] = form[5].value;
+        mapping[SCALE_FIELD] = form[6].value;
+
         return true;
     }
 
@@ -356,10 +404,11 @@ var modelUploader = (function () {
     }
 
     that.upload = function (file, callback) {
+        modelFile = file;
         var url = urlBase + file.fileName();
 
         // Read model content ...
-        if (!readModel(file)) {
+        if (!readModel()) {
             return;
         }
 
