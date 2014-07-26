@@ -1618,23 +1618,25 @@ function handeMenuEvent(menuItem){
             array.push({ label: "Yaw:", value: angles.y.toFixed(decimals) });
             array.push({ label: "Roll:", value: angles.z.toFixed(decimals) });
             array.push({ label: "Scale:", value: 2 * selectedModelProperties.radius.toFixed(decimals) });
-            
-            var propertyName = Window.form("Edit Properties", array);
-            modelSelected = false;
-            
-            selectedModelProperties.modelURL = array[0].value;
-            selectedModelProperties.animationURL = array[1].value;
-            selectedModelProperties.position.x = array[2].value;
-            selectedModelProperties.position.y = array[3].value;
-            selectedModelProperties.position.z = array[4].value;
-            angles.x = array[5].value;
-            angles.y = array[6].value;
-            angles.z = array[7].value;
-            selectedModelProperties.modelRotation = Quat.fromVec3Degrees(angles);
-            selectedModelProperties.radius = array[8].value / 2;
-            print(selectedModelProperties.radius);
+            array.push({ button: "Cancel" });
 
-            Models.editModel(selectedModelID, selectedModelProperties);
+            if (Window.form("Edit Properties", array)) {
+                selectedModelProperties.modelURL = array[0].value;
+                selectedModelProperties.animationURL = array[1].value;
+                selectedModelProperties.position.x = array[2].value;
+                selectedModelProperties.position.y = array[3].value;
+                selectedModelProperties.position.z = array[4].value;
+                angles.x = array[5].value;
+                angles.y = array[6].value;
+                angles.z = array[7].value;
+                selectedModelProperties.modelRotation = Quat.fromVec3Degrees(angles);
+                selectedModelProperties.radius = array[8].value / 2;
+                print(selectedModelProperties.radius);
+
+                Models.editModel(selectedModelID, selectedModelProperties);
+            }
+
+            modelSelected = false;
         }
     }
     tooltip.show(false);
