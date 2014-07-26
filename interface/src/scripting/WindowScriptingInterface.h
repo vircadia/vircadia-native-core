@@ -40,9 +40,12 @@ private slots:
     QScriptValue showPrompt(const QString& message, const QString& defaultText);
     QScriptValue showBrowse(const QString& title, const QString& directory, const QString& nameFilter);
     QScriptValue showS3Browse(const QString& nameFilter);
+    void chooseDirectory();
     
 private:
     WindowScriptingInterface();
+
+    QString jsRegExp2QtRegExp(QString string);
 };
 
 #endif // hifi_WindowScriptingInterface_h
