@@ -123,8 +123,8 @@ bool InboundAudioStream::popFrames(int numFrames, bool starveOnFail) {
             // if starveOnFail is true
             if (starveOnFail) {
                 starved();
+                _consecutiveNotMixedCount++;
             }
-            _consecutiveNotMixedCount++;
             _lastPopSucceeded = false;
         }
     }
