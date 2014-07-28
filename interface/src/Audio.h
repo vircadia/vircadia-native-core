@@ -58,6 +58,7 @@ public:
     virtual void startDrumSound(float volume, float frequency, float duration, float decay);
 
     void overrideDesiredJitterBufferFramesTo(int desired) { _receivedAudioStream.overrideDesiredJitterBufferFramesTo(desired); }
+    void unoverrideDesiredJitterBufferFrames() { _receivedAudioStream.unoverrideDesiredJitterBufferFrames(); }
     int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
     
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }

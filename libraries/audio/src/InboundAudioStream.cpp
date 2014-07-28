@@ -17,6 +17,7 @@ InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacit
     _lastPopSucceeded(false),
     _lastPopOutput(),
     _dynamicJitterBuffers(dynamicJitterBuffers),
+    _dynamicJitterBuffersOverride(false),
     _useStDevForJitterCalc(useStDevForJitterCalc),
     _calculatedJitterBufferFramesUsingMaxGap(0),
     _calculatedJitterBufferFramesUsingStDev(0),
@@ -147,8 +148,15 @@ void InboundAudioStream::starved() {
 }
 
 void InboundAudioStream::overrideDesiredJitterBufferFramesTo(int desired) {
-    _dynamicJitterBuffers = false;
+    _dynamicJitterBuffersOverride = true;
     _desiredJitterBufferFrames = desired;
+}
+
+void InboundAudioStream::unoverrideDesiredJitterBufferFrames() {
+    _dynamicJitterBuffersOverride = false;
+    if (!_dynamicJitterBuffers) {
+        _desiredJitterBufferFrames = 1;
+    }
 }
 
 int InboundAudioStream::clampDesiredJitterBufferFramesValue(int desired) const {
@@ -177,7 +185,7 @@ SequenceNumberStats::ArrivalInfo InboundAudioStream::frameReceivedUpdateNetworkS
             _calculatedJitterBufferFramesUsingMaxGap = ceilf((float)_interframeTimeGapStatsForJitterCalc.getWindowMax() / USECS_PER_FRAME);
             _interframeTimeGapStatsForJitterCalc.clearNewStatsAvailableFlag();
 
-            if (_dynamicJitterBuffers && !_useStDevForJitterCalc) {
+            if (_dynamicJitterBuffers && !_dynamicJitterBuffersOverride && !_useStDevForJitterCalc) {
                 _desiredJitterBufferFrames = clampDesiredJitterBufferFramesValue(_calculatedJitterBufferFramesUsingMaxGap);
             }
         }
@@ -187,10 +195,10 @@ SequenceNumberStats::ArrivalInfo InboundAudioStream::frameReceivedUpdateNetworkS
         const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
         if (_stdev.getSamples() > STANDARD_DEVIATION_SAMPLE_COUNT) {
             const float NUM_STANDARD_DEVIATIONS = 3.0f;
-            _calculatedJitterBufferFramesUsingStDev = (int)ceilf(2 * (NUM_STANDARD_DEVIATIONS * _stdev.getStDev()) / USECS_PER_FRAME) + 1;
+            _calculatedJitterBufferFramesUsingStDev = (int)ceilf(NUM_STANDARD_DEVIATIONS * _stdev.getStDev() / USECS_PER_FRAME) + 1;
             _stdev.reset();
 
-            if (_dynamicJitterBuffers && _useStDevForJitterCalc) {
+            if (_dynamicJitterBuffers && !_dynamicJitterBuffersOverride && _useStDevForJitterCalc) {
                 _desiredJitterBufferFrames = clampDesiredJitterBufferFramesValue(_calculatedJitterBufferFramesUsingStDev);
             }
         }
