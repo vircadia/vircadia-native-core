@@ -18,6 +18,7 @@
 #include <Ragdoll.h>
 
 class Avatar;
+class MuscleConstraint;
 
 /// A skeleton loaded from a model.
 class SkeletonModel : public Model, public Ragdoll {
@@ -100,6 +101,7 @@ public:
     virtual void stepRagdollForward(float deltaTime);
 
     void moveShapesTowardJoints(float fraction);
+    void updateMuscles();
 
     void computeBoundingShape(const FBXGeometry& geometry);
     void renderBoundingCollisionShapes(float alpha);
@@ -144,6 +146,7 @@ private:
 
     CapsuleShape _boundingShape;
     glm::vec3 _boundingShapeLocalOffset;
+    QVector<MuscleConstraint*> _muscleConstraints;
 };
 
 #endif // hifi_SkeletonModel_h
