@@ -22,8 +22,8 @@ public:
     AudioMixerClientData();
     ~AudioMixerClientData();
     
-    const QHash<QUuid, PositionalAudioStream*>& getRingBuffers() const { return _ringBuffers; }
-    AvatarAudioStream* getAvatarAudioRingBuffer() const;
+    const QHash<QUuid, PositionalAudioStream*>& getAudioStreams() const { return _audioStreams; }
+    AvatarAudioStream* getAvatarAudioStream() const;
     
     int parseData(const QByteArray& packet);
 
@@ -39,7 +39,7 @@ public:
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
 private:
-    QHash<QUuid, PositionalAudioStream*> _ringBuffers;     // mic stream stored under key of null UUID
+    QHash<QUuid, PositionalAudioStream*> _audioStreams;     // mic stream stored under key of null UUID
 
     quint16 _outgoingMixedAudioSequenceNumber;
 

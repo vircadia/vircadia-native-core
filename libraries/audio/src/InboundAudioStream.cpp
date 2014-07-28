@@ -146,6 +146,11 @@ void InboundAudioStream::starved() {
     _starveCount++;
 }
 
+void InboundAudioStream::overrideDesiredJitterBufferFramesTo(int desired) {
+    _dynamicJitterBuffers = false;
+    _desiredJitterBufferFrames = desired;
+}
+
 int InboundAudioStream::clampDesiredJitterBufferFramesValue(int desired) const {
     const int MIN_FRAMES_DESIRED = 0;
     const int MAX_FRAMES_DESIRED = _ringBuffer.getFrameCapacity();
@@ -244,13 +249,13 @@ AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
     streamStats._timeGapWindowMax = _interframeTimeGapStatsForStatsPacket.getWindowMax();
     streamStats._timeGapWindowAverage = _interframeTimeGapStatsForStatsPacket.getWindowAverage();
 
-    streamStats._ringBufferFramesAvailable = _ringBuffer.framesAvailable();
-    streamStats._ringBufferFramesAvailableAverage = _framesAvailableStats.getWindowAverage();
-    streamStats._ringBufferDesiredJitterBufferFrames = _desiredJitterBufferFrames;
-    streamStats._ringBufferStarveCount = _starveCount;
-    streamStats._ringBufferConsecutiveNotMixedCount = _consecutiveNotMixedCount;
-    streamStats._ringBufferOverflowCount = _ringBuffer.getOverflowCount();
-    streamStats._ringBufferSilentFramesDropped = _silentFramesDropped;
+    streamStats._framesAvailable = _ringBuffer.framesAvailable();
+    streamStats._framesAvailableAverage = _framesAvailableStats.getWindowAverage();
+    streamStats._desiredJitterBufferFrames = _desiredJitterBufferFrames;
+    streamStats._starveCount = _starveCount;
+    streamStats._consecutiveNotMixedCount = _consecutiveNotMixedCount;
+    streamStats._overflowCount = _ringBuffer.getOverflowCount();
+    streamStats._silentFramesDropped = _silentFramesDropped;
 
     streamStats._packetStreamStats = _incomingSequenceNumberStats.getStats();
     streamStats._packetStreamWindowStats = _incomingSequenceNumberStats.getStatsForHistoryWindow();

@@ -40,9 +40,9 @@ public slots:
     static bool getUseDynamicJitterBuffers() { return _useDynamicJitterBuffers; }
 
 private:
-    /// adds one buffer to the mix for a listening node
-    void addBufferToMixForListeningNodeWithBuffer(PositionalAudioStream* bufferToAdd,
-                                                  AvatarAudioStream* listeningNodeBuffer);
+    /// adds one stream to the mix for a listening node
+    void addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
+                                                  AvatarAudioStream* listeningNodeStream);
     
     /// prepares and sends a mix to one Node
     void prepareMixForListeningNode(Node* node);

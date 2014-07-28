@@ -62,6 +62,8 @@ public:
 
     void setToStarved();
 
+    /// turns off dyanmic jitter buffers and sets the desired jitter buffer frames to specified value
+    void overrideDesiredJitterBufferFramesTo(int desired);
 
     /// this function should be called once per second to ensure the seq num stats history spans ~30 seconds
     AudioStreamStats updateSeqHistoryAndGetAudioStreamStats();
@@ -95,7 +97,10 @@ public:
 private:
     void starved();
 
+    SequenceNumberStats::ArrivalInfo frameReceivedUpdateNetworkStats(quint16 sequenceNumber, const QUuid& senderUUID);
     int clampDesiredJitterBufferFramesValue(int desired) const;
+
+    int writeSamplesForDroppedPackets(int numSamples);
 
 protected:
     // disallow copying of InboundAudioStream objects
@@ -110,9 +115,7 @@ protected:
     virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) = 0;
 
     int writeDroppableSilentSamples(int numSilentSamples);
-    int writeSamplesForDroppedPackets(int numSamples);
-    SequenceNumberStats::ArrivalInfo frameReceivedUpdateNetworkStats(quint16 sequenceNumber, const QUuid& senderUUID);
-
+    
 protected:
 
     AudioRingBuffer _ringBuffer;
@@ -120,7 +123,7 @@ protected:
     bool _lastPopSucceeded;
     AudioRingBuffer::ConstIterator _lastPopOutput;
 
-    const bool _dynamicJitterBuffers;
+    bool _dynamicJitterBuffers;
     bool _useStDevForJitterCalc;
     
     int _calculatedJitterBufferFramesUsingMaxGap;

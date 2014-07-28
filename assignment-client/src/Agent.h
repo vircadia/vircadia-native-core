@@ -30,7 +30,7 @@
 #include <VoxelEditPacketSender.h>
 #include <VoxelTreeHeadlessViewer.h>
 
-#include "InboundMixedAudioStream.h"
+#include "MixedAudioStream.h"
 
 
 class Agent : public ThreadedAssignment {
@@ -71,7 +71,7 @@ private:
     VoxelTreeHeadlessViewer _voxelViewer;
     ModelTreeHeadlessViewer _modelViewer;
     
-    InboundMixedAudioStream _receivedAudioBuffer;
+    MixedAudioStream _receivedAudioStream;
     float _lastReceivedAudioLoudness;
 
     AvatarHashMap _avatarHashMap;

@@ -36,7 +36,7 @@ Agent::Agent(const QByteArray& packet) :
     _voxelEditSender(),
     _particleEditSender(),
     _modelEditSender(),
-    _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 1, false),
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 1, false),
     _avatarHashMap()
 {
     // be the parent of the script engine so it gets moved when we do
@@ -148,11 +148,11 @@ void Agent::readPendingDatagrams() {
 
             } else if (datagramPacketType == PacketTypeMixedAudio) {
 
-                _receivedAudioBuffer.parseData(receivedPacket);
+                _receivedAudioStream.parseData(receivedPacket);
 
-                _lastReceivedAudioLoudness = _receivedAudioBuffer.getNextOutputFrameLoudness();
+                _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
 
-                _receivedAudioBuffer.clearBuffer();
+                _receivedAudioStream.clearBuffer();
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer

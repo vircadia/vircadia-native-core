@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_InjectedAudioRingBuffer_h
-#define hifi_InjectedAudioRingBuffer_h
+#ifndef hifi_InjectedAudioStream_h
+#define hifi_InjectedAudioStream_h
 
 #include <QtCore/QUuid>
 
@@ -39,4 +39,4 @@ private:
     float _attenuationRatio;
 };
 
-#endif // hifi_InjectedAudioRingBuffer_h
+#endif // hifi_InjectedAudioStream_h

@@ -25,13 +25,13 @@ public:
         _timeGapWindowMin(0),
         _timeGapWindowMax(0),
         _timeGapWindowAverage(0.0f),
-        _ringBufferFramesAvailable(0),
-        _ringBufferFramesAvailableAverage(0),
-        _ringBufferDesiredJitterBufferFrames(0),
-        _ringBufferStarveCount(0),
-        _ringBufferConsecutiveNotMixedCount(0),
-        _ringBufferOverflowCount(0),
-        _ringBufferSilentFramesDropped(0),
+        _framesAvailable(0),
+        _framesAvailableAverage(0),
+        _desiredJitterBufferFrames(0),
+        _starveCount(0),
+        _consecutiveNotMixedCount(0),
+        _overflowCount(0),
+        _silentFramesDropped(0),
         _packetStreamStats(),
         _packetStreamWindowStats()
     {}
@@ -46,13 +46,13 @@ public:
     quint64 _timeGapWindowMax;
     float _timeGapWindowAverage;
 
-    quint32 _ringBufferFramesAvailable;
-    quint16 _ringBufferFramesAvailableAverage;
-    quint16 _ringBufferDesiredJitterBufferFrames;
-    quint32 _ringBufferStarveCount;
-    quint32 _ringBufferConsecutiveNotMixedCount;
-    quint32 _ringBufferOverflowCount;
-    quint32 _ringBufferSilentFramesDropped;
+    quint32 _framesAvailable;
+    quint16 _framesAvailableAverage;
+    quint16 _desiredJitterBufferFrames;
+    quint32 _starveCount;
+    quint32 _consecutiveNotMixedCount;
+    quint32 _overflowCount;
+    quint32 _silentFramesDropped;
 
     PacketStreamStats _packetStreamStats;
     PacketStreamStats _packetStreamWindowStats;

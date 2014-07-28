@@ -61,7 +61,7 @@ const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 
-void attachNewBufferToNode(Node *newNode) {
+void attachNewNodeDataToNode(Node *newNode) {
     if (!newNode->getLinkedData()) {
         newNode->setLinkedData(new AudioMixerClientData());
     }
@@ -93,19 +93,19 @@ const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
 const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
 
-void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioStream* bufferToAdd,
-                                                          AvatarAudioStream* listeningNodeBuffer) {
+void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
+                                                          AvatarAudioStream* listeningNodeStream) {
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
     int numSamplesDelay = 0;
     float weakChannelAmplitudeRatio = 1.0f;
     
-    bool shouldAttenuate = (bufferToAdd != listeningNodeBuffer);
+    bool shouldAttenuate = (streamToAdd != listeningNodeStream);
     
     if (shouldAttenuate) {
         
-        // if the two buffer pointers do not match then these are different buffers
-        glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();
+        // if the two stream pointers do not match then these are different streams
+        glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
         
         float distanceBetween = glm::length(relativePosition);
         
@@ -113,7 +113,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioStream*
             distanceBetween = EPSILON;
         }
         
-        if (bufferToAdd->getNextOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
+        if (streamToAdd->getNextOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
             // according to mixer performance we have decided this does not get to be mixed in
             // bail out
             return;
@@ -121,24 +121,24 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioStream*
         
         ++_sumMixes;
         
-        if (bufferToAdd->getListenerUnattenuatedZone()) {
-            shouldAttenuate = !bufferToAdd->getListenerUnattenuatedZone()->contains(listeningNodeBuffer->getPosition());
+        if (streamToAdd->getListenerUnattenuatedZone()) {
+            shouldAttenuate = !streamToAdd->getListenerUnattenuatedZone()->contains(listeningNodeStream->getPosition());
         }
         
-        if (bufferToAdd->getType() == PositionalAudioStream::Injector) {
-            attenuationCoefficient *= reinterpret_cast<InjectedAudioStream*>(bufferToAdd)->getAttenuationRatio();
+        if (streamToAdd->getType() == PositionalAudioStream::Injector) {
+            attenuationCoefficient *= reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
         }
         
         shouldAttenuate = shouldAttenuate && distanceBetween > ATTENUATION_EPSILON_DISTANCE;
         
         if (shouldAttenuate) {
-            glm::quat inverseOrientation = glm::inverse(listeningNodeBuffer->getOrientation());
+            glm::quat inverseOrientation = glm::inverse(listeningNodeStream->getOrientation());
             
             float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
             float radius = 0.0f;
             
-            if (bufferToAdd->getType() == PositionalAudioStream::Injector) {
-                radius = reinterpret_cast<InjectedAudioStream*>(bufferToAdd)->getRadius();
+            if (streamToAdd->getType() == PositionalAudioStream::Injector) {
+                radius = reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getRadius();
             }
             
             if (radius == 0 || (distanceSquareToSource > radius * radius)) {
@@ -154,7 +154,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioStream*
                     
                 } else {
                     // calculate the angle delivery for off-axis attenuation
-                    glm::vec3 rotatedListenerPosition = glm::inverse(bufferToAdd->getOrientation()) * relativePosition;
+                    glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd->getOrientation()) * relativePosition;
                     
                     float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
                                                        glm::normalize(rotatedListenerPosition));
@@ -203,16 +203,16 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioStream*
         }
     }
     
-    AudioRingBuffer::ConstIterator bufferPopOutput = bufferToAdd->getLastPopOutput();
+    AudioRingBuffer::ConstIterator streamPopOutput = streamToAdd->getLastPopOutput();
     
-    if (!bufferToAdd->isStereo() && shouldAttenuate) {
-        // this is a mono buffer, which means it gets full attenuation and spatialization
+    if (!streamToAdd->isStereo() && shouldAttenuate) {
+        // this is a mono stream, which means it gets full attenuation and spatialization
         
         // if the bearing relative angle to source is > 0 then the delayed channel is the right one
         int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
         int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
         
-        int16_t correctBufferSample[2], delayBufferSample[2];
+        int16_t correctStreamSample[2], delayStreamSample[2];
         int delayedChannelIndex = 0;
         
         const int SINGLE_STEREO_OFFSET = 2;
@@ -220,52 +220,51 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioStream*
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
             
             // setup the int16_t variables for the two sample sets
-            correctBufferSample[0] = bufferPopOutput[s / 2] * attenuationCoefficient;
-            correctBufferSample[1] = bufferPopOutput[(s / 2) + 1] * attenuationCoefficient;
+            correctStreamSample[0] = streamPopOutput[s / 2] * attenuationCoefficient;
+            correctStreamSample[1] = streamPopOutput[(s / 2) + 1] * attenuationCoefficient;
             
             delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
             
-            delayBufferSample[0] = correctBufferSample[0] * weakChannelAmplitudeRatio;
-            delayBufferSample[1] = correctBufferSample[1] * weakChannelAmplitudeRatio;
+            delayStreamSample[0] = correctStreamSample[0] * weakChannelAmplitudeRatio;
+            delayStreamSample[1] = correctStreamSample[1] * weakChannelAmplitudeRatio;
             
-            _clientSamples[s + goodChannelOffset] += correctBufferSample[0];
-            _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET] += correctBufferSample[1];
-            _clientSamples[delayedChannelIndex] += delayBufferSample[0];
-            _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] += delayBufferSample[1];
+            _clientSamples[s + goodChannelOffset] += correctStreamSample[0];
+            _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET] += correctStreamSample[1];
+            _clientSamples[delayedChannelIndex] += delayStreamSample[0];
+            _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] += delayStreamSample[1];
         }
         
         if (numSamplesDelay > 0) {
-            // if there was a sample delay for this buffer, we need to pull samples prior to the nextOutput
+            // if there was a sample delay for this stream, we need to pull samples prior to the popped output
             // to stick at the beginning
             float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
-            AudioRingBuffer::ConstIterator delayBufferPopOutput = bufferPopOutput - numSamplesDelay;
+            AudioRingBuffer::ConstIterator delayStreamPopOutput = streamPopOutput - numSamplesDelay;
 
-            // TODO: delayBufferPopOutput may be inside the last frame written if the ringbuffer is completely full
+            // TODO: delayStreamPopOutput may be inside the last frame written if the ringbuffer is completely full
             // maybe make AudioRingBuffer have 1 extra frame in its buffer
             
             for (int i = 0; i < numSamplesDelay; i++) {
                 int parentIndex = i * 2;
-                _clientSamples[parentIndex + delayedChannelOffset] += *delayBufferPopOutput * attenuationAndWeakChannelRatio;
-                ++delayBufferPopOutput;
+                _clientSamples[parentIndex + delayedChannelOffset] += *delayStreamPopOutput * attenuationAndWeakChannelRatio;
+                ++delayStreamPopOutput;
             }
         }
     } else {
-
-        int stereoDivider = bufferToAdd->isStereo() ? 1 : 2;
+        int stereoDivider = streamToAdd->isStereo() ? 1 : 2;
 
         if (!shouldAttenuate) {
             attenuationCoefficient = 1.0f;
         }
 
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
-            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(bufferPopOutput[s / stereoDivider] * attenuationCoefficient),
+            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationCoefficient),
                                             MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
     }
 }
 
 void AudioMixer::prepareMixForListeningNode(Node* node) {
-    AvatarAudioStream* nodeRingBuffer = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer();
+    AvatarAudioStream* nodeAudioStream = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioStream();
 
     // zero out the client mix for this node
     memset(_clientSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
@@ -278,16 +277,16 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
 
-            const QHash<QUuid, PositionalAudioStream*>& otherNodeRingBuffers = otherNodeClientData->getRingBuffers();
+            const QHash<QUuid, PositionalAudioStream*>& otherNodeAudioStreams = otherNodeClientData->getAudioStreams();
             QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
-            for (i = otherNodeRingBuffers.begin(); i != otherNodeRingBuffers.constEnd(); i++) {
-                PositionalAudioStream* otherNodeBuffer = i.value();
+            for (i = otherNodeAudioStreams.begin(); i != otherNodeAudioStreams.constEnd(); i++) {
+                PositionalAudioStream* otherNodeStream = i.value();
 
-                if ((*otherNode != *node || otherNodeBuffer->shouldLoopbackForNode())
-                    && otherNodeBuffer->lastPopSucceeded()
-                    && otherNodeBuffer->getNextOutputTrailingLoudness() > 0.0f) {
+                if ((*otherNode != *node || otherNodeStream->shouldLoopbackForNode())
+                    && otherNodeStream->lastPopSucceeded()
+                    && otherNodeStream->getNextOutputTrailingLoudness() > 0.0f) {
 
-                    addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
+                    addStreamToMixForListeningNodeWithStream(otherNodeStream, nodeAudioStream);
                 }
             }
         }
@@ -392,7 +391,7 @@ void AudioMixer::run() {
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    nodeList->linkedDataCreateCallback = attachNewBufferToNode;
+    nodeList->linkedDataCreateCallback = attachNewNodeDataToNode;
     
     // setup a NetworkAccessManager to ask the domain-server for our settings
     NetworkAccessManager& networkManager = NetworkAccessManager::getInstance();
@@ -554,7 +553,7 @@ void AudioMixer::run() {
                 nodeData->audioStreamsPopFrameForMixing();
 
                 if (node->getType() == NodeType::Agent
-                    && ((AudioMixerClientData*)node->getLinkedData())->getAvatarAudioRingBuffer()) {
+                    && ((AudioMixerClientData*)node->getLinkedData())->getAvatarAudioStream()) {
 
                     prepareMixForListeningNode(node.data());
 

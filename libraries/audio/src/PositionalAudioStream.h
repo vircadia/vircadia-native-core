@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_PositionalAudioRingBuffer_h
-#define hifi_PositionalAudioRingBuffer_h
+#ifndef hifi_PositionalAudioStream_h
+#define hifi_PositionalAudioStream_h
 
 #include <glm/gtx/quaternion.hpp>
 #include <AABox.h>
@@ -71,4 +71,4 @@ protected:
     AABox* _listenerUnattenuatedZone;
 };
 
-#endif // hifi_PositionalAudioRingBuffer_h
+#endif // hifi_PositionalAudioStream_h

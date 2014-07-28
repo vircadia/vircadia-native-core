@@ -103,10 +103,6 @@ const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simul
                                                  //  in the idle loop?  (60 FPS is default)
 static QTimer* idleTimer = NULL;
 
-const int STARTUP_JITTER_SAMPLES = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / 2;
-                                                 //  Startup optimistically with small jitter buffer that
-                                                 //  will start playback on the second received audio packet.
-
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
@@ -162,7 +158,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _audio(STARTUP_JITTER_SAMPLES),
+        _audio(),
         _enableProcessVoxelsThread(true),
         _octreeProcessor(),
         _voxelHideShowThread(&_voxels),
@@ -1712,8 +1708,8 @@ void Application::init() {
     _lastTimeUpdated.start();
 
     Menu::getInstance()->loadSettings();
-    if (Menu::getInstance()->getAudioJitterBufferSamples() != 0) {
-        _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
+    if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
+        _audio.overrideDesiredJitterBufferFramesTo(Menu::getInstance()->getAudioJitterBufferFrames());
     }
     qDebug("Loaded settings");
 

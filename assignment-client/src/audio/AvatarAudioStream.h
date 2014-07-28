@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_AvatarAudioRingBuffer_h
-#define hifi_AvatarAudioRingBuffer_h
+#ifndef hifi_AvatarAudioStream_h
+#define hifi_AvatarAudioStream_h
 
 #include <QtCore/QUuid>
 
@@ -29,4 +29,4 @@ private:
     int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
 };
 
-#endif // hifi_AvatarAudioRingBuffer_h
+#endif // hifi_AvatarAudioStream_h

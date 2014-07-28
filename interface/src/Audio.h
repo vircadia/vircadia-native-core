@@ -33,7 +33,7 @@
 #include <AbstractAudioInterface.h>
 #include <StdDev.h>
 
-#include "InboundMixedAudioStream.h"
+#include "MixedAudioStream.h"
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -46,19 +46,19 @@ class Audio : public AbstractAudioInterface {
     Q_OBJECT
 public:
     // setup for audio I/O
-    Audio(int16_t initialJitterBufferSamples, QObject* parent = 0);
+    Audio(QObject* parent = 0);
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
     void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
-        
-    void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
-    int getJitterBufferSamples() { return _jitterBufferSamples; }
     
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
     virtual void startDrumSound(float volume, float frequency, float duration, float decay);
+
+    void overrideDesiredJitterBufferFramesTo(int desired) { _receivedAudioStream.overrideDesiredJitterBufferFramesTo(desired); }
+    int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
     
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
     
@@ -87,7 +87,7 @@ public:
 public slots:
     void start();
     void stop();
-    void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
+    void addReceivedAudioToStream(const QByteArray& audioByteArray);
     void parseAudioStreamStatsPacket(const QByteArray& packet);
     void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
     void handleAudioInput();
@@ -120,8 +120,6 @@ public slots:
 
     float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
-    
-    int getDesiredJitterBufferFrames() const { return _jitterBufferSamples / _ringBuffer.getNumFrameSamples(); }
 
     const AudioStreamStats& getAudioMixerAvatarStreamAudioStats() const { return _audioMixerAvatarStreamAudioStats; }
     const QHash<QUuid, AudioStreamStats>& getAudioMixerInjectedStreamAudioStatsMap() const { return _audioMixerInjectedStreamAudioStatsMap; }
@@ -151,7 +149,7 @@ private:
     QAudioOutput* _proceduralAudioOutput;
     QIODevice* _proceduralOutputDevice;
     AudioRingBuffer _inputRingBuffer;
-    InboundMixedAudioStream _ringBuffer;
+    MixedAudioStream _receivedAudioStream;
     bool _isStereoInput;
 
     QString _inputAudioDeviceName;
@@ -160,8 +158,6 @@ private:
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
     float _averagedLatency;
-    float _measuredJitter;
-    int16_t _jitterBufferSamples;
     float _lastInputLoudness;
     float _timeSinceLastClip;
     float _dcOffset;
