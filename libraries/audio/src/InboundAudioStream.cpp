@@ -195,7 +195,7 @@ SequenceNumberStats::ArrivalInfo InboundAudioStream::frameReceivedUpdateNetworkS
         const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
         if (_stdev.getSamples() > STANDARD_DEVIATION_SAMPLE_COUNT) {
             const float NUM_STANDARD_DEVIATIONS = 3.0f;
-            _calculatedJitterBufferFramesUsingStDev = (int)ceilf(NUM_STANDARD_DEVIATIONS * _stdev.getStDev() / USECS_PER_FRAME) + 1;
+            _calculatedJitterBufferFramesUsingStDev = (int)ceilf(NUM_STANDARD_DEVIATIONS * _stdev.getStDev() / USECS_PER_FRAME);
             _stdev.reset();
 
             if (_dynamicJitterBuffers && !_dynamicJitterBuffersOverride && _useStDevForJitterCalc) {
