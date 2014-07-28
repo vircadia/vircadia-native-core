@@ -804,7 +804,7 @@ function mousePressEvent(event) {
         }
         
     } else if (browser == toolBar.clicked(clickedOverlay)) {
-        var url = Window.s3Browse();
+        var url = Window.s3Browse(".*(fbx|FBX)");
         if (url == null || url == "") {
             return;
         }

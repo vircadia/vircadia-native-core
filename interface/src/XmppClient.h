@@ -9,25 +9,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef HAVE_QXMPP
-
 #ifndef hifi_XmppClient_h
 #define hifi_XmppClient_h
 
 #include <QObject>
+
+#ifdef HAVE_QXMPP
 #include <QXmppClient.h>
 #include <QXmppMucManager.h>
+#endif
 
 /// Generalized threaded processor for handling received inbound packets. 
 class XmppClient : public QObject {
     Q_OBJECT
-
 public:
     static XmppClient& getInstance();
 
+#ifdef HAVE_QXMPP
     QXmppClient& getXMPPClient() { return _xmppClient; }
     const QXmppMucRoom* getPublicChatRoom() const { return _publicChatRoom; }
-
+#endif
+    
 signals:
     void joinedPublicChatRoom();
 
@@ -43,11 +45,11 @@ private:
     XmppClient(XmppClient const& other); // not implemented
     void operator=(XmppClient const& other); // not implemented
 
+#ifdef HAVE_QXMPP
     QXmppClient _xmppClient;
     QXmppMucManager _xmppMUCManager;
     QXmppMucRoom* _publicChatRoom;
+#endif
 };
-
-#endif // __interface__XmppClient__
 
 #endif // hifi_XmppClient_h

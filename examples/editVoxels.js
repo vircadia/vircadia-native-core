@@ -37,7 +37,7 @@ var WHITE_COLOR = { red: 255, green: 255, blue: 255 };
 var MAX_PASTE_VOXEL_SCALE = 256;
 var MIN_PASTE_VOXEL_SCALE = .256;
 
-var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
+var zFightingSizeAdjustRatio = 0.004; // used to adjust preview voxels to prevent z fighting
 var previewLineWidth = 1.5;
 
 var inspectJsIsRunning = false;
@@ -50,7 +50,6 @@ var lastVoxelColor = { red: 0, green: 0, blue: 0 };
 var lastVoxelScale = 0;
 var dragStart = { x: 0, y: 0 };
 var wheelPixelsMoved = 0;
-
 
 var mouseX = 0;
 var mouseY = 0;
@@ -168,7 +167,16 @@ var voxelPreview = Overlays.addOverlay("cube", {
                                        lineWidth: 4
                                        });
 
-var linePreviewTop = Overlays.addOverlay("line3d", {
+var linePreviewTop = [];
+var linePreviewBottom = [];
+var linePreviewLeft = [];
+var linePreviewRight = [];
+
+// Currend cursor index
+var currentCursor = 0;
+                        
+function addLineOverlay() {
+    return Overlays.addOverlay("line3d", {
                                          position: { x: 0, y: 0, z: 0},
                                          end: { x: 0, y: 0, z: 0},
                                          color: { red: 255, green: 255, blue: 255},
@@ -176,34 +184,24 @@ var linePreviewTop = Overlays.addOverlay("line3d", {
                                          visible: false,
                                          lineWidth: previewLineWidth
                                          });
+}
+                  
+//Cursor line previews for up to three cursors                  
+linePreviewTop[0] = addLineOverlay();       
+linePreviewTop[1] = addLineOverlay();
+linePreviewTop[2] = addLineOverlay();
 
-var linePreviewBottom = Overlays.addOverlay("line3d", {
-                                            position: { x: 0, y: 0, z: 0},
-                                            end: { x: 0, y: 0, z: 0},
-                                            color: { red: 255, green: 255, blue: 255},
-                                            alpha: 1,
-                                            visible: false,
-                                            lineWidth: previewLineWidth
-                                            });
-
-var linePreviewLeft = Overlays.addOverlay("line3d", {
-                                          position: { x: 0, y: 0, z: 0},
-                                          end: { x: 0, y: 0, z: 0},
-                                          color: { red: 255, green: 255, blue: 255},
-                                          alpha: 1,
-                                          visible: false,
-                                          lineWidth: previewLineWidth
-                                          });
-
-var linePreviewRight = Overlays.addOverlay("line3d", {
-                                           position: { x: 0, y: 0, z: 0},
-                                           end: { x: 0, y: 0, z: 0},
-                                           color: { red: 255, green: 255, blue: 255},
-                                           alpha: 1,
-                                           visible: false,
-                                           lineWidth: previewLineWidth
-                                           });
-
+linePreviewBottom[0] = addLineOverlay();
+linePreviewBottom[1] = addLineOverlay();
+linePreviewBottom[2] = addLineOverlay();
+                                            
+linePreviewLeft[0] = addLineOverlay();
+linePreviewLeft[1] = addLineOverlay();
+linePreviewLeft[2] = addLineOverlay();
+                                          
+linePreviewRight[0] = addLineOverlay();
+linePreviewRight[1] = addLineOverlay();
+linePreviewRight[2] = addLineOverlay();
 
 // these will be used below
 var scaleSelectorWidth = 144;
@@ -698,79 +696,99 @@ function calculateVoxelFromIntersection(intersection, operation) {
     if (wantDebug) {
         print("wantAddAdjust="+wantAddAdjust);
     }
+
+    var zFightingSizeAdjust = zFightingSizeAdjustRatio * intersection.distance;
     
     // now we also want to calculate the "edge square" for the face for this voxel
     if (intersection.face == "MIN_X_FACE") {
-        
+
         highlightAt.x = x - zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.x -= voxelSize;
         }
         
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z + voxelSize };
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z + voxelSize };
         
     } else if (intersection.face == "MAX_X_FACE") {
         
         highlightAt.x = x + voxelSize + zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.x += resultVoxel.s;
         }
         
-        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
-        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z + voxelSize };
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z + voxelSize };
         
     } else if (intersection.face == "MIN_Y_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
         highlightAt.y = y - zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.y -= voxelSize;
         }
         
-        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust  };
-        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z  + voxelSize - zFightingSizeAdjust };
-        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.topRight = {x: highlightAt.x , y: highlightAt.y, z: highlightAt.z  };
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x , y: highlightAt.y, z: highlightAt.z  + voxelSize };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z + voxelSize };
         
     } else if (intersection.face == "MAX_Y_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
         highlightAt.y = y + voxelSize + zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.y += voxelSize;
         }
         
-        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust};
-        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z  + voxelSize - zFightingSizeAdjust};
-        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + voxelSize - zFightingSizeAdjust};
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z  + voxelSize};
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z + voxelSize};
         
     } else if (intersection.face == "MIN_Z_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
         highlightAt.z = z - zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.z -= voxelSize;
         }
         
-        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z};
-        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z};
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y + voxelSize, z: highlightAt.z};
         
     } else if (intersection.face == "MAX_Z_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
         highlightAt.z = z + voxelSize + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.z += voxelSize;
         }
         
-        resultVoxel.bottomLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z};
-        resultVoxel.topLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.topRight = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z};
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x + voxelSize, y: highlightAt.y + voxelSize, z: highlightAt.z};
         
     }
     
@@ -809,21 +827,21 @@ function showPreviewLines() {
         var pasteVoxel = getNewPasteVoxel(pickRay);
         
         // X axis
-        Overlays.editOverlay(linePreviewBottom, {
+        Overlays.editOverlay(linePreviewBottom[currentCursor], {
                              position: pasteVoxel.origin,
                              end: {x: pasteVoxel.origin.x + pasteVoxel.voxelSize, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z },
                              visible: true
                              });
         
         // Y axis
-        Overlays.editOverlay(linePreviewRight, {
+        Overlays.editOverlay(linePreviewRight[currentCursor], {
                              position: pasteVoxel.origin,
                              end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y + pasteVoxel.voxelSize, z: pasteVoxel.origin.z },
                              visible: true
                              });
         
         // Z axis
-        Overlays.editOverlay(linePreviewTop, {
+        Overlays.editOverlay(linePreviewTop[currentCursor], {
                              position: pasteVoxel.origin,
                              end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z - pasteVoxel.voxelSize },
                              visible: true
@@ -837,22 +855,22 @@ function showPreviewLines() {
     if (intersection.intersects) {
         resultVoxel = calculateVoxelFromIntersection(intersection,"");
         Overlays.editOverlay(voxelPreview, { visible: false });
-        Overlays.editOverlay(linePreviewTop, { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
-        Overlays.editOverlay(linePreviewBottom, { position: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
-        Overlays.editOverlay(linePreviewLeft, { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
-        Overlays.editOverlay(linePreviewRight, { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
+        Overlays.editOverlay(linePreviewTop[currentCursor], { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
+        Overlays.editOverlay(linePreviewBottom[currentCursor], { position: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
+        Overlays.editOverlay(linePreviewLeft[currentCursor], { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
+        Overlays.editOverlay(linePreviewRight[currentCursor], { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
         colors[0] = {red: intersection.voxel.red, green: intersection.voxel.green , blue: intersection.voxel.blue };
         
         if (copyScale) {
             scaleSelector.setScale(intersection.voxel.s);
         }
         moveTools();
-    } else {
+    } else if (intersection.accurate) {
         Overlays.editOverlay(voxelPreview, { visible: false });
-        Overlays.editOverlay(linePreviewTop, { visible: false });
-        Overlays.editOverlay(linePreviewBottom, { visible: false });
-        Overlays.editOverlay(linePreviewLeft, { visible: false });
-        Overlays.editOverlay(linePreviewRight, { visible: false });
+        Overlays.editOverlay(linePreviewTop[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewBottom[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewLeft[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewRight[currentCursor], { visible: false });
     }
 }
 
@@ -862,20 +880,20 @@ function showPreviewGuides() {
             showPreviewVoxel();
             
             // make sure alternative is hidden
-            Overlays.editOverlay(linePreviewTop, { visible: false });
-            Overlays.editOverlay(linePreviewBottom, { visible: false });
-            Overlays.editOverlay(linePreviewLeft, { visible: false });
-            Overlays.editOverlay(linePreviewRight, { visible: false });
+            Overlays.editOverlay(linePreviewTop[currentCursor], { visible: false });
+            Overlays.editOverlay(linePreviewBottom[currentCursor], { visible: false });
+            Overlays.editOverlay(linePreviewLeft[currentCursor], { visible: false });
+            Overlays.editOverlay(linePreviewRight[currentCursor], { visible: false });
         } else {
             showPreviewLines();
         }
     } else {
         // make sure all previews are off
         Overlays.editOverlay(voxelPreview, { visible: false });
-        Overlays.editOverlay(linePreviewTop, { visible: false });
-        Overlays.editOverlay(linePreviewBottom, { visible: false });
-        Overlays.editOverlay(linePreviewLeft, { visible: false });
-        Overlays.editOverlay(linePreviewRight, { visible: false });
+        Overlays.editOverlay(linePreviewTop[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewBottom[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewLeft[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewRight[currentCursor], { visible: false });
     }
 }
 
@@ -966,6 +984,14 @@ function mousePressEvent(event) {
     }
     if (inspectJsIsRunning) {
         return;
+    }
+    
+    if (event.deviceID == 1500) { // Left Hydra Controller
+        currentCursor = 0;
+    } else if (event.deviceID == 1501) { // Right Hydra Controller
+        currentCursor = 1;
+    } else {
+        currentCursor = 2;
     }
     
     var clickedOnSomething = false;
@@ -1220,11 +1246,16 @@ function menuItemEvent(menuItem) {
 }
 
 function mouseMoveEvent(event) {
-    if (!editToolsOn) {
-        return;
+    if (!editToolsOn || inspectJsIsRunning) {
+      return;
     }
-    if (inspectJsIsRunning) {
-        return;
+    
+    if (event.deviceID == 1500) { // Left Hydra Controller
+        currentCursor = 0;
+    } else if (event.deviceID == 1501) { // Right Hydra Controller
+        currentCursor = 1;
+    } else {
+        currentCursor = 2;
     }
     
     // Move Import Preview
@@ -1475,10 +1506,12 @@ Controller.captureKeyEvents({ text: "-" });
 
 function scriptEnding() {
     Overlays.deleteOverlay(voxelPreview);
-    Overlays.deleteOverlay(linePreviewTop);
-    Overlays.deleteOverlay(linePreviewBottom);
-    Overlays.deleteOverlay(linePreviewLeft);
-    Overlays.deleteOverlay(linePreviewRight);
+    for (var i = 0; i < linePreviewTop.length; i++) {
+        Overlays.deleteOverlay(linePreviewTop[i]);
+        Overlays.deleteOverlay(linePreviewBottom[i]);
+        Overlays.deleteOverlay(linePreviewLeft[i]);
+        Overlays.deleteOverlay(linePreviewRight[i]);
+    }
     for (s = 0; s < numColors; s++) {
         Overlays.deleteOverlay(swatches[s]);
     }

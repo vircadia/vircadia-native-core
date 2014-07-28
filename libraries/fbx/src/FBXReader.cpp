@@ -577,6 +577,8 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     ""
 };
 
+const int NUM_FACESHIFT_BLENDSHAPES = sizeof(FACESHIFT_BLENDSHAPES) / sizeof(char*);
+
 const char* HUMANIK_JOINTS[] = {
     "RightHand",
     "RightForeArm",

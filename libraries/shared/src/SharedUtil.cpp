@@ -733,6 +733,13 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
         }
     } else {
         axis = glm::normalize(glm::cross(v1, v2));
+        // It is possible for axis to be nan even when angle is not less than EPSILON.
+        // For example when angle is small but not tiny but v1 and v2 and have very short lengths.
+        if (glm::isnan(glm::dot(axis, axis))) {
+            // set angle and axis to values that will generate an identity rotation
+            angle = 0.0f;
+            axis = glm::vec3(1.0f, 0.0f, 0.0f);
+        }
     }
     return glm::angleAxis(angle, axis);
 }
