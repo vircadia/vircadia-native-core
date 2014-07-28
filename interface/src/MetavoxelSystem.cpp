@@ -244,7 +244,7 @@ PointBuffer::PointBuffer(const BufferPointVector& points) :
 }
 
 void PointBuffer::render() {
-    // initalize buffer, etc. on first render
+    // initialize buffer, etc. on first render
     if (!_buffer.isCreated()) {
         _buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
         _buffer.create();
