@@ -940,6 +940,12 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
     
+    // allow sub-handlers to handle requests that do not require authentication
+    if (_settingsManager.handlePublicHTTPRequest(connection, url)) {
+        return true;
+    }
+    
+    // all requests below require a cookie to prove authentication so check that first
     if (!isAuthenticatedRequest(connection, url)) {
         // this is not an authenticated request
         // return true from the handler since it was handled with a 401 or re-direct to auth
@@ -1186,7 +1192,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     }
 
     // didn't process the request, let our DomainServerSettingsManager or HTTPManager handle
-    return _settingsManager.handleHTTPRequest(connection, url);
+    return _settingsManager.handleAuthenticatedHTTPRequest(connection, url);
 }
 
 const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";

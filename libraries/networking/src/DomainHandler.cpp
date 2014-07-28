@@ -11,6 +11,7 @@
 
 #include <QtCore/QJsonDocument>
 
+#include "Assignment.h"
 #include "NodeList.h"
 #include "PacketHeaders.h"
 #include "UserActivityLogger.h"
@@ -133,10 +134,9 @@ void DomainHandler::requestDomainSettings() const {
     settingsJSONURL.setScheme("http");
     settingsJSONURL.setHost(_hostname);
     settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
-    settingsJSONURL.setPath("/settings.json");
-    settingsJSONURL.setQuery(QString("type=%1").arg(NodeList::getInstance()->getOwnerType()));
-    
-    qDebug() << settingsJSONURL;
+    settingsJSONURL.setPath("/settingz.json/");
+    Assignment::Type assignmentType = Assignment::typeForNodeType(NodeList::getInstance()->getOwnerType());
+    settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
     
     QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(settingsJSONURL));
     connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
@@ -147,11 +147,12 @@ const int MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS = 5;
 void DomainHandler::settingsRequestFinished() {
     QNetworkReply* settingsReply = reinterpret_cast<QNetworkReply*>(sender());
     
-    if (settingsReply->error() == QNetworkReply::NoError) {
+    int replyCode = settingsReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    
+    if (settingsReply->error() == QNetworkReply::NoError && replyCode != 301 && replyCode != 302) {
         // parse the JSON to a QJsonObject and save it
         _settingsObject = QJsonDocument::fromJson(settingsReply->readAll()).object();
         
-        qDebug() << settingsReply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
         qDebug() << "Received domain settings.";
         
         // reset failed settings requests to 0, we got them
@@ -165,9 +166,9 @@ void DomainHandler::settingsRequestFinished() {
             qDebug() << "Failed to retreive domain-server settings" << MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS << "times. Re-setting connection to domain.";
             clearSettings();
             clearConnectionInfo();
-        }
-        
-        requestDomainSettings();
+        } else {
+            requestDomainSettings();
+        }        
     }
 }
 

@@ -47,24 +47,8 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
 const QString DESCRIPTION_SETTINGS_KEY = "settings";
 const QString SETTING_DEFAULT_KEY = "default";
 
-bool DomainServerSettingsManager::handleHTTPRequest(HTTPConnection* connection, const QUrl &url) {
-    if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == "/settings.json") {
-        // this is a POST operation to change one or more settings
-        QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
-        QJsonObject postedObject = postedDocument.object();
-        
-        // we recurse one level deep below each group for the appropriate setting
-        recurseJSONObjectAndOverwriteSettings(postedObject, _settingsMap, _descriptionObject);
-        
-        // store whatever the current _settingsMap is to file
-        persistToFile();
-        
-        // return success to the caller
-        QString jsonSuccess = "{\"status\": \"success\"}";
-        connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
-        
-        return true;
-    } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == "/settings.json") {
+bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connection, const QUrl &url) {
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == "/settings.json") {
         // this is a GET operation for our settings
         
         // check if there is a query parameter for settings affecting a particular type of assignment
@@ -129,6 +113,28 @@ bool DomainServerSettingsManager::handleHTTPRequest(HTTPConnection* connection, 
         }
         
         connection->respond(HTTPConnection::StatusCode200, QJsonDocument(responseObject).toJson(), "application/json");
+        return true;
+    }
+    
+    return false;
+}
+
+bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection *connection, const QUrl &url) {
+    if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == "/settings.json") {
+        // this is a POST operation to change one or more settings
+        QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
+        QJsonObject postedObject = postedDocument.object();
+        
+        // we recurse one level deep below each group for the appropriate setting
+        recurseJSONObjectAndOverwriteSettings(postedObject, _settingsMap, _descriptionObject);
+        
+        // store whatever the current _settingsMap is to file
+        persistToFile();
+        
+        // return success to the caller
+        QString jsonSuccess = "{\"status\": \"success\"}";
+        connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
+        
         return true;
     }
     
