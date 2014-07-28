@@ -242,8 +242,8 @@ Menu::Menu() :
 
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     toggleChat();
-    connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
-    connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
+    connect(&xmppClient, &QXmppClient::connected, this, &Menu::toggleChat);
+    connect(&xmppClient, &QXmppClient::disconnected, this, &Menu::toggleChat);
 
     QDir::setCurrent(Application::resourcesPath());
     // init chat window to listen chat
@@ -592,6 +592,12 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_U,
                                            false);
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
+                                            0,
+                                            false,
+                                            appInstance->getAudio(),
+                                            SLOT(toggleStats()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, true);
 

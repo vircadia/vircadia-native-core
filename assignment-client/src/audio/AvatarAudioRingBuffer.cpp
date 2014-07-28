@@ -18,7 +18,7 @@ AvatarAudioRingBuffer::AvatarAudioRingBuffer(bool isStereo, bool dynamicJitterBu
     
 }
 
-int AvatarAudioRingBuffer::parseData(const QByteArray& packet, int packetsSkipped) {
+int AvatarAudioRingBuffer::parseDataAndHandleDroppedPackets(const QByteArray& packet, int packetsSkipped) {
     frameReceivedUpdateTimingStats();
 
     _shouldLoopbackForNode = (packetTypeForPacket(packet) == PacketTypeMicrophoneAudioWithEcho);

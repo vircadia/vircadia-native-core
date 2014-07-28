@@ -46,7 +46,10 @@ if (WIN32)
   unset(_programfiles)
   set(_OPENSSL_ROOT_HINTS_AND_PATHS HINTS ${_OPENSSL_ROOT_HINTS} PATHS ${_OPENSSL_ROOT_PATHS})
 else ()
-  set(_OPENSSL_ROOT_HINTS_AND_PATHS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl)
+  include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+  hifi_library_search_hints("openssl")
+  
+  set(_OPENSSL_ROOT_HINTS_AND_PATHS ${OPENSSL_SEARCH_DIRS})
 endif ()
 
 find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_INCLUDEDIR} PATH_SUFFIXES include)
@@ -228,4 +231,4 @@ else ()
   )
 endif ()
 
-mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES)
+mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES OPENSSL_SEARCH_DIRS)
