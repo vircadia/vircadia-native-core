@@ -128,18 +128,21 @@ void DomainHandler::setIsConnected(bool isConnected) {
 }
 
 void DomainHandler::requestDomainSettings() const {
-    
-    // setup the URL required to grab settings JSON
-    QUrl settingsJSONURL;
-    settingsJSONURL.setScheme("http");
-    settingsJSONURL.setHost(_hostname);
-    settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
-    settingsJSONURL.setPath("/settingz.json/");
-    Assignment::Type assignmentType = Assignment::typeForNodeType(NodeList::getInstance()->getOwnerType());
-    settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
-    
-    QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(settingsJSONURL));
-    connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
+    if (_settingsObject.isEmpty()) {
+        // setup the URL required to grab settings JSON
+        QUrl settingsJSONURL;
+        settingsJSONURL.setScheme("http");
+        settingsJSONURL.setHost(_hostname);
+        settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
+        settingsJSONURL.setPath("/settings.json");
+        Assignment::Type assignmentType = Assignment::typeForNodeType(NodeList::getInstance()->getOwnerType());
+        settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
+        
+        qDebug() << "Requesting domain-server settings at" << settingsJSONURL.toString();
+        
+        QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(settingsJSONURL));
+        connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
+    }
 }
 
 const int MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS = 5;
@@ -154,6 +157,7 @@ void DomainHandler::settingsRequestFinished() {
         _settingsObject = QJsonDocument::fromJson(settingsReply->readAll()).object();
         
         qDebug() << "Received domain settings.";
+        emit settingsRequestComplete(true);
         
         // reset failed settings requests to 0, we got them
         _failedSettingsRequests = 0;
@@ -166,6 +170,7 @@ void DomainHandler::settingsRequestFinished() {
             qDebug() << "Failed to retreive domain-server settings" << MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS << "times. Re-setting connection to domain.";
             clearSettings();
             clearConnectionInfo();
+            emit settingsRequestComplete(false);
         } else {
             requestDomainSettings();
         }        

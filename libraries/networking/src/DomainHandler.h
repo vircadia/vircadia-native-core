@@ -58,6 +58,7 @@ public:
     
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings() const;
+    const QJsonObject& getSettingsObject() const { return _settingsObject; }
     
     void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
     
@@ -67,6 +68,8 @@ private slots:
 signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);
+    
+    void settingsRequestComplete(bool wasSuccessful);
     
 private:
     void reset();
