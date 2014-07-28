@@ -279,8 +279,8 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
 
             const QHash<QUuid, PositionalAudioRingBuffer*>& otherNodeRingBuffers = otherNodeClientData->getRingBuffers();
-            QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i, end = otherNodeRingBuffers.constEnd();
-            for (i = otherNodeRingBuffers.begin(); i != end; i++) {
+            QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i;
+            for (i = otherNodeRingBuffers.begin(); i != otherNodeRingBuffers.constEnd(); i++) {
                 PositionalAudioRingBuffer* otherNodeBuffer = i.value();
 
                 if ((*otherNode != *node || otherNodeBuffer->shouldLoopbackForNode())

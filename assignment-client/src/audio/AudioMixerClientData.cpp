@@ -28,8 +28,7 @@ AudioMixerClientData::AudioMixerClientData() :
 
 AudioMixerClientData::~AudioMixerClientData() {
     QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i;
-    QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator end = _ringBuffers.constEnd();
-    for (i = _ringBuffers.constBegin(); i != end; i++) {
+    for (i = _ringBuffers.constBegin(); i != _ringBuffers.constEnd(); i++) {
         // delete this attached InboundAudioStream
         delete i.value();
     }
@@ -101,8 +100,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
 void AudioMixerClientData::audioStreamsPopFrameForMixing() {
     QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i;
-    QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator end = _ringBuffers.constEnd();
-    for (i = _ringBuffers.constBegin(); i != end; i++) {
+    for (i = _ringBuffers.constBegin(); i != _ringBuffers.constEnd(); i++) {
         i.value()->popFrames(1);
     }
 }
@@ -227,8 +225,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
     }
     
     QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i;
-    QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator end = _ringBuffers.constEnd();
-    for (i = _ringBuffers.constBegin(); i != end; i++) {
+    for (i = _ringBuffers.constBegin(); i != _ringBuffers.constEnd; i++) {
         if (i.value()->getType() == PositionalAudioRingBuffer::Injector) {
             AudioStreamStats streamStats = i.value()->getAudioStreamStats();
             result += " UPSTREAM.inj.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
