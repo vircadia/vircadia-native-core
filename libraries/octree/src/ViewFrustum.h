@@ -28,7 +28,7 @@ const float DEFAULT_FIELD_OF_VIEW_DEGREES = 90.0f;
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.f;
 const float DEFAULT_ASPECT_RATIO = 16.f/9.f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
-const float DEFAULT_FAR_CLIP = 50.0f * TREE_SCALE;
+const float DEFAULT_FAR_CLIP = TREE_SCALE;
 
 class ViewFrustum {
 public:
