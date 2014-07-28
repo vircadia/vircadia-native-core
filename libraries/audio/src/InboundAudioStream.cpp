@@ -149,7 +149,7 @@ void InboundAudioStream::starved() {
 
 void InboundAudioStream::overrideDesiredJitterBufferFramesTo(int desired) {
     _dynamicJitterBuffersOverride = true;
-    _desiredJitterBufferFrames = desired;
+    _desiredJitterBufferFrames = clampDesiredJitterBufferFramesValue(desired);
 }
 
 void InboundAudioStream::unoverrideDesiredJitterBufferFrames() {
