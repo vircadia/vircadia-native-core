@@ -52,6 +52,8 @@ Avatar::Avatar() :
     _lastVelocity(0.0f, 0.0f, 0.0f),
     _acceleration(0.0f, 0.0f, 0.0f),
     _angularVelocity(0.0f, 0.0f, 0.0f),
+    _lastAngularVelocity(0.0f, 0.0f, 0.0f),
+    _angularAcceleration(0.0f, 0.0f, 0.0f),
     _lastOrientation(),
     _leanScale(0.5f),
     _scale(1.0f),
@@ -60,7 +62,6 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
-    _numLocalLights(0),
     _initialized(false),
     _shouldRenderBillboard(true)
 {
@@ -151,7 +152,8 @@ void Avatar::simulate(float deltaTime) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
             PerformanceTimer perfTimer("hair");
             _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setAngularVelocity(getAngularVelocity() + getHead()->getAngularVelocity() * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
             _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
             _hair.simulate(deltaTime);
         }
@@ -187,6 +189,7 @@ void Avatar::updateAcceleration(float deltaTime) {
     glm::quat orientation = getOrientation();
     glm::quat delta = glm::inverse(_lastOrientation) * orientation;
     _angularVelocity = safeEulerAngles(delta) * (1.f / deltaTime);
+    _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * (1.f / deltaTime);
     _lastOrientation = getOrientation();
 }
 
@@ -215,6 +218,52 @@ static TextRenderer* textRenderer(TextRendererType type) {
 }
 
 void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
+    
+    if (glm::distance(Application::getInstance()->getAvatar()->getPosition(),
+                      _position) < 10.0f) {
+        // render pointing lasers
+        glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
+        float laserLength = 50.0f;
+        if (_handState == HAND_STATE_LEFT_POINTING ||
+            _handState == HAND_STATE_BOTH_POINTING) {
+            int leftIndex = _skeletonModel.getLeftHandJointIndex();
+            glm::vec3 leftPosition;
+            glm::quat leftRotation;
+            _skeletonModel.getJointPositionInWorldFrame(leftIndex, leftPosition);
+            _skeletonModel.getJointRotationInWorldFrame(leftIndex, leftRotation);
+            glPushMatrix(); {
+                glTranslatef(leftPosition.x, leftPosition.y, leftPosition.z);
+                float angle = glm::degrees(glm::angle(leftRotation));
+                glm::vec3 axis = glm::axis(leftRotation);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glBegin(GL_LINES);
+                glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, laserLength, 0.0f);
+                glEnd();
+            } glPopMatrix();
+        }
+        if (_handState == HAND_STATE_RIGHT_POINTING ||
+            _handState == HAND_STATE_BOTH_POINTING) {
+            int rightIndex = _skeletonModel.getRightHandJointIndex();
+            glm::vec3 rightPosition;
+            glm::quat rightRotation;
+            _skeletonModel.getJointPositionInWorldFrame(rightIndex, rightPosition);
+            _skeletonModel.getJointRotationInWorldFrame(rightIndex, rightRotation);
+            glPushMatrix(); {
+                glTranslatef(rightPosition.x, rightPosition.y, rightPosition.z);
+                float angle = glm::degrees(glm::angle(rightRotation));
+                glm::vec3 axis = glm::axis(rightRotation);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glBegin(GL_LINES);
+                glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, laserLength, 0.0f);
+                glEnd();
+            } glPopMatrix();
+        }
+    }
+    
     // simple frustum check
     float boundingRadius = getBillboardSize();
     ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
@@ -245,19 +294,9 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         
         
         // local lights directions and colors
-        getSkeletonModel().setNumLocalLights(_numLocalLights);
-        getHead()->getFaceModel().setNumLocalLights(_numLocalLights);
-        for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
-            glm::vec3 normalized = glm::normalize(_localLightDirections[i]);
-            
-            // body
-            getSkeletonModel().setLocalLightColor(_localLightColors[i], i);
-            getSkeletonModel().setLocalLightDirection(normalized, i);
-            
-            // head
-            getHead()->getFaceModel().setLocalLightColor(_localLightColors[i], i);
-            getHead()->getFaceModel().setLocalLightDirection(_localLightDirections[i], i);
-        }
+        const QVector<Model::LocalLight>& localLights = Application::getInstance()->getAvatarManager().getLocalLights();
+        _skeletonModel.setLocalLights(localLights);
+        getHead()->getFaceModel().setLocalLights(localLights);
         
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
@@ -924,31 +963,5 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
         _displayNameTargetAlpha = 0.0f;
     }
 
-}
-
-void Avatar::setLocalLightDirection(const glm::vec3& direction, int lightIndex) {
-    _localLightDirections[lightIndex] = direction;
-    qDebug( "set light %d direction ( %f, %f, %f )\n", lightIndex, direction.x, direction.y, direction.z );
-}
-
-void Avatar::setLocalLightColor(const glm::vec3& color, int lightIndex) {
-    _localLightColors[lightIndex] = color;
-    qDebug( "set light %d color ( %f, %f, %f )\n", lightIndex, color.x, color.y, color.z );
-}
-
-void Avatar::addLocalLight() {
-    if (_numLocalLights + 1 <= MAX_LOCAL_LIGHTS) {
-        ++_numLocalLights;
-    }
-
-    qDebug("ADD LOCAL LIGHT (numLocalLights = %d)\n", _numLocalLights);
-}
-
-void Avatar::removeLocalLight() {
-    if (_numLocalLights - 1 >= 0) {
-        --_numLocalLights;
-    }
-    
-    qDebug("REMOVE LOCAL LIGHT (numLocalLights = %d)\n", _numLocalLights);
 }
 

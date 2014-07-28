@@ -14,6 +14,7 @@
 #include <QCryptographicHash>
 #include <QDataStream>
 #include <QMetaType>
+#include <QScriptEngine>
 #include <QScriptValueIterator>
 #include <QUrl>
 #include <QtDebug>
@@ -126,6 +127,21 @@ const QMetaObject* Bitstream::getMetaObject(const QByteArray& className) {
 
 QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* metaObject) {
     return getMetaObjectSubClasses().values(metaObject);
+}
+
+QScriptValue sharedObjectPointerToScriptValue(QScriptEngine* engine, const SharedObjectPointer& pointer) {
+    return pointer ? engine->newQObject(pointer.data()) : engine->nullValue();
+}
+
+void sharedObjectPointerFromScriptValue(const QScriptValue& object, SharedObjectPointer& pointer) {
+    pointer = qobject_cast<SharedObject*>(object.toQObject());
+}
+
+void Bitstream::registerTypes(QScriptEngine* engine) {
+    foreach (const QMetaObject* metaObject, getMetaObjects()) {
+        engine->globalObject().setProperty(metaObject->className(), engine->newQMetaObject(metaObject));
+    }
+    qScriptRegisterMetaType(engine, sharedObjectPointerToScriptValue, sharedObjectPointerFromScriptValue);
 }
 
 Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, GenericsMode genericsMode, QObject* parent) :

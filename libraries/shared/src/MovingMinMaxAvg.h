@@ -126,6 +126,8 @@ public:
     T getWindowMax() const { return _windowStats._max; }
     double getWindowAverage() const { return _windowStats._average; }
 
+    bool isWindowFilled() const { return _intervalStats.isFilled(); }
+
 private:
     int _intervalLength;
     int _windowIntervals;

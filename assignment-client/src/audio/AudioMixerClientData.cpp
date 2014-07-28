@@ -61,7 +61,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
         || packetType == PacketTypeMicrophoneAudioNoEcho
         || packetType == PacketTypeSilentAudioFrame) {
 
-        _incomingAvatarAudioSequenceNumberStats.sequenceNumberReceived(sequence);
+        SequenceNumberStats::ArrivalInfo packetArrivalInfo = _incomingAvatarAudioSequenceNumberStats.sequenceNumberReceived(sequence);
 
         // grab the AvatarAudioRingBuffer from the vector (or create it if it doesn't exist)
         AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
@@ -84,8 +84,24 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             _ringBuffers.push_back(avatarRingBuffer);
         }
 
-        // ask the AvatarAudioRingBuffer instance to parse the data
-        avatarRingBuffer->parseData(packet);
+
+        // for now, late packets are simply discarded.  In the future, it may be good to insert them into their correct place
+        // in the ring buffer (if that frame hasn't been mixed yet)
+        switch (packetArrivalInfo._status) {
+            case SequenceNumberStats::Early: {
+                int packetsLost = packetArrivalInfo._seqDiffFromExpected;
+                avatarRingBuffer->parseDataAndHandleDroppedPackets(packet, packetsLost);
+                break;
+            }
+            case SequenceNumberStats::OnTime: {
+                // ask the AvatarAudioRingBuffer instance to parse the data
+                avatarRingBuffer->parseDataAndHandleDroppedPackets(packet, 0);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
     } else if (packetType == PacketTypeInjectAudio) {
         // this is injected audio
 
@@ -95,7 +111,8 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
         if (!_incomingInjectedAudioSequenceNumberStatsMap.contains(streamIdentifier)) {
             _incomingInjectedAudioSequenceNumberStatsMap.insert(streamIdentifier, SequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH));
         }
-        _incomingInjectedAudioSequenceNumberStatsMap[streamIdentifier].sequenceNumberReceived(sequence);
+        SequenceNumberStats::ArrivalInfo packetArrivalInfo = 
+            _incomingInjectedAudioSequenceNumberStatsMap[streamIdentifier].sequenceNumberReceived(sequence);
 
         InjectedAudioRingBuffer* matchingInjectedRingBuffer = NULL;
 
@@ -112,7 +129,23 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             _ringBuffers.push_back(matchingInjectedRingBuffer);
         }
 
-        matchingInjectedRingBuffer->parseData(packet);
+        // for now, late packets are simply discarded.  In the future, it may be good to insert them into their correct place
+        // in the ring buffer (if that frame hasn't been mixed yet)
+        switch (packetArrivalInfo._status) {
+            case SequenceNumberStats::Early: {
+                int packetsLost = packetArrivalInfo._seqDiffFromExpected;
+                matchingInjectedRingBuffer->parseDataAndHandleDroppedPackets(packet, packetsLost);
+                break;
+            }
+            case SequenceNumberStats::OnTime: {
+                // ask the AvatarAudioRingBuffer instance to parse the data
+                matchingInjectedRingBuffer->parseDataAndHandleDroppedPackets(packet, 0);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
     } else if (packetType == PacketTypeAudioStreamStats) {
 
         const char* dataAt = packet.data();
@@ -198,7 +231,7 @@ AudioStreamStats AudioMixerClientData::getAudioStreamStatsOfStream(const Positio
     streamStats._timeGapWindowAverage = timeGapStats.getWindowAverage();
 
     streamStats._ringBufferFramesAvailable = ringBuffer->framesAvailable();
-    streamStats._ringBufferCurrentJitterBufferFrames = ringBuffer->getCurrentJitterBufferFrames();
+    streamStats._ringBufferFramesAvailableAverage = ringBuffer->getFramesAvailableAverage();
     streamStats._ringBufferDesiredJitterBufferFrames = ringBuffer->getDesiredJitterBufferFrames();
     streamStats._ringBufferStarveCount = ringBuffer->getStarveCount();
     streamStats._ringBufferConsecutiveNotMixedCount = ringBuffer->getConsecutiveNotMixedCount();
@@ -272,7 +305,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
     QString result;
     AudioStreamStats streamStats = _downstreamAudioStreamStats;
     result += "DOWNSTREAM.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
-        + " current: ?"
+        + " available_avg_10s:" + QString::number(streamStats._ringBufferFramesAvailableAverage)
         + " available:" + QString::number(streamStats._ringBufferFramesAvailable)
         + " starves:" + QString::number(streamStats._ringBufferStarveCount)
         + " not_mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)
@@ -291,7 +324,8 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
     if (avatarRingBuffer) {
         AudioStreamStats streamStats = getAudioStreamStatsOfStream(avatarRingBuffer);
         result += " UPSTREAM.mic.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
-            + " current:" + QString::number(streamStats._ringBufferCurrentJitterBufferFrames)
+            + " desired_calc:" + QString::number(avatarRingBuffer->getCalculatedDesiredJitterBufferFrames())
+            + " available_avg_10s:" + QString::number(streamStats._ringBufferFramesAvailableAverage)
             + " available:" + QString::number(streamStats._ringBufferFramesAvailable)
             + " starves:" + QString::number(streamStats._ringBufferStarveCount)
             + " not_mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)
@@ -313,7 +347,8 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
         if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector) {
             AudioStreamStats streamStats = getAudioStreamStatsOfStream(_ringBuffers[i]);
             result += " UPSTREAM.inj.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
-                + " current:" + QString::number(streamStats._ringBufferCurrentJitterBufferFrames)
+                + " desired_calc:" + QString::number(_ringBuffers[i]->getCalculatedDesiredJitterBufferFrames())
+                + " available_avg_10s:" + QString::number(streamStats._ringBufferFramesAvailableAverage)
                 + " available:" + QString::number(streamStats._ringBufferFramesAvailable)
                 + " starves:" + QString::number(streamStats._ringBufferStarveCount)
                 + " not_mixed:" + QString::number(streamStats._ringBufferConsecutiveNotMixedCount)

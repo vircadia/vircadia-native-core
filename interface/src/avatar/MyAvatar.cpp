@@ -135,9 +135,7 @@ void MyAvatar::simulate(float deltaTime) {
         setScale(scale);
         Application::getInstance()->getCamera()->setScale(scale);
     }
-
-    // no extra movement of the hand here any more ...
-    _handState = HAND_STATE_NULL;
+    _skeletonModel.setShowTrueJointTransforms(! Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll));
 
     {
         PerformanceTimer perfTimer("transform");
@@ -164,9 +162,16 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _jointData.resize(_skeletonModel.getJointStateCount());
-        for (int i = 0; i < _jointData.size(); i++) {
-            JointData& data = _jointData[i];
-            data.valid = _skeletonModel.getJointState(i, data.rotation);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+            for (int i = 0; i < _jointData.size(); i++) {
+                JointData& data = _jointData[i];
+                data.valid = _skeletonModel.getVisibleJointState(i, data.rotation);
+            }
+        } else {
+            for (int i = 0; i < _jointData.size(); i++) {
+                JointData& data = _jointData[i];
+                data.valid = _skeletonModel.getJointState(i, data.rotation);
+            }
         }
     }
 
@@ -186,7 +191,8 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("hair");
         if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
             _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setAngularVelocity(getAngularVelocity() + getHead()->getAngularVelocity() * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
             _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
             _hair.simulate(deltaTime);
         }
@@ -428,6 +434,7 @@ glm::vec3 MyAvatar::getLeftPalmPosition() {
     leftHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftRotation);
     return leftHandPosition;
 }
+
 glm::vec3 MyAvatar::getRightPalmPosition() {
     glm::vec3 rightHandPosition;
     getSkeletonModel().getRightHandPosition(rightHandPosition);
@@ -905,7 +912,7 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
     const Head* head = getHead();
     return (renderMode != NORMAL_RENDER_MODE) || 
-        (glm::length(cameraPosition - head->calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
+        (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
 float MyAvatar::computeDistanceToFloor(const glm::vec3& startPoint) {
@@ -1847,3 +1854,43 @@ void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& pe
     }
 }
 
+//Renders sixense laser pointers for UI selection with controllers
+void MyAvatar::renderLaserPointers() {
+    const float PALM_TIP_ROD_RADIUS = 0.002f;
+
+    //If the Oculus is enabled, we will draw a blue cursor ray
+
+    for (size_t i = 0; i < getHand()->getNumPalms(); ++i) {
+        PalmData& palm = getHand()->getPalms()[i];
+        if (palm.isActive()) {
+            glColor4f(0, 1, 1, 1);
+            glm::vec3 tip = getLaserPointerTipPosition(&palm);
+            glm::vec3 root = palm.getPosition();
+
+            //Scale the root vector with the avatar scale
+            scaleVectorRelativeToPosition(root);
+
+            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS);
+        }
+    }
+}
+
+//Gets the tip position for the laser pointer
+glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
+    const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
+    const float PALM_TIP_ROD_LENGTH_MULT = 40.0f;
+
+    glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
+
+    glm::vec3 position = palm->getPosition();
+    //scale the position with the avatar
+    scaleVectorRelativeToPosition(position);
+
+
+    glm::vec3 result;
+    if (applicationOverlay.calculateRayUICollisionPoint(position, direction, result)) {
+        return result;
+    }
+
+    return palm->getPosition();
+}

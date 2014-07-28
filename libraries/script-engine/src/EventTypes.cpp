@@ -19,6 +19,7 @@ void registerEventTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, mouseEventToScriptValue, mouseEventFromScriptValue);
     qScriptRegisterMetaType(engine, touchEventToScriptValue, touchEventFromScriptValue);
     qScriptRegisterMetaType(engine, wheelEventToScriptValue, wheelEventFromScriptValue);
+    qScriptRegisterMetaType(engine, spatialEventToScriptValue, spatialEventFromScriptValue);
 }
 
 KeyEvent::KeyEvent() :
@@ -297,9 +298,10 @@ MouseEvent::MouseEvent() :
 }; 
 
 
-MouseEvent::MouseEvent(const QMouseEvent& event) :
+MouseEvent::MouseEvent(const QMouseEvent& event, const unsigned int deviceID) :
     x(event.x()), 
     y(event.y()),
+    deviceID(deviceID),
     isLeftButton(event.buttons().testFlag(Qt::LeftButton)), 
     isRightButton(event.buttons().testFlag(Qt::RightButton)), 
     isMiddleButton(event.buttons().testFlag(Qt::MiddleButton)),
@@ -333,6 +335,7 @@ QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& ev
     obj.setProperty("x", event.x);
     obj.setProperty("y", event.y);
     obj.setProperty("button", event.button);
+    obj.setProperty("deviceID", event.deviceID);
     obj.setProperty("isLeftButton", event.isLeftButton);
     obj.setProperty("isRightButton", event.isRightButton);
     obj.setProperty("isMiddleButton", event.isMiddleButton);
@@ -600,3 +603,34 @@ void wheelEventFromScriptValue(const QScriptValue& object, WheelEvent& event) {
 }
 
 
+
+SpatialEvent::SpatialEvent() : 
+    locTranslation(0.0f), 
+    locRotation(),
+    absTranslation(0.0f), 
+    absRotation()
+{ 
+}; 
+
+SpatialEvent::SpatialEvent(const SpatialEvent& event) {
+    locTranslation = event.locTranslation;
+    locRotation = event.locRotation;
+    absTranslation = event.absTranslation;
+    absRotation = event.absRotation;
+}
+
+
+QScriptValue spatialEventToScriptValue(QScriptEngine* engine, const SpatialEvent& event) {
+    QScriptValue obj = engine->newObject();
+
+    obj.setProperty("locTranslation", vec3toScriptValue(engine, event.locTranslation) );
+    obj.setProperty("locRotation", quatToScriptValue(engine, event.locRotation) );
+    obj.setProperty("absTranslation", vec3toScriptValue(engine, event.absTranslation) );
+    obj.setProperty("absRotation", quatToScriptValue(engine, event.absRotation) );
+
+    return obj;
+}
+
+void spatialEventFromScriptValue(const QScriptValue& object,SpatialEvent& event) {
+    // nothing for now...
+}

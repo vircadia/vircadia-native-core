@@ -1,4 +1,4 @@
-#  Try to find the PrioVT library
+#  Try to find the PrioVR library
 #
 #  You must provide a PRIOVR_ROOT_DIR which contains lib and include directories
 #
@@ -12,31 +12,13 @@
 #  Copyright (c) 2014 High Fidelity
 #
 
-if (PRIOVR_LIBRARIES AND PRIOVR_INCLUDE_DIRS)
-  # in cache already
-  set(PRIOVR_FOUND TRUE)
-else (PRIOVR_LIBRARIES AND PRIOVR_INCLUDE_DIRS)
-  find_path(PRIOVR_INCLUDE_DIRS yei_skeletal_api.h ${PRIOVR_ROOT_DIR}/include)
+find_path(PRIOVR_INCLUDE_DIRS yei_skeletal_api.h ${PRIOVR_ROOT_DIR}/include)
 
-  if (WIN32)
-    find_library(PRIOVR_LIBRARIES Skeletal_API.lib ${PRIOVR_ROOT_DIR}/lib)
-  endif (WIN32)
- 
-  if (PRIOVR_INCLUDE_DIRS AND PRIOVR_LIBRARIES)
-    set(PRIOVR_FOUND TRUE)
-  endif (PRIOVR_INCLUDE_DIRS AND PRIOVR_LIBRARIES)
+if (WIN32)
+  find_library(PRIOVR_LIBRARIES Skeletal_API.lib ${PRIOVR_ROOT_DIR}/lib)
+endif (WIN32)
 
-  if (PRIOVR_FOUND)
-    if (NOT PRIOVR_FIND_QUIETLY)
-      message(STATUS "Found PrioVR... ${PRIOVR_LIBRARIES}")
-    endif (NOT PRIOVR_FIND_QUIETLY)
-  else ()
-    if (PRIOVR_FIND_REQUIRED)
-      message(FATAL_ERROR "Could not find PrioVR")
-    endif (PRIOVR_FIND_REQUIRED)
-  endif ()
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(PRIOVR DEFAULT_MSG PRIOVR_INCLUDE_DIRS PRIOVR_LIBRARIES)
 
-  # show the PRIOVR_INCLUDE_DIRS and PRIOVR_LIBRARIES variables only in the advanced view
-  mark_as_advanced(PRIOVR_INCLUDE_DIRS PRIOVR_LIBRARIES)
-
-endif (PRIOVR_LIBRARIES AND PRIOVR_INCLUDE_DIRS)
+mark_as_advanced(PRIOVR_INCLUDE_DIRS PRIOVR_LIBRARIES)

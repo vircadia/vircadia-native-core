@@ -10,14 +10,18 @@
 //
 
 #include <glm/gtx/transform.hpp>
+#include <QMultiMap>
 
 #include <VerletCapsuleShape.h>
 #include <VerletSphereShape.h>
+#include <DistanceConstraint.h>
+#include <FixedConstraint.h>
 
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Menu.h"
+#include "MuscleConstraint.h"
 #include "SkeletonModel.h"
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) : 
@@ -69,7 +73,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
             int jointIndex = geometry.humanIKJointIndices.at(humanIKJointIndex);
             if (jointIndex != -1) {
                 JointState& state = _jointStates[jointIndex];
-                state.setRotationFromBindFrame(prioVR->getJointRotations().at(i), PALM_PRIORITY);
+                state.setRotationInBindFrame(prioVR->getJointRotations().at(i), PALM_PRIORITY);
             }
         }
         return;
@@ -217,7 +221,7 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
         setJointPosition(parentJointIndex, palmPosition + forearm,
             glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
         JointState& parentState = _jointStates[parentJointIndex];
-        parentState.setRotationFromBindFrame(palmRotation, PALM_PRIORITY);
+        parentState.setRotationInBindFrame(palmRotation, PALM_PRIORITY);
         // lock hand to forearm by slamming its rotation (in parent-frame) to identity
         _jointStates[jointIndex].setRotationInConstrainedFrame(glm::quat());
     } else {
@@ -381,13 +385,13 @@ void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, c
     glm::quat shoulderRotation = rotationBetween(forwardVector, elbowPosition - shoulderPosition);
 
     JointState& shoulderState = _jointStates[shoulderJointIndex];
-    shoulderState.setRotationFromBindFrame(shoulderRotation, PALM_PRIORITY);
+    shoulderState.setRotationInBindFrame(shoulderRotation, PALM_PRIORITY);
     
     JointState& elbowState = _jointStates[elbowJointIndex];
-    elbowState.setRotationFromBindFrame(rotationBetween(shoulderRotation * forwardVector, wristPosition - elbowPosition) * shoulderRotation, PALM_PRIORITY);
+    elbowState.setRotationInBindFrame(rotationBetween(shoulderRotation * forwardVector, wristPosition - elbowPosition) * shoulderRotation, PALM_PRIORITY);
     
     JointState& handState = _jointStates[jointIndex];
-    handState.setRotationFromBindFrame(rotation, PALM_PRIORITY);
+    handState.setRotationInBindFrame(rotation, PALM_PRIORITY);
 }
     
 bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {
@@ -504,6 +508,7 @@ void SkeletonModel::renderRagdoll() {
 // virtual
 void SkeletonModel::initRagdollPoints() {
     clearRagdollConstraintsAndPoints();
+    _muscleConstraints.clear();
 
     // one point for each joint
     int numJoints = _jointStates.size();
@@ -511,8 +516,7 @@ void SkeletonModel::initRagdollPoints() {
     for (int i = 0; i < numJoints; ++i) {
         const JointState& state = _jointStates.at(i);
         glm::vec3 position = state.getPosition();
-        _ragdollPoints[i]._position = position;
-        _ragdollPoints[i]._lastPosition = position;
+        _ragdollPoints[i].initPosition(position);
     }
 }
 
@@ -522,30 +526,123 @@ void SkeletonModel::buildRagdollConstraints() {
     const int numPoints = _ragdollPoints.size();
     assert(numPoints == _jointStates.size());
 
+    float minBone = FLT_MAX;
+    float maxBone = -FLT_MAX;
+    QMultiMap<int, int> families;
     for (int i = 0; i < numPoints; ++i) {
         const JointState& state = _jointStates.at(i);
-        const FBXJoint& joint = state.getFBXJoint();
-        int parentIndex = joint.parentIndex;
+        int parentIndex = state.getParentIndex();
         if (parentIndex == -1) {
             FixedConstraint* anchor = new FixedConstraint(&(_ragdollPoints[i]), glm::vec3(0.0f));
             _ragdollConstraints.push_back(anchor);
         } else { 
             DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[i]), &(_ragdollPoints[parentIndex]));
+            bone->setDistance(state.getDistanceToParent());
             _ragdollConstraints.push_back(bone);
+            families.insert(parentIndex, i);
+        }
+        float boneLength = glm::length(state.getPositionInParentFrame());
+        if (boneLength > maxBone) {
+            maxBone = boneLength;
+        } else if (boneLength < minBone) {
+            minBone = boneLength;
         }
     }
+    // Joints that have multiple children effectively have rigid constraints between the children
+    // in the parent frame, so we add DistanceConstraints between children in the same family.
+    QMultiMap<int, int>::iterator itr = families.begin();
+    while (itr != families.end()) {
+        QList<int> children = families.values(itr.key());
+        int numChildren = children.size();
+        if (numChildren > 1) {
+            for (int i = 1; i < numChildren; ++i) {
+                DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[children[i-1]]), &(_ragdollPoints[children[i]]));
+                _ragdollConstraints.push_back(bone);
+            }
+            if (numChildren > 2) {
+                DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[children[numChildren-1]]), &(_ragdollPoints[children[0]]));
+                _ragdollConstraints.push_back(bone);
+            }
+        }
+        ++itr;
+    }
+
+    float MAX_STRENGTH = 0.3f;
+    float MIN_STRENGTH = 0.005f;
+    // each joint gets a MuscleConstraint to its parent
+    for (int i = 1; i < numPoints; ++i) {
+        const JointState& state = _jointStates.at(i);
+        int p = state.getParentIndex();
+        if (p == -1) {
+            continue;
+        }
+        MuscleConstraint* constraint = new MuscleConstraint(&(_ragdollPoints[p]), &(_ragdollPoints[i]));
+        _ragdollConstraints.push_back(constraint);
+        _muscleConstraints.push_back(constraint);
+
+        // Short joints are more susceptible to wiggle so we modulate the strength based on the joint's length: 
+        // long = weak and short = strong.
+        constraint->setIndices(p, i);
+        float boneLength = glm::length(state.getPositionInParentFrame());
+
+        float strength = MIN_STRENGTH + (MAX_STRENGTH - MIN_STRENGTH) * (maxBone - boneLength) / (maxBone - minBone);
+        if (!families.contains(i)) {
+            // Although muscles only pull on the children not parents, nevertheless those joints that have
+            // parents AND children are more stable than joints at the end such as fingers.  For such joints we
+            // bestow maximum strength which helps reduce wiggle.
+            strength = MAX_MUSCLE_STRENGTH;
+        }
+        constraint->setStrength(strength);
+    }
+    
 }
 
 void SkeletonModel::updateVisibleJointStates() {
-    Model::updateVisibleJointStates();
-    // TODO: implement this to move visible joints to agree with joint shape positions
+    if (_showTrueJointTransforms) {
+        // no need to update visible transforms
+        return;
+    }
+    QVector<glm::vec3> points;
+    points.reserve(_jointStates.size());
+    for (int i = 0; i < _jointStates.size(); i++) {
+        JointState& state = _jointStates[i];
+        points.push_back(_ragdollPoints[i]._position);
+
+        // get the parent state (this is the state that we want to rotate)
+        int parentIndex = state.getParentIndex();
+        if (parentIndex == -1) {
+            _jointStates[i].slaveVisibleTransform();
+            continue;
+        }
+        JointState& parentState = _jointStates[parentIndex];
+
+        // check the grand-parent index (for now we don't want to rotate any root states)
+        int grandParentIndex = parentState.getParentIndex();
+        if (grandParentIndex == -1) {
+            continue;
+        }
+
+        // make sure state's visibleTransform is up to date
+        const glm::mat4& parentTransform = parentState.getVisibleTransform();
+        state.computeVisibleTransform(parentTransform);
+
+        // we're looking for the rotation that moves visible bone parallel to ragdoll bone
+        // rotationBetween(jointTip - jointPivot, shapeTip - shapePivot)
+        glm::quat delta = rotationBetween(state.getVisiblePosition() - extractTranslation(parentTransform), 
+                points[i] - points[parentIndex]);
+
+        // apply
+        parentState.mixVisibleRotationDelta(delta, 0.01f);
+        // update transforms
+        parentState.computeVisibleTransform(_jointStates[grandParentIndex].getVisibleTransform());
+        state.computeVisibleTransform(parentState.getVisibleTransform());
+    }
 }
 
 // virtual 
 void SkeletonModel::stepRagdollForward(float deltaTime) {
-    const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.03f;
-    float fraction = glm::clamp(deltaTime / RAGDOLL_FOLLOWS_JOINTS_TIMESCALE, 0.0f, 1.0f);
-    moveShapesTowardJoints(fraction);
+    Ragdoll::stepRagdollForward(deltaTime);
+    updateMuscles();
 }
 
 float DENSITY_OF_WATER = 1000.0f; // kg/m^3
@@ -554,7 +651,7 @@ float VERY_BIG_MASS = 1.0e6f;
 
 // virtual
 void SkeletonModel::buildShapes() {
-    if (!_geometry || _rootIndex == -1) {
+    if (_geometry == NULL || _jointStates.isEmpty()) {
         return;
     }
     
@@ -610,21 +707,49 @@ void SkeletonModel::buildShapes() {
     buildRagdollConstraints();
 
     // ... then move shapes back to current joint positions
-    moveShapesTowardJoints(1.0f);
+    if (_ragdollPoints.size() == numStates) {
+        int numJoints = _jointStates.size();
+        for (int i = 0; i < numJoints; ++i) {
+            _ragdollPoints[i].initPosition(_jointStates.at(i).getPosition());
+        }
+    }
     enforceRagdollConstraints();
 }
 
-void SkeletonModel::moveShapesTowardJoints(float fraction) {
+void SkeletonModel::moveShapesTowardJoints(float deltaTime) {
+    // KEEP: although we don't currently use this method we may eventually need it to help
+    // unravel a skelton that has become tangled in its constraints.  So let's keep this
+    // around for a while just in case.
     const int numStates = _jointStates.size();
     assert(_jointStates.size() == _ragdollPoints.size());
-    assert(fraction >= 0.0f && fraction <= 1.0f);
-    if (_ragdollPoints.size() == numStates) {
-        float oneMinusFraction = 1.0f - fraction; 
-        int numJoints = _jointStates.size();
-        for (int i = 0; i < numJoints; ++i) {
-            _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
-            _ragdollPoints[i]._position = oneMinusFraction * _ragdollPoints[i]._position + fraction * _jointStates.at(i).getPosition();
+    if (_ragdollPoints.size() != numStates) {
+        return;
+    }
+
+    // fraction = 0 means keep old position, = 1 means slave 100% to target position
+    const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.05f;
+    float fraction = glm::clamp(deltaTime / RAGDOLL_FOLLOWS_JOINTS_TIMESCALE, 0.0f, 1.0f);
+
+    float oneMinusFraction = 1.0f - fraction; 
+    for (int i = 0; i < numStates; ++i) {
+        _ragdollPoints[i].initPosition(oneMinusFraction * _ragdollPoints[i]._position + 
+                fraction * _jointStates.at(i).getPosition());
+    }
+}
+
+void SkeletonModel::updateMuscles() {
+    int numConstraints = _muscleConstraints.size();
+    for (int i = 0; i < numConstraints; ++i) {
+        MuscleConstraint* constraint = _muscleConstraints[i];
+        int j = constraint->getParentIndex();
+        if (j == -1) {
+            continue;
         }
+        int k = constraint->getChildIndex();
+        if (k == -1) {
+            continue;
+        }
+        constraint->setChildOffset(_jointStates.at(k).getPosition() - _jointStates.at(j).getPosition());
     }
 }
 
@@ -644,8 +769,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1) {
             transforms[i] = _jointStates[i].getTransform();
-            _ragdollPoints[i]._position = extractTranslation(transforms[i]);
-            _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
+            _ragdollPoints[i].initPosition(extractTranslation(transforms[i]));
             continue;
         }
         
@@ -653,8 +777,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
             * joint.preTransform * glm::mat4_cast(modifiedRotation) * joint.postTransform;
         // setting the ragdollPoints here slams the VerletShapes into their default positions
-        _ragdollPoints[i]._position = extractTranslation(transforms[i]);
-        _ragdollPoints[i]._lastPosition = _ragdollPoints[i]._position;
+        _ragdollPoints[i].initPosition(extractTranslation(transforms[i]));
     }
 
     // compute bounding box that encloses all shapes
@@ -708,7 +831,7 @@ void SkeletonModel::resetShapePositionsToDefaultPose() {
     // Moves shapes to the joint default locations for debug visibility into
     // how the bounding shape is computed.
 
-    if (!_geometry || _rootIndex == -1 || _shapes.isEmpty()) {
+    if (!_geometry || _shapes.isEmpty()) {
         // geometry or joints have not yet been created
         return;
     }

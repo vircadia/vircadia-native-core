@@ -32,6 +32,7 @@
 class QByteArray;
 class QColor;
 class QDataStream;
+class QScriptEngine;
 class QScriptValue;
 class QUrl;
 
@@ -319,6 +320,10 @@ public:
     /// themselves as subclasses of all of their parents, mostly in order to allow editors to provide lists of available
     /// subclasses.
     static QList<const QMetaObject*> getMetaObjectSubClasses(const QMetaObject* metaObject);
+
+    /// Configures the supplied script engine with our registered meta-objects, allowing all of them to be instantiated from
+    /// scripts.
+    static void registerTypes(QScriptEngine* engine);
 
     enum MetadataType { NO_METADATA, HASH_METADATA, FULL_METADATA };
 

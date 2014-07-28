@@ -213,7 +213,12 @@ void Attribute::writeMetavoxelDelta(const MetavoxelNode& root, const MetavoxelNo
 }
 
 void Attribute::readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
-    data.getRoot(state.attribute)->readSubdivision(state);
+    // copy if changed
+    MetavoxelNode* oldRoot = data.getRoot(state.attribute);
+    MetavoxelNode* newRoot = oldRoot->readSubdivision(state);
+    if (newRoot != oldRoot) {
+        data.setRoot(state.attribute, newRoot);
+    }
 }
 
 void Attribute::writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {

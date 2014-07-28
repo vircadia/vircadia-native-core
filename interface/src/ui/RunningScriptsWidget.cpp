@@ -23,7 +23,6 @@
 #include "Menu.h"
 #include "ScriptsModel.h"
 
-
 RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     FramelessDialog(parent, 0, POSITION_LEFT),
     ui(new Ui::RunningScriptsWidget),
@@ -104,13 +103,21 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         delete widget->widget();
         delete widget;
     }
+    QHash<QString, int> hash;
     const int CLOSE_ICON_HEIGHT = 12;
     for (int i = 0; i < list.size(); i++) {
+        if (!hash.contains(list.at(i))) {
+            hash.insert(list.at(i), 1);
+        }
         QWidget* row = new QWidget(ui->scrollAreaWidgetContents);
         row->setLayout(new QHBoxLayout(row));
 
         QUrl url = QUrl(list.at(i));
         QLabel* name = new QLabel(url.fileName(), row);
+        if (hash.find(list.at(i)).value() != 1) {
+            name->setText(name->text() + "(" + QString::number(hash.find(list.at(i)).value()) + ")");
+        }
+        ++hash[list.at(i)];
         QPushButton* closeButton = new QPushButton(row);
         closeButton->setFlat(true);
         closeButton->setIcon(

@@ -665,7 +665,8 @@ function checkController(deltaTime) {
     
     moveOverlays();
 }
-
+var newModel;
+var browser;
 function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
     // New Model
@@ -675,6 +676,12 @@ function initToolBar() {
                                width: toolWidth, height: toolHeight,
                                visible: true,
                                alpha: 0.9
+                               });
+    browser = toolBar.addTool({
+                               imageURL: toolIconUrl + "list-icon.png",
+                               width: toolWidth, height: toolHeight,
+                               visible: true,
+                               alpha: 0.7
                                });
 }
 
@@ -780,8 +787,25 @@ function mousePressEvent(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
     if (newModel == toolBar.clicked(clickedOverlay)) {
-        var url = Window.prompt("Model url", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-        if (url == null) {
+        var url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+        if (url == null || url == "") {
+            return;
+        }
+        
+        var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+        
+        if (position.x > 0 && position.y > 0 && position.z > 0) {
+            Models.addModel({ position: position,
+                            radius: radiusDefault,
+                            modelURL: url
+                            });
+        } else {
+            print("Can't create model: Model would be out of bounds.");
+        }
+        
+    } else if (browser == toolBar.clicked(clickedOverlay)) {
+        var url = Window.s3Browse(".*(fbx|FBX)");
+        if (url == null || url == "") {
             return;
         }
         
@@ -1119,25 +1143,37 @@ function handeMenuEvent(menuItem){
         }
         if (editModelID != -1) {
             print("  Edit Properties.... about to edit properties...");
-            var propertyName = Window.prompt("Which property would you like to change?", "modelURL");
+
             var properties = Entities.getEntityProperties(editModelID);
-            var oldValue = properties[propertyName];
-            var newValue = Window.prompt("New value for: " + propertyName, oldValue);
-            if (newValue != "") {
-                if (propertyName == "color") {
-                    if (newValue == "red") {
-                        newValue = { red: 255, green: 0, blue: 0 };
-                    } else if (newValue == "green") {
-                        newValue = { red: 0, green: 255, blue: 0 };
-                    } else if (newValue == "blue") {
-                        newValue = { red: 0, green: 0, blue: 255 };
-                    } else {
-                        newValue = { red: 0, green: 0, blue: 0 };
-                    }
-                }
-                properties[propertyName] = newValue;
-                Entities.editEntity(editModelID, properties);
-            }
+
+            var array = new Array();
+            var decimals = 3;
+            array.push({ label: "Model URL:", value: properties.modelURL });
+            array.push({ label: "Animation URL:", value: properties.animationURL });
+            array.push({ label: "X:", value: properties.position.x.toFixed(decimals) });
+            array.push({ label: "Y:", value: properties.position.y.toFixed(decimals) });
+            array.push({ label: "Z:", value: properties.position.z.toFixed(decimals) });
+            var angles = Quat.safeEulerAngles(properties.modelRotation);
+            array.push({ label: "Pitch:", value: angles.x.toFixed(decimals) });
+            array.push({ label: "Yaw:", value: angles.y.toFixed(decimals) });
+            array.push({ label: "Roll:", value: angles.z.toFixed(decimals) });
+            array.push({ label: "Scale:", value: 2 * properties.radius.toFixed(decimals) });
+        
+            var propertyName = Window.form("Edit Properties", array);
+            modelSelected = false;
+            
+            properties.modelURL = array[0].value;
+            properties.animationURL = array[1].value;
+            properties.position.x = array[2].value;
+            properties.position.y = array[3].value;
+            properties.position.z = array[4].value;
+            angles.x = array[5].value;
+            angles.y = array[6].value;
+            angles.z = array[7].value;
+            properties.modelRotation = Quat.fromVec3Degrees(angles);
+            properties.radius = array[8].value / 2;
+
+            Entities.editEntity(editModelID, properties);
         }
     }
     tooltip.show(false);

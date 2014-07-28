@@ -18,47 +18,28 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-if (FACESHIFT_LIBRARIES AND FACESHIFT_INCLUDE_DIRS)
-  # in cache already
-  set(FACESHIFT_FOUND TRUE)
-else ()
-  find_path(FACESHIFT_INCLUDE_DIRS fsbinarystream.h ${FACESHIFT_ROOT_DIR}/include)
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("faceshift")
 
-  if (APPLE)
-    find_library(FACESHIFT_LIBRARIES libfaceshift.a ${FACESHIFT_ROOT_DIR}/lib/MacOS/)
-  elseif (UNIX)
-    find_library(FACESHIFT_LIBRARIES libfaceshift.a ${FACESHIFT_ROOT_DIR}/lib/UNIX/)
-  elseif (WIN32)
-	# For windows, we're going to build the faceshift sources directly into the interface build
-	# and not link to a prebuilt library. This is because the VS2010 linker doesn't like cross-linking
-	# between release and debug libraries. If we change that in the future we can make win32 more
-	# like the other platforms
-    #find_library(FACESHIFT_LIBRARIES faceshift.lib ${FACESHIFT_ROOT_DIR}/lib/WIN32/)
-  endif ()
+find_path(FACESHIFT_INCLUDE_DIRS fsbinarystream.h PATH_SUFFIXES include HINTS ${FACESHIFT_SEARCH_DIRS})
 
-  if (WIN32)
-    # Windows only cares about the headers
-    if (FACESHIFT_INCLUDE_DIRS)
-      set(FACESHIFT_FOUND TRUE)
-    endif (FACESHIFT_INCLUDE_DIRS)
-  else ()
-    # Mac and Unix requires libraries
-    if (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
-      set(FACESHIFT_FOUND TRUE)
-    endif (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
-  endif ()
-
-  if (FACESHIFT_FOUND)
-    if (NOT FACESHIFT_FIND_QUIETLY)
-      message(STATUS "Found Faceshift... ${FACESHIFT_LIBRARIES}")
-    endif (NOT FACESHIFT_FIND_QUIETLY)
-  else ()
-    if (FACESHIFT_FIND_REQUIRED)
-      message(FATAL_ERROR "Could not find Faceshift")
-    endif (FACESHIFT_FIND_REQUIRED)
-  endif ()
-
-  # show the FACESHIFT_INCLUDE_DIRS and FACESHIFT_LIBRARIES variables only in the advanced view
-  mark_as_advanced(FACESHIFT_INCLUDE_DIRS FACESHIFT_LIBRARIES)
-
+if (APPLE)
+  set(ARCH_DIR "MacOS")
+elseif (UNIX)
+  set(ARCH_DIR "UNIX")
+elseif (WIN32)
+  set(ARCH_DIR "Win32")
 endif ()
+
+find_library(FACESHIFT_LIBRARY_RELEASE NAME faceshift PATH_SUFFIXES lib/${ARCH_DIR} HINTS ${FACESHIFT_SEARCH_DIRS})
+find_library(FACESHIFT_LIBRARY_DEBUG NAME faceshiftd PATH_SUFFIXES lib/${ARCH_DIR} HINTS ${FACESHIFT_SEARCH_DIRS})
+
+include(SelectLibraryConfigurations)
+select_library_configurations(FACESHIFT)
+
+set(FACESHIFT_LIBRARIES ${FACESHIFT_LIBRARY})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(FACESHIFT DEFAULT_MSG FACESHIFT_INCLUDE_DIRS FACESHIFT_LIBRARIES)
+
+mark_as_advanced(FACESHIFT_INCLUDE_DIRS FACESHIFT_LIBRARIES FACESHIFT_SEARCH_DIRS)

@@ -138,6 +138,7 @@ void ApplicationOverlay::displayOverlayTexture() {
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
 
+
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, getFramebufferObject()->texture());
@@ -177,7 +178,7 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direc
     float dist = sqrt(x * x + y * y);
     float z = -sqrt(1.0f - dist * dist);
 
-    glm::vec3 relativePosition = myAvatar->getHead()->calculateAverageEyePosition() + 
+    glm::vec3 relativePosition = myAvatar->getHead()->getEyePosition() +
         glm::normalize(myAvatar->getOrientation() * glm::vec3(x, y, z));
 
     //Rotate the UI pick ray by the avatar orientation
@@ -266,45 +267,59 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
 }
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
-QPoint ApplicationOverlay::getOculusPalmClickLocation(const PalmData *palm) const {
+QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
 
     Application* application = Application::getInstance();
     QGLWidget* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
-    
-    glm::vec3 tip = OculusManager::getLaserPointerTipPosition(palm);
-    glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
+
+    glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
+    glm::vec3 eyePos = myAvatar->getHead()->getEyePosition();
     glm::quat orientation = glm::inverse(myAvatar->getOrientation());
     glm::vec3 dir = orientation * glm::normalize(application->getCamera()->getPosition() - tip); //direction of ray goes towards camera
     glm::vec3 tipPos = orientation * (tip - eyePos);
 
     QPoint rv;
 
-    float t;
+    if (OculusManager::isConnected()) {
+        float t;
 
-    //We back the ray up by dir to ensure that it will not start inside the UI.
-    glm::vec3 adjustedPos = tipPos - dir;
-    //Find intersection of crosshair ray. 
-    if (raySphereIntersect(dir, adjustedPos, _oculusuiRadius * myAvatar->getScale(), &t)){
-        glm::vec3 collisionPos = adjustedPos + dir * t;
-        //Normalize it in case its not a radius of 1
-        collisionPos = glm::normalize(collisionPos);
-        //If we hit the back hemisphere, mark it as not a collision
-        if (collisionPos.z > 0) {
+        //We back the ray up by dir to ensure that it will not start inside the UI.
+        glm::vec3 adjustedPos = tipPos - dir;
+        //Find intersection of crosshair ray. 
+        if (raySphereIntersect(dir, adjustedPos, _oculusuiRadius * myAvatar->getScale(), &t)){
+            glm::vec3 collisionPos = adjustedPos + dir * t;
+            //Normalize it in case its not a radius of 1
+            collisionPos = glm::normalize(collisionPos);
+            //If we hit the back hemisphere, mark it as not a collision
+            if (collisionPos.z > 0) {
+                rv.setX(INT_MAX);
+                rv.setY(INT_MAX);
+            } else {
+
+                float u = asin(collisionPos.x) / (_textureFov)+0.5f;
+                float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
+
+                rv.setX(u * glWidget->width());
+                rv.setY(v * glWidget->height());
+            }
+        } else {
+            //if they did not click on the overlay, just set the coords to INT_MAX
             rv.setX(INT_MAX);
             rv.setY(INT_MAX);
-        } else {
-
-            float u = asin(collisionPos.x) / (_textureFov)+0.5f;
-            float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
-
-            rv.setX(u * glWidget->width());
-            rv.setY(v * glWidget->height());
         }
     } else {
-        //if they did not click on the overlay, just set the coords to INT_MAX
-        rv.setX(INT_MAX);
-        rv.setY(INT_MAX);
+        glm::dmat4 projection;
+        application->getProjectionMatrix(&projection);
+
+        glm::vec4 clipSpacePos = glm::vec4(projection * glm::dvec4(tipPos, 1.0));
+        glm::vec3 ndcSpacePos;
+        if (clipSpacePos.w != 0) {
+            ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;
+        }
+
+        rv.setX(((ndcSpacePos.x + 1.0) / 2.0) * glWidget->width());
+        rv.setY((1.0 - ((ndcSpacePos.y + 1.0) / 2.0)) * glWidget->height());
     }
     return rv;
 }
@@ -316,7 +331,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
     
     glm::quat orientation = myAvatar->getOrientation();
 
-    glm::vec3 relativePosition = orientation * (position - myAvatar->getHead()->calculateAverageEyePosition());
+    glm::vec3 relativePosition = orientation * (position - myAvatar->getHead()->getEyePosition());
     glm::vec3 relativeDirection = orientation * direction;
 
     float t;
@@ -338,9 +353,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     Application* application = Application::getInstance();
 
     MyAvatar* myAvatar = application->getAvatar();
-   
-    //Render the sixense lasers
-    OculusManager::renderLaserPointers();
 
     glActiveTexture(GL_TEXTURE0);
    
@@ -363,7 +375,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     glPushMatrix();
     const glm::quat& orientation = myAvatar->getOrientation();
-    const glm::vec3& position = myAvatar->getHead()->calculateAverageEyePosition();
+    const glm::vec3& position = myAvatar->getHead()->getEyePosition();
 
     glm::mat4 rotation = glm::toMat4(orientation);
 
@@ -523,7 +535,7 @@ void ApplicationOverlay::renderPointers() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     
-    if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
+    if (OculusManager::isConnected() && !application->getLastMouseMoveWasSimulated()) {
         //If we are in oculus, render reticle later
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = true;
@@ -534,7 +546,7 @@ void ApplicationOverlay::renderPointers() {
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
         
-    } else if (application->getLastMouseMoveType() == CONTROLLER_MOVE_EVENT && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+    } else if (application->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;
@@ -586,7 +598,7 @@ void ApplicationOverlay::renderControllerPointers() {
                 stateWhenPressed[index] = _magActive[index];
             }
         } else if (isPressed[index]) {
-            isPressed[index] = false; 
+            isPressed[index] = false;
             //If the button was only pressed for < 250 ms
             //then disable it.
 
@@ -600,8 +612,8 @@ void ApplicationOverlay::renderControllerPointers() {
         if (palmData->getTrigger() == 1.0f) {
             if (!triggerPressed[index]) {
                 if (bumperPressed[index]) {
-                    Menu::getInstance()->setIsOptionChecked(MenuOption::UserInterface, 
-                        !Menu::getInstance()->isOptionChecked(MenuOption::UserInterface));
+                    Menu::getInstance()->setIsOptionChecked(MenuOption::UserInterface,
+                                                            !Menu::getInstance()->isOptionChecked(MenuOption::UserInterface));
                 }
                 triggerPressed[index] = true;
             }
@@ -611,21 +623,21 @@ void ApplicationOverlay::renderControllerPointers() {
         if ((controllerButtons & BUTTON_FWD)) {
             if (!bumperPressed[index]) {
                 if (triggerPressed[index]) {
-                    Menu::getInstance()->setIsOptionChecked(MenuOption::UserInterface, 
-                        !Menu::getInstance()->isOptionChecked(MenuOption::UserInterface));
+                    Menu::getInstance()->setIsOptionChecked(MenuOption::UserInterface,
+                                                            !Menu::getInstance()->isOptionChecked(MenuOption::UserInterface));
                 }
                 bumperPressed[index] = true;
             }
         } else {
             bumperPressed[index] = false;
         }
-      
+
         //if we have the oculus, we should make the cursor smaller since it will be
         //magnified
         if (OculusManager::isConnected()) {
 
-            QPoint point = getOculusPalmClickLocation(palmData);
-          
+            QPoint point = getPalmClickLocation(palmData);
+
             _mouseX[index] = point.x();
             _mouseY[index] = point.y();
 
@@ -640,18 +652,25 @@ void ApplicationOverlay::renderControllerPointers() {
             continue;
         }
 
-        // Get directon relative to avatar orientation
-        glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
+        int mouseX, mouseY;
+        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+            QPoint res = getPalmClickLocation(palmData);
+            mouseX = res.x();
+            mouseY = res.y();
+        } else {
+            // Get directon relative to avatar orientation
+            glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
-        // Get the angles, scaled between (-0.5,0.5)
-        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-        float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
+            // Get the angles, scaled between (-0.5,0.5)
+            float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+            float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
-        // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = glWidget->width() * application->getSixenseManager()->getCursorPixelRangeMult();
+            // Get the pixel range over which the xAngle and yAngle are scaled
+            float cursorRange = glWidget->width() * application->getSixenseManager()->getCursorPixelRangeMult();
 
-        int mouseX = glWidget->width() / 2.0f + cursorRange * xAngle;
-        int mouseY = glWidget->height() / 2.0f + cursorRange * yAngle;
+            mouseX = (glWidget->width() / 2.0f + cursorRange * xAngle);
+            mouseY = (glWidget->height() / 2.0f + cursorRange * yAngle);
+        }
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
@@ -700,7 +719,7 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
         if (palm.isActive()) {
-            glm::vec3 tip = OculusManager::getLaserPointerTipPosition(&palm);
+            glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
             glm::vec3 tipPos = (tip - eyePos);
                 
             float length = glm::length(eyePos - tip);
@@ -1003,6 +1022,8 @@ void ApplicationOverlay::renderAudioMeter() {
 
     audio->renderScope(glWidget->width(), glWidget->height());
 
+    audio->renderStats(WHITE_TEXT, glWidget->width(), glWidget->height());
+
     glBegin(GL_QUADS);
     if (isClipping) {
         glColor3f(1, 0, 0);
@@ -1191,7 +1212,7 @@ void ApplicationOverlay::renderTexturedHemisphere() {
     Application* application = Application::getInstance();
     MyAvatar* myAvatar = application->getAvatar();
     const glm::quat& orientation = myAvatar->getOrientation();
-    const glm::vec3& position = myAvatar->getHead()->calculateAverageEyePosition();
+    const glm::vec3& position = myAvatar->getHead()->getEyePosition();
 
     glm::mat4 rotation = glm::toMat4(orientation);
 

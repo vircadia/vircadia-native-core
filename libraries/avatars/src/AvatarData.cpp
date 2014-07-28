@@ -43,6 +43,7 @@ AvatarData::AvatarData() :
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
+    _forceFaceshiftConnected(false),
     _hasNewJointRotations(true),
     _headData(NULL),
     _handData(NULL),
@@ -80,6 +81,9 @@ QByteArray AvatarData::toByteArray() {
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);
+        if (_forceFaceshiftConnected) {
+            _headData->_isFaceshiftConnected = true;
+        }
     }
     
     QByteArray avatarDataByteArray;

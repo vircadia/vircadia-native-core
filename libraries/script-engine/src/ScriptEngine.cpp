@@ -20,6 +20,7 @@
 #include <AudioInjector.h>
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
+#include <Bitstream.h>
 #include <CollisionInfo.h>
 #include <EntityScriptingInterface.h>
 #include <NetworkAccessManager.h>
@@ -71,6 +72,14 @@ void injectorFromScriptValue(const QScriptValue &object, AudioInjector* &out) {
     out = qobject_cast<AudioInjector*>(object.toQObject());
 }
 
+QScriptValue injectorToScriptValueInputController(QScriptEngine *engine, AbstractInputController* const &in) {
+    return engine->newQObject(in);
+}
+
+void injectorFromScriptValueInputController(const QScriptValue &object, AbstractInputController* &out) {
+    out = qobject_cast<AbstractInputController*>(object.toQObject());
+}
+
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
 
@@ -78,7 +87,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isFinished(false),
     _isRunning(false),
     _isInitialized(false),
-    _engine(),
     _isAvatar(false),
     _avatarIdentityTimer(NULL),
     _avatarBillboardTimer(NULL),
@@ -104,7 +112,6 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _isFinished(false),
     _isRunning(false),
     _isInitialized(false),
-    _engine(),
     _isAvatar(false),
     _avatarIdentityTimer(NULL),
     _avatarBillboardTimer(NULL),
@@ -185,7 +192,7 @@ void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectNa
     _avatarData = avatarData;
 
     // remove the old Avatar property, if it exists
-    _engine.globalObject().setProperty(objectName, QScriptValue());
+    globalObject().setProperty(objectName, QScriptValue());
 
     // give the script engine the new Avatar script property
     registerGlobalObject(objectName, _avatarData);
@@ -193,7 +200,7 @@ void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectNa
 
 void ScriptEngine::setAvatarHashMap(AvatarHashMap* avatarHashMap, const QString& objectName) {
     // remove the old Avatar property, if it exists
-    _engine.globalObject().setProperty(objectName, QScriptValue());
+    globalObject().setProperty(objectName, QScriptValue());
 
     // give the script engine the new avatar hash map
     registerGlobalObject(objectName, avatarHashMap);
@@ -222,46 +229,55 @@ void ScriptEngine::init() {
     _particlesScriptingInterface.init();
 
     // register various meta-types
-    registerMetaTypes(&_engine);
-    registerMIDIMetaTypes(&_engine);
-    registerVoxelMetaTypes(&_engine);
-    registerEventTypes(&_engine);
-    registerMenuItemProperties(&_engine);
-    registerAnimationTypes(&_engine);
-    registerAvatarTypes(&_engine);
+    registerMetaTypes(this);
+    registerMIDIMetaTypes(this);
+    registerVoxelMetaTypes(this);
+    registerEventTypes(this);
+    registerMenuItemProperties(this);
+    registerAnimationTypes(this);
+    registerAvatarTypes(this);
+    Bitstream::registerTypes(this);
 
-    qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
-    qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
+    qScriptRegisterMetaType(this, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
+    qScriptRegisterMetaType(this, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
+    qScriptRegisterSequenceMetaType<QVector<ParticleID> >(this);
 
-    qScriptRegisterMetaType(&_engine, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
-    qScriptRegisterMetaType(&_engine, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
-    qScriptRegisterMetaType(&_engine, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<EntityItemID> >(&_engine);
+    /**
+    qScriptRegisterMetaType(this, ModelItemPropertiesToScriptValue, ModelItemPropertiesFromScriptValue);
+    qScriptRegisterMetaType(this, ModelItemIDtoScriptValue, ModelItemIDfromScriptValue);
+    qScriptRegisterMetaType(this, RayToModelIntersectionResultToScriptValue, RayToModelIntersectionResultFromScriptValue);
+    qScriptRegisterSequenceMetaType<QVector<ModelItemID> >(this);
+    **/
 
-    qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
-    qScriptRegisterSequenceMetaType<QVector<glm::quat> >(&_engine);
-    qScriptRegisterSequenceMetaType<QVector<QString> >(&_engine);
+    qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
+    qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
+    qScriptRegisterMetaType(this, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
+    qScriptRegisterSequenceMetaType<QVector<EntityItemID> >(this);
 
-    QScriptValue xmlHttpRequestConstructorValue = _engine.newFunction(XMLHttpRequestClass::constructor);
-    _engine.globalObject().setProperty("XMLHttpRequest", xmlHttpRequestConstructorValue);
+    qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(this);
+    qScriptRegisterSequenceMetaType<QVector<glm::quat> >(this);
+    qScriptRegisterSequenceMetaType<QVector<QString> >(this);
 
-    QScriptValue printConstructorValue = _engine.newFunction(debugPrint);
-    _engine.globalObject().setProperty("print", printConstructorValue);
+    QScriptValue xmlHttpRequestConstructorValue = newFunction(XMLHttpRequestClass::constructor);
+    globalObject().setProperty("XMLHttpRequest", xmlHttpRequestConstructorValue);
 
-    QScriptValue soundConstructorValue = _engine.newFunction(soundConstructor);
-    QScriptValue soundMetaObject = _engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
-    _engine.globalObject().setProperty("Sound", soundMetaObject);
+    QScriptValue printConstructorValue = newFunction(debugPrint);
+    globalObject().setProperty("print", printConstructorValue);
 
-    QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
-    _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
+    QScriptValue soundConstructorValue = newFunction(soundConstructor);
+    QScriptValue soundMetaObject = newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
+    globalObject().setProperty("Sound", soundMetaObject);
 
-    QScriptValue localVoxelsValue = _engine.scriptValueFromQMetaObject<LocalVoxels>();
-    _engine.globalObject().setProperty("LocalVoxels", localVoxelsValue);
+    QScriptValue injectionOptionValue = scriptValueFromQMetaObject<AudioInjectorOptions>();
+    globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
+
+    QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
+    globalObject().setProperty("LocalVoxels", localVoxelsValue);
     
-    qScriptRegisterMetaType(&_engine, injectorToScriptValue, injectorFromScriptValue);
+    qScriptRegisterMetaType(this, injectorToScriptValue, injectorFromScriptValue);
+    qScriptRegisterMetaType( this, injectorToScriptValueInputController, injectorFromScriptValueInputController);
 
-    qScriptRegisterMetaType(&_engine, animationDetailsToScriptValue, animationDetailsFromScriptValue);
+    qScriptRegisterMetaType(this, animationDetailsToScriptValue, animationDetailsFromScriptValue);
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
@@ -276,15 +292,14 @@ void ScriptEngine::init() {
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
     // constants
-    QScriptValue globalObject = _engine.globalObject();
-    globalObject.setProperty("TREE_SCALE", _engine.newVariant(QVariant(TREE_SCALE)));
-    globalObject.setProperty("COLLISION_GROUP_ENVIRONMENT", _engine.newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
-    globalObject.setProperty("COLLISION_GROUP_AVATARS", _engine.newVariant(QVariant(COLLISION_GROUP_AVATARS)));
-    globalObject.setProperty("COLLISION_GROUP_VOXELS", _engine.newVariant(QVariant(COLLISION_GROUP_VOXELS)));
-    globalObject.setProperty("COLLISION_GROUP_PARTICLES", _engine.newVariant(QVariant(COLLISION_GROUP_PARTICLES)));
+    globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
+    globalObject().setProperty("COLLISION_GROUP_ENVIRONMENT", newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
+    globalObject().setProperty("COLLISION_GROUP_AVATARS", newVariant(QVariant(COLLISION_GROUP_AVATARS)));
+    globalObject().setProperty("COLLISION_GROUP_VOXELS", newVariant(QVariant(COLLISION_GROUP_VOXELS)));
+    globalObject().setProperty("COLLISION_GROUP_PARTICLES", newVariant(QVariant(COLLISION_GROUP_PARTICLES)));
 
-    globalObject.setProperty("AVATAR_MOTION_OBEY_LOCAL_GRAVITY", _engine.newVariant(QVariant(AVATAR_MOTION_OBEY_LOCAL_GRAVITY)));
-    globalObject.setProperty("AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY", _engine.newVariant(QVariant(AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY)));
+    globalObject().setProperty("AVATAR_MOTION_OBEY_LOCAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_LOCAL_GRAVITY)));
+    globalObject().setProperty("AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY)));
 
     // let the VoxelPacketSender know how frequently we plan to call it
     _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
@@ -293,8 +308,8 @@ void ScriptEngine::init() {
 
 QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
     if (object) {
-        QScriptValue value = _engine.newQObject(object);
-        _engine.globalObject().setProperty(name, value);
+        QScriptValue value = newQObject(object);
+        globalObject().setProperty(name, value);
         return value;
     }
     return QScriptValue::NullValue;
@@ -302,15 +317,15 @@ QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* ob
 
 void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                                         QScriptEngine::FunctionSignature setter, QScriptValue object) {
-    QScriptValue setterFunction = _engine.newFunction(setter, 1);
-    QScriptValue getterFunction = _engine.newFunction(getter);
+    QScriptValue setterFunction = newFunction(setter, 1);
+    QScriptValue getterFunction = newFunction(getter);
 
     if (!object.isNull()) {
         object.setProperty(name, setterFunction, QScriptValue::PropertySetter);
         object.setProperty(name, getterFunction, QScriptValue::PropertyGetter);
     } else {
-        _engine.globalObject().setProperty(name, setterFunction, QScriptValue::PropertySetter);
-        _engine.globalObject().setProperty(name, getterFunction, QScriptValue::PropertyGetter);
+        globalObject().setProperty(name, setterFunction, QScriptValue::PropertySetter);
+        globalObject().setProperty(name, getterFunction, QScriptValue::PropertyGetter);
     }
 }
 
@@ -319,25 +334,24 @@ void ScriptEngine::evaluate() {
         init();
     }
 
-    QScriptValue result = _engine.evaluate(_scriptContents);
+    QScriptValue result = evaluate(_scriptContents);
 
-    if (_engine.hasUncaughtException()) {
-        int line = _engine.uncaughtExceptionLineNumber();
+    if (hasUncaughtException()) {
+        int line = uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
         emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + result.toString());
-        _engine.clearExceptions();
+        clearExceptions();
     }
 }
 
 QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileName, int lineNumber) {
-    QScriptValue result = _engine.evaluate(program, fileName, lineNumber);
-    bool hasUncaughtException = _engine.hasUncaughtException();
-    if (hasUncaughtException) {
-        int line = _engine.uncaughtExceptionLineNumber();
+    QScriptValue result = QScriptEngine::evaluate(program, fileName, lineNumber);
+    if (hasUncaughtException()) {
+        int line = uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ": " << result.toString();
     }
-    emit evaluationFinished(result, hasUncaughtException);
-    _engine.clearExceptions();
+    emit evaluationFinished(result, hasUncaughtException());
+    clearExceptions();
     return result;
 }
 
@@ -361,12 +375,12 @@ void ScriptEngine::run() {
     _isFinished = false;
     emit runningStateChanged();
 
-    QScriptValue result = _engine.evaluate(_scriptContents);
-    if (_engine.hasUncaughtException()) {
-        int line = _engine.uncaughtExceptionLineNumber();
+    QScriptValue result = evaluate(_scriptContents);
+    if (hasUncaughtException()) {
+        int line = uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
         emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + result.toString());
-        _engine.clearExceptions();
+        clearExceptions();
     }
 
     QElapsedTimer startTime;
@@ -521,11 +535,11 @@ void ScriptEngine::run() {
         qint64 now = usecTimestampNow();
         float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
 
-        if (_engine.hasUncaughtException()) {
-            int line = _engine.uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << _engine.uncaughtException().toString();
-            emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + _engine.uncaughtException().toString());
-            _engine.clearExceptions();
+        if (hasUncaughtException()) {
+            int line = uncaughtExceptionLineNumber();
+            qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << uncaughtException().toString();
+            emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + uncaughtException().toString());
+            clearExceptions();
         }
 
         emit update(deltaTime);
@@ -683,12 +697,12 @@ void ScriptEngine::include(const QString& includeFile) {
         }
     }
 
-    QScriptValue result = _engine.evaluate(includeContents);
-    if (_engine.hasUncaughtException()) {
-        int line = _engine.uncaughtExceptionLineNumber();
+    QScriptValue result = evaluate(includeContents);
+    if (hasUncaughtException()) {
+        int line = uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at (" << includeFile << ") line" << line << ":" << result.toString();
         emit errorMessage("Uncaught exception at (" + includeFile + ") line" + QString::number(line) + ":" + result.toString());
-        _engine.clearExceptions();
+        clearExceptions();
     }
 }
 
