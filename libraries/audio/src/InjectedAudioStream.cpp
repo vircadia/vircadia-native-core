@@ -58,10 +58,6 @@ int InjectedAudioStream::parseStreamProperties(PacketType type, const QByteArray
     return packetStream.device()->pos();
 }
 
-int InjectedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
-    return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
-}
-
 AudioStreamStats InjectedAudioStream::getAudioStreamStats() const {
     AudioStreamStats streamStats = PositionalAudioStream::getAudioStreamStats();
     streamStats._streamIdentifier = _streamIdentifier;

@@ -490,14 +490,6 @@ void ScriptEngine::run() {
                 // pack a placeholder value for sequence number for now, will be packed when destination node is known
                 int numPreSequenceNumberBytes = audioPacket.size();
                 packetStream << (quint16) 0;
-                
-                // assume scripted avatar audio is mono and set channel flag to zero
-                packetStream << (quint8) 0;
-
-                // use the orientation and position of this avatar for the source of this audio
-                packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
-                glm::quat headOrientation = _avatarData->getHeadOrientation();
-                packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
 
                 if (silentFrame) {
                     if (!_isListeningToAudioStream) {
@@ -507,12 +499,20 @@ void ScriptEngine::run() {
 
                     // write the number of silent samples so the audio-mixer can uphold timing
                     packetStream.writeRawData(reinterpret_cast<const char*>(&SCRIPT_AUDIO_BUFFER_SAMPLES), sizeof(int16_t));
-                } else if (nextSoundOutput) {
-                    // write the raw audio data
-                    packetStream.writeRawData(reinterpret_cast<const char*>(nextSoundOutput),
-                                              numAvailableSamples * sizeof(int16_t));
-                }
 
+                } else if (nextSoundOutput) {
+                    // assume scripted avatar audio is mono and set channel flag to zero
+                    packetStream << (quint8)0;
+
+                    // use the orientation and position of this avatar for the source of this audio
+                    packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
+                    glm::quat headOrientation = _avatarData->getHeadOrientation();
+                    packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
+
+                    // write the raw audio data
+                    packetStream.writeRawData(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples * sizeof(int16_t));
+                }
+                
                 // write audio packet to AudioMixer nodes
                 NodeList* nodeList = NodeList::getInstance();
                 foreach(const SharedNodePointer& node, nodeList->getNodeHash()) {

@@ -50,13 +50,6 @@ protected:
     PositionalAudioStream(const PositionalAudioStream&);
     PositionalAudioStream& operator= (const PositionalAudioStream&);
 
-    /// parses the info between the seq num and the audio data in the network packet and calculates
-    /// how many audio samples this packet contains
-    virtual int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) = 0;
-
-    /// parses the audio data in the network packet
-    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) = 0;
-
     int parsePositionalData(const QByteArray& positionalByteArray);
 
 protected:

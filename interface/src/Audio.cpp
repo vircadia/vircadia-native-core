@@ -453,9 +453,12 @@ void Audio::handleAudioInput() {
     static char audioDataPacket[MAX_PACKET_SIZE];
 
     static int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMicrophoneAudioNoEcho);
-    static int leadingBytes = numBytesPacketHeader + sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
 
-    static int16_t* networkAudioSamples = (int16_t*) (audioDataPacket + leadingBytes);
+    // NOTE: we assume PacketTypeMicrophoneAudioWithEcho has same size headers as
+    // PacketTypeMicrophoneAudioNoEcho.  If not, then networkAudioSamples will be pointing to the wrong place for writing
+    // audio samples with echo.
+    static int leadingBytes = numBytesPacketHeader + sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
+    static int16_t* networkAudioSamples = (int16_t*)(audioDataPacket + leadingBytes);
 
     float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio(_numInputCallbackBytes);
 
@@ -666,19 +669,13 @@ void Audio::handleAudioInput() {
             glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
             glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientationInWorldFrame();
             quint8 isStereo = _isStereoInput ? 1 : 0;
-            
-            int numAudioBytes = 0;
-            
+
+            int numPacketBytes = 0;
+
             PacketType packetType;
             if (_lastInputLoudness == 0) {
                 packetType = PacketTypeSilentAudioFrame;
-                
-                // we need to indicate how many silent samples this is to the audio mixer
-                networkAudioSamples[0] = numNetworkSamples;
-                numAudioBytes = sizeof(int16_t);
             } else {
-                numAudioBytes = numNetworkBytes;
-                
                 if (Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)) {
                     packetType = PacketTypeMicrophoneAudioWithEcho;
                 } else {
@@ -687,27 +684,38 @@ void Audio::handleAudioInput() {
             }
 
             char* currentPacketPtr = audioDataPacket + populatePacketHeader(audioDataPacket, packetType);
-            
+
             // pack sequence number
             memcpy(currentPacketPtr, &_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
             currentPacketPtr += sizeof(quint16);
 
-            // set the mono/stereo byte
-            *currentPacketPtr++ = isStereo;
+            if (packetType == PacketTypeSilentAudioFrame) {
+                // pack num silent samples
+                quint16 numSilentSamples = numNetworkSamples;
+                memcpy(currentPacketPtr, &numSilentSamples, sizeof(quint16));
+                currentPacketPtr += sizeof(quint16);
+            } else {
+                // set the mono/stereo byte
+                *currentPacketPtr++ = isStereo;
 
-            // memcpy the three float positions
-            memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
-            currentPacketPtr += (sizeof(headPosition));
+                // memcpy the three float positions
+                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
+                currentPacketPtr += (sizeof(headPosition));
 
-            // memcpy our orientation
-            memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
-            currentPacketPtr += sizeof(headOrientation);
-            
-            nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
+                // memcpy our orientation
+                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
+                currentPacketPtr += sizeof(headOrientation);
+
+                // audio samples have already been packed (written to networkAudioSamples)
+                currentPacketPtr += numNetworkBytes;
+            }
+
+            int packetBytes = currentPacketPtr - audioDataPacket;
+            nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
             _outgoingAvatarAudioSequenceNumber++;
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
-                .updateValue(numAudioBytes + leadingBytes);
+                .updateValue(packetBytes);
         }
         delete[] inputAudioSamples;
     }

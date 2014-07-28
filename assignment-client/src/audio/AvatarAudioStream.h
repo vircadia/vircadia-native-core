@@ -26,7 +26,6 @@ private:
     AvatarAudioStream& operator= (const AvatarAudioStream&);
 
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
-    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
 };
 
 #endif // hifi_AvatarAudioStream_h

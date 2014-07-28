@@ -67,34 +67,52 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 
     // parse header 
     int numBytesHeader = numBytesForPacketHeader(packet);
-    const char* sequenceAt = packet.constData() + numBytesHeader;
+    const char* dataAt = packet.constData() + numBytesHeader;
     int readBytes = numBytesHeader;
 
     // parse sequence number and track it
-    quint16 sequence = *(reinterpret_cast<const quint16*>(sequenceAt));
+    quint16 sequence = *(reinterpret_cast<const quint16*>(dataAt));
+    dataAt += sizeof(quint16);
     readBytes += sizeof(quint16);
     SequenceNumberStats::ArrivalInfo arrivalInfo = frameReceivedUpdateNetworkStats(sequence, senderUUID);
 
-    // TODO: handle generalized silent packet here?????
-
-    // parse the info after the seq number and before the audio data.(the stream properties)
     int numAudioSamples;
-    readBytes += parseStreamProperties(packetType, packet.mid(readBytes), numAudioSamples);
+
+    if (packetType == PacketTypeSilentAudioFrame) {
+        // this is a general silent packet; parse the number of silent samples
+        quint16 numSilentSamples = *(reinterpret_cast<const quint16*>(dataAt));
+        dataAt += sizeof(quint16);
+        readBytes += sizeof(quint16);
+
+        numAudioSamples = numSilentSamples;
+    } else {
+        // parse the info after the seq number and before the audio data (the stream properties)
+        readBytes += parseStreamProperties(packetType, packet.mid(readBytes), numAudioSamples);
+    }
 
     // handle this packet based on its arrival status.
-    // For now, late packets are ignored.  It may be good in the future to insert the late audio frame
-    // into the ring buffer to fill in the missing frame if it hasn't been mixed yet.
     switch (arrivalInfo._status) {
         case SequenceNumberStats::Early: {
+            // Packet is early; write droppable silent samples for each of the skipped packets.
+            // NOTE: we assume that each dropped packet contains the same number of samples
+            // as the packet we just received.
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
             writeSamplesForDroppedPackets(packetsDropped * numAudioSamples);
+
             // fall through to OnTime case
         }
         case SequenceNumberStats::OnTime: {
-            readBytes += parseAudioData(packetType, packet.mid(readBytes), numAudioSamples);
+            // Packet is on time; parse its data to the ringbuffer
+            if (packetType == PacketTypeSilentAudioFrame) {
+                writeDroppableSilentSamples(numAudioSamples);
+            } else {
+                readBytes += parseAudioData(packetType, packet.mid(readBytes), numAudioSamples);
+            }
             break;
         }
         default: {
+            // For now, late packets are ignored.  It may be good in the future to insert the late audio packet data
+            // into the ring buffer to fill in the missing frame if it hasn't been mixed yet.
             break;
         }
     }
@@ -108,6 +126,10 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     return readBytes;
 }
 
+int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
+    return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
+}
+
 bool InboundAudioStream::popFrames(int numFrames, bool starveOnFail) {
     int numSamplesRequested = numFrames * _ringBuffer.getNumFrameSamples();
     if (_isStarved) {
@@ -119,6 +141,8 @@ bool InboundAudioStream::popFrames(int numFrames, bool starveOnFail) {
             // we have enough samples to pop, so we're good to mix
             _lastPopOutput = _ringBuffer.nextOutput();
             _ringBuffer.shiftReadPosition(numSamplesRequested);
+            
+            _framesAvailableStats.update(_ringBuffer.framesAvailable());
 
             _hasStarted = true;
             _lastPopSucceeded = true;
@@ -132,6 +156,7 @@ bool InboundAudioStream::popFrames(int numFrames, bool starveOnFail) {
             _lastPopSucceeded = false;
         }
     }
+
     return _lastPopSucceeded;
 }
 
@@ -145,6 +170,8 @@ void InboundAudioStream::starved() {
     _isStarved = true;
     _consecutiveNotMixedCount = 0;
     _starveCount++;
+
+    _framesAvailableStats.reset();
 }
 
 void InboundAudioStream::overrideDesiredJitterBufferFramesTo(int desired) {

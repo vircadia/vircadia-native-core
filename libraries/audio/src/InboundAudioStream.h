@@ -113,7 +113,7 @@ protected:
     virtual int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) = 0;
 
     /// parses the audio data in the network packet
-    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) = 0;
+    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
 
     int writeDroppableSilentSamples(int numSilentSamples);
     
