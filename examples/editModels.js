@@ -70,6 +70,39 @@ if (typeof String.prototype.path !== "function") {
     };
 }
 
+if (typeof String.prototype.toArrayBuffer !== "function") {
+    String.prototype.toArrayBuffer = function () {
+        var length,
+            buffer,
+            view,
+            charCode,
+            charCodes,
+            i;
+
+        charCodes = [];
+
+        length = this.length;
+        for (i = 0; i < length; i += 1) {
+            charCode = this.charCodeAt(i);
+            if (i <= 255) {
+                charCodes.push(charCode);
+            } else {
+                charCodes.push(charCode / 256);
+                charCodes.push(charCode % 256);
+            }
+        }
+
+        length = charCodes.length;
+        buffer = new ArrayBuffer(length);
+        view = new Uint8Array(buffer);
+        for (i = 0; i < length; i += 1) {
+            view[i] = charCodes[i];
+        }
+
+        return buffer;
+    };
+}
+
 if (typeof DataView.prototype.indexOf !== "function") {
     DataView.prototype.indexOf = function (searchString, position) {
         var searchLength = searchString.length,
@@ -101,18 +134,138 @@ if (typeof DataView.prototype.indexOf !== "function") {
 }
 
 if (typeof DataView.prototype.string !== "function") {
-    DataView.prototype.string = function (i, length) {
+    DataView.prototype.string = function (start, length) {
         var charCodes = [],
-            end = i + length,
-            j;
+            end,
+            i;
 
-        for (j = i; j < end; j += 1) {
-            charCodes.push(this.getUint8(j));
+        if (start === undefined) {
+            start = 0;
+        }
+        if (length === undefined) {
+            length = this.length;
+        }
+
+        end = start + length;
+        for (i = start; i < end; i += 1) {
+            charCodes.push(this.getUint8(i));
         }
 
         return String.fromCharCode.apply(String, charCodes);
     };
 }
+
+var httpMultiPart = (function () {
+    var that = {},
+        parts,
+        byteLength,
+        boundaryString,
+        crlf;
+
+    function clear() {
+        boundaryString = "--boundary_" + Uuid.generate() + "=";
+        parts = [];
+        byteLength = 0;
+        crlf = "";
+    }
+    that.clear = clear;
+
+    function boundary() {
+        return boundaryString.slice(2);
+    }
+    that.boundary = boundary;
+
+    function length() {
+        return byteLength;
+    }
+    that.length = length;
+
+    function add(object) {
+        // - name, string
+        // - name, buffer
+        var buffer,
+            stringBuffer,
+            string,
+            length;
+
+        if (object.name === undefined) {
+
+            throw new Error("Item to add to HttpMultiPart must have a name");
+
+        } else if (object.string !== undefined) {
+            //--<boundary>=
+            //Content-Disposition: form-data; name="model_name"
+            //
+            //<string>
+
+            string = crlf + boundaryString + "\r\n"
+                + "Content-Disposition: form-data; name=\"" + object.name + "\"\r\n"
+                + "\r\n"
+                + object.string;
+            buffer = string.toArrayBuffer();
+
+        } else if (object.buffer !== undefined) {
+            //--<boundary>=
+            //Content-Disposition: form-data; name="fbx"; filename="<filename>"
+            //Content-Type: application/octet-stream
+            //
+            //<buffer>
+
+            string = crlf + boundaryString + "\r\n"
+                + "Content-Disposition: form-data; name=\"" + object.name
+                + "\"; filename=\"" + object.buffer.filename + "\"\r\n"
+                + "Content-Type: application/octet-stream\r\n"
+                + "\r\n";
+            stringBuffer = string.toArrayBuffer();
+
+            buffer = new Uint8Array(stringBuffer.byteLength + object.buffer.buffer.byteLength);
+            buffer.set(new Uint8Array(stringBuffer));
+            buffer.set(new Uint8Array(object.buffer.buffer), stringBuffer.byteLength);
+
+        } else {
+
+            throw new Error("Item to add to HttpMultiPart not recognized");
+        }
+
+        byteLength += buffer.byteLength;
+        parts.push(buffer);
+
+        crlf = "\r\n";
+
+        return true;
+    }
+    that.add = add;
+
+    function response() {
+        var buffer,
+            view,
+            charCodes,
+            str,
+            i,
+            j;
+
+        str = crlf + boundaryString + "--\r\n";
+        buffer = str.toArrayBuffer();
+        byteLength += buffer.byteLength;
+        parts.push(buffer);
+
+        charCodes = [];
+        for (i = 0; i < parts.length; i += 1) {
+            view = new Uint8Array(parts[i]);
+            for (j = 0; j < view.length; j += 1) {
+                charCodes.push(view[j]);
+            }
+        }
+        str = String.fromCharCode.apply(String, charCodes);
+
+        return str;
+    }
+    that.response = response;
+
+    clear();
+
+    return that;
+}());
 
 
 var modelUploader = (function () {
@@ -151,8 +304,8 @@ var modelUploader = (function () {
         }
 
         return {
+            filename: filename.fileName(),
             buffer: req.response,
-            length: parseInt(req.getResponseHeader("Content-Length"), 10)
         };
     }
 
@@ -259,8 +412,8 @@ var modelUploader = (function () {
     }
 
     function readModel() {
-        var fbxFilename,
-            geometry;
+        var geometry,
+            fbxFilename;
 
         print("Reading model file: " + modelFile);
 
@@ -328,6 +481,8 @@ var modelUploader = (function () {
             displayAs,
             validateAs;
 
+        print("Setting model properties");
+
         form.push({ label: "Name:", value: mapping[NAME_FIELD] });
 
         directory = modelFile.path() + "/" + mapping[TEXDIR_FIELD];
@@ -370,7 +525,60 @@ var modelUploader = (function () {
     }
 
     function createHttpMessage() {
-        print("Putting model into HTTP message");
+        var i;
+
+        print("Preparing to send model");
+
+        httpMultiPart.clear();
+
+        // Model name
+        if (mapping.hasOwnProperty(NAME_FIELD)) {
+            httpMultiPart.add({
+                name : "model_name",
+                string : mapping[NAME_FIELD]
+            });
+        } else {
+            error("Model name is missing");
+            httpMultiPart.clear();
+            return false;
+        }
+
+        // FST file
+        if (fstBuffer) {
+            httpMultiPart.add({
+                name : "fst",
+                buffer: fstBuffer
+            });
+        }
+
+        // FBX file
+        if (fbxBuffer) {
+            httpMultiPart.add({
+                name : "fbx",
+                buffer: fbxBuffer
+            });
+        }
+
+        // SVO file
+        if (svoBuffer) {
+            httpMultiPart.add({
+                name : "svo",
+                buffer: svoBuffer
+            });
+        }
+
+        // LOD files
+        // DJRTODO
+
+        // Textures
+        // DJRTODO
+
+        // Model category
+        httpMultiPart.add({
+            name : "model_category",
+            string : "item"  // DJRTODO: What model category to use?
+        });
+
         return true;
     }
 
@@ -379,11 +587,10 @@ var modelUploader = (function () {
 
         print("Sending model to High Fidelity");
 
-        // DJRTODO
-
         req = new XMLHttpRequest();
-        req.open("PUT", url, true);
-        req.responseType = "arraybuffer";
+        req.open("POST", url, true);
+        req.setRequestHeader("Content-Type", "multipart/form-data; boundary=\"" + httpMultiPart.boundary() + "\"");
+
         req.onreadystatechange = function () {
             if (req.readyState === req.DONE) {
                 if (req.status === 200) {
@@ -396,16 +603,13 @@ var modelUploader = (function () {
             }
         };
 
-        if (fbxBuffer !== null) {
-            req.send(fbxBuffer.buffer);
-        } else {
-            req.send(svoBuffer.buffer);
-        }
+        req.send(httpMultiPart.response());
     }
 
     that.upload = function (file, callback) {
-        modelFile = file;
         var url = urlBase + file.fileName();
+
+        modelFile = file;
 
         // Read model content ...
         if (!readModel()) {
