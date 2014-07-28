@@ -149,7 +149,7 @@ void PreferencesDialog::loadPreferences() {
     ui.faceshiftEyeDeflectionSider->setValue(menuInstance->getFaceshiftEyeDeflection() *
                                              ui.faceshiftEyeDeflectionSider->maximum());
     
-    ui.audioJitterSpin->setValue(menuInstance->getAudioJitterBufferSamples());
+    ui.audioJitterSpin->setValue(menuInstance->getAudioJitterBufferFrames());
 
     ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
 
@@ -239,8 +239,12 @@ void PreferencesDialog::savePreferences() {
 
     Menu::getInstance()->setInvertSixenseButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
-    Menu::getInstance()->setAudioJitterBufferSamples(ui.audioJitterSpin->value());
-    Application::getInstance()->getAudio()->setJitterBufferSamples(ui.audioJitterSpin->value());
+    Menu::getInstance()->setAudioJitterBufferFrames(ui.audioJitterSpin->value());
+    if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
+        Application::getInstance()->getAudio()->overrideDesiredJitterBufferFramesTo(ui.audioJitterSpin->value());
+    } else {
+        Application::getInstance()->getAudio()->unoverrideDesiredJitterBufferFrames();
+    }
 
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
                                          Application::getInstance()->getGLWidget()->height());

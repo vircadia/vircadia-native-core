@@ -285,9 +285,8 @@ void Stats::display(
 
         char audioJitter[30];
         sprintf(audioJitter,
-                "Buffer msecs %.1f",
-                (float) (audio->getNetworkBufferLengthSamplesPerChannel() + (float) audio->getJitterBufferSamples()) /
-                (float) audio->getNetworkSampleRate() * 1000.f);
+            "Buffer msecs %.1f",
+            audio->getDesiredJitterBufferFrames() * BUFFER_SEND_INTERVAL_USECS / (float)USECS_PER_MSEC);
         drawText(30, glWidget->height() - 22, scale, rotation, font, audioJitter, color);
         
         

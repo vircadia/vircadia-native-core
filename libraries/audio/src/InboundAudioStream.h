@@ -64,6 +64,7 @@ public:
 
     /// turns off dyanmic jitter buffers and sets the desired jitter buffer frames to specified value
     void overrideDesiredJitterBufferFramesTo(int desired);
+    void unoverrideDesiredJitterBufferFrames();
 
     /// this function should be called once per second to ensure the seq num stats history spans ~30 seconds
     AudioStreamStats updateSeqHistoryAndGetAudioStreamStats();
@@ -124,6 +125,7 @@ protected:
     AudioRingBuffer::ConstIterator _lastPopOutput;
 
     bool _dynamicJitterBuffers;
+    bool _dynamicJitterBuffersOverride;
     bool _useStDevForJitterCalc;
     
     int _calculatedJitterBufferFramesUsingMaxGap;

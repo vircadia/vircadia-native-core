@@ -85,8 +85,8 @@ public:
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
 
-    float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
-    void setAudioJitterBufferSamples(float audioJitterBufferSamples) { _audioJitterBufferSamples = audioJitterBufferSamples; }
+    float getAudioJitterBufferFrames() const { return _audioJitterBufferFrames; }
+    void setAudioJitterBufferFrames(float audioJitterBufferSamples) { _audioJitterBufferFrames = audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
@@ -257,7 +257,7 @@ private:
 
 
     QHash<QString, QAction*> _actionHash;
-    int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
+    int _audioJitterBufferFrames; /// number of extra samples to wait before starting audio playback
     BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
     float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance

@@ -82,7 +82,7 @@ const int CONSOLE_HEIGHT = 200;
 
 Menu::Menu() :
     _actionHash(),
-    _audioJitterBufferSamples(0),
+    _audioJitterBufferFrames(0),
     _bandwidthDialog(NULL),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
     _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
@@ -627,7 +627,7 @@ void Menu::loadSettings(QSettings* settings) {
         lockedSettings = true;
     }
 
-    _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
+    _audioJitterBufferFrames = loadSetting(settings, "audioJitterBufferFrames", 0);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
@@ -677,7 +677,7 @@ void Menu::saveSettings(QSettings* settings) {
         lockedSettings = true;
     }
 
-    settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
+    settings->setValue("audioJitterBufferFrames", _audioJitterBufferFrames);
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("maxVoxels", _maxVoxels);
