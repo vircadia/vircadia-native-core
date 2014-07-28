@@ -1489,7 +1489,7 @@ padding: 10px;margin-top:10px</string>
           <string notr="true">color: rgb(51, 51, 51)</string>
          </property>
          <property name="text">
-          <string>Audio Jitter Buffer Samples (0 for automatic)</string>
+          <string>Audio Jitter Buffer Frames (0 for automatic)</string>
          </property>
          <property name="indent">
           <number>15</number>
