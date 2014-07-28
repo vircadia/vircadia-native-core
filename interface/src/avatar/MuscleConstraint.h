@@ -33,7 +33,7 @@ public:
     float getStrength() const { return _strength; }
 private:
     VerletPoint* _rootPoint;
-    VerletPoint* _childoint;
+    VerletPoint* _childPoint;
     int _parentIndex;
     int _childndex;
     glm::vec3 _childOffset;
