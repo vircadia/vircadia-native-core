@@ -38,7 +38,7 @@ const QString NO_SCRIPT("");
 
 const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 1000) + 0.5);
 
-class ScriptEngine : public QObject {
+class ScriptEngine : public QScriptEngine {
     Q_OBJECT
 public:
     ScriptEngine(const QUrl& scriptURL,
@@ -57,7 +57,6 @@ public:
     /// Access the ModelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static ModelsScriptingInterface* getModelsScriptingInterface() { return &_modelsScriptingInterface; }
 
-    QScriptEngine* getEngine() { return &_engine; }
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
     
@@ -122,7 +121,6 @@ protected:
     bool _isFinished;
     bool _isRunning;
     bool _isInitialized;
-    QScriptEngine _engine;
     bool _isAvatar;
     QTimer* _avatarIdentityTimer;
     QTimer* _avatarBillboardTimer;

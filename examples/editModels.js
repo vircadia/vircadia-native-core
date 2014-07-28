@@ -805,7 +805,7 @@ function mousePressEvent(event) {
         }
         
     } else if (browser == toolBar.clicked(clickedOverlay)) {
-        var url = Window.s3Browse();
+        var url = Window.s3Browse(".*(fbx|FBX)");
         if (url == null || url == "") {
             return;
         }
@@ -1172,7 +1172,6 @@ function handeMenuEvent(menuItem){
             angles.z = array[index++].value;
             selectedModelProperties.modelRotation = Quat.fromVec3Degrees(angles);
             selectedModelProperties.radius = array[index++].value / 2;
-            print(selectedModelProperties.radius);
 
             Models.editModel(selectedModelID, selectedModelProperties);
         }
