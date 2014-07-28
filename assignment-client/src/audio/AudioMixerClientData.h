@@ -14,16 +14,16 @@
 
 #include <AABox.h>
 
-#include "PositionalAudioRingBuffer.h"
-#include "AvatarAudioRingBuffer.h"
+#include "PositionalAudioStream.h"
+#include "AvatarAudioStream.h"
 
 class AudioMixerClientData : public NodeData {
 public:
     AudioMixerClientData();
     ~AudioMixerClientData();
     
-    const QHash<QUuid, PositionalAudioRingBuffer*>& getRingBuffers() const { return _ringBuffers; }
-    AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
+    const QHash<QUuid, PositionalAudioStream*>& getRingBuffers() const { return _ringBuffers; }
+    AvatarAudioStream* getAvatarAudioRingBuffer() const;
     
     int parseData(const QByteArray& packet);
 
@@ -39,7 +39,7 @@ public:
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
 private:
-    QHash<QUuid, PositionalAudioRingBuffer*> _ringBuffers;     // mic stream stored under key of null UUID
+    QHash<QUuid, PositionalAudioStream*> _ringBuffers;     // mic stream stored under key of null UUID
 
     quint16 _outgoingMixedAudioSequenceNumber;
 

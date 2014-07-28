@@ -42,7 +42,7 @@
 #include "Audio.h"
 #include "Menu.h"
 #include "Util.h"
-#include "PositionalAudioRingBuffer.h"
+#include "PositionalAudioStream.h"
 
 static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
@@ -746,7 +746,7 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
         memcpy(&streamStats, dataAt, sizeof(AudioStreamStats));
         dataAt += sizeof(AudioStreamStats);
 
-        if (streamStats._streamType == PositionalAudioRingBuffer::Microphone) {
+        if (streamStats._streamType == PositionalAudioStream::Microphone) {
             _audioMixerAvatarStreamAudioStats = streamStats;
         } else {
             _audioMixerInjectedStreamAudioStatsMap[streamStats._streamIdentifier] = streamStats;

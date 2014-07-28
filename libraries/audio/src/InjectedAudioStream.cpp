@@ -1,5 +1,5 @@
 //
-//  InjectedAudioRingBuffer.cpp
+//  InjectedAudioStream.cpp
 //  libraries/audio/src
 //
 //  Created by Stephen Birarda on 6/5/13.
@@ -17,10 +17,10 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 
-#include "InjectedAudioRingBuffer.h"
+#include "InjectedAudioStream.h"
 
-InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier, bool dynamicJitterBuffer) :
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Injector, false, dynamicJitterBuffer),
+InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, bool dynamicJitterBuffer) :
+    PositionalAudioStream(PositionalAudioStream::Injector, false, dynamicJitterBuffer),
     _streamIdentifier(streamIdentifier),
     _radius(0.0f),
     _attenuationRatio(0)
@@ -30,7 +30,7 @@ InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier, 
 
 const uchar MAX_INJECTOR_VOLUME = 255;
 
-int InjectedAudioRingBuffer::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+int InjectedAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
     // setup a data stream to read from this packet
     QDataStream packetStream(packetAfterSeqNum);
 
@@ -58,12 +58,12 @@ int InjectedAudioRingBuffer::parseStreamProperties(PacketType type, const QByteA
     return packetStream.device()->pos();
 }
 
-int InjectedAudioRingBuffer::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
+int InjectedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
     return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
 }
 
-AudioStreamStats InjectedAudioRingBuffer::getAudioStreamStats() const {
-    AudioStreamStats streamStats = PositionalAudioRingBuffer::getAudioStreamStats();
+AudioStreamStats InjectedAudioStream::getAudioStreamStats() const {
+    AudioStreamStats streamStats = PositionalAudioStream::getAudioStreamStats();
     streamStats._streamIdentifier = _streamIdentifier;
     return streamStats;
 }

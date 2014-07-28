@@ -1,5 +1,5 @@
 //
-//  AvatarAudioRingBuffer.cpp
+//  AvatarAudioStream.cpp
 //  assignment-client/src/audio
 //
 //  Created by Stephen Birarda on 6/5/13.
@@ -11,14 +11,14 @@
 
 #include <PacketHeaders.h>
 
-#include "AvatarAudioRingBuffer.h"
+#include "AvatarAudioStream.h"
 
-AvatarAudioRingBuffer::AvatarAudioRingBuffer(bool isStereo, bool dynamicJitterBuffer) :
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone, isStereo, dynamicJitterBuffer)
+AvatarAudioStream::AvatarAudioStream(bool isStereo, bool dynamicJitterBuffer) :
+    PositionalAudioStream(PositionalAudioStream::Microphone, isStereo, dynamicJitterBuffer)
 {
 }
 
-int AvatarAudioRingBuffer::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
 
     _shouldLoopbackForNode = (type == PacketTypeMicrophoneAudioWithEcho);
 
@@ -51,7 +51,7 @@ int AvatarAudioRingBuffer::parseStreamProperties(PacketType type, const QByteArr
     return readBytes;
 }
 
-int AvatarAudioRingBuffer::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
+int AvatarAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
     int readBytes = 0;
     if (type == PacketTypeSilentAudioFrame) {
         writeDroppableSilentSamples(numAudioSamples);

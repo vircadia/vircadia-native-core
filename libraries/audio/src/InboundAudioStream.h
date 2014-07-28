@@ -120,7 +120,7 @@ protected:
     bool _lastPopSucceeded;
     AudioRingBuffer::ConstIterator _lastPopOutput;
 
-    bool _dynamicJitterBuffers;
+    const bool _dynamicJitterBuffers;
     bool _useStDevForJitterCalc;
     
     int _calculatedJitterBufferFramesUsingMaxGap;

@@ -1,5 +1,5 @@
 //
-//  AvatarAudioRingBuffer.h
+//  AvatarAudioStream.h
 //  assignment-client/src/audio
 //
 //  Created by Stephen Birarda on 6/5/13.
@@ -14,16 +14,16 @@
 
 #include <QtCore/QUuid>
 
-#include "PositionalAudioRingBuffer.h"
+#include "PositionalAudioStream.h"
 
-class AvatarAudioRingBuffer : public PositionalAudioRingBuffer {
+class AvatarAudioStream : public PositionalAudioStream {
 public:
-    AvatarAudioRingBuffer(bool isStereo = false, bool dynamicJitterBuffer = false);
+    AvatarAudioStream(bool isStereo = false, bool dynamicJitterBuffer = false);
 
 private:
-    // disallow copying of AvatarAudioRingBuffer objects
-    AvatarAudioRingBuffer(const AvatarAudioRingBuffer&);
-    AvatarAudioRingBuffer& operator= (const AvatarAudioRingBuffer&);
+    // disallow copying of AvatarAudioStream objects
+    AvatarAudioStream(const AvatarAudioStream&);
+    AvatarAudioStream& operator= (const AvatarAudioStream&);
 
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
     int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);

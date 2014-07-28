@@ -16,8 +16,8 @@
 #include <AudioRingBuffer.h>
 #include <ThreadedAssignment.h>
 
-class PositionalAudioRingBuffer;
-class AvatarAudioRingBuffer;
+class PositionalAudioStream;
+class AvatarAudioStream;
 
 const int SAMPLE_PHASE_DELAY_AT_90 = 20;
 
@@ -41,8 +41,8 @@ public slots:
 
 private:
     /// adds one buffer to the mix for a listening node
-    void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
-                                                  AvatarAudioRingBuffer* listeningNodeBuffer);
+    void addBufferToMixForListeningNodeWithBuffer(PositionalAudioStream* bufferToAdd,
+                                                  AvatarAudioStream* listeningNodeBuffer);
     
     /// prepares and sends a mix to one Node
     void prepareMixForListeningNode(Node* node);

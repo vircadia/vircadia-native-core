@@ -14,7 +14,7 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 
-#include "InjectedAudioRingBuffer.h"
+#include "InjectedAudioStream.h"
 
 #include "AudioMixer.h"
 #include "AudioMixerClientData.h"
@@ -27,16 +27,16 @@ AudioMixerClientData::AudioMixerClientData() :
 }
 
 AudioMixerClientData::~AudioMixerClientData() {
-    QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i;
+    QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     for (i = _ringBuffers.constBegin(); i != _ringBuffers.constEnd(); i++) {
         // delete this attached InboundAudioStream
         delete i.value();
     }
 }
 
-AvatarAudioRingBuffer* AudioMixerClientData::getAvatarAudioRingBuffer() const {
+AvatarAudioStream* AudioMixerClientData::getAvatarAudioRingBuffer() const {
     if (_ringBuffers.contains(QUuid())) {
-        return (AvatarAudioRingBuffer*)_ringBuffers.value(QUuid());
+        return (AvatarAudioStream*)_ringBuffers.value(QUuid());
     }
     // no mic stream found - return NULL
     return NULL;
@@ -58,7 +58,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
         return dataAt - packet.data();
 
     } else {
-        PositionalAudioRingBuffer* matchingStream = NULL;
+        PositionalAudioStream* matchingStream = NULL;
 
         if (packetType == PacketTypeMicrophoneAudioWithEcho
             || packetType == PacketTypeMicrophoneAudioNoEcho
@@ -74,7 +74,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
                 bool isStereo = channelFlag == 1;
 
                 _ringBuffers.insert(nullUUID,
-                    matchingStream = new AvatarAudioRingBuffer(isStereo, AudioMixer::getUseDynamicJitterBuffers()));
+                    matchingStream = new AvatarAudioStream(isStereo, AudioMixer::getUseDynamicJitterBuffers()));
             } else {
                 matchingStream = _ringBuffers.value(nullUUID);
             }
@@ -87,7 +87,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
             if (!_ringBuffers.contains(streamIdentifier)) {
                 _ringBuffers.insert(streamIdentifier,
-                    matchingStream = new InjectedAudioRingBuffer(streamIdentifier, AudioMixer::getUseDynamicJitterBuffers()));
+                    matchingStream = new InjectedAudioStream(streamIdentifier, AudioMixer::getUseDynamicJitterBuffers()));
             } else {
                 matchingStream = _ringBuffers.value(streamIdentifier);
             }
@@ -99,7 +99,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 }
 
 void AudioMixerClientData::audioStreamsPopFrameForMixing() {
-    QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i;
+    QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     for (i = _ringBuffers.constBegin(); i != _ringBuffers.constEnd(); i++) {
         i.value()->popFrames(1);
     }
@@ -113,10 +113,10 @@ void AudioMixerClientData::removeDeadInjectedStreams() {
     // never even reaches its desired size, which means it will never start.
     const int INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD = 1000;
 
-    QHash<QUuid, PositionalAudioRingBuffer*>::Iterator i = _ringBuffers.begin(), end = _ringBuffers.end();
+    QHash<QUuid, PositionalAudioStream*>::Iterator i = _ringBuffers.begin(), end = _ringBuffers.end();
     while (i != end) {
-        PositionalAudioRingBuffer* audioStream = i.value();
-        if (audioStream->getType() == PositionalAudioRingBuffer::Injector && audioStream->isStarved()) {
+        PositionalAudioStream* audioStream = i.value();
+        if (audioStream->getType() == PositionalAudioStream::Injector && audioStream->isStarved()) {
             int notMixedThreshold = audioStream->hasStarted() ? INJECTOR_CONSECUTIVE_NOT_MIXED_AFTER_STARTED_THRESHOLD
                                                               : INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD;
             if (audioStream->getConsecutiveNotMixedCount() >= notMixedThreshold) {
@@ -152,7 +152,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
     // pack and send stream stats packets until all ring buffers' stats are sent
     int numStreamStatsRemaining = _ringBuffers.size();
-    QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator ringBuffersIterator = _ringBuffers.constBegin();
+    QHash<QUuid, PositionalAudioStream*>::ConstIterator ringBuffersIterator = _ringBuffers.constBegin();
     while (numStreamStatsRemaining > 0) {
 
         char* dataAt = headerEndAt;
@@ -201,7 +201,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
         + " max_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMax)
         + " avg_gap_30s:" + formatUsecTime(streamStats._timeGapWindowAverage);
 
-    AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
+    AvatarAudioStream* avatarRingBuffer = getAvatarAudioRingBuffer();
     if (avatarRingBuffer) {
         AudioStreamStats streamStats = avatarRingBuffer->getAudioStreamStats();
         result += " UPSTREAM.mic.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
@@ -224,9 +224,9 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
         result = "mic unknown";
     }
     
-    QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i;
+    QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     for (i = _ringBuffers.constBegin(); i != _ringBuffers.constEnd(); i++) {
-        if (i.value()->getType() == PositionalAudioRingBuffer::Injector) {
+        if (i.value()->getType() == PositionalAudioStream::Injector) {
             AudioStreamStats streamStats = i.value()->getAudioStreamStats();
             result += " UPSTREAM.inj.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
                 + " desired_calc:" + QString::number(i.value()->getCalculatedJitterBufferFrames())

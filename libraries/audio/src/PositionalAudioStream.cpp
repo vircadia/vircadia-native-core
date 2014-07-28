@@ -1,5 +1,5 @@
 //
-//  PositionalAudioRingBuffer.cpp
+//  PositionalAudioStream.cpp
 //  libraries/audio/src
 //
 //  Created by Stephen Birarda on 6/5/13.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PositionalAudioRingBuffer.h"
+#include "PositionalAudioStream.h"
 #include "SharedUtil.h"
 
 #include <cstring>
@@ -21,7 +21,7 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 
-PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo, bool dynamicJitterBuffers) :
+PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, bool dynamicJitterBuffers) :
     InboundAudioStream(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
     AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, dynamicJitterBuffers),
     _type(type),
@@ -34,13 +34,13 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
 {
 }
 
-int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
+int PositionalAudioStream::parseData(const QByteArray& packet) {
     int bytesRead = InboundAudioStream::parseData(packet);
     updateNextOutputTrailingLoudness();
     return bytesRead;
 }
 
-void PositionalAudioRingBuffer::updateNextOutputTrailingLoudness() {
+void PositionalAudioStream::updateNextOutputTrailingLoudness() {
     float nextLoudness = _ringBuffer.getNextOutputFrameLoudness();
 
     const int TRAILING_AVERAGE_FRAMES = 100;
@@ -59,7 +59,7 @@ void PositionalAudioRingBuffer::updateNextOutputTrailingLoudness() {
     }
 }
 
-int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalByteArray) {
+int PositionalAudioStream::parsePositionalData(const QByteArray& positionalByteArray) {
     QDataStream packetStream(positionalByteArray);
 
     packetStream.readRawData(reinterpret_cast<char*>(&_position), sizeof(_position));
@@ -75,7 +75,7 @@ int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalB
     return packetStream.device()->pos();
 }
 
-AudioStreamStats PositionalAudioRingBuffer::getAudioStreamStats() const {
+AudioStreamStats PositionalAudioStream::getAudioStreamStats() const {
     AudioStreamStats streamStats = InboundAudioStream::getAudioStreamStats();
     streamStats._streamType = _type;
     return streamStats;

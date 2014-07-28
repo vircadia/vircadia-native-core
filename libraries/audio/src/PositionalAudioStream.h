@@ -1,5 +1,5 @@
 //
-//  PositionalAudioRingBuffer.h
+//  PositionalAudioStream.h
 //  libraries/audio/src
 //
 //  Created by Stephen Birarda on 6/5/13.
@@ -19,7 +19,7 @@
 
 const int AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
-class PositionalAudioRingBuffer : public InboundAudioStream {
+class PositionalAudioStream : public InboundAudioStream {
     Q_OBJECT
 public:
     enum Type {
@@ -27,7 +27,7 @@ public:
         Injector
     };
 
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type, bool isStereo = false, bool dynamicJitterBuffers = false);
+    PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo = false, bool dynamicJitterBuffers = false);
     
     int parseData(const QByteArray& packet);
     
@@ -38,7 +38,7 @@ public:
 
     bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
     bool isStereo() const { return _isStereo; }
-    PositionalAudioRingBuffer::Type getType() const { return _type; }
+    PositionalAudioStream::Type getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
     AABox* getListenerUnattenuatedZone() const { return _listenerUnattenuatedZone; }
@@ -46,9 +46,9 @@ public:
     void setListenerUnattenuatedZone(AABox* listenerUnattenuatedZone) { _listenerUnattenuatedZone = listenerUnattenuatedZone; }
 
 protected:
-    // disallow copying of PositionalAudioRingBuffer objects
-    PositionalAudioRingBuffer(const PositionalAudioRingBuffer&);
-    PositionalAudioRingBuffer& operator= (const PositionalAudioRingBuffer&);
+    // disallow copying of PositionalAudioStream objects
+    PositionalAudioStream(const PositionalAudioStream&);
+    PositionalAudioStream& operator= (const PositionalAudioStream&);
 
     /// parses the info between the seq num and the audio data in the network packet and calculates
     /// how many audio samples this packet contains

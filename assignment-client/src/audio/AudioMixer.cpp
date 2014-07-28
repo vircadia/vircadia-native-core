@@ -52,8 +52,8 @@
 
 #include "AudioRingBuffer.h"
 #include "AudioMixerClientData.h"
-#include "AvatarAudioRingBuffer.h"
-#include "InjectedAudioRingBuffer.h"
+#include "AvatarAudioStream.h"
+#include "InjectedAudioStream.h"
 
 #include "AudioMixer.h"
 
@@ -93,8 +93,8 @@ const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
 const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
 
-void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
-                                                          AvatarAudioRingBuffer* listeningNodeBuffer) {
+void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioStream* bufferToAdd,
+                                                          AvatarAudioStream* listeningNodeBuffer) {
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
     int numSamplesDelay = 0;
@@ -125,8 +125,8 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             shouldAttenuate = !bufferToAdd->getListenerUnattenuatedZone()->contains(listeningNodeBuffer->getPosition());
         }
         
-        if (bufferToAdd->getType() == PositionalAudioRingBuffer::Injector) {
-            attenuationCoefficient *= reinterpret_cast<InjectedAudioRingBuffer*>(bufferToAdd)->getAttenuationRatio();
+        if (bufferToAdd->getType() == PositionalAudioStream::Injector) {
+            attenuationCoefficient *= reinterpret_cast<InjectedAudioStream*>(bufferToAdd)->getAttenuationRatio();
         }
         
         shouldAttenuate = shouldAttenuate && distanceBetween > ATTENUATION_EPSILON_DISTANCE;
@@ -137,8 +137,8 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
             float radius = 0.0f;
             
-            if (bufferToAdd->getType() == PositionalAudioRingBuffer::Injector) {
-                radius = reinterpret_cast<InjectedAudioRingBuffer*>(bufferToAdd)->getRadius();
+            if (bufferToAdd->getType() == PositionalAudioStream::Injector) {
+                radius = reinterpret_cast<InjectedAudioStream*>(bufferToAdd)->getRadius();
             }
             
             if (radius == 0 || (distanceSquareToSource > radius * radius)) {
@@ -265,7 +265,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
 }
 
 void AudioMixer::prepareMixForListeningNode(Node* node) {
-    AvatarAudioRingBuffer* nodeRingBuffer = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer();
+    AvatarAudioStream* nodeRingBuffer = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer();
 
     // zero out the client mix for this node
     memset(_clientSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
@@ -278,10 +278,10 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
 
-            const QHash<QUuid, PositionalAudioRingBuffer*>& otherNodeRingBuffers = otherNodeClientData->getRingBuffers();
-            QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i;
+            const QHash<QUuid, PositionalAudioStream*>& otherNodeRingBuffers = otherNodeClientData->getRingBuffers();
+            QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
             for (i = otherNodeRingBuffers.begin(); i != otherNodeRingBuffers.constEnd(); i++) {
-                PositionalAudioRingBuffer* otherNodeBuffer = i.value();
+                PositionalAudioStream* otherNodeBuffer = i.value();
 
                 if ((*otherNode != *node || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->lastPopSucceeded()

@@ -1,5 +1,5 @@
 //
-//  InjectedAudioRingBuffer.h
+//  InjectedAudioStream.h
 //  libraries/audio/src
 //
 //  Created by Stephen Birarda on 6/5/13.
@@ -14,11 +14,11 @@
 
 #include <QtCore/QUuid>
 
-#include "PositionalAudioRingBuffer.h"
+#include "PositionalAudioStream.h"
 
-class InjectedAudioRingBuffer : public PositionalAudioRingBuffer {
+class InjectedAudioStream : public PositionalAudioStream {
 public:
-    InjectedAudioRingBuffer(const QUuid& streamIdentifier = QUuid(), bool dynamicJitterBuffer = false);
+    InjectedAudioStream(const QUuid& streamIdentifier = QUuid(), bool dynamicJitterBuffer = false);
 
     float getRadius() const { return _radius; }
     float getAttenuationRatio() const { return _attenuationRatio; }
@@ -26,9 +26,9 @@ public:
     QUuid getStreamIdentifier() const { return _streamIdentifier; }
 
 private:
-    // disallow copying of InjectedAudioRingBuffer objects
-    InjectedAudioRingBuffer(const InjectedAudioRingBuffer&);
-    InjectedAudioRingBuffer& operator= (const InjectedAudioRingBuffer&);
+    // disallow copying of InjectedAudioStream objects
+    InjectedAudioStream(const InjectedAudioStream&);
+    InjectedAudioStream& operator= (const InjectedAudioStream&);
 
     AudioStreamStats getAudioStreamStats() const;
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
