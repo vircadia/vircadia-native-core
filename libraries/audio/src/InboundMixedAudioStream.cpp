@@ -1,8 +1,8 @@
 
 #include "InboundMixedAudioStream.h"
 
-InboundMixedAudioStream::InboundMixedAudioStream(int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers)
-    : InboundAudioStream(numFrameSamples, numFramesCapacity, dynamicJitterBuffers)
+InboundMixedAudioStream::InboundMixedAudioStream(int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers, bool useStDevForJitterCalc)
+    : InboundAudioStream(numFrameSamples, numFramesCapacity, dynamicJitterBuffers, useStDevForJitterCalc)
 {
 }
 

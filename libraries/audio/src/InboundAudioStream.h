@@ -18,6 +18,7 @@
 #include "SequenceNumberStats.h"
 #include "AudioStreamStats.h"
 #include "PacketHeaders.h"
+#include "StdDev.h"
 
 // the time gaps stats for _desiredJitterBufferFrames calculation
 // will recalculate the max for the past 5000 samples every 500 samples
@@ -44,7 +45,7 @@ const int INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 class InboundAudioStream : public NodeData {
     Q_OBJECT
 public:
-    InboundAudioStream(int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers);
+    InboundAudioStream(int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers, bool useStDevForJitterCalc = false);
 
     void reset();
     void resetStats();
@@ -67,7 +68,15 @@ public:
 
     virtual AudioStreamStats getAudioStreamStats() const;
 
-    int getCalculatedDesiredJitterBufferFrames() const;
+    /// returns the desired number of jitter buffer frames under the dyanmic jitter buffers scheme
+    int getCalculatedJitterBufferFrames() const { return _useStDevForJitterCalc ? 
+        _calculatedJitterBufferFramesUsingStDev : _calculatedJitterBufferFramesUsingMaxGap; };
+
+    /// returns the desired number of jitter buffer frames using Philip's method
+    int getCalculatedJitterBufferFramesUsingStDev() const { return _calculatedJitterBufferFramesUsingStDev; }
+
+    /// returns the desired number of jitter buffer frames using Freddy's method
+    int getCalculatedJitterBufferFramesUsingMaxGap() const { return _calculatedJitterBufferFramesUsingMaxGap; }
 
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
     int getNumFrameSamples() const { return _ringBuffer.getNumFrameSamples(); }
@@ -85,6 +94,8 @@ public:
 
 private:
     void starved();
+
+    int clampDesiredJitterBufferFramesValue(int desired) const;
 
 protected:
     // disallow copying of InboundAudioStream objects
@@ -110,6 +121,10 @@ protected:
     AudioRingBuffer::ConstIterator _lastPopOutput;
 
     bool _dynamicJitterBuffers;
+    bool _useStDevForJitterCalc;
+    
+    int _calculatedJitterBufferFramesUsingMaxGap;
+    int _calculatedJitterBufferFramesUsingStDev;
     int _desiredJitterBufferFrames;
 
     bool _isStarved;
@@ -125,6 +140,7 @@ protected:
 
     quint64 _lastFrameReceivedTime;
     MovingMinMaxAvg<quint64> _interframeTimeGapStatsForJitterCalc;
+    StDev _stdev;
     MovingMinMaxAvg<quint64> _interframeTimeGapStatsForStatsPacket;
     
     // TODO: change this to time-weighted moving avg

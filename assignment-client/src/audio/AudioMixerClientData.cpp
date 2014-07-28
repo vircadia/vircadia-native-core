@@ -205,7 +205,7 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
     if (avatarRingBuffer) {
         AudioStreamStats streamStats = avatarRingBuffer->getAudioStreamStats();
         result += " UPSTREAM.mic.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
-            + " desired_calc:" + QString::number(avatarRingBuffer->getCalculatedDesiredJitterBufferFrames())
+            + " desired_calc:" + QString::number(avatarRingBuffer->getCalculatedJitterBufferFrames())
             + " available_avg_10s:" + QString::number(streamStats._ringBufferFramesAvailableAverage)
             + " available:" + QString::number(streamStats._ringBufferFramesAvailable)
             + " starves:" + QString::number(streamStats._ringBufferStarveCount)
@@ -225,11 +225,11 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
     }
     
     QHash<QUuid, PositionalAudioRingBuffer*>::ConstIterator i;
-    for (i = _ringBuffers.constBegin(); i != _ringBuffers.constEnd; i++) {
+    for (i = _ringBuffers.constBegin(); i != _ringBuffers.constEnd(); i++) {
         if (i.value()->getType() == PositionalAudioRingBuffer::Injector) {
             AudioStreamStats streamStats = i.value()->getAudioStreamStats();
             result += " UPSTREAM.inj.desired:" + QString::number(streamStats._ringBufferDesiredJitterBufferFrames)
-                + " desired_calc:" + QString::number(i.value()->getCalculatedDesiredJitterBufferFrames())
+                + " desired_calc:" + QString::number(i.value()->getCalculatedJitterBufferFrames())
                 + " available_avg_10s:" + QString::number(streamStats._ringBufferFramesAvailableAverage)
                 + " available:" + QString::number(streamStats._ringBufferFramesAvailable)
                 + " starves:" + QString::number(streamStats._ringBufferStarveCount)
