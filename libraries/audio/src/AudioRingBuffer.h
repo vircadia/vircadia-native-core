@@ -37,8 +37,7 @@ const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 const int DEFAULT_RING_BUFFER_FRAME_CAPACITY = 10;
 
-class AudioRingBuffer : public NodeData {
-    Q_OBJECT
+class AudioRingBuffer {
 public:
     AudioRingBuffer(int numFrameSamples, bool randomAccessMode = false, int numFramesCapacity = DEFAULT_RING_BUFFER_FRAME_CAPACITY);
     ~AudioRingBuffer();
@@ -50,8 +49,6 @@ public:
 
     int getSampleCapacity() const { return _sampleCapacity; }
     int getFrameCapacity() const { return _frameCapacity; }
-    
-    int parseData(const QByteArray& packet);
     
     // assume callers using this will never wrap around the end
     const int16_t* getNextOutput() const { return _nextOutput; }

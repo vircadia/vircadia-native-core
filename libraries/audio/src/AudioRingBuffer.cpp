@@ -20,7 +20,6 @@
 
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode, int numFramesCapacity) :
-    NodeData(),
     _frameCapacity(numFramesCapacity),
     _sampleCapacity(numFrameSamples * numFramesCapacity),
     _isFull(false),
@@ -66,12 +65,6 @@ void AudioRingBuffer::clear() {
     _isFull = false;
     _endOfLastWrite = _buffer;
     _nextOutput = _buffer;
-}
-
-int AudioRingBuffer::parseData(const QByteArray& packet) {
-    // skip packet header and sequence number
-    int numBytesBeforeAudioData = numBytesForPacketHeader(packet) + sizeof(quint16);
-    return writeData(packet.data() + numBytesBeforeAudioData, packet.size() - numBytesBeforeAudioData);
 }
 
 int AudioRingBuffer::readSamples(int16_t* destination, int maxSamples) {
