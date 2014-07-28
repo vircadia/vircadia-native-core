@@ -10,7 +10,7 @@
 //
 
 #ifndef hifi_MixedAudioStream_h
-#define hifi_MixedAudioStream
+#define hifi_MixedAudioStream_h
 
 #include "InboundAudioStream.h"
 #include "PacketHeaders.h"
