@@ -35,7 +35,9 @@ signals:
 
 private slots:
     void xmppConnected();
+#ifdef HAVE_QXMPP
     void xmppError(QXmppClient::Error error);
+#endif
 
     void connectToServer();
     void disconnectFromServer();
