@@ -90,8 +90,8 @@ public:
 
 SpannerRenderVisitor::SpannerRenderVisitor() :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannerMaskAttribute(),
-        QVector<AttributePointer>(), QVector<AttributePointer>(), Application::getInstance()->getMetavoxels()->getLOD(),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(),
+        Application::getInstance()->getMetavoxels()->getLOD(),
         encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())) {
 }
 
@@ -239,53 +239,22 @@ void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
     Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
 }
 
-PointBuffer::PointBuffer(const QVector<BufferPointVectorPair>& levelPoints) :
-    _levelPoints(levelPoints) {
+PointBuffer::PointBuffer(const BufferPointVector& points) :
+    _points(points) {
 }
 
-void PointBuffer::render(int level) {
+void PointBuffer::render() {
     // initalize buffer, etc. on first render
     if (!_buffer.isCreated()) {
-        _offsets.append(0);
-        _lastLeafCount = 0;
-        int totalPoints = 0;
-        foreach (const BufferPointVectorPair& pair, _levelPoints) {
-            _offsets.append(totalPoints += ((_lastLeafCount += pair.first.size()) + pair.second.size()));
-        }
         _buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
         _buffer.create();
         _buffer.bind();
-        _buffer.allocate(totalPoints * sizeof(BufferPoint));
-        int offset = 0;
-        for (int i = 0; i < _levelPoints.size(); i++) {
-            // write the internal nodes from the current level
-            const BufferPointVector& internal = _levelPoints.at(i).second;
-            int length = internal.size() * sizeof(BufferPoint);
-            _buffer.write(offset, internal.constData(), length);
-            offset += length;
-            
-            // and the leaves from the top down
-            for (int j = 0; j <= i; j++) {
-                const BufferPointVector& leaves = _levelPoints.at(j).first;
-                length = leaves.size() * sizeof(BufferPoint);
-                _buffer.write(offset, leaves.constData(), length);
-                offset += length;
-            }
-        }
-        _levelPoints.clear();
+        _pointCount = _points.size();
+        _buffer.allocate(_points.constData(), _pointCount * sizeof(BufferPoint));
+        _points.clear();
         _buffer.release();
     }
-    int first, count;
-    int nextLevel = level + 1;
-    if (nextLevel >= _offsets.size()) {
-        first = _offsets.last() - _lastLeafCount;
-        count = _lastLeafCount;
-        
-    } else {
-        first = _offsets.at(level);
-        count = _offsets.at(nextLevel) - first;
-    }
-    if (count == 0) {
+    if (_pointCount == 0) {
         return;
     }
     _buffer.bind();
@@ -295,7 +264,7 @@ void PointBuffer::render(int level) {
     glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(BufferPoint), &point->color);
     glNormalPointer(GL_BYTE, sizeof(BufferPoint), &point->normal);
     
-    glDrawArrays(GL_POINTS, first, count);
+    glDrawArrays(GL_POINTS, 0, _pointCount);
     
     _buffer.release();
 }
@@ -304,21 +273,16 @@ PointBufferAttribute::PointBufferAttribute() :
     InlineAttribute<PointBufferPointer>("pointBuffer") {
 }
 
-MetavoxelNode* PointBufferAttribute::createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const {
-    return new MetavoxelNode(value, original);
-}
-
 bool PointBufferAttribute::merge(void*& parent, void* children[], bool postRead) const {
-    for (int i = 0; i < MERGE_COUNT; i++) {
-        if (decodeInline<PointBufferPointer>(children[i])) {
+    PointBufferPointer firstChild = decodeInline<PointBufferPointer>(children[0]);
+    for (int i = 1; i < MERGE_COUNT; i++) {
+        if (firstChild != decodeInline<PointBufferPointer>(children[i])) {
+            *(PointBufferPointer*)&parent = _defaultValue;
             return false;
         }
     }
+    *(PointBufferPointer*)&parent = firstChild;
     return true;
-}
-
-AttributeValue PointBufferAttribute::inherit(const AttributeValue& parentValue) const {
-    return AttributeValue(parentValue.getAttribute());
 }
 
 void PointMetavoxelRendererImplementation::init() {
@@ -340,12 +304,14 @@ public:
 
     PointAugmentVisitor(const MetavoxelLOD& lod);
     
+    virtual void prepare(MetavoxelData* data);
     virtual int visit(MetavoxelInfo& info);
     virtual bool postVisit(MetavoxelInfo& info);
 
 private:
     
-    QVector<BufferPointVectorPair> _depthPoints;
+    BufferPointVector _points;
+    float _pointLeafSize;
 };
 
 PointAugmentVisitor::PointAugmentVisitor(const MetavoxelLOD& lod) :
@@ -356,48 +322,61 @@ PointAugmentVisitor::PointAugmentVisitor(const MetavoxelLOD& lod) :
 
 const int ALPHA_RENDER_THRESHOLD = 0;
 
+void PointAugmentVisitor::prepare(MetavoxelData* data) {
+    MetavoxelVisitor::prepare(data);
+    const float MAX_POINT_LEAF_SIZE = 64.0f;
+    _pointLeafSize = qMin(data->getSize(), MAX_POINT_LEAF_SIZE);
+}
+
 int PointAugmentVisitor::visit(MetavoxelInfo& info) {
-    if (_depth >= _depthPoints.size()) {
-        _depthPoints.resize(_depth + 1);
+    if (!info.isLeaf) {
+        return (info.size > _pointLeafSize) ? DEFAULT_ORDER : (DEFAULT_ORDER | ALL_NODES_REST);    
     }
     QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
     quint8 alpha = qAlpha(color);
-    if (alpha <= ALPHA_RENDER_THRESHOLD) {
-        return info.isLeaf ? STOP_RECURSION : (DEFAULT_ORDER | ALL_NODES);
+    if (alpha > ALPHA_RENDER_THRESHOLD) {
+        QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
+        BufferPoint point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
+            { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)) }, 
+            { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
+        _points.append(point);
     }
-    QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
-    BufferPoint point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
-        { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)) }, 
-        { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
-    if (info.isLeaf) {
-        _depthPoints[_depth].first.append(point);
-        return STOP_RECURSION;
+    if (info.size >= _pointLeafSize) {   
+        BufferPointVector swapPoints;
+        _points.swap(swapPoints);
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(PointBufferPointer(
+            new PointBuffer(swapPoints))));
     }
-    _depthPoints[_depth].second.append(point);
-    return DEFAULT_ORDER | ALL_NODES;
+    return STOP_RECURSION;
 }
 
 bool PointAugmentVisitor::postVisit(MetavoxelInfo& info) {
-    if (_depth != 0) {
+    if (info.size != _pointLeafSize) {
         return false;
     }
-    int lastDepth = _depthPoints.size();
-    QVector<BufferPointVectorPair> levelPoints(lastDepth - _depth);
-    for (int i = 0; i < levelPoints.size(); i++) {
-        BufferPointVectorPair& levelPair = levelPoints[i];
-        BufferPointVectorPair& depthPair = _depthPoints[_depth + i];
-        levelPair.first.swap(depthPair.first);
-        levelPair.second.swap(depthPair.second);
-    }
+    BufferPointVector swapPoints;
+    _points.swap(swapPoints);
     info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(PointBufferPointer(
-        new PointBuffer(levelPoints))));
+        new PointBuffer(swapPoints))));
     return true;
 }
 
 void PointMetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
         MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    // copy the previous buffers
+    MetavoxelData expandedPrevious = previous;
+    while (expandedPrevious.getSize() < data.getSize()) {
+        expandedPrevious.expand();
+    }
+    const AttributePointer& pointBufferAttribute = Application::getInstance()->getMetavoxels()->getPointBufferAttribute();
+    MetavoxelNode* root = expandedPrevious.getRoot(pointBufferAttribute);
+    if (root) {
+        data.setRoot(pointBufferAttribute, root);
+        root->incrementReferenceCount();
+    }
+    
     PointAugmentVisitor visitor(lod);
-    data.guideToDifferent(previous, visitor, &info);
+    data.guideToDifferent(expandedPrevious, visitor);
 }
 
 class PointRenderVisitor : public MetavoxelVisitor {
@@ -421,7 +400,7 @@ PointRenderVisitor::PointRenderVisitor(const MetavoxelLOD& lod) :
 int PointRenderVisitor::visit(MetavoxelInfo& info) {
     PointBufferPointer buffer = info.inputValues.at(0).getInlineValue<PointBufferPointer>();
     if (buffer) {
-        buffer->render(1000);
+        buffer->render();
     }
     return info.isLeaf ? STOP_RECURSION : _order;
 }
@@ -450,7 +429,7 @@ void PointMetavoxelRendererImplementation::render(MetavoxelData& data, Metavoxel
     glDisable(GL_BLEND);
     
     PointRenderVisitor visitor(lod);
-    data.guide(visitor, &info);
+    data.guide(visitor);
     
     glEnable(GL_BLEND);
     

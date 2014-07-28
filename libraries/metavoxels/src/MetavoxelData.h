@@ -81,12 +81,10 @@ public:
     Box getBounds() const;
 
     /// Applies the specified visitor to the contained voxels.
-    /// \param start the location at which to start, or NULL for the root
-    void guide(MetavoxelVisitor& visitor, const MetavoxelInfo* start = NULL);
+    void guide(MetavoxelVisitor& visitor);
    
     /// Guides the specified visitor to the voxels that differ from those of the specified other.
-    /// \param start the location at which to start, or NULL for the root
-    void guideToDifferent(const MetavoxelData& other, MetavoxelVisitor& visitor, const MetavoxelInfo* start = NULL);
+    void guideToDifferent(const MetavoxelData& other, MetavoxelVisitor& visitor);
     
     /// Inserts a spanner into the specified attribute layer.
     void insert(const AttributePointer& attribute, const SharedObjectPointer& object);
@@ -296,8 +294,13 @@ public:
     /// A special "order" that short-circuits the tour.
     static const int SHORT_CIRCUIT;
     
-    /// A flag combined with an order that instructs us to return to visiting all nodes (rather than the different ones).
+    /// A flag combined with an order that instructs us to return to visiting all nodes (rather than the different ones) for
+    /// just this level.
     static const int ALL_NODES;
+    
+    /// A flag combined with an order that instructs us to return to visiting all nodes (rather than the different ones) for
+    /// this level and all beneath it.
+    static const int ALL_NODES_REST;
     
     MetavoxelVisitor(const QVector<AttributePointer>& inputs,
         const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),

@@ -23,11 +23,7 @@
 
 #include "renderer/ProgramObject.h"
 
-class BufferPoint;
 class Model;
-
-typedef QVector<BufferPoint> BufferPointVector;
-typedef QPair<BufferPointVector, BufferPointVector> BufferPointVectorPair;
 
 /// Renders a metavoxel tree.
 class MetavoxelSystem : public MetavoxelClientManager {
@@ -66,6 +62,8 @@ public:
     quint8 normal[3];
 };
 
+typedef QVector<BufferPoint> BufferPointVector;
+
 Q_DECLARE_METATYPE(BufferPointVector)
 
 /// A client session associated with a single server.
@@ -94,20 +92,19 @@ private:
     QReadWriteLock _augmentedDataLock;
 };
 
-/// Contains the information necessary to render a group of points at variable detail levels.
+/// Contains the information necessary to render a group of points.
 class PointBuffer : public QSharedData {
 public:
 
-    PointBuffer(const QVector<BufferPointVectorPair>& levelPoints);
+    PointBuffer(const BufferPointVector& points);
 
-    void render(int level);
+    void render();
 
 private:
     
-    QVector<BufferPointVectorPair> _levelPoints;
+    BufferPointVector _points;
     QOpenGLBuffer _buffer;
-    QVector<int> _offsets;
-    int _lastLeafCount;
+    int _pointCount;
 };
 
 typedef QExplicitlySharedDataPointer<PointBuffer> PointBufferPointer;
@@ -120,9 +117,7 @@ public:
     
     Q_INVOKABLE PointBufferAttribute();
     
-    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
-    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 /// Renders metavoxels as points.

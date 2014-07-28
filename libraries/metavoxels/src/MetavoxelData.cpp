@@ -81,7 +81,7 @@ Box MetavoxelData::getBounds() const {
     return Box(glm::vec3(-halfSize, -halfSize, -halfSize), glm::vec3(halfSize, halfSize, halfSize));
 }
 
-void MetavoxelData::guide(MetavoxelVisitor& visitor, const MetavoxelInfo* start) {
+void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     // let the visitor know we're about to begin a tour
     visitor.prepare(this);
 
@@ -128,7 +128,7 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor, const MetavoxelInfo* start)
     visitor.releaseVisitation();
 }
 
-void MetavoxelData::guideToDifferent(const MetavoxelData& other, MetavoxelVisitor& visitor, const MetavoxelInfo* start) {
+void MetavoxelData::guideToDifferent(const MetavoxelData& other, MetavoxelVisitor& visitor) {
     // if the other data is smaller, we need to expand it to compare
     const MetavoxelData* expandedOther = &other;
     if (_size > other._size) {
@@ -1249,6 +1249,7 @@ const int MetavoxelVisitor::DEFAULT_ORDER = encodeOrder(0, 1, 2, 3, 4, 5, 6, 7);
 const int MetavoxelVisitor::STOP_RECURSION = 0;
 const int MetavoxelVisitor::SHORT_CIRCUIT = -1;
 const int MetavoxelVisitor::ALL_NODES = 1 << 24;
+const int MetavoxelVisitor::ALL_NODES_REST = 1 << 25;
 
 MetavoxelVisitor::MetavoxelVisitor(const QVector<AttributePointer>& inputs,
         const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
@@ -1428,32 +1429,7 @@ bool MetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
 DefaultMetavoxelGuide::DefaultMetavoxelGuide() {
 }
 
-bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
-    // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
-    float lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
-        visitation.visitor->getLOD().threshold;
-    visitation.info.isLODLeaf = (visitation.info.size < lodBase * visitation.visitor->getMinimumLODThresholdMultiplier());
-    visitation.info.isLeaf = visitation.info.isLODLeaf || visitation.allInputNodesLeaves();
-    int encodedOrder = visitation.visitor->visit(visitation.info);
-    if (encodedOrder == MetavoxelVisitor::SHORT_CIRCUIT) {
-        return false;
-    }
-    for (int i = 0; i < visitation.outputNodes.size(); i++) {
-        OwnedAttributeValue& value = visitation.info.outputValues[i];
-        if (!value.getAttribute()) {
-            continue;
-        }
-        MetavoxelNode*& node = visitation.outputNodes[i];
-        if (node && node->isLeaf() && value.getAttribute()->equal(value.getValue(), node->getAttributeValue())) {
-            // "set" to same value; disregard
-            value = AttributeValue();
-        } else {
-            node = value.getAttribute()->createMetavoxelNode(value, node);
-        }
-    }
-    if (encodedOrder == MetavoxelVisitor::STOP_RECURSION) {
-        return true;
-    }
+static inline bool defaultGuideToChildren(MetavoxelVisitation& visitation, float lodBase, int encodedOrder) {
     MetavoxelVisitation& nextVisitation = visitation.visitor->acquireVisitation();
     nextVisitation.info.size = visitation.info.size * 0.5f;
     for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
@@ -1546,6 +1522,35 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     return true;
 }
 
+bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
+    // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
+    float lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
+        visitation.visitor->getLOD().threshold;
+    visitation.info.isLODLeaf = (visitation.info.size < lodBase * visitation.visitor->getMinimumLODThresholdMultiplier());
+    visitation.info.isLeaf = visitation.info.isLODLeaf || visitation.allInputNodesLeaves();
+    int encodedOrder = visitation.visitor->visit(visitation.info);
+    if (encodedOrder == MetavoxelVisitor::SHORT_CIRCUIT) {
+        return false;
+    }
+    for (int i = 0; i < visitation.outputNodes.size(); i++) {
+        OwnedAttributeValue& value = visitation.info.outputValues[i];
+        if (!value.getAttribute()) {
+            continue;
+        }
+        MetavoxelNode*& node = visitation.outputNodes[i];
+        if (node && node->isLeaf() && value.getAttribute()->equal(value.getValue(), node->getAttributeValue())) {
+            // "set" to same value; disregard
+            value = AttributeValue();
+        } else {
+            node = value.getAttribute()->createMetavoxelNode(value, node);
+        }
+    }
+    if (encodedOrder == MetavoxelVisitor::STOP_RECURSION) {
+        return true;
+    }
+    return (encodedOrder == MetavoxelVisitor::STOP_RECURSION || defaultGuideToChildren(visitation, lodBase, encodedOrder));
+}
+
 bool DefaultMetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
     // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
     float lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
@@ -1571,6 +1576,9 @@ bool DefaultMetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
     }
     if (encodedOrder == MetavoxelVisitor::STOP_RECURSION) {
         return true;
+    }
+    if (encodedOrder & MetavoxelVisitor::ALL_NODES_REST) {
+        return defaultGuideToChildren(visitation, lodBase, encodedOrder);
     }
     bool onlyVisitDifferent = !(encodedOrder & MetavoxelVisitor::ALL_NODES);
     MetavoxelVisitation& nextVisitation = visitation.visitor->acquireVisitation();
