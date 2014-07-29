@@ -255,10 +255,21 @@ function update(deltaTime){
         }
         frame++;
     }
+
+    var locationChanged = false;
+    if (location.hostname != oldHost) {
+        print("Changed domain");
+        for (model in models) {
+            removeIndicators(models[model]);
+        }
+        oldHost = location.hostname;
+        locationChanged = true;
+    }
 	
-    if (MyAvatar.position.x != avatarOldPosition.x &&
-        MyAvatar.position.y != avatarOldPosition.y &&
-        MyAvatar.position.z != avatarOldPosition.z) {
+    if (MyAvatar.position.x != avatarOldPosition.x ||
+        MyAvatar.position.y != avatarOldPosition.y ||
+        MyAvatar.position.z != avatarOldPosition.z ||
+        locationChanged) {
         avatarOldPosition = MyAvatar.position;
         
         var SEARCH_RADIUS = 50;
@@ -284,14 +295,6 @@ function update(deltaTime){
         if (hiddingSeats && passedTime >= animationLenght) {
             showIndicators(true);
         }
-    }
-
-    if (location.hostname != oldHost) {
-        print("Changed domain");
-        for (model in models) {
-            removeIndicators(models[model]);
-        }
-        oldHost = location.hostname;
     }
 }
 var oldHost = location.hostname;
