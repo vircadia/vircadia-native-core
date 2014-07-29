@@ -69,7 +69,8 @@ signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);
     
-    void settingsRequestComplete(bool wasSuccessful);
+    void settingsReceived();
+    void settingsReceiveFail();
     
 private:
     void reset();

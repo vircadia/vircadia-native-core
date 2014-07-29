@@ -157,7 +157,7 @@ void DomainHandler::settingsRequestFinished() {
         _settingsObject = QJsonDocument::fromJson(settingsReply->readAll()).object();
         
         qDebug() << "Received domain settings.";
-        emit settingsRequestComplete(true);
+        emit settingsReceived();
         
         // reset failed settings requests to 0, we got them
         _failedSettingsRequests = 0;
@@ -170,7 +170,7 @@ void DomainHandler::settingsRequestFinished() {
             qDebug() << "Failed to retreive domain-server settings" << MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS << "times. Re-setting connection to domain.";
             clearSettings();
             clearConnectionInfo();
-            emit settingsRequestComplete(false);
+            emit settingsReceiveFail();
         } else {
             requestDomainSettings();
         }        
