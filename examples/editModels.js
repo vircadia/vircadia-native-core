@@ -340,72 +340,108 @@ var modelUploader = (function () {
     }
 
     function readGeometry(fbxBuffer) {
-        var dv = new DataView(fbxBuffer.buffer),
-            geometry = {},
-            binary,
-            stringLength,
-            filename,
-            author,
-            i;
+        var geometry,
+            view,
+            index,
+            EOF;
 
-        binary = (dv.string(0, 18) === "Kaydara FBX Binary");
+        // Reference:
+        // http://code.blender.org/index.php/2013/08/fbx-binary-file-format-specification/
 
-        // Simple direct search of FBX file for relevant texture filenames (excl. paths) instead of interpreting FBX format.
-        // Binary format:
-        // - 'RelativeFilename'     Record type
-        // - char                   Subtype
-        // - Uint8                  Length of path string
-        // - 00 00 00               3 null chars
-        // - <path>                 Path and name of texture file
-        // Text format:
-        // - 'RelativeFilename'     Record type
-        // - ': " '                 Pre-string colon and quote
-        // - <path>                 Path and name of texture file
-        // - '"'                    End-of-string quote
+        geometry = {};
         geometry.textures = [];
-        i = 0;
-        while (i !== -1) {
-            i = dv.indexOf("RelativeFilename", i);
-            if (i !== -1) {
-                if (binary) {
-                    i += 17;
-                    stringLength = dv.getUint8(i);
-                    i += 4;
-                } else {
-                    i = dv.indexOf("\"", i) + 1;
-                    stringLength = dv.indexOf("\"", i) - i;
-                }
-                filename = dv.string(i, stringLength).fileName();
+        view = new DataView(fbxBuffer.buffer);
+        EOF = false;
+
+        function parseBinaryFBX() {
+            var endOffset,
+                numProperties,
+                propertyListLength,
+                nameLength,
+                name,
+                filename,
+                author;
+
+            endOffset = view.getUint32(index, true);
+            numProperties = view.getUint32(index + 4, true);
+            propertyListLength = view.getUint32(index + 8, true);
+            nameLength = view.getUint8(index + 12);
+            index += 13;
+
+            if (endOffset === 0) {
+                return;
+            }
+            if (endOffset < index || endOffset > view.byteLength) {
+                EOF = true;
+                return;
+            }
+
+            name = view.string(index, nameLength).toLowerCase();
+            index += nameLength;
+
+            if (name === "relativefilename") {
+                filename = view.string(index + 5, view.getUint32(index + 1, true)).fileName();
                 geometry.textures.push(filename);
-                i += stringLength;
+
+            } else if (name === "author") {
+                author = view.string(index + 5, view.getUint32(index + 1, true));
+                geometry.author = author;
+
+            }
+
+            index += (propertyListLength);
+
+            while (index < endOffset && !EOF) {
+                parseBinaryFBX();
             }
         }
 
-        // Simple direct search of FBX file for the first author record.
-        // Binary format:
-        // - 'Author'               Record type
-        // - char                   Subtype
-        // - Uint8                  Length of path string
-        // - 00 00 00               3 null chars
-        // - <author>               Author name
-        // Text format:
-        // - 'Author'               Record type
-        // - ': "'                  Pre-string colon and quote
-        // - <author>               Author name; may be empty
-        // - '"'                    End-of-string quote
-        i = dv.indexOf("Author", 0);
-        if (i !== -1) {
-            if (binary) {
-                i += 7;
-                stringLength = dv.getUint8(i);
-            } else {
-                i = dv.indexOf("\"", i) + 1;
-                stringLength = dv.indexOf("\"", i) - i;
+        function readTextFBX() {
+            var line,
+                view,
+                viewLength,
+                charCode,
+                charCodes,
+                author,
+                filename;
+
+            view = new Uint8Array(fbxBuffer.buffer);
+            viewLength = view.byteLength;
+            charCodes = [];
+
+            for (index = 0; index < viewLength; index += 1) {
+                charCode = view[index];
+                if (charCode === 10) {  // Can ignore EOF
+                    line = String.fromCharCode.apply(String, charCodes).trim();
+
+                    if (line.slice(0, 7).toLowerCase() === "author:") {
+                        author = line.slice(line.indexOf("\""), line.lastIndexOf("\"") - line.length);
+                        geometry.author = author;
+
+                    }
+                    if (line.slice(0, 17).toLowerCase() === "relativefilename:") {
+                        filename = line.slice(line.indexOf("\""), line.lastIndexOf("\"") - line.length).fileName();
+                        geometry.textures.push(filename);
+                    }
+
+                    charCodes = [];
+                } else {
+                    charCodes.push(charCode);
+                }
             }
-            if (stringLength > 0) {
-                author = dv.string(i, stringLength);
-                geometry.author = author;
+        }
+
+        if (view.string(0, 18) === "Kaydara FBX Binary") {
+
+            index = 27;
+            while (index < view.byteLength - 39 && !EOF) {
+                parseBinaryFBX();
             }
+
+        } else {
+
+            readTextFBX();
+
         }
 
         return geometry;
