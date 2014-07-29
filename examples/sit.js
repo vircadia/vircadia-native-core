@@ -285,7 +285,16 @@ function update(deltaTime){
             showIndicators(true);
         }
     }
+
+    if (location.hostname != oldHost) {
+        print("Changed domain");
+        for (model in models) {
+            removeIndicators(models[model]);
+        }
+        oldHost = location.hostname;
+    }
 }
+var oldHost = location.hostname;
 
 function addIndicators(modelID) {
     if (modelID.properties.sittingPoints.length > 0) {
