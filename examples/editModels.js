@@ -248,15 +248,15 @@ var httpMultiPart = (function () {
         byteLength += buffer.byteLength;
         parts.push(buffer);
 
-        charCodes = [];
+        str = "";
         for (i = 0; i < parts.length; i += 1) {
+            charCodes = [];
             view = new Uint8Array(parts[i]);
-            for (j = 0; j < view.length; j += 1) {
+            for(j = 0; j < view.length; j += 1) {
                 charCodes.push(view[j]);
             }
+            str = str + String.fromCharCode.apply(String, charCodes);
         }
-        str = String.fromCharCode.apply(String, charCodes);
-
         return str;
     }
     that.response = response;
