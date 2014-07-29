@@ -488,8 +488,11 @@ var modelUploader = (function () {
             }
 
             geometry = readGeometry(fbxBuffer);
-            if (!mapping.hasOwnProperty(SCALE_FIELD)) {
-                mapping[SCALE_FIELD] = (geometry.author === "www.makehuman.org" ? 150.0 : 15.0);
+
+            if (mapping.hasOwnProperty(SCALE_FIELD)) {
+                mapping[SCALE_FIELD] = parseFloat(mapping[SCALE_FIELD]);
+            } else {
+                mapping[SCALE_FIELD] = (geometry.author === "www.makehuman.org" ? 150.0: 15.0);
             }
         }
 
