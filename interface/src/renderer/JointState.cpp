@@ -18,6 +18,28 @@
 
 #include "JointState.h"
 
+
+class RotationExtractor : public QRunnable {
+public:
+    
+    RotationExtractor(glm::mat4 transform, glm::quat& rotation);
+    
+    virtual void run();
+    
+private:
+    glm::mat4 _transform;
+    glm::quat _rotation;
+};
+
+RotationExtractor::RotationExtractor(glm::mat4 transform, glm::quat& rotation) {
+    _transform = transform;
+    _rotation = rotation;
+}
+
+void RotationExtractor::run() {
+    _rotation = extractRotation(_transform);
+}
+
 JointState::JointState() :
     _animationPriority(0.0f),
     _transformChanged(true),
@@ -258,25 +280,4 @@ void JointState::slaveVisibleTransform() {
     _visibleTransform = _transform;
     _visibleRotation = _rotation;
     _visibleRotationInConstrainedFrame = _rotationInConstrainedFrame;
-}
-
-class RotationExtractor : public QRunnable {
-public:
-    
-    RotationExtractor(glm::mat4 transform, glm::quat& rotation);
-    
-    virtual void run();
-    
-private:
-    glm::mat4 _transform;
-    glm::quat _rotation;
-};
-
-RotationExtractor::RotationExtractor(glm::mat4 transform, glm::quat& rotation) {
-    _transform = transform;
-    _rotation = rotation;
-}
-
-void RotationExtractor::run() {
-    _rotation = extractRotation(_transform);
 }
