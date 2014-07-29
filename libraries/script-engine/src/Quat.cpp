@@ -76,6 +76,10 @@ glm::quat Quat::squad(const glm::quat& q1, const glm::quat& q2, const glm::quat&
     return glm::squad(q1, q2, s1, s2, h);
 }
 
+float Quat::dot(const glm::quat& q1, const glm::quat& q2) {
+    return glm::dot(q1, q2);
+}
+
 void Quat::print(const QString& lable, const glm::quat& q) {
     qDebug() << qPrintable(lable) << q.x << "," << q.y << "," << q.z << "," << q.w;
 }

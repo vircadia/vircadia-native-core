@@ -38,6 +38,7 @@ public slots:
     glm::quat mix(const glm::quat& q1, const glm::quat& q2, float alpha);
     glm::quat slerp(const glm::quat& q1, const glm::quat& q2, float alpha);
     glm::quat squad(const glm::quat& q1, const glm::quat& q2, const glm::quat& s1, const glm::quat& s2, float h);
+    float dot(const glm::quat& q1, const glm::quat& q2);
     void print(const QString& lable, const glm::quat& q);
 };
 
