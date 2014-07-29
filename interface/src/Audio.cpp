@@ -1443,7 +1443,7 @@ void Audio::renderAudioStreamStats(const AudioStreamStats& streamStats, int hori
     sprintf(stringBuffer, "                 Ringbuffer stats | starves: %u, prev_starve_lasted: %u, frames_dropped: %u, overflows: %u",
         streamStats._starveCount,
         streamStats._consecutiveNotMixedCount,
-        streamStats._silentFramesDropped,
+        streamStats._framesDropped,
         streamStats._overflowCount);
     verticalOffset += STATS_HEIGHT_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
