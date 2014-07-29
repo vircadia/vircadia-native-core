@@ -59,13 +59,13 @@ var mode = 0;
 
 
 if (typeof String.prototype.fileName !== "function") {
-    String.prototype.fileName = function (str) {
+    String.prototype.fileName = function () {
         return this.replace(/^(.*[\/\\])*/, "");
     };
 }
 
 if (typeof String.prototype.path !== "function") {
-    String.prototype.path = function (str) {
+    String.prototype.path = function () {
         return this.replace(/[\\\/][^\\\/]*$/, "");
     };
 }
@@ -185,8 +185,7 @@ var httpMultiPart = (function () {
         // - name, buffer
         var buffer,
             stringBuffer,
-            string,
-            length;
+            string;
 
         if (object.name === undefined) {
 
@@ -267,7 +266,6 @@ var httpMultiPart = (function () {
     return that;
 }());
 
-
 var modelUploader = (function () {
     var that = {},
         urlBase = "http://public.highfidelity.io/meshes/",
@@ -283,15 +281,14 @@ var modelUploader = (function () {
         ANIMATION_URL_FIELD = "animationurl",
         PITCH_FIELD = "pitch",
         YAW_FIELD = "yaw",
-        ROLL_FIELD = "roll",
-        fbxDataView;
+        ROLL_FIELD = "roll";
 
     function error(message) {
         Window.alert(message);
         print(message);
     }
 
-    function readFile(filename, buffer, length) {
+    function readFile(filename) {
         var url = "file:///" + filename,
             req = new XMLHttpRequest();
 
@@ -305,7 +302,7 @@ var modelUploader = (function () {
 
         return {
             filename: filename.fileName(),
-            buffer: req.response,
+            buffer: req.response
         };
     }
 
@@ -561,7 +558,6 @@ var modelUploader = (function () {
     }
 
     function createHttpMessage() {
-        var i;
 
         print("Preparing to send model");
 
