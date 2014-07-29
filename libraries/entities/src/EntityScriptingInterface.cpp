@@ -100,7 +100,7 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     if (actualID != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID;
         entityID.isKnownID = true;
-        qDebug() << "EntityScriptingInterface::editEntity()... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
+        //qDebug() << "EntityScriptingInterface::editEntity()... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
     
@@ -136,7 +136,7 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     if (actualID != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID;
         entityID.isKnownID = true;
-        qDebug() << "EntityScriptingInterface::deleteEntity()... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
+        //qDebug() << "EntityScriptingInterface::deleteEntity()... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
 
@@ -158,7 +158,7 @@ EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center
         if (closestEntity) {
             result.id = closestEntity->getID();
             result.isKnownID = true;
-            qDebug() << "EntityScriptingInterface::findClosestEntity()... isKnownID=" << result.isKnownID << "id=" << result.id << "creatorTokenID=" << result.creatorTokenID;
+            //qDebug() << "EntityScriptingInterface::findClosestEntity()... isKnownID=" << result.isKnownID << "id=" << result.id << "creatorTokenID=" << result.creatorTokenID;
         }
     }
     return result;
@@ -207,8 +207,8 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
                                                                 (void**)&intersectedEntity, lockType, &result.accurate);
         if (result.intersects && intersectedEntity) {
 
-qDebug() << "findRayIntersectionWorker().... intersectedEntity=" << intersectedEntity;
-intersectedEntity->debugDump();
+            //qDebug() << "findRayIntersectionWorker().... intersectedEntity=" << intersectedEntity;
+            //intersectedEntity->debugDump();
 
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();

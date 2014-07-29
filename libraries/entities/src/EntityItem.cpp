@@ -71,20 +71,20 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
-qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID)....";
+    //qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID)....";
     _type = EntityTypes::Base;
     initFromEntityItemID(entityItemID);
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
-qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)....";
+    //qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)....";
     _type = EntityTypes::Base;
     _lastEdited = 0;
     _lastUpdated = 0;
     initFromEntityItemID(entityItemID);
-qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties).... _lastEdited=" << _lastEdited;
+    //qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties).... _lastEdited=" << _lastEdited;
     setProperties(properties, true); // force copy
-qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties).... after setProperties() _lastEdited=" << _lastEdited;
+    //qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties).... after setProperties() _lastEdited=" << _lastEdited;
 }
 
 EntityItem::~EntityItem() {
@@ -1195,8 +1195,11 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
         memcpy(bufferOut, finalizedData, finalizedSize);
         sizeOut = finalizedSize;
         
-        qDebug() << "encodeEntityEditMessageDetails().... ";
-        outputBufferBits(finalizedData, finalizedSize);
+        bool wantDebug = false;
+        if (wantDebug) {
+            qDebug() << "encodeEntityEditMessageDetails().... ";
+            outputBufferBits(finalizedData, finalizedSize);
+        }
         
     } else {
         packetData.discardSubTree();

@@ -350,8 +350,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                             distance = localDistance;
                             face = localFace;
                             
-                            qDebug() << "about to set intersectedObject=" << entity;
-                            entity->debugDump();
+                            //qDebug() << "about to set intersectedObject=" << entity;
+                            //entity->debugDump();
                             
                             *intersectedObject = (void*)entity;
                             somethingIntersected = true;
@@ -362,8 +362,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 distance = localDistance;
                 face = localFace;
                 
-                qDebug() << "about to set intersectedObject=" << entity;
-                entity->debugDump();
+                //qDebug() << "about to set intersectedObject=" << entity;
+                //entity->debugDump();
 
                 *intersectedObject = (void*)entity;
                 somethingIntersected = true;
@@ -422,9 +422,9 @@ bool EntityTreeElement::addOrUpdateEntity(EntityItem* entity, const EntityItemPr
             thisEntity->setProperties(properties);
             markWithChangedTime();
 
-qDebug() << "***** EntityTreeElement::addOrUpdateEntity() setting properties of existing entity... no need to setContainingElement()?????";
-qDebug() << "***** EntityTreeElement::addOrUpdateEntity() this=" << this;
-qDebug() << "***** EntityTreeElement::addOrUpdateEntity() _myTree->getContainingElement(entityID)=" << _myTree->getContainingElement(entity->getEntityItemID());
+            //qDebug() << "***** EntityTreeElement::addOrUpdateEntity() setting properties of existing entity... no need to setContainingElement()?????";
+            //qDebug() << "***** EntityTreeElement::addOrUpdateEntity() this=" << this;
+            //qDebug() << "***** EntityTreeElement::addOrUpdateEntity() _myTree->getContainingElement(entityID)=" << _myTree->getContainingElement(entity->getEntityItemID());
 
             if (_myTree->getContainingElement(entity->getEntityItemID()) != this) {
                 qDebug() << "EntityTreeElement::addOrUpdateEntity() huh?? what??? looks like our containing element is wrong??";
@@ -437,14 +437,14 @@ qDebug() << "***** EntityTreeElement::addOrUpdateEntity() _myTree->getContaining
     }
     
     // If we didn't find the entity here, then let's check to see if we should add it...
-qDebug() << "EntityTreeElement::addOrUpdateEntity() BEFORE _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
+    //qDebug() << "EntityTreeElement::addOrUpdateEntity() BEFORE _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
     _entityItems->push_back(entity);
-qDebug() << "EntityTreeElement::addOrUpdateEntity() AFTER _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
+    //qDebug() << "EntityTreeElement::addOrUpdateEntity() AFTER _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
     entity->setProperties(properties); // still need to update the properties!
-qDebug() << "EntityTreeElement::addOrUpdateEntity() AFTER entity->setProperties(properties); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
+    //qDebug() << "EntityTreeElement::addOrUpdateEntity() AFTER entity->setProperties(properties); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
     markWithChangedTime();
     // Since we're adding this item to this element, we need to let the tree know about it
-qDebug() << "EntityTreeElement::addOrUpdateEntity() _myTree->setContainingElement(entity->getEntityItemID(), this)........";
+    //qDebug() << "EntityTreeElement::addOrUpdateEntity() _myTree->setContainingElement(entity->getEntityItemID(), this)........";
     _myTree->setContainingElement(entity->getEntityItemID(), this);
 
     return true;
@@ -563,10 +563,10 @@ bool EntityTreeElement::removeEntityWithID(uint32_t id) {
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i]->getID() == id) {
             foundEntity = true;
-EntityItem* entityItem = (*_entityItems)[i];
-qDebug() << "EntityTreeElement::removeEntityWithID() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
+            //EntityItem* entityItem = (*_entityItems)[i];
+            //qDebug() << "EntityTreeElement::removeEntityWithID() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             _entityItems->removeAt(i);
-qDebug() << "EntityTreeElement::removeEntityWithID() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
+            //qDebug() << "EntityTreeElement::removeEntityWithID() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             
             break;
         }
@@ -580,10 +580,10 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i]->getEntityItemID() == id) {
             foundEntity = true;
-EntityItem* entityItem = (*_entityItems)[i];
-qDebug() << "EntityTreeElement::removeEntityWithEntityItemID() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
+            //EntityItem* entityItem = (*_entityItems)[i];
+            //qDebug() << "EntityTreeElement::removeEntityWithEntityItemID() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             _entityItems->removeAt(i);
-qDebug() << "EntityTreeElement::removeEntityWithEntityItemID() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
+            //qDebug() << "EntityTreeElement::removeEntityWithEntityItemID() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             break;
         }
     }
@@ -596,10 +596,10 @@ bool EntityTreeElement::removeEntityItem(const EntityItem* entity) {
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i] == entity) {
             foundEntity = true;
-EntityItem* entityItem = (*_entityItems)[i];
-qDebug() << "EntityTreeElement::removeEntityItem() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
+            //EntityItem* entityItem = (*_entityItems)[i];
+            //qDebug() << "EntityTreeElement::removeEntityItem() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             _entityItems->removeAt(i);
-qDebug() << "EntityTreeElement::removeEntityItem() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
+            //qDebug() << "EntityTreeElement::removeEntityItem() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             break;
         }
     }
@@ -656,36 +656,36 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     _myTree->rememberDirtyCube(existingEntityCube);
                     
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
-                    if (!bestFitBefore) {
-                        qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  reading from element that is not Best fit before";
-                    }
+                    //if (!bestFitBefore) {
+                    //    qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  reading from element that is not Best fit before";
+                    //}
 
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
-                    qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  currentContainingElement=" << currentContainingElement;
-                    qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  this (reading element)  =" << this;
-                    qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  EntityTreeElement::readElementDataFromBuffer() BEFORE entityItem->readEntityDataFromBuffer(); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
+                    //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  currentContainingElement=" << currentContainingElement;
+                    //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  this (reading element)  =" << this;
+                    //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  EntityTreeElement::readElementDataFromBuffer() BEFORE entityItem->readEntityDataFromBuffer(); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
 
                     // This is the case where the entity existed, and is in some element in our tree...                    
-                    if (currentContainingElement != this) {
-                        qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!! CONTAINING ELEMENT MISMATCH!!";
-                    }
+                    //if (currentContainingElement != this) {
+                    //    qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!! CONTAINING ELEMENT MISMATCH!!";
+                    //}
                     
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
 
                     bool bestFitAfter = bestFitEntityBounds(entityItem);
 
-                    qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   EntityTreeElement::readElementDataFromBuffer() AFTER entityItem->readEntityDataFromBuffer(); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
+                    //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   EntityTreeElement::readElementDataFromBuffer() AFTER entityItem->readEntityDataFromBuffer(); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
 
                     if (bestFitBefore != bestFitAfter) {
-                        qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   BEST FIT CHANGED!!! bestFitBefore" << bestFitBefore << "bestFitAfter=" << bestFitAfter;
+                        //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   BEST FIT CHANGED!!! bestFitBefore" << bestFitBefore << "bestFitAfter=" << bestFitAfter;
                         
                         // This is the case where the entity existed, and is in some element in our tree...                    
                         if (!bestFitBefore && bestFitAfter) {
-                            qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   BEST FIT CHANGED!!! bestFitBefore" << bestFitBefore << "bestFitAfter=" << bestFitAfter;
+                            //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   BEST FIT CHANGED!!! bestFitBefore" << bestFitBefore << "bestFitAfter=" << bestFitAfter;
 
                             // This is the case where the entity existed, and is in some element in our tree...                    
                             if (currentContainingElement != this) {
-                                qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   BEST FIT CHANGED!!! moving the entity!!!!";
+                                //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   BEST FIT CHANGED!!! moving the entity!!!!";
                                 currentContainingElement->removeEntityItem(entityItem);
                                 this->addEntityItem(entityItem);
                                 _myTree->setContainingElement(entityItemID, this);
@@ -701,9 +701,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     
                     if (entityItem) {
                         bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-qDebug() << "NEW ENTITY CASE!!!!!!!!!!!!!!   EntityTreeElement::readElementDataFromBuffer() BEFORE addEntityItem(entity); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
+                        //qDebug() << "NEW ENTITY CASE!!!!!!!!!!!!!!   EntityTreeElement::readElementDataFromBuffer() BEFORE addEntityItem(entity); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
                         addEntityItem(entityItem); // add this new entity to this elements entities
-qDebug() << "NEW ENTITY CASE!!!!!!!!!!!!!!   EntityTreeElement::readElementDataFromBuffer() AFTER addEntityItem(entity); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
+                        //qDebug() << "NEW ENTITY CASE!!!!!!!!!!!!!!   EntityTreeElement::readElementDataFromBuffer() AFTER addEntityItem(entity); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
                         _myTree->setContainingElement(entityItem->getEntityItemID(), this);
                         newEntity = true;
                     }
@@ -737,9 +737,9 @@ qDebug() << "NEW ENTITY CASE!!!!!!!!!!!!!!   EntityTreeElement::readElementDataF
 }
 
 void EntityTreeElement::addEntityItem(EntityItem* entity) {
-qDebug() << "EntityTreeElement::addEntityItem() BEFORE _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
+    //qDebug() << "EntityTreeElement::addEntityItem() BEFORE _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
     _entityItems->push_back(entity);
-qDebug() << "EntityTreeElement::addEntityItem() AFTER _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
+    //qDebug() << "EntityTreeElement::addEntityItem() AFTER _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
 }
 
 // will average a "common reduced LOD view" from the the child elements...

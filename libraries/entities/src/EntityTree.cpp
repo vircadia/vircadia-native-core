@@ -170,11 +170,11 @@ void EntityTree::addEntityItem(EntityItem* entityItem) {
     assert(containingElement == NULL); // don't call addEntityItem() on existing entity items
 
     // Recurse the tree and store the entity in the correct tree element
-qDebug() << "about to call recurseTreeWithOperator(AddEntityOperator)...";
+    //qDebug() << "about to call recurseTreeWithOperator(AddEntityOperator)...";
     AddEntityOperator theOperator(this, entityItem);
     recurseTreeWithOperator(&theOperator);
-qDebug() << "AFTER... about to call recurseTreeWithOperator(AddEntityOperator)...";
-debugDumpMap();
+    //qDebug() << "AFTER... about to call recurseTreeWithOperator(AddEntityOperator)...";
+    //debugDumpMap();
 
     _isDirty = true;
 }
@@ -222,6 +222,7 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     _oldEntityCube(),
     _newEntityCube()
 {
+    bool wantDebug = false;
     // caller must have verified existence of containingElement and oldEntity
     assert(_containingElement && _existingEntity);
 
@@ -245,20 +246,26 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     // be the same for both parts of the update
     if (!_properties.containsBoundsProperties() || _containingElement->bestFitBounds(_properties)) {
 
-qDebug() << "UpdateEntityOperator NOT MOVING: " 
-            << "_properties.containsBoundsProperties()=" << _properties.containsBoundsProperties()
-            << "_containingElement->bestFitBounds(_properties)=" << _containingElement->bestFitBounds(_properties);
+        if (wantDebug) {
+            qDebug() << "UpdateEntityOperator NOT MOVING: " 
+                << "_properties.containsBoundsProperties()=" << _properties.containsBoundsProperties()
+                << "_containingElement->bestFitBounds(_properties)=" << _containingElement->bestFitBounds(_properties);
+        }
             
         _foundOld = true;
         _newEntityCube = _oldEntityCube;
     } else {
-qDebug() << "UpdateEntityOperator will be MOVING!!!";    
+        if (wantDebug) {
+            qDebug() << "UpdateEntityOperator will be MOVING!!!";
+        }
         _newEntityCube = _properties.getAACubeTreeUnits();
         _removeOld = true; // our properties are going to move us, so remember this for later processing
     }
 
-qDebug() << "UpdateEntityOperator _oldEntityCube=" << _oldEntityCube;
-qDebug() << "UpdateEntityOperator _newEntityCube=" << _newEntityCube;
+    if (wantDebug) {
+        qDebug() << "UpdateEntityOperator _oldEntityCube=" << _oldEntityCube;
+        qDebug() << "UpdateEntityOperator _newEntityCube=" << _newEntityCube;
+    }
 
 }
 
@@ -298,17 +305,17 @@ bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
             // then we need to remove it, and the updateEntity below will store it in the
             // correct element.
             if (_removeOld) {
-qDebug() << "UpdateEntityOperator::PreRecursion() BEFORE entityTreeElement->removeEntityItem(); element=" << entityTreeElement << "entity=" << _existingEntity << "id=" << _existingEntity->getEntityItemID() << "bestFit=" << entityTreeElement->bestFitEntityBounds(_existingEntity);
+                //qDebug() << "UpdateEntityOperator::PreRecursion() BEFORE entityTreeElement->removeEntityItem(); element=" << entityTreeElement << "entity=" << _existingEntity << "id=" << _existingEntity->getEntityItemID() << "bestFit=" << entityTreeElement->bestFitEntityBounds(_existingEntity);
                 entityTreeElement->removeEntityItem(_existingEntity); // NOTE: only removes the entity, doesn't delete it
-qDebug() << "UpdateEntityOperator::PreRecursion() AFTER entityTreeElement->removeEntityItem(); element=" << entityTreeElement << "entity=" << _existingEntity << "id=" << _existingEntity->getEntityItemID() << "bestFit=" << entityTreeElement->bestFitEntityBounds(_existingEntity);
+                //qDebug() << "UpdateEntityOperator::PreRecursion() AFTER entityTreeElement->removeEntityItem(); element=" << entityTreeElement << "entity=" << _existingEntity << "id=" << _existingEntity->getEntityItemID() << "bestFit=" << entityTreeElement->bestFitEntityBounds(_existingEntity);
                 
                 // If we haven't yet found the new location, then we need to 
                 // make sure to remove our entity to element map, because for
                 // now we're not in that map
                 if (!_foundNew) {
                     _tree->setContainingElement(_entityItemID, NULL);
-qDebug() << "UpdateEntityOperator calling setContainingElement(NULL)... entityID=" << _entityItemID;
-_tree->debugDumpMap();
+                    //qDebug() << "UpdateEntityOperator calling setContainingElement(NULL)... entityID=" << _entityItemID;
+                    //_tree->debugDumpMap();
                 }
             }
             _foundOld = true;
@@ -326,7 +333,7 @@ _tree->debugDumpMap();
         if (entityTreeElement->bestFitBounds(_newEntityCube)) {
             if (entityTreeElement->addOrUpdateEntity(_existingEntity, _properties)) {
 
-                qDebug() << "UpdateEntityOperator::PreRecursion()... entity was updated!";
+                //qDebug() << "UpdateEntityOperator::PreRecursion()... entity was updated!";
 
                 _foundNew = true;
                 // NOTE: don't change the keepSearching here, if it came in here
@@ -337,7 +344,7 @@ _tree->debugDumpMap();
                 qDebug() << "UpdateEntityOperator::PreRecursion()... WHAT??? UNEXPECTED entity was not updated!";
             }
         } else {
-            qDebug() << "UpdateEntityOperator::PreRecursion()... correct subtree for entity, but not correct element.";
+            //qDebug() << "UpdateEntityOperator::PreRecursion()... correct subtree for entity, but not correct element.";
             keepSearching = true;
         }
     }
@@ -390,10 +397,10 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         return false;
     }
 
-qDebug() << "============ BEFORE UpdateEntityOperator.... recurseTreeWithOperator()..... ===================";
+    //qDebug() << "============ BEFORE UpdateEntityOperator.... recurseTreeWithOperator()..... ===================";
     UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
     recurseTreeWithOperator(&theOperator);
-qDebug() << "============ AFTER UpdateEntityOperator.... recurseTreeWithOperator()..... ===================";
+    //qDebug() << "============ AFTER UpdateEntityOperator.... recurseTreeWithOperator()..... ===================";
     _isDirty = true;
 
     containingElement = getContainingElement(entityID);
@@ -415,7 +422,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
         qDebug() << "UNEXPECTED!!! ----- EntityTree::addEntity()... (getIsSever() && !entityID.isKnownID)";
     }
 
-qDebug() << "EntityTree::addEntity()... entityID=" << entityID;
+    //qDebug() << "EntityTree::addEntity()... entityID=" << entityID;
 
     EntityItem* result = NULL;
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
@@ -429,7 +436,7 @@ qDebug() << "EntityTree::addEntity()... entityID=" << entityID;
     EntityTypes::EntityType_t type = properties.getType();
     result = EntityTypes::constructEntityItem(type, entityID, properties);
 
-qDebug() << "EntityTree::addEntity()... result = EntityTypes::constructEntityItem(type, entityID, properties)... result->getEntityItemID()=" << result->getEntityItemID();
+    //qDebug() << "EntityTree::addEntity()... result = EntityTypes::constructEntityItem(type, entityID, properties)... result->getEntityItemID()=" << result->getEntityItemID();
 
     if (result) {
         // this does the actual adding of the entity
@@ -551,13 +558,13 @@ bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
 
                 // This is a good place to delete it!!!
                 EntityItemID entityItemID = details.entity->getEntityItemID();
-qDebug() << "DeleteEntityOperator::PreRecursion() BEFORE entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << entityItemID;
+                //qDebug() << "DeleteEntityOperator::PreRecursion() BEFORE entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << entityItemID;
                 entityTreeElement->removeEntityWithEntityItemID(entityItemID);
-qDebug() << "DeleteEntityOperator::PreRecursion() AFTER entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << entityItemID;
-                _tree->setContainingElement(entityItemID, NULL);
+                //qDebug() << "DeleteEntityOperator::PreRecursion() AFTER entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << entityItemID;
 
-qDebug() << "DeleteEntityOperator calling setContainingElement(NULL)... entityID=" << entityItemID;
-_tree->debugDumpMap();
+                _tree->setContainingElement(entityItemID, NULL);
+                //qDebug() << "DeleteEntityOperator calling setContainingElement(NULL)... entityID=" << entityItemID;
+                //_tree->debugDumpMap();
 
                 _foundCount++;
             }
@@ -586,9 +593,9 @@ bool DeleteEntityOperator::PostRecursion(OctreeElement* element) {
 
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
     // NOTE: callers must lock the tree before using this method
-    EntityTreeElement* containingElement = getContainingElement(entityID);
-    qDebug() << "EntityTree::deleteEntity().... BEFORE DELETE... containingElement=" << containingElement;
-    debugDumpMap();
+    //EntityTreeElement* containingElement = getContainingElement(entityID);
+    //qDebug() << "EntityTree::deleteEntity().... BEFORE DELETE... containingElement=" << containingElement;
+    //debugDumpMap();
 
     // First, look for the existing entity in the tree..
     DeleteEntityOperator theOperator(this, entityID);
@@ -619,7 +626,8 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     if (wantDebug) {
         foreach(const EntityItemID& entityID, entityIDs) {
             EntityTreeElement* containingElement = getContainingElement(entityID);
-            qDebug() << "EntityTree::storeEntity().... after store... containingElement=" << containingElement;
+            qDebug() << "EntityTree::deleteEntities().... after delete... entityID=" << entityID 
+                        << "containingElement=" << containingElement;
         }
     }
 }
@@ -742,9 +750,9 @@ bool UpdateEntityIDOperator::PreRecursion(OctreeElement* element) {
         if (element == _containingElementKnownID) {
             qDebug() << "FOUND known ID entity";
             qDebug() << "FOUND known ID entity... entityTreeElement->removeEntityWithEntityItemID(_entityIDKnownID)...";
-qDebug() << "UpdateEntityIDOperator::PreRecursion() BEFORE entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << _entityIDKnownID;
+            qDebug() << "UpdateEntityIDOperator::PreRecursion() BEFORE entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << _entityIDKnownID;
             entityTreeElement->removeEntityWithEntityItemID(_entityIDKnownID);
-qDebug() << "UpdateEntityIDOperator::PreRecursion() AFTER entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << _entityIDKnownID;
+            qDebug() << "UpdateEntityIDOperator::PreRecursion() AFTER entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << _entityIDKnownID;
             qDebug() << "FOUND known ID entity... entityTreeElement->setContainingElement(_entityIDKnownID, NULL)...";
             _tree->setContainingElement(_entityIDKnownID, NULL);
 
@@ -1265,7 +1273,7 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
 
 
-qDebug() << "EntityTree::processEraseMessage()...";
+    qDebug() << "EntityTree::processEraseMessage()...";
 
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
@@ -1299,9 +1307,9 @@ qDebug() << "EntityTree::processEraseMessage()...";
             
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
-qDebug() << "EntityTree::processEraseMessage()... entityItemIDsToDelete << entityItemID=" << entityItemID;
+            qDebug() << "EntityTree::processEraseMessage()... entityItemIDsToDelete << entityItemID=" << entityItemID;
         }
-qDebug() << "EntityTree::processEraseMessage()... deleteEntities(entityItemIDsToDelete)";
+        qDebug() << "EntityTree::processEraseMessage()... deleteEntities(entityItemIDsToDelete)";
         deleteEntities(entityItemIDsToDelete);
     }
 }
@@ -1310,15 +1318,22 @@ qDebug() << "EntityTree::processEraseMessage()... deleteEntities(entityItemIDsTo
 EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
     //qDebug() << "_entityToElementMap=" << _entityToElementMap;
     
-    qDebug() << "EntityTree::getContainingElement() entityItemID=" << entityItemID;
-    debugDumpMap();
+    bool wantDebug = false;
+    
+    if (wantDebug) {
+        qDebug() << "EntityTree::getContainingElement() entityItemID=" << entityItemID;
+        debugDumpMap();
+    }
 
     // TODO: do we need to make this thread safe? Or is it acceptable as is
     if (_entityToElementMap.contains(entityItemID)) {
         return _entityToElementMap.value(entityItemID);
     } else if (entityItemID.creatorTokenID != UNKNOWN_ENTITY_TOKEN){
         // check the creator token version too...
-        qDebug() << "EntityTree::getContainingElement() checking the creator token...";
+
+        if (wantDebug) {
+            qDebug() << "EntityTree::getContainingElement() checking the creator token...";
+        }
         
         EntityItemID creatorTokenOnly;
         creatorTokenOnly.id = UNKNOWN_ENTITY_ID;
@@ -1326,7 +1341,9 @@ EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityIt
         creatorTokenOnly.isKnownID = false;
 
         if (_entityToElementMap.contains(entityItemID)) {
-            qDebug() << "EntityTree::getContainingElement() found as creator token...";
+            if (wantDebug) {
+                qDebug() << "EntityTree::getContainingElement() found as creator token...";
+            }
             return _entityToElementMap.value(entityItemID);
         }
 
@@ -1367,10 +1384,14 @@ void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTr
         _entityToElementMap.remove(storedEntityItemID);
     }
 
-    qDebug() << "setContainingElement() entityItemID=" << entityItemID 
-            << "storedEntityItemID=" << storedEntityItemID << "element=" << element;
-    debugDumpMap();
-    //qDebug() << "AFTER _entityToElementMap=" << _entityToElementMap;
+    bool wantDebug = false;
+
+    if (wantDebug) {
+        qDebug() << "setContainingElement() entityItemID=" << entityItemID 
+                << "storedEntityItemID=" << storedEntityItemID << "element=" << element;
+        debugDumpMap();
+        //qDebug() << "AFTER _entityToElementMap=" << _entityToElementMap;
+    }
 }
 
 void EntityTree::debugDumpMap() {

@@ -37,7 +37,7 @@ EntityTypes::EntityType_t EntityTypes::getEntityTypeFromName(const QString& name
 
 EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
 
-qDebug() << "EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
+    //qDebug() << "EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
 
     EntityItem* newEntityItem = NULL;
 
@@ -81,9 +81,7 @@ qDebug() << "EntityTypes::constructEntityItem(EntityType_t entityType, const Ent
 
 EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
             ReadBitstreamToTreeParams& args) {
-
-qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead)";
-
+    //qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead)";
     //qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... CALLED BUT NOT IMPLEMENTED!!!";
     
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
@@ -125,7 +123,7 @@ qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int byt
         EntityItemID tempEntityID;
         EntityItemProperties tempProperties;
 
-        qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
+        //qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
         
         return constructEntityItem(entityType, tempEntityID, tempProperties);
     }
