@@ -33,7 +33,9 @@ public:
     void copyState(const JointState& state);
 
     void initTransform(const glm::mat4& parentTransform);
-    void computeTransform(const glm::mat4& parentTransform, bool parentTransformChanged = true);
+    // if synchronousRotationCompute is true, then _transform is still computed synchronously,
+    // but _rotation will be asynchronously extracted
+    void computeTransform(const glm::mat4& parentTransform, bool parentTransformChanged = true, bool synchronousRotationCompute = false);
 
     void computeVisibleTransform(const glm::mat4& parentTransform);
     const glm::mat4& getVisibleTransform() const { return _visibleTransform; }

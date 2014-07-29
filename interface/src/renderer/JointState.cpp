@@ -11,8 +11,9 @@
 
 #include <glm/gtx/norm.hpp>
 
+#include <QThreadPool>
+
 #include <AngularConstraint.h>
-//#include <GeometryUtil.h>
 #include <SharedUtil.h>
 
 #include "JointState.h"
@@ -93,7 +94,7 @@ void JointState::initTransform(const glm::mat4& parentTransform) {
     _distanceToParent = glm::length(_positionInParentFrame);
 }
 
-void JointState::computeTransform(const glm::mat4& parentTransform, bool parentTransformChanged) {
+void JointState::computeTransform(const glm::mat4& parentTransform, bool parentTransformChanged, bool synchronousRotationCompute) {
     if (!parentTransformChanged && !_transformChanged) {
         return;
     }
@@ -104,7 +105,11 @@ void JointState::computeTransform(const glm::mat4& parentTransform, bool parentT
     
     if (newTransform != _transform) {
         _transform = newTransform;
-        _rotation = extractRotation(_transform);
+        if (synchronousRotationCompute) {
+            _rotation = extractRotation(_transform);
+        } else {
+            QThreadPool::globalInstance()->start(new RotationExtractor(_transform, _rotation));
+        }
         _transformChanged = true;
     }
 }
@@ -252,4 +257,25 @@ void JointState::slaveVisibleTransform() {
     _visibleTransform = _transform;
     _visibleRotation = _rotation;
     _visibleRotationInConstrainedFrame = _rotationInConstrainedFrame;
+}
+
+class RotationExtractor : public QRunnable {
+public:
+    
+    RotationExtractor(glm::mat4 transform, glm::quat& rotation);
+    
+    virtual void run();
+    
+private:
+    glm::mat4 _transform;
+    glm::quat _rotation;
+};
+
+RotationExtractor::RotationExtractor(glm::mat4 transform, glm::quat& rotation) {
+    _transform = transform;
+    _rotation = rotation;
+}
+
+void RotationExtractor::run() {
+    _rotation = extractRotation(_transform);
 }
