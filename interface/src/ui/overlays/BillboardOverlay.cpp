@@ -17,10 +17,11 @@ BillboardOverlay::BillboardOverlay()
 : _fromImage(-1,-1,-1,-1),
   _scale(1.0f),
   _isFacingAvatar(true) {
+      _isLoaded = false;
 }
 
 void BillboardOverlay::render() {
-    if (!_visible) {
+    if (!_visible || !_isLoaded) {
         return;
     }
     
@@ -85,16 +86,7 @@ void BillboardOverlay::render() {
                              ((float)_fromImage.y() + (float)_fromImage.height()) / (float)_size.height());
                 glVertex2f(-x, y);
             } glEnd();
-        } else {
-            glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
-            glBegin(GL_QUADS); {
-                glVertex2f(-1.0f, -1.0f);
-                glVertex2f(1.0f, -1.0f);
-                glVertex2f(1.0f, 1.0f);
-                glVertex2f(-1.0f, 1.0f);
-            } glEnd();
         }
-        
     } glPopMatrix();
     
     glDisable(GL_TEXTURE_2D);
@@ -167,6 +159,7 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
 }
 
 void BillboardOverlay::setBillboardURL(const QUrl url) {
+    _isLoaded = false;
     QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(url));
     connect(reply, &QNetworkReply::finished, this, &BillboardOverlay::replyFinished);
 }
@@ -175,4 +168,5 @@ void BillboardOverlay::replyFinished() {
     // replace our byte array with the downloaded data
     QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
     _billboard = reply->readAll();
+    _isLoaded = true;
 }
