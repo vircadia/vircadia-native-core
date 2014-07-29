@@ -315,8 +315,14 @@ public:
 
     bool recurseElementWithOperator(OctreeElement* element, RecurseOctreeOperator* operatorObject, int recursionCount = 0);
 
-    bool getIsViewing() const { return _isViewing; }
+    bool getIsViewing() const { return _isViewing; } /// This tree is receiving inbound viewer datagrams.
     void setIsViewing(bool isViewing) { _isViewing = isViewing; }
+
+    bool getIsServer() const { return _isServer; } /// Is this a server based tree. Allows guards for certain operations
+    void setIsServer(bool isServer) { _isServer = isServer; }
+
+    bool getIsClient() const { return !_isServer; } /// Is this a client based tree. Allows guards for certain operations
+    void setIsClient(bool isClient) { _isServer = !isClient; }
     
 
 signals:
@@ -350,8 +356,8 @@ protected:
 
     QReadWriteLock _lock;
     
-    /// This tree is receiving inbound viewer datagrams.
-    bool _isViewing;
+    bool _isViewing; 
+    bool _isServer;
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);

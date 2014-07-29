@@ -405,16 +405,17 @@ qDebug() << "============ AFTER UpdateEntityOperator.... recurseTreeWithOperator
     return true;
 }
 
-EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
-qDebug() << "EntityTree::addEntity()... entityID=" << entityID;
 
-    // NOTE: This method is used in the client (isViewing) and the server tree. In the client (isViewing), it's possible to
-    // create EntityItems that do not yet have known IDs. In the server tree however we don't want to have entities without 
-    // known IDs.
-    if (!getIsViewing()) {
+EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+
+    // NOTE: This method is used in the client and the server tree. In the client, it's possible to create EntityItems 
+    // that do not yet have known IDs. In the server tree however we don't want to have entities without known IDs.
+    if (getIsServer() && !entityID.isKnownID) {
         //assert(entityID.isKnownID);
-        qDebug() << "EntityTree::addEntity()... !getIsViewing().... assert(entityID.isKnownID)";
+        qDebug() << "UNEXPECTED!!! ----- EntityTree::addEntity()... (getIsSever() && !entityID.isKnownID)";
     }
+
+qDebug() << "EntityTree::addEntity()... entityID=" << entityID;
 
     EntityItem* result = NULL;
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
@@ -436,6 +437,7 @@ qDebug() << "EntityTree::addEntity()... result = EntityTypes::constructEntityIte
     }
     return result;
 }
+
 
 class EntityToDeleteDetails {
 public:
@@ -772,7 +774,10 @@ bool UpdateEntityIDOperator::PostRecursion(OctreeElement* element) {
 }
 
 void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
-    assert(getIsViewing()); // we should only call this on viewing trees (client side)
+    //assert(getIsClient()); // we should only call this on client trees
+    if (!getIsClient()) {
+        qDebug() << "UNEXPECTED!!! EntityTree::handleAddEntityResponse() with !getIsClient() ***";
+    }
 
     const bool wantDebug = true;
 
@@ -954,7 +959,7 @@ EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /
 }
 
 EntityItemID EntityTree::assignEntityID(const EntityItemID& entityItemID) {
-    assert(!getIsViewing()); // NOTE: this only operates on an server (!isViewing) tree.
+    assert(getIsServer()); // NOTE: this only operates on an server tree.
     assert(!getContainingElement(entityItemID)); // NOTE: don't call this for existing entityIDs
 
     // The EntityItemID is responsible for assigning actual IDs and keeping track of them.
@@ -964,7 +969,9 @@ EntityItemID EntityTree::assignEntityID(const EntityItemID& entityItemID) {
 int EntityTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode) {
 
-    assert(!getIsViewing()); // NOTE: this only operates on an server (!isViewing) tree.
+    qDebug() << "EntityTree::processEditPacketData().... ******************";
+
+    assert(getIsServer()); // NOTE: this only operates on an server tree.
 
     int processedBytes = 0;
     // we handle these types of "edit" packets
@@ -994,6 +1001,17 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                         qDebug() << "User attempted to edit an unknown entity.";
                     }
                 } else {
+
+
+//
+// NOTE: We need to fix this... we can't have the creator tokens in the server side map... because if we do that
+// then we will have multiple creator tokens with the same id from different editors... since assignEntityID() 
+// checks for the ID already existing in the map, this will assert/abort.
+//
+// But we do want the creator tokens in the client side version of the map... 
+// so maybe the fix is just to ....
+
+
                     // this is a new entity... assign a new entityID
                     entityItemID = assignEntityID(entityItemID);
                     
@@ -1138,6 +1156,8 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
 bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* outputBuffer,
                                             size_t maxLength, size_t& outputLength) {
 
+qDebug() << "EntityTree::encodeEntitiesDeletedSince()";
+
     bool hasMoreToSend = true;
 
     unsigned char* copyAt = outputBuffer;
@@ -1243,6 +1263,10 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
 
 void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+
+
+qDebug() << "EntityTree::processEraseMessage()...";
+
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
     size_t packetLength = dataByteArray.size();
@@ -1275,7 +1299,9 @@ void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Shar
             
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
+qDebug() << "EntityTree::processEraseMessage()... entityItemIDsToDelete << entityItemID=" << entityItemID;
         }
+qDebug() << "EntityTree::processEraseMessage()... deleteEntities(entityItemIDsToDelete)";
         deleteEntities(entityItemIDsToDelete);
     }
 }
@@ -1327,13 +1353,22 @@ void EntityTree::resetContainingElement(const EntityItemID& entityItemID, Entity
 
 void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element) {
     // TODO: do we need to make this thread safe? Or is it acceptable as is
+    
+    // If we're a sever side tree, we always remove the creator tokens from our map items
+    EntityItemID storedEntityItemID = entityItemID;
+    
+    if (getIsServer()) {
+        storedEntityItemID.creatorTokenID = UNKNOWN_ENTITY_TOKEN;
+    }
+    
     if (element) {
-        _entityToElementMap[entityItemID] = element;
+        _entityToElementMap[storedEntityItemID] = element;
     } else {
-        _entityToElementMap.remove(entityItemID);
+        _entityToElementMap.remove(storedEntityItemID);
     }
 
-    qDebug() << "setContainingElement() entityItemID=" << entityItemID << "element=" << element;
+    qDebug() << "setContainingElement() entityItemID=" << entityItemID 
+            << "storedEntityItemID=" << storedEntityItemID << "element=" << element;
     debugDumpMap();
     //qDebug() << "AFTER _entityToElementMap=" << _entityToElementMap;
 }

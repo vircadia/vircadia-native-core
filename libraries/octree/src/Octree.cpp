@@ -45,7 +45,8 @@ Octree::Octree(bool shouldReaverage) :
     _shouldReaverage(shouldReaverage),
     _stopImport(false),
     _lock(),
-    _isViewing(false) 
+    _isViewing(false),
+    _isServer(false)
 {
 }
 
