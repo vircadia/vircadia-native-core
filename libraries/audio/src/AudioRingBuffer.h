@@ -50,10 +50,6 @@ public:
     int getSampleCapacity() const { return _sampleCapacity; }
     int getFrameCapacity() const { return _frameCapacity; }
     
-    // assume callers using this will never wrap around the end
-    const int16_t* getNextOutput() const { return _nextOutput; }
-    const int16_t* getBuffer() const { return _buffer; }
-
     int readSamples(int16_t* destination, int maxSamples);
     int writeSamples(const int16_t* source, int maxSamples);
     
