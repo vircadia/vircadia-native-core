@@ -23,6 +23,7 @@ public:
 public slots:
     QByteArray slice(qint32 begin, qint32 end) const;
     QByteArray slice(qint32 begin) const;
+    QByteArray compress() const;
     
 private:
     QByteArray* thisArrayBuffer() const;

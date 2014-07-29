@@ -14,6 +14,9 @@
 #include "ArrayBufferClass.h"
 #include "ArrayBufferPrototype.h"
 
+static const int QCOMPRESS_HEADER_POSITION = 0;
+static const int QCOMPRESS_HEADER_SIZE = 4;
+
 Q_DECLARE_METATYPE(QByteArray*)
 
 ArrayBufferPrototype::ArrayBufferPrototype(QObject* parent) : QObject(parent) {
@@ -41,6 +44,18 @@ QByteArray ArrayBufferPrototype::slice(qint32 begin) const {
     begin = glm::clamp(begin, 0, (ba->size() - 1));
     
     return ba->mid(begin, -1);
+}
+
+QByteArray ArrayBufferPrototype::compress() const {
+    QByteArray* ba = thisArrayBuffer();
+
+    QByteArray buffer = qCompress(*ba);
+
+    // Qt's qCompress() default compression level (-1) is the standard zLib compression.
+    // Here remove Qt's custom header that prevents the data server from uncompressing the files with zLib.
+    buffer.remove(QCOMPRESS_HEADER_POSITION, QCOMPRESS_HEADER_SIZE);
+
+    return buffer;
 }
 
 QByteArray* ArrayBufferPrototype::thisArrayBuffer() const {

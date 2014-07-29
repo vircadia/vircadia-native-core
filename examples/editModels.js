@@ -184,8 +184,9 @@ var httpMultiPart = (function () {
         // - name, string
         // - name, buffer
         var buffer,
+            string,
             stringBuffer,
-            string;
+            compressedBuffer;
 
         if (object.name === undefined) {
 
@@ -217,9 +218,10 @@ var httpMultiPart = (function () {
                 + "\r\n";
             stringBuffer = string.toArrayBuffer();
 
-            buffer = new Uint8Array(stringBuffer.byteLength + object.buffer.buffer.byteLength);
+            compressedBuffer = object.buffer.buffer.compress();
+            buffer = new Uint8Array(stringBuffer.byteLength + compressedBuffer.byteLength);
             buffer.set(new Uint8Array(stringBuffer));
-            buffer.set(new Uint8Array(object.buffer.buffer), stringBuffer.byteLength);
+            buffer.set(new Uint8Array(compressedBuffer), stringBuffer.byteLength);
 
         } else {
 
