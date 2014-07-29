@@ -19,7 +19,7 @@
   },
   "voxels": {
     "label": "Voxels",
-    "assignment-types": [3],
+    "assignment-types": [2,3],
     "settings": {
       "voxel-wallet": {
         "label": "Destination Wallet ID",
