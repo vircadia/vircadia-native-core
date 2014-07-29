@@ -415,7 +415,7 @@ void AudioMixer::run() {
     
     // block until we get the settingsRequestComplete signal
     QEventLoop loop;
-    loop.connect(&domainHandler, &DomainHandler::settingsRequestComplete, &loop, &QEventLoop::quit);
+    connect(&domainHandler, &DomainHandler::settingsRequestComplete, &loop, &QEventLoop::quit);
     domainHandler.requestDomainSettings();
     loop.exec();
     
