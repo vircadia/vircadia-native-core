@@ -22,7 +22,7 @@ OctreeHeadlessViewer::OctreeHeadlessViewer() :
     _viewFrustum.setFieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES);
     _viewFrustum.setAspectRatio(DEFAULT_ASPECT_RATIO);
     _viewFrustum.setNearClip(DEFAULT_NEAR_CLIP);
-    _viewFrustum.setFarClip(TREE_SCALE);
+    _viewFrustum.setFarClip(DEFAULT_FAR_CLIP);
 }
 
 OctreeHeadlessViewer::~OctreeHeadlessViewer() {

@@ -676,12 +676,18 @@ bool Model::getJointState(int index, glm::quat& rotation) const {
     if (index == -1 || index >= _jointStates.size()) {
         return false;
     }
-    rotation = _jointStates.at(index).getRotationInConstrainedFrame();
-    const glm::quat& defaultRotation = _geometry->getFBXGeometry().joints.at(index).rotation;
-    return glm::abs(rotation.x - defaultRotation.x) >= EPSILON ||
-        glm::abs(rotation.y - defaultRotation.y) >= EPSILON ||
-        glm::abs(rotation.z - defaultRotation.z) >= EPSILON ||
-        glm::abs(rotation.w - defaultRotation.w) >= EPSILON;
+    const JointState& state = _jointStates.at(index);
+    rotation = state.getRotationInConstrainedFrame();
+    return !state.rotationIsDefault(rotation);
+}
+
+bool Model::getVisibleJointState(int index, glm::quat& rotation) const {
+    if (index == -1 || index >= _jointStates.size()) {
+        return false;
+    }
+    const JointState& state = _jointStates.at(index);
+    rotation = state.getVisibleRotationInConstrainedFrame();
+    return !state.rotationIsDefault(rotation);
 }
 
 void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {

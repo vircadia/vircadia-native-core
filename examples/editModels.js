@@ -748,18 +748,19 @@ function Tooltip() {
     this.updateText = function(properties) {
         var angles = Quat.safeEulerAngles(properties.modelRotation);
         var text = "Model Properties:\n"
-        text += "x: " + properties.position.x.toFixed(this.decimals) + "\n"
-        text += "y: " + properties.position.y.toFixed(this.decimals) + "\n"
-        text += "z: " + properties.position.z.toFixed(this.decimals) + "\n"
-        text += "pitch: " + angles.x.toFixed(this.decimals) + "\n"
-        text += "yaw:  " + angles.y.toFixed(this.decimals) + "\n"
-        text += "roll:    " + angles.z.toFixed(this.decimals) + "\n"
+        text += "X: " + properties.position.x.toFixed(this.decimals) + "\n"
+        text += "Y: " + properties.position.y.toFixed(this.decimals) + "\n"
+        text += "Z: " + properties.position.z.toFixed(this.decimals) + "\n"
+        text += "Pitch: " + angles.x.toFixed(this.decimals) + "\n"
+        text += "Yaw:  " + angles.y.toFixed(this.decimals) + "\n"
+        text += "Roll:    " + angles.z.toFixed(this.decimals) + "\n"
         text += "Scale: " + 2 * properties.radius.toFixed(this.decimals) + "\n"
         text += "ID: " + properties.id + "\n"
-        text += "model url: " + properties.modelURL + "\n"
-        text += "animation url: " + properties.animationURL + "\n"
+        text += "Model URL: " + properties.modelURL + "\n"
+        text += "Animation URL: " + properties.animationURL + "\n"
+        text += "Animation is playing: " + properties.animationIsPlaying + "\n"
         if (properties.sittingPoints.length > 0) {
-            text += properties.sittingPoints.length + " sitting points: "
+            text += properties.sittingPoints.length + " Sitting points: "
             for (var i = 0; i < properties.sittingPoints.length; ++i) {
                 text += properties.sittingPoints[i].name + " "
             }
@@ -804,7 +805,7 @@ function mousePressEvent(event) {
         }
         
     } else if (browser == toolBar.clicked(clickedOverlay)) {
-        var url = Window.s3Browse();
+        var url = Window.s3Browse(".*(fbx|FBX)");
         if (url == null || url == "") {
             return;
         }
@@ -1146,6 +1147,7 @@ function handeMenuEvent(menuItem){
             var decimals = 3;
             array.push({ label: "Model URL:", value: selectedModelProperties.modelURL });
             array.push({ label: "Animation URL:", value: selectedModelProperties.animationURL });
+            array.push({ label: "Animation is playing:", value: selectedModelProperties.animationIsPlaying });
             array.push({ label: "X:", value: selectedModelProperties.position.x.toFixed(decimals) });
             array.push({ label: "Y:", value: selectedModelProperties.position.y.toFixed(decimals) });
             array.push({ label: "Z:", value: selectedModelProperties.position.z.toFixed(decimals) });
@@ -1158,16 +1160,18 @@ function handeMenuEvent(menuItem){
             var propertyName = Window.form("Edit Properties", array);
             modelSelected = false;
             
-            selectedModelProperties.modelURL = array[0].value;
-            selectedModelProperties.animationURL = array[1].value;
-            selectedModelProperties.position.x = array[2].value;
-            selectedModelProperties.position.y = array[3].value;
-            selectedModelProperties.position.z = array[4].value;
-            angles.x = array[5].value;
-            angles.y = array[6].value;
-            angles.z = array[7].value;
+            var index = 0;
+            selectedModelProperties.modelURL = array[index++].value;
+            selectedModelProperties.animationURL = array[index++].value;
+            selectedModelProperties.animationIsPlaying = array[index++].value;
+            selectedModelProperties.position.x = array[index++].value;
+            selectedModelProperties.position.y = array[index++].value;
+            selectedModelProperties.position.z = array[index++].value;
+            angles.x = array[index++].value;
+            angles.y = array[index++].value;
+            angles.z = array[index++].value;
             selectedModelProperties.modelRotation = Quat.fromVec3Degrees(angles);
-            selectedModelProperties.radius = array[8].value / 2;
+            selectedModelProperties.radius = array[index++].value / 2;
 
             Models.editModel(selectedModelID, selectedModelProperties);
         }
@@ -1200,6 +1204,7 @@ Controller.keyPressEvent.connect(function(event) {
         somethingChanged = true;
     }
 });
+
 Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "z" || event.text == "Z") {
         zIsPressed = false;

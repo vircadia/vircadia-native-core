@@ -98,6 +98,9 @@ Currently building on Windows has been tested using the following compilers:
 
 Whichever version of Visual Studio you use, first install [Microsoft Windows SDK for Windows 7 and .NET Framework 4](http://www.microsoft.com/en-us/download/details.aspx?id=8279).
 
+######Windows 8.1
+You may have already downloaded the Windows 8 SDK (e.g. if you have previously installed Visual Studio 2013).  If so, change CMAKE_PREFIX_PATH in %HIFI_DIR%\CMakeLists.txt to point to the Windows 8 SDK binaries. The default path is `C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86`
+
 #####Visual Studio C++ 2010 Express
 
 Visual Studio C++ 2010 Express can be downloaded [here](http://www.visualstudio.com/en-us/downloads#d-2010-express).
@@ -115,6 +118,8 @@ This product must be purchased separately.
 Visual Studio 2013 doesn't have a shortcut to start a Visual Studio Command Prompt. Instead, start a regular command prompt and then run:
 
     "%VS120COMNTOOLS%\vsvars32.bat"
+
+If you experience issues building interface on Visual Studio 2013, try generating the build files with Visual Studio 2010 instead. To do so, download Visual Studio 2010 and run `cmake .. -G "Visual Studio 10"` (Assuming running from %HIFI_DIR%\build).
 
 ####Qt
 You can use the online installer or the offline installer. If you use the offline installer, be sure to select the "OpenGL" version.

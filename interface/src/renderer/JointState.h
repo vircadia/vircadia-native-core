@@ -51,6 +51,7 @@ public:
     glm::quat getRotationInParentFrame() const;
     glm::quat getVisibleRotationInParentFrame() const;
     const glm::vec3& getPositionInParentFrame() const { return _positionInParentFrame; }
+    float getDistanceToParent() const { return _distanceToParent; }
 
     int getParentIndex() const { return _fbxJoint->parentIndex; }
 
@@ -81,6 +82,9 @@ public:
     void setRotationInConstrainedFrame(const glm::quat& targetRotation);
     void setVisibleRotationInConstrainedFrame(const glm::quat& targetRotation);
     const glm::quat& getRotationInConstrainedFrame() const { return _rotationInConstrainedFrame; }
+    const glm::quat& getVisibleRotationInConstrainedFrame() const { return _visibleRotationInConstrainedFrame; }
+
+    const bool rotationIsDefault(const glm::quat& rotation, float tolerance = EPSILON) const;
 
     const glm::vec3& getDefaultTranslationInConstrainedFrame() const;
 
@@ -104,6 +108,7 @@ private:
     glm::quat _rotation;  // joint- to model-frame
     glm::quat _rotationInConstrainedFrame; // rotation in frame where angular constraints would be applied
     glm::vec3 _positionInParentFrame; // only changes when the Model is scaled
+    float _distanceToParent;
 
     glm::mat4 _visibleTransform;
     glm::quat _visibleRotation;
