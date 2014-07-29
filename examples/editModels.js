@@ -281,7 +281,8 @@ var modelUploader = (function () {
         ANIMATION_URL_FIELD = "animationurl",
         PITCH_FIELD = "pitch",
         YAW_FIELD = "yaw",
-        ROLL_FIELD = "roll";
+        ROLL_FIELD = "roll",
+        geometry;
 
     function error(message) {
         Window.alert(message);
@@ -338,6 +339,7 @@ var modelUploader = (function () {
 
     function readGeometry(fbxBuffer) {
         var geometry,
+            textures,
             view,
             index,
             EOF;
@@ -347,6 +349,7 @@ var modelUploader = (function () {
 
         geometry = {};
         geometry.textures = [];
+        textures = {};
         view = new DataView(fbxBuffer.buffer);
         EOF = false;
 
@@ -378,7 +381,10 @@ var modelUploader = (function () {
 
             if (name === "relativefilename") {
                 filename = view.string(index + 5, view.getUint32(index + 1, true)).fileName();
-                geometry.textures.push(filename);
+                if (!textures.hasOwnProperty(filename)) {
+                    textures[filename] = "";
+                    geometry.textures.push(filename);
+                }
 
             } else if (name === "author") {
                 author = view.string(index + 5, view.getUint32(index + 1, true));
@@ -418,7 +424,10 @@ var modelUploader = (function () {
                     }
                     if (line.slice(0, 17).toLowerCase() === "relativefilename:") {
                         filename = line.slice(line.indexOf("\""), line.lastIndexOf("\"") - line.length).fileName();
-                        geometry.textures.push(filename);
+                        if (!textures.hasOwnProperty(filename)) {
+                            textures[filename] = "";
+                            geometry.textures.push(filename);
+                        }
                     }
 
                     charCodes = [];
@@ -445,8 +454,7 @@ var modelUploader = (function () {
     }
 
     function readModel() {
-        var geometry,
-            fbxFilename;
+        var fbxFilename;
 
         print("Reading model file: " + modelFile);
 
@@ -562,7 +570,10 @@ var modelUploader = (function () {
 
     function createHttpMessage() {
         var lodCount,
-            lodBuffer;
+            lodBuffer,
+            textureCount,
+            textureBuffer,
+            i;
 
         print("Preparing to send model");
 
@@ -607,7 +618,7 @@ var modelUploader = (function () {
         // LOD files
         lodCount = 0;
         for (var n in mapping["lod"]) {
-            lodBuffer = readFile(modelFile.path() + "\\" + n);
+            lodBuffer = readFile(modelFile.path() + "\/" + n);
             httpMultiPart.add({
                 name: "lod" + lodCount,
                 buffer: lodBuffer
@@ -616,7 +627,15 @@ var modelUploader = (function () {
         }
 
         // Textures
-        // DJRTODO
+        textureCount = 0;
+        for (i = 0; i < geometry.textures.length; i += 1) {
+            textureBuffer = readFile(modelFile.path() + "\/" + mapping[TEXDIR_FIELD]  + "\/" + geometry.textures[i]);
+            httpMultiPart.add({
+                name: "texture" + textureCount,
+                buffer: textureBuffer
+            });
+            textureCount += 1;
+        }
 
         // Model category
         httpMultiPart.add({
