@@ -252,7 +252,7 @@ var httpMultiPart = (function () {
         for (i = 0; i < parts.length; i += 1) {
             charCodes = [];
             view = new Uint8Array(parts[i]);
-            for(j = 0; j < view.length; j += 1) {
+            for (j = 0; j < view.length; j += 1) {
                 charCodes.push(view[j]);
             }
             str = str + String.fromCharCode.apply(String, charCodes);
@@ -458,6 +458,9 @@ var modelUploader = (function () {
 
         print("Reading model file: " + modelFile);
 
+        fstBuffer = null;
+        fbxBuffer = null;
+        svoBuffer = null;
         mapping = {};
 
         if (modelFile.toLowerCase().slice(-4) === ".svo") {
@@ -500,7 +503,7 @@ var modelUploader = (function () {
             if (mapping.hasOwnProperty(SCALE_FIELD)) {
                 mapping[SCALE_FIELD] = parseFloat(mapping[SCALE_FIELD]);
             } else {
-                mapping[SCALE_FIELD] = (geometry.author === "www.makehuman.org" ? 150.0: 15.0);
+                mapping[SCALE_FIELD] = (geometry.author === "www.makehuman.org" ? 150.0 : 15.0);
             }
         }
 
@@ -570,8 +573,8 @@ var modelUploader = (function () {
 
     function createHttpMessage() {
         var lodCount,
+            lodFile,
             lodBuffer,
-            textureCount,
             textureBuffer,
             i;
 
@@ -617,24 +620,26 @@ var modelUploader = (function () {
 
         // LOD files
         lodCount = 0;
-        for (var n in mapping["lod"]) {
-            lodBuffer = readFile(modelFile.path() + "\/" + n);
-            httpMultiPart.add({
-                name: "lod" + lodCount,
-                buffer: lodBuffer
-            })
-            lodCount += 1;
+        for (lodFile in mapping.lod) {
+            if (mapping.lod.hasOwnProperty(lodFile)) {
+                lodBuffer = readFile(modelFile.path() + "\/" + lodFile);
+                httpMultiPart.add({
+                    name: "lod" + lodCount,
+                    buffer: lodBuffer
+                });
+                lodCount += 1;
+            }
         }
 
         // Textures
-        textureCount = 0;
         for (i = 0; i < geometry.textures.length; i += 1) {
-            textureBuffer = readFile(modelFile.path() + "\/" + mapping[TEXDIR_FIELD]  + "\/" + geometry.textures[i]);
+            textureBuffer = readFile(modelFile.path() + "\/"
+                + (mapping[TEXDIR_FIELD] !== "." ? mapping[TEXDIR_FIELD] + "\/" : "")
+                + geometry.textures[i]);
             httpMultiPart.add({
-                name: "texture" + textureCount,
+                name: "texture" + i,
                 buffer: textureBuffer
             });
-            textureCount += 1;
         }
 
         // Model category
