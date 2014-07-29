@@ -36,6 +36,9 @@ EntityTypes::EntityType_t EntityTypes::getEntityTypeFromName(const QString& name
 }
 
 EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
+
+qDebug() << "EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
+
     EntityItem* newEntityItem = NULL;
 
     // switch statement for now, needs to support registration of constructor
@@ -78,6 +81,8 @@ EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const Enti
 
 EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
             ReadBitstreamToTreeParams& args) {
+
+qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead)";
 
     //qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... CALLED BUT NOT IMPLEMENTED!!!";
     

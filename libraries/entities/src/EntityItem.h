@@ -194,7 +194,13 @@ protected:
 class ModelEntityItem : public EntityItem {
 public:
     ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { _type = EntityTypes::Model; }
+        EntityItem(entityItemID, properties) { 
+
+qDebug() << "ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)";
+        
+        _type = EntityTypes::Model; 
+        
+        }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
 };

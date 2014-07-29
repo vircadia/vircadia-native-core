@@ -30,7 +30,10 @@
 #include "EntityTree.h"
 
 EntityItem::EntityItem() {
+qDebug() << "EntityItem::EntityItem()....";
     _type = EntityTypes::Base;
+    _lastEdited = 0;
+    _lastUpdated = 0;
     rgbColor noColor = { 0, 0, 0 };
     init(glm::vec3(0,0,0), 0, noColor, NEW_ENTITY);
 }
@@ -40,9 +43,9 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _creatorTokenID = entityItemID.creatorTokenID;
 
     // init values with defaults before calling setProperties
-    uint64_t now = usecTimestampNow();
-    _lastEdited = now;
-    _lastUpdated = now;
+    //uint64_t now = usecTimestampNow();
+    _lastEdited = 0;
+    _lastUpdated = 0;
 
     _position = glm::vec3(0,0,0);
     _radius = 0;
@@ -63,19 +66,25 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _glowLevel = 0.0f;
 
     _jointMappingCompleted = false;
-    _lastAnimated = now;
+    _lastAnimated = 0;
 #endif
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
+qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID)....";
     _type = EntityTypes::Base;
     initFromEntityItemID(entityItemID);
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
+qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)....";
     _type = EntityTypes::Base;
+    _lastEdited = 0;
+    _lastUpdated = 0;
     initFromEntityItemID(entityItemID);
+qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties).... _lastEdited=" << _lastEdited;
     setProperties(properties, true); // force copy
+qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties).... after setProperties() _lastEdited=" << _lastEdited;
 }
 
 EntityItem::~EntityItem() {
@@ -616,18 +625,44 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         quint32 type = typeCoder;
         _type = (EntityTypes::EntityType_t)type;
 
+// XXXBHG: is this a good place to handle the last edited time client vs server??
+
+// If the edit time encoded in the packet is NEWER than our known edit time... 
+//     then we WANT to over-write our local data.
+// If the edit time encoded in the packet is OLDER than our known edit time...
+//     then we WANT to preserve our local data. (NOTE: what if I change color, and you change position?? last one wins!)
+
+        bool overwriteLocalData = true; // assume the new content overwrites our local data
+        
+        quint64 lastEditedFromBuffer = 0;
+
         // _lastEdited
-        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
-        dataAt += sizeof(_lastEdited);
-        bytesRead += sizeof(_lastEdited);
-        _lastEdited -= clockSkew;
+        memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
+        dataAt += sizeof(lastEditedFromBuffer);
+        bytesRead += sizeof(lastEditedFromBuffer);
+        lastEditedFromBuffer -= clockSkew;
+        
+        // If we've changed our local tree more recently than the new data from this packet
+        // then we will not be changing our values, instead we just read and skip the data
+        if (_lastEdited > lastEditedFromBuffer) {
+            overwriteLocalData = false;
+            qDebug() << "IGNORING old data from server!!! **************** _lastEdited=" << _lastEdited 
+                        << "lastEditedFromBuffer=" << lastEditedFromBuffer << "now=" << usecTimestampNow();
+        } else {
+
+            qDebug() << "USING NEW data from server!!! **************** OLD _lastEdited=" << _lastEdited 
+                        << "lastEditedFromBuffer=" << lastEditedFromBuffer << "now=" << usecTimestampNow();
+
+            _lastEdited = lastEditedFromBuffer;
+        }
 
         // last updated is stored as ByteCountCoded delta from lastEdited
         QByteArray encodedUpdateDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
         ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
         quint64 updateDelta = updateDeltaCoder;
-        _lastUpdated = _lastEdited + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
-       
+        if (overwriteLocalData) {
+            _lastUpdated = _lastEdited + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
+        }
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += encodedUpdateDelta.size();
         bytesRead += encodedUpdateDelta.size();
@@ -640,30 +675,46 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         // PROP_POSITION
         if (propertyFlags.getHasProperty(PROP_POSITION)) {
-            memcpy(&_position, dataAt, sizeof(_position));
-            dataAt += sizeof(_position);
-            bytesRead += sizeof(_position);
+            glm::vec3 positionFromBuffer;
+            memcpy(&positionFromBuffer, dataAt, sizeof(positionFromBuffer));
+            dataAt += sizeof(positionFromBuffer);
+            bytesRead += sizeof(positionFromBuffer);
+            if (overwriteLocalData) {
+                _position = positionFromBuffer;
+            }
         }
         
         // PROP_RADIUS
         if (propertyFlags.getHasProperty(PROP_RADIUS)) {
-            memcpy(&_radius, dataAt, sizeof(_radius));
-            dataAt += sizeof(_radius);
-            bytesRead += sizeof(_radius);
+            float radiusFromBuffer;
+            memcpy(&radiusFromBuffer, dataAt, sizeof(radiusFromBuffer));
+            dataAt += sizeof(radiusFromBuffer);
+            bytesRead += sizeof(radiusFromBuffer);
+            if (overwriteLocalData) {
+                _radius = radiusFromBuffer;
+            }
         }
 
         // PROP_ROTATION
         if (propertyFlags.getHasProperty(PROP_ROTATION)) {
-            int bytes = unpackOrientationQuatFromBytes(dataAt, _rotation);
+            glm::quat rotation;
+            int bytes = unpackOrientationQuatFromBytes(dataAt, rotation);
             dataAt += bytes;
             bytesRead += bytes;
+            if (overwriteLocalData) {
+                _rotation = rotation;
+            }
         }
 
         // PROP_SHOULD_BE_DELETED
         if (propertyFlags.getHasProperty(PROP_SHOULD_BE_DELETED)) {
-            memcpy(&_shouldBeDeleted, dataAt, sizeof(_shouldBeDeleted));
-            dataAt += sizeof(_shouldBeDeleted);
-            bytesRead += sizeof(_shouldBeDeleted);
+            bool shouldBeDeleted;
+            memcpy(&shouldBeDeleted, dataAt, sizeof(shouldBeDeleted));
+            dataAt += sizeof(shouldBeDeleted);
+            bytesRead += sizeof(shouldBeDeleted);
+            if (overwriteLocalData) {
+                _shouldBeDeleted = shouldBeDeleted;
+            }
         }
 
         // PROP_SCRIPT
@@ -673,9 +724,12 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 #ifdef HIDE_SUBCLASS_METHODS    
         // PROP_COLOR
         if (propertyFlags.getHasProperty(PROP_COLOR)) {
-            memcpy(_color, dataAt, sizeof(_color));
-            dataAt += sizeof(_color);
-            bytesRead += sizeof(_color);
+            rgbColor color;
+            if (overwriteLocalData) {
+                memcpy(_color, dataAt, sizeof(_color));
+            }
+            dataAt += sizeof(color);
+            bytesRead += sizeof(color);
         }
 
         // PROP_MODEL_URL
@@ -687,9 +741,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             dataAt += sizeof(modelURLLength);
             bytesRead += sizeof(modelURLLength);
             QString modelURLString((const char*)dataAt);
-            setModelURL(modelURLString);
             dataAt += modelURLLength;
             bytesRead += modelURLLength;
+            if (overwriteLocalData) {
+                setModelURL(modelURLString);
+            }
         }
 
         // PROP_ANIMATION_URL
@@ -700,30 +756,44 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             dataAt += sizeof(animationURLLength);
             bytesRead += sizeof(animationURLLength);
             QString animationURLString((const char*)dataAt);
-            setAnimationURL(animationURLString);
             dataAt += animationURLLength;
             bytesRead += animationURLLength;
+            if (overwriteLocalData) {
+                setAnimationURL(animationURLString);
+            }
         }        
 
         // PROP_ANIMATION_FPS
         if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
-            memcpy(&_animationFPS, dataAt, sizeof(_animationFPS));
-            dataAt += sizeof(_animationFPS);
-            bytesRead += sizeof(_animationFPS);
+            float animationFPS;
+            memcpy(&animationFPS, dataAt, sizeof(animationFPS));
+            dataAt += sizeof(animationFPS);
+            bytesRead += sizeof(animationFPS);
+            if (overwriteLocalData) {
+                _animationFPS = animationFPS;
+            }
         }
 
         // PROP_ANIMATION_FRAME_INDEX
         if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-            memcpy(&_animationFrameIndex, dataAt, sizeof(_animationFrameIndex));
-            dataAt += sizeof(_animationFrameIndex);
-            bytesRead += sizeof(_animationFrameIndex);
+            float animationFrameIndex;
+            memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
+            dataAt += sizeof(animationFrameIndex);
+            bytesRead += sizeof(animationFrameIndex);
+            if (overwriteLocalData) {
+                _animationFrameIndex = animationFrameIndex;
+            }
         }
 
         // PROP_ANIMATION_PLAYING
         if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-            memcpy(&_animationIsPlaying, dataAt, sizeof(_animationIsPlaying));
-            dataAt += sizeof(_animationIsPlaying);
-            bytesRead += sizeof(_animationIsPlaying);
+            bool animationIsPlaying;
+            memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
+            dataAt += sizeof(animationIsPlaying);
+            bytesRead += sizeof(animationIsPlaying);
+            if (overwriteLocalData) {
+                _animationIsPlaying = animationIsPlaying;
+            }
         }
 #endif
     }
@@ -1388,345 +1458,3 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
 
 }
 
-EntityItemProperties::EntityItemProperties() :
-
-    _id(UNKNOWN_ENTITY_ID),
-    _idSet(false),
-    _lastEdited(usecTimestampNow()),
-    _type(EntityTypes::Base),
-
-    _position(0),
-    _radius(ENTITY_DEFAULT_RADIUS),
-    _rotation(ENTITY_DEFAULT_ROTATION),
-    _shouldBeDeleted(false),
-
-    _positionChanged(false),
-    _radiusChanged(false),
-    _rotationChanged(false),
-    _shouldBeDeletedChanged(false),
-
-
-#if 0 //def HIDE_SUBCLASS_METHODS
-    _color(),
-    _modelURL(""),
-    _animationURL(""),
-    _animationIsPlaying(false),
-    _animationFrameIndex(0.0),
-    _animationFPS(ENTITY_DEFAULT_ANIMATION_FPS),
-    _glowLevel(0.0f),
-
-    _colorChanged(false),
-    _modelURLChanged(false),
-    _animationURLChanged(false),
-    _animationIsPlayingChanged(false),
-    _animationFrameIndexChanged(false),
-    _animationFPSChanged(false),
-    _glowLevelChanged(false),
-#endif
-
-    _defaultSettings(true)
-{
-}
-
-void EntityItemProperties::debugDump() const {
-    qDebug() << "EntityItemProperties...";
-    qDebug() << "   _id=" << _id;
-    qDebug() << "   _idSet=" << _idSet;
-    qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
-    qDebug() << "   _radius=" << _radius;
-}
-
-
-uint16_t EntityItemProperties::getChangedBits() const {
-    uint16_t changedBits = 0;
-    if (_radiusChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_RADIUS;
-    }
-
-    if (_positionChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_POSITION;
-    }
-
-    if (_rotationChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ROTATION;
-    }
-
-    if (_shouldBeDeletedChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_SHOULDDIE;
-    }
-
-#if 0 //def HIDE_SUBCLASS_METHODS
-    if (_colorChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_COLOR;
-    }
-
-    if (_modelURLChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_MODEL_URL;
-    }
-
-    if (_animationURLChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_URL;
-    }
-
-    if (_animationIsPlayingChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING;
-    }
-
-    if (_animationFrameIndexChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_FRAME;
-    }
-
-    if (_animationFPSChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_FPS;
-    }
-#endif
-
-    return changedBits;
-}
-
-EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
-    EntityPropertyFlags changedProperties;
-    if (_radiusChanged) {
-        changedProperties += PROP_RADIUS;
-    }
-
-    if (_positionChanged) {
-        changedProperties += PROP_POSITION;
-    }
-
-    if (_rotationChanged) {
-        changedProperties += PROP_ROTATION;
-    }
-
-    if (_shouldBeDeletedChanged) {
-        changedProperties += PROP_SHOULD_BE_DELETED;
-    }
-
-#if 0 //def HIDE_SUBCLASS_METHODS
-    if (_colorChanged) {
-        changedProperties += PROP_COLOR;
-    }
-
-    if (_modelURLChanged) {
-        changedProperties += PROP_MODEL_URL;
-    }
-
-    if (_animationURLChanged) {
-        changedProperties += PROP_ANIMATION_URL;
-    }
-
-    if (_animationIsPlayingChanged) {
-        changedProperties += PROP_ANIMATION_PLAYING;
-    }
-
-    if (_animationFrameIndexChanged) {
-        changedProperties += PROP_ANIMATION_FRAME_INDEX;
-    }
-
-    if (_animationFPSChanged) {
-        changedProperties += PROP_ANIMATION_FPS;
-    }
-#endif
-
-    return changedProperties;
-}
-
-QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) const {
-    QScriptValue properties = engine->newObject();
-
-    if (_idSet) {
-        properties.setProperty("id", _id);
-        bool isKnownID = (_id != UNKNOWN_ENTITY_ID);
-        properties.setProperty("isKnownID", isKnownID);
-qDebug() << "EntityItemProperties::copyToScriptValue()... isKnownID=" << isKnownID << "id=" << _id;
-    }
-
-    QScriptValue position = vec3toScriptValue(engine, _position);
-    properties.setProperty("position", position);
-    properties.setProperty("radius", _radius);
-    QScriptValue rotation = quatToScriptValue(engine, _rotation);
-    properties.setProperty("rotation", rotation);
-    properties.setProperty("shouldBeDeleted", _shouldBeDeleted);
-
-#if 0 // def HIDE_SUBCLASS_METHODS
-    QScriptValue color = xColorToScriptValue(engine, _color);
-    properties.setProperty("color", color);
-    properties.setProperty("modelURL", _modelURL);
-    properties.setProperty("animationURL", _animationURL);
-    properties.setProperty("animationIsPlaying", _animationIsPlaying);
-    properties.setProperty("animationFrameIndex", _animationFrameIndex);
-    properties.setProperty("animationFPS", _animationFPS);
-    properties.setProperty("glowLevel", _glowLevel);
-
-    // Sitting properties support
-    QScriptValue sittingPoints = engine->newObject();
-    for (int i = 0; i < _sittingPoints.size(); ++i) {
-        QScriptValue sittingPoint = engine->newObject();
-        sittingPoint.setProperty("name", _sittingPoints[i].name);
-        sittingPoint.setProperty("position", vec3toScriptValue(engine, _sittingPoints[i].position));
-        sittingPoint.setProperty("rotation", quatToScriptValue(engine, _sittingPoints[i].rotation));
-        sittingPoints.setProperty(i, sittingPoint);
-    }
-    sittingPoints.setProperty("length", _sittingPoints.size());
-    properties.setProperty("sittingPoints", sittingPoints);
-#endif // HIDE_SUBCLASS_METHODS
-
-    return properties;
-}
-
-void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
-
-    QScriptValue typeScriptValue = object.property("type");
-    if (typeScriptValue.isValid()) {
-        QString typeName;
-        typeName = typeScriptValue.toVariant().toString();
-        _type = EntityTypes::getEntityTypeFromName(typeName);
-    }
-
-    QScriptValue position = object.property("position");
-    if (position.isValid()) {
-        QScriptValue x = position.property("x");
-        QScriptValue y = position.property("y");
-        QScriptValue z = position.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newPosition;
-            newPosition.x = x.toVariant().toFloat();
-            newPosition.y = y.toVariant().toFloat();
-            newPosition.z = z.toVariant().toFloat();
-            if (_defaultSettings || newPosition != _position) {
-                _position = newPosition;
-                _positionChanged = true;
-            }
-        }
-    }
-
-    QScriptValue radius = object.property("radius");
-    if (radius.isValid()) {
-        float newRadius;
-        newRadius = radius.toVariant().toFloat();
-        if (_defaultSettings || newRadius != _radius) {
-            _radius = newRadius;
-            _radiusChanged = true;
-        }
-    }
-
-    QScriptValue rotation = object.property("rotation");
-    if (rotation.isValid()) {
-        QScriptValue x = rotation.property("x");
-        QScriptValue y = rotation.property("y");
-        QScriptValue z = rotation.property("z");
-        QScriptValue w = rotation.property("w");
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            glm::quat newRotation;
-            newRotation.x = x.toVariant().toFloat();
-            newRotation.y = y.toVariant().toFloat();
-            newRotation.z = z.toVariant().toFloat();
-            newRotation.w = w.toVariant().toFloat();
-            if (_defaultSettings || newRotation != _rotation) {
-                _rotation = newRotation;
-                _rotationChanged = true;
-            }
-        }
-    }
-
-    QScriptValue shouldBeDeleted = object.property("shouldBeDeleted");
-    if (shouldBeDeleted.isValid()) {
-        bool newShouldBeDeleted;
-        newShouldBeDeleted = shouldBeDeleted.toVariant().toBool();
-        if (_defaultSettings || newShouldBeDeleted != _shouldBeDeleted) {
-            _shouldBeDeleted = newShouldBeDeleted;
-            _shouldBeDeletedChanged = true;
-        }
-    }
-
-#if 0 //def HIDE_SUBCLASS_METHODS
-    QScriptValue color = object.property("color");
-    if (color.isValid()) {
-        QScriptValue red = color.property("red");
-        QScriptValue green = color.property("green");
-        QScriptValue blue = color.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            xColor newColor;
-            newColor.red = red.toVariant().toInt();
-            newColor.green = green.toVariant().toInt();
-            newColor.blue = blue.toVariant().toInt();
-            if (_defaultSettings || (newColor.red != _color.red ||
-                newColor.green != _color.green ||
-                newColor.blue != _color.blue)) {
-                _color = newColor;
-                _colorChanged = true;
-            }
-        }
-    }
-
-    QScriptValue modelURL = object.property("modelURL");
-    if (modelURL.isValid()) {
-        QString newModelURL;
-        newModelURL = modelURL.toVariant().toString();
-        if (_defaultSettings || newModelURL != _modelURL) {
-            _modelURL = newModelURL;
-            _modelURLChanged = true;
-        }
-    }
-
-    QScriptValue animationURL = object.property("animationURL");
-    if (animationURL.isValid()) {
-        QString newAnimationURL;
-        newAnimationURL = animationURL.toVariant().toString();
-        if (_defaultSettings || newAnimationURL != _animationURL) {
-            _animationURL = newAnimationURL;
-            _animationURLChanged = true;
-        }
-    }
-
-    QScriptValue animationIsPlaying = object.property("animationIsPlaying");
-    if (animationIsPlaying.isValid()) {
-        bool newIsAnimationPlaying;
-        newIsAnimationPlaying = animationIsPlaying.toVariant().toBool();
-        if (_defaultSettings || newIsAnimationPlaying != _animationIsPlaying) {
-            _animationIsPlaying = newIsAnimationPlaying;
-            _animationIsPlayingChanged = true;
-        }
-    }
-    
-    QScriptValue animationFrameIndex = object.property("animationFrameIndex");
-    if (animationFrameIndex.isValid()) {
-        float newFrameIndex;
-        newFrameIndex = animationFrameIndex.toVariant().toFloat();
-        if (_defaultSettings || newFrameIndex != _animationFrameIndex) {
-            _animationFrameIndex = newFrameIndex;
-            _animationFrameIndexChanged = true;
-        }
-    }
-    
-    QScriptValue animationFPS = object.property("animationFPS");
-    if (animationFPS.isValid()) {
-        float newFPS;
-        newFPS = animationFPS.toVariant().toFloat();
-        if (_defaultSettings || newFPS != _animationFPS) {
-            _animationFPS = newFPS;
-            _animationFPSChanged = true;
-        }
-    }
-    
-    QScriptValue glowLevel = object.property("glowLevel");
-    if (glowLevel.isValid()) {
-        float newGlowLevel;
-        newGlowLevel = glowLevel.toVariant().toFloat();
-        if (_defaultSettings || newGlowLevel != _glowLevel) {
-            _glowLevel = newGlowLevel;
-            _glowLevelChanged = true;
-        }
-    }
-#endif
-
-    _lastEdited = usecTimestampNow();
-}
-
-QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties) {
-    return properties.copyToScriptValue(engine);
-}
-
-void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties) {
-    properties.copyFromScriptValue(object);
-}

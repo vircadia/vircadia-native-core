@@ -20,7 +20,7 @@ EntityItemProperties::EntityItemProperties() :
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
-    _lastEdited(usecTimestampNow()),
+    _lastEdited(0),
     _type(EntityTypes::Base),
 
     _position(0),
