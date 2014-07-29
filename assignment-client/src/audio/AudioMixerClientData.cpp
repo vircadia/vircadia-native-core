@@ -74,7 +74,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
                 bool isStereo = channelFlag == 1;
 
                 _audioStreams.insert(nullUUID,
-                    matchingStream = new AvatarAudioStream(isStereo, AudioMixer::getUseDynamicJitterBuffers()));
+                    matchingStream = new AvatarAudioStream(isStereo, AudioMixer::getUseDynamicJitterBuffers(), AudioMixer::getMaxFramesOverDesired()));
             } else {
                 matchingStream = _audioStreams.value(nullUUID);
             }
@@ -87,7 +87,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 
             if (!_audioStreams.contains(streamIdentifier)) {
                 _audioStreams.insert(streamIdentifier,
-                    matchingStream = new InjectedAudioStream(streamIdentifier, AudioMixer::getUseDynamicJitterBuffers()));
+                    matchingStream = new InjectedAudioStream(streamIdentifier, AudioMixer::getUseDynamicJitterBuffers(), AudioMixer::getMaxFramesOverDesired()));
             } else {
                 matchingStream = _audioStreams.value(streamIdentifier);
             }

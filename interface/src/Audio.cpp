@@ -76,9 +76,9 @@ Audio::Audio(QObject* parent) :
     // this delay will slowly add up and the longer someone runs, they more delayed their audio will be.
     _inputRingBuffer(0),
 #ifdef _WIN32
-    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 100, true, true),
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 100, true, 20, true),
 #else
-    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 10, true, true), // DO NOT CHANGE THIS UNLESS YOU SOLVE THE AUDIO DEVICE DRIFT PROBLEM!!!
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 10, true, 20, true), // DO NOT CHANGE THIS UNLESS YOU SOLVE THE AUDIO DEVICE DRIFT PROBLEM!!!
 #endif  
     _isStereoInput(false),
     _averagedLatency(0.0),

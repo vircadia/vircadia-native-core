@@ -59,6 +59,9 @@ public:
 
     void overrideDesiredJitterBufferFramesTo(int desired) { _receivedAudioStream.overrideDesiredJitterBufferFramesTo(desired); }
     void unoverrideDesiredJitterBufferFrames() { _receivedAudioStream.unoverrideDesiredJitterBufferFrames(); }
+
+    void setMaxFramesOverDesired(int maxFramesOverDesired) { _receivedAudioStream.setMaxFramesOverDesired(maxFramesOverDesired); }
+
     int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
     
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }

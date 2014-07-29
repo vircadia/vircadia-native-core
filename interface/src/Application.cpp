@@ -1711,6 +1711,9 @@ void Application::init() {
     if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
         _audio.overrideDesiredJitterBufferFramesTo(Menu::getInstance()->getAudioJitterBufferFrames());
     }
+
+    _audio.setMaxFramesOverDesired(Menu::getInstance()->getMaxFramesOverDesired());
+
     qDebug("Loaded settings");
 
     // initialize our face trackers after loading the menu settings

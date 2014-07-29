@@ -68,6 +68,7 @@ void attachNewNodeDataToNode(Node *newNode) {
 }
 
 bool AudioMixer::_useDynamicJitterBuffers = false;
+int AudioMixer::_maxFramesOverDesired = 20;
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
@@ -469,6 +470,10 @@ void AudioMixer::run() {
             qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
             _useDynamicJitterBuffers = false;
         }
+
+        const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "max-frames-over-desired";
+        _maxFramesOverDesired = audioGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt();
+        qDebug() << "Max frames over desired:" << _maxFramesOverDesired;
     }
     
     int nextFrame = 0;

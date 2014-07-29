@@ -9,6 +9,12 @@
         "placeholder": "no zone",
         "default": ""
       },
+	  "max-frames-over-desired": {
+        "label": "Max Frames Over Desired",
+        "help": "The highest number of frames an AudioMixer's ringbuffer can exceed the desired jitter buffer frames by",
+        "placeholder": "20",
+        "default": ""
+      },
       "dynamic-jitter-buffer": {
         "type": "checkbox",
         "label": "Dynamic Jitter Buffers",

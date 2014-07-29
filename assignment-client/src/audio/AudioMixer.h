@@ -38,6 +38,7 @@ public slots:
     void sendStatsPacket();
 
     static bool getUseDynamicJitterBuffers() { return _useDynamicJitterBuffers; }
+    static int getMaxFramesOverDesired() { return _maxFramesOverDesired; }
 
 private:
     /// adds one stream to the mix for a listening node
@@ -59,7 +60,9 @@ private:
     int _sumMixes;
     AABox* _sourceUnattenuatedZone;
     AABox* _listenerUnattenuatedZone;
+
     static bool _useDynamicJitterBuffers;
+    static int _maxFramesOverDesired;
 
     quint64 _lastSendAudioStreamStatsTime;
 };

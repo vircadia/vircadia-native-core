@@ -50,7 +50,7 @@ class InboundAudioStream : public NodeData {
     Q_OBJECT
 public:
     InboundAudioStream(int numFrameSamples, int numFramesCapacity,
-        bool dynamicJitterBuffers, //int maxFramesOverDesired,
+        bool dynamicJitterBuffers, int maxFramesOverDesired,
         bool useStDevForJitterCalc = false);
 
     void reset();
@@ -75,6 +75,8 @@ public:
     /// this function should be called once per second to ensure the seq num stats history spans ~30 seconds
     AudioStreamStats updateSeqHistoryAndGetAudioStreamStats();
 
+    void setMaxFramesOverDesired(int maxFramesOverDesired) { _maxFramesOverDesired = maxFramesOverDesired; }
+
     virtual AudioStreamStats getAudioStreamStats() const;
 
     /// returns the desired number of jitter buffer frames under the dyanmic jitter buffers scheme
@@ -88,6 +90,7 @@ public:
     int getCalculatedJitterBufferFramesUsingMaxGap() const { return _calculatedJitterBufferFramesUsingMaxGap; }
 
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
+    int getMaxFramesOverDesired() const { return _maxFramesOverDesired; }
     int getNumFrameSamples() const { return _ringBuffer.getNumFrameSamples(); }
     int getFrameCapacity() const { return _ringBuffer.getFrameCapacity(); }
     int getFramesAvailable() const { return _ringBuffer.framesAvailable(); }

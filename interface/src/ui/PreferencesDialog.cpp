@@ -151,6 +151,8 @@ void PreferencesDialog::loadPreferences() {
     
     ui.audioJitterSpin->setValue(menuInstance->getAudioJitterBufferFrames());
 
+    ui.maxFramesOverDesiredSpin->setValue(menuInstance->getMaxFramesOverDesired());
+
     ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
 
     ui.fieldOfViewSpin->setValue(menuInstance->getFieldOfView());
@@ -241,10 +243,13 @@ void PreferencesDialog::savePreferences() {
 
     Menu::getInstance()->setAudioJitterBufferFrames(ui.audioJitterSpin->value());
     if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
-        Application::getInstance()->getAudio()->overrideDesiredJitterBufferFramesTo(ui.audioJitterSpin->value());
+        Application::getInstance()->getAudio()->overrideDesiredJitterBufferFramesTo(Menu::getInstance()->getAudioJitterBufferFrames());
     } else {
         Application::getInstance()->getAudio()->unoverrideDesiredJitterBufferFrames();
     }
+
+    Menu::getInstance()->setMaxFramesOverDesired(ui.maxFramesOverDesiredSpin->value());
+    Application::getInstance()->getAudio()->setMaxFramesOverDesired(Menu::getInstance()->getMaxFramesOverDesired());
 
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
                                          Application::getInstance()->getGLWidget()->height());

@@ -18,7 +18,7 @@
 
 class InjectedAudioStream : public PositionalAudioStream {
 public:
-    InjectedAudioStream(const QUuid& streamIdentifier = QUuid(), bool dynamicJitterBuffer = false);
+    InjectedAudioStream(const QUuid& streamIdentifier, bool dynamicJitterBuffer, int maxFramesOverDesired);
 
     float getRadius() const { return _radius; }
     float getAttenuationRatio() const { return _attenuationRatio; }

@@ -13,7 +13,7 @@
 #include "PacketHeaders.h"
 
 InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity,
-    bool dynamicJitterBuffers, /*int maxFramesOverDesired,*/ bool useStDevForJitterCalc) :
+    bool dynamicJitterBuffers, int maxFramesOverDesired, bool useStDevForJitterCalc) :
     _ringBuffer(numFrameSamples, false, numFramesCapacity),
     _lastPopSucceeded(false),
     _lastPopOutput(),
@@ -23,7 +23,7 @@ InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacit
     _calculatedJitterBufferFramesUsingMaxGap(0),
     _calculatedJitterBufferFramesUsingStDev(0),
     _desiredJitterBufferFrames(1),
-    _maxFramesOverDesired(20),//maxFramesOverDesired),  // PLACEHOLDER!!!!!!!!!
+    _maxFramesOverDesired(maxFramesOverDesired),
     _isStarved(true),
     _hasStarted(false),
     _consecutiveNotMixedCount(0),

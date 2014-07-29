@@ -87,6 +87,8 @@ public:
 
     float getAudioJitterBufferFrames() const { return _audioJitterBufferFrames; }
     void setAudioJitterBufferFrames(float audioJitterBufferSamples) { _audioJitterBufferFrames = audioJitterBufferSamples; }
+    int getMaxFramesOverDesired() const { return _maxFramesOverDesired; }
+    void setMaxFramesOverDesired(int maxFramesOverDesired) { _maxFramesOverDesired = maxFramesOverDesired; }
     float getFieldOfView() const { return _fieldOfView; }
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
@@ -258,6 +260,7 @@ private:
 
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferFrames; /// number of extra samples to wait before starting audio playback
+    int _maxFramesOverDesired;
     BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
     float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance

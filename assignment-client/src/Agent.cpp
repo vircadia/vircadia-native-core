@@ -36,7 +36,7 @@ Agent::Agent(const QByteArray& packet) :
     _voxelEditSender(),
     _particleEditSender(),
     _modelEditSender(),
-    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 1, false),
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 1, false, 0),
     _avatarHashMap()
 {
     // be the parent of the script engine so it gets moved when we do
