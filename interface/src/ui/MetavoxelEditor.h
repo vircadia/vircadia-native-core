@@ -247,6 +247,7 @@ private:
     
     QPushButton* _height;
     QPushButton* _color;
+    QDoubleSpinBox* _scale;
     
     QImage _heightImage;
     QImage _colorImage;
