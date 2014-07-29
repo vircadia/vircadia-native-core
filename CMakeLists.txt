@@ -9,6 +9,10 @@ add_definitions(-DGLM_FORCE_RADIANS)
 
 if (WIN32)
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
+  # set path for Microsoft SDKs
+  # if get build error about missing 'glu32' this path is likely wrong
+  # Uncomment the line with 8.1 if running Windows 8.1
+  #set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\x86")
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 ")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 elseif (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)

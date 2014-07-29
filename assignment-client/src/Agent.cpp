@@ -29,6 +29,8 @@
 #include <ParticlesScriptingInterface.h> // TODO: consider moving to scriptengine.h
 #include <ModelsScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
+#include "avatars/ScriptableAvatar.h"
+
 #include "Agent.h"
 
 Agent::Agent(const QByteArray& packet) :
@@ -228,8 +230,9 @@ void Agent::run() {
     qDebug() << "Downloaded script:" << scriptContents;
     
     // setup an Avatar for the script to use
-    AvatarData scriptedAvatar;
-    
+    ScriptableAvatar scriptedAvatar(&_scriptEngine);
+    scriptedAvatar.setForceFaceshiftConnected(true);
+
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar.setFaceModelURL(QUrl());
     scriptedAvatar.setSkeletonModelURL(QUrl());

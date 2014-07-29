@@ -162,9 +162,16 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _jointData.resize(_skeletonModel.getJointStateCount());
-        for (int i = 0; i < _jointData.size(); i++) {
-            JointData& data = _jointData[i];
-            data.valid = _skeletonModel.getJointState(i, data.rotation);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+            for (int i = 0; i < _jointData.size(); i++) {
+                JointData& data = _jointData[i];
+                data.valid = _skeletonModel.getVisibleJointState(i, data.rotation);
+            }
+        } else {
+            for (int i = 0; i < _jointData.size(); i++) {
+                JointData& data = _jointData[i];
+                data.valid = _skeletonModel.getJointState(i, data.rotation);
+            }
         }
     }
 
@@ -905,7 +912,7 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
     const Head* head = getHead();
     return (renderMode != NORMAL_RENDER_MODE) || 
-        (glm::length(cameraPosition - head->calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
+        (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
 float MyAvatar::computeDistanceToFloor(const glm::vec3& startPoint) {
@@ -1871,8 +1878,6 @@ void MyAvatar::renderLaserPointers() {
 //Gets the tip position for the laser pointer
 glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
     const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
-    const float PALM_TIP_ROD_LENGTH_MULT = 40.0f;
-
     glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
 
     glm::vec3 position = palm->getPosition();

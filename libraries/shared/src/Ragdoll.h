@@ -14,71 +14,11 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include "VerletPoint.h"
 
 #include <QVector>
 
-class Shape;
-
-// TODO: Andrew to move VerletPoint class to its own file
-class VerletPoint {
-public:
-    VerletPoint() : _position(0.0f), _lastPosition(0.0f), _mass(1.0f), _accumulatedDelta(0.0f), _numDeltas(0) {}
-
-    void accumulateDelta(const glm::vec3& delta);
-    void applyAccumulatedDelta();
-
-    glm::vec3 getAccumulatedDelta() const { 
-        glm::vec3 foo(0.0f); 
-        if (_numDeltas > 0) { 
-            foo = _accumulatedDelta / (float)_numDeltas; 
-        } 
-        return foo; 
-    }
-
-    glm::vec3 _position;
-    glm::vec3 _lastPosition;
-    float _mass;
-
-private:
-    glm::vec3 _accumulatedDelta;
-    int _numDeltas;
-};
-
-class Constraint {
-public:
-    Constraint() {}
-    virtual ~Constraint() {}
-
-    /// Enforce contraint by moving relevant points.
-    /// \return max distance of point movement
-    virtual float enforce() = 0;
-
-protected:
-    int _type;
-};
-
-class FixedConstraint : public Constraint {
-public:
-    FixedConstraint(VerletPoint* point, const glm::vec3& anchor);
-    float enforce();
-    void setPoint(VerletPoint* point);
-    void setAnchor(const glm::vec3& anchor);
-private:
-    VerletPoint* _point;
-    glm::vec3 _anchor;
-};
-
-class DistanceConstraint : public Constraint {
-public:
-    DistanceConstraint(VerletPoint* startPoint, VerletPoint* endPoint);
-    DistanceConstraint(const DistanceConstraint& other);
-    float enforce();
-    void setDistance(float distance);
-    float getDistance() const { return _distance; }
-private:
-    float _distance;
-    VerletPoint* _points[2];
-};
+class Constraint;
 
 class Ragdoll {
 public:
@@ -86,7 +26,7 @@ public:
     Ragdoll();
     virtual ~Ragdoll();
 
-    virtual void stepRagdollForward(float deltaTime) = 0;
+    virtual void stepRagdollForward(float deltaTime);
 
     /// \return max distance of point movement
     float enforceRagdollConstraints();
