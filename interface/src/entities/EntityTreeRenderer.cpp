@@ -63,11 +63,11 @@ void EntityTreeRenderer::update() {
 }
 
 void EntityTreeRenderer::render(RenderMode renderMode) {
-    qDebug() << "EntityTreeRenderer::render() ************";
+    //qDebug() << "EntityTreeRenderer::render() ************";
     OctreeRenderer::render(renderMode);
-    qDebug() << "-------------------- EntityTreeRenderer::render() ------------";
-    static_cast<EntityTree*>(_tree)->debugDumpMap();
-    qDebug() << "******* DONE ******* EntityTreeRenderer::render() ************";
+    //qDebug() << "-------------------- EntityTreeRenderer::render() ------------";
+    //static_cast<EntityTree*>(_tree)->debugDumpMap();
+    //qDebug() << "******* DONE ******* EntityTreeRenderer::render() ************";
 }
 
 const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem& entityItem) {

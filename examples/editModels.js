@@ -503,7 +503,11 @@ function controller(wichSide) {
                 radius: attachments[attachmentIndex].scale / 2.0,
                 modelURL: attachments[attachmentIndex].modelURL
                 };
+
+print(">>>>>  CALLING >>>>> newModel = Entities.addEntity(newProperties);");
                 newModel = Entities.addEntity(newProperties);
+
+
             } else {
                 // There is none so ...
                 // Checking model tree
@@ -795,7 +799,8 @@ function mousePressEvent(event) {
         var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
         
         if (position.x > 0 && position.y > 0 && position.z > 0) {
-            Models.addModel({ position: position,
+print(">>>>>  CALLING >>>>> Entities.addEntity(newProperties);");
+            Entities.addEntity({ position: position,
                             radius: radiusDefault,
                             modelURL: url
                             });
@@ -812,6 +817,7 @@ function mousePressEvent(event) {
         var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
         
         if (position.x > 0 && position.y > 0 && position.z > 0) {
+print(">>>>>  CALLING >>>>> Entities.addEntity(newProperties);");
             Entities.addEntity({ position: position,
                             radius: radiusDefault,
                             modelURL: url

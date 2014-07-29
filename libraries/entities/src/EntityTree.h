@@ -53,19 +53,18 @@ public:
     // The newer API...
     EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
     void addEntityItem(EntityItem* entityItem);
+
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
-
-    EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
-
-    // the old API
-    void storeEntity(const EntityItem& entity, const SharedNodePointer& senderNode = SharedNodePointer());
-    //void updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
     void deleteEntity(const EntityItemID& entityID);
     void deleteEntities(QSet<EntityItemID> entityIDs);
+
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItem* findEntityByID(uint32_t id, bool alreadyLocked = false)  /*const*/;
     EntityItem* findEntityByEntityItemID(const EntityItemID& entityID)  /*const*/;
+
+    EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
+
 
     /// finds all entities that touch a sphere
     /// \param center the center of the sphere
