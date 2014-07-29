@@ -26,7 +26,7 @@ REGISTER_META_OBJECT(DefaultMetavoxelGuide)
 REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
 REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 REGISTER_META_OBJECT(MetavoxelRenderer)
-REGISTER_META_OBJECT(PointMetavoxelRenderer)
+REGISTER_META_OBJECT(DefaultMetavoxelRenderer)
 REGISTER_META_OBJECT(Spanner)
 REGISTER_META_OBJECT(Sphere)
 REGISTER_META_OBJECT(StaticModel)
@@ -1879,20 +1879,27 @@ void MetavoxelRendererImplementation::init(MetavoxelRenderer* renderer) {
 
 void MetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
         MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    // nothing by default
+}
+
+void MetavoxelRendererImplementation::simulate(MetavoxelData& data, float deltaTime,
+        MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    // nothing by default
 }
 
 void MetavoxelRendererImplementation::render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    // nothing by default
 }
 
 QByteArray MetavoxelRenderer::getImplementationClassName() const {
     return "MetavoxelRendererImplementation";
 }
 
-PointMetavoxelRenderer::PointMetavoxelRenderer() {
+DefaultMetavoxelRenderer::DefaultMetavoxelRenderer() {
 }
 
-QByteArray PointMetavoxelRenderer::getImplementationClassName() const {
-    return "PointMetavoxelRendererImplementation";
+QByteArray DefaultMetavoxelRenderer::getImplementationClassName() const {
+    return "DefaultMetavoxelRendererImplementation";
 }
 
 const float DEFAULT_PLACEMENT_GRANULARITY = 0.01f;

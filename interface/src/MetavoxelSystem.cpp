@@ -25,7 +25,7 @@
 #include "MetavoxelSystem.h"
 #include "renderer/Model.h"
 
-REGISTER_META_OBJECT(PointMetavoxelRendererImplementation)
+REGISTER_META_OBJECT(DefaultMetavoxelRendererImplementation)
 REGISTER_META_OBJECT(SphereRenderer)
 REGISTER_META_OBJECT(StaticModelRenderer)
 
@@ -33,8 +33,10 @@ static int bufferPointVectorMetaTypeId = qRegisterMetaType<BufferPointVector>();
 
 void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
-    PointMetavoxelRendererImplementation::init();
-    _pointBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(new PointBufferAttribute());
+    DefaultMetavoxelRendererImplementation::init();
+    _pointBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(new BufferDataAttribute("pointBuffer"));
+    _heightfieldBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(
+        new BufferDataAttribute("heightfieldBuffer"));
 }
 
 MetavoxelLOD MetavoxelSystem::getLOD() {
@@ -42,28 +44,31 @@ MetavoxelLOD MetavoxelSystem::getLOD() {
     return _lod;
 }
 
-class SpannerSimulateVisitor : public SpannerVisitor {
+class SimulateVisitor : public MetavoxelVisitor {
 public:
     
-    SpannerSimulateVisitor(float deltaTime);
+    SimulateVisitor(float deltaTime, const MetavoxelLOD& lod);
     
-    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
+    virtual int visit(MetavoxelInfo& info);
 
 private:
     
     float _deltaTime;
 };
 
-SpannerSimulateVisitor::SpannerSimulateVisitor(float deltaTime) :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(),
-            Application::getInstance()->getMetavoxels()->getLOD()),
+SimulateVisitor::SimulateVisitor(float deltaTime, const MetavoxelLOD& lod) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getRendererAttribute(),
+        QVector<AttributePointer>(), lod),
     _deltaTime(deltaTime) {
 }
 
-bool SpannerSimulateVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
-    spanner->getRenderer()->simulate(_deltaTime);
-    return true;
+int SimulateVisitor::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    static_cast<MetavoxelRenderer*>(info.inputValues.at(0).getInlineValue<
+        SharedObjectPointer>().data())->getImplementation()->simulate(*_data, _deltaTime, info, _lod);
+    return STOP_RECURSION;
 }
 
 void MetavoxelSystem::simulate(float deltaTime) {
@@ -76,28 +81,8 @@ void MetavoxelSystem::simulate(float deltaTime) {
             BASE_LOD_THRESHOLD * Menu::getInstance()->getAvatarLODDistanceMultiplier());
     }
 
-    SpannerSimulateVisitor spannerSimulateVisitor(deltaTime);
-    guide(spannerSimulateVisitor);
-}
-
-class SpannerRenderVisitor : public SpannerVisitor {
-public:
-    
-    SpannerRenderVisitor();
-    
-    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
-};
-
-SpannerRenderVisitor::SpannerRenderVisitor() :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(),
-        Application::getInstance()->getMetavoxels()->getLOD(),
-        encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())) {
-}
-
-bool SpannerRenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
-    spanner->getRenderer()->render(1.0f, SpannerRenderer::DEFAULT_MODE, clipMinimum, clipSize);
-    return true;
+    SimulateVisitor simulateVisitor(deltaTime, getLOD());
+    guideToAugmented(simulateVisitor);
 }
 
 class RenderVisitor : public MetavoxelVisitor {
@@ -125,9 +110,6 @@ int RenderVisitor::visit(MetavoxelInfo& info) {
 void MetavoxelSystem::render() {
     RenderVisitor renderVisitor(getLOD());
     guideToAugmented(renderVisitor);
-    
-    SpannerRenderVisitor spannerRenderVisitor;
-    guide(spannerRenderVisitor);
 }
 
 MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
@@ -239,6 +221,9 @@ void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
     Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
 }
 
+BufferData::~BufferData() {
+}
+
 PointBuffer::PointBuffer(const BufferPointVector& points) :
     _points(points) {
 }
@@ -269,34 +254,76 @@ void PointBuffer::render() {
     _buffer.release();
 }
 
-PointBufferAttribute::PointBufferAttribute() :
-    InlineAttribute<PointBufferPointer>("pointBuffer") {
+HeightfieldBuffer::HeightfieldBuffer(const QByteArray& height, const QByteArray& color, const QByteArray& normal) :
+    _height(height),
+    _color(color),
+    _normal(normal),
+    _heightTexture(QOpenGLTexture::Target2D),
+    _colorTexture(QOpenGLTexture::Target2D),
+    _normalTexture(QOpenGLTexture::Target2D) {
 }
 
-bool PointBufferAttribute::merge(void*& parent, void* children[], bool postRead) const {
-    PointBufferPointer firstChild = decodeInline<PointBufferPointer>(children[0]);
+void HeightfieldBuffer::render() {
+    // initialize textures, etc. on first render
+    if (!_heightTexture.isCreated()) {
+        int heightSize = glm::sqrt(_height.size());
+        _heightTexture.setSize(heightSize, heightSize);
+        _heightTexture.setFormat(QOpenGLTexture::LuminanceFormat);
+        _heightTexture.allocateStorage();
+        _heightTexture.setData(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8, _height.data());
+        _height.clear();
+        
+        int colorSize = glm::sqrt(_color.size() / 3);
+        _colorTexture.setSize(colorSize, colorSize);
+        _colorTexture.setFormat(QOpenGLTexture::RGBFormat);
+        _colorTexture.allocateStorage();
+        _colorTexture.setData(QOpenGLTexture::BGR, QOpenGLTexture::UInt8, _color.data());
+        _color.clear();
+        
+        int normalSize = glm::sqrt(_normal.size() / 3);
+        _normalTexture.setSize(normalSize, normalSize);
+        _normalTexture.setFormat(QOpenGLTexture::RGBFormat);
+        _normalTexture.allocateStorage();
+        _normalTexture.setData(QOpenGLTexture::BGR, QOpenGLTexture::UInt8, _normal.data());
+        _normal.clear();
+    }
+    
+}
+
+BufferDataAttribute::BufferDataAttribute(const QString& name) :
+    InlineAttribute<BufferDataPointer>(name) {
+}
+
+bool BufferDataAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    BufferDataPointer firstChild = decodeInline<BufferDataPointer>(children[0]);
     for (int i = 1; i < MERGE_COUNT; i++) {
-        if (firstChild != decodeInline<PointBufferPointer>(children[i])) {
-            *(PointBufferPointer*)&parent = _defaultValue;
+        if (firstChild != decodeInline<BufferDataPointer>(children[i])) {
+            *(BufferDataPointer*)&parent = _defaultValue;
             return false;
         }
     }
-    *(PointBufferPointer*)&parent = firstChild;
+    *(BufferDataPointer*)&parent = firstChild;
     return true;
 }
 
-void PointMetavoxelRendererImplementation::init() {
-    if (!_program.isLinked()) {
-        _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/metavoxel_point.vert");
-        _program.link();
+void DefaultMetavoxelRendererImplementation::init() {
+    if (!_pointProgram.isLinked()) {
+        _pointProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/metavoxel_point.vert");
+        _pointProgram.link();
        
-        _program.bind();
-        _pointScaleLocation = _program.uniformLocation("pointScale");
-        _program.release();
+        _pointProgram.bind();
+        _pointScaleLocation = _pointProgram.uniformLocation("pointScale");
+        _pointProgram.release();
+        
+        _heightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield.vert");
+        _heightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield.frag");
+        _heightfieldProgram.link();
     }
 }
 
-PointMetavoxelRendererImplementation::PointMetavoxelRendererImplementation() {
+DefaultMetavoxelRendererImplementation::DefaultMetavoxelRendererImplementation() {
 }
 
 class PointAugmentVisitor : public MetavoxelVisitor {
@@ -344,7 +371,7 @@ int PointAugmentVisitor::visit(MetavoxelInfo& info) {
     if (info.size >= _pointLeafSize) {   
         BufferPointVector swapPoints;
         _points.swap(swapPoints);
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(PointBufferPointer(
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(
             new PointBuffer(swapPoints))));
     }
     return STOP_RECURSION;
@@ -356,12 +383,30 @@ bool PointAugmentVisitor::postVisit(MetavoxelInfo& info) {
     }
     BufferPointVector swapPoints;
     _points.swap(swapPoints);
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(PointBufferPointer(
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(
         new PointBuffer(swapPoints))));
     return true;
 }
 
-void PointMetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
+class HeightfieldAugmentVisitor : public MetavoxelVisitor {
+public:
+
+    HeightfieldAugmentVisitor(const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info);
+};
+
+HeightfieldAugmentVisitor::HeightfieldAugmentVisitor(const MetavoxelLOD& lod) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), QVector<AttributePointer>() <<
+            Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), lod) {
+}
+
+int HeightfieldAugmentVisitor::visit(MetavoxelInfo& info) {
+    return STOP_RECURSION;
+}
+
+void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
         MetavoxelInfo& info, const MetavoxelLOD& lod) {
     // copy the previous buffers
     MetavoxelData expandedPrevious = previous;
@@ -377,12 +422,62 @@ void PointMetavoxelRendererImplementation::augment(MetavoxelData& data, const Me
     
     PointAugmentVisitor visitor(lod);
     data.guideToDifferent(expandedPrevious, visitor);
+    
+    
 }
 
-class PointRenderVisitor : public MetavoxelVisitor {
+class SpannerSimulateVisitor : public SpannerVisitor {
 public:
     
-    PointRenderVisitor(const MetavoxelLOD& lod);
+    SpannerSimulateVisitor(float deltaTime, const MetavoxelLOD& lod);
+    
+    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
+
+private:
+    
+    float _deltaTime;
+};
+
+SpannerSimulateVisitor::SpannerSimulateVisitor(float deltaTime, const MetavoxelLOD& lod) :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
+    _deltaTime(deltaTime) {
+}
+
+bool SpannerSimulateVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
+    spanner->getRenderer()->simulate(_deltaTime);
+    return true;
+}
+
+void DefaultMetavoxelRendererImplementation::simulate(MetavoxelData& data, float deltaTime,
+        MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    SpannerSimulateVisitor spannerSimulateVisitor(deltaTime, lod);
+    data.guide(spannerSimulateVisitor);
+}
+
+class SpannerRenderVisitor : public SpannerVisitor {
+public:
+    
+    SpannerRenderVisitor(const MetavoxelLOD& lod);
+    
+    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
+};
+
+SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(),
+        lod, encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())) {
+}
+
+bool SpannerRenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
+    spanner->getRenderer()->render(1.0f, SpannerRenderer::DEFAULT_MODE, clipMinimum, clipSize);
+    return true;
+}
+
+class BufferRenderVisitor : public MetavoxelVisitor {
+public:
+    
+    BufferRenderVisitor(const AttributePointer& attribute, const MetavoxelLOD& lod);
     
     virtual int visit(MetavoxelInfo& info);
 
@@ -391,21 +486,23 @@ private:
     int _order;
 };
 
-PointRenderVisitor::PointRenderVisitor(const MetavoxelLOD& lod) :
-    MetavoxelVisitor(QVector<AttributePointer>() << Application::getInstance()->getMetavoxels()->getPointBufferAttribute(),
-        QVector<AttributePointer>(), lod),
+BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute, const MetavoxelLOD& lod) :
+    MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>(), lod),
     _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())) {
 }
 
-int PointRenderVisitor::visit(MetavoxelInfo& info) {
-    PointBufferPointer buffer = info.inputValues.at(0).getInlineValue<PointBufferPointer>();
+int BufferRenderVisitor::visit(MetavoxelInfo& info) {
+    BufferDataPointer buffer = info.inputValues.at(0).getInlineValue<BufferDataPointer>();
     if (buffer) {
         buffer->render();
     }
     return info.isLeaf ? STOP_RECURSION : _order;
 }
 
-void PointMetavoxelRendererImplementation::render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod) {
+void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    SpannerRenderVisitor spannerRenderVisitor(lod);
+    data.guide(spannerRenderVisitor);
+    
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     const int VIEWPORT_WIDTH_INDEX = 2;
@@ -416,8 +513,8 @@ void PointMetavoxelRendererImplementation::render(MetavoxelData& data, Metavoxel
     float worldDiagonal = glm::distance(Application::getInstance()->getViewFrustum()->getNearBottomLeft(),
         Application::getInstance()->getViewFrustum()->getNearTopRight());
 
-    _program.bind();
-    _program.setUniformValue(_pointScaleLocation, viewportDiagonal *
+    _pointProgram.bind();
+    _pointProgram.setUniformValue(_pointScaleLocation, viewportDiagonal *
         Application::getInstance()->getViewFrustum()->getNearClip() / worldDiagonal);
         
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -428,10 +525,8 @@ void PointMetavoxelRendererImplementation::render(MetavoxelData& data, Metavoxel
 
     glDisable(GL_BLEND);
     
-    PointRenderVisitor visitor(lod);
-    data.guide(visitor);
-    
-    glEnable(GL_BLEND);
+    BufferRenderVisitor pointRenderVisitor(Application::getInstance()->getMetavoxels()->getPointBufferAttribute(), lod);
+    data.guide(pointRenderVisitor);
     
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
     
@@ -439,11 +534,18 @@ void PointMetavoxelRendererImplementation::render(MetavoxelData& data, Metavoxel
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     
-    _program.release();
+    _pointProgram.release();
+    
+    BufferRenderVisitor heightfieldRenderVisitor(Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(),
+        lod);
+    data.guide(heightfieldRenderVisitor);
+    
+    glEnable(GL_BLEND);
 }
- 
-ProgramObject PointMetavoxelRendererImplementation::_program;
-int PointMetavoxelRendererImplementation::_pointScaleLocation;
+
+ProgramObject DefaultMetavoxelRendererImplementation::_pointProgram;
+int DefaultMetavoxelRendererImplementation::_pointScaleLocation;
+ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldProgram;
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
     GLdouble coefficients[] = { x, y, z, w };

@@ -94,6 +94,12 @@ public:
     /// Returns a reference to the standard "spannerMask" attribute.
     const AttributePointer& getSpannerMaskAttribute() const { return _spannerMaskAttribute; }
     
+    /// Returns a reference to the standard HeightfieldPointer "heightfield" attribute.
+    const AttributePointer& getHeightfieldAttribute() const { return _heightfieldAttribute; }
+    
+    /// Returns a reference to the standard HeightfieldColorPointer "heightfieldColor" attribute.
+    const AttributePointer& getHeightfieldColorAttribute() const { return _heightfieldColorAttribute; }
+    
 private:
 
     static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
@@ -109,6 +115,8 @@ private:
     AttributePointer _spannerColorAttribute;
     AttributePointer _spannerNormalAttribute;
     AttributePointer _spannerMaskAttribute;
+    AttributePointer _heightfieldAttribute;
+    AttributePointer _heightfieldColorAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -406,6 +414,43 @@ public:
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
     
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
+};
+
+/// Contains a block of heightfield data.
+class HeightfieldData : public QSharedData {
+public:
+
+    HeightfieldData(const QByteArray& contents);
+
+    const QByteArray& getContents() const { return _contents; }
+
+private:
+    
+    QByteArray _contents;
+};
+
+typedef QExplicitlySharedDataPointer<HeightfieldData> HeightfieldDataPointer;
+
+/// An attribute that stores heightfield data.
+class HeightfieldAttribute : public InlineAttribute<HeightfieldDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE HeightfieldAttribute(const QString& name = QString());
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+};
+
+/// An attribute that stores heightfield colors.
+class HeightfieldColorAttribute : public InlineAttribute<HeightfieldDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE HeightfieldColorAttribute(const QString& name = QString());
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };
 
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).

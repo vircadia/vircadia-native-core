@@ -555,6 +555,7 @@ public:
     
     virtual void init(MetavoxelRenderer* renderer);
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
+    virtual void simulate(MetavoxelData& data, float deltaTime, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
 
 protected:
@@ -562,13 +563,13 @@ protected:
     MetavoxelRenderer* _renderer;
 };
 
-/// Renders metavoxels as points.
-class PointMetavoxelRenderer : public MetavoxelRenderer {
+/// The standard, usual renderer.
+class DefaultMetavoxelRenderer : public MetavoxelRenderer {
     Q_OBJECT
 
 public:
     
-    Q_INVOKABLE PointMetavoxelRenderer();
+    Q_INVOKABLE DefaultMetavoxelRenderer();
     
     virtual QByteArray getImplementationClassName() const;
 };

@@ -21,6 +21,8 @@ REGISTER_META_OBJECT(QRgbAttribute)
 REGISTER_META_OBJECT(PackedNormalAttribute)
 REGISTER_META_OBJECT(SpannerQRgbAttribute)
 REGISTER_META_OBJECT(SpannerPackedNormalAttribute)
+REGISTER_META_OBJECT(HeightfieldAttribute)
+REGISTER_META_OBJECT(HeightfieldColorAttribute)
 REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
 REGISTER_META_OBJECT(SpannerSetAttribute)
@@ -37,13 +39,15 @@ AttributeRegistry::AttributeRegistry() :
     _guideAttribute(registerAttribute(new SharedObjectAttribute("guide", &MetavoxelGuide::staticMetaObject,
         new DefaultMetavoxelGuide()))),
     _rendererAttribute(registerAttribute(new SharedObjectAttribute("renderer", &MetavoxelRenderer::staticMetaObject,
-        new PointMetavoxelRenderer()))),
+        new DefaultMetavoxelRenderer()))),
     _spannersAttribute(registerAttribute(new SpannerSetAttribute("spanners", &Spanner::staticMetaObject))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new PackedNormalAttribute("normal"))),
     _spannerColorAttribute(registerAttribute(new SpannerQRgbAttribute("spannerColor"))),
     _spannerNormalAttribute(registerAttribute(new SpannerPackedNormalAttribute("spannerNormal"))),
-    _spannerMaskAttribute(registerAttribute(new FloatAttribute("spannerMask"))) {
+    _spannerMaskAttribute(registerAttribute(new FloatAttribute("spannerMask"))),
+    _heightfieldAttribute(registerAttribute(new HeightfieldAttribute("heightfield"))),
+    _heightfieldColorAttribute(registerAttribute(new HeightfieldColorAttribute("heightfieldColor"))) {
     
     // our baseline LOD threshold is for voxels; spanners are a different story
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
@@ -449,6 +453,26 @@ bool SpannerPackedNormalAttribute::merge(void*& parent, void* children[], bool p
 
 AttributeValue SpannerPackedNormalAttribute::inherit(const AttributeValue& parentValue) const {
     return AttributeValue(parentValue.getAttribute());
+}
+
+HeightfieldData::HeightfieldData(const QByteArray& contents) :
+    _contents(contents) {
+}
+
+HeightfieldAttribute::HeightfieldAttribute(const QString& name) :
+    InlineAttribute<HeightfieldDataPointer>(name) {
+}
+
+bool HeightfieldAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    return false;
+}
+
+HeightfieldColorAttribute::HeightfieldColorAttribute(const QString& name) :
+    InlineAttribute<HeightfieldDataPointer>(name) {
+}
+
+bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    return false;
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,

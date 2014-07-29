@@ -14,6 +14,7 @@
 
 #include <QList>
 #include <QOpenGLBuffer>
+#include <QOpenGLTexture>
 #include <QReadWriteLock>
 #include <QVector>
 
@@ -36,6 +37,7 @@ public:
     virtual MetavoxelLOD getLOD();
     
     const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
+    const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
     
     void simulate(float deltaTime);
     void render();
@@ -49,6 +51,7 @@ private:
     void guideToAugmented(MetavoxelVisitor& visitor);
     
     AttributePointer _pointBufferAttribute;
+    AttributePointer _heightfieldBufferAttribute;
     
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
@@ -92,13 +95,24 @@ private:
     QReadWriteLock _augmentedDataLock;
 };
 
+/// Base class for cached static buffers.
+class BufferData : public QSharedData {
+public:
+    
+    virtual ~BufferData();
+
+    virtual void render() = 0;
+};
+
+typedef QExplicitlySharedDataPointer<BufferData> BufferDataPointer;
+
 /// Contains the information necessary to render a group of points.
-class PointBuffer : public QSharedData {
+class PointBuffer : public BufferData {
 public:
 
     PointBuffer(const BufferPointVector& points);
 
-    void render();
+    virtual void render();
 
 private:
     
@@ -107,36 +121,55 @@ private:
     int _pointCount;
 };
 
-typedef QExplicitlySharedDataPointer<PointBuffer> PointBufferPointer;
+/// Contains the information necessary to render a heightfield block.
+class HeightfieldBuffer : public BufferData {
+public:
+    
+    HeightfieldBuffer(const QByteArray& height, const QByteArray& color, const QByteArray& normal);
+    
+    virtual void render();
 
-/// A client-side attribute that stores point buffers.
-class PointBufferAttribute : public InlineAttribute<PointBufferPointer> {
+private:
+    
+    QByteArray _height;
+    QByteArray _color;
+    QByteArray _normal;
+    QOpenGLTexture _heightTexture;
+    QOpenGLTexture _colorTexture;
+    QOpenGLTexture _normalTexture;
+};
+
+/// A client-side attribute that stores renderable buffers.
+class BufferDataAttribute : public InlineAttribute<BufferDataPointer> {
     Q_OBJECT
     
 public:
     
-    Q_INVOKABLE PointBufferAttribute();
+    Q_INVOKABLE BufferDataAttribute(const QString& name = QString());
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };
 
 /// Renders metavoxels as points.
-class PointMetavoxelRendererImplementation : public MetavoxelRendererImplementation {
+class DefaultMetavoxelRendererImplementation : public MetavoxelRendererImplementation {
     Q_OBJECT
 
 public:
     
     static void init();
     
-    Q_INVOKABLE PointMetavoxelRendererImplementation();
+    Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
+    virtual void simulate(MetavoxelData& data, float deltaTime, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
 
 private:
 
-    static ProgramObject _program;
-    static int _pointScaleLocation;    
+    static ProgramObject _pointProgram;
+    static int _pointScaleLocation;
+    
+    static ProgramObject _heightfieldProgram;
 };
 
 /// Base class for spanner renderers; provides clipping.
