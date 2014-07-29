@@ -275,6 +275,9 @@ void HeightfieldBuffer::render() {
     if (!_heightTexture.isCreated()) {
         int heightSize = glm::sqrt(_height.size());
         _heightTexture.setSize(heightSize, heightSize);
+        _heightTexture.setAutoMipMapGenerationEnabled(false);
+        _heightTexture.setMinificationFilter(QOpenGLTexture::Linear);
+        _heightTexture.setWrapMode(QOpenGLTexture::ClampToEdge);
         _heightTexture.setFormat(QOpenGLTexture::LuminanceFormat);
         _heightTexture.allocateStorage();
         _heightTexture.setData(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8, _height.data());
@@ -284,15 +287,18 @@ void HeightfieldBuffer::render() {
             int colorSize = glm::sqrt(_color.size() / 3);
             _colorTexture.setSize(colorSize, colorSize);
         }
+        _colorTexture.setAutoMipMapGenerationEnabled(false);
+        _colorTexture.setMinificationFilter(QOpenGLTexture::Linear);
+        _colorTexture.setWrapMode(QOpenGLTexture::ClampToEdge);
         _colorTexture.setFormat(QOpenGLTexture::RGBFormat);
         _colorTexture.allocateStorage();
         if (!_color.isEmpty()) {
-            _colorTexture.setData(QOpenGLTexture::BGR, QOpenGLTexture::UInt8, _color.data());
+            _colorTexture.setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt8, _color.data());
             _color.clear();
             
         } else {
             const quint8 WHITE_COLOR[] = { 255, 255, 255 };
-            _colorTexture.setData(QOpenGLTexture::BGR, QOpenGLTexture::UInt8, const_cast<quint8*>(WHITE_COLOR));
+            _colorTexture.setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt8, const_cast<quint8*>(WHITE_COLOR));
         }
     }
     // create the buffer objects lazily
@@ -310,7 +316,7 @@ void HeightfieldBuffer::render() {
         float z = -step;
         for (int i = 0; i < sizeWithSkirt; i++, z += step) {
             float x = -step;
-            const float SKIRT_LENGTH = 1.0f;
+            const float SKIRT_LENGTH = 0.25f;
             float baseY = (i == 0 || i == sizeWithSkirt - 1) ? -SKIRT_LENGTH : 0.0f;
             for (int j = 0; j < sizeWithSkirt; j++, point++, x += step) {
                 point->vertex = glm::vec3(x, (j == 0 || j == sizeWithSkirt - 1) ? -SKIRT_LENGTH : baseY, z);
@@ -331,8 +337,8 @@ void HeightfieldBuffer::render() {
             for (int j = 0; j < rows; j++) {
                 *index++ = lineIndex + j;
                 *index++ = lineIndex + j + 1;
-                *index++ = nextLineIndex + j;
                 *index++ = nextLineIndex + j + 1;
+                *index++ = nextLineIndex + j;
             }
         }
         
@@ -371,6 +377,8 @@ void HeightfieldBuffer::render() {
 QHash<int, HeightfieldBuffer::BufferPair> HeightfieldBuffer::_bufferPairs;
 
 void HeightfieldPreview::render(const glm::vec3& translation, float scale) const {
+    glColor4f(1.0f, 1.0f, 1.0f, 0.75f);
+    
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
@@ -422,6 +430,11 @@ void DefaultMetavoxelRendererImplementation::init() {
         _heightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
             "shaders/metavoxel_heightfield.frag");
         _heightfieldProgram.link();
+        
+        _heightfieldProgram.bind();
+        _heightfieldProgram.setUniformValue("heightMap", 0);
+        _heightfieldProgram.setUniformValue("diffuseMap", 1);
+        _heightfieldProgram.release();
     }
 }
 
@@ -661,6 +674,8 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     glDisableClientState(GL_NORMAL_ARRAY);
     
     _pointProgram.release();
+    
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     
     _heightfieldProgram.bind();
     

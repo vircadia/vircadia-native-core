@@ -945,14 +945,15 @@ void ImportHeightfieldTool::selectColorFile() {
 }
 
 const int BLOCK_SIZE = 64;
+const int BLOCK_ADVANCEMENT = BLOCK_SIZE - 1;
 
 void ImportHeightfieldTool::updatePreview() {
     QVector<BufferDataPointer> buffers;
     if (_heightImage.width() > 0 && _heightImage.height() > 0) {
         float z = 0.0f;
-        for (int i = 0; i < _heightImage.height(); i += BLOCK_SIZE, z++) {
+        for (int i = 0; i < _heightImage.height(); i += BLOCK_ADVANCEMENT, z++) {
             float x = 0.0f;
-            for (int j = 0; j < _heightImage.width(); j += BLOCK_SIZE, x++) {
+            for (int j = 0; j < _heightImage.width(); j += BLOCK_ADVANCEMENT, x++) {
                 QByteArray height(BLOCK_SIZE * BLOCK_SIZE, 0);
                 int rows = qMin(BLOCK_SIZE, _heightImage.height() - i);
                 int columns = qMin(BLOCK_SIZE, _heightImage.width() - j);
