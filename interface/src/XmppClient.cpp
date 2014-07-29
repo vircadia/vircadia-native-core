@@ -46,12 +46,12 @@ void XmppClient::xmppConnected() {
 #endif
 }
 
-void XmppClient::xmppError(QXmppClient::Error error) {
 #ifdef HAVE_QXMPP
+void XmppClient::xmppError(QXmppClient::Error error) {
     qDebug() << "Error connnecting to XMPP for user "
         << AccountManager::getInstance().getAccountInfo().getUsername() << ": " << error;
-#endif
 }
+#endif
 
 void XmppClient::connectToServer() {
 #ifdef HAVE_QXMPP

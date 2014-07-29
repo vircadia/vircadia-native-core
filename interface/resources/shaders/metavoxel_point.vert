@@ -18,7 +18,7 @@ void main(void) {
     // standard diffuse lighting
     gl_FrontColor = vec4(gl_Color.rgb * (gl_LightModel.ambient.rgb + gl_LightSource[0].ambient.rgb +
         gl_LightSource[0].diffuse.rgb * max(0.0, dot(gl_NormalMatrix * gl_Normal, gl_LightSource[0].position.xyz))),
-            gl_Color.a);
+            0.0);
     
     // extract the first three components of the vertex for position
     gl_Position = gl_ModelViewProjectionMatrix * vec4(gl_Vertex.xyz, 1.0);
