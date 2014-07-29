@@ -87,7 +87,7 @@ private:
     int _remoteOriginID;
     QAtomicInt _referenceCount;
     
-    static int _lastID;
+    static QAtomicInt _nextID;
     static WeakSharedObjectHash _weakHash;
     static QReadWriteLock _weakHashLock;
 };
