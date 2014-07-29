@@ -27,15 +27,15 @@
         "placeholder": "00000000-0000-0000-0000-000000000000",
         "default": ""
       },
-      "per-voxel-cost": {
+      "per-voxel-credits": {
         "label": "Per Voxel Cost",
         "help": "Credit cost to change each voxel",
         "placeholder": "0.0",
         "default": "0.0",
         "input_addon": "₵"
       },
-      "volume-cost": {
-        "label": "Volume Cost",
+      "per-meter-cubed-credits": {
+        "label": "Per Meter Cubed Cost",
         "help": "Credit cost to change each cubed meter of voxel space",
         "placeholder": "0.0",
         "default": "0.0",
