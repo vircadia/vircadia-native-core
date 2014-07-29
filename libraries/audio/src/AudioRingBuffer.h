@@ -71,6 +71,10 @@ public:
     int getOverflowCount() const { return _overflowCount; } /// how many times has the ring buffer has overwritten old data
     
     int addSilentFrame(int numSilentSamples);
+
+private:
+    float getFrameLoudness(const int16_t* frameStart) const;
+
 protected:
     // disallow copying of AudioRingBuffer objects
     AudioRingBuffer(const AudioRingBuffer&);
@@ -106,7 +110,7 @@ public:
 
         bool operator==(const ConstIterator& rhs) { return _at == rhs._at; }
         bool operator!=(const ConstIterator& rhs) { return _at != rhs._at; }
-        int16_t operator*() { return *_at; }
+        const int16_t& operator*() { return *_at; }
 
         ConstIterator& operator=(const ConstIterator& rhs) {
             _capacity = rhs._capacity;
@@ -138,7 +142,7 @@ public:
             return tmp;
         }
 
-        int16_t operator[] (int i) {
+        const int16_t& operator[] (int i) {
             return *atShiftedBy(i);
         }
 
@@ -175,6 +179,8 @@ public:
     };
 
     ConstIterator nextOutput() const { return ConstIterator(_buffer, _sampleCapacity, _nextOutput); }
+
+    float getFrameLoudness(ConstIterator frameStart) const;
 };
 
 #endif // hifi_AudioRingBuffer_h

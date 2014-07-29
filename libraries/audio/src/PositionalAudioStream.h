@@ -29,12 +29,10 @@ public:
 
     PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo = false, bool dynamicJitterBuffers = false);
     
-    int parseData(const QByteArray& packet);
-    
     virtual AudioStreamStats getAudioStreamStats() const;
 
-    void updateNextOutputTrailingLoudness();
-    float getNextOutputTrailingLoudness() const { return _nextOutputTrailingLoudness; }
+    void updateLastPopOutputTrailingLoudness();
+    float getLastPopOutputTrailingLoudness() const { return _lastPopOutputTrailingLoudness; }
 
     bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
     bool isStereo() const { return _isStereo; }
@@ -50,13 +48,6 @@ protected:
     PositionalAudioStream(const PositionalAudioStream&);
     PositionalAudioStream& operator= (const PositionalAudioStream&);
 
-    /// parses the info between the seq num and the audio data in the network packet and calculates
-    /// how many audio samples this packet contains
-    virtual int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) = 0;
-
-    /// parses the audio data in the network packet
-    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) = 0;
-
     int parsePositionalData(const QByteArray& positionalByteArray);
 
 protected:
@@ -67,7 +58,7 @@ protected:
     bool _shouldLoopbackForNode;
     bool _isStereo;
 
-    float _nextOutputTrailingLoudness;
+    float _lastPopOutputTrailingLoudness;
     AABox* _listenerUnattenuatedZone;
 };
 

@@ -98,10 +98,23 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     return 0;
 }
 
-void AudioMixerClientData::audioStreamsPopFrameForMixing() {
+void AudioMixerClientData::checkBuffersBeforeFrameSend(AABox* checkSourceZone, AABox* listenerZone) {
     QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
-        i.value()->popFrames(1);
+        PositionalAudioStream* stream = i.value();
+        if (stream->popFrames(1)) {
+            // this is a ring buffer that is ready to go
+
+            // calculate the trailing avg loudness for the next frame
+            // that would be mixed in
+            stream->updateLastPopOutputTrailingLoudness();
+
+            if (checkSourceZone && checkSourceZone->contains(stream->getPosition())) {
+                stream->setListenerUnattenuatedZone(listenerZone);
+            } else {
+                stream->setListenerUnattenuatedZone(NULL);
+            }
+        }
     }
 }
 

@@ -113,7 +113,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
             distanceBetween = EPSILON;
         }
         
-        if (streamToAdd->getNextOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
+        if (streamToAdd->getLastPopOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
             // according to mixer performance we have decided this does not get to be mixed in
             // bail out
             return;
@@ -284,7 +284,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
 
                 if ((*otherNode != *node || otherNodeStream->shouldLoopbackForNode())
                     && otherNodeStream->lastPopSucceeded()
-                    && otherNodeStream->getNextOutputTrailingLoudness() > 0.0f) {
+                    && otherNodeStream->getLastPopOutputTrailingLoudness() > 0.0f) {
 
                     addStreamToMixForListeningNodeWithStream(otherNodeStream, nodeAudioStream);
                 }
@@ -544,16 +544,16 @@ void AudioMixer::run() {
         }
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getActiveSocket() && node->getLinkedData()) {
-                
+            if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 
-                // request a frame from each audio stream. a pointer to the popped data is stored as a member
-                // in InboundAudioStream.  That's how the popped audio data will be read for mixing
-                nodeData->audioStreamsPopFrameForMixing();
-
-                if (node->getType() == NodeType::Agent
-                    && ((AudioMixerClientData*)node->getLinkedData())->getAvatarAudioStream()) {
+                // this function will request a frame from each audio stream.
+                // a pointer to the popped data is stored as a member in InboundAudioStream.
+                // That's how the popped audio data will be read for mixing (but only if the pop was successful)
+                nodeData->checkBuffersBeforeFrameSend(_sourceUnattenuatedZone, _listenerUnattenuatedZone);
+            
+                if (node->getType() == NodeType::Agent && node->getActiveSocket()
+                    && nodeData->getAvatarAudioStream()) {
 
                     prepareMixForListeningNode(node.data());
 
