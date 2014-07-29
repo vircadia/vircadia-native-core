@@ -261,7 +261,7 @@ function update(deltaTime){
         MyAvatar.position.z != avatarOldPosition.z) {
         avatarOldPosition = MyAvatar.position;
         
-        var SEARCH_RADIUS = 10;
+        var SEARCH_RADIUS = 50;
         var foundModels = Models.findModels(MyAvatar.position, SEARCH_RADIUS);
         // Let's remove indicator that got out of radius
         for (model in models) {
