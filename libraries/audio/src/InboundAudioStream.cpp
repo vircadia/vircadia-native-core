@@ -35,7 +35,7 @@ InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacit
     _interframeTimeGapStatsForJitterCalc(TIME_GAPS_FOR_JITTER_CALC_INTERVAL_SAMPLES, TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS),
     _interframeTimeGapStatsForStatsPacket(TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES, TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS),
     _framesAvailableStat(),
-    _framesAvailableAvg(0)
+    _currentJitterBufferFrames(0)
 {
 }
 
@@ -59,13 +59,13 @@ void InboundAudioStream::resetStats() {
     _interframeTimeGapStatsForJitterCalc.reset();
     _interframeTimeGapStatsForStatsPacket.reset();
     _framesAvailableStat.reset();
-    _framesAvailableAvg = 0;
+    _currentJitterBufferFrames = 0;
 }
 
 void InboundAudioStream::clearBuffer() {
     _ringBuffer.clear();
     _framesAvailableStat.reset();
-    _framesAvailableAvg = 0;
+    _currentJitterBufferFrames = 0;
 }
 
 int InboundAudioStream::parseData(const QByteArray& packet) {
@@ -116,9 +116,9 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     if (framesAvailable > _desiredJitterBufferFrames + _maxFramesOverDesired) {
         int framesToDrop = framesAvailable - (_desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING);
         _ringBuffer.shiftReadPosition(framesToDrop * _ringBuffer.getNumFrameSamples());
-        printf("dropped %d old frames\n", framesToDrop);
+        
         _framesAvailableStat.reset();
-        _framesAvailableAvg = 0;
+        _currentJitterBufferFrames = 0;
 
         _oldFramesDropped += framesToDrop;
     }
@@ -158,10 +158,10 @@ bool InboundAudioStream::popFrames(int numFrames, bool starveOnFail) {
 
 void InboundAudioStream::framesAvailableChanged() {
     _framesAvailableStat.updateWithSample(_ringBuffer.framesAvailable());
-    if (_framesAvailableStat.getElapsedUsecs() >= FRAMES_AVAILABLE_STATS_WINDOW_USECS) {
-        _framesAvailableAvg = (int)ceil(_framesAvailableStat.getAverage());
+
+    if (_framesAvailableStat.getElapsedUsecs() >= FRAMES_AVAILABLE_STAT_WINDOW_USECS) {
+        _currentJitterBufferFrames = (int)ceil(_framesAvailableStat.getAverage());
         _framesAvailableStat.reset();
-        printf("10s samples filled; frames avail avg = %d\n", _framesAvailableAvg);
     }
 }
 
@@ -245,17 +245,17 @@ int InboundAudioStream::writeDroppableSilentSamples(int numSilentSamples) {
     int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
     int numSilentFramesToDrop = 0;
 
-    if (numSilentSamples >= samplesPerFrame && _framesAvailableAvg > desiredJitterBufferFramesPlusPadding) {
+    if (numSilentSamples >= samplesPerFrame && _currentJitterBufferFrames > desiredJitterBufferFramesPlusPadding) {
 
         // our avg jitter buffer size exceeds its desired value, so ignore some silent
         // frames to get that size as close to desired as possible
-        int numSilentFramesToDropDesired = _framesAvailableAvg - desiredJitterBufferFramesPlusPadding;
+        int numSilentFramesToDropDesired = _currentJitterBufferFrames - desiredJitterBufferFramesPlusPadding;
         int numSilentFramesReceived = numSilentSamples / samplesPerFrame;
         numSilentFramesToDrop = std::min(numSilentFramesToDropDesired, numSilentFramesReceived);
 
-        // dont reset _framesAvailableAvg here; we want to be able to drop further silent frames
+        // dont reset _currentJitterBufferFrames here; we want to be able to drop further silent frames
         // without waiting for _framesAvailableStat to fill up to 10s of samples.
-        _framesAvailableAvg -= numSilentFramesToDrop;
+        _currentJitterBufferFrames -= numSilentFramesToDrop;
         _framesAvailableStat.reset();
     }
 
@@ -277,7 +277,7 @@ AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
     streamStats._timeGapWindowAverage = _interframeTimeGapStatsForStatsPacket.getWindowAverage();
 
     streamStats._framesAvailable = _ringBuffer.framesAvailable();
-    streamStats._framesAvailableAverage = _framesAvailableAvg;
+    streamStats._framesAvailableAverage = _currentJitterBufferFrames;
     streamStats._desiredJitterBufferFrames = _desiredJitterBufferFrames;
     streamStats._starveCount = _starveCount;
     streamStats._consecutiveNotMixedCount = _consecutiveNotMixedCount;

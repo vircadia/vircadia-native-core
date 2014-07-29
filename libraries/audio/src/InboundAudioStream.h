@@ -37,7 +37,7 @@ const int TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS = 10;
 const int TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
 const int TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS = 30;
 
-const int FRAMES_AVAILABLE_STATS_WINDOW_USECS = 10 * USECS_PER_SECOND;
+const int FRAMES_AVAILABLE_STAT_WINDOW_USECS = 10 * USECS_PER_SECOND;
 
 // the internal history buffer of the incoming seq stats will cover 30s to calculate
 // packet loss % over last 30s
@@ -91,7 +91,7 @@ public:
     int getNumFrameSamples() const { return _ringBuffer.getNumFrameSamples(); }
     int getFrameCapacity() const { return _ringBuffer.getFrameCapacity(); }
     int getFramesAvailable() const { return _ringBuffer.framesAvailable(); }
-    double getFramesAvailableAverage() const { return _framesAvailableAvg; }
+    double getFramesAvailableAverage() const { return _framesAvailableStat.getAverage(); }
 
     bool isStarved() const { return _isStarved; }
     bool hasStarted() const { return _hasStarted; }
@@ -165,7 +165,10 @@ protected:
     MovingMinMaxAvg<quint64> _interframeTimeGapStatsForStatsPacket;
     
     TimeWeightedAvg<int> _framesAvailableStat;
-    int _framesAvailableAvg;
+
+    // this value is based on the time-weighted avg from _framesAvailableStat. it is only used for
+    // dropping silent frames right now.
+    int _currentJitterBufferFrames;
 };
 
 #endif // hifi_InboundAudioStream_h
