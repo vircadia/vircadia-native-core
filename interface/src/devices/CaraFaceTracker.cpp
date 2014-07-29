@@ -28,6 +28,7 @@ static QString sampleJson = "[{\"id\":1,\"face\":{\"x\":248,\"y\":64,\"width\":2
 
 static const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.0f);
 static const float TRANSLATION_SCALE = 1.0f;
+static const int NUM_BLENDSHAPE_COEFF = 30;
 
 struct CaraPerson
 {
@@ -91,7 +92,7 @@ public:
         if(jsonError->error == QJsonParseError::NoError)
         {
             //read the dom structure and populate the blend shapes and head poses
-            qDebug() << "[Info] Cara Face Tracker Packet Parsing Successful!";
+            //qDebug() << "[Info] Cara Face Tracker Packet Parsing Successful!";
 
             //begin extracting the packet
             if(dom.isArray())
@@ -224,16 +225,16 @@ CaraFaceTracker::CaraFaceTracker() :
     _eyeGazeRightYaw(0),
     _leftBlinkIndex(0),
     _rightBlinkIndex(1),
-    _leftEyeOpenIndex(2),
-    _rightEyeOpenIndex(3),
-    _browDownLeftIndex(4),
-    _browDownRightIndex(5),
-    _browUpCenterIndex(6),
-    _browUpLeftIndex(7),
-    _browUpRightIndex(8),
-    _mouthSmileLeftIndex(9),
-    _mouthSmileRightIndex(10),
-    _jawOpenIndex(11)
+    _leftEyeOpenIndex(8),
+    _rightEyeOpenIndex(9),
+    _browDownLeftIndex(14),
+    _browDownRightIndex(15),
+    _browUpCenterIndex(16),
+    _browUpLeftIndex(17),
+    _browUpRightIndex(18),
+    _mouthSmileLeftIndex(28),
+    _mouthSmileRightIndex(29),
+    _jawOpenIndex(21)
 {
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
@@ -242,10 +243,10 @@ CaraFaceTracker::CaraFaceTracker() :
     bindTo(CARA_FEATURE_POINT_SERVER_PORT);
 
     _headTranslation = DEFAULT_HEAD_ORIGIN;
-    _blendshapeCoefficients.resize(12);
+    _blendshapeCoefficients.resize(NUM_BLENDSHAPE_COEFF);
     _blendshapeCoefficients.fill(0.0f);
 
-    qDebug() << sampleJson;
+    //qDebug() << sampleJson;
 }
 
 CaraFaceTracker::CaraFaceTracker(const QHostAddress& host, quint16 port) :
@@ -259,16 +260,16 @@ CaraFaceTracker::CaraFaceTracker(const QHostAddress& host, quint16 port) :
     _eyeGazeRightYaw(0),
     _leftBlinkIndex(0),
     _rightBlinkIndex(1),
-    _leftEyeOpenIndex(2),
-    _rightEyeOpenIndex(3),
-    _browDownLeftIndex(4),
-    _browDownRightIndex(5),
-    _browUpCenterIndex(6),
-    _browUpLeftIndex(7),
-    _browUpRightIndex(8),
-    _mouthSmileLeftIndex(9),
-    _mouthSmileRightIndex(10),
-    _jawOpenIndex(11)
+    _leftEyeOpenIndex(8),
+    _rightEyeOpenIndex(9),
+    _browDownLeftIndex(14),
+    _browDownRightIndex(15),
+    _browUpCenterIndex(16),
+    _browUpLeftIndex(17),
+    _browUpRightIndex(18),
+    _mouthSmileLeftIndex(28),
+    _mouthSmileRightIndex(29),
+    _jawOpenIndex(21)
 {
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
@@ -277,7 +278,7 @@ CaraFaceTracker::CaraFaceTracker(const QHostAddress& host, quint16 port) :
     bindTo(host, port);
 
     _headTranslation = DEFAULT_HEAD_ORIGIN * TRANSLATION_SCALE;
-    _blendshapeCoefficients.resize(12); //set the size of the blendshape coefficients
+    _blendshapeCoefficients.resize(NUM_BLENDSHAPE_COEFF); //set the size of the blendshape coefficients
     _blendshapeCoefficients.fill(0.0f);
 }
 
@@ -311,7 +312,7 @@ void CaraFaceTracker::bindTo(const QHostAddress& host, quint16 port)
 
 bool CaraFaceTracker::isActive() const
 {
-    static const int ACTIVE_TIMEOUT_USECS = 10000000; //10 secs
+    static const int ACTIVE_TIMEOUT_USECS = 3000000; //3 secs
     return (usecTimestampNow() - _lastReceiveTimestamp < ACTIVE_TIMEOUT_USECS);
 }
 
@@ -367,37 +368,22 @@ void CaraFaceTracker::readPendingDatagrams()
 }
 
 void CaraFaceTracker::decodePacket(const QByteArray& buffer)
-{
-    /*
-    qDebug() << "---------- Received Message: "; 
-    qDebug() <<buffer.data();
-    qDebug() << "----------";
-    */
-    QElapsedTimer timer;
-    timer.start();
-
+{   
     //decode the incoming udp packet
     QJsonParseError jsonError;
     CaraPerson person = CaraPacketDecoder::extractOne(buffer, &jsonError);
 
     if(jsonError.error == QJsonParseError::NoError)
     {
-        // print out the info about the person
-        //qDebug() << "Parsing took: " << timer.elapsed() << " msecs";
-
         //do some noise filtering to the head poses
-        //person.pose.roll = glm::round(person.pose.roll);
-        //person.pose.pitch = glm::round(person.pose.pitch);
-        //person.pose.yaw = glm::round(person.pose.yaw);
-
         //reduce the noise first by truncating to 1 dp
         person.pose.roll = glm::floor(person.pose.roll * 10) / 10;
         person.pose.pitch = glm::floor(person.pose.pitch * 10) / 10;
         person.pose.yaw = glm::floor(person.pose.yaw * 10) / 10;
 
-        qDebug() << person.toString();
+        //qDebug() << person.toString();
 
-        glm::quat newRotation(glm::vec3(DEGTORAD(person.pose.pitch), DEGTORAD(-person.pose.yaw), DEGTORAD(person.pose.roll)));
+        glm::quat newRotation(glm::vec3(DEGTORAD(person.pose.pitch), DEGTORAD(person.pose.yaw), DEGTORAD(person.pose.roll)));
 
         // Compute angular velocity of the head
         glm::quat r = newRotation * glm::inverse(_headRotation);
@@ -405,28 +391,26 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
         if (theta > EPSILON) 
         {
             float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
-            float AVERAGE_CARA_FRAME_TIME = 0.033f;
+            const float AVERAGE_CARA_FRAME_TIME = 0.033f;
+            const float ANGULAR_VELOCITY_MIN = 1.2f;
+            const float YAW_STANDARD_DEV_DEG = 2.5f;
+
             _headAngularVelocity = theta / AVERAGE_CARA_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
 
             //use the angular velocity for roll and pitch, if it's below the threshold don't move
-            if(glm::abs(_headAngularVelocity.x) < 1.2f) 
-            {
-                person.pose.pitch = _previousPitch;
-                //qDebug() << "NO change in pitch";
-            }
-            if(glm::abs(_headAngularVelocity.z) < 1.2f)
-            {
-                //qDebug() << "NO change in roll";
+            if(glm::abs(_headAngularVelocity.x) < ANGULAR_VELOCITY_MIN)             
+                person.pose.pitch = _previousPitch;                
+
+            if(glm::abs(_headAngularVelocity.z) < ANGULAR_VELOCITY_MIN)                           
                 person.pose.roll = _previousRoll;
-            }
 
             //for yaw, the jitter is great, you can't use angular velocity because it swings too much
             //use the previous and current yaw, calculate the 
-            //abs difference and move it the difference is above a certain angle. (this will introduce some
-            //jerks but will not encounter lag)
-            if(glm::abs(person.pose.yaw - _previousYaw) < 2.5f) // < than 2.5 deg, no move
+            //abs difference and move it the difference is above the standard deviation which is around 2.5
+            // (this will introduce some jerks but will not encounter lag)
+            if(glm::abs(person.pose.yaw - _previousYaw) < YAW_STANDARD_DEV_DEG) // < the standard deviation 2.5 deg, no move
             {
-                qDebug() << "Yaw Diff: " << glm::abs(person.pose.yaw - _previousYaw);
+                //qDebug() << "Yaw Diff: " << glm::abs(person.pose.yaw - _previousYaw);
                 person.pose.yaw = _previousYaw;
             }
 
@@ -441,41 +425,24 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
         else 
         {
             //no change in position
-            newRotation = glm::quat(glm::vec3(DEGTORAD(_previousPitch), DEGTORAD(_previousYaw), DEGTORAD(_previousRoll)));
+            newRotation = glm::quat(glm::vec3(DEGTORAD(_previousPitch), DEGTORAD(_previousYaw), DEGTORAD(-_previousRoll)));
             _headAngularVelocity = glm::vec3(0,0,0);
         }
 
-        _headRotation = newRotation; 
-
-        //angular velocity of the head
-        //qDebug() << "pitch: " << _headAngularVelocity.x <<  " yaw: " << _headAngularVelocity.y << " roll: " <<_headAngularVelocity.z;
+        //update to new rotation angles
+        _headRotation = newRotation;       
 
         //TODO: head translation, right now is 0
 
 
-        //Do Blendshapes, clip between 0.0f to 1.0f, neg should be ignored
-        /*
-        //blend shapes
-        int _leftBlinkIndex;
-        int _rightBlinkIndex;
-        int _leftEyeOpenIndex;
-        int _rightEyeOpenIndex;
-
-        // Brows
-        int _browDownLeftIndex;
-        int _browDownRightIndex;
-        int _browUpCenterIndex;
-        int _browUpLeftIndex;
-        int _browUpRightIndex;
-        int _mouthSmileLeftIndex;
-        int _mouthSmileRightIndex;
-        int _jawOpenIndex;
-        */
-
+        //Do Blendshapes, clip between 0.0f to 1.0f, neg should be ignored       
         _blendshapeCoefficients[_leftBlinkIndex] = person.blink == CaraPerson::BLINK ? 1.0f : 0.0f;
         _blendshapeCoefficients[_rightBlinkIndex] = person.blink == CaraPerson::BLINK ? 1.0f : 0.0f;
-        _blendshapeCoefficients[_browDownLeftIndex] = person.emotion.surprise < 0.0f ? 0.0f : person.emotion.surprise;
-        _blendshapeCoefficients[_browDownRightIndex] = person.emotion.surprise < 0.0f ? 0.0f : person.emotion.surprise;
+
+        //anger and surprised are mutually exclusive so we could try use this fact to determine
+        //whether to down the brows or up the brows                      
+        _blendshapeCoefficients[_browDownLeftIndex] = person.emotion.negative < 0.0f ? 0.0f : person.emotion.negative;
+        _blendshapeCoefficients[_browDownRightIndex] = person.emotion.negative < 0.0f ? 0.0f : person.emotion.negative;
         _blendshapeCoefficients[_browUpCenterIndex] = person.emotion.surprise < 0.0f ? 0.0f : person.emotion.surprise;
         _blendshapeCoefficients[_browUpLeftIndex] = person.emotion.surprise < 0.0f ? 0.0f : person.emotion.surprise;
         _blendshapeCoefficients[_browUpRightIndex] = person.emotion.surprise < 0.0f ? 0.0f : person.emotion.surprise;
