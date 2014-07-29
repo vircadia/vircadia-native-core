@@ -15,6 +15,7 @@
 #include <QList>
 #include <QWidget>
 
+#include "MetavoxelSystem.h"
 #include "renderer/ProgramObject.h"
 
 class QComboBox;
@@ -221,6 +222,36 @@ public:
 protected:
 
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
+};
+
+/// Allows importing a heightfield.
+class ImportHeightfieldTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    ImportHeightfieldTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+    
+    virtual void render();
+
+private slots:
+
+    void selectHeightFile();
+    void selectColorFile();
+
+private:
+
+    void updatePreview();
+    
+    QPushButton* _height;
+    QPushButton* _color;
+    
+    QImage _heightImage;
+    QImage _colorImage;
+    
+    HeightfieldPreview _preview;
 };
 
 #endif // hifi_MetavoxelEditor_h

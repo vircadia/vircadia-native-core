@@ -15,11 +15,12 @@
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLineEdit>
 #include <QListWidget>
-#include <QMetaProperty>
+#include <QMessageBox>
 #include <QMetaProperty>
 #include <QOpenGLFramebufferObject>
 #include <QPushButton>
@@ -113,6 +114,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new RemoveSpannerTool(this));
     addTool(new ClearSpannersTool(this));
     addTool(new SetSpannerTool(this));
+    addTool(new ImportHeightfieldTool(this));
     
     updateAttributes();
     
@@ -890,4 +892,93 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
     // send the images off to the lab for processing
     QThreadPool::globalInstance()->start(new Voxelizer(size, cellBounds,
         spannerData->getVoxelizationGranularity(), directionImages));
+}
+
+ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
+    MetavoxelTool(editor, "Import Heightfield", false) {
+    
+    QWidget* widget = new QWidget();
+    QFormLayout* form = new QFormLayout();
+    widget->setLayout(form);
+    layout()->addWidget(widget);
+    
+    form->addRow("Height:", _height = new QPushButton());
+    connect(_height, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectHeightFile);
+    form->addRow("Color:", _color = new QPushButton());
+    connect(_color, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectColorFile);
+}
+
+bool ImportHeightfieldTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("HeightfieldAttribute");
+}
+
+void ImportHeightfieldTool::render() {
+    _preview.render(glm::vec3(), 1.0f);
+}
+
+void ImportHeightfieldTool::selectHeightFile() {
+    QString filename = QFileDialog::getOpenFileName(this, "Select Height Image", QString(), "Images (*.png *.jpg)");
+    if (filename.isNull()) {
+        return;
+    }
+    if (!_heightImage.load(filename)) {
+        QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
+        return;
+    }
+    _heightImage = _heightImage.convertToFormat(QImage::Format_RGB888);
+    _height->setText(filename);
+    updatePreview();
+}
+
+void ImportHeightfieldTool::selectColorFile() {
+    QString filename = QFileDialog::getOpenFileName(this, "Select Color Image", QString(), "Images (*.png *.jpg)");
+    if (filename.isNull()) {
+        return;
+    }
+    if (!_colorImage.load(filename)) {
+        QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
+        return;
+    }
+    _colorImage = _colorImage.convertToFormat(QImage::Format_RGB888);
+    _color->setText(filename);
+    updatePreview();
+}
+
+const int BLOCK_SIZE = 64;
+
+void ImportHeightfieldTool::updatePreview() {
+    QVector<BufferDataPointer> buffers;
+    if (_heightImage.width() > 0 && _heightImage.height() > 0) {
+        float z = 0.0f;
+        for (int i = 0; i < _heightImage.height(); i += BLOCK_SIZE, z++) {
+            float x = 0.0f;
+            for (int j = 0; j < _heightImage.width(); j += BLOCK_SIZE, x++) {
+                QByteArray height(BLOCK_SIZE * BLOCK_SIZE, 0);
+                int rows = qMin(BLOCK_SIZE, _heightImage.height() - i);
+                int columns = qMin(BLOCK_SIZE, _heightImage.width() - j);
+                const int BYTES_PER_COLOR = 3;
+                for (int y = 0; y < rows; y++) {
+                    uchar* src = _heightImage.scanLine(i + y);
+                    char* dest = height.data() + y * BLOCK_SIZE;
+                    for (int x = 0; x < columns; x++) {
+                        *dest++ = *src;
+                        src += BYTES_PER_COLOR;
+                    }
+                }
+                
+                QByteArray color;
+                if (!_colorImage.isNull()) {
+                    color = QByteArray(BLOCK_SIZE * BLOCK_SIZE * BYTES_PER_COLOR, 0);
+                    rows = qMax(0, qMin(BLOCK_SIZE, _colorImage.height() - i));
+                    columns = qMax(0, qMin(BLOCK_SIZE, _colorImage.width() - j));
+                    for (int y = 0; y < rows; y++) {
+                        memcpy(color.data() + y * BLOCK_SIZE * BYTES_PER_COLOR, _colorImage.scanLine(i + y),
+                            columns * BYTES_PER_COLOR);
+                    }
+                }
+                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color)));
+            }
+        }
+    }
+    _preview.setBuffers(buffers);
 }

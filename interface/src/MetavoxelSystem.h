@@ -125,18 +125,34 @@ private:
 class HeightfieldBuffer : public BufferData {
 public:
     
-    HeightfieldBuffer(const QByteArray& height, const QByteArray& color, const QByteArray& normal);
+    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color);
     
     virtual void render();
 
 private:
     
+    glm::vec3 _translation;
+    float _scale;
     QByteArray _height;
     QByteArray _color;
-    QByteArray _normal;
     QOpenGLTexture _heightTexture;
     QOpenGLTexture _colorTexture;
-    QOpenGLTexture _normalTexture;
+
+    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
+    static QHash<int, BufferPair> _bufferPairs;
+};
+
+/// Convenience class for rendering a preview of a heightfield.
+class HeightfieldPreview {
+public:
+    
+    void setBuffers(const QVector<BufferDataPointer>& buffers) { _buffers = buffers; }
+    
+    void render(const glm::vec3& translation, float scale) const;
+    
+private:
+    
+    QVector<BufferDataPointer> _buffers;
 };
 
 /// A client-side attribute that stores renderable buffers.
@@ -157,7 +173,9 @@ class DefaultMetavoxelRendererImplementation : public MetavoxelRendererImplement
 public:
     
     static void init();
-    
+
+    static ProgramObject& getHeightfieldProgram() { return _heightfieldProgram; }
+
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);

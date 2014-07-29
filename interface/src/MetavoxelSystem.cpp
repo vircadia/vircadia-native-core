@@ -254,14 +254,21 @@ void PointBuffer::render() {
     _buffer.release();
 }
 
-HeightfieldBuffer::HeightfieldBuffer(const QByteArray& height, const QByteArray& color, const QByteArray& normal) :
+HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
+        const QByteArray& height, const QByteArray& color) :
+    _translation(translation),
+    _scale(scale),
     _height(height),
     _color(color),
-    _normal(normal),
     _heightTexture(QOpenGLTexture::Target2D),
-    _colorTexture(QOpenGLTexture::Target2D),
-    _normalTexture(QOpenGLTexture::Target2D) {
+    _colorTexture(QOpenGLTexture::Target2D) {
 }
+
+class HeightfieldPoint {
+public:
+    glm::vec2 textureCoord;
+    glm::vec3 vertex;
+};
 
 void HeightfieldBuffer::render() {
     // initialize textures, etc. on first render
@@ -273,21 +280,116 @@ void HeightfieldBuffer::render() {
         _heightTexture.setData(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8, _height.data());
         _height.clear();
         
-        int colorSize = glm::sqrt(_color.size() / 3);
-        _colorTexture.setSize(colorSize, colorSize);
+        if (!_color.isEmpty()) {
+            int colorSize = glm::sqrt(_color.size() / 3);
+            _colorTexture.setSize(colorSize, colorSize);
+        }
         _colorTexture.setFormat(QOpenGLTexture::RGBFormat);
         _colorTexture.allocateStorage();
-        _colorTexture.setData(QOpenGLTexture::BGR, QOpenGLTexture::UInt8, _color.data());
-        _color.clear();
+        if (!_color.isEmpty()) {
+            _colorTexture.setData(QOpenGLTexture::BGR, QOpenGLTexture::UInt8, _color.data());
+            _color.clear();
+            
+        } else {
+            const quint8 WHITE_COLOR[] = { 255, 255, 255 };
+            _colorTexture.setData(QOpenGLTexture::BGR, QOpenGLTexture::UInt8, const_cast<quint8*>(WHITE_COLOR));
+        }
+    }
+    // create the buffer objects lazily
+    int size = _heightTexture.width();
+    int sizeWithSkirt = size + 2;
+    int vertexCount = sizeWithSkirt * sizeWithSkirt;
+    int rows = sizeWithSkirt - 1;
+    int indexCount = rows * rows * 4;
+    BufferPair& bufferPair = _bufferPairs[size];
+    if (!bufferPair.first.isCreated()) {
+        QVector<HeightfieldPoint> vertices(vertexCount);
+        HeightfieldPoint* point = vertices.data();
         
-        int normalSize = glm::sqrt(_normal.size() / 3);
-        _normalTexture.setSize(normalSize, normalSize);
-        _normalTexture.setFormat(QOpenGLTexture::RGBFormat);
-        _normalTexture.allocateStorage();
-        _normalTexture.setData(QOpenGLTexture::BGR, QOpenGLTexture::UInt8, _normal.data());
-        _normal.clear();
+        float step = 1.0f / (size - 1);
+        float z = -step;
+        for (int i = 0; i < sizeWithSkirt; i++, z += step) {
+            float x = -step;
+            const float SKIRT_LENGTH = 1.0f;
+            float baseY = (i == 0 || i == sizeWithSkirt - 1) ? -SKIRT_LENGTH : 0.0f;
+            for (int j = 0; j < sizeWithSkirt; j++, point++, x += step) {
+                point->vertex = glm::vec3(x, (j == 0 || j == sizeWithSkirt - 1) ? -SKIRT_LENGTH : baseY, z);
+                point->textureCoord = glm::vec2(x, z);
+            }
+        }
+        
+        bufferPair.first.setUsagePattern(QOpenGLBuffer::StaticDraw);
+        bufferPair.first.create();
+        bufferPair.first.bind();
+        bufferPair.first.allocate(vertices.constData(), vertexCount * sizeof(HeightfieldPoint));
+        
+        QVector<int> indices(indexCount);
+        int* index = indices.data();
+        for (int i = 0; i < rows; i++) {
+            int lineIndex = i * sizeWithSkirt;
+            int nextLineIndex = (i + 1) * sizeWithSkirt;
+            for (int j = 0; j < rows; j++) {
+                *index++ = lineIndex + j;
+                *index++ = lineIndex + j + 1;
+                *index++ = nextLineIndex + j;
+                *index++ = nextLineIndex + j + 1;
+            }
+        }
+        
+        bufferPair.second = QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+        bufferPair.second.create();
+        bufferPair.second.bind();
+        bufferPair.second.allocate(indices.constData(), indexCount * sizeof(int));
+        
+    } else {
+        bufferPair.first.bind();
+        bufferPair.second.bind();
     }
     
+    HeightfieldPoint* point = 0;
+    glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
+    glTexCoordPointer(2, GL_FLOAT, sizeof(HeightfieldPoint), &point->textureCoord);
+    
+    glPushMatrix();
+    glTranslatef(_translation.x, _translation.y, _translation.z);
+    glScalef(_scale, _scale, _scale);
+    
+    _heightTexture.bind(0);
+    _colorTexture.bind(1);
+    
+    glDrawRangeElements(GL_QUADS, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+    
+    _colorTexture.release(1);
+    _heightTexture.release(0);
+    
+    glPopMatrix();
+    
+    bufferPair.first.release();
+    bufferPair.second.release();
+}
+
+QHash<int, HeightfieldBuffer::BufferPair> HeightfieldBuffer::_bufferPairs;
+
+void HeightfieldPreview::render(const glm::vec3& translation, float scale) const {
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    DefaultMetavoxelRendererImplementation::getHeightfieldProgram().bind();
+    
+    glPushMatrix();
+    glTranslatef(translation.x, translation.y, translation.z);
+    glScalef(scale, scale, scale);
+    
+    foreach (const BufferDataPointer& buffer, _buffers) {
+        buffer->render();
+    }
+    
+    glPopMatrix();
+    
+    DefaultMetavoxelRendererImplementation::getHeightfieldProgram().release();
+    
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 BufferDataAttribute::BufferDataAttribute(const QString& name) :
@@ -368,11 +470,14 @@ int PointAugmentVisitor::visit(MetavoxelInfo& info) {
             { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
         _points.append(point);
     }
-    if (info.size >= _pointLeafSize) {   
-        BufferPointVector swapPoints;
-        _points.swap(swapPoints);
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(
-            new PointBuffer(swapPoints))));
+    if (info.size >= _pointLeafSize) {
+        PointBuffer* buffer = NULL;
+        if (!_points.isEmpty()) { 
+            BufferPointVector swapPoints;
+            _points.swap(swapPoints);
+            buffer = new PointBuffer(swapPoints);
+        }
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
     }
     return STOP_RECURSION;
 }
@@ -381,10 +486,13 @@ bool PointAugmentVisitor::postVisit(MetavoxelInfo& info) {
     if (info.size != _pointLeafSize) {
         return false;
     }
-    BufferPointVector swapPoints;
-    _points.swap(swapPoints);
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(
-        new PointBuffer(swapPoints))));
+    PointBuffer* buffer = NULL;
+    if (!_points.isEmpty()) {
+        BufferPointVector swapPoints;
+        _points.swap(swapPoints);
+        buffer = new PointBuffer(swapPoints);
+    }
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
     return true;
 }
 
@@ -403,7 +511,18 @@ HeightfieldAugmentVisitor::HeightfieldAugmentVisitor(const MetavoxelLOD& lod) :
 }
 
 int HeightfieldAugmentVisitor::visit(MetavoxelInfo& info) {
-    return STOP_RECURSION;
+    if (info.isLeaf) {
+        HeightfieldBuffer* buffer = NULL;
+        HeightfieldDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
+        if (height) {
+            HeightfieldDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldDataPointer>();
+            buffer = new HeightfieldBuffer(info.minimum, info.size, height->getContents(),
+                color ? color->getContents() : QByteArray());
+        }
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
+        return STOP_RECURSION;
+    }
+    return DEFAULT_ORDER;
 }
 
 void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
@@ -419,11 +538,19 @@ void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const 
         data.setRoot(pointBufferAttribute, root);
         root->incrementReferenceCount();
     }
+    const AttributePointer& heightfieldBufferAttribute =
+        Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute();
+    root = expandedPrevious.getRoot(heightfieldBufferAttribute);
+    if (root) {
+        data.setRoot(heightfieldBufferAttribute, root);
+        root->incrementReferenceCount();
+    }
     
-    PointAugmentVisitor visitor(lod);
-    data.guideToDifferent(expandedPrevious, visitor);
+    PointAugmentVisitor pointAugmentVisitor(lod);
+    data.guideToDifferent(expandedPrevious, pointAugmentVisitor);
     
-    
+    HeightfieldAugmentVisitor heightfieldAugmentVisitor(lod);
+    data.guideToDifferent(expandedPrevious, heightfieldAugmentVisitor);
 }
 
 class SpannerSimulateVisitor : public SpannerVisitor {
@@ -530,15 +657,23 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
     
-    glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     
     _pointProgram.release();
     
+    _heightfieldProgram.bind();
+    
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
     BufferRenderVisitor heightfieldRenderVisitor(Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(),
         lod);
     data.guide(heightfieldRenderVisitor);
+    
+    _heightfieldProgram.release();
+    
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
     
     glEnable(GL_BLEND);
 }
