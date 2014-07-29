@@ -274,7 +274,10 @@ function update(deltaTime){
         for (var i = 0; i < foundModels.length; ++i) {
             var model = foundModels[i];
             if (typeof(models[model.id]) == "undefined") {
-                addIndicators(model);
+                model.properties = Models.getModelProperties(model);
+                if (Vec3.distance(model.properties.position, MyAvatar.position) < SEARCH_RADIUS) {
+                    addIndicators(model);
+                }
             }
         }
         
@@ -285,7 +288,6 @@ function update(deltaTime){
 }
 
 function addIndicators(modelID) {
-    modelID.properties = Models.getModelProperties(modelID);
     if (modelID.properties.sittingPoints.length > 0) {
         for (var i = 0; i < modelID.properties.sittingPoints.length; ++i) {
             modelID.properties.sittingPoints[i].indicator = new SeatIndicator(modelID.properties, i);
