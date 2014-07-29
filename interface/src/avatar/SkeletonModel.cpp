@@ -567,8 +567,8 @@ void SkeletonModel::buildRagdollConstraints() {
         ++itr;
     }
 
-    float MAX_STRENGTH = 0.3f;
-    float MIN_STRENGTH = 0.005f;
+    float MAX_STRENGTH = 0.6f;
+    float MIN_STRENGTH = 0.05f;
     // each joint gets a MuscleConstraint to its parent
     for (int i = 1; i < numPoints; ++i) {
         const JointState& state = _jointStates.at(i);
@@ -577,7 +577,6 @@ void SkeletonModel::buildRagdollConstraints() {
             continue;
         }
         MuscleConstraint* constraint = new MuscleConstraint(&(_ragdollPoints[p]), &(_ragdollPoints[i]));
-        _ragdollConstraints.push_back(constraint);
         _muscleConstraints.push_back(constraint);
 
         // Short joints are more susceptible to wiggle so we modulate the strength based on the joint's length: 
@@ -643,6 +642,10 @@ void SkeletonModel::updateVisibleJointStates() {
 void SkeletonModel::stepRagdollForward(float deltaTime) {
     Ragdoll::stepRagdollForward(deltaTime);
     updateMuscles();
+    int numConstraints = _muscleConstraints.size();
+    for (int i = 0; i < numConstraints; ++i) {
+        _muscleConstraints[i]->enforce();
+    }
 }
 
 float DENSITY_OF_WATER = 1000.0f; // kg/m^3
@@ -742,13 +745,8 @@ void SkeletonModel::updateMuscles() {
     for (int i = 0; i < numConstraints; ++i) {
         MuscleConstraint* constraint = _muscleConstraints[i];
         int j = constraint->getParentIndex();
-        if (j == -1) {
-            continue;
-        }
         int k = constraint->getChildIndex();
-        if (k == -1) {
-            continue;
-        }
+        assert(j != -1 && k != -1);
         constraint->setChildOffset(_jointStates.at(k).getPosition() - _jointStates.at(j).getPosition());
     }
 }
