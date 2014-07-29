@@ -23,7 +23,7 @@
 REGISTER_META_OBJECT(SharedObject)
 
 SharedObject::SharedObject() :
-    _id(++_lastID),
+    _id(_nextID.fetchAndAddOrdered(1)),
     _originID(_id),
     _remoteID(0),
     _remoteOriginID(0) {
@@ -131,7 +131,7 @@ void SharedObject::dump(QDebug debug) const {
     }
 }
 
-int SharedObject::_lastID = 0;
+QAtomicInt SharedObject::_nextID(1);
 WeakSharedObjectHash SharedObject::_weakHash;
 QReadWriteLock SharedObject::_weakHashLock;
 
