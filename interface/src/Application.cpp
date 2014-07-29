@@ -2141,9 +2141,16 @@ void Application::updateMyAvatar(float deltaTime) {
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
-            queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
-            queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
-            queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+                queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
+            }
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
+                queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
+            }
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+                queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
+            }
             _lastQueriedViewFrustum = _viewFrustum;
         }
     }
@@ -2250,13 +2257,7 @@ int Application::sendNackPackets() {
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
-    // if voxels are disabled, then don't send this at all...
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-        return;
-    }
-
     //qDebug() << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
-
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
