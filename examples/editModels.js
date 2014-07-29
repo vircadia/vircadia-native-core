@@ -561,6 +561,8 @@ var modelUploader = (function () {
     }
 
     function createHttpMessage() {
+        var lodCount,
+            lodBuffer;
 
         print("Preparing to send model");
 
@@ -603,7 +605,15 @@ var modelUploader = (function () {
         }
 
         // LOD files
-        // DJRTODO
+        lodCount = 0;
+        for (var n in mapping["lod"]) {
+            lodBuffer = readFile(modelFile.path() + "\\" + n);
+            httpMultiPart.add({
+                name: "lod" + lodCount,
+                buffer: lodBuffer
+            })
+            lodCount += 1;
+        }
 
         // Textures
         // DJRTODO
