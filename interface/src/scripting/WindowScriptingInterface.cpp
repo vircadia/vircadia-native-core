@@ -184,6 +184,7 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
                 directory->setProperty("displayAs", displayAs);
                 directory->setProperty("validateAs", validateAs);
                 directory->setProperty("errorMessage", errorMessage);
+                displayAs.indexIn(path);
                 directory->setText(displayAs.cap(1) != "" ? displayAs.cap(1) : ".");
 
                 directory->setMinimumWidth(200);
