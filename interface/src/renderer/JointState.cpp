@@ -179,6 +179,7 @@ void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, floa
     if (!constrain || _constraint == NULL) {
         // no constraints
         _rotationInConstrainedFrame = targetRotation;
+        _transformChanged = true;
         
         _rotation = delta * _rotation;
         return;
