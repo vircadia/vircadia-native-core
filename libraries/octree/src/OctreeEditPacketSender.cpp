@@ -87,7 +87,8 @@ bool OctreeEditPacketSender::serversExist() const {
 
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
 // a known nodeID.
-void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer, ssize_t length) {
+void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer,
+                                               ssize_t length, qint64 satoshiCost) {
     NodeList* nodeList = NodeList::getInstance();
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
@@ -157,7 +158,8 @@ void OctreeEditPacketSender::processPreServerExistsPackets() {
     }
 }
 
-void OctreeEditPacketSender::queuePendingPacketToNodes(PacketType type, unsigned char* buffer, ssize_t length) {
+void OctreeEditPacketSender::queuePendingPacketToNodes(PacketType type, unsigned char* buffer,
+                                                       ssize_t length, qint64 satoshiCost) {
     // If we're asked to save messages while waiting for voxel servers to arrive, then do so...
 
     if (_maxPendingMessages > 0) {
@@ -210,7 +212,8 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
 
 
 // NOTE: codeColorBuffer - is JUST the octcode/color and does not contain the packet header!
-void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned char* codeColorBuffer, ssize_t length) {
+void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned char* codeColorBuffer,
+                                                    ssize_t length, qint64 satoshiCost) {
 
     if (!_shouldSend) {
         return; // bail early
