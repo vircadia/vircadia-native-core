@@ -174,6 +174,10 @@ void InboundAudioStream::starved() {
     _framesAvailableStats.reset();
 }
 
+float InboundAudioStream::getLastPopOutputFrameLoudness() const {
+    return _ringBuffer.getFrameLoudness(_lastPopOutput);
+}
+
 void InboundAudioStream::overrideDesiredJitterBufferFramesTo(int desired) {
     _dynamicJitterBuffersOverride = true;
     _desiredJitterBufferFrames = clampDesiredJitterBufferFramesValue(desired);

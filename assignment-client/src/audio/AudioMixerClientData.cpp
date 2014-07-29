@@ -101,6 +101,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
 void AudioMixerClientData::audioStreamsPopFrameForMixing() {
     QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
+        i.value()->updateNextOutputTrailingLoudness();
         i.value()->popFrames(1);
     }
 }

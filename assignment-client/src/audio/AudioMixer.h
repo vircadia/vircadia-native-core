@@ -41,11 +41,11 @@ public slots:
 
 private:
     /// adds one stream to the mix for a listening node
-    void addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
+    int addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
                                                   AvatarAudioStream* listeningNodeStream);
     
     /// prepares and sends a mix to one Node
-    void prepareMixForListeningNode(Node* node);
+    int prepareMixForListeningNode(Node* node);
     
     // client samples capacity is larger than what will be sent to optimize mixing
     // we are MMX adding 4 samples at a time so we need client samples to have an extra 4

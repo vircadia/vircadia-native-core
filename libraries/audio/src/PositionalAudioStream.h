@@ -29,8 +29,6 @@ public:
 
     PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo = false, bool dynamicJitterBuffers = false);
     
-    int parseData(const QByteArray& packet);
-    
     virtual AudioStreamStats getAudioStreamStats() const;
 
     void updateNextOutputTrailingLoudness();

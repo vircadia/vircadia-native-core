@@ -80,6 +80,8 @@ public:
 
     /// returns the desired number of jitter buffer frames using Freddy's method
     int getCalculatedJitterBufferFramesUsingMaxGap() const { return _calculatedJitterBufferFramesUsingMaxGap; }
+    
+    float getLastPopOutputFrameLoudness() const;
 
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
     int getNumFrameSamples() const { return _ringBuffer.getNumFrameSamples(); }

@@ -93,7 +93,7 @@ const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
 const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
 
-void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
+int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
                                                           AvatarAudioStream* listeningNodeStream) {
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
@@ -116,7 +116,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
         if (streamToAdd->getNextOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
             // according to mixer performance we have decided this does not get to be mixed in
             // bail out
-            return;
+            return 0;
         }
         
         ++_sumMixes;
@@ -261,36 +261,39 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
                                             MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
     }
+
+    return 1;
 }
 
-void AudioMixer::prepareMixForListeningNode(Node* node) {
+int AudioMixer::prepareMixForListeningNode(Node* node) {
     AvatarAudioStream* nodeAudioStream = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioStream();
-
+    
     // zero out the client mix for this node
     memset(_clientSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
 
     // loop through all other nodes that have sufficient audio to mix
+    int streamsMixed = 0;
     foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
         if (otherNode->getLinkedData()) {
-
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
 
             const QHash<QUuid, PositionalAudioStream*>& otherNodeAudioStreams = otherNodeClientData->getAudioStreams();
             QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
-            for (i = otherNodeAudioStreams.begin(); i != otherNodeAudioStreams.constEnd(); i++) {
+            for (i = otherNodeAudioStreams.constBegin(); i != otherNodeAudioStreams.constEnd(); i++) {
                 PositionalAudioStream* otherNodeStream = i.value();
-
+                
                 if ((*otherNode != *node || otherNodeStream->shouldLoopbackForNode())
                     && otherNodeStream->lastPopSucceeded()
-                    && otherNodeStream->getNextOutputTrailingLoudness() > 0.0f) {
+                    && otherNodeStream->getLastPopOutputFrameLoudness() > 0.0f) {
 
-                    addStreamToMixForListeningNodeWithStream(otherNodeStream, nodeAudioStream);
+                    streamsMixed += addStreamToMixForListeningNodeWithStream(otherNodeStream, nodeAudioStream);
                 }
             }
         }
     }
+    return streamsMixed;
 }
 
 void AudioMixer::readPendingDatagrams() {
@@ -474,9 +477,8 @@ void AudioMixer::run() {
     int nextFrame = 0;
     QElapsedTimer timer;
     timer.start();
-    
-    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO + sizeof(quint16)
-                                     + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
+
+    char clientMixBuffer[MAX_PACKET_SIZE];
     
     int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
     
@@ -555,20 +557,37 @@ void AudioMixer::run() {
                 if (node->getType() == NodeType::Agent
                     && ((AudioMixerClientData*)node->getLinkedData())->getAvatarAudioStream()) {
 
-                    prepareMixForListeningNode(node.data());
+                    int streamsMixed = prepareMixForListeningNode(node.data());
 
-                    // pack header
-                    int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
-                    char* dataAt = clientMixBuffer + numBytesPacketHeader;
+                    char* dataAt;
+                    if (streamsMixed > 0) {
+                        // pack header
+                        int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
+                        dataAt = clientMixBuffer + numBytesPacketHeader;
 
-                    // pack sequence number
-                    quint16 sequence = nodeData->getOutgoingSequenceNumber();
-                    memcpy(dataAt, &sequence, sizeof(quint16));
-                    dataAt += sizeof(quint16);
+                        // pack sequence number
+                        quint16 sequence = nodeData->getOutgoingSequenceNumber();
+                        memcpy(dataAt, &sequence, sizeof(quint16));
+                        dataAt += sizeof(quint16);
 
-                    // pack mixed audio samples
-                    memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                    dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+                        // pack mixed audio samples
+                        memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                        dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+                    } else {
+                        // pack header
+                        int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
+                        dataAt = clientMixBuffer + numBytesPacketHeader;
+
+                        // pack sequence number
+                        quint16 sequence = nodeData->getOutgoingSequenceNumber();
+                        memcpy(dataAt, &sequence, sizeof(quint16));
+                        dataAt += sizeof(quint16);
+
+                        // pack number of silent audio samples
+                        quint16 numSilentSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+                        memcpy(dataAt, &numSilentSamples, sizeof(quint16));
+                        dataAt += sizeof(quint16);
+                    }
 
                     // send mixed audio packet
                     nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);

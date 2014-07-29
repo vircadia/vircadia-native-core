@@ -146,7 +146,7 @@ void Agent::readPendingDatagrams() {
                     _voxelViewer.processDatagram(mutablePacket, sourceNode);
                 }
 
-            } else if (datagramPacketType == PacketTypeMixedAudio) {
+            } else if (datagramPacketType == PacketTypeMixedAudio || datagramPacketType == PacketTypeSilentAudioFrame) {
 
                 _receivedAudioStream.parseData(receivedPacket);
 
