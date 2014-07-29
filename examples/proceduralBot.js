@@ -1,14 +1,17 @@
 //
-// dancer.js
+// proceduralBot.js
 // hifi
 //
-// Created by Stephen Birarda on 2/20/14.
-// Modified by Philip on 3/3/14
+// Created by Ben Arnold on 7/29/2013
+//
 // Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 // This is an example script that demonstrates an NPC avatar.
 //
 //
+
+//For procedural walk animation
+Script.include("proceduralAnimation.js");
 
 function getRandomFloat(min, max) {
 return Math.random() * (max - min) + min;
@@ -22,41 +25,41 @@ function printVector(string, vector) {
 print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
 }
 
-var CHANCE_OF_MOVING = 0.01;
+var CHANCE_OF_MOVING = 0.1;
 var CHANCE_OF_SOUND = 0;
 var CHANCE_OF_HEAD_TURNING = 0.05;
 var CHANCE_OF_BIG_MOVE = 0.1;
 var CHANCE_OF_WAVING = 0.009; 
 
-var isMoving = true;
+var isMoving = false;
 var isTurningHead = false;
-var isPlay
-ingAudio = false; 
+var isPlayingAudio = false; 
 var isWaving = false;
 var waveFrequency = 0.0;
 var waveAmplitude = 0.0; 
 
-var X_MIN = 5.50;
-var X_MAX = 5.60;
-var Z_MIN = 5.00;
-var Z_MAX = 5.10;
+var X_MIN = 0.50;
+var X_MAX = 15.60;
+var Z_MIN = 0.50;
+var Z_MAX = 15.10;
 var Y_PELVIS = 1.0;
 var MAX_PELVIS_DELTA = 2.5;
 
 var AVATAR_PELVIS_HEIGHT = 0.75;
 
-var MOVE_RANGE_SMALL = 1.0;
+var MOVE_RANGE_SMALL = 10.0;
 var TURN_RANGE = 70.0;
 var STOP_TOLERANCE = 0.05;
 var MOVE_RATE = 0.05;
-var TURN_RATE = 0.15;
-var PITCH_RATE = 0.20;
-var PITCH_RANGE = 30.0;
+var TURN_RATE = 0.2;
+var PITCH_RATE = 0.10;
+var PITCH_RANGE = 20.0;
 
-var firstPosition = { x: getRandomFloat(X_MIN, X_MAX), y: Y_PELVIS, z: getRandomFloat(Z_MIN, Z_MAX) };
+//var firstPosition = { x: getRandomFloat(X_MIN, X_MAX), y: Y_PELVIS, z: getRandomFloat(Z_MIN, Z_MAX) };
+var firstPosition = { x: 0.5, y: Y_PELVIS, z: 0.5 };
 var targetPosition =  { x: 0, y: 0, z: 0 };
-var targetDirection = { x: 0, y: 0, z: 0, w: 0 };
-var currentDirection = { x: 0, y: 0, z: 0, w: 0 };
+var targetOrientation = { x: 0, y: 0, z: 0, w: 0 };
+var currentOrientation = { x: 0, y: 0, z: 0, w: 0 };
 var targetHeadPitch = 0.0;
 
 var cumulativeTime = 0.0;
@@ -130,43 +133,12 @@ function loadSounds() {
 var sounds = [];
 loadSounds();
 
-function loadAnimations() {
-  
-  var animation_filenames = [];
-  var ANIMATION_BASE_URL = "http://highfidelity-dev.s3.amazonaws.com/animations/";
-  
-  if (botNumber < 20) {
-    animation_filenames = ["robot/wave_hip_hop_dance.fbx", "robot/robot_hip_hop_dance.fbx"];
-  } else if (botNumber <= 40) {
-    animation_filenames = ["superhero/house_dancing_2.fbx", "superhero/house_dancing_3.fbx", "superhero/house_dancing_4.fbx"];
-  } else if (botNumber <= 60) {
-    animation_filenames = ["amber/house_dancing.fbx"]
-  } else if (botNumber <= 80) {
-    animation_filenames = ["ron/hip_hop_dancing.fbx", "ron/gangnam_style.fbx"];
-  } else {
-    animation_filenames = ["angie/hip_hop_dancing_6.fbx"];
-  }
-  
-  for (var i = 0; i < animation_filenames.length; i++) {
-    animations.push(AnimationCache.getAnimation(ANIMATION_BASE_URL + animation_filenames[i]));
-  }
-}
-
-var animations = [];
-loadAnimations();
 
 function playRandomSound() {
   if (!Agent.isPlayingAvatarSound) {
     var whichSound = Math.floor((Math.random() * sounds.length) % sounds.length);
     Agent.playAvatarSound(sounds[whichSound]);
   }
-}
-
-function stopWaving() {
-  isWaving = false; 
-  Avatar.clearJointData(SHOULDER_JOINT_NUMBER);
-  Avatar.clearJointData(ELBOW_JOINT_NUMBER);
-  Avatar.clearJointData(JOINT_SPINE);
 }
 
 //Animation KeyFrame constructor. rightJoints and leftJoints must be the same size
@@ -231,13 +203,6 @@ var FOREARM = 3;
 //Joint indices for single joints
 var SPINE = 0;
 
-//Symmetry multipliers for dthe left half [pitch, roll, yaw]. -1 means reflect, 1 means no reflect
-var SYMMETRY = [];
-SYMMETRY[HIP] = [1, -1, -1];
-SYMMETRY[KNEE] = [1, -1, -1];
-SYMMETRY[ARM] = [1, -1, -1];
-SYMMETRY[FOREARM] = [1, -1, -1];
-
 //We have to store the angles so we can invert yaw and roll when making the animation
 //symmetrical
 
@@ -254,7 +219,7 @@ backAngles[0][KNEE] = [-28, 0.0, 0.0];
 backAngles[0][ARM] = [85.0, 20.0, 0.0];
 backAngles[0][FOREARM] = [10.0, 0.0, -25.0];
 
-singleAngles[0][SPINE] = [-0.0, 0.0, 0.0];
+singleAngles[0][SPINE] = [0.0, -15.0, 5.0];
 
 //Legs Passing
 frontAngles[1][HIP] = [6.0, 0.0, 8.0];
@@ -277,7 +242,7 @@ var walkKeyFrames = [];
 for (var i = 0; i < frontAngles.length; i++) {
     for (var j = 0; j < frontAngles[i].length; j++) { 
         frontKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(frontAngles[i][j][0], frontAngles[i][j][1], frontAngles[i][j][2]);
-        backKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(SYMMETRY[j][0] * backAngles[i][j][0], SYMMETRY[j][1] * backAngles[i][j][1], SYMMETRY[j][2] * backAngles[i][j][2]);
+        backKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(backAngles[i][j][0], -backAngles[i][j][1], -backAngles[i][j][2]);
     }
 }
 for (var i = 0; i < singleAngles.length; i++) {
@@ -291,7 +256,7 @@ walkKeyFrames[1] = new WalkKeyFrame(frontKeyFrames[1], backKeyFrames[1], singleK
 //Generate mirrored quaternions for the other half of the body
 for (var i = 0; i < frontAngles.length; i++) {
     for (var j = 0; j < frontAngles[i].length; j++) { 
-        frontKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(SYMMETRY[j][0] * frontAngles[i][j][0], SYMMETRY[j][1] * frontAngles[i][j][1], SYMMETRY[j][2] * frontAngles[i][j][2]);
+        frontKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(frontAngles[i][j][0], -frontAngles[i][j][1], -frontAngles[i][j][2]);
         backKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(backAngles[i][j][0], backAngles[i][j][1], backAngles[i][j][2]);
     }
 }
@@ -340,12 +305,18 @@ function deCasteljau(k1, k2, c1, c2, f) {
 var currentFrame = 0;
 
 var walkTime = 0.0;
-var walkFrequency = 3.0;
+
+var walkWheelRadius = 0.5;
+var walkWheelRate = 2.0 * 3.141592 * walkWheelRadius / 8.0;
+
+var avatarAcceleration = 0.75;
+var avatarVelocity = 0.0;
+var avatarMaxVelocity = 1.4;
 
 function keepWalking(deltaTime) {
 
-  walkTime += walkFrequency * deltaTime;
-  if (walkTime > 1.0) {
+  walkTime += avatarVelocity * deltaTime;
+  if (walkTime > walkWheelRate) {
     walkTime = 0.0;
     currentFrame++;
     if (currentFrame > 3) {
@@ -355,16 +326,11 @@ function keepWalking(deltaTime) {
   
   var frame = walkKeyFrames[currentFrame];
    
+  var interp = walkTime / walkWheelRate;
+   
   for (var i = 0; i < JOINT_ORDER.length; i++) {
-    Avatar.setJointData(JOINT_ORDER[i], deCasteljau(frame.rotations[i], frame.nextFrame.rotations[i], frame.controlPoints[i][0], frame.controlPoints[i][1], walkTime));
+    Avatar.setJointData(JOINT_ORDER[i], deCasteljau(frame.rotations[i], frame.nextFrame.rotations[i], frame.controlPoints[i][0], frame.controlPoints[i][1], interp));
   }
-}
-
-function stopWalking() {
-  Avatar.clearJointData(JOINT_R_HIP);
-  Avatar.clearJointData(JOINT_R_KNEE);
-  Avatar.clearJointData(JOINT_L_HIP);
-  Avatar.clearJointData(JOINT_L_KNEE);
 }
 
 var trailingAverageLoudness = 0;
@@ -408,56 +374,6 @@ var FRAME_RATE = 30.0;
 var wasMovingLastFrame = false;
 var wasDancing = false;
 
-function danceAnimation(deltaTime) {
-  
-  var flooredFrame = Math.floor(frameIndex);
-  
-  if (jointMapping === null || flooredFrame >= randomAnimation.frames.length * animationLoops) {
-    // we've run our animation for our number of loops, start a new one
-    frameIndex = 0.0;
-    jointMapping = null;
-    randomAnimation = null;
-  }
-  
-  if (isMoving || (!wasMovingLastFrame && frameIndex === 0)) {
-    if (!isMoving) {
-      forcedMove = true;
-      possiblyStopDancing();
-    }
-    
-    wasMovingLastFrame = true; 
-    handleWalking();
-  } else {
-    if (jointMapping === null) {
-      // pick a random animation
-      var whichAnimation = Math.floor((Math.random() * animations.length) % animations.length);
-      randomAnimation = animations[whichAnimation];
-    
-      var avatarJointNames = Avatar.jointNames;
-      var animationJointNames = randomAnimation.jointNames;
-      if (avatarJointNames === 0 || animationJointNames.length === 0) {
-          return;
-      }
-      jointMapping = new Array(avatarJointNames.length);
-      for (var i = 0; i < avatarJointNames.length; i++) {
-          jointMapping[i] = animationJointNames.indexOf(avatarJointNames[i]);
-      }
-    }
-  
-    frameIndex += deltaTime * FRAME_RATE;
-    var frames = randomAnimation.frames;
-    var rotations = frames[flooredFrame % frames.length].rotations;
-    for (var j = 0; j < jointMapping.length; j++) {
-      var rotationIndex = jointMapping[j];
-      if (rotationIndex != -1) {
-          Avatar.setJointData(j, rotations[rotationIndex]);
-      }
-    }
-    
-    wasMovingLastFrame = false; 
-    wasDancing = true;
-  }
-}
 
 function handleHeadTurn() {
   if (!isTurningHead && (Math.random() < CHANCE_OF_HEAD_TURNING)) {
@@ -481,14 +397,32 @@ var currentElbowQuat = Avatar.getJointRotation(ELBOW_JOINT_NUMBER);
 var targetElbowQuat = currentElbowQuat;
 var idleElbowQuat = currentElbowQuat;
 
+function stopWalking() {
+  Avatar.clearJointData(JOINT_R_HIP);
+  Avatar.clearJointData(JOINT_R_KNEE);
+  Avatar.clearJointData(JOINT_L_HIP);
+  Avatar.clearJointData(JOINT_L_KNEE);
+  avatarVelocity = 0.0;
+  isMoving = false;
+}
+
+var MAX_ATTEMPTS = 40;
 function handleWalking(deltaTime) {
+
   if (forcedMove || (!isMoving && Math.random() < CHANCE_OF_MOVING)) {
     // Set new target location
-    targetDirection = Quat.multiply(Avatar.orientation, Quat.angleAxis(getRandomFloat(-TURN_RANGE, TURN_RANGE), { x:0, y:1, z:0 }));
-    var front = Quat.getFront(targetDirection);
     
-    targetPosition = Vec3.sum(Avatar.position, Vec3.multiply(front, getRandomFloat(0.0, MOVE_RANGE_SMALL)));
-    
+    //Keep trying new orientations if the desired target location is out of bounds
+    var attempts = 0;
+    do {
+        targetOrientation = Quat.multiply(Avatar.orientation, Quat.angleAxis(getRandomFloat(-TURN_RANGE, TURN_RANGE), { x:0, y:1, z:0 }));
+        var front = Quat.getFront(targetOrientation);
+        
+        targetPosition = Vec3.sum(Avatar.position, Vec3.multiply(front, getRandomFloat(0.0, MOVE_RANGE_SMALL)));
+    }
+    while ((targetPosition.x < X_MIN || targetPosition.x > X_MAX || targetPosition.z < Z_MIN || targetPosition.z > Z_MAX) 
+        && attempts < MAX_ATEMPTS);
+        
     targetPosition.x = clamp(targetPosition.x, X_MIN, X_MAX);
     targetPosition.z = clamp(targetPosition.z, Z_MIN, Z_MAX);
     targetPosition.y = Y_PELVIS;
@@ -498,16 +432,31 @@ function handleWalking(deltaTime) {
     forcedMove = false;
   } else if (isMoving) { 
     keepWalking(deltaTime);
- //   Avatar.position = Vec3.sum(Avatar.position, Vec3.multiply(Vec3.subtract(targetPosition, Avatar.position), MOVE_RATE));
-    Avatar.orientation = Quat.slerp(Avatar.orientation, targetDirection, TURN_RATE);
-    var diff = Vec3.subtract(Avatar.position, targetPosition);
-    diff.y = 0.0;
     
-    wasMovingLastFrame = true; 
+    var targetVector = Vec3.subtract(targetPosition, Avatar.position);
+    var distance = Vec3.length(targetVector);
+    if (distance <= avatarVelocity * deltaTime) {
+        Avatar.position = targetPosition;
+        stopWalking(); 
+    } else {
+        var direction = Vec3.normalize(targetVector);
+        //Figure out if we should be slowing down
+        var t = avatarVelocity / avatarAcceleration;
+        var d = (avatarVelocity / 2.0) * t;
+        if (distance < d) { 
+            avatarVelocity -= avatarAcceleration * deltaTime;
+            if (avatarVelocity <= 0) {
+                stopWalking(); 
+            }
+        } else {    
+            avatarVelocity += avatarAcceleration * deltaTime;
+            if (avatarVelocity > avatarMaxVelocity) avatarVelocity = avatarMaxVelocity;
+        }
+        Avatar.position = Vec3.sum(Avatar.position, Vec3.multiply(direction, avatarVelocity * deltaTime));
+        Avatar.orientation = Quat.mix(Avatar.orientation, targetOrientation, TURN_RATE);
+        
+        wasMovingLastFrame = true; 
     
-    if (Vec3.length(diff) < STOP_TOLERANCE) {
-      isMoving = false;
-      stopWalking(); 
     }
   }
 }
@@ -544,7 +493,6 @@ function updateBehavior(deltaTime) {
     
     // we have a DJ, shouldn't we be dancing?
     jumpWithLoudness(deltaTime);
-    danceAnimation(deltaTime);
   } else {
     // make sure we're not dancing anymore
     possiblyStopDancing();
