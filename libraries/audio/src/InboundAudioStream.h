@@ -48,13 +48,13 @@ const int INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS = 30;
 const int INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
 const int DEFAULT_MAX_FRAMES_OVER_DESIRED = 10;
-
+const int DEFAULT_DESIRED_JITTER_BUFFER_FRAMES = 1;
 
 class InboundAudioStream : public NodeData {
     Q_OBJECT
 public:
     InboundAudioStream(int numFrameSamples, int numFramesCapacity,
-        bool dynamicJitterBuffers, int maxFramesOverDesired,
+        bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, int maxFramesOverDesired,
         bool useStDevForJitterCalc = false);
 
     void reset();
@@ -72,9 +72,9 @@ public:
 
     void setToStarved();
 
-    /// turns off dyanmic jitter buffers and sets the desired jitter buffer frames to specified value
-    void overrideDesiredJitterBufferFramesTo(int desired);
-    void unoverrideDesiredJitterBufferFrames();
+    
+    void setDynamicJitterBuffers(bool dynamicJitterBuffers);
+    void setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames) { _staticDesiredJitterBufferFrames = staticDesiredJitterBufferFrames; }
 
     /// this function should be called once per second to ensure the seq num stats history spans ~30 seconds
     AudioStreamStats updateSeqHistoryAndGetAudioStreamStats();
@@ -140,7 +140,7 @@ protected:
     AudioRingBuffer::ConstIterator _lastPopOutput;
 
     bool _dynamicJitterBuffers;         // if false, _desiredJitterBufferFrames is locked at 1 (old behavior)
-    bool _dynamicJitterBuffersOverride; // used for locking the _desiredJitterBufferFrames to some number while running
+    int _staticDesiredJitterBufferFrames;
 
     // if jitter buffer is dynamic, this determines what method of calculating _desiredJitterBufferFrames 
     // if true, Philip's timegap std dev calculation is used.  Otherwise, Freddy's max timegap calculation is used

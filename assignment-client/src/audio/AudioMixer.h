@@ -38,6 +38,7 @@ public slots:
     void sendStatsPacket();
 
     static bool getUseDynamicJitterBuffers() { return _useDynamicJitterBuffers; }
+    static int getStaticDesiredJitterBufferFrames() { return _staticDesiredJitterBufferFrames; }
     static int getMaxFramesOverDesired() { return _maxFramesOverDesired; }
 
 private:
@@ -62,6 +63,7 @@ private:
     AABox* _listenerUnattenuatedZone;
 
     static bool _useDynamicJitterBuffers;
+    static int _staticDesiredJitterBufferFrames;
     static int _maxFramesOverDesired;
 
     quint64 _lastSendAudioStreamStatsTime;

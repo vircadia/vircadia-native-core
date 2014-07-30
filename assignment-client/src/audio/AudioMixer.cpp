@@ -68,6 +68,7 @@ void attachNewNodeDataToNode(Node *newNode) {
 }
 
 bool AudioMixer::_useDynamicJitterBuffers = false;
+int AudioMixer::_staticDesiredJitterBufferFrames = 0;
 int AudioMixer::_maxFramesOverDesired = 0;
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
@@ -436,48 +437,58 @@ void AudioMixer::run() {
     if (settingsObject.contains(AUDIO_GROUP_KEY)) {
         QJsonObject audioGroupObject = settingsObject[AUDIO_GROUP_KEY].toObject();
         
-        const QString UNATTENUATED_ZONE_KEY = "unattenuated-zone";
-        
-        QString unattenuatedZoneString = audioGroupObject[UNATTENUATED_ZONE_KEY].toString();
-        if (!unattenuatedZoneString.isEmpty()) {
-            QStringList zoneStringList = unattenuatedZoneString.split(',');
-            
-            glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
-            glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
-            
-            glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
-            glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
-            
-            _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
-            _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
-            
-            glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
-            glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
-            
-            qDebug() << "There is an unattenuated zone with source center at"
-            << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
-            qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
-            << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
-        }
-        
         // check the payload to see if we have asked for dynamicJitterBuffer support
-        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic-jitter-buffer";
+        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "A-dynamic-jitter-buffer";
         bool shouldUseDynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
         if (shouldUseDynamicJitterBuffers) {
             qDebug() << "Enable dynamic jitter buffers.";
             _useDynamicJitterBuffers = true;
         } else {
-            qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
+            qDebug() << "Dynamic jitter buffers disabled.";
             _useDynamicJitterBuffers = false;
         }
 
-        const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "max-frames-over-desired";
         bool ok;
+
+        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "B-desired-jitter-buffer-frames";
+        _staticDesiredJitterBufferFrames = audioGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _staticDesiredJitterBufferFrames = DEFAULT_DESIRED_JITTER_BUFFER_FRAMES;
+        }
+        qDebug() << "Static desired jitter buffer frames:" << _staticDesiredJitterBufferFrames;
+
+        const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "C-max-frames-over-desired";
         _maxFramesOverDesired = audioGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
         if (!ok) {
             _maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
         }
         qDebug() << "Max frames over desired:" << _maxFramesOverDesired;
+
+
+
+        const QString UNATTENUATED_ZONE_KEY = "D-unattenuated-zone";
+
+        QString unattenuatedZoneString = audioGroupObject[UNATTENUATED_ZONE_KEY].toString();
+        if (!unattenuatedZoneString.isEmpty()) {
+            QStringList zoneStringList = unattenuatedZoneString.split(',');
+
+            glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
+            glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
+
+            glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
+            glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
+
+            _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
+            _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
+
+            glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
+            glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
+
+            qDebug() << "There is an unattenuated zone with source center at"
+                << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
+            qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
+                << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
+        }
     }
     
     int nextFrame = 0;

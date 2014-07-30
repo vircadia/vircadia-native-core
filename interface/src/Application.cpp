@@ -1709,7 +1709,10 @@ void Application::init() {
 
     Menu::getInstance()->loadSettings();
     if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
-        _audio.overrideDesiredJitterBufferFramesTo(Menu::getInstance()->getAudioJitterBufferFrames());
+        _audio.setDynamicJitterBuffers(false);
+        _audio.setStaticDesiredJitterBufferFrames(Menu::getInstance()->getAudioJitterBufferFrames());
+    } else {
+        _audio.setDynamicJitterBuffers(true);
     }
 
     _audio.setMaxFramesOverDesired(Menu::getInstance()->getMaxFramesOverDesired());
@@ -2107,21 +2110,6 @@ void Application::update(float deltaTime) {
         // let external parties know we're updating
         emit simulating(deltaTime);
     }
-}
-
-void Application::updateMyAvatar(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
-
-    _myAvatar->update(deltaTime);
-
-    {
-        // send head/hand data to the avatar mixer and voxel server
-        PerformanceTimer perfTimer("send");
-        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
-        packet.append(_myAvatar->toByteArray());
-        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
-    }
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -2164,13 +2152,29 @@ void Application::updateMyAvatar(float deltaTime) {
         }
     }
 
+    // send packet containing downstream audio stats to the AudioMixer 
     {
         quint64 sinceLastNack = now - _lastSendDownstreamAudioStats;
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
-            
+
             QMetaObject::invokeMethod(&_audio, "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
+    }
+}
+
+void Application::updateMyAvatar(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
+
+    _myAvatar->update(deltaTime);
+
+    {
+        // send head/hand data to the avatar mixer and voxel server
+        PerformanceTimer perfTimer("send");
+        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+        packet.append(_myAvatar->toByteArray());
+        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
     }
 }
 

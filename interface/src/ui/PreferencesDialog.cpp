@@ -243,9 +243,10 @@ void PreferencesDialog::savePreferences() {
 
     Menu::getInstance()->setAudioJitterBufferFrames(ui.audioJitterSpin->value());
     if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
-        Application::getInstance()->getAudio()->overrideDesiredJitterBufferFramesTo(Menu::getInstance()->getAudioJitterBufferFrames());
+        Application::getInstance()->getAudio()->setDynamicJitterBuffers(false);
+        Application::getInstance()->getAudio()->setStaticDesiredJitterBufferFrames(Menu::getInstance()->getAudioJitterBufferFrames());
     } else {
-        Application::getInstance()->getAudio()->unoverrideDesiredJitterBufferFrames();
+        Application::getInstance()->getAudio()->setDynamicJitterBuffers(true);
     }
 
     Menu::getInstance()->setMaxFramesOverDesired(ui.maxFramesOverDesiredSpin->value());

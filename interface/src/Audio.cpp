@@ -751,10 +751,6 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
     }
 }
 
-AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
-    return _receivedAudioStream.getAudioStreamStats();
-}
-
 void Audio::sendDownstreamAudioStatsPacket() {
 
     // since this function is called every second, we'll sample some of our stats here

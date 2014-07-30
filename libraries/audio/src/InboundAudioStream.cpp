@@ -13,16 +13,16 @@
 #include "PacketHeaders.h"
 
 InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity,
-    bool dynamicJitterBuffers, int maxFramesOverDesired, bool useStDevForJitterCalc) :
+    bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, int maxFramesOverDesired, bool useStDevForJitterCalc) :
     _ringBuffer(numFrameSamples, false, numFramesCapacity),
     _lastPopSucceeded(false),
     _lastPopOutput(),
     _dynamicJitterBuffers(dynamicJitterBuffers),
-    _dynamicJitterBuffersOverride(false),
+    _staticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames),
     _useStDevForJitterCalc(useStDevForJitterCalc),
     _calculatedJitterBufferFramesUsingMaxGap(0),
     _calculatedJitterBufferFramesUsingStDev(0),
-    _desiredJitterBufferFrames(1),
+    _desiredJitterBufferFrames(dynamicJitterBuffers ? 1 : staticDesiredJitterBufferFrames),
     _maxFramesOverDesired(maxFramesOverDesired),
     _isStarved(true),
     _hasStarted(false),
@@ -49,7 +49,9 @@ void InboundAudioStream::reset() {
 }
 
 void InboundAudioStream::resetStats() {
-    _desiredJitterBufferFrames = 1;
+    if (_dynamicJitterBuffers) {
+        _desiredJitterBufferFrames = 1;
+    }
     _consecutiveNotMixedCount = 0;
     _starveCount = 0;
     _silentFramesDropped = 0;
@@ -178,16 +180,15 @@ void InboundAudioStream::starved() {
     _starveCount++;
 }
 
-void InboundAudioStream::overrideDesiredJitterBufferFramesTo(int desired) {
-    _dynamicJitterBuffersOverride = true;
-    _desiredJitterBufferFrames = clampDesiredJitterBufferFramesValue(desired);
-}
-
-void InboundAudioStream::unoverrideDesiredJitterBufferFrames() {
-    _dynamicJitterBuffersOverride = false;
-    if (!_dynamicJitterBuffers) {
-        _desiredJitterBufferFrames = 1;
+void InboundAudioStream::setDynamicJitterBuffers(bool dynamicJitterBuffers) {
+    if (!dynamicJitterBuffers) {
+        _desiredJitterBufferFrames = _staticDesiredJitterBufferFrames;
+    } else {
+        if (!_dynamicJitterBuffers) {
+            _desiredJitterBufferFrames = 1;
+        }
     }
+    _dynamicJitterBuffers = dynamicJitterBuffers;
 }
 
 int InboundAudioStream::clampDesiredJitterBufferFramesValue(int desired) const {
@@ -216,7 +217,7 @@ SequenceNumberStats::ArrivalInfo InboundAudioStream::frameReceivedUpdateNetworkS
             _calculatedJitterBufferFramesUsingMaxGap = ceilf((float)_interframeTimeGapStatsForJitterCalc.getWindowMax() / USECS_PER_FRAME);
             _interframeTimeGapStatsForJitterCalc.clearNewStatsAvailableFlag();
 
-            if (_dynamicJitterBuffers && !_dynamicJitterBuffersOverride && !_useStDevForJitterCalc) {
+            if (_dynamicJitterBuffers && !_useStDevForJitterCalc) {
                 _desiredJitterBufferFrames = clampDesiredJitterBufferFramesValue(_calculatedJitterBufferFramesUsingMaxGap);
             }
         }
@@ -229,7 +230,7 @@ SequenceNumberStats::ArrivalInfo InboundAudioStream::frameReceivedUpdateNetworkS
             _calculatedJitterBufferFramesUsingStDev = (int)ceilf(NUM_STANDARD_DEVIATIONS * _stdev.getStDev() / USECS_PER_FRAME);
             _stdev.reset();
 
-            if (_dynamicJitterBuffers && !_dynamicJitterBuffersOverride && _useStDevForJitterCalc) {
+            if (_dynamicJitterBuffers && _useStDevForJitterCalc) {
                 _desiredJitterBufferFrames = clampDesiredJitterBufferFramesValue(_calculatedJitterBufferFramesUsingStDev);
             }
         }

@@ -18,7 +18,7 @@
 
 class AvatarAudioStream : public PositionalAudioStream {
 public:
-    AvatarAudioStream(bool isStereo, bool dynamicJitterBuffer, int maxFramesOverDesired);
+    AvatarAudioStream(bool isStereo, bool dynamicJitterBuffer, int staticDesiredJitterBufferFrames, int maxFramesOverDesired);
 
 private:
     // disallow copying of AvatarAudioStream objects
