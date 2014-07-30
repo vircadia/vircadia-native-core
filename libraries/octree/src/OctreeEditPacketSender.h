@@ -15,19 +15,10 @@
 #include <qqueue.h>
 #include <PacketSender.h>
 #include <PacketHeaders.h>
+
+#include "EditPacketBuffer.h"
 #include "JurisdictionMap.h"
 #include "SentPacketHistory.h"
-
-/// Used for construction of edit packets
-class EditPacketBuffer {
-public:
-    EditPacketBuffer() : _nodeUUID(), _currentType(PacketTypeUnknown), _currentSize(0) { }
-    EditPacketBuffer(PacketType type, unsigned char* codeColorBuffer, ssize_t length, const QUuid nodeUUID = QUuid());
-    QUuid _nodeUUID;
-    PacketType _currentType;
-    unsigned char _currentBuffer[MAX_PACKET_SIZE];
-    ssize_t _currentSize;
-};
 
 /// Utility for processing, packing, queueing and sending of outbound edit messages.
 class OctreeEditPacketSender :  public PacketSender {
