@@ -52,7 +52,7 @@ endif ()
 
 select_library_configurations(LIBOVR)
 
-set(LIBOVR_LIBRARIES "${LIBOVR_LIBRARIES}" "${UDEV_LIBRARY}" "${XINERAMA_LIBRARY}")
+set(LIBOVR_LIBRARIES "${LIBOVR_LIBRARY}" "${UDEV_LIBRARY}" "${XINERAMA_LIBRARY}")
 
 include(FindPackageHandleStandardArgs)
 if (UNIX AND NOT APPLE)
