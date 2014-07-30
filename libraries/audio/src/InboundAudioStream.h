@@ -45,6 +45,8 @@ const int INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS = 30;
 
 const int INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
+const int DEFAULT_MAX_FRAMES_OVER_DESIRED = 10;
+
 
 class InboundAudioStream : public NodeData {
     Q_OBJECT
