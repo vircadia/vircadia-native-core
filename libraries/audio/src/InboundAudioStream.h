@@ -108,6 +108,8 @@ public:
     int getSilentFramesDropped() const { return _silentFramesDropped; }
     int getOverflowCount() const { return _ringBuffer.getOverflowCount(); }
 
+    int getPacketReceived() const { return _incomingSequenceNumberStats.getNumReceived(); }
+
 private:
     void starved();
 

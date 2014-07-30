@@ -709,7 +709,9 @@ void Audio::handleAudioInput() {
         delete[] inputAudioSamples;
     }
 
-    pushAudioToOutput();
+    if (_receivedAudioStream.getPacketReceived() > 0) {
+        pushAudioToOutput();
+    }
 }
 
 void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
