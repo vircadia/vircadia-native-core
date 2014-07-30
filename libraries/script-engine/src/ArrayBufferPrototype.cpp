@@ -11,6 +11,9 @@
 
 #include <glm/glm.hpp>
 
+#include <QBuffer>
+#include <QImage>
+
 #include "ArrayBufferClass.h"
 #include "ArrayBufferPrototype.h"
 
@@ -47,15 +50,38 @@ QByteArray ArrayBufferPrototype::slice(qint32 begin) const {
 }
 
 QByteArray ArrayBufferPrototype::compress() const {
+    // Compresses the ArrayBuffer data in Zlib format.
     QByteArray* ba = thisArrayBuffer();
 
     QByteArray buffer = qCompress(*ba);
-
-    // Qt's qCompress() default compression level (-1) is the standard zLib compression.
-    // Here remove Qt's custom header that prevents the data server from uncompressing the files with zLib.
-    buffer.remove(QCOMPRESS_HEADER_POSITION, QCOMPRESS_HEADER_SIZE);
+    buffer.remove(QCOMPRESS_HEADER_POSITION, QCOMPRESS_HEADER_SIZE);  // Remove Qt's custom header to make it proper Zlib.
 
     return buffer;
+}
+
+QByteArray ArrayBufferPrototype::recodeImage(const QString& sourceFormat, const QString& targetFormat, qint32 maxSize) const {
+    // Recodes image data if sourceFormat and targetFormat are different.
+    // Rescales image data if either dimension is greater than the specified maximum.
+    QByteArray* ba = thisArrayBuffer();
+
+    bool mustRecode = sourceFormat.toLower() != targetFormat.toLower();
+
+    QImage image = QImage::fromData(*ba);
+    if (image.width() > maxSize || image.height() > maxSize) {
+        image = image.scaled(maxSize, maxSize, Qt::KeepAspectRatio);
+        mustRecode = true;
+    }
+
+    if (mustRecode) {
+        QBuffer buffer;
+        buffer.open(QIODevice::WriteOnly);
+        std::string str = targetFormat.toUpper().toStdString();
+        const char* format = str.c_str();
+        image.save(&buffer, format);
+        return buffer.data();
+    }
+    
+    return *ba;
 }
 
 QByteArray* ArrayBufferPrototype::thisArrayBuffer() const {

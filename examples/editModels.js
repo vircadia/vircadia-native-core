@@ -64,6 +64,12 @@ if (typeof String.prototype.fileName !== "function") {
     };
 }
 
+if (typeof String.prototype.fileType !== "function") {
+    String.prototype.fileType = function () {
+        return this.slice(this.lastIndexOf(".") + 1);
+    };
+}
+
 if (typeof String.prototype.path !== "function") {
     String.prototype.path = function () {
         return this.replace(/[\\\/][^\\\/]*$/, "");
@@ -284,6 +290,7 @@ var modelUploader = (function () {
         PITCH_FIELD = "pitch",
         YAW_FIELD = "yaw",
         ROLL_FIELD = "roll",
+        MAX_TEXTURE_SIZE = 1024,
         geometry;
 
     function error(message) {
@@ -578,6 +585,8 @@ var modelUploader = (function () {
             lodFile,
             lodBuffer,
             textureBuffer,
+            textureSourceFormat,
+            textureTargetFormat,
             i;
 
         print("Preparing to send model");
@@ -638,6 +647,12 @@ var modelUploader = (function () {
             textureBuffer = readFile(modelFile.path() + "\/"
                 + (mapping[TEXDIR_FIELD] !== "." ? mapping[TEXDIR_FIELD] + "\/" : "")
                 + geometry.textures[i]);
+
+            textureSourceFormat = geometry.textures[i].fileType().toLowerCase();
+            textureTargetFormat = (textureSourceFormat === "jpg" ? "jpg" : "png");
+            textureBuffer.buffer = textureBuffer.buffer.recodeImage(textureSourceFormat, textureTargetFormat, MAX_TEXTURE_SIZE);
+            textureBuffer.filename = textureBuffer.filename.slice(0, -textureSourceFormat.length) + textureTargetFormat;
+
             httpMultiPart.add({
                 name: "texture" + i,
                 buffer: textureBuffer
