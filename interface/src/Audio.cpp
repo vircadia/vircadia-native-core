@@ -75,11 +75,7 @@ Audio::Audio(QObject* parent) :
     // slower than real time (or at least the desired sample rate). If you increase the size of the ring buffer, then it 
     // this delay will slowly add up and the longer someone runs, they more delayed their audio will be.
     _inputRingBuffer(0),
-#ifdef _WIN32
-    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 100, true, 20, true),
-#else
-    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 10, true, 20, true), // DO NOT CHANGE THIS UNLESS YOU SOLVE THE AUDIO DEVICE DRIFT PROBLEM!!!
-#endif  
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 100, true, 0, true),
     _isStereoInput(false),
     _averagedLatency(0.0),
     _lastInputLoudness(0),
@@ -896,6 +892,12 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     // parse audio data
     _receivedAudioStream.parseData(audioByteArray);
 
+
+    // This call has been moved to handleAudioInput. handleAudioInput is called at a much more regular interval
+    // than processReceivedAudio since handleAudioInput does not experience network-related jitter.
+    // This way, we reduce the jitter of the frames being pushed to the audio output, allowing us to use a reduced
+    // buffer size for it, which reduces latency.
+
     //pushAudioToOutput();
 }
 
@@ -1659,11 +1661,13 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 
         if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
             qDebug() << "The format to be used for audio output is" << _outputFormat;
-        
+            
+            const int AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 10;
+
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            _audioOutput->setBufferSize(/*_receivedAudioStream.getFrameCapacity()*/ 10 * _outputFormat.bytesForDuration(BUFFER_SEND_INTERVAL_USECS));
-            qDebug() << "Ring Buffer capacity in frames: " << _receivedAudioStream.getFrameCapacity();
+            _audioOutput->setBufferSize(AUDIO_OUTPUT_BUFFER_SIZE_FRAMES * _outputFormat.bytesForDuration(BUFFER_SEND_INTERVAL_USECS));
+            qDebug() << "Ring Buffer capacity in frames: " << AUDIO_OUTPUT_BUFFER_SIZE_FRAMES;
             _outputDevice = _audioOutput->start();
 
             // setup a loopback audio output device
