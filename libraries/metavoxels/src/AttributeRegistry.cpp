@@ -574,19 +574,14 @@ bool HeightfieldAttribute::merge(void*& parent, void* children[], bool postRead)
         int Z_SHIFT = 2;
         int zIndex = (i >> Z_SHIFT) & INDEX_MASK;
         char* dest = contents.data() + (zIndex * halfSize * size) + (xIndex * halfSize);
-        uchar* src0 = (uchar*)childContents.data();
-        uchar* src1 = src0 + 1;
-        uchar* src2 = src0 + childSize;
-        uchar* src3 = src2 + 1;
+        uchar* src = (uchar*)childContents.data();
+        int childSizePlusOne = childSize + 1;
         for (int z = 0; z < halfSize; z++) {
-            for (char* end = dest + halfSize; dest != end; ) {
-                *dest++ = yOffset + (qMax(qMax(*src0++, *src1++), qMax(*src2++, *src3++)) >> 1);
+            for (char* end = dest + halfSize; dest != end; src += 2) {
+                *dest++ = yOffset + (qMax(qMax(src[0], src[1]), qMax(src[childSize], src[childSizePlusOne])) >> 1);
             }
             dest += halfSize;
-            src0 += childSize;
-            src1 += childSize;
-            src2 += childSize;
-            src3 += childSize;
+            src += childSize;
         }
     }
     *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer(new HeightfieldData(contents));
@@ -655,23 +650,25 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
         int Z_SHIFT = 2;
         int zIndex = (i >> Z_SHIFT) & INDEX_MASK;
         char* dest = contents.data() + ((zIndex * halfSize * size) + (xIndex * halfSize)) * BYTES_PER_PIXEL;
-        uchar* src0 = (uchar*)childContents.data();
-        uchar* src1 = src0 + BYTES_PER_PIXEL;
+        uchar* src = (uchar*)childContents.data();
         int childStride = childSize * BYTES_PER_PIXEL;
-        uchar* src2 = src0 + childStride;
-        uchar* src3 = src2 + BYTES_PER_PIXEL;
         int halfStride = halfSize * BYTES_PER_PIXEL;
+        int childStep = 2 * BYTES_PER_PIXEL;
+        int redOffset3 = childStride + BYTES_PER_PIXEL;
+        int greenOffset1 = BYTES_PER_PIXEL + 1;
+        int greenOffset2 = childStride + 1;
+        int greenOffset3 = childStride + BYTES_PER_PIXEL + 1;
+        int blueOffset1 = BYTES_PER_PIXEL + 2;
+        int blueOffset2 = childStride + 2;
+        int blueOffset3 = childStride + BYTES_PER_PIXEL + 2;
         for (int z = 0; z < halfSize; z++) {
-            for (char* end = dest + halfSize * BYTES_PER_PIXEL; dest != end; ) {
-                *dest++ = ((int)(*src0++) + (int)(*src1++) + (int)(*src2++) + (int)(*src3++)) >> 2;
-                *dest++ = ((int)(*src0++) + (int)(*src1++) + (int)(*src2++) + (int)(*src3++)) >> 2;
-                *dest++ = ((int)(*src0++) + (int)(*src1++) + (int)(*src2++) + (int)(*src3++)) >> 2;
+            for (char* end = dest + halfSize * BYTES_PER_PIXEL; dest != end; src += childStep) {
+                *dest++ = ((int)src[0] + (int)src[BYTES_PER_PIXEL] + (int)src[childStride] + (int)src[redOffset3]) >> 2;
+                *dest++ = ((int)src[1] + (int)src[greenOffset1] + (int)src[greenOffset2] + (int)src[greenOffset3]) >> 2;
+                *dest++ = ((int)src[2] + (int)src[blueOffset1] + (int)src[blueOffset2] + (int)src[blueOffset3]) >> 2;
             }
             dest += halfStride;
-            src0 += childStride;
-            src1 += childStride;
-            src2 += childStride;
-            src3 += childStride;
+            src += childStride;
         }
     }
     *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer(new HeightfieldData(contents));
