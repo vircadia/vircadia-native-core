@@ -10,6 +10,8 @@
 // Script.include("proceduralAnimation.js");
 
 // You can see a usage example in proceduralBot.js
+// The current implementation is quite simple. If you would like a feature
+// to be added or expanded, you can contact Ben at brb555@vols.utk.edu
 
 ProcAnimAPI = function() {
 
@@ -62,8 +64,8 @@ ProcAnimAPI = function() {
                  middleQuats[i][j] = Quat.fromPitchYawRollDegrees(middleAngles[i][j][0], middleAngles[i][j][1], middleAngles[i][j][2]);
             }
         }
-        finalKeyFrames[0] = new KeyFrame(rightQuats[0], leftQuats[0], middleQuats[0]);
-        finalKeyFrames[1] = new KeyFrame(rightQuats[1], leftQuats[1], middleQuats[1]);
+        finalKeyFrames[0] = new this.KeyFrame(rightQuats[0], leftQuats[0], middleQuats[0]);
+        finalKeyFrames[1] = new this.KeyFrame(rightQuats[1], leftQuats[1], middleQuats[1]);
 
         //Generate mirrored quaternions for the other half of the animation
         for (var i = 0; i < rightAngles.length; i++) {
@@ -77,8 +79,8 @@ ProcAnimAPI = function() {
                  middleQuats[i][j] = Quat.fromPitchYawRollDegrees(-middleAngles[i][j][0], -middleAngles[i][j][1], -middleAngles[i][j][2]);
             }
         }
-        finalKeyFrames[2] = new KeyFrame(leftQuats[0], rightQuats[0], middleQuats[0]);
-        finalKeyFrames[3] = new KeyFrame(leftQuats[1], rightQuats[1], middleQuats[1]);
+        finalKeyFrames[2] = new this.KeyFrame(leftQuats[0], rightQuats[0], middleQuats[0]);
+        finalKeyFrames[3] = new this.KeyFrame(leftQuats[1], rightQuats[1], middleQuats[1]);
 
         //Hook up pointers to the next keyframe
         for (var i = 0; i < finalKeyFrames.length - 1; i++) {
@@ -106,7 +108,7 @@ ProcAnimAPI = function() {
         }
         
         return finalKeyFrames;
-    }
+    };
 
     // Animation KeyFrame constructor. rightJoints and leftJoints must be the same size
     this.KeyFrame = function(rightJoints, leftJoints, middleJoints) {
@@ -119,7 +121,7 @@ ProcAnimAPI = function() {
         for (var i = 0; i < middleJoints.length; i++) {
             this.rotations[this.rotations.length] = middleJoints[i];
         }
-    }
+    };
 
     // DeCasteljau evaluation to evaluate the bezier curve.
     // This is a very natural looking interpolation
@@ -130,5 +132,5 @@ ProcAnimAPI = function() {
         var d = Quat.slerp(a, b, f);
         var e = Quat.slerp(b, c, f);
         return Quat.slerp(d, e, f);
-    }
+    };
 }

@@ -11,32 +11,30 @@
 //
 
 //For procedural walk animation
-Script.include("proceduralAnimation.js");
+Script.include("http://s3-us-west-1.amazonaws.com/highfidelity-public/scripts/proceduralAnimationAPI.js");
+
+var procAnimAPI = new ProcAnimAPI();
 
 function getRandomFloat(min, max) {
-return Math.random() * (max - min) + min;
+    return Math.random() * (max - min) + min;
 }
 
 function getRandomInt (min, max) {
-return Math.floor(Math.random() * (max - min + 1)) + min;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function printVector(string, vector) {
-print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
+    print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
 }
 
 var CHANCE_OF_MOVING = 0.1;
 var CHANCE_OF_SOUND = 0;
 var CHANCE_OF_HEAD_TURNING = 0.05;
 var CHANCE_OF_BIG_MOVE = 0.1;
-var CHANCE_OF_WAVING = 0.009; 
 
 var isMoving = false;
 var isTurningHead = false;
 var isPlayingAudio = false; 
-var isWaving = false;
-var waveFrequency = 0.0;
-var waveAmplitude = 0.0; 
 
 var X_MIN = 0.50;
 var X_MAX = 15.60;
@@ -141,32 +139,13 @@ function playRandomSound() {
   }
 }
 
-//Animation KeyFrame constructor. rightJoints and leftJoints must be the same size
-function WalkKeyFrame(rightJoints, leftJoints, singleJoints) {
-    this.rotations = [];
-    
-    for (var i = 0; i < rightJoints.length; i++) {
-        this.rotations[this.rotations.length] = rightJoints[i];
-        this.rotations[this.rotations.length] = leftJoints[i];
-    }
-    for (var i = 0; i < singleJoints.length; i++) {
-        this.rotations[this.rotations.length] = singleJoints[i];
-    }
-}
-
 //Procedural walk animation using two keyframes
 //We use a separate array for front and back joints
-var frontKeyFrames = [];
-var backKeyFrames = [];
-//for non mirrored joints such as the spine
-var singleKeyFrames = [];
 //Pitch, yaw, and roll for the joints
-var frontAngles = [];
-var backAngles = [];
+var rightAngles = [];
+var leftAngles = [];
 //for non mirrored joints such as the spine
-var singleAngles = [];
-
-
+var middleAngles = [];
 
 //Actual joint mappings
 var SHOULDER_JOINT_NUMBER = 15; 
@@ -185,12 +164,9 @@ var JOINT_SPINE = 11;
 
 var NUM_FRAMES = 2;
 for (var i = 0; i < NUM_FRAMES; i++) {
-    frontAngles[i] = [];
-    backAngles[i] = [];
-    singleAngles[i] = [];
-    frontKeyFrames[i] = [];
-    backKeyFrames[i] = [];
-    singleKeyFrames[i] = [];
+    rightAngles[i] = [];
+    leftAngles[i] = [];
+    middleAngles[i] = [];
 }
 //Joint order for actual joint mappings, should be interleaved R,L,R,L,...S,S,S for R = right, L = left, S = single
 var JOINT_ORDER = [JOINT_R_HIP, JOINT_L_HIP, JOINT_R_KNEE, JOINT_L_KNEE, JOINT_R_ARM, JOINT_L_ARM, JOINT_R_FOREARM, JOINT_L_FOREARM, JOINT_SPINE];
@@ -206,101 +182,37 @@ var SPINE = 0;
 //We have to store the angles so we can invert yaw and roll when making the animation
 //symmetrical
 
-
 //Front refers to leg, not arm.
 //Legs Extending
-frontAngles[0][HIP] = [30.0, 0.0, 8.0];
-frontAngles[0][KNEE] = [-15.0, 0.0, 0.0];
-frontAngles[0][ARM] = [85.0, -25.0, 0.0];
-frontAngles[0][FOREARM] = [0.0, 0.0, -15.0];
+rightAngles[0][HIP] = [30.0, 0.0, 8.0];
+rightAngles[0][KNEE] = [-15.0, 0.0, 0.0];
+rightAngles[0][ARM] = [85.0, -25.0, 0.0];
+rightAngles[0][FOREARM] = [0.0, 0.0, -15.0];
 
-backAngles[0][HIP] = [-15, 0.0, 8.0];
-backAngles[0][KNEE] = [-28, 0.0, 0.0];
-backAngles[0][ARM] = [85.0, 20.0, 0.0];
-backAngles[0][FOREARM] = [10.0, 0.0, -25.0];
+leftAngles[0][HIP] = [-15, 0.0, 8.0];
+leftAngles[0][KNEE] = [-28, 0.0, 0.0];
+leftAngles[0][ARM] = [85.0, 20.0, 0.0];
+leftAngles[0][FOREARM] = [10.0, 0.0, -25.0];
 
-singleAngles[0][SPINE] = [0.0, -15.0, 5.0];
+middleAngles[0][SPINE] = [0.0, -15.0, 5.0];
 
 //Legs Passing
-frontAngles[1][HIP] = [6.0, 0.0, 8.0];
-frontAngles[1][KNEE] = [-12.0, 0.0, 0.0];
-frontAngles[1][ARM] = [85.0, 0.0, 0.0];
-frontAngles[1][FOREARM] = [0.0, 0.0, -15.0];
+rightAngles[1][HIP] = [6.0, 0.0, 8.0];
+rightAngles[1][KNEE] = [-12.0, 0.0, 0.0];
+rightAngles[1][ARM] = [85.0, 0.0, 0.0];
+rightAngles[1][FOREARM] = [0.0, 0.0, -15.0];
 
-backAngles[1][HIP] = [10.0, 0.0, 8.0];
-backAngles[1][KNEE] = [-55.0, 0.0, 0.0];
-backAngles[1][ARM] = [85.0, 0.0, 0.0];
-backAngles[1][FOREARM] = [0.0, 0.0, -15.0];
+leftAngles[1][HIP] = [10.0, 0.0, 8.0];
+leftAngles[1][KNEE] = [-55.0, 0.0, 0.0];
+leftAngles[1][ARM] = [85.0, 0.0, 0.0];
+leftAngles[1][FOREARM] = [0.0, 0.0, -15.0];
 
-singleAngles[1][SPINE] = [0.0, 0.0, 0.0];
+middleAngles[1][SPINE] = [0.0, 0.0, 0.0];
 
 // ******************************* Animation Is Defined Above *************************************
 
 //Actual keyframes for the animation
-var walkKeyFrames = [];
-//Generate quaternions from the angles
-for (var i = 0; i < frontAngles.length; i++) {
-    for (var j = 0; j < frontAngles[i].length; j++) { 
-        frontKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(frontAngles[i][j][0], frontAngles[i][j][1], frontAngles[i][j][2]);
-        backKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(backAngles[i][j][0], -backAngles[i][j][1], -backAngles[i][j][2]);
-    }
-}
-for (var i = 0; i < singleAngles.length; i++) {
-    for (var j = 0; j < singleAngles[i].length; j++) { 
-         singleKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(singleAngles[i][j][0], singleAngles[i][j][1], singleAngles[i][j][2]);
-    }
-}
-walkKeyFrames[0] = new WalkKeyFrame(frontKeyFrames[0], backKeyFrames[0], singleKeyFrames[0]);
-walkKeyFrames[1] = new WalkKeyFrame(frontKeyFrames[1], backKeyFrames[1], singleKeyFrames[1]);
-
-//Generate mirrored quaternions for the other half of the body
-for (var i = 0; i < frontAngles.length; i++) {
-    for (var j = 0; j < frontAngles[i].length; j++) { 
-        frontKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(frontAngles[i][j][0], -frontAngles[i][j][1], -frontAngles[i][j][2]);
-        backKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(backAngles[i][j][0], backAngles[i][j][1], backAngles[i][j][2]);
-    }
-}
-for (var i = 0; i < singleAngles.length; i++) {
-    for (var j = 0; j < singleAngles[i].length; j++) { 
-         singleKeyFrames[i][j] = Quat.fromPitchYawRollDegrees(-singleAngles[i][j][0], -singleAngles[i][j][1], -singleAngles[i][j][2]);
-    }
-}
-walkKeyFrames[2] = new WalkKeyFrame(backKeyFrames[0], frontKeyFrames[0], singleKeyFrames[0]);
-walkKeyFrames[3] = new WalkKeyFrame(backKeyFrames[1], frontKeyFrames[1], singleKeyFrames[1]);
-
-//Hook up pointers to the next keyframe
-for (var i = 0; i < walkKeyFrames.length - 1; i++) {
-    walkKeyFrames[i].nextFrame = walkKeyFrames[i+1];
-}
-walkKeyFrames[walkKeyFrames.length-1].nextFrame = walkKeyFrames[0];
-
-//Set up the bezier curve control points using technique described at
-//https://www.cs.tcd.ie/publications/tech-reports/reports.94/TCD-CS-94-18.pdf
-//Set up all C1
-for (var i = 0; i < walkKeyFrames.length; i++) {
-    walkKeyFrames[i].nextFrame.controlPoints = [];
-    for (var j = 0; j < walkKeyFrames[i].rotations.length; j++) {
-        walkKeyFrames[i].nextFrame.controlPoints[j] = [];
-        var R = Quat.slerp(walkKeyFrames[i].rotations[j], walkKeyFrames[i].nextFrame.rotations[j], 2.0);
-        var T = Quat.slerp(R, walkKeyFrames[i].nextFrame.nextFrame.rotations[j], 0.5);
-        walkKeyFrames[i].nextFrame.controlPoints[j][0] = Quat.slerp(walkKeyFrames[i].nextFrame.rotations[j], T, 0.33333);
-    }
-}
-//Set up all C2
-for (var i = 0; i < walkKeyFrames.length; i++) {
-    for (var j = 0; j < walkKeyFrames[i].rotations.length; j++) {
-        walkKeyFrames[i].controlPoints[j][1] = Quat.slerp(walkKeyFrames[i].nextFrame.rotations[j], walkKeyFrames[i].nextFrame.controlPoints[j][0], -1.0);
-    }
-}
-//DeCasteljau evaluation to evaluate the bezier curve
-function deCasteljau(k1, k2, c1, c2, f) {
-    var a = Quat.slerp(k1, c1, f);
-    var b = Quat.slerp(c1, c2, f);
-    var c = Quat.slerp(c2, k2, f);
-    var d = Quat.slerp(a, b, f);
-    var e = Quat.slerp(b, c, f);
-    return Quat.slerp(d, e, f);
-}
+var walkKeyFrames = procAnimAPI.generateKeyframes(rightAngles, leftAngles, middleAngles, NUM_FRAMES);
 
 var currentFrame = 0;
 
@@ -314,7 +226,7 @@ var avatarVelocity = 0.0;
 var avatarMaxVelocity = 1.4;
 
 function keepWalking(deltaTime) {
-
+    
   walkTime += avatarVelocity * deltaTime;
   if (walkTime > walkWheelRate) {
     walkTime = 0.0;
@@ -329,16 +241,9 @@ function keepWalking(deltaTime) {
   var interp = walkTime / walkWheelRate;
    
   for (var i = 0; i < JOINT_ORDER.length; i++) {
-    Avatar.setJointData(JOINT_ORDER[i], deCasteljau(frame.rotations[i], frame.nextFrame.rotations[i], frame.controlPoints[i][0], frame.controlPoints[i][1], interp));
+    Avatar.setJointData(JOINT_ORDER[i], procAnimAPI.deCasteljau(frame.rotations[i], frame.nextFrame.rotations[i], frame.controlPoints[i][0], frame.controlPoints[i][1], interp));
   }
 }
-
-var trailingAverageLoudness = 0;
-var MAX_SAMPLE = 32767;
-var DB_METER_BASE = Math.log(MAX_SAMPLE);
-
-var RAND_RATIO_LAST = getRandomFloat(0.1, 0.3);
-var RAND_TRAILING = 1 - RAND_RATIO_LAST;
 
 function jumpWithLoudness(deltaTime) {
   // potentially change pelvis height depending on trailing average loudness
@@ -362,18 +267,9 @@ function jumpWithLoudness(deltaTime) {
   Avatar.position = pelvisPosition;
 }
 
-var jointMapping = null;
-var frameIndex = 0.0;
-var isPlayingDanceAnimation = false;
-var randomAnimation = null;
-var animationLoops = 1;
 var forcedMove = false;
 
-var FRAME_RATE = 30.0;
-
 var wasMovingLastFrame = false;
-var wasDancing = false;
-
 
 function handleHeadTurn() {
   if (!isTurningHead && (Math.random() < CHANCE_OF_HEAD_TURNING)) {
@@ -386,16 +282,6 @@ function handleHeadTurn() {
     }
   }
 }
-
-var currentShoulderQuat = Avatar.getJointRotation(SHOULDER_JOINT_NUMBER);
-var targetShoulderQuat = currentShoulderQuat;
-var idleShoulderQuat = currentShoulderQuat;
-var currentSpineQuat = Avatar.getJointRotation(JOINT_SPINE);
-var targetSpineQuat = currentSpineQuat;
-var idleSpineQuat = currentSpineQuat;
-var currentElbowQuat = Avatar.getJointRotation(ELBOW_JOINT_NUMBER);
-var targetElbowQuat = currentElbowQuat;
-var idleElbowQuat = currentElbowQuat;
 
 function stopWalking() {
   Avatar.clearJointData(JOINT_R_HIP);
@@ -421,7 +307,7 @@ function handleWalking(deltaTime) {
         targetPosition = Vec3.sum(Avatar.position, Vec3.multiply(front, getRandomFloat(0.0, MOVE_RANGE_SMALL)));
     }
     while ((targetPosition.x < X_MIN || targetPosition.x > X_MAX || targetPosition.z < Z_MIN || targetPosition.z > Z_MAX) 
-        && attempts < MAX_ATEMPTS);
+        && attempts < MAX_ATTEMPTS);
         
     targetPosition.x = clamp(targetPosition.x, X_MIN, X_MAX);
     targetPosition.z = clamp(targetPosition.z, Z_MIN, Z_MAX);
@@ -473,31 +359,17 @@ function changePelvisHeight(newHeight) {
   Avatar.position = newPosition;
 }
 
-function possiblyStopDancing() {
-  if (wasDancing) {
-    for (var j = 0; j < Avatar.jointNames.length; j++) {
-      Avatar.clearJointData(j);
-    }
-    
-    changePelvisHeight(Y_PELVIS);
-  }
-}
-
 function updateBehavior(deltaTime) {
   cumulativeTime += deltaTime;
 
   if (AvatarList.containsAvatarWithDisplayName("mrdj")) {
-    if (wasMovingLastFrame && !wasDancing) {
+    if (wasMovingLastFrame) {
       isMoving = false;
     }
     
     // we have a DJ, shouldn't we be dancing?
     jumpWithLoudness(deltaTime);
   } else {
-    // make sure we're not dancing anymore
-    possiblyStopDancing();
-    
-    wasDancing = false;
     
     // no DJ, let's just chill on the dancefloor - randomly walking and talking
     handleHeadTurn();
