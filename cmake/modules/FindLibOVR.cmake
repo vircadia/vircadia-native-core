@@ -49,8 +49,8 @@ elseif (UNIX)
   select_library_configurations(XINERAMA)
   
 elseif (WIN32)   
-  find_library(LIBOVR_LIBRARY_DEBUG "Lib/Win32/libovrd.lib" HINTS ${OCULUS_SEARCH_DIRS})
-  find_library(LIBOVR_LIBRARY_RELEASE "Lib/Win32/libovr.lib" HINTS ${OCULUS_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_DEBUG NAME ovrd PATH_SUFFIXES Lib/Win32 Lib/Win32/VS2010 HINTS ${OCULUS_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_RELEASE NAME ovr PATH_SUFFIXES Lib/Win32 Lib/Win32/VS2010 HINTS ${OCULUS_SEARCH_DIRS})
 endif ()
 
 select_library_configurations(LIBOVR)
