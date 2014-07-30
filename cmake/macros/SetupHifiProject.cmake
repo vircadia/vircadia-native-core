@@ -7,7 +7,7 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-macro(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
+macro(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)    
   project(${TARGET})
   
   # grab the implemenation and header files
@@ -25,10 +25,10 @@ macro(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
   # add the executable, include additional optional sources
   add_executable(${TARGET} ${TARGET_SRCS} ${ARGN})
   
-  if (${INCLUDE_QT})
+  if (INCLUDE_QT)
     find_package(Qt5Core REQUIRED)
     qt5_use_modules(${TARGET} Core)
   endif ()
-
+  
   target_link_libraries(${TARGET} ${QT_LIBRARIES})
 endmacro()

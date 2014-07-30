@@ -1,8 +1,11 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12.2)
 
 if (WIN32)
-  cmake_policy (SET CMP0020 NEW)
+  cmake_policy(SET CMP0020 NEW)
 endif (WIN32)
+
+cmake_policy(SET CMP0028 OLD)
+cmake_policy(SET CMP0043 OLD)
 
 project(hifi)
 add_definitions(-DGLM_FORCE_RADIANS)
