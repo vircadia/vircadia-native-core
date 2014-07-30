@@ -166,8 +166,9 @@ void InboundAudioStream::framesAvailableChanged() {
 }
 
 void InboundAudioStream::setToStarved() {
-    if (!_isStarved && _ringBuffer.framesAvailable() < _desiredJitterBufferFrames) {
-        starved();
+    starved();
+    if (_ringBuffer.framesAvailable() >= _desiredJitterBufferFrames) {
+        _isStarved = false;
     }
 }
 

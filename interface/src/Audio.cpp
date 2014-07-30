@@ -711,6 +711,8 @@ void Audio::handleAudioInput() {
         }
         delete[] inputAudioSamples;
     }
+
+    pushAudioToOutput();
 }
 
 void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
@@ -894,7 +896,7 @@ void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
     // parse audio data
     _receivedAudioStream.parseData(audioByteArray);
 
-    pushAudioToOutput();
+    //pushAudioToOutput();
 }
 
 void Audio::pushAudioToOutput() {
@@ -1660,7 +1662,7 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
         
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            _audioOutput->setBufferSize(_receivedAudioStream.getFrameCapacity() * _outputFormat.bytesForDuration(BUFFER_SEND_INTERVAL_USECS));
+            _audioOutput->setBufferSize(/*_receivedAudioStream.getFrameCapacity()*/ 10 * _outputFormat.bytesForDuration(BUFFER_SEND_INTERVAL_USECS));
             qDebug() << "Ring Buffer capacity in frames: " << _receivedAudioStream.getFrameCapacity();
             _outputDevice = _audioOutput->start();
 
