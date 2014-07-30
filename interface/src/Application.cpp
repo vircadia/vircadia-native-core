@@ -524,8 +524,8 @@ void Application::initializeGL() {
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
-    _viewFrustumOffsetCamera.setNearClip(0.1f);
-    _viewFrustumOffsetCamera.setFarClip(500.0f * TREE_SCALE);
+    _viewFrustumOffsetCamera.setNearClip(DEFAULT_NEAR_CLIP);
+    _viewFrustumOffsetCamera.setFarClip(DEFAULT_FAR_CLIP);
 
     initDisplay();
     qDebug( "Initialized Display.");
@@ -1494,9 +1494,10 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    return _faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
+    return _cara.isActive() ? static_cast<FaceTracker*>(&_cara) : 
+        (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
         (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
-            (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL));
+            (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
 }
 
 struct SendVoxelsOperationArgs {
@@ -1876,6 +1877,19 @@ void Application::updateVisage() {
 
     //  Update Visage
     _visage.update();
+}
+
+void Application::updateCara() {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateCara()");
+
+    //  Update Cara
+    _cara.update();
+
+    //  Copy angular velocity if measured by cara, to the head
+    if (_cara.isActive()) {
+        _myAvatar->getHead()->setAngularVelocity(_cara.getHeadAngularVelocity());
+    }
 }
 
 void Application::updateMyAvatarLookAtPosition() {

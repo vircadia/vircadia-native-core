@@ -40,6 +40,7 @@ public:
     virtual void render() = 0;
 
     // getters
+    bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
     const xColor& getColor() const { return _color; }
     float getAlpha() const { return _alpha; }
@@ -55,6 +56,7 @@ public:
 
 protected:
     QGLWidget* _parent;
+    bool _isLoaded;
     float _alpha;
     xColor _color;
     bool _visible; // should the overlay be drawn at all

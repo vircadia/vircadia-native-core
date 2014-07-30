@@ -15,7 +15,7 @@
 
 Endpoint::Endpoint(const SharedNodePointer& node, PacketRecord* baselineSendRecord, PacketRecord* baselineReceiveRecord) :
     _node(node),
-    _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData)) {
+    _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData), this) {
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendDatagram(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readMessage(Bitstream&)));
@@ -49,7 +49,7 @@ void Endpoint::update() {
 
 int Endpoint::parseData(const QByteArray& packet) {
     // process through sequencer
-    _sequencer.receivedDatagram(packet);
+    QMetaObject::invokeMethod(&_sequencer, "receivedDatagram", Q_ARG(const QByteArray&, packet));
     return packet.size();
 }
 

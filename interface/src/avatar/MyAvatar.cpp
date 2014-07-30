@@ -162,9 +162,16 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _jointData.resize(_skeletonModel.getJointStateCount());
-        for (int i = 0; i < _jointData.size(); i++) {
-            JointData& data = _jointData[i];
-            data.valid = _skeletonModel.getJointState(i, data.rotation);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+            for (int i = 0; i < _jointData.size(); i++) {
+                JointData& data = _jointData[i];
+                data.valid = _skeletonModel.getVisibleJointState(i, data.rotation);
+            }
+        } else {
+            for (int i = 0; i < _jointData.size(); i++) {
+                JointData& data = _jointData[i];
+                data.valid = _skeletonModel.getJointState(i, data.rotation);
+            }
         }
     }
 
@@ -1871,8 +1878,6 @@ void MyAvatar::renderLaserPointers() {
 //Gets the tip position for the laser pointer
 glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
     const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
-    const float PALM_TIP_ROD_LENGTH_MULT = 40.0f;
-
     glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
 
     glm::vec3 position = palm->getPosition();
