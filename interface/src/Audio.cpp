@@ -108,6 +108,7 @@ Audio::Audio(QObject* parent) :
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
     _statsEnabled(false),
+    _statsShowInjectedStreams(false),
     _outgoingAvatarAudioSequenceNumber(0),
     _audioInputMsecsReadStats(MSECS_PER_SECOND / (float)AUDIO_CALLBACK_MSECS * CALLBACK_ACCELERATOR_RATIO, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _inputRingBufferMsecsAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
@@ -1220,6 +1221,10 @@ void Audio::toggleStats() {
     _statsEnabled = !_statsEnabled;
 }
 
+void Audio::toggleStatsShowInjectedStreams() {
+    _statsShowInjectedStreams = !_statsShowInjectedStreams;
+}
+
 void Audio::selectAudioScopeFiveFrames() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::AudioScopeFiveFrames)) {
         reallocateScope(5);
@@ -1304,10 +1309,10 @@ void Audio::renderStats(const float* color, int width, int height) {
         return;
     }
 
-    const int LINES_WHEN_CENTERED = 30;
-    const int CENTERED_BACKGROUND_HEIGHT = STATS_HEIGHT_PER_LINE * LINES_WHEN_CENTERED;
+    const int linesWhenCentered = _statsShowInjectedStreams ? 30 : 23;
+    const int CENTERED_BACKGROUND_HEIGHT = STATS_HEIGHT_PER_LINE * linesWhenCentered;
 
-    int lines = _audioMixerInjectedStreamAudioStatsMap.size() * 7 + 23;
+    int lines = _statsShowInjectedStreams ? _audioMixerInjectedStreamAudioStatsMap.size() * 7 + 23 : 23;
     int statsHeight = STATS_HEIGHT_PER_LINE * lines;
 
 
@@ -1381,6 +1386,14 @@ void Audio::renderStats(const float* color, int width, int height) {
 
     verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
 
+    char upstreamMicLabelString[] = "Upstream mic audio stats:";
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamMicLabelString, color);
+
+    renderAudioStreamStats(_audioMixerAvatarStreamAudioStats, horizontalOffset, verticalOffset, scale, rotation, font, color);
+
+
+    verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
 
     char downstreamLabelString[] = "Downstream mixed audio stats:";
     verticalOffset += STATS_HEIGHT_PER_LINE;
@@ -1389,26 +1402,20 @@ void Audio::renderStats(const float* color, int width, int height) {
     renderAudioStreamStats(downstreamAudioStreamStats, horizontalOffset, verticalOffset, scale, rotation, font, color, true);
 
 
-    verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
+    if (_statsShowInjectedStreams) {
 
-    char upstreamMicLabelString[] = "Upstream mic audio stats:";
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamMicLabelString, color);
+        foreach(const AudioStreamStats& injectedStreamAudioStats, _audioMixerInjectedStreamAudioStatsMap) {
 
-    renderAudioStreamStats(_audioMixerAvatarStreamAudioStats, horizontalOffset, verticalOffset, scale, rotation, font, color);
+            verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
 
+            char upstreamInjectedLabelString[512];
+            sprintf(upstreamInjectedLabelString, "Upstream injected audio stats:      stream ID: %s",
+                injectedStreamAudioStats._streamIdentifier.toString().toLatin1().data());
+            verticalOffset += STATS_HEIGHT_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamInjectedLabelString, color);
 
-    foreach(const AudioStreamStats& injectedStreamAudioStats, _audioMixerInjectedStreamAudioStatsMap) {
-
-        verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
-
-        char upstreamInjectedLabelString[512];
-        sprintf(upstreamInjectedLabelString, "Upstream injected audio stats:      stream ID: %s",
-            injectedStreamAudioStats._streamIdentifier.toString().toLatin1().data());
-        verticalOffset += STATS_HEIGHT_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamInjectedLabelString, color);
-
-        renderAudioStreamStats(injectedStreamAudioStats, horizontalOffset, verticalOffset, scale, rotation, font, color);
+            renderAudioStreamStats(injectedStreamAudioStats, horizontalOffset, verticalOffset, scale, rotation, font, color);
+        }
     }
 }
 

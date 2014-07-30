@@ -104,6 +104,7 @@ public slots:
     void toggleScope();
     void toggleScopePause();
     void toggleStats();
+    void toggleStatsShowInjectedStreams();
     void toggleAudioSpatialProcessing();
     void toggleStereoInput();
     void selectAudioScopeFiveFrames();
@@ -268,6 +269,7 @@ private:
 #endif
     static const unsigned int STATS_HEIGHT_PER_LINE = 20;
     bool _statsEnabled;
+    bool _statsShowInjectedStreams;
 
     AudioStreamStats _audioMixerAvatarStreamAudioStats;
     QHash<QUuid, AudioStreamStats> _audioMixerInjectedStreamAudioStatsMap;

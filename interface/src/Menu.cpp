@@ -600,6 +600,12 @@ Menu::Menu() :
                                             appInstance->getAudio(),
                                             SLOT(toggleStats()));
 
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
+                                            0,
+                                            false,
+                                            appInstance->getAudio(),
+                                            SLOT(toggleStatsShowInjectedStreams()));
+
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, true);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
