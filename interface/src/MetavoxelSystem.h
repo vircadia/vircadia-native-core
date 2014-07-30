@@ -26,6 +26,8 @@
 
 class Model;
 
+typedef QOpenGLTexture* TexturePointer;
+
 /// Renders a metavoxel tree.
 class MetavoxelSystem : public MetavoxelClientManager {
     Q_OBJECT
@@ -42,6 +44,8 @@ public:
     void simulate(float deltaTime);
     void render();
 
+    Q_INVOKABLE void deleteTextures(const TexturePointer& height, const TexturePointer& color);
+
 protected:
 
     virtual MetavoxelClient* createClient(const SharedNodePointer& node);
@@ -56,6 +60,8 @@ private:
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
 };
+
+Q_DECLARE_METATYPE(TexturePointer)
 
 /// Describes contents of a point in a point buffer.
 class BufferPoint {
@@ -129,6 +135,7 @@ public:
     /// \param clearAfterLoading if true, clear the data arrays after we load them into textures in order to reclaim the space
     HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color,
         bool clearAfterLoading = true);
+    ~HeightfieldBuffer();
     
     const glm::vec3& getTranslation() const { return _translation; }
     
@@ -144,8 +151,8 @@ private:
     QByteArray _height;
     QByteArray _color;
     bool _clearAfterLoading;
-    QOpenGLTexture _heightTexture;
-    QOpenGLTexture _colorTexture;
+    TexturePointer _heightTexture;
+    TexturePointer _colorTexture;
 
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
     static QHash<int, BufferPair> _bufferPairs;

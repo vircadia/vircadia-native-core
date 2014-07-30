@@ -422,6 +422,7 @@ class HeightfieldData : public QSharedData {
 public:
 
     HeightfieldData(const QByteArray& contents);
+    HeightfieldData(Bitstream& in, int bytes, bool color);
 
     const QByteArray& getContents() const { return _contents; }
 
