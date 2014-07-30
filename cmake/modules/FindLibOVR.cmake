@@ -53,7 +53,7 @@ endif ()
 select_library_configurations(LIBOVR)
 set(LIBOVR_LIBRARIES "${LIBOVR_LIBRARY}")
 
-if (UNIX) 
+if (UNIX AND NOT APPLE) 
   set(LIBOVR_LIBRARIES "${LIBOVR_LIBRARIES}" "${UDEV_LIBRARY}" "${XINERAMA_LIBRARY}"
 endif ()
 
