@@ -401,6 +401,9 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
 
 
 // TODO... how do we handle older/newer with this interface?
+// Look at getting rid of this, and moving this logic to Entity Tree
+// AND/OR remove the O(n) lookup for the entity since we know it should already exist in this
+// element list.
 bool EntityTreeElement::addOrUpdateEntity(EntityItem* entity, const EntityItemProperties& properties) {
     const bool wantDebug = false;
     if (wantDebug) {

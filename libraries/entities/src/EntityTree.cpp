@@ -331,6 +331,33 @@ bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
     
         // If this element is the best fit for the new entity properties, then add/or update it
         if (entityTreeElement->bestFitBounds(_newEntityCube)) {
+        
+        
+        /*********
+        //
+        //
+        // LOOK AT THIS NEXT... this is crashing... the old code was working.... but this is not...
+        //
+        //
+        //
+        
+            // if we are the existing containing element, then we can just do the update of the entity properties
+            if (entityTreeElement == _containingElement) {
+                assert(!_removeOld); // We shouldn't be in a remove old case and also be the new best fit
+
+                // set the entity properties and mark our element as changed.
+                _existingEntity->setProperties(_properties);
+                entityTreeElement->markWithChangedTime();
+                
+            } else {
+                // otherwise, this is an add case.
+                entityTreeElement->addEntityItem(_existingEntity);
+                _existingEntity->setProperties(_properties); // still need to update the properties!
+                entityTreeElement->markWithChangedTime();
+                _tree->setContainingElement(_entityItemID, entityTreeElement);
+            }
+        *************/
+        
             if (entityTreeElement->addOrUpdateEntity(_existingEntity, _properties)) {
 
                 //qDebug() << "UpdateEntityOperator::PreRecursion()... entity was updated!";
