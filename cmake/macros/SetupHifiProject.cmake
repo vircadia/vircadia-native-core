@@ -25,7 +25,7 @@ macro(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
   # add the executable, include additional optional sources
   add_executable(${TARGET} ${TARGET_SRCS} ${ARGN})
   
-  if (INCLUDE_QT)
+  if (${INCLUDE_QT})
     find_package(Qt5Core REQUIRED)
     qt5_use_modules(${TARGET} Core)
   endif ()
