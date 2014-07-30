@@ -52,18 +52,5 @@ public:
     virtual char getMyNodeType() const { return NodeType::VoxelServer; }
     
     qint64 satoshiCostForMessage(PacketType type, int numberOfDetails, VoxelDetail* details);
-    
-    void setSatoshisPerVoxel(qint64 satoshisPerVoxel) { _satoshisPerVoxel = satoshisPerVoxel; }
-    qint64 getSatoshisPerVoxel() const { return _satoshisPerVoxel; }
-
-    void setSatoshisPerMeterCubed(qint64 satoshisPerMeterCubed) { _satoshisPerMeterCubed = satoshisPerMeterCubed; }
-    qint64 getSatoshisPerMeterCubed() const { return _satoshisPerMeterCubed; }
-    
-public slots:
-    void updateVoxelCosts(const QJsonObject& domainSettingsObject);
-    
-private:
-    qint64 _satoshisPerVoxel;
-    qint64 _satoshisPerMeterCubed;
 };
 #endif // hifi_VoxelEditPacketSender_h

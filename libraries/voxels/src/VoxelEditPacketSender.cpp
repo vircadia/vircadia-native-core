@@ -143,25 +143,6 @@ void VoxelEditPacketSender::queueVoxelEditMessages(PacketType type, int numberOf
     }    
 }
 
-void VoxelEditPacketSender::updateVoxelCosts(const QJsonObject& domainSettingsObject) {
-    
-    // from the domain-handler, figure out the satoshi cost per voxel and per meter cubed
-    const QString VOXEL_SETTINGS_KEY = "voxels";
-    const QString PER_VOXEL_COST_KEY = "per-voxel-credits";
-    const QString PER_METER_CUBED_COST_KEY = "per-meter-cubed-credits";
-    
-    if (!domainSettingsObject.isEmpty()) {
-        float perVoxelCredits = (float) domainSettingsObject[VOXEL_SETTINGS_KEY].toObject()[PER_VOXEL_COST_KEY].toDouble();
-        float perMeterCubedCredits = (float) domainSettingsObject[VOXEL_SETTINGS_KEY].toObject()[PER_METER_CUBED_COST_KEY].toDouble();
-        
-        qDebug() << "PV: " << perVoxelCredits << "PMC: " << perMeterCubedCredits;
-    } else {
-        qDebug() << "CALLED WITH EMPTY SETTINGS!";
-        _satoshisPerVoxel = 0;
-        _satoshisPerMeterCubed = 0;
-    }
-}
-
 qint64 VoxelEditPacketSender::satoshiCostForMessage(PacketType type, int numberOfDetails, VoxelDetail *details) {
     return 0;
 }

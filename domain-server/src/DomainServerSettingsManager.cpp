@@ -141,6 +141,8 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
     return false;
 }
 
+const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
+
 void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
                                                                         QVariantMap& settingsVariant,
                                                                         QJsonObject descriptionObject) {
@@ -155,7 +157,12 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                     // this is an empty value, clear it in settings variant so the default is sent
                     settingsVariant.remove(key);
                 } else {
-                	settingsVariant[key] = rootValue.toString();
+                    if (descriptionObject[key].toObject().contains(SETTING_DESCRIPTION_TYPE_KEY)) {
+                        // for now this means that this is a double, so set it as a double
+                        settingsVariant[key] = rootValue.toString().toDouble();
+                    } else {
+                        settingsVariant[key] = rootValue.toString();
+                    }
                 }
             } else if (rootValue.isBool()) {
                 settingsVariant[key] = rootValue.toBool();

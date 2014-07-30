@@ -28,6 +28,7 @@
         "default": ""
       },
       "per-voxel-credits": {
+        "type": "double",
         "label": "Per Voxel Cost",
         "help": "Credit cost to change each voxel",
         "placeholder": "0.0",
@@ -35,6 +36,7 @@
         "input_addon": "₵"
       },
       "per-meter-cubed-credits": {
+        "type": "double",
         "label": "Per Meter Cubed Cost",
         "help": "Credit cost to change each cubed meter of voxel space",
         "placeholder": "0.0",

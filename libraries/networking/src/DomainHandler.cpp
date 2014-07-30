@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <tgmath.h>
+
 #include <QtCore/QJsonDocument>
 
 #include "Assignment.h"
@@ -159,6 +161,8 @@ void DomainHandler::settingsRequestFinished() {
         qDebug() << "Received domain settings.";
         emit settingsReceived();
         
+        updateVoxelCosts();
+        
         // reset failed settings requests to 0, we got them
         _failedSettingsRequests = 0;
     } else {
@@ -174,6 +178,25 @@ void DomainHandler::settingsRequestFinished() {
         } else {
             requestDomainSettings();
         }        
+    }
+}
+
+void DomainHandler::updateVoxelCosts() {
+    
+    // from the domain-handler, figure out the satoshi cost per voxel and per meter cubed
+    const QString VOXEL_SETTINGS_KEY = "voxels";
+    const QString PER_VOXEL_COST_KEY = "per-voxel-credits";
+    const QString PER_METER_CUBED_COST_KEY = "per-meter-cubed-credits";
+    
+    if (!_settingsObject.isEmpty()) {
+        float perVoxelCredits = (float) _settingsObject[VOXEL_SETTINGS_KEY].toObject()[PER_VOXEL_COST_KEY].toDouble();
+        float perMeterCubedCredits = (float) _settingsObject[VOXEL_SETTINGS_KEY].toObject()[PER_METER_CUBED_COST_KEY].toDouble();
+        
+        _satoshisPerVoxel = (qint64) floorf(perVoxelCredits * SATOSHIS_PER_CREDIT);
+        _satoshisPerMeterCubed = (qint64) floorf(perMeterCubedCredits * SATOSHIS_PER_CREDIT);
+    } else {
+        _satoshisPerVoxel = 0;
+        _satoshisPerMeterCubed = 0;
     }
 }
 

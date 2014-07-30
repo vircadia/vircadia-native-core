@@ -62,6 +62,9 @@ public:
     
     void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
     
+    qint64 getSatoshisPerVoxel() const { return _satoshisPerVoxel; }
+    qint64 getSatoshisPerMeterCubed() const { return _satoshisPerMeterCubed; }
+    
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
     void settingsRequestFinished();
@@ -75,6 +78,8 @@ signals:
 private:
     void reset();
     
+    void updateVoxelCosts();
+    
     QUuid _uuid;
     QString _hostname;
     HifiSockAddr _sockAddr;
@@ -83,6 +88,9 @@ private:
     QTimer* _handshakeTimer;
     QJsonObject _settingsObject;
     int _failedSettingsRequests;
+    
+    qint64 _satoshisPerVoxel;
+    qint64 _satoshisPerMeterCubed;
 };
 
 #endif // hifi_DomainHandler_h
