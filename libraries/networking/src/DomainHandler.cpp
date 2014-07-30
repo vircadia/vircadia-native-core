@@ -171,7 +171,8 @@ void DomainHandler::settingsRequestFinished() {
         qDebug() << "Error getting domain settings -" << settingsReply->errorString() << "- retrying";
         
         if (++_failedSettingsRequests >= MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS) {
-            qDebug() << "Failed to retreive domain-server settings" << MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS << "times. Re-setting connection to domain.";
+            qDebug() << "Failed to retreive domain-server settings" << MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS
+                << "times. Re-setting connection to domain.";
             clearSettings();
             clearConnectionInfo();
             emit settingsReceiveFail();
