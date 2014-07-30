@@ -4,8 +4,16 @@ if (WIN32)
   cmake_policy(SET CMP0020 NEW)
 endif (WIN32)
 
-cmake_policy(SET CMP0028 OLD)
-cmake_policy(SET CMP0043 OLD)
+if (POLICY CMP0028)
+  cmake_policy(SET CMP0028 OLD)
+endif ()
+
+if (POLICY CMP0043)
+  cmake_policy(SET CMP0043 OLD)
+endif () 
+
+
+
 
 project(hifi)
 add_definitions(-DGLM_FORCE_RADIANS)
@@ -42,7 +50,7 @@ set(CMAKE_AUTOMOC ON)
 # targets not supported on windows
 if (NOT WIN32)
   add_subdirectory(animation-server)
-endif (NOT WIN32)
+endif ()
 
 # targets on all platforms
 add_subdirectory(assignment-client)
