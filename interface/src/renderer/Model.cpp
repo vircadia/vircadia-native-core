@@ -922,7 +922,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 void Model::simulateInternal(float deltaTime) {
     // NOTE: this is a recursive call that walks all attachments, and their attachments
     // update the world space transforms for all joints
-
+    
     // update animations
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
         handle->simulate(deltaTime);
@@ -931,8 +931,11 @@ void Model::simulateInternal(float deltaTime) {
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].resetTransformChanged();
+    }
 
-    _shapesAreDirty = ! _shapes.isEmpty();
+    _shapesAreDirty = !_shapes.isEmpty();
     
     // update the attachment transforms and simulate them
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -994,7 +997,7 @@ void Model::updateJointState(int index) {
         state.computeTransform(parentTransform);
     } else {
         const JointState& parentState = _jointStates.at(parentIndex);
-        state.computeTransform(parentState.getTransform());
+        state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
     }
 }
 
