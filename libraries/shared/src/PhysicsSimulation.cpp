@@ -26,7 +26,7 @@ int MAX_COLLISIONS_PER_SIMULATION = 256;
 
 
 PhysicsSimulation::PhysicsSimulation() : _collisionList(MAX_COLLISIONS_PER_SIMULATION), 
-        _numIterations(0), _numCollisions(0), _constraintError(0.0f), _stepTime(0) {
+        _frame(0), _numIterations(0), _numCollisions(0), _constraintError(0.0f), _stepTime(0) {
 }
 
 PhysicsSimulation::~PhysicsSimulation() {
@@ -129,6 +129,7 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
 }
 
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
+    ++_frame;
     quint64 now = usecTimestampNow();
     quint64 startTime = now;
     quint64 expiry = startTime + maxUsec;

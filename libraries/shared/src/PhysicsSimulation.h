@@ -12,6 +12,7 @@
 #ifndef hifi_PhysicsSimulation
 #define hifi_PhysicsSimulation
 
+#include <QtGlobal>
 #include <QVector>
 
 #include "CollisionInfo.h"
@@ -51,6 +52,7 @@ private:
     QVector<Ragdoll*> _dolls;
 
     // some stats
+    quint32 _frame;
     int _numIterations;
     int _numCollisions;
     float _constraintError;
