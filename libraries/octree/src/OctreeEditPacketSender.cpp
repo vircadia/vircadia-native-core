@@ -324,6 +324,9 @@ void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, Pa
     packetBuffer._currentSize += sizeof(quint64); // nudge past timestamp
 
     packetBuffer._currentType = type;
+    
+    // reset cost for packet to 0
+    packetBuffer._satoshiCost = 0;
 }
 
 bool OctreeEditPacketSender::process() {
