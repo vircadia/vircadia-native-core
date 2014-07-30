@@ -14,6 +14,7 @@
 
 #include "PhysicsSimulation.h"
 
+#include "PerfStat.h"
 #include "PhysicsEntity.h"
 #include "Ragdoll.h"
 #include "SharedUtil.h"
@@ -142,10 +143,12 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
         computeCollisions();
         processCollisions();
 
-        // enforce constraints
-        error = 0.0f;
-        for (int i = 0; i < numDolls; ++i) {
-            error = glm::max(error, _dolls[i]->enforceRagdollConstraints());
+        { // enforce constraints
+            PerformanceTimer perfTimer("4-enforce");
+            error = 0.0f;
+            for (int i = 0; i < numDolls; ++i) {
+                error = glm::max(error, _dolls[i]->enforceRagdollConstraints());
+            }
         }
         ++iterations;
 
@@ -166,6 +169,7 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
 }
 
 void PhysicsSimulation::moveRagdolls(float deltaTime) {
+    PerformanceTimer perfTimer("1-integrate");
     int numDolls = _dolls.size();
     for (int i = 0; i < numDolls; ++i) {
         _dolls.at(i)->stepRagdollForward(deltaTime);
@@ -173,6 +177,7 @@ void PhysicsSimulation::moveRagdolls(float deltaTime) {
 }
 
 void PhysicsSimulation::computeCollisions() {
+    PerformanceTimer perfTimer("2-collide");
     _collisionList.clear();
     // TODO: keep track of QSet<PhysicsEntity*> collidedEntities;
     int numEntities = _entities.size();
@@ -204,6 +209,7 @@ void PhysicsSimulation::computeCollisions() {
 }
 
 void PhysicsSimulation::processCollisions() {
+    PerformanceTimer perfTimer("3-resolve");
     // walk all collisions, accumulate movement on shapes, and build a list of affected shapes
     QSet<Shape*> shapes;
     int numCollisions = _collisionList.size();
