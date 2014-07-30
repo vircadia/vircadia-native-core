@@ -27,9 +27,9 @@ function printVector(string, vector) {
     print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
 }
 
-var CHANCE_OF_MOVING = 0.00;
-var CHANCE_OF_SOUND = 0.005;
-var CHANCE_OF_HEAD_TURNING = 0.05;
+var CHANCE_OF_MOVING = 0.000;
+var CHANCE_OF_SOUND = 0;//0.005;
+var CHANCE_OF_HEAD_TURNING = 0.01;
 var CHANCE_OF_BIG_MOVE = 1.0;
 
 var isMoving = false;
@@ -51,8 +51,9 @@ var TURN_RANGE = 70.0;
 var STOP_TOLERANCE = 0.05;
 var MOVE_RATE = 0.05;
 var TURN_RATE = 0.2;
-var PITCH_RATE = 0.05;
-var PITCH_RANGE = 20.0;
+var HEAD_TURN_RATE = 0.05;
+var PITCH_RANGE = 15.0;
+var YAW_RANGE = 35.0;
 
 //var firstPosition = { x: getRandomFloat(X_MIN, X_MAX), y: Y_PELVIS, z: getRandomFloat(Z_MIN, Z_MAX) };
 var firstPosition = { x: 0.5, y: Y_PELVIS, z: 0.5 };
@@ -60,6 +61,7 @@ var targetPosition =  { x: 0, y: 0, z: 0 };
 var targetOrientation = { x: 0, y: 0, z: 0, w: 0 };
 var currentOrientation = { x: 0, y: 0, z: 0, w: 0 };
 var targetHeadPitch = 0.0;
+var targetHeadYaw = 0.0;
 
 var basePelvisHeight = 0.0;
 var pelvisOscillatorPosition = 0.0;
@@ -93,8 +95,8 @@ if (botNumber <= 20) {
   newBodyFilePrefix = "bot" + botNumber;
 } 
 
- newFaceFilePrefix = "ron";
- newBodyFilePrefix = "bot" + 63;
+// newFaceFilePrefix = "ron";
+// newBodyFilePrefix = "bot" + 63;
 
 // set the face model fst using the bot number
 // there is no need to change the body model - we're using the default
@@ -379,6 +381,10 @@ var JOINT_R_FOREARM = 16;
 var JOINT_L_ARM = 39;
 var JOINT_L_FOREARM = 40;
 var JOINT_SPINE = 11;
+var JOINT_R_FOOT = 3;
+var JOINT_L_FOOT = 8;
+var JOINT_R_TOE = 4;
+var JOINT_L_TOE = 9;
 
 // ******************************* Animation Is Defined Below *************************************
 
@@ -389,15 +395,29 @@ for (var i = 0; i < NUM_FRAMES; i++) {
     middleAngles[i] = [];
 }
 //Joint order for actual joint mappings, should be interleaved R,L,R,L,...S,S,S for R = right, L = left, S = single
-var JOINT_ORDER = [JOINT_R_HIP, JOINT_L_HIP, JOINT_R_KNEE, JOINT_L_KNEE, JOINT_R_ARM, JOINT_L_ARM, JOINT_R_FOREARM, JOINT_L_FOREARM, JOINT_SPINE];
-
-//Joint indices for joints that are duplicated, such as arms, It must match JOINT_ORDER
+var JOINT_ORDER = [];
+//*** right / left joints ***
 var HIP = 0;
+JOINT_ORDER.push(JOINT_R_HIP);
+JOINT_ORDER.push(JOINT_L_HIP);
 var KNEE = 1;
+JOINT_ORDER.push(JOINT_R_KNEE);
+JOINT_ORDER.push(JOINT_L_KNEE);
 var ARM = 2;
+JOINT_ORDER.push(JOINT_R_ARM);
+JOINT_ORDER.push(JOINT_L_ARM);
 var FOREARM = 3;
-//Joint indices for single joints
+JOINT_ORDER.push(JOINT_R_FOREARM);
+JOINT_ORDER.push(JOINT_L_FOREARM);
+var FOOT = 4;
+JOINT_ORDER.push(JOINT_R_FOOT);
+JOINT_ORDER.push(JOINT_L_FOOT);
+var TOE = 5;
+JOINT_ORDER.push(JOINT_R_TOE);
+JOINT_ORDER.push(JOINT_L_TOE);
+//*** middle joints ***
 var SPINE = 0;
+JOINT_ORDER.push(JOINT_SPINE);
 
 //We have to store the angles so we can invert yaw and roll when making the animation
 //symmetrical
@@ -408,11 +428,15 @@ rightAngles[0][HIP] = [30.0, 0.0, 8.0];
 rightAngles[0][KNEE] = [-15.0, 0.0, 0.0];
 rightAngles[0][ARM] = [85.0, -25.0, 0.0];
 rightAngles[0][FOREARM] = [0.0, 0.0, -15.0];
+rightAngles[0][FOOT] = [0.0, 0.0, 0.0];
+rightAngles[0][TOE] = [0.0, 0.0, 0.0];
 
 leftAngles[0][HIP] = [-15, 0.0, 8.0];
-leftAngles[0][KNEE] = [-28, 0.0, 0.0];
+leftAngles[0][KNEE] = [-26, 0.0, 0.0];
 leftAngles[0][ARM] = [85.0, 20.0, 0.0];
 leftAngles[0][FOREARM] = [10.0, 0.0, -25.0];
+leftAngles[0][FOOT] = [-13.0, 0.0, 0.0];
+leftAngles[0][TOE] = [34.0, 0.0, 0.0];
 
 middleAngles[0][SPINE] = [0.0, -15.0, 5.0];
 
@@ -421,11 +445,15 @@ rightAngles[1][HIP] = [6.0, 0.0, 8.0];
 rightAngles[1][KNEE] = [-12.0, 0.0, 0.0];
 rightAngles[1][ARM] = [85.0, 0.0, 0.0];
 rightAngles[1][FOREARM] = [0.0, 0.0, -15.0];
+rightAngles[1][FOOT] = [6.0, -8.0, 0.0];
+rightAngles[1][TOE] = [0.0, 0.0, 0.0];
 
 leftAngles[1][HIP] = [10.0, 0.0, 8.0];
-leftAngles[1][KNEE] = [-55.0, 0.0, 0.0];
+leftAngles[1][KNEE] = [-60.0, 0.0, 0.0];
 leftAngles[1][ARM] = [85.0, 0.0, 0.0];
 leftAngles[1][FOREARM] = [0.0, 0.0, -15.0];
+leftAngles[1][FOOT] = [0.0, 0.0, 0.0];
+leftAngles[1][TOE] = [0.0, 0.0, 0.0];
 
 middleAngles[1][SPINE] = [0.0, 0.0, 0.0];
 
@@ -444,11 +472,15 @@ rightQuats[HIP] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 7.0);
 rightQuats[KNEE] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0);
 rightQuats[ARM] = Quat.fromPitchYawRollDegrees(85.0, 0.0, 0.0);
 rightQuats[FOREARM] = Quat.fromPitchYawRollDegrees(0.0, 0.0, -10.0);
+rightQuats[FOOT] = Quat.fromPitchYawRollDegrees(0.0, -8.0, 0.0);
+rightQuats[TOE] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0);
 
 leftQuats[HIP] = Quat.fromPitchYawRollDegrees(0, 0.0, -7.0);
 leftQuats[KNEE] = Quat.fromPitchYawRollDegrees(0, 0.0, 0.0);
 leftQuats[ARM] = Quat.fromPitchYawRollDegrees(85.0, 0.0, 0.0);
 leftQuats[FOREARM] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 10.0);
+leftQuats[FOOT] = Quat.fromPitchYawRollDegrees(0.0, 8.0, 0.0);
+leftQuats[TOE] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0);
 
 middleQuats[SPINE] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0);
 
@@ -477,12 +509,12 @@ function handleAnimation(deltaTime) {
         setRandomExpression();
     }
   
-    if (avatarVelocity == 0.0) {
-        walkTime = 0.0;
-        currentFrame = 0;
-    } else {
-       walkTime += avatarVelocity * deltaTime;
-       if (walkTime > walkWheelRate) {
+   if (avatarVelocity == 0.0) {
+       walkTime = 0.0;
+       currentFrame = 0;
+   } else {
+        walkTime += avatarVelocity * deltaTime;
+        if (walkTime > walkWheelRate) {
             walkTime = 0.0;
             currentFrame++;
             if (currentFrame % 2 == 1) {
@@ -493,6 +525,7 @@ function handleAnimation(deltaTime) {
             }
         } 
     }
+
     var frame = walkKeyFrames[currentFrame];
    
     var walkInterp = walkTime / walkWheelRate;
@@ -536,10 +569,13 @@ var wasMovingLastFrame = false;
 function handleHeadTurn() {
     if (!isTurningHead && (Math.random() < CHANCE_OF_HEAD_TURNING)) {
         targetHeadPitch = getRandomFloat(-PITCH_RANGE, PITCH_RANGE);
+        targetHeadYaw = getRandomFloat(-YAW_RANGE, YAW_RANGE);
         isTurningHead = true;
     } else {
-        Avatar.headPitch = Avatar.headPitch + (targetHeadPitch - Avatar.headPitch) * PITCH_RATE;
-        if (Math.abs(Avatar.headPitch - targetHeadPitch) < STOP_TOLERANCE) {
+        Avatar.headPitch = Avatar.headPitch + (targetHeadPitch - Avatar.headPitch) * HEAD_TURN_RATE;
+        Avatar.headYaw = Avatar.headYaw + (targetHeadYaw - Avatar.headYaw) * HEAD_TURN_RATE;
+        if (Math.abs(Avatar.headPitch - targetHeadPitch) < STOP_TOLERANCE && 
+            Math.abs(Avatar.headYaw - targetHeadYaw) < STOP_TOLERANCE) {
             isTurningHead = false;
         }
     }
