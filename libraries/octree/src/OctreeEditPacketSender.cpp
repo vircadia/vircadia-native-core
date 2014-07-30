@@ -94,7 +94,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                 unsigned char* sequenceAt = buffer + numBytesPacketHeader;
                 quint16 sequence = _outgoingSequenceNumbers[nodeUUID]++;
                 memcpy(sequenceAt, &sequence, sizeof(quint16));
-
+                
                 // send packet
                 QByteArray packet(reinterpret_cast<const char*>(buffer), length);
                 queuePacketForSending(node, packet);
@@ -103,7 +103,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                 _sentPacketHistories[nodeUUID].packetSent(sequence, packet);
 
                 // debugging output...
-                bool wantDebugging = false;
+                bool wantDebugging = true;
                 if (wantDebugging) {
                     int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(buffer));
                     unsigned short int sequence = (*((unsigned short int*)(buffer + numBytesPacketHeader)));
@@ -113,6 +113,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
 
                     qDebug() << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] <<
                             " - command to node bytes=" << length <<
+                            " satoshiCost=" << satoshiCost <<
                             " sequence=" << sequence <<
                             " transitTimeSoFar=" << transitTime << " usecs";
                 }
