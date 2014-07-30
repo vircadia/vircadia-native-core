@@ -15,8 +15,10 @@
 ModelOverlay::ModelOverlay()
     : _model(),
       _scale(1.0f),
-      _updateModel(false) {
+      _updateModel(false)
+{
     _model.init();
+    _isLoaded = false;
 }
 
 void ModelOverlay::update(float deltatime) {
@@ -32,6 +34,7 @@ void ModelOverlay::update(float deltatime) {
     } else {
         _model.simulate(deltatime);
     }
+    _isLoaded = _model.isActive();
 }
 
 void ModelOverlay::render() {
@@ -90,6 +93,7 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
     if (urlValue.isValid()) {
         _url = urlValue.toVariant().toString();
         _updateModel = true;
+        _isLoaded = false;
     }
     
     QScriptValue scaleValue = properties.property("scale");
