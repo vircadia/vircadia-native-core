@@ -27,10 +27,10 @@ function printVector(string, vector) {
     print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
 }
 
-var CHANCE_OF_MOVING = 0.01;
-var CHANCE_OF_SOUND = 0;
+var CHANCE_OF_MOVING = 0.00;
+var CHANCE_OF_SOUND = 0.005;
 var CHANCE_OF_HEAD_TURNING = 0.05;
-var CHANCE_OF_BIG_MOVE = 0.1;
+var CHANCE_OF_BIG_MOVE = 1.0;
 
 var isMoving = false;
 var isTurningHead = false;
@@ -45,12 +45,13 @@ var MAX_PELVIS_DELTA = 2.5;
 
 var AVATAR_PELVIS_HEIGHT = 0.75;
 
-var MOVE_RANGE_SMALL = 10.0;
+var MOVE_RANGE_SMALL = 3.0;
+var MOVE_RANGE_BIG = 10.0;
 var TURN_RANGE = 70.0;
 var STOP_TOLERANCE = 0.05;
 var MOVE_RATE = 0.05;
 var TURN_RATE = 0.2;
-var PITCH_RATE = 0.10;
+var PITCH_RATE = 0.05;
 var PITCH_RANGE = 20.0;
 
 //var firstPosition = { x: getRandomFloat(X_MIN, X_MAX), y: Y_PELVIS, z: getRandomFloat(Z_MIN, Z_MAX) };
@@ -110,32 +111,253 @@ basePelvisHeight = firstPosition.y;
 printVector("New dancer, position = ", Avatar.position);
 
 function loadSounds() {
-  var sound_filenames = ["AB1.raw", "Anchorman2.raw", "B1.raw", "B1.raw", "Bale1.raw", "Bandcamp.raw",
+    var sound_filenames = ["AB1.raw", "Anchorman2.raw", "B1.raw", "B1.raw", "Bale1.raw", "Bandcamp.raw",
     "Big1.raw", "Big2.raw", "Brian1.raw", "Buster1.raw", "CES1.raw", "CES2.raw", "CES3.raw", "CES4.raw", 
     "Carrie1.raw", "Carrie3.raw", "Charlotte1.raw", "EN1.raw", "EN2.raw", "EN3.raw", "Eugene1.raw", "Francesco1.raw",
     "Italian1.raw", "Japanese1.raw", "Leigh1.raw", "Lucille1.raw", "Lucille2.raw", "MeanGirls.raw", "Murray2.raw",
     "Nigel1.raw", "PennyLane.raw", "Pitt1.raw", "Ricardo.raw", "SN.raw", "Sake1.raw", "Samantha1.raw", "Samantha2.raw", 
     "Spicoli1.raw", "Supernatural.raw", "Swearengen1.raw", "TheDude.raw", "Tony.raw", "Triumph1.raw", "Uma1.raw",
     "Walken1.raw", "Walken2.raw", "Z1.raw", "Z2.raw"
-  ];
-  
-  var SOUND_BASE_URL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/";
-  
-  for (var i = 0; i < sound_filenames.length; i++) {
-      sounds.push(new Sound(SOUND_BASE_URL + sound_filenames[i]));
-  }
+    ];
+
+    var footstep_filenames = ["FootstepW2Left-12db.wav", "FootstepW2Right-12db.wav", "FootstepW3Left-12db.wav", "FootstepW3Right-12db.wav", 
+                        "FootstepW5Left-12db.wav", "FootstepW5Right-12db.wav"];
+
+    var SOUND_BASE_URL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/";
+
+    var FOOTSTEP_BASE_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Footsteps/";
+
+    for (var i = 0; i < sound_filenames.length; i++) {
+        sounds.push(new Sound(SOUND_BASE_URL + sound_filenames[i]));
+    }
+
+    for (var i = 0; i < footstep_filenames.length; i++) {
+        footstepSounds.push(new Sound(FOOTSTEP_BASE_URL + footstep_filenames[i]));
+    }
 }
 
 var sounds = [];
+var footstepSounds = [];
 loadSounds();
 
 
 function playRandomSound() {
-  if (!Agent.isPlayingAvatarSound) {
-    var whichSound = Math.floor((Math.random() * sounds.length) % sounds.length);
-    Agent.playAvatarSound(sounds[whichSound]);
-  }
+    if (!Agent.isPlayingAvatarSound) {
+        var whichSound = Math.floor((Math.random() * sounds.length));
+        Agent.playAvatarSound(sounds[whichSound]);
+    }
 }
+
+function playRandomFootstepSound() {
+
+    var whichSound = Math.floor((Math.random() * footstepSounds.length));
+    var options = new AudioInjectionOptions();
+	options.position = Avatar.position;
+	options.volume = 1.0;
+	Audio.playSound(footstepSounds[whichSound], options);
+
+}
+
+// ************************************ Facial Animation **********************************
+var allBlendShapes = [];
+var targetBlendCoefficient = [];
+var currentBlendCoefficient = [];
+
+//Blendshape constructor
+function addBlendshapeToPose(pose, shapeIndex, val) {
+    var index = pose.blendShapes.length;
+    pose.blendShapes[index] = {shapeIndex: shapeIndex, val: val };
+}
+//The mood of the avatar, determines face. 0 = happy, 1 = angry, 2 = sad.
+var avatarMood = 0;
+var currentExpression = -1;
+//Face pose constructor
+var happyPoses = [];
+
+happyPoses[0] = {blendShapes: []};
+addBlendshapeToPose(happyPoses[0], 28, 0.7); //MouthSmile_L
+addBlendshapeToPose(happyPoses[0], 29, 0.7); //MouthSmile_R
+
+happyPoses[1] = {blendShapes: []};
+addBlendshapeToPose(happyPoses[1], 28, 1.0); //MouthSmile_L
+addBlendshapeToPose(happyPoses[1], 29, 1.0); //MouthSmile_R
+addBlendshapeToPose(happyPoses[1], 21, 0.2); //JawOpen
+
+happyPoses[2] = {blendShapes: []};
+addBlendshapeToPose(happyPoses[2], 28, 1.0); //MouthSmile_L
+addBlendshapeToPose(happyPoses[2], 29, 1.0); //MouthSmile_R
+addBlendshapeToPose(happyPoses[2], 21, 0.5); //JawOpen
+addBlendshapeToPose(happyPoses[2], 46, 1.0); //CheekSquint_L
+addBlendshapeToPose(happyPoses[2], 47, 1.0); //CheekSquint_R
+addBlendshapeToPose(happyPoses[2], 17, 1.0); //BrowsU_L
+addBlendshapeToPose(happyPoses[2], 18, 1.0); //BrowsU_R
+
+var angryPoses = [];
+
+angryPoses[0] = {blendShapes: []};
+addBlendshapeToPose(angryPoses[0], 26, 0.6); //MouthFrown_L
+addBlendshapeToPose(angryPoses[0], 27, 0.6); //MouthFrown_R
+addBlendshapeToPose(angryPoses[0], 14, 0.6); //BrowsD_L
+addBlendshapeToPose(angryPoses[0], 15, 0.6); //BrowsD_R
+
+angryPoses[1] = {blendShapes: []};
+addBlendshapeToPose(angryPoses[1], 26, 0.9); //MouthFrown_L
+addBlendshapeToPose(angryPoses[1], 27, 0.9); //MouthFrown_R
+addBlendshapeToPose(angryPoses[1], 14, 0.9); //BrowsD_L
+addBlendshapeToPose(angryPoses[1], 15, 0.9); //BrowsD_R
+
+angryPoses[2] = {blendShapes: []};
+addBlendshapeToPose(angryPoses[2], 26, 1.0); //MouthFrown_L
+addBlendshapeToPose(angryPoses[2], 27, 1.0); //MouthFrown_R
+addBlendshapeToPose(angryPoses[2], 14, 1.0); //BrowsD_L
+addBlendshapeToPose(angryPoses[2], 15, 1.0); //BrowsD_R
+addBlendshapeToPose(angryPoses[2], 21, 0.5); //JawOpen
+addBlendshapeToPose(angryPoses[2], 46, 1.0); //CheekSquint_L
+addBlendshapeToPose(angryPoses[2], 47, 1.0); //CheekSquint_R
+
+var sadPoses = [];
+
+sadPoses[0] = {blendShapes: []};
+addBlendshapeToPose(sadPoses[0], 26, 0.6); //MouthFrown_L
+addBlendshapeToPose(sadPoses[0], 27, 0.6); //MouthFrown_R
+addBlendshapeToPose(sadPoses[0], 16, 0.2); //BrowsU_C
+addBlendshapeToPose(sadPoses[0], 2, 0.6); //EyeSquint_L
+addBlendshapeToPose(sadPoses[0], 3, 0.6); //EyeSquint_R
+
+sadPoses[1] = {blendShapes: []};
+addBlendshapeToPose(sadPoses[1], 26, 0.9); //MouthFrown_L
+addBlendshapeToPose(sadPoses[1], 27, 0.9); //MouthFrown_R
+addBlendshapeToPose(sadPoses[1], 16, 0.6); //BrowsU_C
+addBlendshapeToPose(sadPoses[1], 2, 0.9); //EyeSquint_L
+addBlendshapeToPose(sadPoses[1], 3, 0.9); //EyeSquint_R
+
+sadPoses[2] = {blendShapes: []};
+addBlendshapeToPose(sadPoses[2], 26, 1.0); //MouthFrown_L
+addBlendshapeToPose(sadPoses[2], 27, 1.0); //MouthFrown_R
+addBlendshapeToPose(sadPoses[2], 16, 0.1); //BrowsU_C
+addBlendshapeToPose(sadPoses[2], 2, 1.0); //EyeSquint_L
+addBlendshapeToPose(sadPoses[2], 3, 1.0); //EyeSquint_R
+addBlendshapeToPose(sadPoses[2], 21, 0.3); //JawOpen
+
+var facePoses = [];
+facePoses[0] = happyPoses;
+facePoses[1] = angryPoses;
+facePoses[2] = sadPoses;
+
+
+function addBlendShape(s) {
+    allBlendShapes[allBlendShapes.length] = s;
+}
+
+//It is imperative that the following blendshapes are all present and are in the correct order
+addBlendShape("EyeBlink_L"); //0
+addBlendShape("EyeBlink_R"); //1
+addBlendShape("EyeSquint_L"); //2
+addBlendShape("EyeSquint_R"); //3
+addBlendShape("EyeDown_L"); //4
+addBlendShape("EyeDown_R"); //5
+addBlendShape("EyeIn_L"); //6
+addBlendShape("EyeIn_R"); //7
+addBlendShape("EyeOpen_L"); //8
+addBlendShape("EyeOpen_R"); //9
+addBlendShape("EyeOut_L"); //10
+addBlendShape("EyeOut_R"); //11
+addBlendShape("EyeUp_L"); //12
+addBlendShape("EyeUp_R"); //13
+addBlendShape("BrowsD_L"); //14
+addBlendShape("BrowsD_R"); //15
+addBlendShape("BrowsU_C"); //16
+addBlendShape("BrowsU_L"); //17
+addBlendShape("BrowsU_R"); //18
+addBlendShape("JawFwd"); //19
+addBlendShape("JawLeft"); //20
+addBlendShape("JawOpen"); //21
+addBlendShape("JawChew"); //22
+addBlendShape("JawRight"); //23
+addBlendShape("MouthLeft"); //24
+addBlendShape("MouthRight"); //25
+addBlendShape("MouthFrown_L"); //26
+addBlendShape("MouthFrown_R"); //27
+addBlendShape("MouthSmile_L"); //28
+addBlendShape("MouthSmile_R"); //29
+addBlendShape("MouthDimple_L"); //30
+addBlendShape("MouthDimple_R"); //31
+addBlendShape("LipsStretch_L"); //32
+addBlendShape("LipsStretch_R"); //33
+addBlendShape("LipsUpperClose"); //34
+addBlendShape("LipsLowerClose"); //35
+addBlendShape("LipsUpperUp"); //36
+addBlendShape("LipsLowerDown"); //37
+addBlendShape("LipsUpperOpen"); //38
+addBlendShape("LipsLowerOpen"); //39
+addBlendShape("LipsFunnel"); //40
+addBlendShape("LipsPucker"); //41
+addBlendShape("ChinLowerRaise"); //42
+addBlendShape("ChinUpperRaise"); //43
+addBlendShape("Sneer"); //44
+addBlendShape("Puff"); //45
+addBlendShape("CheekSquint_L"); //46
+addBlendShape("CheekSquint_R"); //47
+
+for (var i = 0; i < allBlendShapes.length; i++) {
+    targetBlendCoefficient[i] = 0;
+    currentBlendCoefficient[i] = 0;
+}
+
+function setRandomExpression() {
+
+    //Clear all expression data for current expression
+    if (currentExpression != -1) {
+        var expression = facePoses[avatarMood][currentExpression];
+        for (var i = 0; i < expression.blendShapes.length; i++) {
+            targetBlendCoefficient[expression.blendShapes[i].shapeIndex] = 0.0;
+        }
+    }
+    //Get a new current expression
+    currentExpression = Math.floor(Math.random() * facePoses[avatarMood].length);
+    var expression = facePoses[avatarMood][currentExpression];
+    for (var i = 0; i < expression.blendShapes.length; i++) {
+        targetBlendCoefficient[expression.blendShapes[i].shapeIndex] = expression.blendShapes[i].val;
+    }
+}
+
+var expressionChangeSpeed = 0.1;
+function updateBlendShapes(deltaTime) {
+  
+    for (var i = 0; i < allBlendShapes.length; i++) {
+        currentBlendCoefficient[i] += (targetBlendCoefficient[i] - currentBlendCoefficient[i]) * expressionChangeSpeed;
+        Avatar.setBlendshape(allBlendShapes[i], currentBlendCoefficient[i]);
+    }
+}
+
+var BLINK_SPEED = 0.15;
+var CHANCE_TO_BLINK = 0.0025;
+var MAX_BLINK = 0.85;
+var blink = 0.0;
+var isBlinking = false;
+function updateBlinking(deltaTime) {
+    if (isBlinking == false) {
+        if (Math.random() < CHANCE_TO_BLINK) {
+            isBlinking = true;
+        } else {
+            blink -= BLINK_SPEED;
+            if (blink < 0.0) blink = 0.0;
+        }
+    } else {
+        blink += BLINK_SPEED;
+        if (blink > MAX_BLINK) {
+            blink = MAX_BLINK;
+            isBlinking = false;
+        }
+    }
+    
+    currentBlendCoefficient[0] = blink;
+    currentBlendCoefficient[1] = blink;
+    targetBlendCoefficient[0] = blink;
+    targetBlendCoefficient[1] = blink;
+}
+
+// *************************************************************************************
 
 //Procedural walk animation using two keyframes
 //We use a separate array for front and back joints
@@ -248,24 +470,33 @@ var avatarMaxVelocity = 1.4;
 
 function handleAnimation(deltaTime) {
   
+    updateBlinking(deltaTime);
+    updateBlendShapes(deltaTime);
+  
+    if (Math.random() < 0.01) {
+        setRandomExpression();
+    }
+  
     if (avatarVelocity == 0.0) {
         walkTime = 0.0;
         currentFrame = 0;
     } else {
-        walkTime += avatarVelocity * deltaTime;
-           if (walkTime > walkWheelRate) {
-                walkTime = 0.0;
-                currentFrame++;
-                if (currentFrame > 3) {
+       walkTime += avatarVelocity * deltaTime;
+       if (walkTime > walkWheelRate) {
+            walkTime = 0.0;
+            currentFrame++;
+            if (currentFrame % 2 == 1) {
+                playRandomFootstepSound();
+            }
+            if (currentFrame > 3) {
                 currentFrame = 0;
             }
         } 
     }
-  
     var frame = walkKeyFrames[currentFrame];
    
     var walkInterp = walkTime / walkWheelRate;
-    var animInterp = avatarVelocity / (avatarMaxVelocity / 2.0);
+    var animInterp = avatarVelocity / (avatarMaxVelocity / 1.3);
     if (animInterp > 1.0) animInterp = 1.0;
    
     for (var i = 0; i < JOINT_ORDER.length; i++) {
@@ -325,13 +556,20 @@ function handleWalking(deltaTime) {
     if (forcedMove || (!isMoving && Math.random() < CHANCE_OF_MOVING)) {
         // Set new target location
 
+        var moveRange;
+        if (Math.random() < CHANCE_OF_BIG_MOVE) {
+            moveRange = MOVE_RANGE_BIG;
+        } else {
+            moveRange = MOVE_RANGE_SMALL;
+        }   
+        
         //Keep trying new orientations if the desired target location is out of bounds
         var attempts = 0;
         do {
             targetOrientation = Quat.multiply(Avatar.orientation, Quat.angleAxis(getRandomFloat(-TURN_RANGE, TURN_RANGE), { x:0, y:1, z:0 }));
             var front = Quat.getFront(targetOrientation);
             
-            targetPosition = Vec3.sum(Avatar.position, Vec3.multiply(front, getRandomFloat(0.0, MOVE_RANGE_SMALL)));
+            targetPosition = Vec3.sum(Avatar.position, Vec3.multiply(front, getRandomFloat(0.0, moveRange)));
         }
         while ((targetPosition.x < X_MIN || targetPosition.x > X_MAX || targetPosition.z < Z_MIN || targetPosition.z > Z_MAX) 
         && attempts < MAX_ATTEMPTS);
