@@ -30,32 +30,38 @@ static const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.0f);
 static const float TRANSLATION_SCALE = 1.0f;
 static const int NUM_BLENDSHAPE_COEFF = 30;
 
-struct CaraPerson
-{
-    struct CaraPose
-    {
+struct CaraPerson {
+    struct CaraPose {
         float roll, pitch, yaw;
-        CaraPose(): roll(0.0f), pitch(0.0f), yaw(0.0f) {}
+        CaraPose() :
+            roll(0.0f),
+            pitch(0.0f),
+            yaw(0.0f) 
+        {
+        }
     };
 
-    struct CaraEmotion
-    {
+    struct CaraEmotion {
         float smile, surprise, negative, attention;
-        CaraEmotion(): smile(0.0f), surprise(0.0f), negative(0.0f), attention(0.0f) {}
+        CaraEmotion(): 
+            smile(0.0f),
+            surprise(0.0f),
+            negative(0.0f),
+            attention(0.0f)
+        {
+        }
     };
 
-    enum CaraBlink 
-    {
+    enum CaraBlink {
         BLINK_NOT_AVAILABLE,
         NO_BLINK,
         BLINK
     };
 
-    CaraPerson():
+    CaraPerson() :
         id(-1),
-        blink(BLINK_NOT_AVAILABLE)
-    {
-    
+        blink(BLINK_NOT_AVAILABLE) 
+    {    
     }
 
     int id;
@@ -63,8 +69,7 @@ struct CaraPerson
     CaraEmotion emotion;
     CaraBlink blink;
 
-    QString toString()
-    {
+    QString toString() {
         QString s = QString("id: %1, roll: %2, pitch: %3, yaw: %4, smi: %5, sur: %6, neg: %7, att: %8, blink: %9").
             arg(id).
             arg(pose.roll).
@@ -75,42 +80,35 @@ struct CaraPerson
             arg(emotion.negative).
             arg(emotion.attention).
             arg(blink);
-
         return s;
     }
 };
 
-class CaraPacketDecoder
-{
+class CaraPacketDecoder {
 public:
-    static CaraPerson extractOne(const QByteArray& buffer, QJsonParseError* jsonError)
-    {
+    static CaraPerson extractOne(const QByteArray& buffer, QJsonParseError* jsonError) {
         CaraPerson person;
         QJsonDocument dom = QJsonDocument::fromJson(buffer, jsonError);
 
         //check for errors
-        if(jsonError->error == QJsonParseError::NoError)
-        {
+        if(jsonError->error == QJsonParseError::NoError) {
             //read the dom structure and populate the blend shapes and head poses
             //qDebug() << "[Info] Cara Face Tracker Packet Parsing Successful!";
 
             //begin extracting the packet
-            if(dom.isArray())
-            {
-                QJsonArray people = dom.array();
-                if(people.size() > 0) //extract the first person in the array               
-                {
+            if(dom.isArray()) {
+                QJsonArray people = dom.array();                
+                //extract the first person in the array
+                if(people.size() > 0) { 
                     QJsonValue val = people.at(0);
-                    if(val.isObject())
-                    {
+                    if(val.isObject()) {
                         QJsonObject personDOM = val.toObject();
                         person.id = extractId(personDOM);
                         person.pose = extractPose(personDOM);
 
                         //extract the classifier outputs
                         QJsonObject::const_iterator it = personDOM.constFind("classifiers");
-                        if(it != personDOM.constEnd())
-                        {
+                        if(it != personDOM.constEnd()) {
                             QJsonObject classifierDOM = (*it).toObject();
                             person.emotion = extractEmotion(classifierDOM);
                             person.blink = extractBlink(classifierDOM);
@@ -124,90 +122,85 @@ public:
     }
 
 private:
-    static int extractId(const QJsonObject& person)
-    {
+    static int extractId(const QJsonObject& person) {
         int id = -1;
         QJsonObject::const_iterator it = person.constFind("id");
-        if(it != person.constEnd())
+        if(it != person.constEnd()) {
             id = (*it).toInt(-1);
+        }
         return id;
     }
 
-    static CaraPerson::CaraPose extractPose(const QJsonObject& person)
-    {
+    static CaraPerson::CaraPose extractPose(const QJsonObject& person) {
         CaraPerson::CaraPose pose;
         QJsonObject::const_iterator it = person.constFind("pose");
-        if(it != person.constEnd())
-        {
+        if(it != person.constEnd()) {
             QJsonObject poseDOM = (*it).toObject();
 
             //look for the roll, pitch, yaw;
             QJsonObject::const_iterator poseIt = poseDOM.constFind("roll");
             QJsonObject::const_iterator poseEnd = poseDOM.constEnd();
-            if(poseIt != poseEnd)
+            if(poseIt != poseEnd) {
                 pose.roll = (float)(*poseIt).toDouble(0.0);
-
+            }
             poseIt = poseDOM.constFind("pitch");
-            if(poseIt != poseEnd)    
+            if(poseIt != poseEnd) {
                 pose.pitch = (float)(*poseIt).toDouble(0.0);
-
+            }
             poseIt = poseDOM.constFind("yaw");
-            if(poseIt != poseEnd)
+            if(poseIt != poseEnd) {
                 pose.yaw = (float)(*poseIt).toDouble(0.0);
+            }
         }
         return pose;
     }
 
-    static CaraPerson::CaraEmotion extractEmotion(const QJsonObject& classifiers)
-    {
+    static CaraPerson::CaraEmotion extractEmotion(const QJsonObject& classifiers) {
         CaraPerson::CaraEmotion emotion;
         QJsonObject::const_iterator it = classifiers.constFind("emotion");
-        if(it != classifiers.constEnd())
-        {
+        if(it != classifiers.constEnd()) {
             QJsonObject emotionDOM = (*it).toObject();
 
             //look for smile, surprise, negative, attention responses
             QJsonObject::const_iterator emoEnd = emotionDOM.constEnd();
             QJsonObject::const_iterator emoIt = emotionDOM.constFind("smi");
-            if(emoIt != emoEnd)
+            if(emoIt != emoEnd) {
                 emotion.smile = (float)(*emoIt).toDouble(0.0);
-
+            }
             emoIt = emotionDOM.constFind("sur");
-            if(emoIt != emoEnd)
+            if(emoIt != emoEnd) {
                 emotion.surprise = (float)(*emoIt).toDouble(0.0);
-
+            }
             emoIt = emotionDOM.constFind("neg");
-            if(emoIt != emoEnd)
+            if(emoIt != emoEnd) {
                 emotion.negative = (float)(*emoIt).toDouble(0.0);
-
+            }
             emoIt = emotionDOM.constFind("att");
-            if(emoIt != emoEnd)
+            if(emoIt != emoEnd) {
                 emotion.attention = (float)(*emoIt).toDouble(0.0);
+            }
         }
         return emotion;
     }
 
-    static CaraPerson::CaraBlink extractBlink(const QJsonObject& classifiers)
-    {
+    static CaraPerson::CaraBlink extractBlink(const QJsonObject& classifiers) {
         CaraPerson::CaraBlink blink = CaraPerson::BLINK_NOT_AVAILABLE;
         QJsonObject::const_iterator it = classifiers.constFind("blink");
-        if(it != classifiers.constEnd())
-        {
+        if(it != classifiers.constEnd()) {
             int b = (*it).toInt(CaraPerson::BLINK_NOT_AVAILABLE);
-            switch(b)
-            {
-            case CaraPerson::BLINK_NOT_AVAILABLE: 
-                blink = CaraPerson::BLINK_NOT_AVAILABLE;
-                break;
-            case CaraPerson::NO_BLINK:
-                blink = CaraPerson::NO_BLINK;
-                break;
-            case CaraPerson::BLINK:
-                blink = CaraPerson::BLINK;
-                break;
-            default:
-                blink = CaraPerson::BLINK_NOT_AVAILABLE;
-                break;
+            switch(b) {
+                case CaraPerson::BLINK_NOT_AVAILABLE: 
+                    blink = CaraPerson::BLINK_NOT_AVAILABLE;
+                    break;
+                case CaraPerson::NO_BLINK:
+                    blink = CaraPerson::NO_BLINK;
+                    break;
+                case CaraPerson::BLINK:
+                    blink = CaraPerson::BLINK;
+                    break;
+                default:
+                    blink = CaraPerson::BLINK_NOT_AVAILABLE;
+                    break;
             }
         }
         return blink;
@@ -219,9 +212,9 @@ CaraFaceTracker::CaraFaceTracker() :
     _previousPitch(0.0f),
     _previousYaw(0.0f),
     _previousRoll(0.0f),
-    _eyeGazeLeftPitch(0),
-    _eyeGazeLeftYaw(0),
-    _eyeGazeRightPitch(0),
+    _eyeGazeLeftPitch(0.0f),
+    _eyeGazeLeftYaw(0.0f),
+    _eyeGazeRightPitch(0.0f),
     _eyeGazeRightYaw(0),
     _leftBlinkIndex(0),
     _rightBlinkIndex(1),
@@ -234,7 +227,7 @@ CaraFaceTracker::CaraFaceTracker() :
     _browUpRightIndex(18),
     _mouthSmileLeftIndex(28),
     _mouthSmileRightIndex(29),
-    _jawOpenIndex(21)
+    _jawOpenIndex(21) 
 {
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
@@ -254,10 +247,10 @@ CaraFaceTracker::CaraFaceTracker(const QHostAddress& host, quint16 port) :
     _previousPitch(0.0f),
     _previousYaw(0.0f),
     _previousRoll(0.0f),
-    _eyeGazeLeftPitch(0),
-    _eyeGazeLeftYaw(0),
-    _eyeGazeRightPitch(0),
-    _eyeGazeRightYaw(0),
+    _eyeGazeLeftPitch(0.0f),
+    _eyeGazeLeftYaw(0.0f),
+    _eyeGazeRightPitch(0.0f),
+    _eyeGazeRightYaw(0.0f),
     _leftBlinkIndex(0),
     _rightBlinkIndex(1),
     _leftEyeOpenIndex(8),
@@ -269,7 +262,7 @@ CaraFaceTracker::CaraFaceTracker(const QHostAddress& host, quint16 port) :
     _browUpRightIndex(18),
     _mouthSmileLeftIndex(28),
     _mouthSmileRightIndex(29),
-    _jawOpenIndex(21)
+    _jawOpenIndex(21) 
 {
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
@@ -282,42 +275,36 @@ CaraFaceTracker::CaraFaceTracker(const QHostAddress& host, quint16 port) :
     _blendshapeCoefficients.fill(0.0f);
 }
 
-CaraFaceTracker::~CaraFaceTracker()
-{
+CaraFaceTracker::~CaraFaceTracker() {
     if(_udpSocket.isOpen())
         _udpSocket.close();
 }
 
-void CaraFaceTracker::init()
-{
+void CaraFaceTracker::init() {
 
 }
 
-void CaraFaceTracker::reset()
-{
+void CaraFaceTracker::reset() {
 
 }
 
-void CaraFaceTracker::bindTo(quint16 port)
-{
+void CaraFaceTracker::bindTo(quint16 port) {
     bindTo(QHostAddress::Any, port);
 }
 
-void CaraFaceTracker::bindTo(const QHostAddress& host, quint16 port)
-{
-    if(_udpSocket.isOpen())
+void CaraFaceTracker::bindTo(const QHostAddress& host, quint16 port) {
+    if(_udpSocket.isOpen()) {
         _udpSocket.close();
+    }
     _udpSocket.bind(host, port);
 }
 
-bool CaraFaceTracker::isActive() const
-{
+bool CaraFaceTracker::isActive() const {
     static const int ACTIVE_TIMEOUT_USECS = 3000000; //3 secs
     return (usecTimestampNow() - _lastReceiveTimestamp < ACTIVE_TIMEOUT_USECS);
 }
 
-void CaraFaceTracker::update()
-{
+void CaraFaceTracker::update() {
     // get the euler angles relative to the window
     glm::vec3 eulers = glm::degrees(safeEulerAngles(_headRotation * glm::quat(glm::radians(glm::vec3(
         (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f, (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f, 0.0f)))));
@@ -329,36 +316,39 @@ void CaraFaceTracker::update()
 }
 
 //private slots and methods
-void CaraFaceTracker::socketErrorOccurred(QAbstractSocket::SocketError socketError)
-{
+void CaraFaceTracker::socketErrorOccurred(QAbstractSocket::SocketError socketError) {
     qDebug() << "[Error] Cara Face Tracker Socket Error: " << _udpSocket.errorString();
 }
 
-void CaraFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState)
-{
+void CaraFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState) {
     QString state;
-    switch(socketState)
-    {
-    case QAbstractSocket::BoundState: state = "Bounded";
-        break;
-    case QAbstractSocket::ClosingState: state = "Closing";
-        break;
-    case QAbstractSocket::ConnectedState: state = "Connected";
-        break;
-    case QAbstractSocket::ConnectingState: state = "Connecting";
-        break;
-    case QAbstractSocket::HostLookupState: state = "Host Lookup";
-        break;
-    case QAbstractSocket::ListeningState: state = "Listening";
-        break;
-    case QAbstractSocket::UnconnectedState: state = "Unconnected";
-        break;
+    switch(socketState) {
+        case QAbstractSocket::BoundState: 
+            state = "Bounded";
+            break;
+        case QAbstractSocket::ClosingState: 
+            state = "Closing";
+            break;
+        case QAbstractSocket::ConnectedState: 
+            state = "Connected";
+            break;
+        case QAbstractSocket::ConnectingState: 
+            state = "Connecting";
+            break;
+        case QAbstractSocket::HostLookupState: 
+            state = "Host Lookup";
+            break;
+        case QAbstractSocket::ListeningState: 
+            state = "Listening";
+            break;
+        case QAbstractSocket::UnconnectedState: 
+            state = "Unconnected";
+            break;
     }
     qDebug() << "[Info] Cara Face Tracker Socket: " << socketState;
 }
 
-void CaraFaceTracker::readPendingDatagrams()
-{
+void CaraFaceTracker::readPendingDatagrams() {
     QByteArray buffer;
     while (_udpSocket.hasPendingDatagrams()) {
         buffer.resize(_udpSocket.pendingDatagramSize());
@@ -367,14 +357,12 @@ void CaraFaceTracker::readPendingDatagrams()
     }
 }
 
-void CaraFaceTracker::decodePacket(const QByteArray& buffer)
-{   
+void CaraFaceTracker::decodePacket(const QByteArray& buffer) {
     //decode the incoming udp packet
     QJsonParseError jsonError;
     CaraPerson person = CaraPacketDecoder::extractOne(buffer, &jsonError);
 
-    if(jsonError.error == QJsonParseError::NoError)
-    {
+    if(jsonError.error == QJsonParseError::NoError) {
         //do some noise filtering to the head poses
         //reduce the noise first by truncating to 1 dp
         person.pose.roll = glm::floor(person.pose.roll * 10) / 10;
@@ -388,8 +376,7 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
         // Compute angular velocity of the head
         glm::quat r = newRotation * glm::inverse(_headRotation);
         float theta = 2 * acos(r.w);
-        if (theta > EPSILON) 
-        {
+        if (theta > EPSILON) {
             float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
             const float AVERAGE_CARA_FRAME_TIME = 0.033f;
             const float ANGULAR_VELOCITY_MIN = 1.2f;
@@ -398,18 +385,21 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
             _headAngularVelocity = theta / AVERAGE_CARA_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
 
             //use the angular velocity for roll and pitch, if it's below the threshold don't move
-            if(glm::abs(_headAngularVelocity.x) < ANGULAR_VELOCITY_MIN)             
-                person.pose.pitch = _previousPitch;                
+            if(glm::abs(_headAngularVelocity.x) < ANGULAR_VELOCITY_MIN) {           
+                person.pose.pitch = _previousPitch;
+            }
 
-            if(glm::abs(_headAngularVelocity.z) < ANGULAR_VELOCITY_MIN)                           
+            if(glm::abs(_headAngularVelocity.z) < ANGULAR_VELOCITY_MIN) {
                 person.pose.roll = _previousRoll;
+            }
 
             //for yaw, the jitter is great, you can't use angular velocity because it swings too much
             //use the previous and current yaw, calculate the 
             //abs difference and move it the difference is above the standard deviation which is around 2.5
             // (this will introduce some jerks but will not encounter lag)
-            if(glm::abs(person.pose.yaw - _previousYaw) < YAW_STANDARD_DEV_DEG) // < the standard deviation 2.5 deg, no move
-            {
+            
+            // < the standard deviation 2.5 deg, no move
+            if(glm::abs(person.pose.yaw - _previousYaw) < YAW_STANDARD_DEV_DEG) {
                 //qDebug() << "Yaw Diff: " << glm::abs(person.pose.yaw - _previousYaw);
                 person.pose.yaw = _previousYaw;
             }
@@ -422,8 +412,7 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
             //set the new rotation
             newRotation = glm::quat(glm::vec3(DEGTORAD(person.pose.pitch), DEGTORAD(person.pose.yaw), DEGTORAD(-person.pose.roll)));
         } 
-        else 
-        {
+        else {
             //no change in position
             newRotation = glm::quat(glm::vec3(DEGTORAD(_previousPitch), DEGTORAD(_previousYaw), DEGTORAD(-_previousRoll)));
             _headAngularVelocity = glm::vec3(0,0,0);
@@ -433,7 +422,6 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
         _headRotation = newRotation;       
 
         //TODO: head translation, right now is 0
-
 
         //Do Blendshapes, clip between 0.0f to 1.0f, neg should be ignored       
         _blendshapeCoefficients[_leftBlinkIndex] = person.blink == CaraPerson::BLINK ? 1.0f : 0.0f;
@@ -450,14 +438,14 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer)
         _blendshapeCoefficients[_mouthSmileLeftIndex] = person.emotion.smile < 0.0f ? 0.0f : person.emotion.smile;
         _blendshapeCoefficients[_mouthSmileRightIndex] = person.emotion.smile < 0.0f ? 0.0f : person.emotion.smile;
     }
-    else
+    else {
         qDebug() << "[Error] Cara Face Tracker Decode Error: " << jsonError.errorString();
+    }
 
     _lastReceiveTimestamp = usecTimestampNow();    
 }
 
-float CaraFaceTracker::getBlendshapeCoefficient(int index) const 
-{
+float CaraFaceTracker::getBlendshapeCoefficient(int index) const {
     return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
 }
 

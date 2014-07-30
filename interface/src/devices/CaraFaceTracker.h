@@ -26,8 +26,7 @@
  *          host address (eg: 127.0.0.1 for localhost) and destination port 36555.
 **/
 
-class CaraFaceTracker : public FaceTracker
-{
+class CaraFaceTracker : public FaceTracker {
     Q_OBJECT
 
 public:
