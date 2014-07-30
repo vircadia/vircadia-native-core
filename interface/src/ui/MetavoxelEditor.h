@@ -26,6 +26,7 @@ class QPushButton;
 class QScrollArea;
 
 class MetavoxelTool;
+class Vec3Editor;
 
 /// Allows editing metavoxels.
 class MetavoxelEditor : public QWidget {
@@ -245,9 +246,10 @@ private:
 
     void updatePreview();
     
+    Vec3Editor* _translation;
+    QDoubleSpinBox* _scale;
     QPushButton* _height;
     QPushButton* _color;
-    QDoubleSpinBox* _scale;
     
     QImage _heightImage;
     QImage _colorImage;

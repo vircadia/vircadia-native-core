@@ -31,6 +31,7 @@
 
 #include <AttributeRegistry.h>
 #include <MetavoxelMessages.h>
+#include <MetavoxelUtil.h>
 
 #include "Application.h"
 #include "MetavoxelEditor.h"
@@ -902,15 +903,16 @@ ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
     widget->setLayout(form);
     layout()->addWidget(widget);
     
-    form->addRow("Height:", _height = new QPushButton());
-    connect(_height, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectHeightFile);
-    form->addRow("Color:", _color = new QPushButton());
-    connect(_color, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectColorFile);
+    form->addRow("Translation:", _translation = new Vec3Editor(widget));
     form->addRow("Scale:", _scale = new QDoubleSpinBox());
     _scale->setMinimum(-FLT_MAX);
     _scale->setMaximum(FLT_MAX);
     _scale->setPrefix("2^");
     _scale->setValue(1.0);
+    form->addRow("Height:", _height = new QPushButton());
+    connect(_height, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectHeightFile);
+    form->addRow("Color:", _color = new QPushButton());
+    connect(_color, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectColorFile);
 }
 
 bool ImportHeightfieldTool::appliesTo(const AttributePointer& attribute) const {
@@ -918,7 +920,11 @@ bool ImportHeightfieldTool::appliesTo(const AttributePointer& attribute) const {
 }
 
 void ImportHeightfieldTool::render() {
-    _preview.render(glm::vec3(), pow(2.0, _scale->value()));
+    float scale = pow(2.0, _scale->value());
+    _translation->setSingleStep(scale);
+    glm::vec3 quantizedTranslation = scale * glm::floor(_translation->getValue() / scale);
+    _translation->setValue(quantizedTranslation);
+    _preview.render(quantizedTranslation, scale);
 }
 
 void ImportHeightfieldTool::selectHeightFile() {
