@@ -629,7 +629,7 @@ void Menu::loadSettings(QSettings* settings) {
     }
 
     _audioJitterBufferFrames = loadSetting(settings, "audioJitterBufferFrames", 0);
-    _maxFramesOverDesired = loadSetting(settings, "maxFramesOverDesired", 0);
+    _maxFramesOverDesired = loadSetting(settings, "maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
