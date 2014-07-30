@@ -102,7 +102,7 @@ protected:
     bool _shouldSend;
     void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, ssize_t length, qint64 satoshiCost = 0);
     void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, ssize_t length, qint64 satoshiCost = 0);
-    void queuePacketToNodes(unsigned char* buffer, ssize_t length);
+    void queuePacketToNodes(unsigned char* buffer, ssize_t length, qint64 satoshiCost = 0);
     void initializePacket(EditPacketBuffer& packetBuffer, PacketType type);
     void releaseQueuedPacket(EditPacketBuffer& packetBuffer); // releases specific queued packet
     

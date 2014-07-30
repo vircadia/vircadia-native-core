@@ -117,9 +117,9 @@ void VoxelEditPacketSender::sendVoxelEditMessage(PacketType type, const VoxelDet
         // If we don't have voxel jurisdictions, then we will simply queue up these packets and wait till we have
         // jurisdictions for processing
         if (!voxelServersExist()) {
-            queuePendingPacketToNodes(type, bufferOut, sizeOut);
+            queuePendingPacketToNodes(type, bufferOut, sizeOut, satoshiCostForMessage(detail));
         } else {
-            queuePacketToNodes(bufferOut, sizeOut);
+            queuePacketToNodes(bufferOut, sizeOut, satoshiCostForMessage(detail));
         }
         
         // either way, clean up the created buffer
@@ -138,11 +138,20 @@ void VoxelEditPacketSender::queueVoxelEditMessages(PacketType type, int numberOf
         int sizeOut = 0;
 
         if (encodeVoxelEditMessageDetails(type, 1, &details[i], &bufferOut[0], _maxPacketSize, sizeOut)) {
-            queueOctreeEditMessage(type, bufferOut, sizeOut);
+            queueOctreeEditMessage(type, bufferOut, sizeOut, satoshiCostForMessage(details[i]));
         }
     }    
 }
 
-qint64 VoxelEditPacketSender::satoshiCostForMessage(PacketType type, int numberOfDetails, VoxelDetail *details) {
-    return 0;
+qint64 VoxelEditPacketSender::satoshiCostForMessage(const VoxelDetail& details) {
+    const DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
+    
+    qint64 totalSatoshiCost = domainHandler.getSatoshisPerVoxel();
+    
+    qint64 costPerMeterCubed = domainHandler.getSatoshisPerMeterCubed();
+    float totalVolume = details.s * details.s * details.s;
+    
+    totalSatoshiCost += floorf(totalVolume * costPerMeterCubed);
+    
+    return costPerMeterCubed;
 }

@@ -51,6 +51,6 @@ public:
     // My server type is the voxel server
     virtual char getMyNodeType() const { return NodeType::VoxelServer; }
     
-    qint64 satoshiCostForMessage(PacketType type, int numberOfDetails, VoxelDetail* details);
+    qint64 satoshiCostForMessage(const VoxelDetail& details);
 };
 #endif // hifi_VoxelEditPacketSender_h

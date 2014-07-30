@@ -177,7 +177,7 @@ void OctreeEditPacketSender::queuePendingPacketToNodes(PacketType type, unsigned
     }
 }
 
-void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t length) {
+void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t length, qint64 satoshiCost) {
     if (!_shouldSend) {
         return; // bail early
     }
