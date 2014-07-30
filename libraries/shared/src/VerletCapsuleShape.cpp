@@ -91,7 +91,7 @@ float VerletCapsuleShape::computeEffectiveMass(const glm::vec3& penetration, con
         _startLagrangeCoef = startCoef / maxCoef;
         _endLagrangeCoef = endCoef / maxCoef;
         assert(!glm::isnan(_startLagrangeCoef));
-        assert(!glm::isnan(_startLagrangeCoef));
+        assert(!glm::isnan(_endLagrangeCoef));
     } else {
         // The coefficients are the same --> the collision will move both equally
         // as if the object were solid.
