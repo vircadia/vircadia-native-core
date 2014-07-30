@@ -908,11 +908,15 @@ ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
     _scale->setMinimum(-FLT_MAX);
     _scale->setMaximum(FLT_MAX);
     _scale->setPrefix("2^");
-    _scale->setValue(1.0);
+    _scale->setValue(3.0);
     form->addRow("Height:", _height = new QPushButton());
     connect(_height, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectHeightFile);
     form->addRow("Color:", _color = new QPushButton());
     connect(_color, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectColorFile);
+    
+    QPushButton* applyButton = new QPushButton("Apply");
+    layout()->addWidget(applyButton);
+    connect(applyButton, &QAbstractButton::clicked, this, &ImportHeightfieldTool::apply);
 }
 
 bool ImportHeightfieldTool::appliesTo(const AttributePointer& attribute) const {
@@ -955,6 +959,26 @@ void ImportHeightfieldTool::selectColorFile() {
     updatePreview();
 }
 
+void ImportHeightfieldTool::apply() {
+    float scale = pow(2.0, _scale->value());
+    foreach (const BufferDataPointer& bufferData, _preview.getBuffers()) {
+        HeightfieldBuffer* buffer = static_cast<HeightfieldBuffer*>(bufferData.data());
+        MetavoxelData data;
+        data.setSize(scale);
+        HeightfieldDataPointer heightPointer(new HeightfieldData(buffer->getHeight()));
+        data.setRoot(AttributeRegistry::getInstance()->getHeightfieldAttribute(), new MetavoxelNode(AttributeValue(
+            AttributeRegistry::getInstance()->getHeightfieldAttribute(), encodeInline(heightPointer))));
+        if (!buffer->getColor().isEmpty()) {
+            HeightfieldDataPointer colorPointer(new HeightfieldData(buffer->getColor()));
+            data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
+                AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
+        }
+        MetavoxelEditMessage message = { QVariant::fromValue(SetDataEdit(
+            _translation->getValue() + buffer->getTranslation() * scale, data)) };
+        Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+    }
+}
+
 const int BLOCK_SIZE = 32;
 const int BLOCK_ADVANCEMENT = BLOCK_SIZE - 1;
 
@@ -988,7 +1012,7 @@ void ImportHeightfieldTool::updatePreview() {
                             _colorImage.scanLine(i + y) + j * BYTES_PER_COLOR, columns * BYTES_PER_COLOR);
                     }
                 }
-                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color)));
+                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color, false)));
             }
         }
     }

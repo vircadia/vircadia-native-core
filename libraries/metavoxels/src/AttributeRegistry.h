@@ -13,6 +13,7 @@
 #define hifi_AttributeRegistry_h
 
 #include <QHash>
+#include <QMutex>
 #include <QObject>
 #include <QReadWriteLock>
 #include <QSharedPointer>
@@ -424,9 +425,13 @@ public:
 
     const QByteArray& getContents() const { return _contents; }
 
+    void write(Bitstream& out, bool color);
+
 private:
     
     QByteArray _contents;
+    QByteArray _encoded;
+    QMutex _encodedMutex;
 };
 
 typedef QExplicitlySharedDataPointer<HeightfieldData> HeightfieldDataPointer;
@@ -439,6 +444,9 @@ public:
     
     Q_INVOKABLE HeightfieldAttribute(const QString& name = QString());
     
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };
 
@@ -449,6 +457,9 @@ class HeightfieldColorAttribute : public InlineAttribute<HeightfieldDataPointer>
 public:
     
     Q_INVOKABLE HeightfieldColorAttribute(const QString& name = QString());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };

@@ -255,11 +255,12 @@ void PointBuffer::render() {
 }
 
 HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
-        const QByteArray& height, const QByteArray& color) :
+        const QByteArray& height, const QByteArray& color, bool clearAfterLoading) :
     _translation(translation),
     _scale(scale),
     _height(height),
     _color(color),
+    _clearAfterLoading(clearAfterLoading),
     _heightTexture(QOpenGLTexture::Target2D),
     _colorTexture(QOpenGLTexture::Target2D) {
 }
@@ -281,8 +282,9 @@ void HeightfieldBuffer::render() {
         _heightTexture.setFormat(QOpenGLTexture::LuminanceFormat);
         _heightTexture.allocateStorage();
         _heightTexture.setData(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8, _height.data());
-        _height.clear();
-        
+        if (_clearAfterLoading) {
+            _height.clear();
+        }
         if (!_color.isEmpty()) {
             int colorSize = glm::sqrt(_color.size() / 3);
             _colorTexture.setSize(colorSize, colorSize);
@@ -294,8 +296,9 @@ void HeightfieldBuffer::render() {
         _colorTexture.allocateStorage();
         if (!_color.isEmpty()) {
             _colorTexture.setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt8, _color.data());
-            _color.clear();
-            
+            if (_clearAfterLoading) {
+                _color.clear();
+            }
         } else {
             const quint8 WHITE_COLOR[] = { 255, 255, 255 };
             _colorTexture.setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt8, const_cast<quint8*>(WHITE_COLOR));

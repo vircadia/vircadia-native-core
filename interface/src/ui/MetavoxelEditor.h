@@ -241,6 +241,7 @@ private slots:
 
     void selectHeightFile();
     void selectColorFile();
+    void apply();
 
 private:
 

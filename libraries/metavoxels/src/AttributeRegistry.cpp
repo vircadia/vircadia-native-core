@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QBuffer>
+#include <QMutexLocker>
 #include <QReadLocker>
 #include <QScriptEngine>
 #include <QWriteLocker>
@@ -459,8 +461,47 @@ HeightfieldData::HeightfieldData(const QByteArray& contents) :
     _contents(contents) {
 }
 
+void HeightfieldData::write(Bitstream& out, bool color) {
+    QMutexLocker locker(&_encodedMutex);
+    if (_encoded.isEmpty()) {
+        QImage image;
+        const int BYTES_PER_PIXEL = 3;
+        if (color) {    
+            int size = glm::sqrt(_contents.size() / (double)BYTES_PER_PIXEL);
+            image = QImage((uchar*)_contents.data(), size, size, QImage::Format_RGB888);
+        } else {
+            int size = glm::sqrt((double)_contents.size());
+            image = QImage(size, size, QImage::Format_RGB888);
+            uchar* dest = image.bits();
+            for (const char* src = _contents.constData(), *end = src + _contents.size(); src != end; src++) {
+                *dest++ = *src;
+                *dest++ = *src;
+                *dest++ = *src;
+            }
+        }
+        QBuffer buffer(&_encoded);
+        buffer.open(QIODevice::WriteOnly);
+        image.save(&buffer, "JPG");
+    }
+    
+}
+
 HeightfieldAttribute::HeightfieldAttribute(const QString& name) :
     InlineAttribute<HeightfieldDataPointer>(name) {
+}
+
+void HeightfieldAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (isLeaf) { 
+    }
+}
+
+void HeightfieldAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (isLeaf) {
+        HeightfieldDataPointer data = decodeInline<HeightfieldDataPointer>(value);
+        if (data) {
+            data->write(out, false);
+        }
+    }
 }
 
 bool HeightfieldAttribute::merge(void*& parent, void* children[], bool postRead) const {
@@ -469,6 +510,20 @@ bool HeightfieldAttribute::merge(void*& parent, void* children[], bool postRead)
 
 HeightfieldColorAttribute::HeightfieldColorAttribute(const QString& name) :
     InlineAttribute<HeightfieldDataPointer>(name) {
+}
+
+void HeightfieldColorAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (isLeaf) {
+    }
+}
+
+void HeightfieldColorAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (isLeaf) {
+        HeightfieldDataPointer data = decodeInline<HeightfieldDataPointer>(value);
+        if (data) {
+            data->write(out, true);
+        }
+    }
 }
 
 bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool postRead) const {
