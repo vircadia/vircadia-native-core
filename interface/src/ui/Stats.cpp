@@ -48,7 +48,13 @@ Stats::Stats():
         _pingStatsWidth(STATS_PING_MIN_WIDTH),
         _geoStatsWidth(STATS_GEO_MIN_WIDTH),
         _voxelStatsWidth(STATS_VOXEL_MIN_WIDTH),
-        _lastHorizontalOffset(0)
+        _lastHorizontalOffset(0),
+        _metavoxelInternal(0),
+        _metavoxelLeaves(0),
+        _metavoxelSendProgress(0),
+        _metavoxelSendTotal(0),
+        _metavoxelReceiveProgress(0),
+        _metavoxelReceiveTotal(0)
 {
     QGLWidget* glWidget = Application::getInstance()->getGLWidget();
     resetWidth(glWidget->width(), 0);
@@ -364,36 +370,26 @@ void Stats::display(
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, downloads.str().c_str(), color);
         
-        int internal = 0, leaves = 0;
-        int sendProgress = 0, sendTotal = 0;
-        int receiveProgress = 0, receiveTotal = 0;
-        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-            if (node->getType() == NodeType::MetavoxelServer) {
-                QMutexLocker locker(&node->getMutex());
-                MetavoxelClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
-                if (client) {
-                    client->getData().countNodes(internal, leaves, Application::getInstance()->getMetavoxels()->getLOD());
-                    client->getSequencer().addReliableChannelStats(sendProgress, sendTotal, receiveProgress, receiveTotal);
-                }
-            }
-        }
+        QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels()->getUpdater(), "getStats",
+            Q_ARG(QObject*, this), Q_ARG(const QByteArray&, "setMetavoxelStats"));
+        
         stringstream nodes;
-        nodes << "Metavoxels: " << (internal + leaves);
+        nodes << "Metavoxels: " << (_metavoxelInternal + _metavoxelLeaves);
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodes.str().c_str(), color);
         
         stringstream nodeTypes;
-        nodeTypes << "Internal: " << internal << "  Leaves: " << leaves;
+        nodeTypes << "Internal: " << _metavoxelInternal << "  Leaves: " << _metavoxelLeaves;
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodeTypes.str().c_str(), color);
         
-        if (sendTotal > 0 || receiveTotal > 0) {
+        if (_metavoxelSendTotal > 0 || _metavoxelReceiveTotal > 0) {
             stringstream reliableStats;
-            if (sendTotal > 0) {
-                reliableStats << "Upload: " << (sendProgress * 100 / sendTotal) << "%  ";
+            if (_metavoxelSendTotal > 0) {
+                reliableStats << "Upload: " << (_metavoxelSendProgress * 100 / _metavoxelSendTotal) << "%  ";
             }
-            if (receiveTotal > 0) {
-                reliableStats << "Download: " << (receiveProgress * 100 / receiveTotal) << "%";
+            if (_metavoxelReceiveTotal > 0) {
+                reliableStats << "Download: " << (_metavoxelReceiveProgress * 100 / _metavoxelReceiveTotal) << "%";
             }
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, reliableStats.str().c_str(), color);
@@ -725,4 +721,14 @@ void Stats::display(
     }
     
 
+}
+
+void Stats::setMetavoxelStats(int internal, int leaves, int sendProgress,
+        int sendTotal, int receiveProgress, int receiveTotal) {
+    _metavoxelInternal = internal;
+    _metavoxelLeaves = leaves;
+    _metavoxelSendProgress = sendProgress;
+    _metavoxelSendTotal = sendTotal;
+    _metavoxelReceiveProgress = receiveProgress;
+    _metavoxelReceiveTotal = receiveTotal;
 }
