@@ -12,9 +12,6 @@ if (POLICY CMP0043)
   cmake_policy(SET CMP0043 OLD)
 endif () 
 
-
-
-
 project(hifi)
 add_definitions(-DGLM_FORCE_RADIANS)
 
