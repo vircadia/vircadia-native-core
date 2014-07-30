@@ -22,10 +22,7 @@ include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("oculus")
 
 find_path(LIBOVR_INCLUDE_DIRS OVR.h PATH_SUFFIXES Include HINTS ${OCULUS_SEARCH_DIRS})
-find_path(LIBOVR_UTIL_INCLUDE_DIR Util_Render_Stereo.h PATH_SUFFIXES Src/Util HINTS ${OCULUS_SEARCH_DIRS})
-
-# add the util include dir to the general include dirs
-set(LIBOVR_INCLUDE_DIRS "${LIBOVR_INCLUDE_DIRS}" "${LIBOVR_UTIL_INCLUDE_DIR}")
+find_path(LIBOVR_SRC_DIR Util_Render_Stereo.h PATH_SUFFIXES Src/Util HINTS ${OCULUS_SEARCH_DIRS})
 
 include(SelectLibraryConfigurations)
 
@@ -58,10 +55,10 @@ select_library_configurations(LIBOVR)
 set(LIBOVR_LIBRARIES "${LIBOVR_LIBRARIES}" "${UDEV_LIBRARY}" "${XINERAMA_LIBRARY}")
 
 include(FindPackageHandleStandardArgs)
-if (UNIX)
-  find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_UTIL_INCLUDE_DIR LIBOVR_LIBRARIES)
-elseif ()
-  find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_UTIL_INCLUDE_DIR LIBOVR_LIBRARIES UDEV_LIBRARY XINERAMA_LIBRARY)
+if (UNIX AND NOT APPLE)
+  find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES UDEV_LIBRARY XINERAMA_LIBRARY)
+else ()
+  find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES)
 endif ()
 
 mark_as_advanced(LIBOVR_INCLUDE_DIRS LIBOVR_LIBRARIES OCULUS_SEARCH_DIRS)
