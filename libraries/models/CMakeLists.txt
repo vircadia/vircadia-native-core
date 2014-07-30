@@ -29,6 +29,7 @@ link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_library(avatars ${TARGET_NAME} "${ROOT_DIR}")
 
 # for streamable
 link_hifi_library(metavoxels ${TARGET_NAME} "${ROOT_DIR}")
