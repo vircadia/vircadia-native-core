@@ -14,6 +14,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <QtGlobal>
 
 class PhysicsEntity;
 
@@ -21,6 +22,7 @@ const float MAX_SHAPE_MASS = 1.0e18f; // something less than sqrt(FLT_MAX)
 
 class Shape {
 public:
+    static quint32 getNextID() { static quint32 nextID = 0; return ++nextID; }
 
     enum Type{
         UNKNOWN_SHAPE = 0,
@@ -31,9 +33,10 @@ public:
     };
 
     Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.f), _translation(0.f), _rotation(), _mass(MAX_SHAPE_MASS) { }
-    virtual ~Shape() {}
+    virtual ~Shape() { _shapeID = getNextID(); }
 
     int getType() const { return _type; }
+    quint32 getID() const { return _shapeID; }
 
     void setEntity(PhysicsEntity* entity) { _owningEntity = entity; }
     PhysicsEntity* getEntity() const { return _owningEntity; }
@@ -80,6 +83,7 @@ protected:
     void setBoundingRadius(float radius) { _boundingRadius = radius; }
 
     int _type;
+    unsigned int _shapeID;
     PhysicsEntity* _owningEntity;
     float _boundingRadius;
     glm::vec3 _translation;
