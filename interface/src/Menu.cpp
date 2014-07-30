@@ -595,7 +595,7 @@ Menu::Menu() :
                                            false);
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
-                                            0,
+                                            Qt::CTRL | Qt::Key_A,
                                             false,
                                             appInstance->getAudio(),
                                             SLOT(toggleStats()));
