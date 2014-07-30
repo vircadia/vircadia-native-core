@@ -36,9 +36,11 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
 
     // if the sender node has changed, reset all stats
     if (senderUUID != _lastSenderUUID) {
-        qDebug() << "sequence number stats was reset due to new sender node";
-        qDebug() << "previous:" << _lastSenderUUID << "current:" << senderUUID;
-        reset();
+        if (_stats._numReceived > 0) {
+            qDebug() << "sequence number stats was reset due to new sender node";
+            qDebug() << "previous:" << _lastSenderUUID << "current:" << senderUUID;
+            reset();
+        }
         _lastSenderUUID = senderUUID;
     }
 
