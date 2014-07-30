@@ -46,7 +46,7 @@ public:
     void resetTransformChanged() { _transformChanged = false; }
     bool getTransformChanged() const { return _transformChanged; }
 
-    glm::quat getRotation() const { return _rotation; }
+    glm::quat getRotation() const;
     glm::vec3 getPosition() const { return extractTranslation(_transform); }
 
     /// \return rotation from bind to model frame
@@ -110,6 +110,7 @@ private:
 
     bool _transformChanged;
     glm::mat4 _transform; // joint- to model-frame
+    bool _rotationIsValid;
     glm::quat _rotation;  // joint- to model-frame
     glm::quat _rotationInConstrainedFrame; // rotation in frame where angular constraints would be applied
     glm::vec3 _positionInParentFrame; // only changes when the Model is scaled

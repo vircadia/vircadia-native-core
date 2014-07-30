@@ -18,31 +18,10 @@
 
 #include "JointState.h"
 
-
-class RotationExtractor : public QRunnable {
-public:
-    
-    RotationExtractor(glm::mat4 transform, glm::quat& rotation);
-    
-    virtual void run();
-    
-private:
-    glm::mat4 _transform;
-    glm::quat _rotation;
-};
-
-RotationExtractor::RotationExtractor(glm::mat4 transform, glm::quat& rotation) {
-    _transform = transform;
-    _rotation = rotation;
-}
-
-void RotationExtractor::run() {
-    _rotation = extractRotation(_transform);
-}
-
 JointState::JointState() :
     _animationPriority(0.0f),
     _transformChanged(true),
+    _rotationIsValid(false),
     _positionInParentFrame(0.0f),
     _distanceToParent(0.0f),
     _fbxJoint(NULL),
@@ -52,6 +31,7 @@ JointState::JointState() :
 JointState::JointState(const JointState& other) : _constraint(NULL) {
     _transformChanged = other._transformChanged;
     _transform = other._transform;
+    _rotationIsValid = other._rotationIsValid;
     _rotation = other._rotation;
     _rotationInConstrainedFrame = other._rotationInConstrainedFrame;
     _positionInParentFrame = other._positionInParentFrame;
@@ -70,10 +50,20 @@ JointState::~JointState() {
     }
 }
 
+glm::quat JointState::getRotation() const {
+    if (!_rotationIsValid) {
+        const_cast<JointState*>(this)->_rotation = extractRotation(_transform);
+        const_cast<JointState*>(this)->_rotationIsValid = true;
+    }
+    
+    return _rotation;
+}
+
 void JointState::setFBXJoint(const FBXJoint* joint) {
     assert(joint != NULL);
     _rotationInConstrainedFrame = joint->rotation;
     _transformChanged = true;
+    _rotationIsValid = false;
     
     // NOTE: JointState does not own the FBXJoint to which it points.
     _fbxJoint = joint;
@@ -97,9 +87,10 @@ void JointState::updateConstraint() {
 
 void JointState::copyState(const JointState& state) {
     _animationPriority = state._animationPriority;
-    _transform = state._transform;
     _transformChanged = state._transformChanged;
-    _rotation = extractRotation(_transform);
+    _transform = state._transform;
+    _rotationIsValid = state._rotationIsValid;
+    _rotation = state._rotation;
     _rotationInConstrainedFrame = state._rotationInConstrainedFrame;
     _positionInParentFrame = state._positionInParentFrame;
     _distanceToParent = state._distanceToParent;
@@ -127,12 +118,8 @@ void JointState::computeTransform(const glm::mat4& parentTransform, bool parentT
     
     if (newTransform != _transform) {
         _transform = newTransform;
-        if (synchronousRotationCompute) {
-            _rotation = extractRotation(_transform);
-        } else {
-            QThreadPool::globalInstance()->start(new RotationExtractor(_transform, _rotation));
-        }
         _transformChanged = true;
+        _rotationIsValid = false;
     }
 }
 
@@ -144,7 +131,7 @@ void JointState::computeVisibleTransform(const glm::mat4& parentTransform) {
 }
 
 glm::quat JointState::getRotationInBindFrame() const {
-    return _rotation * _fbxJoint->inverseBindRotation;
+    return getRotation() * _fbxJoint->inverseBindRotation;
 }
 
 glm::quat JointState::getRotationInParentFrame() const {
@@ -167,7 +154,7 @@ void JointState::setRotationInBindFrame(const glm::quat& rotation, float priorit
     // rotation is from bind- to model-frame
     assert(_fbxJoint != NULL);
     if (priority >= _animationPriority) {
-        glm::quat targetRotation = _rotationInConstrainedFrame * glm::inverse(_rotation) * rotation * glm::inverse(_fbxJoint->inverseBindRotation);
+        glm::quat targetRotation = _rotationInConstrainedFrame * glm::inverse(getRotation()) * rotation * glm::inverse(_fbxJoint->inverseBindRotation);
         if (constrain && _constraint) {
             _constraint->softClamp(targetRotation, _rotationInConstrainedFrame, 0.5f);
         }
@@ -187,7 +174,7 @@ void JointState::clearTransformTranslation() {
 }
 
 void JointState::setRotation(const glm::quat& rotation, bool constrain, float priority) {
-    applyRotationDelta(rotation * glm::inverse(_rotation), true, priority);
+    applyRotationDelta(rotation * glm::inverse(getRotation()), true, priority);
 }
 
 void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {
@@ -197,13 +184,13 @@ void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, floa
         return;
     }
     _animationPriority = priority;
-    glm::quat targetRotation = _rotationInConstrainedFrame * glm::inverse(_rotation) * delta * _rotation;
+    glm::quat targetRotation = _rotationInConstrainedFrame * glm::inverse(getRotation()) * delta * getRotation();
     if (!constrain || _constraint == NULL) {
         // no constraints
         _rotationInConstrainedFrame = targetRotation;
         _transformChanged = true;
         
-        _rotation = delta * _rotation;
+        _rotation = delta * getRotation();
         return;
     }
     setRotationInConstrainedFrame(targetRotation);
@@ -218,7 +205,7 @@ void JointState::mixRotationDelta(const glm::quat& delta, float mixFactor, float
         return;
     }
     _animationPriority = priority;
-    glm::quat targetRotation = _rotationInConstrainedFrame * glm::inverse(_rotation) * delta * _rotation;
+    glm::quat targetRotation = _rotationInConstrainedFrame * glm::inverse(getRotation()) * delta * getRotation();
     if (mixFactor > 0.0f && mixFactor <= 1.0f) {
         targetRotation = safeMix(targetRotation, _fbxJoint->rotation, mixFactor);
     }
@@ -242,7 +229,7 @@ void JointState::mixVisibleRotationDelta(const glm::quat& delta, float mixFactor
 glm::quat JointState::computeParentRotation() const {
     // R = Rp * Rpre * r * Rpost
     // Rp = R * (Rpre * r * Rpost)^
-    return _rotation * glm::inverse(_fbxJoint->preRotation * _rotationInConstrainedFrame * _fbxJoint->postRotation);
+    return getRotation() * glm::inverse(_fbxJoint->preRotation * _rotationInConstrainedFrame * _fbxJoint->postRotation);
 }
 
 glm::quat JointState::computeVisibleParentRotation() const {
@@ -278,6 +265,6 @@ const glm::vec3& JointState::getDefaultTranslationInConstrainedFrame() const {
 
 void JointState::slaveVisibleTransform() {
     _visibleTransform = _transform;
-    _visibleRotation = _rotation;
+    _visibleRotation = getRotation();
     _visibleRotationInConstrainedFrame = _rotationInConstrainedFrame;
 }
