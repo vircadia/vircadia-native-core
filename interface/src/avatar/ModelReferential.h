@@ -15,6 +15,7 @@
 #include <Referential.h>
 
 class ModelTree;
+class Model;
 
 class ModelReferential : public Referential {
 public:
@@ -24,6 +25,17 @@ public:
 protected:
     uint32_t _modelID;
     ModelTree* _tree;
+};
+
+class JointReferential : public ModelReferential {
+public:
+    JointReferential(uint32_t jointID, uint32_t modelID, ModelTree* tree, AvatarData* avatar);
+    virtual void update();
+    
+protected:
+    const Model* getModel(const ModelItem* item);
+    
+    uint32_t _jointID;
 };
 
 #endif // hifi_ModelReferential_h

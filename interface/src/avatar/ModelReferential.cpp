@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <AvatarData.h>
+
 #include "ModelTree.h"
 
 #include "ModelReferential.h"
@@ -19,7 +21,7 @@ _modelID(modelID),
 _tree(tree)
 {
     const ModelItem* item = _tree->findModelByID(_modelID);
-    if (!_isValid || item == NULL || _avatar == NULL) {
+    if (!_isValid || item == NULL) {
         _isValid = false;
         return;
     }
@@ -57,4 +59,35 @@ void ModelReferential::update() {
         _avatar->setPosition(_refPosition + _refRotation * (_translation * _refScale));
         somethingChanged = true;
     }
+}
+
+JointReferential::JointReferential(uint32_t jointID, uint32_t modelID, ModelTree* tree, AvatarData* avatar) :
+    ModelReferential(modelID, tree, avatar),
+    _jointID(jointID)
+{
+    const Model* model = getModel(_tree->findModelByID(_modelID));
+    
+    if (!_isValid || model == NULL || model->getJointStateCount() <= jointID) {
+        _isValid = false;
+        return;
+    }
+}
+
+void JointReferential::update() {
+    const ModelItem* item = _tree->findModelByID(_modelID);
+    if (!_isValid || item == NULL) {
+        _isValid = false;
+        return;
+    }
+    
+    
+}
+
+const Model* JointReferential::getModel(const ModelItem* item) {
+    ModelItemFBXService* fbxService = _tree->getFBXService();
+    if (item != NULL && fbxService != NULL) {
+        return fbxService->getModelForModelItem(*item);
+    }
+    
+    return NULL;
 }

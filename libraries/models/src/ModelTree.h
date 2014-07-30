@@ -15,6 +15,8 @@
 #include <Octree.h>
 #include "ModelTreeElement.h"
 
+class Model;
+
 class NewlyCreatedModelHook {
 public:
     virtual void modelCreated(const ModelItem& newModel, const SharedNodePointer& senderNode) = 0;
@@ -23,6 +25,7 @@ public:
 class ModelItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) = 0;
+    virtual const Model* getModelForModelItem(const ModelItem& modelItem) = 0;
 };
 
 class ModelTree : public Octree {
@@ -80,6 +83,7 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     void handleAddModelResponse(const QByteArray& packet);
     
+    ModelItemFBXService* getFBXService() const { return _fbxService; }
     void setFBXService(ModelItemFBXService* service) { _fbxService = service; }
     const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) {
         return _fbxService ? _fbxService->getGeometryForModel(modelItem) : NULL;
