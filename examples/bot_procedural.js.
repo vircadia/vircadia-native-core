@@ -27,8 +27,8 @@ function printVector(string, vector) {
     print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
 }
 
-var CHANCE_OF_MOVING = 0.000;
-var CHANCE_OF_SOUND = 0;//0.005;
+var CHANCE_OF_MOVING = 0.005;
+var CHANCE_OF_SOUND = 0.005;
 var CHANCE_OF_HEAD_TURNING = 0.01;
 var CHANCE_OF_BIG_MOVE = 1.0;
 
@@ -40,10 +40,10 @@ var X_MIN = 0.50;
 var X_MAX = 15.60;
 var Z_MIN = 0.50;
 var Z_MAX = 15.10;
-var Y_PELVIS = 1.0;
+var Y_FEET = 0.0; 
+var AVATAR_PELVIS_HEIGHT = 0.84;
+var Y_PELVIS = Y_FEET + AVATAR_PELVIS_HEIGHT;
 var MAX_PELVIS_DELTA = 2.5;
-
-var AVATAR_PELVIS_HEIGHT = 0.75;
 
 var MOVE_RANGE_SMALL = 3.0;
 var MOVE_RANGE_BIG = 10.0;
@@ -71,32 +71,15 @@ function clamp(val, min, max){
     return Math.max(min, Math.min(max, val))
 }
 
-// pick an integer between 1 and 100 that is not 28 for the face model for this bot
-botNumber = 28;
+//Array of all valid bot numbers
+var validBotNumbers = [];
 
-while (botNumber == 28) {
-  botNumber = getRandomInt(1, 100);
-}
+// right now we only use bot 63, since many other bots have messed up skeletons and LOD issues
+var botNumber = 63;//getRandomInt(0, 99);
 
-if (botNumber <= 20) {
-  newFaceFilePrefix = "ron";
-  newBodyFilePrefix = "defaultAvatar_body"
-} else {
-  if (botNumber <= 40) {
-    newFaceFilePrefix = "superhero";
-  } else if (botNumber <= 60) {
-    newFaceFilePrefix = "amber";
-  } else if (botNumber <= 80) {
-    newFaceFilePrefix = "ron";
-  } else {
-    newFaceFilePrefix = "angie";
-  }
+var newFaceFilePrefix = "ron";
 
-  newBodyFilePrefix = "bot" + botNumber;
-} 
-
-// newFaceFilePrefix = "ron";
-// newBodyFilePrefix = "bot" + 63;
+var newBodyFilePrefix = "bot" + botNumber;
 
 // set the face model fst using the bot number
 // there is no need to change the body model - we're using the default
