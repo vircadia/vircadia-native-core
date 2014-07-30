@@ -27,7 +27,7 @@ function printVector(string, vector) {
     print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
 }
 
-var CHANCE_OF_MOVING = 0.1;
+var CHANCE_OF_MOVING = 0.01;
 var CHANCE_OF_SOUND = 0;
 var CHANCE_OF_HEAD_TURNING = 0.05;
 var CHANCE_OF_BIG_MOVE = 0.1;
@@ -59,8 +59,6 @@ var targetPosition =  { x: 0, y: 0, z: 0 };
 var targetOrientation = { x: 0, y: 0, z: 0, w: 0 };
 var currentOrientation = { x: 0, y: 0, z: 0, w: 0 };
 var targetHeadPitch = 0.0;
-
-var cumulativeTime = 0.0;
 
 var basePelvisHeight = 0.0;
 var pelvisOscillatorPosition = 0.0;
@@ -209,10 +207,33 @@ leftAngles[1][FOREARM] = [0.0, 0.0, -15.0];
 
 middleAngles[1][SPINE] = [0.0, 0.0, 0.0];
 
-// ******************************* Animation Is Defined Above *************************************
-
 //Actual keyframes for the animation
 var walkKeyFrames = procAnimAPI.generateKeyframes(rightAngles, leftAngles, middleAngles, NUM_FRAMES);
+
+// ******************************* Animation Is Defined Above *************************************
+
+// ********************************** Standing Key Frame ******************************************
+//We don't have to do any mirroring or anything, since this is just a single pose.
+var rightQuats = [];
+var leftQuats = [];
+var middleQuats = [];
+
+rightQuats[HIP] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 7.0);
+rightQuats[KNEE] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0);
+rightQuats[ARM] = Quat.fromPitchYawRollDegrees(85.0, 0.0, 0.0);
+rightQuats[FOREARM] = Quat.fromPitchYawRollDegrees(0.0, 0.0, -10.0);
+
+leftQuats[HIP] = Quat.fromPitchYawRollDegrees(0, 0.0, -7.0);
+leftQuats[KNEE] = Quat.fromPitchYawRollDegrees(0, 0.0, 0.0);
+leftQuats[ARM] = Quat.fromPitchYawRollDegrees(85.0, 0.0, 0.0);
+leftQuats[FOREARM] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 10.0);
+
+middleQuats[SPINE] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0);
+
+var standingKeyFrame = new procAnimAPI.KeyFrame(rightQuats, leftQuats, middleQuats);
+
+// ************************************************************************************************
+
 
 var currentFrame = 0;
 
@@ -225,46 +246,56 @@ var avatarAcceleration = 0.75;
 var avatarVelocity = 0.0;
 var avatarMaxVelocity = 1.4;
 
-function keepWalking(deltaTime) {
-    
-  walkTime += avatarVelocity * deltaTime;
-  if (walkTime > walkWheelRate) {
-    walkTime = 0.0;
-    currentFrame++;
-    if (currentFrame > 3) {
-        currentFrame = 0;
-    }
-  } 
+function handleAnimation(deltaTime) {
   
-  var frame = walkKeyFrames[currentFrame];
+    if (avatarVelocity == 0.0) {
+        walkTime = 0.0;
+        currentFrame = 0;
+    } else {
+        walkTime += avatarVelocity * deltaTime;
+           if (walkTime > walkWheelRate) {
+                walkTime = 0.0;
+                currentFrame++;
+                if (currentFrame > 3) {
+                currentFrame = 0;
+            }
+        } 
+    }
+  
+    var frame = walkKeyFrames[currentFrame];
    
-  var interp = walkTime / walkWheelRate;
+    var walkInterp = walkTime / walkWheelRate;
+    var animInterp = avatarVelocity / (avatarMaxVelocity / 2.0);
+    if (animInterp > 1.0) animInterp = 1.0;
    
-  for (var i = 0; i < JOINT_ORDER.length; i++) {
-    Avatar.setJointData(JOINT_ORDER[i], procAnimAPI.deCasteljau(frame.rotations[i], frame.nextFrame.rotations[i], frame.controlPoints[i][0], frame.controlPoints[i][1], interp));
-  }
+    for (var i = 0; i < JOINT_ORDER.length; i++) {
+        var walkJoint = procAnimAPI.deCasteljau(frame.rotations[i], frame.nextFrame.rotations[i], frame.controlPoints[i][0], frame.controlPoints[i][1], walkInterp);
+        var standJoint = standingKeyFrame.rotations[i];
+        var finalJoint = Quat.mix(standJoint, walkJoint, animInterp);
+        Avatar.setJointData(JOINT_ORDER[i], finalJoint);
+    }
 }
 
 function jumpWithLoudness(deltaTime) {
-  // potentially change pelvis height depending on trailing average loudness
-  
-  pelvisOscillatorVelocity += deltaTime * Agent.lastReceivedAudioLoudness * 700.0 ;
+    // potentially change pelvis height depending on trailing average loudness
 
-  pelvisOscillatorVelocity -= pelvisOscillatorPosition * 0.75;
-  pelvisOscillatorVelocity *= 0.97;
-  pelvisOscillatorPosition += deltaTime * pelvisOscillatorVelocity;
-  Avatar.headPitch = pelvisOscillatorPosition * 60.0;
+    pelvisOscillatorVelocity += deltaTime * Agent.lastReceivedAudioLoudness * 700.0 ;
 
-  var pelvisPosition = Avatar.position;
-  pelvisPosition.y = (Y_PELVIS - 0.35) + pelvisOscillatorPosition;
-  
-  if (pelvisPosition.y < Y_PELVIS) {
-    pelvisPosition.y = Y_PELVIS;
-  } else if (pelvisPosition.y > Y_PELVIS + 1.0) {
-    pelvisPosition.y = Y_PELVIS + 1.0;
-  }
-  
-  Avatar.position = pelvisPosition;
+    pelvisOscillatorVelocity -= pelvisOscillatorPosition * 0.75;
+    pelvisOscillatorVelocity *= 0.97;
+    pelvisOscillatorPosition += deltaTime * pelvisOscillatorVelocity;
+    Avatar.headPitch = pelvisOscillatorPosition * 60.0;
+
+    var pelvisPosition = Avatar.position;
+    pelvisPosition.y = (Y_PELVIS - 0.35) + pelvisOscillatorPosition;
+
+    if (pelvisPosition.y < Y_PELVIS) {
+        pelvisPosition.y = Y_PELVIS;
+    } else if (pelvisPosition.y > Y_PELVIS + 1.0) {
+        pelvisPosition.y = Y_PELVIS + 1.0;
+    }
+
+    Avatar.position = pelvisPosition;
 }
 
 var forcedMove = false;
@@ -272,110 +303,105 @@ var forcedMove = false;
 var wasMovingLastFrame = false;
 
 function handleHeadTurn() {
-  if (!isTurningHead && (Math.random() < CHANCE_OF_HEAD_TURNING)) {
-    targetHeadPitch = getRandomFloat(-PITCH_RANGE, PITCH_RANGE);
-    isTurningHead = true;
-  } else {
-    Avatar.headPitch = Avatar.headPitch + (targetHeadPitch - Avatar.headPitch) * PITCH_RATE;
-    if (Math.abs(Avatar.headPitch - targetHeadPitch) < STOP_TOLERANCE) {
-      isTurningHead = false;
+    if (!isTurningHead && (Math.random() < CHANCE_OF_HEAD_TURNING)) {
+        targetHeadPitch = getRandomFloat(-PITCH_RANGE, PITCH_RANGE);
+        isTurningHead = true;
+    } else {
+        Avatar.headPitch = Avatar.headPitch + (targetHeadPitch - Avatar.headPitch) * PITCH_RATE;
+        if (Math.abs(Avatar.headPitch - targetHeadPitch) < STOP_TOLERANCE) {
+            isTurningHead = false;
+        }
     }
-  }
 }
 
 function stopWalking() {
-  Avatar.clearJointData(JOINT_R_HIP);
-  Avatar.clearJointData(JOINT_R_KNEE);
-  Avatar.clearJointData(JOINT_L_HIP);
-  Avatar.clearJointData(JOINT_L_KNEE);
-  avatarVelocity = 0.0;
-  isMoving = false;
+    avatarVelocity = 0.0;
+    isMoving = false;
 }
 
 var MAX_ATTEMPTS = 40;
 function handleWalking(deltaTime) {
 
-  if (forcedMove || (!isMoving && Math.random() < CHANCE_OF_MOVING)) {
-    // Set new target location
-    
-    //Keep trying new orientations if the desired target location is out of bounds
-    var attempts = 0;
-    do {
-        targetOrientation = Quat.multiply(Avatar.orientation, Quat.angleAxis(getRandomFloat(-TURN_RANGE, TURN_RANGE), { x:0, y:1, z:0 }));
-        var front = Quat.getFront(targetOrientation);
-        
-        targetPosition = Vec3.sum(Avatar.position, Vec3.multiply(front, getRandomFloat(0.0, MOVE_RANGE_SMALL)));
-    }
-    while ((targetPosition.x < X_MIN || targetPosition.x > X_MAX || targetPosition.z < Z_MIN || targetPosition.z > Z_MAX) 
-        && attempts < MAX_ATTEMPTS);
-        
-    targetPosition.x = clamp(targetPosition.x, X_MIN, X_MAX);
-    targetPosition.z = clamp(targetPosition.z, Z_MIN, Z_MAX);
-    targetPosition.y = Y_PELVIS;
-    
-    wasMovingLastFrame = true;
-    isMoving = true;
-    forcedMove = false;
-  } else if (isMoving) { 
-    keepWalking(deltaTime);
-    
-    var targetVector = Vec3.subtract(targetPosition, Avatar.position);
-    var distance = Vec3.length(targetVector);
-    if (distance <= avatarVelocity * deltaTime) {
-        Avatar.position = targetPosition;
-        stopWalking(); 
-    } else {
-        var direction = Vec3.normalize(targetVector);
-        //Figure out if we should be slowing down
-        var t = avatarVelocity / avatarAcceleration;
-        var d = (avatarVelocity / 2.0) * t;
-        if (distance < d) { 
-            avatarVelocity -= avatarAcceleration * deltaTime;
-            if (avatarVelocity <= 0) {
-                stopWalking(); 
-            }
-        } else {    
-            avatarVelocity += avatarAcceleration * deltaTime;
-            if (avatarVelocity > avatarMaxVelocity) avatarVelocity = avatarMaxVelocity;
+    if (forcedMove || (!isMoving && Math.random() < CHANCE_OF_MOVING)) {
+        // Set new target location
+
+        //Keep trying new orientations if the desired target location is out of bounds
+        var attempts = 0;
+        do {
+            targetOrientation = Quat.multiply(Avatar.orientation, Quat.angleAxis(getRandomFloat(-TURN_RANGE, TURN_RANGE), { x:0, y:1, z:0 }));
+            var front = Quat.getFront(targetOrientation);
+            
+            targetPosition = Vec3.sum(Avatar.position, Vec3.multiply(front, getRandomFloat(0.0, MOVE_RANGE_SMALL)));
         }
-        Avatar.position = Vec3.sum(Avatar.position, Vec3.multiply(direction, avatarVelocity * deltaTime));
-        Avatar.orientation = Quat.mix(Avatar.orientation, targetOrientation, TURN_RATE);
-        
-        wasMovingLastFrame = true; 
-    
+        while ((targetPosition.x < X_MIN || targetPosition.x > X_MAX || targetPosition.z < Z_MIN || targetPosition.z > Z_MAX) 
+        && attempts < MAX_ATTEMPTS);
+            
+        targetPosition.x = clamp(targetPosition.x, X_MIN, X_MAX);
+        targetPosition.z = clamp(targetPosition.z, Z_MIN, Z_MAX);
+        targetPosition.y = Y_PELVIS;
+
+        wasMovingLastFrame = true;
+        isMoving = true;
+        forcedMove = false;
+    } else if (isMoving) { 
+
+        var targetVector = Vec3.subtract(targetPosition, Avatar.position);
+        var distance = Vec3.length(targetVector);
+        if (distance <= avatarVelocity * deltaTime) {
+            Avatar.position = targetPosition;
+            stopWalking(); 
+        } else {
+            var direction = Vec3.normalize(targetVector);
+            //Figure out if we should be slowing down
+            var t = avatarVelocity / avatarAcceleration;
+            var d = (avatarVelocity / 2.0) * t;
+            if (distance < d) { 
+                avatarVelocity -= avatarAcceleration * deltaTime;
+                if (avatarVelocity <= 0) {
+                    stopWalking(); 
+                }
+            } else {    
+                avatarVelocity += avatarAcceleration * deltaTime;
+                if (avatarVelocity > avatarMaxVelocity) avatarVelocity = avatarMaxVelocity;
+            }
+            Avatar.position = Vec3.sum(Avatar.position, Vec3.multiply(direction, avatarVelocity * deltaTime));
+            Avatar.orientation = Quat.mix(Avatar.orientation, targetOrientation, TURN_RATE);
+            
+            wasMovingLastFrame = true; 
+
+        }
     }
-  }
 }
 
 function handleTalking() {
-  if (Math.random() < CHANCE_OF_SOUND) {
-    playRandomSound();
-  }
+    if (Math.random() < CHANCE_OF_SOUND) {
+        playRandomSound();
+    }
 }
 
 function changePelvisHeight(newHeight) {
-  var newPosition = Avatar.position;
-  newPosition.y = newHeight;
-  Avatar.position = newPosition;
+    var newPosition = Avatar.position;
+    newPosition.y = newHeight;
+    Avatar.position = newPosition;
 }
 
 function updateBehavior(deltaTime) {
-  cumulativeTime += deltaTime;
 
-  if (AvatarList.containsAvatarWithDisplayName("mrdj")) {
-    if (wasMovingLastFrame) {
-      isMoving = false;
+    if (AvatarList.containsAvatarWithDisplayName("mrdj")) {
+        if (wasMovingLastFrame) {
+            isMoving = false;
+        }
+
+        // we have a DJ, shouldn't we be dancing?
+        jumpWithLoudness(deltaTime);
+    } else {
+
+        // no DJ, let's just chill on the dancefloor - randomly walking and talking
+        handleHeadTurn();
+        handleAnimation(deltaTime);
+        handleWalking(deltaTime);
+        handleTalking();   
     }
-    
-    // we have a DJ, shouldn't we be dancing?
-    jumpWithLoudness(deltaTime);
-  } else {
-    
-    // no DJ, let's just chill on the dancefloor - randomly walking and talking
-    handleHeadTurn();
-    handleWalking(deltaTime);
-    handleTalking();   
-  }
 }
 
 Script.update.connect(updateBehavior);

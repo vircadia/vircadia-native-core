@@ -64,8 +64,10 @@ ProcAnimAPI = function() {
                  middleQuats[i][j] = Quat.fromPitchYawRollDegrees(middleAngles[i][j][0], middleAngles[i][j][1], middleAngles[i][j][2]);
             }
         }
-        finalKeyFrames[0] = new this.KeyFrame(rightQuats[0], leftQuats[0], middleQuats[0]);
-        finalKeyFrames[1] = new this.KeyFrame(rightQuats[1], leftQuats[1], middleQuats[1]);
+        
+        for (var i = 0; i < numFrames; i++) {
+            finalKeyFrames[i] = new this.KeyFrame(rightQuats[i], leftQuats[i], middleQuats[i]);
+        }
 
         //Generate mirrored quaternions for the other half of the animation
         for (var i = 0; i < rightAngles.length; i++) {
@@ -79,35 +81,41 @@ ProcAnimAPI = function() {
                  middleQuats[i][j] = Quat.fromPitchYawRollDegrees(-middleAngles[i][j][0], -middleAngles[i][j][1], -middleAngles[i][j][2]);
             }
         }
-        finalKeyFrames[2] = new this.KeyFrame(leftQuats[0], rightQuats[0], middleQuats[0]);
-        finalKeyFrames[3] = new this.KeyFrame(leftQuats[1], rightQuats[1], middleQuats[1]);
-
-        //Hook up pointers to the next keyframe
-        for (var i = 0; i < finalKeyFrames.length - 1; i++) {
-            finalKeyFrames[i].nextFrame = finalKeyFrames[i+1];
+        for (var i = 0; i < numFrames; i++) {
+            finalKeyFrames[numFrames + i] = new this.KeyFrame(leftQuats[i], rightQuats[i], middleQuats[i]);
         }
-        finalKeyFrames[finalKeyFrames.length-1].nextFrame = finalKeyFrames[0];
+        
+        //Generate control points
+        this.computeBezierControlPoints(finalKeyFrames);
+        
+        return finalKeyFrames;
+    };
+    
+    //Computes 2 controlPoints to each keyframe to be used in the bezier evaluation.
+    //Technique is described at: //https://www.cs.tcd.ie/publications/tech-reports/reports.94/TCD-CS-94-18.pdf
+    this.computeBezierControlPoints = function(keyFrames) {
+        //Hook up pointers to the next keyframe
+        for (var i = 0; i < keyFrames.length - 1; i++) {
+            keyFrames[i].nextFrame = keyFrames[i+1];
+        }
+        keyFrames[keyFrames.length-1].nextFrame = keyFrames[0];
 
-        //Set up the bezier curve control points using technique described at
-        //https://www.cs.tcd.ie/publications/tech-reports/reports.94/TCD-CS-94-18.pdf
         //Set up all C1
-        for (var i = 0; i < finalKeyFrames.length; i++) {
-            finalKeyFrames[i].nextFrame.controlPoints = [];
-            for (var j = 0; j < finalKeyFrames[i].rotations.length; j++) {
-                finalKeyFrames[i].nextFrame.controlPoints[j] = [];
-                var R = Quat.slerp(finalKeyFrames[i].rotations[j], finalKeyFrames[i].nextFrame.rotations[j], 2.0);
-                var T = Quat.slerp(R, finalKeyFrames[i].nextFrame.nextFrame.rotations[j], 0.5);
-                finalKeyFrames[i].nextFrame.controlPoints[j][0] = Quat.slerp(finalKeyFrames[i].nextFrame.rotations[j], T, 0.33333);
+        for (var i = 0; i < keyFrames.length; i++) {
+            keyFrames[i].nextFrame.controlPoints = [];
+            for (var j = 0; j < keyFrames[i].rotations.length; j++) {
+                keyFrames[i].nextFrame.controlPoints[j] = [];
+                var R = Quat.slerp(keyFrames[i].rotations[j], keyFrames[i].nextFrame.rotations[j], 2.0);
+                var T = Quat.slerp(R, keyFrames[i].nextFrame.nextFrame.rotations[j], 0.5);
+                keyFrames[i].nextFrame.controlPoints[j][0] = Quat.slerp(keyFrames[i].nextFrame.rotations[j], T, 0.33333);
             }
         }
         //Set up all C2
-        for (var i = 0; i < finalKeyFrames.length; i++) {
-            for (var j = 0; j < finalKeyFrames[i].rotations.length; j++) {
-                finalKeyFrames[i].controlPoints[j][1] = Quat.slerp(finalKeyFrames[i].nextFrame.rotations[j], finalKeyFrames[i].nextFrame.controlPoints[j][0], -1.0);
+        for (var i = 0; i < keyFrames.length; i++) {
+            for (var j = 0; j < keyFrames[i].rotations.length; j++) {
+                keyFrames[i].controlPoints[j][1] = Quat.slerp(keyFrames[i].nextFrame.rotations[j], keyFrames[i].nextFrame.controlPoints[j][0], -1.0);
             }
         }
-        
-        return finalKeyFrames;
     };
 
     // Animation KeyFrame constructor. rightJoints and leftJoints must be the same size
