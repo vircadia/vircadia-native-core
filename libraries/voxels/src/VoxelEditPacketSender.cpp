@@ -149,9 +149,12 @@ qint64 VoxelEditPacketSender::satoshiCostForMessage(const VoxelDetail& details) 
     qint64 totalSatoshiCost = domainHandler.getSatoshisPerVoxel();
     
     qint64 costPerMeterCubed = domainHandler.getSatoshisPerMeterCubed();
-    float totalVolume = details.s * details.s * details.s;
     
-    totalSatoshiCost += floorf(totalVolume * costPerMeterCubed);
-    
-    return costPerMeterCubed;
+    if (totalSatoshiCost == 0 && costPerMeterCubed == 0) {
+        float totalVolume = details.s * details.s * details.s;
+        
+        return totalSatoshiCost + floorf(totalVolume * costPerMeterCubed);
+    } else {
+        return 0;
+    }
 }
