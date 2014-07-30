@@ -12,10 +12,15 @@
 #ifndef hifi_Referential_h
 #define hifi_Referential_h
 
-#include "AvatarData.h"
+#include <glm/gtx/quaternion.hpp>
+#include <glm/vec3.hpp>
+
+class AvatarData;
 
 class Referential {
 public:
+    virtual ~Referential();
+    
     virtual bool isValid() { return _isValid; }
     virtual void update() = 0;
     

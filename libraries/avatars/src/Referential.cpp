@@ -15,4 +15,8 @@ Referential::Referential(AvatarData* avatar) :
     _isValid(true),
     _avatar(avatar)
 {
+    if (_avatar == NULL) {
+        _isValid = false;
+        return;
+    }
 }

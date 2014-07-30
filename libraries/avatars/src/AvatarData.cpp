@@ -36,6 +36,7 @@ using namespace std;
 AvatarData::AvatarData() :
     _sessionUUID(),
     _handPosition(0,0,0),
+    _referential(NULL),
     _bodyYaw(-90.f),
     _bodyPitch(0.0f),
     _bodyRoll(0.0f),
@@ -62,6 +63,7 @@ AvatarData::AvatarData() :
 AvatarData::~AvatarData() {
     delete _headData;
     delete _handData;
+    delete _referential;
 }
 
 glm::vec3 AvatarData::getHandPosition() const {

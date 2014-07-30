@@ -49,6 +49,7 @@ typedef unsigned long long quint64;
 
 #include <Node.h>
 
+#include "Referential.h"
 #include "HeadData.h"
 #include "HandData.h"
 
@@ -283,6 +284,8 @@ protected:
     QUuid _sessionUUID;
     glm::vec3 _position;
     glm::vec3 _handPosition;
+    
+    Referential* _referential;
 
     //  Body rotation
     float _bodyYaw;     // degrees

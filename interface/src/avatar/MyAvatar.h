@@ -149,6 +149,8 @@ public slots:
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getRightPalmPosition();
     
+    void changeReferential(Referential* ref);
+    
 signals:
     void transformChanged();
 

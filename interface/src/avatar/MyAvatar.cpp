@@ -444,6 +444,11 @@ glm::vec3 MyAvatar::getRightPalmPosition() {
     return rightHandPosition;
 }
 
+void MyAvatar::changeReferential(Referential *ref) {
+    delete _referential;
+    _referential = ref;
+}
+
 void MyAvatar::setLocalGravity(glm::vec3 gravity) {
     _motionBehaviors |= AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
     // Environmental and Local gravities are incompatible.  Since Local is being set here
