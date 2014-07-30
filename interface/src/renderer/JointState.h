@@ -33,7 +33,9 @@ public:
     void copyState(const JointState& state);
 
     void initTransform(const glm::mat4& parentTransform);
-    void computeTransform(const glm::mat4& parentTransform);
+    // if synchronousRotationCompute is true, then _transform is still computed synchronously,
+    // but _rotation will be asynchronously extracted
+    void computeTransform(const glm::mat4& parentTransform, bool parentTransformChanged = true, bool synchronousRotationCompute = false);
 
     void computeVisibleTransform(const glm::mat4& parentTransform);
     const glm::mat4& getVisibleTransform() const { return _visibleTransform; }
@@ -41,8 +43,10 @@ public:
     glm::vec3 getVisiblePosition() const { return extractTranslation(_visibleTransform); }
 
     const glm::mat4& getTransform() const { return _transform; }
+    void resetTransformChanged() { _transformChanged = false; }
+    bool getTransformChanged() const { return _transformChanged; }
 
-    glm::quat getRotation() const { return _rotation; }
+    glm::quat getRotation() const;
     glm::vec3 getPosition() const { return extractTranslation(_transform); }
 
     /// \return rotation from bind to model frame
@@ -104,7 +108,9 @@ private:
     /// debug helper function
     void loadBindRotation();
 
+    bool _transformChanged;
     glm::mat4 _transform; // joint- to model-frame
+    bool _rotationIsValid;
     glm::quat _rotation;  // joint- to model-frame
     glm::quat _rotationInConstrainedFrame; // rotation in frame where angular constraints would be applied
     glm::vec3 _positionInParentFrame; // only changes when the Model is scaled

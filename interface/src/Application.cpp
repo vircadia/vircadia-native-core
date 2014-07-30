@@ -1494,9 +1494,10 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    return _faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
+    return _cara.isActive() ? static_cast<FaceTracker*>(&_cara) : 
+        (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
         (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
-            (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL));
+            (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
 }
 
 struct SendVoxelsOperationArgs {
@@ -1876,6 +1877,19 @@ void Application::updateVisage() {
 
     //  Update Visage
     _visage.update();
+}
+
+void Application::updateCara() {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateCara()");
+
+    //  Update Cara
+    _cara.update();
+
+    //  Copy angular velocity if measured by cara, to the head
+    if (_cara.isActive()) {
+        _myAvatar->getHead()->setAngularVelocity(_cara.getHeadAngularVelocity());
+    }
 }
 
 void Application::updateMyAvatarLookAtPosition() {
