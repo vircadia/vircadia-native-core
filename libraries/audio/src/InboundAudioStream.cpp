@@ -256,6 +256,8 @@ int InboundAudioStream::writeDroppableSilentSamples(int numSilentSamples) {
         // dont reset _currentJitterBufferFrames here; we want to be able to drop further silent frames
         // without waiting for _framesAvailableStat to fill up to 10s of samples.
         _currentJitterBufferFrames -= numSilentFramesToDrop;
+        _silentFramesDropped += numSilentFramesToDrop;
+        
         _framesAvailableStat.reset();
     }
 
@@ -277,7 +279,7 @@ AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
     streamStats._timeGapWindowAverage = _interframeTimeGapStatsForStatsPacket.getWindowAverage();
 
     streamStats._framesAvailable = _ringBuffer.framesAvailable();
-    streamStats._framesAvailableAverage = _currentJitterBufferFrames;
+    streamStats._framesAvailableAverage = _framesAvailableStat.getAverage();
     streamStats._desiredJitterBufferFrames = _desiredJitterBufferFrames;
     streamStats._starveCount = _starveCount;
     streamStats._consecutiveNotMixedCount = _consecutiveNotMixedCount;

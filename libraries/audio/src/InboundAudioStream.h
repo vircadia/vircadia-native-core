@@ -37,7 +37,9 @@ const int TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS = 10;
 const int TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
 const int TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS = 30;
 
-const int FRAMES_AVAILABLE_STAT_WINDOW_USECS = 10 * USECS_PER_SECOND;
+// this controls the window size of the time-weighted avg of frames available.  Every time the window fills up,
+// _currentJitterBufferFrames is updated with the time-weighted avg and the running time-weighted avg is reset.
+const int FRAMES_AVAILABLE_STAT_WINDOW_USECS = 2 * USECS_PER_SECOND;
 
 // the internal history buffer of the incoming seq stats will cover 30s to calculate
 // packet loss % over last 30s
