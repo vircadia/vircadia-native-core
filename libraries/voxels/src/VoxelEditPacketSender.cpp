@@ -146,15 +146,12 @@ void VoxelEditPacketSender::queueVoxelEditMessages(PacketType type, int numberOf
 qint64 VoxelEditPacketSender::satoshiCostForMessage(const VoxelDetail& details) {
     const DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
     
-    qint64 totalSatoshiCost = domainHandler.getSatoshisPerVoxel();
-    qint64 costPerMeterCubed = domainHandler.getSatoshisPerMeterCubed();
-    
-    if (totalSatoshiCost == 0 && costPerMeterCubed == 0) {
+    if (_satoshisPerVoxel == 0 && _satoshisPerMeterCubed == 0) {
         return 0;
     } else {
         float meterScale = details.s * TREE_SCALE;
         float totalVolume = meterScale * meterScale * meterScale;
         
-        return totalSatoshiCost + (qint64) floorf(totalVolume * costPerMeterCubed);
+        return _satoshisPerVoxel + (qint64) floorf(totalVolume * _satoshisPerMeterCubed);
     }
 }
