@@ -179,6 +179,7 @@ void NodeList::reset() {
     
     // clear the domain connection information
     _domainHandler.clearConnectionInfo();
+    _domainHandler.clearSettings();
     
     // if we setup the DTLS socket, also disconnect from the DTLS socket readyRead() so it can handle handshaking
     if (_dtlsSocket) {

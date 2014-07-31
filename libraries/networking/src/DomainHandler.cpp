@@ -130,6 +130,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
 }
 
 void DomainHandler::requestDomainSettings() const {
+    qDebug() << _settingsObject;
     if (_settingsObject.isEmpty()) {
         // setup the URL required to grab settings JSON
         QUrl settingsJSONURL;
