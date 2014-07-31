@@ -1253,7 +1253,9 @@ void OctreeServer::handleSignedTransactionPayment(PacketType packetType, const Q
 }
 
 void OctreeServer::handleSignedTransactionPaymentResponse(const QJsonObject& jsonObject) {
-    qDebug() << "STP response:" << jsonObject;
+    // pull the ID to debug the transaction
+    QString transactionIDString = jsonObject["data"].toObject()["transaction"].toObject()["id"].toString();
+    qDebug() << "Redeemed transaction with ID" << transactionIDString << "successfully.";
 }
 
 void OctreeServer::sendStatsPacket() {

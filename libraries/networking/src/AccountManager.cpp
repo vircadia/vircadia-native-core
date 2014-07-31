@@ -23,7 +23,7 @@
 
 #include "AccountManager.h"
 
-const bool VERBOSE_HTTP_REQUEST_DEBUGGING = true;
+const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
 AccountManager& AccountManager::getInstance() {
     static AccountManager sharedInstance;
@@ -198,7 +198,7 @@ void AccountManager::invokedRequest(const QString& path,
     networkRequest.setUrl(requestURL);
     
     if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-        qDebug() << "Making an authenticated request to" << qPrintable(requestURL.toString());
+        qDebug() << "Making a request to" << qPrintable(requestURL.toString());
         
         if (!dataByteArray.isEmpty()) {
             qDebug() << "The POST/PUT body -" << QString(dataByteArray);
@@ -301,6 +301,7 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qDebug() << "Received error response from data-server that has no matching callback.";
             qDebug() << "Error" << requestReply->error() << "-" << requestReply->errorString();
+            qDebug() << requestReply->readAll();
         }
     }
 }
