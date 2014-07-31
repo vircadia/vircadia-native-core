@@ -13,6 +13,9 @@
 #include <QtCore/QDebug>
 #include <QtCore/QUuid>
 
+#include <NodeList.h>
+#include <PacketHeaders.h>
+
 #include "SignedWalletTransaction.h"
 
 #include "PaymentManager.h"
@@ -23,7 +26,6 @@ PaymentManager& PaymentManager::getInstance() {
 }
 
 void PaymentManager::sendSignedPayment(qint64 satoshiAmount, const QUuid& nodeUUID, const QUuid& destinationWalletUUID) {
-    qDebug() << "Paying" << satoshiAmount << "satoshis to" << destinationWalletUUID << "via" << nodeUUID;
     
     // setup a signed wallet transaction
     const qint64 DEFAULT_TRANSACTION_EXPIRY_SECONDS = 60;
@@ -32,4 +34,15 @@ void PaymentManager::sendSignedPayment(qint64 satoshiAmount, const QUuid& nodeUU
                                            currentTimestamp, DEFAULT_TRANSACTION_EXPIRY_SECONDS);
     
     // send the signed transaction to the redeeming node
+    QByteArray transactionByteArray = byteArrayWithPopulatedHeader(PacketTypeSignedTransactionPayment);
+    
+    // append the binary message and the signed message digest
+    transactionByteArray.append(newTransaction.binaryMessage());
+    transactionByteArray.append(newTransaction.signedMessageDigest());
+    
+    qDebug() << "Paying" << satoshiAmount << "satoshis to" << destinationWalletUUID << "via" << nodeUUID;
+    
+    // use the NodeList to send that to the right node
+    NodeList* nodeList = NodeList::getInstance();
+    nodeList->writeDatagram(transactionByteArray, nodeList->nodeWithUUID(nodeUUID));
 }
