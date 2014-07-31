@@ -153,7 +153,7 @@ var ExportMenu = function(opts) {
         width: cancelWidth,
         height: height,
         color: { red: 255, green: 255, blue: 255 },
-        text: "Cancel"
+        text: "Close"
     });
 
     var voxelPreview = Overlays.addOverlay("cube", {
@@ -291,6 +291,12 @@ var ModelImporter = function(opts) {
     var fullWidth = titleWidth + cancelWidth + (2 * margin);
 
     // TODO: Show import preview
+    var localModels = Overlays.addOverlay("localmodels", {
+        position: { x: 1, y: 1, z: 1 },
+        scale: 1,
+        visible: false
+    });
+    var importScale = 1;
     var importBoundaries = Overlays.addOverlay("cube", {
                                            position: { x: 0, y: 0, z: 0 },
                                            size: 1,
@@ -337,6 +343,7 @@ var ModelImporter = function(opts) {
 
     this.setImportVisible = function(visible) {
         Overlays.editOverlay(importBoundaries, { visible: visible });
+        Overlays.editOverlay(localModels, { visible: visible });
         Overlays.editOverlay(cancelButton, { visible: visible });
         Overlays.editOverlay(titleText, { visible: visible });
         Overlays.editOverlay(background, { visible: visible });
@@ -346,6 +353,9 @@ var ModelImporter = function(opts) {
     this.moveImport = function(position) {
         importPosition = position;
         // TODO: Show import preview
+        Overlays.editOverlay(localModels, {
+                             position: { x: importPosition.x, y: importPosition.y, z: importPosition.z }
+                             });
         Overlays.editOverlay(importBoundaries, {
                              position: { x: importPosition.x, y: importPosition.y, z: importPosition.z }
                              });
@@ -412,14 +422,15 @@ var ModelImporter = function(opts) {
                     var y = parts[3];
                     var z = parts[4];
                     var s = parts[5];
+                    importScale = s;
                     if (hostname != location.hostname) {
                         if (!Window.confirm(("These models were not originally exported from this domain. Continue?"))) {
                             return;
                         }
                     } else {
                         if (Window.confirm(("Would you like to import back to the source location?"))) {
-                            Window.alert("(TODO) Importing backing to source location");
                             Clipboard.importModels(filename);
+                            Clipboard.pasteModels(x, y, z, 1);
                             return;
                         }
                     }
@@ -427,19 +438,21 @@ var ModelImporter = function(opts) {
                 Clipboard.importModels(filename);
                 self._importing = true;
                 self.setImportVisible(true);
+                Overlays.editOverlay(importBoundaries, { size: s });
             }
         }
     }
 
     this.paste = function() {
         if (self._importing) {
-            self._importing = false;
-            self.setImportVisible(false);
-            Clipboard.pasteModels();
+            // self._importing = false;
+            // self.setImportVisible(false);
+            Clipboard.pasteModels(importPosition.x, importPosition.y, importPosition.z, 1);
         }
     }
 
     this.cleanup = function() {
+        Overlays.deleteOverlay(localModels);
         Overlays.deleteOverlay(importBoundaries);
         Overlays.deleteOverlay(cancelButton);
         Overlays.deleteOverlay(titleText);
