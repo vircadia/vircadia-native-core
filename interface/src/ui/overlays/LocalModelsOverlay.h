@@ -25,8 +25,6 @@ public:
     
     virtual void update(float deltatime);
     virtual void render();
-    
-    virtual void setProperties(const QScriptValue& properties);
 
 private:
     ModelTreeRenderer *_modelTreeRenderer;

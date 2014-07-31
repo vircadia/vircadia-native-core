@@ -227,6 +227,7 @@ public:
     float getPacketsPerSecond() const { return _packetsPerSecond; }
     float getBytesPerSecond() const { return _bytesPerSecond; }
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
+    void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }

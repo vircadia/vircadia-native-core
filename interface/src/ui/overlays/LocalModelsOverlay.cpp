@@ -15,7 +15,7 @@
 
 LocalModelsOverlay::LocalModelsOverlay(ModelTreeRenderer* modelTreeRenderer) :
     Volume3DOverlay(),
-    _modelTreeRenderer(modelTree) {
+    _modelTreeRenderer(modelTreeRenderer) {
 }
 
 LocalModelsOverlay::~LocalModelsOverlay() {
@@ -28,18 +28,13 @@ void LocalModelsOverlay::update(float deltatime) {
 void LocalModelsOverlay::render() {
     if (_visible) {
         glPushMatrix(); {
-            glTranslatef(_position.x, _position.y, _position.z);
-            glScalef(_size, _size, _size);
+            Application* app = Application::getInstance();
+            glm::vec3 oldTranslation = app->getViewMatrixTranslation();
+            app->setViewMatrixTranslation(oldTranslation + _position);
+
             _modelTreeRenderer->render();
+
+            Application::getInstance()->setViewMatrixTranslation(oldTranslation);
         } glPopMatrix();
     }
 }
-
-void LocalModelsOverlay::setProperties(const QScriptValue &properties) {
-    Volume3DOverlay::setProperties(properties);
-
-    if (properties.property("scale").isValid()) {
-        setSize(properties.property("scale").toVariant().toFloat());
-    }
-}
-
