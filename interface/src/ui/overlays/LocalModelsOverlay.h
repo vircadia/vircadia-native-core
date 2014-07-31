@@ -12,7 +12,6 @@
 #ifndef hifi_LocalModelsOverlay_h
 #define hifi_LocalModelsOverlay_h
 
-// #include "models/ModelTree.h"
 #include "models/ModelTreeRenderer.h"
 
 #include "Volume3DOverlay.h"

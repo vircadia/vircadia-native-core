@@ -160,7 +160,6 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         created = true;
         is3D = true;
     } else if (type == "localmodels") {
-        qDebug() << "Making localmodels";
         thisOverlay = new LocalModelsOverlay(Application::getInstance()->getModelClipboardRenderer());
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);

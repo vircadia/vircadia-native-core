@@ -204,15 +204,12 @@ QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QS
     }
     
     QFileDialog fileDialog(Application::getInstance()->getWindow(), title, path, nameFilter);
-    // fileDialog.setFileMode(QFileDialog::ExistingFile);
     fileDialog.setAcceptMode(acceptMode);
     qDebug() << "Opening!";
     QUrl fileUrl(directory);
     if (acceptMode == QFileDialog::AcceptSave) {
         fileDialog.setFileMode(QFileDialog::Directory);
         fileDialog.selectFile(fileUrl.fileName());
-        // qDebug() << "Setting filename!";
-        // fileDialog.setLabelText(QFileDialog::FileName, fileUrl.fileName());
     }
     if (fileDialog.exec()) {
         return QScriptValue(fileDialog.selectedFiles().first());
