@@ -240,7 +240,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(&nodeList->getDomainHandler(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
     connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
-    connect(&nodeList->getDomainHandler(), &DomainHandler::settingsReceived, &Application::domainSettingsReceived);
+    connect(&nodeList->getDomainHandler(), &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
 
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
