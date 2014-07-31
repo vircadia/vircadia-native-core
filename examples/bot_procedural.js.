@@ -1,5 +1,5 @@
 //
-// proceduralBot.js
+// bot_procedural.js
 // hifi
 //
 // Created by Ben Arnold on 7/29/2013
@@ -154,7 +154,18 @@ function addBlendshapeToPose(pose, shapeIndex, val) {
     pose.blendShapes[index] = {shapeIndex: shapeIndex, val: val };
 }
 //The mood of the avatar, determines face. 0 = happy, 1 = angry, 2 = sad.
-var avatarMood = 0;
+
+//Randomly pick avatar mood. 80% happy, 10% mad 10% sad
+var randMood = Math.floor(Math.random() * 11);
+var avatarMood;
+if (randMood == 0) {
+    avatarMood = 1;
+} else if (randMood == 2) {
+    avatarMood = 2;
+} else {
+    avatarMood = 0;
+}
+
 var currentExpression = -1;
 //Face pose constructor
 var happyPoses = [];
