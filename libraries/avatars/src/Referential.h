@@ -19,16 +19,36 @@ class AvatarData;
 
 class Referential {
 public:
+    enum Type {
+        MODEL,
+        JOINT,
+        AVATAR
+    };
+    
+    Referential(const unsigned char*& sourceBuffer);
     virtual ~Referential();
     
-    virtual bool isValid() { return _isValid; }
-    virtual void update() = 0;
+    Type type() { return _type; }
+    quint64 createdAt() { return _createdAt; }
+    bool isValid() { return _isValid; }
+    
+    virtual void update() {}
+    int packReferential(unsigned char* destinationBuffer);
+    int unpackReferential(const unsigned char* sourceBuffer);
     
 protected:
-    Referential(AvatarData* avatar);
+    Referential(Type type, AvatarData* avatar);
     
+    int pack(unsigned char* destinationBuffer);
+    int unpack(const unsigned char* sourceBuffer);
+    int packExtraData(unsigned char* destinationBuffer) { return 0; }
+    int unpackExtraData(const unsigned char* sourceBuffer);
+    
+    Type _type;
+    quint64 _createdAt;
     bool _isValid;
     AvatarData* _avatar;
+    QByteArray _extraDataBuffer;
     
     glm::vec3 _refPosition;
     glm::quat _refRotation;

@@ -137,11 +137,20 @@ QByteArray AvatarData::toByteArray() {
     // hand state
     setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
     // faceshift state
-    if (_headData->_isFaceshiftConnected) { setAtBit(bitItems, IS_FACESHIFT_CONNECTED); }
+    if (_headData->_isFaceshiftConnected) {
+        setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+    }
     if (_isChatCirclingEnabled) {
         setAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
     }
+    if (_referential != NULL && _referential->isValid()) {
+        setAtBit(bitItems, HAS_REFERENTIAL);
+    }
     *destinationBuffer++ = bitItems;
+    
+    if (_referential != NULL && _referential->isValid()) {
+        destinationBuffer += _referential->packReferential(destinationBuffer);
+    }
 
     // If it is connected, pack up the data
     if (_headData->_isFaceshiftConnected) {
@@ -383,6 +392,12 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         
         _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
         _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
+        
+        bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
+        if (hasReferential) {
+            _referential = new Referential(sourceBuffer);
+        }
+        
         
         if (_headData->_isFaceshiftConnected) {
             float leftEyeBlink, rightEyeBlink, averageLoudness, browAudioLift;

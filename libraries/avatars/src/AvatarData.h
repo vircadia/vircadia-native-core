@@ -81,7 +81,8 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
-const int IS_CHAT_CIRCLING_ENABLED = 5;
+const int IS_CHAT_CIRCLING_ENABLED = 5; // 6th bit
+const int HAS_REFERENTIAL = 6;
 
 static const float MAX_AVATAR_SCALE = 1000.f;
 static const float MIN_AVATAR_SCALE = .005f;
