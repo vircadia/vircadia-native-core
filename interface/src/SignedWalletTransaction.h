@@ -14,8 +14,6 @@
 
 #include <WalletTransaction.h>
 
-const int NUM_BYTES_SIGNED_TRANSACTION_MESSAGE = 72;
-
 class SignedWalletTransaction : public WalletTransaction {
     Q_OBJECT
 public:

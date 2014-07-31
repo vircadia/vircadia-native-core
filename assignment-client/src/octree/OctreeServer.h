@@ -137,6 +137,9 @@ protected:
     QString getConfiguration();
     QString getStatusLink();
 
+    void handleSignedTransactionPayment(PacketType packetType, const QByteArray& datagram);
+    void handleSignedTransactionPaymentResponse(const QJsonObject& jsonObject);
+    
     int _argc;
     const char** _argv;
     char** _parsedArgV;

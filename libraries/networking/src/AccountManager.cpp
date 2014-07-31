@@ -15,15 +15,15 @@
 #include <QtCore/QMap>
 #include <QtCore/QStringList>
 #include <QtCore/QUrlQuery>
+#include <QtNetwork/QHttpMultiPart>
 #include <QtNetwork/QNetworkRequest>
-#include <QHttpMultiPart>
 
 #include "NodeList.h"
 #include "PacketHeaders.h"
 
 #include "AccountManager.h"
 
-const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
+const bool VERBOSE_HTTP_REQUEST_DEBUGGING = true;
 
 AccountManager& AccountManager::getInstance() {
     static AccountManager sharedInstance;
@@ -62,6 +62,8 @@ AccountManager::AccountManager() :
 
     qRegisterMetaType<QNetworkAccessManager::Operation>("QNetworkAccessManager::Operation");
     qRegisterMetaType<JSONCallbackParameters>("JSONCallbackParameters");
+    
+    qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
 }
@@ -142,90 +144,113 @@ void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessMan
                                           const JSONCallbackParameters& callbackParams,
                                           const QByteArray& dataByteArray,
                                           QHttpMultiPart* dataMultiPart) {
+    
     QMetaObject::invokeMethod(this, "invokedRequest",
                               Q_ARG(const QString&, path),
+                              Q_ARG(bool, true),
                               Q_ARG(QNetworkAccessManager::Operation, operation),
                               Q_ARG(const JSONCallbackParameters&, callbackParams),
                               Q_ARG(const QByteArray&, dataByteArray),
                               Q_ARG(QHttpMultiPart*, dataMultiPart));
 }
 
-void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::Operation operation,
+void AccountManager::unauthenticatedRequest(const QString& path, QNetworkAccessManager::Operation operation,
+                                          const JSONCallbackParameters& callbackParams,
+                                          const QByteArray& dataByteArray,
+                                          QHttpMultiPart* dataMultiPart) {
+    
+    QMetaObject::invokeMethod(this, "invokedRequest",
+                              Q_ARG(const QString&, path),
+                              Q_ARG(bool, false),
+                              Q_ARG(QNetworkAccessManager::Operation, operation),
+                              Q_ARG(const JSONCallbackParameters&, callbackParams),
+                              Q_ARG(const QByteArray&, dataByteArray),
+                              Q_ARG(QHttpMultiPart*, dataMultiPart));
+}
+
+void AccountManager::invokedRequest(const QString& path,
+                                    bool requiresAuthentication,
+                                    QNetworkAccessManager::Operation operation,
                                     const JSONCallbackParameters& callbackParams,
                                     const QByteArray& dataByteArray, QHttpMultiPart* dataMultiPart) {
 
     NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
-    if (hasValidAccessToken()) {
-        QNetworkRequest authenticatedRequest;
-
-        QUrl requestURL = _authURL;
-
-        if (path.startsWith("/")) {
-            requestURL.setPath(path);
+    QNetworkRequest networkRequest;
+    
+    QUrl requestURL = _authURL;
+    
+    if (path.startsWith("/")) {
+        requestURL.setPath(path);
+    } else {
+        requestURL.setPath("/" + path);
+    }
+    
+    if (requiresAuthentication) {
+        if (hasValidAccessToken()) {
+            requestURL.setQuery("access_token=" + _accountInfo.getAccessToken().token);
         } else {
-            requestURL.setPath("/" + path);
+            qDebug() << "No valid access token present. Bailing on authenticated invoked request.";
+            return;
         }
-
-        requestURL.setQuery("access_token=" + _accountInfo.getAccessToken().token);
-
-        authenticatedRequest.setUrl(requestURL);
-
-        if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-            qDebug() << "Making an authenticated request to" << qPrintable(requestURL.toString());
-
-            if (!dataByteArray.isEmpty()) {
-                qDebug() << "The POST/PUT body -" << QString(dataByteArray);
-            }
+    }
+    
+    networkRequest.setUrl(requestURL);
+    
+    if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
+        qDebug() << "Making an authenticated request to" << qPrintable(requestURL.toString());
+        
+        if (!dataByteArray.isEmpty()) {
+            qDebug() << "The POST/PUT body -" << QString(dataByteArray);
         }
-
-        QNetworkReply* networkReply = NULL;
-
-        switch (operation) {
-            case QNetworkAccessManager::GetOperation:
-                networkReply = networkAccessManager.get(authenticatedRequest);
-                break;
-            case QNetworkAccessManager::PostOperation:
-            case QNetworkAccessManager::PutOperation:
-                if (dataMultiPart) {
-                    if (operation == QNetworkAccessManager::PostOperation) {
-                        networkReply = networkAccessManager.post(authenticatedRequest, dataMultiPart);
-                    } else {
-                        networkReply = networkAccessManager.put(authenticatedRequest, dataMultiPart);
-                    }
-                    dataMultiPart->setParent(networkReply);
+    }
+    
+    QNetworkReply* networkReply = NULL;
+    
+    switch (operation) {
+        case QNetworkAccessManager::GetOperation:
+            networkReply = networkAccessManager.get(networkRequest);
+            break;
+        case QNetworkAccessManager::PostOperation:
+        case QNetworkAccessManager::PutOperation:
+            if (dataMultiPart) {
+                if (operation == QNetworkAccessManager::PostOperation) {
+                    networkReply = networkAccessManager.post(networkRequest, dataMultiPart);
                 } else {
-                    authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                    if (operation == QNetworkAccessManager::PostOperation) {
-                        networkReply = networkAccessManager.post(authenticatedRequest, dataByteArray);
-                    } else {
-                        networkReply = networkAccessManager.put(authenticatedRequest, dataByteArray);
-                    }
+                    networkReply = networkAccessManager.put(networkRequest, dataMultiPart);
                 }
-
-                break;
-            case QNetworkAccessManager::DeleteOperation:
-                networkReply = networkAccessManager.sendCustomRequest(authenticatedRequest, "DELETE");
-                break;
-            default:
-                // other methods not yet handled
-                break;
-        }
-
-        if (networkReply) {
-            if (!callbackParams.isEmpty()) {
-                // if we have information for a callback, insert the callbackParams into our local map
-                _pendingCallbackMap.insert(networkReply, callbackParams);
-
-                if (callbackParams.updateReciever && !callbackParams.updateSlot.isEmpty()) {
-                    callbackParams.updateReciever->connect(networkReply, SIGNAL(uploadProgress(qint64, qint64)),
-                                                            callbackParams.updateSlot.toStdString().c_str());
+                dataMultiPart->setParent(networkReply);
+            } else {
+                networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+                if (operation == QNetworkAccessManager::PostOperation) {
+                    networkReply = networkAccessManager.post(networkRequest, dataByteArray);
+                } else {
+                    networkReply = networkAccessManager.put(networkRequest, dataByteArray);
                 }
             }
-
-            // if we ended up firing of a request, hook up to it now
-            connect(networkReply, SIGNAL(finished()), SLOT(processReply()));
+            
+            break;
+        case QNetworkAccessManager::DeleteOperation:
+            networkReply = networkAccessManager.sendCustomRequest(networkRequest, "DELETE");
+            break;
+        default:
+            // other methods not yet handled
+            break;
+    }
+    
+    if (networkReply) {
+        if (!callbackParams.isEmpty()) {
+            // if we have information for a callback, insert the callbackParams into our local map
+            _pendingCallbackMap.insert(networkReply, callbackParams);
+            
+            if (callbackParams.updateReciever && !callbackParams.updateSlot.isEmpty()) {
+                callbackParams.updateReciever->connect(networkReply, SIGNAL(uploadProgress(qint64, qint64)),
+                                                       callbackParams.updateSlot.toStdString().c_str());
+            }
         }
+        
+        // if we ended up firing of a request, hook up to it now
+        connect(networkReply, SIGNAL(finished()), SLOT(processReply()));
     }
 }
 
