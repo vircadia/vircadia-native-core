@@ -580,8 +580,7 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, const MetavoxelLOD
     *this = reference;
 
     QHash<AttributePointer, MetavoxelNode*> remainingRoots = _roots;
-    glm::vec3 minimum = getMinimum();
-
+    
     bool changed;
     in >> changed;
     if (changed) {
@@ -594,7 +593,8 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, const MetavoxelLOD
                 expand();
             }
         }
-
+    
+        glm::vec3 minimum = getMinimum();
         forever {
             AttributePointer attribute;
             in >> attribute;
@@ -634,6 +634,7 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, const MetavoxelLOD
     
     // read subdivisions for the remaining roots if there's any chance of a collapse
     if (!(lod.position == referenceLOD.position && lod.threshold <= referenceLOD.threshold)) {
+        glm::vec3 minimum = getMinimum();
         for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = remainingRoots.constBegin();
                 it != remainingRoots.constEnd(); it++) {
             MetavoxelStreamBase base = { it.key(), in, lod, referenceLOD };
