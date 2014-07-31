@@ -1506,19 +1506,31 @@ struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
 };
 
-void Application::exportModels(const QString& filename, float x, float y, float z, float scale) {
-    ModelTreeElement* selectedNode = _models.getTree()->getModelAt(x, y, z, scale);
-    if (selectedNode) {
-        qDebug() << "Exporting models doing it!" << filename;
+bool Application::exportModels(const QString& filename, float x, float y, float z, float scale) {
+    QVector<ModelItem*> models;
+    _models.getTree()->findModelsInCube(AACube(glm::vec3(x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), models);
+    if (models.size() > 0) {
+        glm::vec3 root(x, y, z);
         ModelTree exportTree;
-        _models.getTree()->copySubTreeIntoNewTree(selectedNode, &exportTree, true);
+
+        for (int i = 0; i < models.size(); i++) {
+            ModelItemProperties properties;
+            ModelItemID id = models.at(i)->getModelItemID();
+            id.isKnownID = false;
+            properties.copyFromModelItem(*models.at(i));
+            properties.setPosition(properties.getPosition() - root);
+            exportTree.addModel(id, properties);
+        }
+
         exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
     } else {
         qDebug() << "No models were selected";
+        return false;
     }
 
     // restore the main window's active state
     _window->activateWindow();
+    return true;
 }
 
 bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
