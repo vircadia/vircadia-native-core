@@ -3,17 +3,57 @@
     "label": "Audio",
     "assignment-types": [0],
     "settings": {
-      "unattenuated-zone": {
-        "label": "Unattenuated Zone",
-        "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
-        "placeholder": "no zone",
-        "default": ""
-      },
-      "dynamic-jitter-buffer": {
+      "A-dynamic-jitter-buffer": {
         "type": "checkbox",
         "label": "Dynamic Jitter Buffers",
         "help": "Dynamically buffer client audio based on perceived jitter in packet receipt timing",
         "default": false
+      },
+	  "B-desired-jitter-buffer-frames": {
+        "label": "Desired Jitter Buffer Frames",
+        "help": "If dynamic jitter buffers is disabled, this determines the target number of frames maintained by the AudioMixer's jitter buffers",
+        "placeholder": "1",
+        "default": "1"
+      },
+	  "C-max-frames-over-desired": {
+        "label": "Max Frames Over Desired",
+        "help": "The highest number of frames an AudioMixer's ringbuffer can exceed the desired jitter buffer frames by",
+        "placeholder": "10",
+        "default": "10"
+      },
+	  "D-unattenuated-zone": {
+        "label": "Unattenuated Zone",
+        "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
+        "placeholder": "no zone",
+        "default": ""
+      }
+    }
+  },
+  "voxels": {
+    "label": "Voxels",
+    "assignment-types": [2,3],
+    "settings": {
+      "voxel-wallet": {
+        "label": "Destination Wallet ID",
+        "help": "Wallet to be paid for voxel changes",
+        "placeholder": "00000000-0000-0000-0000-000000000000",
+        "default": ""
+      },
+      "per-voxel-credits": {
+        "type": "double",
+        "label": "Per Voxel Cost",
+        "help": "Credit cost to change each voxel",
+        "placeholder": "0.0",
+        "default": "0.0",
+        "input_addon": "₵"
+      },
+      "per-meter-cubed-credits": {
+        "type": "double",
+        "label": "Per Meter Cubed Cost",
+        "help": "Credit cost to change each cubed meter of voxel space",
+        "placeholder": "0.0",
+        "default": "0.0",
+        "input_addon": "₵"
       }
     }
   }

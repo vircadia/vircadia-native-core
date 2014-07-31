@@ -69,6 +69,7 @@
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
+#include "PaymentManager.h"
 #include "Util.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
@@ -102,10 +103,6 @@ static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged c
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
 static QTimer* idleTimer = NULL;
-
-const int STARTUP_JITTER_SAMPLES = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / 2;
-                                                 //  Startup optimistically with small jitter buffer that
-                                                 //  will start playback on the second received audio packet.
 
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
@@ -162,7 +159,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _audio(STARTUP_JITTER_SAMPLES),
+        _audio(),
         _enableProcessVoxelsThread(true),
         _octreeProcessor(),
         _voxelHideShowThread(&_voxels),
@@ -237,9 +234,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
 
     audioThread->start();
+    
+    const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
-    connect(&nodeList->getDomainHandler(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
-    connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
+    
+    // hookup VoxelEditSender to PaymentManager so we can pay for octree edits
+    const PaymentManager& paymentManager = PaymentManager::getInstance();
+    connect(&_voxelEditSender, &VoxelEditPacketSender::octreePaymentRequired,
+            &paymentManager, &PaymentManager::sendSignedPayment);
 
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -1714,9 +1719,15 @@ void Application::init() {
     _lastTimeUpdated.start();
 
     Menu::getInstance()->loadSettings();
-    if (Menu::getInstance()->getAudioJitterBufferSamples() != 0) {
-        _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
+    if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
+        _audio.setDynamicJitterBuffers(false);
+        _audio.setStaticDesiredJitterBufferFrames(Menu::getInstance()->getAudioJitterBufferFrames());
+    } else {
+        _audio.setDynamicJitterBuffers(true);
     }
+
+    _audio.setMaxFramesOverDesired(Menu::getInstance()->getMaxFramesOverDesired());
+
     qDebug("Loaded settings");
 
     // initialize our face trackers after loading the menu settings
@@ -2115,21 +2126,6 @@ void Application::update(float deltaTime) {
         // let external parties know we're updating
         emit simulating(deltaTime);
     }
-}
-
-void Application::updateMyAvatar(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
-
-    _myAvatar->update(deltaTime);
-
-    {
-        // send head/hand data to the avatar mixer and voxel server
-        PerformanceTimer perfTimer("send");
-        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
-        packet.append(_myAvatar->toByteArray());
-        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
-    }
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -2172,13 +2168,29 @@ void Application::updateMyAvatar(float deltaTime) {
         }
     }
 
+    // send packet containing downstream audio stats to the AudioMixer 
     {
         quint64 sinceLastNack = now - _lastSendDownstreamAudioStats;
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
-            
+
             QMetaObject::invokeMethod(&_audio, "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
+    }
+}
+
+void Application::updateMyAvatar(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
+
+    _myAvatar->update(deltaTime);
+
+    {
+        // send head/hand data to the avatar mixer and voxel server
+        PerformanceTimer perfTimer("send");
+        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+        packet.append(_myAvatar->toByteArray());
+        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
     }
 }
 
@@ -3786,6 +3798,38 @@ void Application::uploadSkeleton() {
 
 void Application::uploadAttachment() {
     uploadModel(ATTACHMENT_MODEL);
+}
+
+void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
+    
+    // from the domain-handler, figure out the satoshi cost per voxel and per meter cubed
+    const QString VOXEL_SETTINGS_KEY = "voxels";
+    const QString PER_VOXEL_COST_KEY = "per-voxel-credits";
+    const QString PER_METER_CUBED_COST_KEY = "per-meter-cubed-credits";
+    const QString VOXEL_WALLET_UUID = "voxel-wallet";
+    
+    const QJsonObject& voxelObject = domainSettingsObject[VOXEL_SETTINGS_KEY].toObject();
+    
+    qint64 satoshisPerVoxel = 0;
+    qint64 satoshisPerMeterCubed = 0;
+    QUuid voxelWalletUUID;
+    
+    if (!domainSettingsObject.isEmpty()) {
+        float perVoxelCredits = (float) voxelObject[PER_VOXEL_COST_KEY].toDouble();
+        float perMeterCubedCredits = (float) voxelObject[PER_METER_CUBED_COST_KEY].toDouble();
+        
+        satoshisPerVoxel = (qint64) floorf(perVoxelCredits * SATOSHIS_PER_CREDIT);
+        satoshisPerMeterCubed = (qint64) floorf(perMeterCubedCredits * SATOSHIS_PER_CREDIT);
+        
+        voxelWalletUUID = QUuid(voxelObject[VOXEL_WALLET_UUID].toString());
+    }
+    
+    qDebug() << "Voxel costs are" << satoshisPerVoxel << "per voxel and" << satoshisPerMeterCubed << "per meter cubed";
+    qDebug() << "Destination wallet UUID for voxel payments is" << voxelWalletUUID;
+    
+    _voxelEditSender.setSatoshisPerVoxel(satoshisPerVoxel);
+    _voxelEditSender.setSatoshisPerMeterCubed(satoshisPerMeterCubed);
+    _voxelEditSender.setDestinationWalletUUID(voxelWalletUUID);
 }
 
 QString Application::getPreviousScriptLocation() {

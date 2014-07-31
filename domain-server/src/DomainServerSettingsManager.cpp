@@ -47,24 +47,8 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
 const QString DESCRIPTION_SETTINGS_KEY = "settings";
 const QString SETTING_DEFAULT_KEY = "default";
 
-bool DomainServerSettingsManager::handleHTTPRequest(HTTPConnection* connection, const QUrl &url) {
-    if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == "/settings.json") {
-        // this is a POST operation to change one or more settings
-        QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
-        QJsonObject postedObject = postedDocument.object();
-        
-        // we recurse one level deep below each group for the appropriate setting
-        recurseJSONObjectAndOverwriteSettings(postedObject, _settingsMap, _descriptionObject);
-        
-        // store whatever the current _settingsMap is to file
-        persistToFile();
-        
-        // return success to the caller
-        QString jsonSuccess = "{\"status\": \"success\"}";
-        connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
-        
-        return true;
-    } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == "/settings.json") {
+bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connection, const QUrl &url) {
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == "/settings.json") {
         // this is a GET operation for our settings
         
         // check if there is a query parameter for settings affecting a particular type of assignment
@@ -135,6 +119,30 @@ bool DomainServerSettingsManager::handleHTTPRequest(HTTPConnection* connection, 
     return false;
 }
 
+bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection *connection, const QUrl &url) {
+    if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == "/settings.json") {
+        // this is a POST operation to change one or more settings
+        QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
+        QJsonObject postedObject = postedDocument.object();
+        
+        // we recurse one level deep below each group for the appropriate setting
+        recurseJSONObjectAndOverwriteSettings(postedObject, _settingsMap, _descriptionObject);
+        
+        // store whatever the current _settingsMap is to file
+        persistToFile();
+        
+        // return success to the caller
+        QString jsonSuccess = "{\"status\": \"success\"}";
+        connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
+        
+        return true;
+    }
+    
+    return false;
+}
+
+const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
+
 void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
                                                                         QVariantMap& settingsVariant,
                                                                         QJsonObject descriptionObject) {
@@ -145,7 +153,17 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
         // we don't continue if this key is not present in our descriptionObject
         if (descriptionObject.contains(key)) {
             if (rootValue.isString()) {
-                settingsVariant[key] = rootValue.toString();
+                if (rootValue.toString().isEmpty()) {
+                    // this is an empty value, clear it in settings variant so the default is sent
+                    settingsVariant.remove(key);
+                } else {
+                    if (descriptionObject[key].toObject().contains(SETTING_DESCRIPTION_TYPE_KEY)) {
+                        // for now this means that this is a double, so set it as a double
+                        settingsVariant[key] = rootValue.toString().toDouble();
+                    } else {
+                        settingsVariant[key] = rootValue.toString();
+                    }
+                }
             } else if (rootValue.isBool()) {
                 settingsVariant[key] = rootValue.toBool();
             } else if (rootValue.isObject()) {
@@ -158,9 +176,16 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                         settingsVariant[key] = QVariantMap();
                     }
                     
+                    QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingsVariant[key].data());
+                    
                     recurseJSONObjectAndOverwriteSettings(rootValue.toObject(),
-                                                          *reinterpret_cast<QVariantMap*>(settingsVariant[key].data()),
+                                                          thisMap,
                                                           nextDescriptionObject[DESCRIPTION_SETTINGS_KEY].toObject());
+                    
+                    if (thisMap.isEmpty()) {
+                        // we've cleared all of the settings below this value, so remove this one too
+                        settingsVariant.remove(key);
+                    }
                 }
             }
         }

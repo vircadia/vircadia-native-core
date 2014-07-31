@@ -47,6 +47,12 @@ public:
                               const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                               const QByteArray& dataByteArray = QByteArray(),
                               QHttpMultiPart* dataMultiPart = NULL);
+    
+    void unauthenticatedRequest(const QString& path,
+                                QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
+                                const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
+                                const QByteArray& dataByteArray = QByteArray(),
+                                QHttpMultiPart* dataMultiPart = NULL);
 
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
@@ -88,7 +94,9 @@ private:
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
 
-    Q_INVOKABLE void invokedRequest(const QString& path, QNetworkAccessManager::Operation operation,
+    Q_INVOKABLE void invokedRequest(const QString& path,
+                                    bool requiresAuthentication,
+                                    QNetworkAccessManager::Operation operation,
                                     const JSONCallbackParameters& callbackParams,
                                     const QByteArray& dataByteArray,
                                     QHttpMultiPart* dataMultiPart);

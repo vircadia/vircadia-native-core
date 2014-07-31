@@ -153,6 +153,8 @@ public:
     
     BaseVec3Editor(QWidget* parent);
 
+    void setSingleStep(double singleStep);
+
 protected slots:
     
     virtual void updateValue() = 0;
@@ -174,6 +176,8 @@ class Vec3Editor : public BaseVec3Editor {
 public:
     
     Vec3Editor(QWidget* parent);
+
+    const glm::vec3& getValue() const { return _value; }
 
 signals:
 

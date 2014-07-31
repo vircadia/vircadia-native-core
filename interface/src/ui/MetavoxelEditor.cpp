@@ -15,11 +15,12 @@
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLineEdit>
 #include <QListWidget>
-#include <QMetaProperty>
+#include <QMessageBox>
 #include <QMetaProperty>
 #include <QOpenGLFramebufferObject>
 #include <QPushButton>
@@ -30,6 +31,7 @@
 
 #include <AttributeRegistry.h>
 #include <MetavoxelMessages.h>
+#include <MetavoxelUtil.h>
 
 #include "Application.h"
 #include "MetavoxelEditor.h"
@@ -113,6 +115,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new RemoveSpannerTool(this));
     addTool(new ClearSpannersTool(this));
     addTool(new SetSpannerTool(this));
+    addTool(new ImportHeightfieldTool(this));
     
     updateAttributes();
     
@@ -890,4 +893,128 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
     // send the images off to the lab for processing
     QThreadPool::globalInstance()->start(new Voxelizer(size, cellBounds,
         spannerData->getVoxelizationGranularity(), directionImages));
+}
+
+ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
+    MetavoxelTool(editor, "Import Heightfield", false) {
+    
+    QWidget* widget = new QWidget();
+    QFormLayout* form = new QFormLayout();
+    widget->setLayout(form);
+    layout()->addWidget(widget);
+    
+    form->addRow("Translation:", _translation = new Vec3Editor(widget));
+    form->addRow("Scale:", _scale = new QDoubleSpinBox());
+    _scale->setMinimum(-FLT_MAX);
+    _scale->setMaximum(FLT_MAX);
+    _scale->setPrefix("2^");
+    _scale->setValue(3.0);
+    form->addRow("Height:", _height = new QPushButton());
+    connect(_height, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectHeightFile);
+    form->addRow("Color:", _color = new QPushButton());
+    connect(_color, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectColorFile);
+    
+    QPushButton* applyButton = new QPushButton("Apply");
+    layout()->addWidget(applyButton);
+    connect(applyButton, &QAbstractButton::clicked, this, &ImportHeightfieldTool::apply);
+}
+
+bool ImportHeightfieldTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("HeightfieldAttribute");
+}
+
+void ImportHeightfieldTool::render() {
+    float scale = pow(2.0, _scale->value());
+    _translation->setSingleStep(scale);
+    glm::vec3 quantizedTranslation = scale * glm::floor(_translation->getValue() / scale);
+    _translation->setValue(quantizedTranslation);
+    _preview.render(quantizedTranslation, scale);
+}
+
+void ImportHeightfieldTool::selectHeightFile() {
+    QString filename = QFileDialog::getOpenFileName(this, "Select Height Image", QString(), "Images (*.png *.jpg)");
+    if (filename.isNull()) {
+        return;
+    }
+    if (!_heightImage.load(filename)) {
+        QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
+        return;
+    }
+    _heightImage = _heightImage.convertToFormat(QImage::Format_RGB888);
+    _height->setText(filename);
+    updatePreview();
+}
+
+void ImportHeightfieldTool::selectColorFile() {
+    QString filename = QFileDialog::getOpenFileName(this, "Select Color Image", QString(), "Images (*.png *.jpg)");
+    if (filename.isNull()) {
+        return;
+    }
+    if (!_colorImage.load(filename)) {
+        QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
+        return;
+    }
+    _colorImage = _colorImage.convertToFormat(QImage::Format_RGB888);
+    _color->setText(filename);
+    updatePreview();
+}
+
+void ImportHeightfieldTool::apply() {
+    float scale = pow(2.0, _scale->value());
+    foreach (const BufferDataPointer& bufferData, _preview.getBuffers()) {
+        HeightfieldBuffer* buffer = static_cast<HeightfieldBuffer*>(bufferData.data());
+        MetavoxelData data;
+        data.setSize(scale);
+        HeightfieldDataPointer heightPointer(new HeightfieldData(buffer->getHeight()));
+        data.setRoot(AttributeRegistry::getInstance()->getHeightfieldAttribute(), new MetavoxelNode(AttributeValue(
+            AttributeRegistry::getInstance()->getHeightfieldAttribute(), encodeInline(heightPointer))));
+        if (!buffer->getColor().isEmpty()) {
+            HeightfieldDataPointer colorPointer(new HeightfieldData(buffer->getColor()));
+            data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
+                AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
+        }
+        MetavoxelEditMessage message = { QVariant::fromValue(SetDataEdit(
+            _translation->getValue() + buffer->getTranslation() * scale, data)) };
+        Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+    }
+}
+
+const int BLOCK_SIZE = 32;
+const int BLOCK_ADVANCEMENT = BLOCK_SIZE - 1;
+
+void ImportHeightfieldTool::updatePreview() {
+    QVector<BufferDataPointer> buffers;
+    if (_heightImage.width() > 0 && _heightImage.height() > 0) {
+        float z = 0.0f;
+        for (int i = 0; i < _heightImage.height(); i += BLOCK_ADVANCEMENT, z++) {
+            float x = 0.0f;
+            for (int j = 0; j < _heightImage.width(); j += BLOCK_ADVANCEMENT, x++) {
+                QByteArray height(BLOCK_SIZE * BLOCK_SIZE, 0);
+                int rows = qMin(BLOCK_SIZE, _heightImage.height() - i);
+                int columns = qMin(BLOCK_SIZE, _heightImage.width() - j);
+                const int BYTES_PER_COLOR = 3;
+                for (int y = 0; y < rows; y++) {
+                    uchar* src = _heightImage.scanLine(i + y) + j * BYTES_PER_COLOR;
+                    char* dest = height.data() + y * BLOCK_SIZE;
+                    for (int x = 0; x < columns; x++) {
+                        *dest++ = *src;
+                        src += BYTES_PER_COLOR;
+                    }
+                }
+                
+                QByteArray color;
+                if (!_colorImage.isNull()) {
+                    color = QByteArray(BLOCK_SIZE * BLOCK_SIZE * BYTES_PER_COLOR, 0);
+                    rows = qMax(0, qMin(BLOCK_SIZE, _colorImage.height() - i));
+                    columns = qMax(0, qMin(BLOCK_SIZE, _colorImage.width() - j));
+                    for (int y = 0; y < rows; y++) {
+                        memcpy(color.data() + y * BLOCK_SIZE * BYTES_PER_COLOR,
+                            _colorImage.scanLine(i + y) + j * BYTES_PER_COLOR, columns * BYTES_PER_COLOR);
+                    }
+                }
+                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color, false)));
+            }
+        }
+    }
+    _preview.setBuffers(buffers);
 }

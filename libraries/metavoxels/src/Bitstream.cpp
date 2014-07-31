@@ -639,6 +639,16 @@ void Bitstream::readRawDelta(QScriptValue& value, const QScriptValue& reference)
     }
 }
 
+void Bitstream::writeAligned(const QByteArray& data) {
+    flush();
+    _underlying.device()->write(data);
+}
+
+QByteArray Bitstream::readAligned(int bytes) {
+    reset();
+    return _underlying.device()->read(bytes);
+}
+
 Bitstream& Bitstream::operator<<(bool value) {
     if (value) {
         _byte |= (1 << _position);

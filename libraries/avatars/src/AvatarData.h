@@ -122,6 +122,8 @@ class AvatarData : public QObject {
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
+    Q_PROPERTY(float headYaw READ getHeadYaw WRITE setHeadYaw)
+    Q_PROPERTY(float headRoll READ getHeadRoll WRITE setHeadRoll)
 
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
@@ -173,7 +175,13 @@ public:
 
     // access to Head().set/getMousePitch (degrees)
     float getHeadPitch() const { return _headData->getBasePitch(); }
-    void setHeadPitch(float value) { _headData->setBasePitch(value); };
+    void setHeadPitch(float value) { _headData->setBasePitch(value); }
+
+    float getHeadYaw() const { return _headData->getBaseYaw(); }
+    void setHeadYaw(float value) { _headData->setBaseYaw(value); }
+
+    float getHeadRoll() const { return _headData->getBaseRoll(); }
+    void setHeadRoll(float value) { _headData->setBaseRoll(value); }
 
     // access to Head().set/getAverageLoudness
     float getAudioLoudness() const { return _headData->getAudioLoudness(); }

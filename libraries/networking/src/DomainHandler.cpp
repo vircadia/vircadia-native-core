@@ -9,6 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <math.h>
+
+#include <QtCore/QJsonDocument>
+
+#include "Assignment.h"
 #include "NodeList.h"
 #include "PacketHeaders.h"
 #include "UserActivityLogger.h"
@@ -21,7 +26,9 @@ DomainHandler::DomainHandler(QObject* parent) :
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
     _isConnected(false),
-    _handshakeTimer(NULL)
+    _handshakeTimer(NULL),
+    _settingsObject(),
+    _failedSettingsRequests(0)
 {
     
 }
@@ -37,8 +44,14 @@ void DomainHandler::clearConnectionInfo() {
     }
 }
 
+void DomainHandler::clearSettings() {
+    _settingsObject = QJsonObject();
+    _failedSettingsRequests = 0;
+}
+
 void DomainHandler::reset() {
     clearConnectionInfo();
+    clearSettings();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
 }
@@ -109,7 +122,61 @@ void DomainHandler::setIsConnected(bool isConnected) {
         
         if (_isConnected) {
             emit connectedToDomain(_hostname);
+            
+            // we've connected to new domain - time to ask it for global settings
+            requestDomainSettings();
         }
+    }
+}
+
+void DomainHandler::requestDomainSettings() const {
+    if (_settingsObject.isEmpty()) {
+        // setup the URL required to grab settings JSON
+        QUrl settingsJSONURL;
+        settingsJSONURL.setScheme("http");
+        settingsJSONURL.setHost(_hostname);
+        settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
+        settingsJSONURL.setPath("/settings.json");
+        Assignment::Type assignmentType = Assignment::typeForNodeType(NodeList::getInstance()->getOwnerType());
+        settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
+        
+        qDebug() << "Requesting domain-server settings at" << settingsJSONURL.toString();
+        
+        QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(settingsJSONURL));
+        connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
+    }
+}
+
+const int MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS = 5;
+
+void DomainHandler::settingsRequestFinished() {
+    QNetworkReply* settingsReply = reinterpret_cast<QNetworkReply*>(sender());
+    
+    int replyCode = settingsReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    
+    if (settingsReply->error() == QNetworkReply::NoError && replyCode != 301 && replyCode != 302) {
+        // parse the JSON to a QJsonObject and save it
+        _settingsObject = QJsonDocument::fromJson(settingsReply->readAll()).object();
+        
+        qDebug() << "Received domain settings.";
+        emit settingsReceived(_settingsObject);
+        
+        // reset failed settings requests to 0, we got them
+        _failedSettingsRequests = 0;
+    } else {
+        // error grabbing the settings - in some cases this means we are stuck
+        // so we should retry until we get it
+        qDebug() << "Error getting domain settings -" << settingsReply->errorString() << "- retrying";
+        
+        if (++_failedSettingsRequests >= MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS) {
+            qDebug() << "Failed to retreive domain-server settings" << MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS
+                << "times. Re-setting connection to domain.";
+            clearSettings();
+            clearConnectionInfo();
+            emit settingsReceiveFail();
+        } else {
+            requestDomainSettings();
+        }        
     }
 }
 
