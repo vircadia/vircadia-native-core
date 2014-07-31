@@ -153,7 +153,7 @@ var ExportMenu = function(opts) {
         width: cancelWidth,
         height: height,
         color: { red: 255, green: 255, blue: 255 },
-        text: "Close"
+        text: "Cancel"
     });
 
     var voxelPreview = Overlays.addOverlay("cube", {
@@ -337,7 +337,7 @@ var ModelImporter = function(opts) {
         height: height,
         color: { red: 255, green: 255, blue: 255 },
         visible: false,
-        text: "Cancel"
+        text: "Close"
     });
     this._importing = false;
 
