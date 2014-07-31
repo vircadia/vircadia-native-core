@@ -75,7 +75,7 @@ Audio::Audio(QObject* parent) :
     // slower than real time (or at least the desired sample rate). If you increase the size of the ring buffer, then it 
     // this delay will slowly add up and the longer someone runs, they more delayed their audio will be.
     _inputRingBuffer(0),
-    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 100, true, 0, true),
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 100, true, 0, 0, true),
     _isStereoInput(false),
     _averagedLatency(0.0),
     _lastInputLoudness(0),

@@ -74,7 +74,7 @@ public:
 
     
     void setDynamicJitterBuffers(bool dynamicJitterBuffers);
-    void setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames) { _staticDesiredJitterBufferFrames = staticDesiredJitterBufferFrames; }
+    void setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames);
 
     /// this function should be called once per second to ensure the seq num stats history spans ~30 seconds
     AudioStreamStats updateSeqHistoryAndGetAudioStreamStats();

@@ -90,6 +90,8 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
                 _audioStreams.insert(streamIdentifier,
                     matchingStream = new InjectedAudioStream(streamIdentifier, AudioMixer::getUseDynamicJitterBuffers(),
                     AudioMixer::getStaticDesiredJitterBufferFrames(), AudioMixer::getMaxFramesOverDesired()));
+            } else {
+                matchingStream = _audioStreams.value(streamIdentifier);
             }
         }
 

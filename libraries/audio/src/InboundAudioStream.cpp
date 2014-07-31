@@ -191,6 +191,13 @@ void InboundAudioStream::setDynamicJitterBuffers(bool dynamicJitterBuffers) {
     _dynamicJitterBuffers = dynamicJitterBuffers;
 }
 
+void InboundAudioStream::setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames) {
+    _staticDesiredJitterBufferFrames = staticDesiredJitterBufferFrames;
+    if (!_dynamicJitterBuffers) {
+        _desiredJitterBufferFrames = _staticDesiredJitterBufferFrames;
+    }
+}
+
 int InboundAudioStream::clampDesiredJitterBufferFramesValue(int desired) const {
     const int MIN_FRAMES_DESIRED = 0;
     const int MAX_FRAMES_DESIRED = _ringBuffer.getFrameCapacity();
