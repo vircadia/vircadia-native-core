@@ -38,7 +38,7 @@ Agent::Agent(const QByteArray& packet) :
     _voxelEditSender(),
     _particleEditSender(),
     _modelEditSender(),
-    _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO),
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 1, false, 1, 0, false),
     _avatarHashMap()
 {
     // be the parent of the script engine so it gets moved when we do
@@ -150,20 +150,11 @@ void Agent::readPendingDatagrams() {
 
             } else if (datagramPacketType == PacketTypeMixedAudio) {
 
-                QUuid senderUUID = uuidFromPacketHeader(receivedPacket);
+                _receivedAudioStream.parseData(receivedPacket);
 
-                // parse sequence number for this packet
-                int numBytesPacketHeader = numBytesForPacketHeader(receivedPacket);
-                const char* sequenceAt = receivedPacket.constData() + numBytesPacketHeader;
-                quint16 sequence = *(reinterpret_cast<const quint16*>(sequenceAt));
-                _incomingMixedAudioSequenceNumberStats.sequenceNumberReceived(sequence, senderUUID);
+                _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
 
-                // parse the data and grab the average loudness
-                _receivedAudioBuffer.parseData(receivedPacket);
-                
-                // pretend like we have read the samples from this buffer so it does not fill
-                static int16_t garbageAudioBuffer[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
-                _receivedAudioBuffer.readSamples(garbageAudioBuffer, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+                _receivedAudioStream.clearBuffer();
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer

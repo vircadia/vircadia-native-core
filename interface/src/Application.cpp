@@ -104,10 +104,6 @@ const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simul
                                                  //  in the idle loop?  (60 FPS is default)
 static QTimer* idleTimer = NULL;
 
-const int STARTUP_JITTER_SAMPLES = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / 2;
-                                                 //  Startup optimistically with small jitter buffer that
-                                                 //  will start playback on the second received audio packet.
-
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
@@ -163,7 +159,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _audio(STARTUP_JITTER_SAMPLES),
+        _audio(),
         _enableProcessVoxelsThread(true),
         _octreeProcessor(),
         _voxelHideShowThread(&_voxels),
@@ -1723,9 +1719,15 @@ void Application::init() {
     _lastTimeUpdated.start();
 
     Menu::getInstance()->loadSettings();
-    if (Menu::getInstance()->getAudioJitterBufferSamples() != 0) {
-        _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
+    if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
+        _audio.setDynamicJitterBuffers(false);
+        _audio.setStaticDesiredJitterBufferFrames(Menu::getInstance()->getAudioJitterBufferFrames());
+    } else {
+        _audio.setDynamicJitterBuffers(true);
     }
+
+    _audio.setMaxFramesOverDesired(Menu::getInstance()->getMaxFramesOverDesired());
+
     qDebug("Loaded settings");
 
     // initialize our face trackers after loading the menu settings
@@ -2124,21 +2126,6 @@ void Application::update(float deltaTime) {
         // let external parties know we're updating
         emit simulating(deltaTime);
     }
-}
-
-void Application::updateMyAvatar(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
-
-    _myAvatar->update(deltaTime);
-
-    {
-        // send head/hand data to the avatar mixer and voxel server
-        PerformanceTimer perfTimer("send");
-        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
-        packet.append(_myAvatar->toByteArray());
-        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
-    }
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -2181,13 +2168,29 @@ void Application::updateMyAvatar(float deltaTime) {
         }
     }
 
+    // send packet containing downstream audio stats to the AudioMixer 
     {
         quint64 sinceLastNack = now - _lastSendDownstreamAudioStats;
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
-            
+
             QMetaObject::invokeMethod(&_audio, "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
+    }
+}
+
+void Application::updateMyAvatar(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
+
+    _myAvatar->update(deltaTime);
+
+    {
+        // send head/hand data to the avatar mixer and voxel server
+        PerformanceTimer perfTimer("send");
+        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+        packet.append(_myAvatar->toByteArray());
+        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
     }
 }
 

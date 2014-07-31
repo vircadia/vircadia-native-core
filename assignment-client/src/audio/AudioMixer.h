@@ -16,8 +16,8 @@
 #include <AudioRingBuffer.h>
 #include <ThreadedAssignment.h>
 
-class PositionalAudioRingBuffer;
-class AvatarAudioRingBuffer;
+class PositionalAudioStream;
+class AvatarAudioStream;
 
 const int SAMPLE_PHASE_DELAY_AT_90 = 20;
 
@@ -38,11 +38,13 @@ public slots:
     void sendStatsPacket();
 
     static bool getUseDynamicJitterBuffers() { return _useDynamicJitterBuffers; }
+    static int getStaticDesiredJitterBufferFrames() { return _staticDesiredJitterBufferFrames; }
+    static int getMaxFramesOverDesired() { return _maxFramesOverDesired; }
 
 private:
-    /// adds one buffer to the mix for a listening node
-    void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
-                                                  AvatarAudioRingBuffer* listeningNodeBuffer);
+    /// adds one stream to the mix for a listening node
+    void addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
+                                                  AvatarAudioStream* listeningNodeStream);
     
     /// prepares and sends a mix to one Node
     void prepareMixForListeningNode(Node* node);
@@ -59,7 +61,10 @@ private:
     int _sumMixes;
     AABox* _sourceUnattenuatedZone;
     AABox* _listenerUnattenuatedZone;
+
     static bool _useDynamicJitterBuffers;
+    static int _staticDesiredJitterBufferFrames;
+    static int _maxFramesOverDesired;
 
     quint64 _lastSendAudioStreamStatsTime;
 };
