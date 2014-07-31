@@ -70,6 +70,7 @@ void OculusManager::connect() {
         _eyeFov[0] = _ovrHmd->DefaultEyeFov[0];
         _eyeFov[1] = _ovrHmd->DefaultEyeFov[1];
 #else
+        ovrHmd_GetDesc(_ovrHmd, &_ovrHmdDesc);
         _eyeFov[0] = _ovrHmdDesc.DefaultEyeFov[0];
         _eyeFov[1] = _ovrHmdDesc.DefaultEyeFov[1];
 #endif
