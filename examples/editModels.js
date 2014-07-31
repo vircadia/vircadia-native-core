@@ -218,8 +218,8 @@ var ExportMenu = function(opts) {
         filename = Window.save("Select where to save", filename, "*.svo")
         if (filename) {
             var success = Clipboard.exportModels(filename, x, y, z, s);
-            if (!succcess) {
-                WIndow.alert("Export failed: no models found in selected area.");
+            if (!success) {
+                Window.alert("Export failed: no models found in selected area.");
             }
         }
         self.close();
