@@ -158,7 +158,7 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
         resolveCollisions();
 
         { // enforce constraints
-            PerformanceTimer perfTimer("4-enforce");
+            PerformanceTimer perfTimer("5-enforce");
             error = 0.0f;
             for (int i = 0; i < numDolls; ++i) {
                 error = glm::max(error, _dolls[i]->enforceRagdollConstraints());
@@ -220,7 +220,7 @@ void PhysicsSimulation::computeCollisions() {
 }
 
 void PhysicsSimulation::resolveCollisions() {
-    PerformanceTimer perfTimer("3-resolve");
+    PerformanceTimer perfTimer("4-resolve");
     // walk all collisions, accumulate movement on shapes, and build a list of affected shapes
     QSet<Shape*> shapes;
     int numCollisions = _collisions.size();
@@ -268,7 +268,7 @@ void PhysicsSimulation::enforceContacts() {
 }
 
 void PhysicsSimulation::updateContacts() {
-    PerformanceTimer perfTimer("3.5-updateContacts");
+    PerformanceTimer perfTimer("3-updateContacts");
     int numCollisions = _collisions.size();
     for (int i = 0; i < numCollisions; ++i) {
         CollisionInfo* collision = _collisions.getCollision(i);
