@@ -1602,17 +1602,13 @@ void Application::importVoxels() {
 }
 
 void Application::importModels(const QString& filename) {
-    _importSucceded = false;
+    _modelClipboard.eraseAllOctreeElements();
+    _modelClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
+    _modelClipboard.reaverageOctreeElements();
+}
 
-
-    _models.getTree()->readFromSVOFile(filename.toLocal8Bit().constData());
-    _models.getTree()->reaverageOctreeElements();
-
-
-    // restore the main window's active state
-    _window->activateWindow();
-
-    emit importDone();
+void Application::pasteModels(float x, float y, float z) {
+    _modelClipboard.sendModels(&_modelEditSender, x, y, z);
 }
 
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
@@ -2124,7 +2120,6 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("models");
         _models.update(); // update the models...
-        _modelClipboardRenderer.update();
     }
 
     {
@@ -2613,7 +2608,6 @@ void Application::updateShadowMap() {
         _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
         _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
         _models.render(OctreeRenderer::SHADOW_RENDER_MODE);
-        _modelClipboardRenderer.render(OctreeRenderer::SHADOW_RENDER_MODE);
 
         glDisable(GL_POLYGON_OFFSET_FILL);
 
@@ -2814,7 +2808,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... models...");
             _models.render();
-            _modelClipboardRenderer.render();
         }
 
         // render the ambient occlusion effect if enabled

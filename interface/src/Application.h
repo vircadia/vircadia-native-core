@@ -200,6 +200,8 @@ public:
     bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
+    ModelTree* getModelClipboard() { return &_modelClipboard; }
+    ModelTreeRenderer* getModelClipboardRenderer() { return &_modelClipboardRenderer; }
     Environment* getEnvironment() { return &_environment; }
     bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return _mouseHidden; }
@@ -312,6 +314,7 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
 
+    void pasteModels(float x, float y, float z);
     void exportModels(const QString& filename, float x, float y, float z, float scale);
     void importModels(const QString& filename);
 
