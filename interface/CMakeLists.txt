@@ -258,5 +258,8 @@ else (APPLE)
     add_definitions(-Dssize_t=long)
     
     target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
+    if (LIBOVR_FOUND)
+      target_link_libraries(${TARGET_NAME} ws2_32.lib)
+    endif()
   endif()
 endif (APPLE)
