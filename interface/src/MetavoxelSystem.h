@@ -12,12 +12,8 @@
 #ifndef hifi_MetavoxelSystem_h
 #define hifi_MetavoxelSystem_h
 
-// include this before QOpenGLTexture, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QList>
 #include <QOpenGLBuffer>
-#include <QOpenGLTexture>
 #include <QReadWriteLock>
 #include <QVector>
 
@@ -28,8 +24,6 @@
 #include "renderer/ProgramObject.h"
 
 class Model;
-
-typedef QOpenGLTexture* TexturePointer;
 
 /// Renders a metavoxel tree.
 class MetavoxelSystem : public MetavoxelClientManager {
@@ -47,7 +41,7 @@ public:
     void simulate(float deltaTime);
     void render();
 
-    Q_INVOKABLE void deleteTextures(const TexturePointer& height, const TexturePointer& color);
+    Q_INVOKABLE void deleteTextures(int heightID, int colorID);
 
 protected:
 
@@ -63,8 +57,6 @@ private:
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
 };
-
-Q_DECLARE_METATYPE(TexturePointer)
 
 /// Describes contents of a point in a point buffer.
 class BufferPoint {
@@ -154,8 +146,9 @@ private:
     QByteArray _height;
     QByteArray _color;
     bool _clearAfterLoading;
-    TexturePointer _heightTexture;
-    TexturePointer _colorTexture;
+    GLuint _heightTextureID;
+    GLuint _colorTextureID;
+    int _heightSize;
 
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
     static QHash<int, BufferPair> _bufferPairs;

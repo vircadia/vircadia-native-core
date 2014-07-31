@@ -29,7 +29,6 @@ REGISTER_META_OBJECT(DefaultMetavoxelRendererImplementation)
 REGISTER_META_OBJECT(SphereRenderer)
 REGISTER_META_OBJECT(StaticModelRenderer)
 
-static int texturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
 static int bufferPointVectorMetaTypeId = qRegisterMetaType<BufferPointVector>();
 
 void MetavoxelSystem::init() {
@@ -113,9 +112,9 @@ void MetavoxelSystem::render() {
     guideToAugmented(renderVisitor);
 }
 
-void MetavoxelSystem::deleteTextures(const TexturePointer& height, const TexturePointer& color) {
-    delete height;
-    delete color;
+void MetavoxelSystem::deleteTextures(int heightID, int colorID) {
+    glDeleteTextures(1, (GLuint*)&heightID);
+    glDeleteTextures(1, (GLuint*)&colorID);
 }
 
 MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
@@ -267,18 +266,19 @@ HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
     _height(height),
     _color(color),
     _clearAfterLoading(clearAfterLoading),
-    _heightTexture(new QOpenGLTexture(QOpenGLTexture::Target2D)),
-    _colorTexture(new QOpenGLTexture(QOpenGLTexture::Target2D)) {
+    _heightTextureID(0),
+    _colorTextureID(0),
+    _heightSize(glm::sqrt(height.size())) {
 }
 
 HeightfieldBuffer::~HeightfieldBuffer() {
     // the textures have to be deleted on the main thread (for its opengl context)
     if (QThread::currentThread() != Application::getInstance()->thread()) {
         QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "deleteTextures",
-            Q_ARG(const TexturePointer&, _heightTexture), Q_ARG(const TexturePointer&, _colorTexture));
+            Q_ARG(int, _heightTextureID), Q_ARG(int, _colorTextureID));
     } else {
-        delete _heightTexture;
-        delete _colorTexture;
+        glDeleteTextures(1, &_heightTextureID);
+        glDeleteTextures(1, &_colorTextureID);
     }
 }
 
@@ -290,49 +290,46 @@ public:
 
 void HeightfieldBuffer::render() {
     // initialize textures, etc. on first render
-    if (!_heightTexture->isCreated()) {
-        int heightSize = glm::sqrt(_height.size());
-        _heightTexture->setSize(heightSize, heightSize);
-        _heightTexture->setAutoMipMapGenerationEnabled(false);
-        _heightTexture->setMinificationFilter(QOpenGLTexture::Linear);
-        _heightTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
-        _heightTexture->setFormat(QOpenGLTexture::LuminanceFormat);
-        _heightTexture->allocateStorage();
-        _heightTexture->setData(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8, _height.data());
+    if (_heightTextureID == 0) {
+        glGenTextures(1, &_heightTextureID);
+        glBindTexture(GL_TEXTURE_2D, _heightTextureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _heightSize, _heightSize, 0,
+            GL_LUMINANCE, GL_UNSIGNED_BYTE, _height.constData());
         if (_clearAfterLoading) {
             _height.clear();
         }
-        if (!_color.isEmpty()) {
+        
+        glGenTextures(1, &_colorTextureID);
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        if (_color.isEmpty()) {
+            const quint8 WHITE_COLOR[] = { 255, 255, 255 };
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
+               
+        } else {
             int colorSize = glm::sqrt(_color.size() / 3);
-            _colorTexture->setSize(colorSize, colorSize);
-        }
-        _colorTexture->setAutoMipMapGenerationEnabled(false);
-        _colorTexture->setMinificationFilter(QOpenGLTexture::Linear);
-        _colorTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
-        _colorTexture->setFormat(QOpenGLTexture::RGBFormat);
-        _colorTexture->allocateStorage();
-        if (!_color.isEmpty()) {
-            _colorTexture->setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt8, _color.data());
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, colorSize, colorSize, 0, GL_RGB, GL_UNSIGNED_BYTE, _color.constData());
             if (_clearAfterLoading) {
                 _color.clear();
             }
-        } else {
-            const quint8 WHITE_COLOR[] = { 255, 255, 255 };
-            _colorTexture->setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt8, const_cast<quint8*>(WHITE_COLOR));
         }
     }
     // create the buffer objects lazily
-    int size = _heightTexture->width();
-    int sizeWithSkirt = size + 2;
+    int sizeWithSkirt = _heightSize + 2;
     int vertexCount = sizeWithSkirt * sizeWithSkirt;
     int rows = sizeWithSkirt - 1;
     int indexCount = rows * rows * 4;
-    BufferPair& bufferPair = _bufferPairs[size];
+    BufferPair& bufferPair = _bufferPairs[_heightSize];
     if (!bufferPair.first.isCreated()) {
         QVector<HeightfieldPoint> vertices(vertexCount);
         HeightfieldPoint* point = vertices.data();
         
-        float step = 1.0f / (size - 1);
+        float step = 1.0f / (_heightSize - 1);
         float z = -step;
         for (int i = 0; i < sizeWithSkirt; i++, z += step) {
             float x = -step;
@@ -380,13 +377,17 @@ void HeightfieldBuffer::render() {
     glTranslatef(_translation.x, _translation.y, _translation.z);
     glScalef(_scale, _scale, _scale);
     
-    _heightTexture->bind(0);
-    _colorTexture->bind(1);
+    glBindTexture(GL_TEXTURE_2D, _heightTextureID);
+    
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, _colorTextureID);
     
     glDrawRangeElements(GL_QUADS, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
     
-    _colorTexture->release(1);
-    _heightTexture->release(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    glActiveTexture(GL_TEXTURE0); 
+    glBindTexture(GL_TEXTURE_2D, 0);
     
     glPopMatrix();
     
