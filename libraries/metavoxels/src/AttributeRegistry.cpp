@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QBuffer>
+#include <QMutexLocker>
 #include <QReadLocker>
 #include <QScriptEngine>
 #include <QWriteLocker>
@@ -21,6 +23,8 @@ REGISTER_META_OBJECT(QRgbAttribute)
 REGISTER_META_OBJECT(PackedNormalAttribute)
 REGISTER_META_OBJECT(SpannerQRgbAttribute)
 REGISTER_META_OBJECT(SpannerPackedNormalAttribute)
+REGISTER_META_OBJECT(HeightfieldAttribute)
+REGISTER_META_OBJECT(HeightfieldColorAttribute)
 REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
 REGISTER_META_OBJECT(SpannerSetAttribute)
@@ -37,17 +41,23 @@ AttributeRegistry::AttributeRegistry() :
     _guideAttribute(registerAttribute(new SharedObjectAttribute("guide", &MetavoxelGuide::staticMetaObject,
         new DefaultMetavoxelGuide()))),
     _rendererAttribute(registerAttribute(new SharedObjectAttribute("renderer", &MetavoxelRenderer::staticMetaObject,
-        new PointMetavoxelRenderer()))),
+        new DefaultMetavoxelRenderer()))),
     _spannersAttribute(registerAttribute(new SpannerSetAttribute("spanners", &Spanner::staticMetaObject))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new PackedNormalAttribute("normal"))),
     _spannerColorAttribute(registerAttribute(new SpannerQRgbAttribute("spannerColor"))),
     _spannerNormalAttribute(registerAttribute(new SpannerPackedNormalAttribute("spannerNormal"))),
-    _spannerMaskAttribute(registerAttribute(new FloatAttribute("spannerMask"))) {
+    _spannerMaskAttribute(registerAttribute(new FloatAttribute("spannerMask"))),
+    _heightfieldAttribute(registerAttribute(new HeightfieldAttribute("heightfield"))),
+    _heightfieldColorAttribute(registerAttribute(new HeightfieldColorAttribute("heightfieldColor"))) {
     
-    // our baseline LOD threshold is for voxels; spanners are a different story
+    // our baseline LOD threshold is for voxels; spanners and heightfields are a different story
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
     _spannersAttribute->setLODThresholdMultiplier(SPANNER_LOD_THRESHOLD_MULTIPLIER);
+    
+    const float HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER = 32.0f;
+    _heightfieldAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
+    _heightfieldColorAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
 }
 
 static QScriptValue qDebugFunction(QScriptContext* context, QScriptEngine* engine) {
@@ -449,6 +459,221 @@ bool SpannerPackedNormalAttribute::merge(void*& parent, void* children[], bool p
 
 AttributeValue SpannerPackedNormalAttribute::inherit(const AttributeValue& parentValue) const {
     return AttributeValue(parentValue.getAttribute());
+}
+
+HeightfieldData::HeightfieldData(const QByteArray& contents) :
+    _contents(contents) {
+}
+
+const int BYTES_PER_PIXEL = 3;
+
+HeightfieldData::HeightfieldData(Bitstream& in, int bytes, bool color) :
+    _encoded(in.readAligned(bytes)) {
+    
+    QImage image = QImage::fromData(_encoded).convertToFormat(QImage::Format_RGB888);
+    if (color) {
+        _contents.resize(image.width() * image.height() * BYTES_PER_PIXEL);
+        memcpy(_contents.data(), image.constBits(), _contents.size());
+        
+    } else {
+        _contents.resize(image.width() * image.height());
+        char* dest = _contents.data();
+        for (const uchar* src = image.constBits(), *end = src + _contents.size() * BYTES_PER_PIXEL;
+                src != end; src += BYTES_PER_PIXEL) {
+            *dest++ = *src;
+        }
+    }
+}
+
+void HeightfieldData::write(Bitstream& out, bool color) {
+    QMutexLocker locker(&_encodedMutex);
+    if (_encoded.isEmpty()) {
+        QImage image;        
+        if (color) {    
+            int size = glm::sqrt(_contents.size() / (float)BYTES_PER_PIXEL);
+            image = QImage((uchar*)_contents.data(), size, size, QImage::Format_RGB888);
+        } else {
+            int size = glm::sqrt((float)_contents.size());
+            image = QImage(size, size, QImage::Format_RGB888);
+            uchar* dest = image.bits();
+            for (const char* src = _contents.constData(), *end = src + _contents.size(); src != end; src++) {
+                *dest++ = *src;
+                *dest++ = *src;
+                *dest++ = *src;
+            }
+        }
+        QBuffer buffer(&_encoded);
+        buffer.open(QIODevice::WriteOnly);
+        image.save(&buffer, "JPG");
+    }
+    out << _encoded.size();
+    out.writeAligned(_encoded);
+}
+
+HeightfieldAttribute::HeightfieldAttribute(const QString& name) :
+    InlineAttribute<HeightfieldDataPointer>(name) {
+}
+
+void HeightfieldAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (isLeaf) { 
+        int size;
+        in >> size;
+        if (size == 0) {
+            *(HeightfieldDataPointer*)&value = HeightfieldDataPointer();
+        } else {
+            *(HeightfieldDataPointer*)&value = HeightfieldDataPointer(new HeightfieldData(in, size, false));
+        }
+    }
+}
+
+void HeightfieldAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (isLeaf) {
+        HeightfieldDataPointer data = decodeInline<HeightfieldDataPointer>(value);
+        if (data) {
+            data->write(out, false);
+        } else {
+            out << 0;
+        }
+    }
+}
+
+bool HeightfieldAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    int maxSize = 0;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        HeightfieldDataPointer pointer = decodeInline<HeightfieldDataPointer>(children[i]);
+        if (pointer) {
+            maxSize = qMax(maxSize, pointer->getContents().size());
+        }
+    }
+    if (maxSize == 0) {
+        *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer();
+        return true;
+    }
+    int size = glm::sqrt((float)maxSize);
+    QByteArray contents(size * size, 0);
+    int halfSize = size / 2;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        HeightfieldDataPointer child = decodeInline<HeightfieldDataPointer>(children[i]);
+        if (!child) {
+            continue;
+        }
+        const QByteArray& childContents = child->getContents();
+        int childSize = glm::sqrt((float)childContents.size());
+        if (childSize != size) {
+            continue; // TODO: handle differently-sized children
+        }
+        const int INDEX_MASK = 1;
+        int xIndex = i & INDEX_MASK;
+        const int Y_SHIFT = 1;
+        int yIndex = (i >> Y_SHIFT) & INDEX_MASK;
+        if (yIndex == 0 && decodeInline<HeightfieldDataPointer>(children[i | (1 << Y_SHIFT)])) {
+            continue; // bottom is overriden by top
+        }
+        const int HALF_RANGE = 128;
+        int yOffset = yIndex * HALF_RANGE;
+        int Z_SHIFT = 2;
+        int zIndex = (i >> Z_SHIFT) & INDEX_MASK;
+        char* dest = contents.data() + (zIndex * halfSize * size) + (xIndex * halfSize);
+        uchar* src = (uchar*)childContents.data();
+        int childSizePlusOne = childSize + 1;
+        for (int z = 0; z < halfSize; z++) {
+            for (char* end = dest + halfSize; dest != end; src += 2) {
+                int max = qMax(qMax(src[0], src[1]), qMax(src[childSize], src[childSizePlusOne]));
+                *dest++ = (max == 0) ? 0 : (yOffset + (max >> 1));
+            }
+            dest += halfSize;
+            src += childSize;
+        }
+    }
+    *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer(new HeightfieldData(contents));
+    return false;
+}
+
+HeightfieldColorAttribute::HeightfieldColorAttribute(const QString& name) :
+    InlineAttribute<HeightfieldDataPointer>(name) {
+}
+
+void HeightfieldColorAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (isLeaf) {
+        int size;
+        in >> size;
+        if (size == 0) {
+            *(HeightfieldDataPointer*)&value = HeightfieldDataPointer();
+        } else {
+            *(HeightfieldDataPointer*)&value = HeightfieldDataPointer(new HeightfieldData(in, size, true));
+        }
+    }
+}
+
+void HeightfieldColorAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (isLeaf) {
+        HeightfieldDataPointer data = decodeInline<HeightfieldDataPointer>(value);
+        if (data) {
+            data->write(out, true);
+        } else {
+            out << 0;
+        }
+    }
+}
+
+bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    int maxSize = 0;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        HeightfieldDataPointer pointer = decodeInline<HeightfieldDataPointer>(children[i]);
+        if (pointer) {
+            maxSize = qMax(maxSize, pointer->getContents().size());
+        }
+    }
+    if (maxSize == 0) {
+        *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer();
+        return true;
+    }
+    int size = glm::sqrt(maxSize / (float)BYTES_PER_PIXEL);
+    QByteArray contents(size * size * BYTES_PER_PIXEL, 0);
+    int halfSize = size / 2;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        HeightfieldDataPointer child = decodeInline<HeightfieldDataPointer>(children[i]);
+        if (!child) {
+            continue;
+        }
+        const QByteArray& childContents = child->getContents();
+        int childSize = glm::sqrt(childContents.size() / (float)BYTES_PER_PIXEL);
+        if (childSize != size) {
+            continue; // TODO: handle differently-sized children
+        }
+        const int INDEX_MASK = 1;
+        int xIndex = i & INDEX_MASK;
+        const int Y_SHIFT = 1;
+        int yIndex = (i >> Y_SHIFT) & INDEX_MASK;
+        if (yIndex == 0 && decodeInline<HeightfieldDataPointer>(children[i | (1 << Y_SHIFT)])) {
+            continue; // bottom is overriden by top
+        }
+        int Z_SHIFT = 2;
+        int zIndex = (i >> Z_SHIFT) & INDEX_MASK;
+        char* dest = contents.data() + ((zIndex * halfSize * size) + (xIndex * halfSize)) * BYTES_PER_PIXEL;
+        uchar* src = (uchar*)childContents.data();
+        int childStride = childSize * BYTES_PER_PIXEL;
+        int halfStride = halfSize * BYTES_PER_PIXEL;
+        int childStep = 2 * BYTES_PER_PIXEL;
+        int redOffset3 = childStride + BYTES_PER_PIXEL;
+        int greenOffset1 = BYTES_PER_PIXEL + 1;
+        int greenOffset2 = childStride + 1;
+        int greenOffset3 = childStride + BYTES_PER_PIXEL + 1;
+        int blueOffset1 = BYTES_PER_PIXEL + 2;
+        int blueOffset2 = childStride + 2;
+        int blueOffset3 = childStride + BYTES_PER_PIXEL + 2;
+        for (int z = 0; z < halfSize; z++) {
+            for (char* end = dest + halfSize * BYTES_PER_PIXEL; dest != end; src += childStep) {
+                *dest++ = ((int)src[0] + (int)src[BYTES_PER_PIXEL] + (int)src[childStride] + (int)src[redOffset3]) >> 2;
+                *dest++ = ((int)src[1] + (int)src[greenOffset1] + (int)src[greenOffset2] + (int)src[greenOffset3]) >> 2;
+                *dest++ = ((int)src[2] + (int)src[blueOffset1] + (int)src[blueOffset2] + (int)src[blueOffset3]) >> 2;
+            }
+            dest += halfStride;
+            src += childStride;
+        }
+    }
+    *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer(new HeightfieldData(contents));
+    return false;
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,

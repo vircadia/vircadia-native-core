@@ -49,9 +49,13 @@ void DomainHandler::clearSettings() {
     _failedSettingsRequests = 0;
 }
 
-void DomainHandler::reset() {
+void DomainHandler::softReset() {
     clearConnectionInfo();
     clearSettings();
+}
+
+void DomainHandler::hardReset() {
+    softReset();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
 }
@@ -59,7 +63,7 @@ void DomainHandler::reset() {
 void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname) {
     if (_sockAddr != sockAddr) {
         // we should reset on a sockAddr change
-        reset();
+        hardReset();
         // change the sockAddr
         _sockAddr = sockAddr;
     }
@@ -72,7 +76,7 @@ void DomainHandler::setHostname(const QString& hostname) {
     
     if (hostname != _hostname) {
         // re-set the domain info so that auth information is reloaded
-        reset();
+        hardReset();
         
         int colonIndex = hostname.indexOf(':');
         
