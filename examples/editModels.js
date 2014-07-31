@@ -186,7 +186,6 @@ var ExportMenu = function(opts) {
             if (positionStr == null) {
                 break;
             }
-            print("position: " + position);
             var position = self.parsePosition(positionStr);
             if (position != null) {
                 self.setPosition(position.x, position.y, position.z);
@@ -238,13 +237,7 @@ var ExportMenu = function(opts) {
 
     };
 
-    this.mousePressEvent = function(event) {
-        print("Mouse press");
-        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-    };
-
     this.mouseReleaseEvent = function(event) {
-        print("Mouse release");
         var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
 
         if (clickedOverlay == locationButton) {
@@ -281,7 +274,6 @@ var ExportMenu = function(opts) {
     };
 
     print("CONNECTING!");
-    Controller.mousePressEvent.connect(this.mousePressEvent);
     Controller.mouseReleaseEvent.connect(this.mouseReleaseEvent);
 };
 
@@ -313,7 +305,7 @@ var ModelImporter = function(opts) {
 
     var pos = { x: windowDimensions.x / 2 - (fullWidth / 2), y: windowDimensions.y - 100 };
 
-    var background= Overlays.addOverlay("text", {
+    var background = Overlays.addOverlay("text", {
         x: pos.x,
         y: pos.y,
         opacity: 1,
@@ -414,7 +406,6 @@ var ModelImporter = function(opts) {
     // Would prefer to use {4} for the coords, but it would only capture the last digit.
     var fileRegex = /__(.+)__(\d+(?:\.\d+)?)_(\d+(?:\.\d+)?)_(\d+(?:\.\d+)?)_(\d+(?:\.\d+)?)__/;
     this.doImport = function() {
-        print("IMPORTING ");
         if (!self._importing) {
             var filename = Window.browse("Select models to import", "", "*.svo")
             if (filename) {
@@ -1609,9 +1600,6 @@ function handeMenuEvent(menuItem){
         modelImporter.paste();
     } else if (menuItem == "Export Models") {
         if (!exportMenu) {
-            // if (modelImporter) {
-            //     modelImporter.close();
-            // }
             exportMenu = new ExportMenu({
                 onClose: function() {
                     exportMenu = null;
