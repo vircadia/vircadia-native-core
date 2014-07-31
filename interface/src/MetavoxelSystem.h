@@ -12,6 +12,9 @@
 #ifndef hifi_MetavoxelSystem_h
 #define hifi_MetavoxelSystem_h
 
+// include this before QOpenGLTexture, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <QList>
 #include <QOpenGLBuffer>
 #include <QOpenGLTexture>
