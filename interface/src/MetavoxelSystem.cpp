@@ -397,7 +397,11 @@ void HeightfieldBuffer::render() {
 QHash<int, HeightfieldBuffer::BufferPair> HeightfieldBuffer::_bufferPairs;
 
 void HeightfieldPreview::render(const glm::vec3& translation, float scale) const {
-    glColor4f(1.0f, 1.0f, 1.0f, 0.75f);
+    glDisable(GL_BLEND);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_EQUAL, 0.0f);
+    
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -418,6 +422,9 @@ void HeightfieldPreview::render(const glm::vec3& translation, float scale) const
     
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
+    
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_BLEND);
 }
 
 BufferDataAttribute::BufferDataAttribute(const QString& name) :
@@ -695,7 +702,10 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     
     _pointProgram.release();
     
-    glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_EQUAL, 0.0f);
+    
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     
     _heightfieldProgram.bind();
     
@@ -710,6 +720,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     
+    glDisable(GL_ALPHA_TEST);
     glEnable(GL_BLEND);
 }
 

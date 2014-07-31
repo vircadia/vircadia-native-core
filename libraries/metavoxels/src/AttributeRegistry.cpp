@@ -578,7 +578,8 @@ bool HeightfieldAttribute::merge(void*& parent, void* children[], bool postRead)
         int childSizePlusOne = childSize + 1;
         for (int z = 0; z < halfSize; z++) {
             for (char* end = dest + halfSize; dest != end; src += 2) {
-                *dest++ = yOffset + (qMax(qMax(src[0], src[1]), qMax(src[childSize], src[childSizePlusOne])) >> 1);
+                int max = qMax(qMax(src[0], src[1]), qMax(src[childSize], src[childSizePlusOne]));
+                *dest++ = (max == 0) ? 0 : (yOffset + (max >> 1));
             }
             dest += halfSize;
             src += childSize;
