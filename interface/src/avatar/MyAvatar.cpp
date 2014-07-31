@@ -32,6 +32,7 @@
 #include "Audio.h"
 #include "Environment.h"
 #include "Menu.h"
+#include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "devices/Faceshift.h"
@@ -126,6 +127,18 @@ void MyAvatar::update(float deltaTime) {
     }
 
     simulate(deltaTime);
+    
+    
+    const ModelItem* item = Application::getInstance()->getModels()->getTree()->findModelByID(278);
+    if (_referential) {
+        PerformanceTimer perfTimer("Referential");
+        _referential->update();
+    } else if (item != NULL)  {
+        const Model* model = Application::getInstance()->getModels()->getModelForModelItem(*item);
+        if (model != NULL) {
+            _referential = new ModelReferential(278, Application::getInstance()->getModels()->getTree(), this);
+        }
+    }
 }
 
 void MyAvatar::simulate(float deltaTime) {

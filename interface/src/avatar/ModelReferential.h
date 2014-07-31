@@ -19,6 +19,7 @@ class Model;
 
 class ModelReferential : public Referential {
 public:
+    ModelReferential(Referential* ref);
     ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData* avatar);
     virtual void update();
     
@@ -29,13 +30,14 @@ protected:
 
 class JointReferential : public ModelReferential {
 public:
-    JointReferential(uint32_t jointID, uint32_t modelID, ModelTree* tree, AvatarData* avatar);
+    JointReferential(Referential* ref);
+    JointReferential(uint32_t jointIndex, uint32_t modelID, ModelTree* tree, AvatarData* avatar);
     virtual void update();
     
 protected:
     const Model* getModel(const ModelItem* item);
     
-    uint32_t _jointID;
+    uint32_t _jointIndex;
 };
 
 #endif // hifi_ModelReferential_h
