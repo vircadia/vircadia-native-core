@@ -180,7 +180,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     bool successIDFits = packetData->appendValue(encodedID);
     bool successTypeFits = packetData->appendValue(encodedType);
-    bool successLastEditedFits = packetData->appendValue(getLastEdited());
+    
+    quint64 lastEdited = getLastEdited();
+qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
+    
+    bool successLastEditedFits = packetData->appendValue(lastEdited);
     bool successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
     
     int propertyFlagsOffset = packetData->getUncompressedByteOffset();
@@ -880,6 +884,10 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
         quint64 updateDelta = 0; // this is an edit so by definition, it's update is in sync
         ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
         QByteArray encodedUpdateDelta = updateDeltaCoder;
+
+//qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... updateDelta=" << updateDelta;
+//qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... encodedUpdateDelta=" << encodedUpdateDelta;
+
         EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
         EntityPropertyFlags requestedProperties = properties.getChangedProperties();
         EntityPropertyFlags propertiesDidntFit = requestedProperties;
@@ -899,7 +907,11 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
 
         // Last Edited quint64 always first, before any other details, which allows us easy access to adjusting this
         // timestamp for clock skew
-        bool successLastEditedFits = packetData.appendValue(properties.getLastEdited());
+        quint64 lastEdited = properties.getLastEdited();
+
+qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... lastEdited=" << lastEdited;
+
+        bool successLastEditedFits = packetData.appendValue(lastEdited);
     
         bool successIDFits = packetData.appendValue(encodedID);
         if (isNewEntityItem && successIDFits) {

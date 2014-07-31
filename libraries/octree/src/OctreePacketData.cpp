@@ -279,9 +279,13 @@ bool OctreePacketData::appendValue(quint64 value) {
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
     bool success = append(data, length);
+
     if (success) {
         _bytesOfValues += length;
         _totalBytesOfValues += length;
+        qDebug() << "OctreePacketData::appendValue(quint64 value) SUCCESS length=" << length;
+    } else {
+        qDebug() << "OctreePacketData::appendValue(quint64 value) FAILED length=" << length;
     }
     return success;
 }

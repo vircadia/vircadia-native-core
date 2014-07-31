@@ -169,6 +169,8 @@ bool EntityTypes::decodeEntityEditPacket(const unsigned char* data, int bytesToR
     memcpy(&lastEdited, dataAt, sizeof(lastEdited));
     dataAt += sizeof(lastEdited);
     processedBytes += sizeof(lastEdited);
+qDebug() << "EntityItem::decodeEntityEditPacket() ... lastEdited=" << lastEdited;
+    properties.setLastEdited(lastEdited);
 
     // encoded id
     QByteArray encodedID((const char*)dataAt, (bytesToRead - processedBytes));

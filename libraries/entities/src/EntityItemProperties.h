@@ -159,6 +159,10 @@ public:
 #endif
 
 private:
+    friend bool EntityTypes::decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
+                        EntityItemID& entityID, EntityItemProperties& properties);
+    void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
+
     quint32 _id;
     bool _idSet;
     quint64 _lastEdited;
