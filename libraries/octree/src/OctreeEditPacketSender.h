@@ -83,7 +83,7 @@ public:
     virtual char getMyNodeType() const = 0;
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { };
     
-    bool hasDestinationWalletUUID() const { return _destinationWalletUUID.isNull(); }
+    bool hasDestinationWalletUUID() const { return !_destinationWalletUUID.isNull(); }
     void setDestinationWalletUUID(const QUuid& destinationWalletUUID) { _destinationWalletUUID = destinationWalletUUID; }
     const QUuid& getDestinationWalletUUID() { return _destinationWalletUUID; }
     
