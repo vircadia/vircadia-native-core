@@ -13,6 +13,7 @@
 #define hifi_AttributeRegistry_h
 
 #include <QHash>
+#include <QMutex>
 #include <QObject>
 #include <QReadWriteLock>
 #include <QSharedPointer>
@@ -94,6 +95,12 @@ public:
     /// Returns a reference to the standard "spannerMask" attribute.
     const AttributePointer& getSpannerMaskAttribute() const { return _spannerMaskAttribute; }
     
+    /// Returns a reference to the standard HeightfieldPointer "heightfield" attribute.
+    const AttributePointer& getHeightfieldAttribute() const { return _heightfieldAttribute; }
+    
+    /// Returns a reference to the standard HeightfieldColorPointer "heightfieldColor" attribute.
+    const AttributePointer& getHeightfieldColorAttribute() const { return _heightfieldColorAttribute; }
+    
 private:
 
     static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
@@ -109,6 +116,8 @@ private:
     AttributePointer _spannerColorAttribute;
     AttributePointer _spannerNormalAttribute;
     AttributePointer _spannerMaskAttribute;
+    AttributePointer _heightfieldAttribute;
+    AttributePointer _heightfieldColorAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -406,6 +415,54 @@ public:
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
     
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
+};
+
+/// Contains a block of heightfield data.
+class HeightfieldData : public QSharedData {
+public:
+
+    HeightfieldData(const QByteArray& contents);
+    HeightfieldData(Bitstream& in, int bytes, bool color);
+
+    const QByteArray& getContents() const { return _contents; }
+
+    void write(Bitstream& out, bool color);
+
+private:
+    
+    QByteArray _contents;
+    QByteArray _encoded;
+    QMutex _encodedMutex;
+};
+
+typedef QExplicitlySharedDataPointer<HeightfieldData> HeightfieldDataPointer;
+
+/// An attribute that stores heightfield data.
+class HeightfieldAttribute : public InlineAttribute<HeightfieldDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE HeightfieldAttribute(const QString& name = QString());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+};
+
+/// An attribute that stores heightfield colors.
+class HeightfieldColorAttribute : public InlineAttribute<HeightfieldDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE HeightfieldColorAttribute(const QString& name = QString());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };
 
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
