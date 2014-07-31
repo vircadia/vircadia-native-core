@@ -952,6 +952,39 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         return true;
     }
     
+    // check if this is a request for a scripted assignment (with a temp unique UUID)
+    const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
+    QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
+    
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation
+        && assignmentRegex.indexIn(url.path()) != -1) {
+        QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
+        
+        SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
+        if (!matchingAssignment) {
+            // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
+            PendingAssignedNodeData* pendingData = _pendingAssignedNodes.value(matchingUUID);
+            if (pendingData) {
+                matchingAssignment = _allAssignments.value(pendingData->getAssignmentUUID());
+                
+                if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
+                    // we have a matching assignment and it is for the right type, have the HTTP manager handle it
+                    // via correct URL for the script so the client can download
+                    
+                    QUrl scriptURL = url;
+                    scriptURL.setPath(URI_ASSIGNMENT + "/"
+                                      + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
+                    
+                    // have the HTTPManager serve the appropriate script file
+                    return _httpManager.handleHTTPRequest(connection, scriptURL);
+                }
+            }
+        }
+        
+        // request not handled
+        return false;
+    }
+    
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (url.path() == "/assignments.json") {
             // user is asking for json list of assignments
@@ -1066,38 +1099,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     return true;
                 }
 
-                return false;
-            }
-
-            // check if this is a request for a scripted assignment (with a temp unique UUID)
-            const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
-            QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
-
-            if (assignmentRegex.indexIn(url.path()) != -1) {
-                QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
-
-                SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
-                if (!matchingAssignment) {
-                    // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
-                    PendingAssignedNodeData* pendingData = _pendingAssignedNodes.value(matchingUUID);
-                    if (pendingData) {
-                        matchingAssignment = _allAssignments.value(pendingData->getAssignmentUUID());
-
-                        if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
-                            // we have a matching assignment and it is for the right type, have the HTTP manager handle it
-                            // via correct URL for the script so the client can download
-
-                            QUrl scriptURL = url;
-                            scriptURL.setPath(URI_ASSIGNMENT + "/"
-                                              + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
-
-                            // have the HTTPManager serve the appropriate script file
-                            return _httpManager.handleHTTPRequest(connection, scriptURL);
-                        }
-                    }
-                }
-
-                // request not handled
                 return false;
             }
         }
