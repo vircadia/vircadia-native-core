@@ -6,12 +6,14 @@
 //
 //  This sample script creates a voxel wall that simulates the Rock Paper Scissors cellular
 //  automata. http://www.gamedev.net/blog/844/entry-2249737-another-cellular-automaton-video/
+//  If multiple instances of this script are run, they will combine into a larger wall.
+//  NOTE: You must run each instance one at a time. If they all start at once there are race conditions.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var NUMBER_OF_CELLS_EACH_DIMENSION = 64;
+var NUMBER_OF_CELLS_EACH_DIMENSION = 48;
 var NUMBER_OF_CELLS_REGION_EACH_DIMESION = 16;
 var REGIONS_EACH_DIMENSION = NUMBER_OF_CELLS_EACH_DIMENSION / NUMBER_OF_CELLS_REGION_EACH_DIMESION;
 
@@ -38,8 +40,6 @@ cellTypes[0] = { r: 255, g: 0, b: 0 };
 cellTypes[1] = { r: 0, g: 255, b: 0 };
 cellTypes[2] = { r: 0, g:0, b: 255 };
 cellTypes[3] = { r: 0, g: 255, b: 255 };
-//cellTypes[4] = { r: 255, g:0, b: 255 };
-//cellTypes[5] = { r: 255, g:255, b: 255 };
 
 
 //Check for free region for AC
@@ -48,8 +48,19 @@ var regionMarkerY = -1;
 var regionMarkerI = -1;
 var regionMarkerJ = -1;
 
-var regionMarkerColor = {r: 255, g: 0, b: 255};
+var regionMarkerColor = {r: 254, g: 0, b: 253};
 
+function setRegionToColor(startX, startY, width, height, color) {
+    for (var i = startY; i < startY + height; i++) {
+        for (var j = startX; j < startX + width; j++) {
+        
+            currentCells[i][j] = { changed: true, type: color };
+             
+            // put the same value in the nextCells array for first board draw
+            nextCells[i][j] = { changed: true, type: color };
+        }
+    }
+}
 
 function init() {
 
@@ -71,24 +82,30 @@ function init() {
         }
     }
     
-    Voxels.setVoxel(regionMarkerX, regionMarkerY, position.z, cellScale, regionMarkerColor.r, regionMarkerColor.g, regionMarkerColor.b);
+    //Didnt find an open spot, end script
+    if (regionMarkerX == -1) {
+        Script.stop();
+    }
+    
+    position.x = cornerPosition.x + regionMarkerJ * NUMBER_OF_CELLS_REGION_EACH_DIMESION;
+    position.y = cornerPosition.y + regionMarkerI * NUMBER_OF_CELLS_REGION_EACH_DIMESION;
+    position.z = cornerPosition.z;
+    
+    Voxels.setVoxel(regionMarkerX, regionMarkerY, cornerPosition.z, cellScale, regionMarkerColor.r, regionMarkerColor.g, regionMarkerColor.b);
 
-    // randomly populate the cell start values
-    var randomColor = Math.floor(Math.random() * cellTypes.length);
     for (var i = 0; i < NUMBER_OF_CELLS_REGION_EACH_DIMESION; i++) {
       // create the array to hold this row
       currentCells[i] = [];
       
       // create the array to hold this row in the nextCells array
       nextCells[i] = [];
-      
-      for (var j = 0; j < NUMBER_OF_CELLS_REGION_EACH_DIMESION; j++) {
-         currentCells[i][j] = { changed: true, type: randomColor };
-         
-         // put the same value in the nextCells array for first board draw
-         nextCells[i][j] = currentCells[i][j];
-      }
     }
+    
+    var width = NUMBER_OF_CELLS_REGION_EACH_DIMESION / 2;
+    setRegionToColor(0, 0, width, width, 0);
+    setRegionToColor(0, width, width, width, 1);
+    setRegionToColor(width, width, width, width, 2);
+    setRegionToColor(width, 0, width, width, 3);
 }
 
 function updateCells() {
@@ -171,7 +188,8 @@ function updateCells() {
         for (j = 0; j < NUMBER_OF_CELLS_REGION_EACH_DIMESION; j++) {
             if (nextCells[i][j].changed == true) {
                 // there has been a change to this cell, change the value in the currentCells array
-                currentCells[i][j] = nextCells[i][j];
+                currentCells[i][j].type = nextCells[i][j].type;
+                currentCells[i][j].changed = true;
             }
         }
     }
@@ -224,8 +242,6 @@ function step(deltaTime) {
     if (frameIndex <= framesToWait) {
         return;
     }
-
-    print("UPDATE");
     
     if (sentFirstBoard) {
         // we've already sent the first full board, perform a step in time
