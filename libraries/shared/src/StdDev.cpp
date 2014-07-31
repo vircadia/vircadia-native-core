@@ -29,7 +29,7 @@ void StDev::addValue(float v) {
     if (sampleCount == MAX_STDEV_SAMPLES) sampleCount = 0;
 }
 
-float StDev::getAverage() {
+float StDev::getAverage() const {
     float average = 0;
     for (int i = 0; i < sampleCount; i++) {
         average += data[i];
@@ -49,7 +49,7 @@ float StDev::getMax() {
     else return 0;
 }*/
 
-float StDev::getStDev() {
+float StDev::getStDev() const {
     float average = getAverage();
     float stdev = 0;
     for (int i = 0; i < sampleCount; i++) {
