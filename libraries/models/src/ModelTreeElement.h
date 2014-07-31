@@ -138,6 +138,8 @@ public:
     /// \param models[out] vector of non-const ModelItem*
     void getModelsForUpdate(const AACube& box, QVector<ModelItem*>& foundModels);
 
+    void getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels);
+
     const ModelItem* getModelWithID(uint32_t id) const;
 
     bool removeModelWithID(uint32_t id);

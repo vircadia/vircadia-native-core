@@ -387,6 +387,26 @@ public:
     QVector<ModelItem*> _foundModels;
 };
 
+void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels) {
+    FindModelsInCubeArgs args(cube);
+    lockForRead();
+    recurseTreeWithOperation(findInCubeOperation, &args);
+    unlock();
+    // swap the two lists of model pointers instead of copy
+    foundModels.swap(args._foundModels);
+}
+
+bool ModelTree::findInCubeOperation(OctreeElement* element, void* extraData) {
+    FindModelsInCubeArgs* args = static_cast< FindModelsInCubeArgs*>(extraData);
+    const AACube& elementCube = element->getAACube();
+    if (elementCube.touches(args->_cube)) {
+        ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+        modelTreeElement->getModelsInside(args->_cube, args->_foundModels);
+        return true;
+    }
+    return false;
+}
+
 bool ModelTree::findInCubeForUpdateOperation(OctreeElement* element, void* extraData) {
     FindModelsInCubeArgs* args = static_cast< FindModelsInCubeArgs*>(extraData);
     const AACube& elementCube = element->getAACube();
@@ -398,7 +418,7 @@ bool ModelTree::findInCubeForUpdateOperation(OctreeElement* element, void* extra
     return false;
 }
 
-void ModelTree::findModelsForUpdate(const AACube& cube, QVector<ModelItem*> foundModels) {
+void ModelTree::findModelsForUpdate(const AACube& cube, QVector<ModelItem*>& foundModels) {
     FindModelsInCubeArgs args(cube);
     lockForRead();
     recurseTreeWithOperation(findInCubeForUpdateOperation, &args);
