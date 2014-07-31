@@ -1142,19 +1142,19 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _id = modelItem.getID();
     _idSet = true;
 
-    _positionChanged = false;
-    _colorChanged = false;
-    _radiusChanged = false;
+    _positionChanged = true;
+    _colorChanged = true;
+    _radiusChanged = true;
     
-    _shouldDieChanged = false;
-    _modelURLChanged = false;
-    _modelRotationChanged = false;
-    _animationURLChanged = false;
-    _animationIsPlayingChanged = false;
-    _animationFrameIndexChanged = false;
-    _animationFPSChanged = false;
-    _glowLevelChanged = false;
-    _defaultSettings = false;
+    _shouldDieChanged = true;
+    _modelURLChanged = true;
+    _modelRotationChanged = true;
+    _animationURLChanged = true;
+    _animationIsPlayingChanged = true;
+    _animationFrameIndexChanged = true;
+    _animationFPSChanged = true;
+    _glowLevelChanged = true;
+    _defaultSettings = true;
 }
 
 QScriptValue ModelItemPropertiesToScriptValue(QScriptEngine* engine, const ModelItemProperties& properties) {
