@@ -55,8 +55,7 @@ var HEAD_TURN_RATE = 0.05;
 var PITCH_RANGE = 15.0;
 var YAW_RANGE = 35.0;
 
-//var firstPosition = { x: getRandomFloat(X_MIN, X_MAX), y: Y_PELVIS, z: getRandomFloat(Z_MIN, Z_MAX) };
-var firstPosition = { x: 0.5, y: Y_PELVIS, z: 0.5 };
+var firstPosition = { x: getRandomFloat(X_MIN, X_MAX), y: Y_PELVIS, z: getRandomFloat(Z_MIN, Z_MAX) };
 var targetPosition =  { x: 0, y: 0, z: 0 };
 var targetOrientation = { x: 0, y: 0, z: 0, w: 0 };
 var currentOrientation = { x: 0, y: 0, z: 0, w: 0 };
