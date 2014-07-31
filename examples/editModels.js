@@ -282,6 +282,7 @@ var modelUploader = (function () {
         fbxBuffer,
         svoBuffer,
         mapping,
+        geometry,
         NAME_FIELD = "name",
         SCALE_FIELD = "scale",
         FILENAME_FIELD = "filename",
@@ -290,12 +291,20 @@ var modelUploader = (function () {
         PITCH_FIELD = "pitch",
         YAW_FIELD = "yaw",
         ROLL_FIELD = "roll",
-        MAX_TEXTURE_SIZE = 1024,
-        geometry;
+        MAX_TEXTURE_SIZE = 1024;
 
     function error(message) {
         Window.alert(message);
         print(message);
+    }
+
+    function resetDataObjects() {
+        fstBuffer = null;
+        fbxBuffer = null;
+        svoBuffer = null;
+        mapping = {};
+        geometry = {};
+        geometry.textures = [];
     }
 
     function readFile(filename) {
@@ -318,7 +327,6 @@ var modelUploader = (function () {
 
     function readMapping(fstBuffer) {
         var dv = new DataView(fstBuffer.buffer),
-            mapping = {},
             lines,
             line,
             values,
@@ -342,13 +350,10 @@ var modelUploader = (function () {
                 }
             }
         }
-
-        return mapping;
     }
 
     function readGeometry(fbxBuffer) {
-        var geometry,
-            textures,
+        var textures,
             view,
             index,
             EOF;
@@ -356,8 +361,6 @@ var modelUploader = (function () {
         // Reference:
         // http://code.blender.org/index.php/2013/08/fbx-binary-file-format-specification/
 
-        geometry = {};
-        geometry.textures = [];
         textures = {};
         view = new DataView(fbxBuffer.buffer);
         EOF = false;
@@ -458,19 +461,12 @@ var modelUploader = (function () {
             readTextFBX();
 
         }
-
-        return geometry;
     }
 
     function readModel() {
         var fbxFilename;
 
         print("Reading model file: " + modelFile);
-
-        fstBuffer = null;
-        fbxBuffer = null;
-        svoBuffer = null;
-        mapping = {};
 
         if (modelFile.toLowerCase().slice(-4) === ".svo") {
             svoBuffer = readFile(modelFile);
@@ -485,7 +481,7 @@ var modelUploader = (function () {
                 if (fstBuffer === null) {
                     return false;
                 }
-                mapping = readMapping(fstBuffer);
+                readMapping(fstBuffer);
                 if (mapping.hasOwnProperty(FILENAME_FIELD)) {
                     fbxFilename = modelFile.path() + "\\" + mapping[FILENAME_FIELD];
                 } else {
@@ -507,7 +503,7 @@ var modelUploader = (function () {
                 return false;
             }
 
-            geometry = readGeometry(fbxBuffer);
+            readGeometry(fbxBuffer);
 
             if (mapping.hasOwnProperty(SCALE_FIELD)) {
                 mapping[SCALE_FIELD] = parseFloat(mapping[SCALE_FIELD]);
@@ -697,23 +693,29 @@ var modelUploader = (function () {
 
         modelFile = file;
 
+        resetDataObjects();
+
         // Read model content ...
         if (!readModel()) {
+            resetDataObjects();
             return;
         }
 
         // Set model properties ...
         if (!setProperties()) {
+            resetDataObjects();
             return;
         }
 
         // Put model in HTTP message ...
         if (!createHttpMessage()) {
+            resetDataObjects();
             return;
         }
 
         // Send model to High Fidelity ...
         sendToHighFidelity(url, callback);
+        resetDataObjects();
     };
 
     return that;
