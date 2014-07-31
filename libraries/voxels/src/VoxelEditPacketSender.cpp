@@ -143,9 +143,7 @@ void VoxelEditPacketSender::queueVoxelEditMessages(PacketType type, int numberOf
     }    
 }
 
-qint64 VoxelEditPacketSender::satoshiCostForMessage(const VoxelDetail& details) {
-    const DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
-    
+qint64 VoxelEditPacketSender::satoshiCostForMessage(const VoxelDetail& details) {    
     if (_satoshisPerVoxel == 0 && _satoshisPerMeterCubed == 0) {
         return 0;
     } else {
