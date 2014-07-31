@@ -28,5 +28,33 @@
         "default": ""
       }
     }
+  },
+  "voxels": {
+    "label": "Voxels",
+    "assignment-types": [2,3],
+    "settings": {
+      "voxel-wallet": {
+        "label": "Destination Wallet ID",
+        "help": "Wallet to be paid for voxel changes",
+        "placeholder": "00000000-0000-0000-0000-000000000000",
+        "default": ""
+      },
+      "per-voxel-credits": {
+        "type": "double",
+        "label": "Per Voxel Cost",
+        "help": "Credit cost to change each voxel",
+        "placeholder": "0.0",
+        "default": "0.0",
+        "input_addon": "₵"
+      },
+      "per-meter-cubed-credits": {
+        "type": "double",
+        "label": "Per Meter Cubed Cost",
+        "help": "Credit cost to change each cubed meter of voxel space",
+        "placeholder": "0.0",
+        "default": "0.0",
+        "input_addon": "₵"
+      }
+    }
   }
 }

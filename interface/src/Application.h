@@ -342,6 +342,8 @@ public slots:
     void uploadAttachment();
 
     void bumpSettings() { ++_numChangedSettings; }
+    
+    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
 private slots:
     void timer();

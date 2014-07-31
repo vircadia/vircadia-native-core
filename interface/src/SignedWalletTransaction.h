@@ -19,6 +19,7 @@ class SignedWalletTransaction : public WalletTransaction {
 public:
     SignedWalletTransaction(const QUuid& destinationUUID, qint64 amount, qint64 messageTimestamp, qint64 expiryDelta);
     
+    QByteArray binaryMessage();
     QByteArray hexMessage();
     QByteArray messageDigest();
     QByteArray signedMessageDigest();
