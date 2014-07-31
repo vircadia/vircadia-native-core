@@ -26,7 +26,10 @@ OctreeEditPacketSender::OctreeEditPacketSender() :
     _maxPendingMessages(DEFAULT_MAX_PENDING_MESSAGES),
     _releaseQueuedMessagesPending(false),
     _serverJurisdictions(NULL),
-    _maxPacketSize(MAX_PACKET_SIZE) {
+    _maxPacketSize(MAX_PACKET_SIZE),
+    _destinationWalletUUID()
+{
+    
 }
 
 OctreeEditPacketSender::~OctreeEditPacketSender() {
@@ -98,6 +101,12 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                 // send packet
                 QByteArray packet(reinterpret_cast<const char*>(buffer), length);
                 queuePacketForSending(node, packet);
+                
+                if (hasDestinationWalletUUID() && satoshiCost > 0) {
+                    // if we have a destination wallet UUID and a cost associated with this packet, signal that it
+                    // needs to be sent
+                    emit octreePaymentRequired(satoshiCost, nodeUUID, _destinationWalletUUID);
+                }
 
                 // add packet to history
                 _sentPacketHistories[nodeUUID].packetSent(sequence, packet);

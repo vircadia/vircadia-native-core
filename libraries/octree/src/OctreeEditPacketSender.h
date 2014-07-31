@@ -82,13 +82,19 @@ public:
     // you must override these...
     virtual char getMyNodeType() const = 0;
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { };
+    
+    bool hasDestinationWalletUUID() const { return _destinationWalletUUID.isNull(); }
+    void setDestinationWalletUUID(const QUuid& destinationWalletUUID) { _destinationWalletUUID = destinationWalletUUID; }
+    const QUuid& getDestinationWalletUUID() { return _destinationWalletUUID; }
+    
+    void processNackPacket(const QByteArray& packet);
 
 public slots:
     void nodeKilled(SharedNodePointer node);
 
-public:
-    void processNackPacket(const QByteArray& packet);
-
+signals:
+    void octreePaymentRequired(qint64 satoshiAmount, const QUuid& nodeUUID, const QUuid& destinationWalletUUID);
+    
 protected:
     bool _shouldSend;
     void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, ssize_t length, qint64 satoshiCost = 0);
@@ -118,5 +124,7 @@ protected:
     // TODO: add locks for this and _pendingEditPackets
     QHash<QUuid, SentPacketHistory> _sentPacketHistories;
     QHash<QUuid, quint16> _outgoingSequenceNumbers;
+    
+    QUuid _destinationWalletUUID;
 };
 #endif // hifi_OctreeEditPacketSender_h
