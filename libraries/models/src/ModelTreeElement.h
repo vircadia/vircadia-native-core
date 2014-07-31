@@ -44,6 +44,12 @@ public:
     bool isViewing;
 };
 
+class SendModelsOperationArgs {
+public:
+    glm::vec3 root;
+    ModelEditPacketSender* packetSender;
+};
+
 
 
 class ModelTreeElement : public OctreeElement {

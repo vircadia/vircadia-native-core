@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelEditPacketSender.h"
+#include "ModelItem.h"
+
 #include "ModelTree.h"
 
 ModelTree::ModelTree(bool shouldReaverage) : Octree(shouldReaverage) {
@@ -202,6 +205,32 @@ void ModelTree::deleteModel(const ModelItemID& modelID) {
         args._idsToDelete.push_back(modelID.id);
         recurseTreeWithOperation(findAndDeleteOperation, &args);
     }
+}
+
+void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z) {
+    SendModelsOperationArgs args;
+    args.packetSender = packetSender;
+    args.root = glm::vec3(x, y, z);
+    recurseTreeWithOperation(sendModelsOperation, &args);
+    packetSender->releaseQueuedMessages();
+}
+
+bool ModelTree::sendModelsOperation(OctreeElement* element, void* extraData) {
+    SendModelsOperationArgs* args = static_cast<SendModelsOperationArgs*>(extraData);
+    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+
+    const QList<ModelItem>& modelList = modelTreeElement->getModels();
+
+    for (int i = 0; i < modelList.size(); i++) {
+        uint32_t creatorTokenID = ModelItem::getNextCreatorTokenID();
+        ModelItemID id(NEW_MODEL, creatorTokenID, false);
+        ModelItemProperties properties;
+        properties.copyFromModelItem(modelList.at(i));
+        properties.setPosition(properties.getPosition() + args->root);
+        args->packetSender->queueModelEditMessage(PacketTypeModelAddOrEdit, id, properties);
+    }
+
+    return true;
 }
 
 // scans the tree and handles mapping locally created models to know IDs.

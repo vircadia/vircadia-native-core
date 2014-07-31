@@ -84,10 +84,13 @@ public:
     void setFBXService(ModelItemFBXService* service) { _fbxService = service; }
     const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) {
         return _fbxService ? _fbxService->getGeometryForModel(modelItem) : NULL;
+
     }
+    void sendModels(ModelEditPacketSender* packetSender, float x, float y, float z);
 
 private:
 
+    static bool sendModelsOperation(OctreeElement* element, void* extraData);
     static bool updateOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateWithIDandPropertiesOperation(OctreeElement* element, void* extraData);
