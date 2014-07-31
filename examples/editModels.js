@@ -217,7 +217,9 @@ var ExportMenu = function(opts) {
         var s = self._scale;
         var filename = "models__" + Window.location.hostname + "__" + x + "_" + y + "_" + z + "_" + s + "__.svo";
         filename = Window.save("Select where to save", filename, "*.svo")
-        Clipboard.exportModels(filename, x, y, z, s);
+        if (filename) {
+            Clipboard.exportModels(filename, x, y, z, s);
+        }
         self.close();
     };
 
