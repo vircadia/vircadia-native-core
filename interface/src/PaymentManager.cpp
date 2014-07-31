@@ -21,4 +21,6 @@ PaymentManager& PaymentManager::getInstance() {
 
 void PaymentManager::sendSignedPayment(qint64 satoshiAmount, const QUuid& nodeUUID, const QUuid& destinationWalletUUID) {
     qDebug() << "Paying" << satoshiAmount << "satoshis to" << destinationWalletUUID << "via" << nodeUUID;
+    
+    
 }

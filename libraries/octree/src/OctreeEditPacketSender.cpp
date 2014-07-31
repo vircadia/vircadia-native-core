@@ -112,7 +112,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                 _sentPacketHistories[nodeUUID].packetSent(sequence, packet);
 
                 // debugging output...
-                bool wantDebugging = true;
+                bool wantDebugging = false;
                 if (wantDebugging) {
                     int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(buffer));
                     unsigned short int sequence = (*((unsigned short int*)(buffer + numBytesPacketHeader)));
