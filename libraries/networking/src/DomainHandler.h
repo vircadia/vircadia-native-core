@@ -62,6 +62,8 @@ public:
     
     void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
     
+    void softReset();
+    
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
     void settingsRequestFinished();
@@ -73,7 +75,7 @@ signals:
     void settingsReceiveFail();
     
 private:
-    void reset();
+    void hardReset();
     
     QUuid _uuid;
     QString _hostname;
