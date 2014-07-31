@@ -26,7 +26,7 @@ REGISTER_META_OBJECT(DefaultMetavoxelGuide)
 REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
 REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 REGISTER_META_OBJECT(MetavoxelRenderer)
-REGISTER_META_OBJECT(PointMetavoxelRenderer)
+REGISTER_META_OBJECT(DefaultMetavoxelRenderer)
 REGISTER_META_OBJECT(Spanner)
 REGISTER_META_OBJECT(Sphere)
 REGISTER_META_OBJECT(StaticModel)
@@ -51,6 +51,18 @@ bool MetavoxelLOD::becameSubdivided(const glm::vec3& minimum, float size,
         return false; // this one must be subdivided
     }
     // TODO: find some way of culling subtrees that can't possibly contain subdivided nodes
+    return true;
+}
+
+bool MetavoxelLOD::becameSubdividedOrCollapsed(const glm::vec3& minimum, float size,
+        const MetavoxelLOD& reference, float multiplier) const {
+    if (position == reference.position && threshold == reference.threshold) {
+        return false; // first off, nothing becomes subdivided or collapsed if it doesn't change
+    }
+    if (!(shouldSubdivide(minimum, size, multiplier) || reference.shouldSubdivide(minimum, size, multiplier))) {
+        return false; // this one or the reference must be subdivided
+    }
+    // TODO: find some way of culling subtrees that can't possibly contain subdivided or collapsed nodes
     return true;
 }
 
@@ -567,53 +579,68 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, const MetavoxelLOD
     // shallow copy the reference
     *this = reference;
 
+    QHash<AttributePointer, MetavoxelNode*> remainingRoots = _roots;
+    
     bool changed;
     in >> changed;
-    if (!changed) {
-        return;
-    }
-
-    bool sizeChanged;
-    in >> sizeChanged;
-    if (sizeChanged) {
-        float size;
-        in >> size;
-        while (_size < size) {
-            expand();
-        }
-    }
-
-    forever {
-        AttributePointer attribute;
-        in >> attribute;
-        if (!attribute) {
-            break;
-        }
-        MetavoxelStreamBase base = { attribute, in, lod, referenceLOD };
-        MetavoxelStreamState state = { base, getMinimum(), _size };
-        MetavoxelNode* oldRoot = _roots.value(attribute);
-        if (oldRoot) {
-            bool changed;
-            in >> changed;
-            if (changed) {
-                oldRoot->incrementReferenceCount();
-                attribute->readMetavoxelDelta(*this, *oldRoot, state);
-                oldRoot->decrementReferenceCount(attribute);    
-            } else {
-                attribute->readMetavoxelSubdivision(*this, state);
+    if (changed) {
+        bool sizeChanged;
+        in >> sizeChanged;
+        if (sizeChanged) {
+            float size;
+            in >> size;
+            while (_size < size) {
+                expand();
             }
-        } else {
-            attribute->readMetavoxelRoot(*this, state);
-        } 
+        }
+    
+        glm::vec3 minimum = getMinimum();
+        forever {
+            AttributePointer attribute;
+            in >> attribute;
+            if (!attribute) {
+                break;
+            }
+            MetavoxelStreamBase base = { attribute, in, lod, referenceLOD };
+            MetavoxelStreamState state = { base, minimum, _size };
+            MetavoxelNode* oldRoot = _roots.value(attribute);
+            if (oldRoot) {
+                bool changed;
+                in >> changed;
+                if (changed) {
+                    oldRoot->incrementReferenceCount();
+                    attribute->readMetavoxelDelta(*this, *oldRoot, state);
+                    oldRoot->decrementReferenceCount(attribute);    
+                } else {
+                    attribute->readMetavoxelSubdivision(*this, state);
+                }
+                remainingRoots.remove(attribute);
+                
+            } else {
+                attribute->readMetavoxelRoot(*this, state);
+            } 
+        }
+        
+        forever {
+            AttributePointer attribute;
+            in >> attribute;
+            if (!attribute) {
+                break;
+            }
+            _roots.take(attribute)->decrementReferenceCount(attribute);
+            remainingRoots.remove(attribute);
+        }
     }
     
-    forever {
-        AttributePointer attribute;
-        in >> attribute;
-        if (!attribute) {
-            break;
+    // read subdivisions for the remaining roots if there's any chance of a collapse
+    if (!(lod.position == referenceLOD.position && lod.threshold <= referenceLOD.threshold)) {
+        glm::vec3 minimum = getMinimum();
+        for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = remainingRoots.constBegin();
+                it != remainingRoots.constEnd(); it++) {
+            MetavoxelStreamBase base = { it.key(), in, lod, referenceLOD };
+            MetavoxelStreamState state = { base, minimum, _size };
+            it.key()->readMetavoxelSubdivision(*this, state);
         }
-        _roots.take(attribute)->decrementReferenceCount(attribute);
     }
 }
 
@@ -788,6 +815,10 @@ bool MetavoxelStreamState::becameSubdivided() const {
     return base.lod.becameSubdivided(minimum, size, base.referenceLOD, base.attribute->getLODThresholdMultiplier());
 }
 
+bool MetavoxelStreamState::becameSubdividedOrCollapsed() const {
+    return base.lod.becameSubdividedOrCollapsed(minimum, size, base.referenceLOD, base.attribute->getLODThresholdMultiplier());
+}
+
 void MetavoxelStreamState::setMinimum(const glm::vec3& lastMinimum, int index) {
     minimum = getNextMinimum(lastMinimum, size, index);
 }
@@ -923,7 +954,7 @@ void MetavoxelNode::readDelta(const MetavoxelNode& reference, MetavoxelStreamSta
                     _children[i] = new MetavoxelNode(state.base.attribute);
                     _children[i]->readDelta(*reference._children[i], nextState);
                 } else {
-                    if (nextState.becameSubdivided()) {
+                    if (nextState.becameSubdividedOrCollapsed()) {
                         _children[i] = reference._children[i]->readSubdivision(nextState);
                         if (_children[i] == reference._children[i]) {
                             _children[i]->incrementReferenceCount();
@@ -972,42 +1003,46 @@ void MetavoxelNode::writeDelta(const MetavoxelNode& reference, MetavoxelStreamSt
 }
 
 MetavoxelNode* MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
-    if (!state.shouldSubdivideReference()) {
-        bool leaf;
-        state.base.stream >> leaf;
-        if (leaf) {
-            return isLeaf() ? this : new MetavoxelNode(getAttributeValue(state.base.attribute));
-            
-        } else {
-            MetavoxelNode* newNode = new MetavoxelNode(getAttributeValue(state.base.attribute));
+    if (state.shouldSubdivide()) {
+        if (!state.shouldSubdivideReference()) {
+            bool leaf;
+            state.base.stream >> leaf;
+            if (leaf) {
+                return isLeaf() ? this : new MetavoxelNode(getAttributeValue(state.base.attribute));
+                
+            } else {
+                MetavoxelNode* newNode = new MetavoxelNode(getAttributeValue(state.base.attribute));
+                MetavoxelStreamState nextState = { state.base, glm::vec3(), state.size * 0.5f };
+                for (int i = 0; i < CHILD_COUNT; i++) {
+                    nextState.setMinimum(state.minimum, i);
+                    newNode->_children[i] = new MetavoxelNode(state.base.attribute);
+                    newNode->_children[i]->read(nextState);
+                }
+                return newNode;
+            }
+        } else if (!isLeaf()) {
+            MetavoxelNode* node = this;
             MetavoxelStreamState nextState = { state.base, glm::vec3(), state.size * 0.5f };
             for (int i = 0; i < CHILD_COUNT; i++) {
                 nextState.setMinimum(state.minimum, i);
-                newNode->_children[i] = new MetavoxelNode(state.base.attribute);
-                newNode->_children[i]->read(nextState);
-            }
-            return newNode;
-        }
-    } else if (!isLeaf()) {
-        MetavoxelNode* node = this;
-        MetavoxelStreamState nextState = { state.base, glm::vec3(), state.size * 0.5f };
-        for (int i = 0; i < CHILD_COUNT; i++) {
-            nextState.setMinimum(state.minimum, i);
-            if (nextState.becameSubdivided()) {
-                MetavoxelNode* child = _children[i]->readSubdivision(nextState);
-                if (child != _children[i]) {
-                    if (node == this) {
-                        node = new MetavoxelNode(state.base.attribute, this);
+                if (nextState.becameSubdividedOrCollapsed()) {
+                    MetavoxelNode* child = _children[i]->readSubdivision(nextState);
+                    if (child != _children[i]) {
+                        if (node == this) {
+                            node = new MetavoxelNode(state.base.attribute, this);
+                        }
+                        node->_children[i] = child;   
+                        _children[i]->decrementReferenceCount(state.base.attribute);
                     }
-                    node->_children[i] = child;   
-                    _children[i]->decrementReferenceCount(state.base.attribute);
                 }
             }
+            if (node != this) {
+                node->mergeChildren(state.base.attribute, true);
+            }
+            return node;
         }
-        if (node != this) {
-            node->mergeChildren(state.base.attribute, true);
-        }
-        return node;
+    } else if (!isLeaf()) {
+        return new MetavoxelNode(getAttributeValue(state.base.attribute));
     }
     return this;
 }
@@ -1879,20 +1914,27 @@ void MetavoxelRendererImplementation::init(MetavoxelRenderer* renderer) {
 
 void MetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
         MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    // nothing by default
+}
+
+void MetavoxelRendererImplementation::simulate(MetavoxelData& data, float deltaTime,
+        MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    // nothing by default
 }
 
 void MetavoxelRendererImplementation::render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod) {
+    // nothing by default
 }
 
 QByteArray MetavoxelRenderer::getImplementationClassName() const {
     return "MetavoxelRendererImplementation";
 }
 
-PointMetavoxelRenderer::PointMetavoxelRenderer() {
+DefaultMetavoxelRenderer::DefaultMetavoxelRenderer() {
 }
 
-QByteArray PointMetavoxelRenderer::getImplementationClassName() const {
-    return "PointMetavoxelRendererImplementation";
+QByteArray DefaultMetavoxelRenderer::getImplementationClassName() const {
+    return "DefaultMetavoxelRendererImplementation";
 }
 
 const float DEFAULT_PLACEMENT_GRANULARITY = 0.01f;
