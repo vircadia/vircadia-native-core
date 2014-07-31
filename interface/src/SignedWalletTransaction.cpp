@@ -32,7 +32,7 @@ SignedWalletTransaction::SignedWalletTransaction(const QUuid& destinationUUID, q
     
 }
 
-QByteArray SignedWalletTransaction::hexMessage() {
+QByteArray SignedWalletTransaction::binaryMessage() {
     // build the message using the components of this transaction
     
     // UUID, source UUID, destination UUID, message timestamp, expiry delta, amount
@@ -49,7 +49,11 @@ QByteArray SignedWalletTransaction::hexMessage() {
     
     messageBinary.append(reinterpret_cast<const char*>(&_amount), sizeof(_amount));
     
-    return messageBinary.toHex();
+    return messageBinary;
+}
+
+QByteArray SignedWalletTransaction::hexMessage() {
+    return binaryMessage().toHex();
 }
 
 QByteArray SignedWalletTransaction::messageDigest() {

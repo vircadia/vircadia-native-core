@@ -16,16 +16,22 @@
             <% var setting_id = group_key + "." + setting_key %>
             <label for="<%- setting_id %>" class="col-sm-2 control-label"><%- setting.label %></label>
             <div class="col-sm-10">
-              <% if(setting.type) %>
-                <% if (setting.type === "checkbox") { %>
-                  <% var checked_box = (values[group_key] || {})[setting_key] || setting.default %>
-                  <input type="checkbox" id="<%- setting_id %>" <%- checked_box ? "checked" : "" %>>
-                <% } else { %>
+              <% if (setting.type === "checkbox") { %>
+              <% var checked_box = (values[group_key] || {})[setting_key] || setting.default %>
+                <input type="checkbox" id="<%- setting_id %>" <%- checked_box ? "checked" : "" %>>
+              <% } else { %>
+                <% if (setting.input_addon) { %>
+                  <div class="input-group">
+                    <div class="input-group-addon"><%- setting.input_addon %></div>
+                <% } %>
                 <input type="text" class="form-control" id="<%- setting_id %>" 
                   placeholder="<%- setting.placeholder %>" 
                   value="<%- (values[group_key] || {})[setting_key] %>">
+                  
+                <% if (setting.input_addon) { %>
+                  </div>
+                <% } %>
               <% } %>
-              
             </div>
             <p class="help-block col-sm-offset-2 col-sm-10"><%- setting.help %></p>
           </div>
