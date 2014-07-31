@@ -45,7 +45,7 @@ public slots:
 
     void importModels(const QString& filename);
     void exportModels(const QString& filename, float x, float y, float z, float s);
-    void pasteModels();
+    void pasteModels(float x, float y, float z, float s);
 };
 
 #endif // hifi_ClipboardScriptingInterface_h
