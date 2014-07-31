@@ -63,6 +63,7 @@
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
+#include "devices/CaraFaceTracker.h"
 #include "models/ModelTreeRenderer.h"
 #include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
@@ -159,9 +160,9 @@ public:
     void focusOutEvent(QFocusEvent* event);
     void focusInEvent(QFocusEvent* event);
 
-    void mouseMoveEvent(QMouseEvent* event);
-    void mousePressEvent(QMouseEvent* event);
-    void mouseReleaseEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
 
     void touchBeginEvent(QTouchEvent* event);
     void touchEndEvent(QTouchEvent* event);
@@ -207,10 +208,11 @@ public:
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     int getMouseX() const { return _mouseX; }
     int getMouseY() const { return _mouseY; }
-    unsigned int getLastMouseMoveType() const { return _lastMouseMoveType; }
+    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated;; }
     Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
+    CaraFaceTracker* getCara() { return &_cara; }
     FaceTracker* getActiveFaceTracker();
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     PrioVR* getPrioVR() { return &_prioVR; }
@@ -257,6 +259,8 @@ public:
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
     /// the view matrix translation.
     void updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation = glm::vec3());
+
+    const glm::mat4& getUntranslatedViewMatrix() const { return _untranslatedViewMatrix; }
 
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
     /// result from matrix multiplication at high translation magnitudes.
@@ -380,6 +384,7 @@ private:
     void updateFaceplus();
     void updateFaceshift();
     void updateVisage();
+    void updateCara();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);
@@ -476,6 +481,7 @@ private:
     Faceplus _faceplus;
     Faceshift _faceshift;
     Visage _visage;
+    CaraFaceTracker _cara;
 
     SixenseManager _sixenseManager;
     PrioVR _prioVR;
@@ -507,7 +513,7 @@ private:
     int _mouseDragStartedX;
     int _mouseDragStartedY;
     quint64 _lastMouseMove;
-    unsigned int _lastMouseMoveType;
+    bool _lastMouseMoveWasSimulated;
     bool _mouseHidden;
     bool _seenMouseMove;
 

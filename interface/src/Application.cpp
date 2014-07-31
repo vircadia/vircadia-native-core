@@ -103,10 +103,6 @@ const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simul
                                                  //  in the idle loop?  (60 FPS is default)
 static QTimer* idleTimer = NULL;
 
-const int STARTUP_JITTER_SAMPLES = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / 2;
-                                                 //  Startup optimistically with small jitter buffer that
-                                                 //  will start playback on the second received audio packet.
-
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
@@ -155,14 +151,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mouseX(0),
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
-        _lastMouseMoveType(QEvent::MouseMove),
+        _lastMouseMoveWasSimulated(false),
         _mouseHidden(false),
         _seenMouseMove(false),
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _audio(STARTUP_JITTER_SAMPLES),
+        _audio(),
         _enableProcessVoxelsThread(true),
         _octreeProcessor(),
         _voxelHideShowThread(&_voxels),
@@ -524,8 +520,8 @@ void Application::initializeGL() {
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
-    _viewFrustumOffsetCamera.setNearClip(0.1f);
-    _viewFrustumOffsetCamera.setFarClip(500.0f * TREE_SCALE);
+    _viewFrustumOffsetCamera.setNearClip(DEFAULT_NEAR_CLIP);
+    _viewFrustumOffsetCamera.setFarClip(DEFAULT_FAR_CLIP);
 
     initDisplay();
     qDebug( "Initialized Display.");
@@ -592,7 +588,7 @@ void Application::paintGL() {
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->getFilteredEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -611,10 +607,10 @@ void Application::paintGL() {
         if (OculusManager::isConnected()) {
             _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition() + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0));
+            _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition() + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0));
         } else {
             _myCamera.setTightness(0.0f);
-            glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();
+            glm::vec3 eyePosition = _myAvatar->getHead()->getFilteredEyePosition();
             float headHeight = eyePosition.y - _myAvatar->getPosition().y;
             _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
@@ -1141,18 +1137,19 @@ void Application::focusOutEvent(QFocusEvent* event) {
     _keysPressed.clear();
 }
 
-void Application::mouseMoveEvent(QMouseEvent* event) {
+void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 
     bool showMouse = true;
+
+    // Used by application overlay to determine how to draw cursor(s)
+    _lastMouseMoveWasSimulated = deviceID > 0;
+
     // If this mouse move event is emitted by a controller, dont show the mouse cursor
-    if (event->type() == CONTROLLER_MOVE_EVENT) {
+    if (_lastMouseMoveWasSimulated) {
         showMouse = false;
     }
 
-    // Used by application overlay to determine how to draw cursor(s)
-    _lastMouseMoveType = event->type();
-
-    _controllerScriptingInterface.emitMouseMoveEvent(event); // send events to any registered scripts
+    _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1171,7 +1168,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     _mouseY = event->y();
 }
 
-void Application::mousePressEvent(QMouseEvent* event) {
+void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1204,7 +1201,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
     }
 }
 
-void Application::mouseReleaseEvent(QMouseEvent* event) {
+void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1493,9 +1490,10 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    return _faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
+    return _cara.isActive() ? static_cast<FaceTracker*>(&_cara) : 
+        (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
         (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
-            (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL));
+            (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
 }
 
 struct SendVoxelsOperationArgs {
@@ -1712,9 +1710,15 @@ void Application::init() {
     _lastTimeUpdated.start();
 
     Menu::getInstance()->loadSettings();
-    if (Menu::getInstance()->getAudioJitterBufferSamples() != 0) {
-        _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
+    if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
+        _audio.setDynamicJitterBuffers(false);
+        _audio.setStaticDesiredJitterBufferFrames(Menu::getInstance()->getAudioJitterBufferFrames());
+    } else {
+        _audio.setDynamicJitterBuffers(true);
     }
+
+    _audio.setMaxFramesOverDesired(Menu::getInstance()->getMaxFramesOverDesired());
+
     qDebug("Loaded settings");
 
     // initialize our face trackers after loading the menu settings
@@ -1877,6 +1881,19 @@ void Application::updateVisage() {
     _visage.update();
 }
 
+void Application::updateCara() {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateCara()");
+
+    //  Update Cara
+    _cara.update();
+
+    //  Copy angular velocity if measured by cara, to the head
+    if (_cara.isActive()) {
+        _myAvatar->getHead()->setAngularVelocity(_cara.getHeadAngularVelocity());
+    }
+}
+
 void Application::updateMyAvatarLookAtPosition() {
     PerformanceTimer perfTimer("lookAt");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -1910,17 +1927,9 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            lookAtSpot = _myAvatar->getHead()->calculateAverageEyePosition() + 
+            lookAtSpot = _myAvatar->getHead()->getEyePosition() +
                 (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.f, 0.f, -TREE_SCALE));
         }
-        // TODO:  Add saccade to mouse pointer when stable, IF not looking at someone (since we know we are looking at it)
-        /*
-        const float FIXED_MIN_EYE_DISTANCE = 0.3f;
-        float minEyeDistance = FIXED_MIN_EYE_DISTANCE + (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON ? 0.0f :
-            glm::distance(_mouseRayOrigin, _myAvatar->getHead()->calculateAverageEyePosition()));
-        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * qMax(minEyeDistance, distance);
-         */
-
     }
     //
     //  Deflect the eyes a bit to match the detected Gaze from 3D camera if active
@@ -1930,7 +1939,7 @@ void Application::updateMyAvatarLookAtPosition() {
         float eyeYaw = tracker->getEstimatedEyeYaw();
         const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
         // deflect using Faceshift gaze data
-        glm::vec3 origin = _myAvatar->getHead()->calculateAverageEyePosition();
+        glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
         float deflection = Menu::getInstance()->getFaceshiftEyeDeflection();
         if (isLookingAtSomeone) {
@@ -2108,21 +2117,6 @@ void Application::update(float deltaTime) {
         // let external parties know we're updating
         emit simulating(deltaTime);
     }
-}
-
-void Application::updateMyAvatar(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
-
-    _myAvatar->update(deltaTime);
-
-    {
-        // send head/hand data to the avatar mixer and voxel server
-        PerformanceTimer perfTimer("send");
-        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
-        packet.append(_myAvatar->toByteArray());
-        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
-    }
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -2165,13 +2159,29 @@ void Application::updateMyAvatar(float deltaTime) {
         }
     }
 
+    // send packet containing downstream audio stats to the AudioMixer 
     {
         quint64 sinceLastNack = now - _lastSendDownstreamAudioStats;
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
-            
+
             QMetaObject::invokeMethod(&_audio, "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
+    }
+}
+
+void Application::updateMyAvatar(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
+
+    _myAvatar->update(deltaTime);
+
+    {
+        // send head/hand data to the avatar mixer and voxel server
+        PerformanceTimer perfTimer("send");
+        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+        packet.append(_myAvatar->toByteArray());
+        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
     }
 }
 
@@ -2600,7 +2610,9 @@ void Application::updateShadowMap() {
     glViewport(0, 0, _glWidget->width(), _glWidget->height());
 }
 
-const GLfloat WHITE_SPECULAR_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
+const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
+const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
 const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 void Application::setupWorldLight() {
@@ -2612,13 +2624,10 @@ void Application::setupWorldLight() {
     glm::vec3 sunDirection = getSunDirection();
     GLfloat light_position0[] = { sunDirection.x, sunDirection.y, sunDirection.z, 0.0 };
     glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-    GLfloat ambient_color[] = { 0.7f, 0.7f, 0.8f };
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-    GLfloat diffuse_color[] = { 0.8f, 0.7f, 0.7f };
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-
-    glLightfv(GL_LIGHT0, GL_SPECULAR, WHITE_SPECULAR_COLOR);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, WORLD_AMBIENT_COLOR);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, WORLD_DIFFUSE_COLOR);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, WORLD_SPECULAR_COLOR);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
@@ -2796,7 +2805,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
 
         // restore default, white specular
-        glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
 
         _nodeBoundsDisplay.draw();
 
@@ -2805,8 +2814,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
-
+        
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
+
+        //Render the sixense lasers
+        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+            _myAvatar->renderLaserPointers();
+        }
     }
 
     if (!selfAvatarOnly) {
@@ -2930,7 +2944,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             _mirrorCamera.setTargetPosition(glm::vec3());
 
         } else {
-            _mirrorCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+            _mirrorCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition());
         }
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
@@ -2959,7 +2973,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
 
         // get the eye position relative to the body
-        glm::vec3 eyePosition = _myAvatar->getHead()->calculateAverageEyePosition();     
+        glm::vec3 eyePosition = _myAvatar->getHead()->getEyePosition();
         float eyeHeight = eyePosition.y - _myAvatar->getPosition().y;
 
         // set the translation of the face relative to the neck position
@@ -2977,6 +2991,13 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             attachment->setTranslation(attachment->getTranslation() + delta);
         }
 
+        // and lo, even the shadow matrices
+        glm::mat4 savedShadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];
+        for (int i = 0; i < CASCADED_SHADOW_MATRIX_COUNT; i++) {
+            savedShadowMatrices[i] = _shadowMatrices[i];
+            _shadowMatrices[i] = glm::transpose(glm::transpose(_shadowMatrices[i]) * glm::translate(-delta));
+        }
+
         displaySide(_mirrorCamera, true);
 
         // restore absolute translations
@@ -2984,6 +3005,11 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
         for (int i = 0; i < absoluteAttachmentTranslations.size(); i++) {
             _myAvatar->getAttachmentModels().at(i)->setTranslation(absoluteAttachmentTranslations.at(i));
+        }
+        
+        // restore the shadow matrices
+        for (int i = 0; i < CASCADED_SHADOW_MATRIX_COUNT; i++) {
+            _shadowMatrices[i] = savedShadowMatrices[i];
         }
     } else {
         displaySide(_mirrorCamera, true);
@@ -3338,7 +3364,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _modelEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
-        QMetaObject::invokeMethod(&_audio, "resetIncomingMixedAudioSequenceNumberStats");
+        QMetaObject::invokeMethod(&_audio, "audioMixerKilled");
     }
 
     if (node->getType() == NodeType::VoxelServer) {
@@ -3622,6 +3648,9 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
     scriptEngine->getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
     scriptEngine->getModelsScriptingInterface()->setModelTree(_models.getTree());
+
+    // model has some custom types
+    Model::registerMetaTypes(scriptEngine);
 
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features

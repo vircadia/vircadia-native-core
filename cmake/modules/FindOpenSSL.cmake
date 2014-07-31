@@ -35,43 +35,27 @@ endif ()
 
 if (WIN32)
   # http://www.slproweb.com/products/Win32OpenSSL.html
-  set(_OPENSSL_ROOT_HINTS
-    ${OPENSSL_ROOT_DIR}
-    $ENV{OPENSSL_ROOT_DIR}
-    $ENV{HIFI_LIB_DIR}/openssl
+  set(_OPENSSL_ROOT_HINTS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl
     "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
     "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
   )
   file(TO_CMAKE_PATH "$ENV{PROGRAMFILES}" _programfiles)
-  set(_OPENSSL_ROOT_PATHS
-    "${_programfiles}/OpenSSL"
-    "${_programfiles}/OpenSSL-Win32"
-    "${_programfiles}/OpenSSL-Win64"
-    "C:/OpenSSL/"
-    "C:/OpenSSL-Win32/"
-    "C:/OpenSSL-Win64/"
-    )
+  set(_OPENSSL_ROOT_PATHS "${_programfiles}/OpenSSL" "${_programfiles}/OpenSSL-Win32" "${_programfiles}/OpenSSL-Win64"
+    "C:/OpenSSL/" "C:/OpenSSL-Win32/" "C:/OpenSSL-Win64/"
+  )
   unset(_programfiles)
-  set(_OPENSSL_ROOT_HINTS_AND_PATHS
-    HINTS ${_OPENSSL_ROOT_HINTS}
-    PATHS ${_OPENSSL_ROOT_PATHS}
-    )
+  set(_OPENSSL_ROOT_HINTS_AND_PATHS HINTS ${_OPENSSL_ROOT_HINTS} PATHS ${_OPENSSL_ROOT_PATHS})
 else ()
-  set(_OPENSSL_ROOT_HINTS_AND_PATHS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl)
+  include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+  hifi_library_search_hints("openssl")
+  
+  set(_OPENSSL_ROOT_HINTS_AND_PATHS ${OPENSSL_SEARCH_DIRS})
 endif ()
 
-find_path(OPENSSL_INCLUDE_DIR
-  NAMES
-    openssl/ssl.h
-  HINTS
-    ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-    ${_OPENSSL_INCLUDEDIR}
-  PATH_SUFFIXES
-    include
-)
+find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_INCLUDEDIR} PATH_SUFFIXES include)
 
-if(WIN32 AND NOT CYGWIN)
-  if(MSVC)
+if (WIN32 AND NOT CYGWIN)
+  if (MSVC)
     # /MD and /MDd are the standard values - if someone wants to use
     # others, the libnames have to change here too
     # use also ssl and ssleay32 in debug as fallback for openssl < 0.9.8b
@@ -86,49 +70,20 @@ if(WIN32 AND NOT CYGWIN)
     # We are using the libraries located in the VC subdir instead of the parent directory eventhough :
     # libeay32MD.lib is identical to ../libeay32.lib, and
     # ssleay32MD.lib is identical to ../ssleay32.lib
-    find_library(LIB_EAY_DEBUG
-      NAMES
-        libeay32MDd
-        libeay32d
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-      PATH_SUFFIXES
-        "lib"
-        "VC"
-        "lib/VC"
+    find_library(LIB_EAY_DEBUG NAMES libeay32MDd libeay32d 
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
     )
 
-    find_library(LIB_EAY_RELEASE
-      NAMES
-        libeay32MD
-        libeay32
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-      PATH_SUFFIXES
-        "lib"
-        "VC"
-        "lib/VC"
+    find_library(LIB_EAY_RELEASE NAMES libeay32MD libeay32 
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
     )
 
-    find_library(SSL_EAY_DEBUG
-      NAMES
-        ssleay32MDd
-        ssleay32d
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-      PATH_SUFFIXES
-        "lib"
-        "VC"
-        "lib/VC"
+    find_library(SSL_EAY_DEBUG NAMES ssleay32MDd ssleay32d 
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
     )
 
-    find_library(SSL_EAY_RELEASE
-      NAMES
-        ssleay32MD
-        ssleay32
-        ssl
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-      PATH_SUFFIXES
-        "lib"
-        "VC"
-        "lib/VC"
+    find_library(SSL_EAY_RELEASE NAMES ssleay32MD ssleay32 ssl
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
     )
 
     set(LIB_EAY_LIBRARY_DEBUG "${LIB_EAY_DEBUG}")
@@ -140,85 +95,45 @@ if(WIN32 AND NOT CYGWIN)
     select_library_configurations(LIB_EAY)
     select_library_configurations(SSL_EAY)
 
-    set( OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY} )
-  elseif(MINGW)
+    set(OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY})
+  elseif (MINGW)
     # same player, for MinGW
     set(LIB_EAY_NAMES libeay32)
     set(SSL_EAY_NAMES ssleay32)
-    if(CMAKE_CROSSCOMPILING)
+    
+    if (CMAKE_CROSSCOMPILING)
       list(APPEND LIB_EAY_NAMES crypto)
       list(APPEND SSL_EAY_NAMES ssl)
-    endif()
-    find_library(LIB_EAY
-      NAMES
-        ${LIB_EAY_NAMES}
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-      PATH_SUFFIXES
-        "lib"
-        "lib/MinGW"
+    endif ()
+    
+    find_library(LIB_EAY NAMES ${LIB_EAY_NAMES}
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "lib/MinGW"
     )
 
-    find_library(SSL_EAY
-      NAMES
-        ${SSL_EAY_NAMES}
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-      PATH_SUFFIXES
-        "lib"
-        "lib/MinGW"
+    find_library(SSL_EAY NAMES ${SSL_EAY_NAMES} 
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "lib/MinGW"
     )
 
     mark_as_advanced(SSL_EAY LIB_EAY)
-    set( OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY} )
+    set(OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY})
     unset(LIB_EAY_NAMES)
     unset(SSL_EAY_NAMES)
-  else()
+  else ()
     # Not sure what to pick for -say- intel, let's use the toplevel ones and hope someone report issues:
-    find_library(LIB_EAY
-      NAMES
-        libeay32
-      HINTS
-        ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-        ${_OPENSSL_LIBDIR}
-      PATH_SUFFIXES
-        lib
-    )
+    find_library(LIB_EAY NAMES libeay32 HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} PATH_SUFFIXES lib)
 
-    find_library(SSL_EAY
-      NAMES
-        ssleay32
-      HINTS
-        ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-        ${_OPENSSL_LIBDIR}
-      PATH_SUFFIXES
-        lib
-    )
+    find_library(SSL_EAY NAMES ssleay32 HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} PATH_SUFFIXES lib)
 
     mark_as_advanced(SSL_EAY LIB_EAY)
-    set( OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY} )
+    set(OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY})
   endif()
 else()
 
-  find_library(OPENSSL_SSL_LIBRARY
-    NAMES
-      ssl
-      ssleay32
-      ssleay32MD
-    HINTS
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-      ${_OPENSSL_LIBDIR}
-    PATH_SUFFIXES
-      lib
+  find_library(OPENSSL_SSL_LIBRARY NAMES ssl ssleay32 ssleay32MD HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR}
+    PATH_SUFFIXES lib
   )
 
-  find_library(OPENSSL_CRYPTO_LIBRARY
-    NAMES
-      crypto
-    HINTS
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS}
-      ${_OPENSSL_LIBDIR}
-    PATH_SUFFIXES
-      lib
-  )
+  find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} PATH_SUFFIXES lib)
 
   mark_as_advanced(OPENSSL_CRYPTO_LIBRARY OPENSSL_SSL_LIBRARY)
 
@@ -228,7 +143,7 @@ else()
 
   set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
 
-endif()
+endif ()
 
 function(from_hex HEX DEC)
   string(TOUPPER "${HEX}" HEX)
@@ -316,4 +231,4 @@ else ()
   )
 endif ()
 
-mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES)
+mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES OPENSSL_SEARCH_DIRS)

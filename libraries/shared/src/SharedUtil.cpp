@@ -733,6 +733,13 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
         }
     } else {
         axis = glm::normalize(glm::cross(v1, v2));
+        // It is possible for axis to be nan even when angle is not less than EPSILON.
+        // For example when angle is small but not tiny but v1 and v2 and have very short lengths.
+        if (glm::isnan(glm::dot(axis, axis))) {
+            // set angle and axis to values that will generate an identity rotation
+            angle = 0.0f;
+            axis = glm::vec3(1.0f, 0.0f, 0.0f);
+        }
     }
     return glm::angleAxis(angle, axis);
 }
@@ -750,8 +757,7 @@ void setTranslation(glm::mat4& matrix, const glm::vec3& translation) {
 glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
     // uses the iterative polar decomposition algorithm described by Ken Shoemake at
     // http://www.cs.wisc.edu/graphics/Courses/838-s2002/Papers/polar-decomp.pdf
-    // code adapted from Clyde, https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Matrix4f.java
-
+    // code adapted from Clyde, https://github.com/threerings/clyde/blob/master/core/src/main/java/com/threerings/math/Matrix4f.java
     // start with the contents of the upper 3x3 portion of the matrix
     glm::mat3 upper = glm::mat3(matrix);
     if (!assumeOrthogonal) {

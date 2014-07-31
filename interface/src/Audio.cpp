@@ -39,32 +39,22 @@
 #include <UUID.h>
 #include <glm/glm.hpp>
 
-#include "Application.h"
 #include "Audio.h"
 #include "Menu.h"
 #include "Util.h"
+#include "PositionalAudioStream.h"
 
 static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
 static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 
-// audio frames time gap stats (min/max/avg) for last ~30 seconds are recalculated every ~1 second
-static const int TIME_GAPS_STATS_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
-static const int TIME_GAP_STATS_WINDOW_INTERVALS = 30;
-
-// incoming sequence number stats history will cover last 30s
-static const int INCOMING_SEQ_STATS_HISTORY_LENGTH = INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS /
-        (TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS / USECS_PER_SECOND);
-
-// the stats for the total frames available in the ring buffer and the audio output buffer
-// will sample every second, update every second, and have a moving window covering 10 seconds
 static const int FRAMES_AVAILABLE_STATS_WINDOW_SECONDS = 10;
 
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
 
 
-Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
+Audio::Audio(QObject* parent) :
     AbstractAudioInterface(parent),
     _audioInput(NULL),
     _desiredInputFormat(),
@@ -79,12 +69,15 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _loopbackOutputDevice(NULL),
     _proceduralAudioOutput(NULL),
     _proceduralOutputDevice(NULL),
+
+    // NOTE: Be very careful making changes to the initializers of these ring buffers. There is a known problem with some
+    // Mac audio devices that slowly introduce additional delay in the audio device because they play out audio slightly
+    // slower than real time (or at least the desired sample rate). If you increase the size of the ring buffer, then it 
+    // this delay will slowly add up and the longer someone runs, they more delayed their audio will be.
     _inputRingBuffer(0),
-    _ringBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, false, 100),
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 100, true, 0, 0, true),
     _isStereoInput(false),
     _averagedLatency(0.0),
-    _measuredJitter(0),
-    _jitterBufferSamples(initialJitterBufferSamples),
     _lastInputLoudness(0),
     _timeSinceLastClip(-1.0),
     _dcOffset(0),
@@ -94,14 +87,12 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _noiseGateEnabled(true),
     _toneInjectionEnabled(false),
     _noiseGateFramesToClose(0),
-    _totalPacketsReceived(0),
     _totalInputAudioSamples(0),
     _collisionSoundMagnitude(0.0f),
     _collisionSoundFrequency(0.0f),
     _collisionSoundNoise(0.0f),
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
-    _numFramesDisplayStarve(0),
     _muted(false),
     _processSpatialAudio(false),
     _spatialAudioStart(0),
@@ -116,12 +107,12 @@ Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
-    _starveCount(0),
-    _consecutiveNotMixedCount(0),
+    _statsEnabled(false),
+    _statsShowInjectedStreams(false),
     _outgoingAvatarAudioSequenceNumber(0),
-    _incomingMixedAudioSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH),
-    _interframeTimeGapStats(TIME_GAPS_STATS_INTERVAL_SAMPLES, TIME_GAP_STATS_WINDOW_INTERVALS),
-    _framesAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS)
+    _audioInputMsecsReadStats(MSECS_PER_SECOND / (float)AUDIO_CALLBACK_MSECS * CALLBACK_ACCELERATOR_RATIO, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
+    _inputRingBufferMsecsAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
+    _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -136,16 +127,26 @@ void Audio::init(QGLWidget *parent) {
 }
 
 void Audio::reset() {
-    _ringBuffer.reset();
-    
-    _starveCount = 0;
-    _consecutiveNotMixedCount = 0;
+    _receivedAudioStream.reset();
+
+    resetStats();
+}
+
+void Audio::resetStats() {
+    _receivedAudioStream.resetStats();
 
     _audioMixerAvatarStreamAudioStats = AudioStreamStats();
     _audioMixerInjectedStreamAudioStatsMap.clear();
 
+    _audioInputMsecsReadStats.reset();
+    _inputRingBufferMsecsAvailableStats.reset();
+
+    _audioOutputMsecsUnplayedStats.reset();
+}
+
+void Audio::audioMixerKilled() {
     _outgoingAvatarAudioSequenceNumber = 0;
-    _incomingMixedAudioSequenceNumberStats.reset();
+    resetStats();
 }
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
@@ -488,8 +489,11 @@ void Audio::handleAudioInput() {
     }
 
     _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
+    
+    float audioInputMsecsRead = inputByteArray.size() / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
+    _audioInputMsecsReadStats.update(audioInputMsecsRead);
 
-    while (_inputRingBuffer.samplesAvailable() > inputSamplesRequired) {
+    while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
 
         int16_t* inputAudioSamples = new int16_t[inputSamplesRequired];
         _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
@@ -704,36 +708,13 @@ void Audio::handleAudioInput() {
         }
         delete[] inputAudioSamples;
     }
+
+    if (_receivedAudioStream.getPacketReceived() > 0) {
+        pushAudioToOutput();
+    }
 }
 
-void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
-    const int NUM_INITIAL_PACKETS_DISCARD = 3;
-    const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
-    
-    _totalPacketsReceived++;
-    
-    double timeDiff = (double)_timeSinceLastReceived.nsecsElapsed() / 1000.0; // ns to us
-    _interframeTimeGapStats.update((quint64)timeDiff);
-    timeDiff /= USECS_PER_MSEC; // us to ms
-    _timeSinceLastReceived.start();
-    
-    //  Discard first few received packets for computing jitter (often they pile up on start)
-    if (_totalPacketsReceived > NUM_INITIAL_PACKETS_DISCARD) {
-        _stdev.addValue(timeDiff);
-    }
-
-    if (_stdev.getSamples() > STANDARD_DEVIATION_SAMPLE_COUNT) {
-        _measuredJitter = _stdev.getStDev();
-        _stdev.reset();
-        //  Set jitter buffer to be a multiple of the measured standard deviation
-        const int MAX_JITTER_BUFFER_SAMPLES = _ringBuffer.getSampleCapacity() / 2;
-        const float NUM_STANDARD_DEVIATIONS = 3.0f;
-        if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
-            float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter) / 1000.0f * SAMPLE_RATE;
-            setJitterBufferSamples(glm::clamp((int)newJitterBufferSamples, 0, MAX_JITTER_BUFFER_SAMPLES));
-        }
-    }
-
+void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
     if (_audioOutput) {
         // Audio output must exist and be correctly set up if we're going to process received audio
         processReceivedAudio(audioByteArray);
@@ -764,7 +745,7 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
         memcpy(&streamStats, dataAt, sizeof(AudioStreamStats));
         dataAt += sizeof(AudioStreamStats);
 
-        if (streamStats._streamType == PositionalAudioRingBuffer::Microphone) {
+        if (streamStats._streamType == PositionalAudioStream::Microphone) {
             _audioMixerAvatarStreamAudioStats = streamStats;
         } else {
             _audioMixerInjectedStreamAudioStatsMap[streamStats._streamIdentifier] = streamStats;
@@ -772,40 +753,13 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
     }
 }
 
-AudioStreamStats Audio::getDownstreamAudioStreamStats() const {
-
-    AudioStreamStats stats;
-    stats._streamType = PositionalAudioRingBuffer::Microphone;
-
-    stats._timeGapMin = _interframeTimeGapStats.getMin();
-    stats._timeGapMax = _interframeTimeGapStats.getMax();
-    stats._timeGapAverage = _interframeTimeGapStats.getAverage();
-    stats._timeGapWindowMin = _interframeTimeGapStats.getWindowMin();
-    stats._timeGapWindowMax = _interframeTimeGapStats.getWindowMax();
-    stats._timeGapWindowAverage = _interframeTimeGapStats.getWindowAverage();
-
-    stats._ringBufferFramesAvailable = getFramesAvailableInRingAndAudioOutputBuffers();
-    stats._ringBufferFramesAvailableAverage = _framesAvailableStats.getWindowAverage();
-    stats._ringBufferDesiredJitterBufferFrames = getDesiredJitterBufferFrames();
-    stats._ringBufferStarveCount = _starveCount;
-    stats._ringBufferConsecutiveNotMixedCount = _consecutiveNotMixedCount;
-    stats._ringBufferOverflowCount = _ringBuffer.getOverflowCount();
-    stats._ringBufferSilentFramesDropped = 0;
-
-    stats._packetStreamStats = _incomingMixedAudioSequenceNumberStats.getStats();
-    stats._packetStreamWindowStats = _incomingMixedAudioSequenceNumberStats.getStatsForHistoryWindow();
-
-    return stats;
-}
-
 void Audio::sendDownstreamAudioStatsPacket() {
 
-    // since this function is called every second, we'll sample the number of audio frames available here.
-    _framesAvailableStats.update(getFramesAvailableInRingAndAudioOutputBuffers());
+    // since this function is called every second, we'll sample some of our stats here
 
-    // push the current seq number stats into history, which moves the history window forward 1s
-    // (since that's how often pushStatsToHistory() is called)
-    _incomingMixedAudioSequenceNumberStats.pushStatsToHistory();
+    _inputRingBufferMsecsAvailableStats.update(getInputRingBufferMsecsAvailable());
+
+    _audioOutputMsecsUnplayedStats.update(getAudioOutputMsecsUnplayed());
 
     char packet[MAX_PACKET_SIZE];
 
@@ -824,7 +778,7 @@ void Audio::sendDownstreamAudioStatsPacket() {
     dataAt += sizeof(quint16);
 
     // pack downstream audio stream stats
-    AudioStreamStats stats = getDownstreamAudioStreamStats();
+    AudioStreamStats stats = _receivedAudioStream.updateSeqHistoryAndGetAudioStreamStats();
     memcpy(dataAt, &stats, sizeof(AudioStreamStats));
     dataAt += sizeof(AudioStreamStats);
     
@@ -934,124 +888,114 @@ void Audio::toggleStereoInput() {
 
 void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
 
-    QUuid senderUUID = uuidFromPacketHeader(audioByteArray);
-
-    // parse sequence number for this packet
-    int numBytesPacketHeader = numBytesForPacketHeader(audioByteArray);
-    const char* sequenceAt = audioByteArray.constData() + numBytesPacketHeader;
-    quint16 sequence = *((quint16*)sequenceAt);
-    _incomingMixedAudioSequenceNumberStats.sequenceNumberReceived(sequence, senderUUID);
-
     // parse audio data
-    _ringBuffer.parseData(audioByteArray);
-    
-    float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
-        * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
-    
-    if (!_ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
-        // we don't have any audio data left in the output buffer
-        // we just starved
-        //qDebug() << "Audio output just starved.";
-        _ringBuffer.setIsStarved(true);
-        _numFramesDisplayStarve = 10;
+    _receivedAudioStream.parseData(audioByteArray);
 
-        _starveCount++;
-        _consecutiveNotMixedCount = 0;
+
+    // This call has been moved to handleAudioInput. handleAudioInput is called at a much more regular interval
+    // than processReceivedAudio since handleAudioInput does not experience network-related jitter.
+    // This way, we reduce the jitter of the frames being pushed to the audio output, allowing us to use a reduced
+    // buffer size for it, which reduces latency.
+
+    //pushAudioToOutput();
+}
+
+void Audio::pushAudioToOutput() {
+
+    if (_audioOutput->bytesFree() == _audioOutput->bufferSize()) {
+        // the audio output has no samples to play.  set the downstream audio to starved so that it
+        // refills to its desired size before pushing frames
+        _receivedAudioStream.setToStarved();
     }
-    
-    int numNetworkOutputSamples;
+
+    float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float)_outputFormat.sampleRate())
+        * (_desiredOutputFormat.channelCount() / (float)_outputFormat.channelCount());
+
+    int numFramesToPush;
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisableQAudioOutputOverflowCheck)) {
-        numNetworkOutputSamples = _ringBuffer.samplesAvailable();
+        numFramesToPush = _receivedAudioStream.getFramesAvailable();
     } else {
-        int numSamplesAudioOutputRoomFor = _audioOutput->bytesFree() / sizeof(int16_t);
-        numNetworkOutputSamples = std::min(_ringBuffer.samplesAvailable(), (int)(numSamplesAudioOutputRoomFor * networkOutputToOutputRatio));
+        // make sure to push a whole number of frames to the audio output
+        int numFramesAudioOutputRoomFor = (int)(_audioOutput->bytesFree() / sizeof(int16_t) * networkOutputToOutputRatio) / _receivedAudioStream.getNumFrameSamples();
+        numFramesToPush = std::min(_receivedAudioStream.getFramesAvailable(), numFramesAudioOutputRoomFor);
     }
-    
-    // if there is data in the ring buffer and room in the audio output, decide what to do
-    if (numNetworkOutputSamples > 0) {
-        
-        int numSamplesNeededToStartPlayback = std::min(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2),
-            _ringBuffer.getSampleCapacity());
-        
-        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
-            //  We are still waiting for enough samples to begin playback
-            // qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
-            _consecutiveNotMixedCount++;
+
+    // if there is data in the received stream and room in the audio output, decide what to do
+
+    if (numFramesToPush > 0 && _receivedAudioStream.popFrames(numFramesToPush, false)) {
+
+        int numNetworkOutputSamples = numFramesToPush * NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+        int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
+
+        QByteArray outputBuffer;
+        outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
+
+        AudioRingBuffer::ConstIterator receivedAudioStreamPopOutput = _receivedAudioStream.getLastPopOutput();
+
+        int16_t* receivedSamples = new int16_t[numNetworkOutputSamples];
+        if (_processSpatialAudio) {
+            unsigned int sampleTime = _spatialAudioStart;
+            QByteArray buffer;
+            buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
+
+            receivedAudioStreamPopOutput.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
+
+            // Accumulate direct transmission of audio from sender to receiver
+            if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
+                emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
+                addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
+            }
+
+            // Send audio off for spatial processing
+            emit processInboundAudio(sampleTime, buffer, _desiredOutputFormat);
+
+            // copy the samples we'll resample from the spatial audio ring buffer - this also
+            // pushes the read pointer of the spatial audio ring buffer forwards
+            _spatialAudioRingBuffer.readSamples(receivedSamples, numNetworkOutputSamples);
+
+            // Advance the start point for the next packet of audio to arrive
+            _spatialAudioStart += numNetworkOutputSamples / _desiredOutputFormat.channelCount();
         } else {
-            int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
-
-            QByteArray outputBuffer;
-            outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
-
-            //  We are either already playing back, or we have enough audio to start playing back.
-            //qDebug() << "pushing " << numNetworkOutputSamples;
-            _ringBuffer.setIsStarved(false);
-
-            int16_t* ringBufferSamples = new int16_t[numNetworkOutputSamples];
-            if (_processSpatialAudio) {
-                unsigned int sampleTime = _spatialAudioStart;
-                QByteArray buffer;
-                buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
-
-                _ringBuffer.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
-
-                // Accumulate direct transmission of audio from sender to receiver
-                if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
-                    emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
-                    addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
-                }
-
-                // Send audio off for spatial processing
-                emit processInboundAudio(sampleTime, buffer, _desiredOutputFormat);
-
-                // copy the samples we'll resample from the spatial audio ring buffer - this also
-                // pushes the read pointer of the spatial audio ring buffer forwards
-                _spatialAudioRingBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
-
-                // Advance the start point for the next packet of audio to arrive
-                _spatialAudioStart += numNetworkOutputSamples / _desiredOutputFormat.channelCount();
-            } else {
-                // copy the samples we'll resample from the ring buffer - this also
-                // pushes the read pointer of the ring buffer forwards
-                _ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
-            }
-
-            // copy the packet from the RB to the output
-            linearResampling(ringBufferSamples,
-                             (int16_t*) outputBuffer.data(),
-                             numNetworkOutputSamples,
-                             numDeviceOutputSamples,
-                             _desiredOutputFormat, _outputFormat);
-
-            if (_outputDevice) {
-                _outputDevice->write(outputBuffer);
-            }
-
-            if (_scopeEnabled && !_scopeEnabledPause) {
-                unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
-                int16_t* samples = ringBufferSamples;
-                for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
-
-                    unsigned int audioChannel = 0;
-                    addBufferToScope(
-                        _scopeOutputLeft, 
-                        _scopeOutputOffset, 
-                        samples, audioChannel, numAudioChannels); 
-
-                    audioChannel = 1;
-                    addBufferToScope(
-                        _scopeOutputRight, 
-                        _scopeOutputOffset, 
-                        samples, audioChannel, numAudioChannels); 
-                
-                    _scopeOutputOffset += NETWORK_SAMPLES_PER_FRAME;
-                    _scopeOutputOffset %= _samplesPerScope;
-                    samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
-                }
-            }
-
-            delete[] ringBufferSamples;
+            // copy the samples we'll resample from the ring buffer - this also
+            // pushes the read pointer of the ring buffer forwards
+            receivedAudioStreamPopOutput.readSamples(receivedSamples, numNetworkOutputSamples);
         }
+
+        // copy the packet from the RB to the output
+        linearResampling(receivedSamples,
+            (int16_t*)outputBuffer.data(),
+            numNetworkOutputSamples,
+            numDeviceOutputSamples,
+            _desiredOutputFormat, _outputFormat);
+
+        if (_outputDevice) {
+            _outputDevice->write(outputBuffer);
+        }
+
+        if (_scopeEnabled && !_scopeEnabledPause) {
+            unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
+            int16_t* samples = receivedSamples;
+            for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
+
+                unsigned int audioChannel = 0;
+                addBufferToScope(
+                    _scopeOutputLeft,
+                    _scopeOutputOffset,
+                    samples, audioChannel, numAudioChannels);
+
+                audioChannel = 1;
+                addBufferToScope(
+                    _scopeOutputRight,
+                    _scopeOutputOffset,
+                    samples, audioChannel, numAudioChannels);
+
+                _scopeOutputOffset += NETWORK_SAMPLES_PER_FRAME;
+                _scopeOutputOffset %= _samplesPerScope;
+                samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
+            }
+        }
+
+        delete[] receivedSamples;
     }
 }
 
@@ -1271,6 +1215,14 @@ void Audio::toggleScopePause() {
     _scopeEnabledPause = !_scopeEnabledPause;
 }
 
+void Audio::toggleStats() {
+    _statsEnabled = !_statsEnabled;
+}
+
+void Audio::toggleStatsShowInjectedStreams() {
+    _statsShowInjectedStreams = !_statsShowInjectedStreams;
+}
+
 void Audio::selectAudioScopeFiveFrames() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::AudioScopeFiveFrames)) {
         reallocateScope(5);
@@ -1349,6 +1301,177 @@ void Audio::addBufferToScope(
         destination[i + frameOffset] = value;
     }
 }
+
+void Audio::renderStats(const float* color, int width, int height) {
+    if (!_statsEnabled) {
+        return;
+    }
+
+    const int linesWhenCentered = _statsShowInjectedStreams ? 30 : 23;
+    const int CENTERED_BACKGROUND_HEIGHT = STATS_HEIGHT_PER_LINE * linesWhenCentered;
+
+    int lines = _statsShowInjectedStreams ? _audioMixerInjectedStreamAudioStatsMap.size() * 7 + 23 : 23;
+    int statsHeight = STATS_HEIGHT_PER_LINE * lines;
+
+
+    static const float backgroundColor[4] = { 0.2f, 0.2f, 0.2f, 0.6f };
+
+    int x = std::max((width - (int)STATS_WIDTH) / 2, 0);
+    int y = std::max((height - CENTERED_BACKGROUND_HEIGHT) / 2, 0);
+    int w = STATS_WIDTH;
+    int h = statsHeight;
+    renderBackground(backgroundColor, x, y, w, h);
+
+
+    int horizontalOffset = x + 5;
+    int verticalOffset = y;
+    
+    float scale = 0.10f;
+    float rotation = 0.0f;
+    int font = 2;
+
+
+    char latencyStatString[512];
+
+    const float BUFFER_SEND_INTERVAL_MSECS = BUFFER_SEND_INTERVAL_USECS / (float)USECS_PER_MSEC;
+
+    float audioInputBufferLatency = 0.0f, inputRingBufferLatency = 0.0f, networkRoundtripLatency = 0.0f, mixerRingBufferLatency = 0.0f, outputRingBufferLatency = 0.0f, audioOutputBufferLatency = 0.0f;
+
+    AudioStreamStats downstreamAudioStreamStats = _receivedAudioStream.getAudioStreamStats();
+    SharedNodePointer audioMixerNodePointer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
+    if (!audioMixerNodePointer.isNull()) {
+        audioInputBufferLatency = _audioInputMsecsReadStats.getWindowAverage();
+        inputRingBufferLatency = getInputRingBufferAverageMsecsAvailable();
+        networkRoundtripLatency = audioMixerNodePointer->getPingMs();
+        mixerRingBufferLatency = _audioMixerAvatarStreamAudioStats._framesAvailableAverage * BUFFER_SEND_INTERVAL_MSECS;
+        outputRingBufferLatency = downstreamAudioStreamStats._framesAvailableAverage * BUFFER_SEND_INTERVAL_MSECS;
+        audioOutputBufferLatency = _audioOutputMsecsUnplayedStats.getWindowAverage();
+    }
+    float totalLatency = audioInputBufferLatency + inputRingBufferLatency + networkRoundtripLatency + mixerRingBufferLatency + outputRingBufferLatency + audioOutputBufferLatency;
+
+    sprintf(latencyStatString, "     Audio input buffer: %7.2fms    - avg msecs of samples read to the input ring buffer in last 10s", audioInputBufferLatency);
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
+
+    sprintf(latencyStatString, "      Input ring buffer: %7.2fms    - avg msecs of samples in input ring buffer in last 10s", inputRingBufferLatency);
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
+
+    sprintf(latencyStatString, "       Network to mixer: %7.2fms    - half of last ping value calculated by the node list", networkRoundtripLatency / 2.0f);
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
+
+    sprintf(latencyStatString, " AudioMixer ring buffer: %7.2fms    - avg msecs of samples in audio mixer's ring buffer in last 10s", mixerRingBufferLatency);
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
+
+    sprintf(latencyStatString, "      Network to client: %7.2fms    - half of last ping value calculated by the node list", networkRoundtripLatency / 2.0f);
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
+    
+    sprintf(latencyStatString, "     Output ring buffer: %7.2fms    - avg msecs of samples in output ring buffer in last 10s", outputRingBufferLatency);
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
+
+    sprintf(latencyStatString, "    Audio output buffer: %7.2fms    - avg msecs of samples in audio output buffer in last 10s", audioOutputBufferLatency);
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
+    
+    sprintf(latencyStatString, "                  TOTAL: %7.2fms\n", totalLatency);
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
+
+
+    verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
+
+    char upstreamMicLabelString[] = "Upstream mic audio stats:";
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamMicLabelString, color);
+
+    renderAudioStreamStats(_audioMixerAvatarStreamAudioStats, horizontalOffset, verticalOffset, scale, rotation, font, color);
+
+
+    verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
+
+    char downstreamLabelString[] = "Downstream mixed audio stats:";
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamLabelString, color);
+
+    renderAudioStreamStats(downstreamAudioStreamStats, horizontalOffset, verticalOffset, scale, rotation, font, color, true);
+
+
+    if (_statsShowInjectedStreams) {
+
+        foreach(const AudioStreamStats& injectedStreamAudioStats, _audioMixerInjectedStreamAudioStatsMap) {
+
+            verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
+
+            char upstreamInjectedLabelString[512];
+            sprintf(upstreamInjectedLabelString, "Upstream injected audio stats:      stream ID: %s",
+                injectedStreamAudioStats._streamIdentifier.toString().toLatin1().data());
+            verticalOffset += STATS_HEIGHT_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamInjectedLabelString, color);
+
+            renderAudioStreamStats(injectedStreamAudioStats, horizontalOffset, verticalOffset, scale, rotation, font, color);
+        }
+    }
+}
+
+void Audio::renderAudioStreamStats(const AudioStreamStats& streamStats, int horizontalOffset, int& verticalOffset,
+    float scale, float rotation, int font, const float* color, bool isDownstreamStats) {
+    
+    char stringBuffer[512];
+
+    sprintf(stringBuffer, "                      Packet loss | overall: %5.2f%% (%d lost), last_30s: %5.2f%% (%d lost)",
+        streamStats._packetStreamStats.getLostRate() * 100.0f,
+        streamStats._packetStreamStats._numLost,
+        streamStats._packetStreamWindowStats.getLostRate() * 100.0f,
+        streamStats._packetStreamWindowStats._numLost);
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
+
+    if (isDownstreamStats) {
+
+        const float BUFFER_SEND_INTERVAL_MSECS = BUFFER_SEND_INTERVAL_USECS / (float)USECS_PER_MSEC;
+        sprintf(stringBuffer, "                Ringbuffer frames | desired: %u, avg_available(10s): %u+%d, available: %u+%d",
+            streamStats._desiredJitterBufferFrames,
+            streamStats._framesAvailableAverage,
+            (int)(getAudioOutputAverageMsecsUnplayed() / BUFFER_SEND_INTERVAL_MSECS),
+            streamStats._framesAvailable,
+            (int)(getAudioOutputMsecsUnplayed() / BUFFER_SEND_INTERVAL_MSECS));
+    } else {
+        sprintf(stringBuffer, "                Ringbuffer frames | desired: %u, avg_available(10s): %u, available: %u",
+            streamStats._desiredJitterBufferFrames,
+            streamStats._framesAvailableAverage,
+            streamStats._framesAvailable);
+    }
+    
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
+
+    sprintf(stringBuffer, "                 Ringbuffer stats | starves: %u, prev_starve_lasted: %u, frames_dropped: %u, overflows: %u",
+        streamStats._starveCount,
+        streamStats._consecutiveNotMixedCount,
+        streamStats._framesDropped,
+        streamStats._overflowCount);
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
+
+    sprintf(stringBuffer, "  Inter-packet timegaps (overall) | min: %9s, max: %9s, avg: %9s",
+        formatUsecTime(streamStats._timeGapMin).toLatin1().data(),
+        formatUsecTime(streamStats._timeGapMax).toLatin1().data(),
+        formatUsecTime(streamStats._timeGapAverage).toLatin1().data());
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
+
+    sprintf(stringBuffer, " Inter-packet timegaps (last 30s) | min: %9s, max: %9s, avg: %9s",
+        formatUsecTime(streamStats._timeGapWindowMin).toLatin1().data(),
+        formatUsecTime(streamStats._timeGapWindowMax).toLatin1().data(),
+        formatUsecTime(streamStats._timeGapWindowAverage).toLatin1().data());
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
+}
+
 
 void Audio::renderScope(int width, int height) {
 
@@ -1543,11 +1666,13 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 
         if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
             qDebug() << "The format to be used for audio output is" << _outputFormat;
-        
+            
+            const int AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 10;
+
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            _audioOutput->setBufferSize(_ringBuffer.getSampleCapacity() * sizeof(int16_t));
-            qDebug() << "Ring Buffer capacity in samples: " << _ringBuffer.getSampleCapacity();
+            _audioOutput->setBufferSize(AUDIO_OUTPUT_BUFFER_SIZE_FRAMES * _outputFormat.bytesForDuration(BUFFER_SEND_INTERVAL_USECS));
+            qDebug() << "Ring Buffer capacity in frames: " << AUDIO_OUTPUT_BUFFER_SIZE_FRAMES;
             _outputDevice = _audioOutput->start();
 
             // setup a loopback audio output device
@@ -1585,7 +1710,7 @@ const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 
-int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) {
+int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const {
     int numInputCallbackBytes = (int)(((NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL 
         * format.channelCount()
         * (format.sampleRate() / SAMPLE_RATE))
@@ -1594,7 +1719,7 @@ int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) {
     return numInputCallbackBytes;
 }
 
-float Audio::calculateDeviceToNetworkInputRatio(int numBytes) {
+float Audio::calculateDeviceToNetworkInputRatio(int numBytes) const {
     float inputToNetworkInputRatio = (int)((_numInputCallbackBytes 
         * CALLBACK_ACCELERATOR_RATIO
         / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL) + 0.5f);
@@ -1602,13 +1727,19 @@ float Audio::calculateDeviceToNetworkInputRatio(int numBytes) {
     return inputToNetworkInputRatio;
 }
 
-int Audio::calculateNumberOfFrameSamples(int numBytes) {
+int Audio::calculateNumberOfFrameSamples(int numBytes) const {
     int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / sizeof(int16_t);
     return frameSamples;
 }
 
-int Audio::getFramesAvailableInRingAndAudioOutputBuffers() const {
-    int framesInAudioOutputBuffer = (_audioOutput->bufferSize() - _audioOutput->bytesFree()) 
-                                    / (sizeof(int16_t) * _ringBuffer.getNumFrameSamples());
-    return _ringBuffer.framesAvailable() + framesInAudioOutputBuffer;
+float Audio::getAudioOutputMsecsUnplayed() const {
+    int bytesAudioOutputUnplayed = _audioOutput->bufferSize() - _audioOutput->bytesFree();
+    float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_outputFormat.bytesForDuration(USECS_PER_MSEC);
+    return msecsAudioOutputUnplayed;
+}
+
+float Audio::getInputRingBufferMsecsAvailable() const {
+    int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * sizeof(int16_t);
+    float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
+    return  msecsInInputRingBuffer;
 }

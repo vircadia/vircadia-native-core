@@ -120,6 +120,8 @@ class AvatarData : public QObject {
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
+    Q_PROPERTY(float headYaw READ getHeadYaw WRITE setHeadYaw)
+    Q_PROPERTY(float headRoll READ getHeadRoll WRITE setHeadRoll)
 
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
@@ -171,7 +173,13 @@ public:
 
     // access to Head().set/getMousePitch (degrees)
     float getHeadPitch() const { return _headData->getBasePitch(); }
-    void setHeadPitch(float value) { _headData->setBasePitch(value); };
+    void setHeadPitch(float value) { _headData->setBasePitch(value); }
+
+    float getHeadYaw() const { return _headData->getBaseYaw(); }
+    void setHeadYaw(float value) { _headData->setBaseYaw(value); }
+
+    float getHeadRoll() const { return _headData->getBaseRoll(); }
+    void setHeadRoll(float value) { _headData->setBaseRoll(value); }
 
     // access to Head().set/getAverageLoudness
     float getAudioLoudness() const { return _headData->getAudioLoudness(); }
@@ -185,8 +193,8 @@ public:
     void setClampedTargetScale(float targetScale);
 
     //  Hand State
-    void setHandState(char s) { _handState = s; }
-    char getHandState() const { return _handState; }
+    Q_INVOKABLE void setHandState(char s) { _handState = s; }
+    Q_INVOKABLE char getHandState() const { return _handState; }
 
     const QVector<JointData>& getJointData() const { return _jointData; }
     void setJointData(const QVector<JointData>& jointData) { _jointData = jointData; }
@@ -205,6 +213,10 @@ public:
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; } 
 
     Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
+
+    Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
+
+    void setForceFaceshiftConnected(bool connected) { _forceFaceshiftConnected = connected; }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -300,7 +312,7 @@ protected:
     std::string _chatMessage;
 
     bool _isChatCirclingEnabled;
-
+    bool _forceFaceshiftConnected;
     bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;

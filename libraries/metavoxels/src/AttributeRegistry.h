@@ -73,6 +73,9 @@ public:
     /// Returns a reference to the standard SharedObjectPointer "guide" attribute.
     const AttributePointer& getGuideAttribute() const { return _guideAttribute; }
     
+    /// Returns a reference to the standard SharedObjectPointer "renderer" attribute.
+    const AttributePointer& getRendererAttribute() const { return _rendererAttribute; }
+    
     /// Returns a reference to the standard SharedObjectSet "spanners" attribute.
     const AttributePointer& getSpannersAttribute() const { return _spannersAttribute; }
     
@@ -99,6 +102,7 @@ private:
     QReadWriteLock _attributesLock;
     
     AttributePointer _guideAttribute;
+    AttributePointer _rendererAttribute;
     AttributePointer _spannersAttribute;
     AttributePointer _colorAttribute;
     AttributePointer _normalAttribute;

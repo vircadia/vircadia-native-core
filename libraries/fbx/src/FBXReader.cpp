@@ -577,6 +577,8 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     ""
 };
 
+const int NUM_FACESHIFT_BLENDSHAPES = sizeof(FACESHIFT_BLENDSHAPES) / sizeof(char*);
+
 const char* HUMANIK_JOINTS[] = {
     "RightHand",
     "RightForeArm",
@@ -1743,12 +1745,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         if (weight > EXPANSION_WEIGHT_THRESHOLD) {
                             const glm::vec3& vertex = extracted.mesh.vertices.at(it.value());
                             float proj = glm::dot(boneDirection, boneEnd - vertex);
-                            if (proj < 0.0f || proj > boneLength) {
-                                weight *= 0.5f;
-                            }
+                            float radiusWeight = (proj < 0.0f || proj > boneLength) ? 0.5f * weight : weight;
 
-                            jointShapeInfo.sumVertexWeights += weight;
-                            jointShapeInfo.sumWeightedRadii += weight * radiusScale * glm::distance(vertex, boneEnd - boneDirection * proj);
+                            jointShapeInfo.sumVertexWeights += radiusWeight;
+                            jointShapeInfo.sumWeightedRadii += radiusWeight * radiusScale * glm::distance(vertex, boneEnd - boneDirection * proj);
                             ++jointShapeInfo.numVertexWeights;
 
                             glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));
@@ -1796,13 +1796,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
             glm::vec3 averageVertex(0.f);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
-                float weight = 1.0f;
                 float proj = glm::dot(boneDirection, boneEnd - vertex);
-                if (proj < 0.0f || proj > boneLength) {
-                    weight *= 0.5f;
-                }
-                jointShapeInfo.sumVertexWeights += weight;
-                jointShapeInfo.sumWeightedRadii += weight * radiusScale * glm::distance(vertex, boneEnd - boneDirection * proj);
+                float radiusWeight = (proj < 0.0f || proj > boneLength) ? 0.5f : 1.0f;
+                jointShapeInfo.sumVertexWeights += radiusWeight;
+                jointShapeInfo.sumWeightedRadii += radiusWeight * radiusScale * glm::distance(vertex, boneEnd - boneDirection * proj);
                 ++jointShapeInfo.numVertexWeights;
 
                 glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));

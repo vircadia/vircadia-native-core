@@ -85,8 +85,10 @@ public:
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
 
-    float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
-    void setAudioJitterBufferSamples(float audioJitterBufferSamples) { _audioJitterBufferSamples = audioJitterBufferSamples; }
+    float getAudioJitterBufferFrames() const { return _audioJitterBufferFrames; }
+    void setAudioJitterBufferFrames(float audioJitterBufferSamples) { _audioJitterBufferFrames = audioJitterBufferSamples; }
+    int getMaxFramesOverDesired() const { return _maxFramesOverDesired; }
+    void setMaxFramesOverDesired(int maxFramesOverDesired) { _maxFramesOverDesired = maxFramesOverDesired; }
     float getFieldOfView() const { return _fieldOfView; }
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
@@ -257,7 +259,8 @@ private:
 
 
     QHash<QString, QAction*> _actionHash;
-    int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
+    int _audioJitterBufferFrames; /// number of extra samples to wait before starting audio playback
+    int _maxFramesOverDesired;
     BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
     float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
@@ -315,6 +318,8 @@ namespace MenuOption {
     const QString AudioScopeFrames = "Display Frames";
     const QString AudioScopePause = "Pause Audio Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
+    const QString AudioStats = "Audio Stats";
+    const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
     const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
     const QString AudioSpatialProcessing = "Audio Spatial Processing";
     const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
@@ -348,7 +353,7 @@ namespace MenuOption {
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableNackPackets = "Disable NACK Packets";
-    const QString DisableQAudioOutputOverflowCheck = "Disable QAudioOutput Overflow Check";
+    const QString DisableQAudioOutputOverflowCheck = "Disable Audio Output Device Overflow Check";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
@@ -431,6 +436,7 @@ namespace MenuOption {
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString SimpleShadows = "Simple";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
+    const QString SixenseLasers = "Enable Sixense UI Lasers";
     const QString StandOnNearbyFloors = "Stand on nearby floors";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
