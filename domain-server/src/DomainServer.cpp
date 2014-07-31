@@ -945,13 +945,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         return true;
     }
     
-    // all requests below require a cookie to prove authentication so check that first
-    if (!isAuthenticatedRequest(connection, url)) {
-        // this is not an authenticated request
-        // return true from the handler since it was handled with a 401 or re-direct to auth
-        return true;
-    }
-    
     // check if this is a request for a scripted assignment (with a temp unique UUID)
     const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
     QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
@@ -983,6 +976,13 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         
         // request not handled
         return false;
+    }
+    
+    // all requests below require a cookie to prove authentication so check that first
+    if (!isAuthenticatedRequest(connection, url)) {
+        // this is not an authenticated request
+        // return true from the handler since it was handled with a 401 or re-direct to auth
+        return true;
     }
     
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
