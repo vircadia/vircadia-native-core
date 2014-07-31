@@ -1614,10 +1614,13 @@ void Application::importVoxels() {
     emit importDone();
 }
 
-void Application::importModels(const QString& filename) {
+bool Application::importModels(const QString& filename) {
     _modelClipboard.eraseAllOctreeElements();
-    _modelClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
-    _modelClipboard.reaverageOctreeElements();
+    bool success = _modelClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
+    if (success) {
+        _modelClipboard.reaverageOctreeElements();
+    }
+    return success;
 }
 
 void Application::pasteModels(float x, float y, float z) {

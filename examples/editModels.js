@@ -218,7 +218,10 @@ var ExportMenu = function(opts) {
         var filename = "models__" + Window.location.hostname + "__" + x + "_" + y + "_" + z + "_" + s + "__.svo";
         filename = Window.save("Select where to save", filename, "*.svo")
         if (filename) {
-            Clipboard.exportModels(filename, x, y, z, s);
+            var success = Clipboard.exportModels(filename, x, y, z, s);
+            if (!succcess) {
+                WIndow.alert("Export failed: no models found in selected area.");
+            }
         }
         self.close();
     };
@@ -431,16 +434,24 @@ var ModelImporter = function(opts) {
                         }
                     } else {
                         if (Window.confirm(("Would you like to import back to the source location?"))) {
-                            Clipboard.importModels(filename);
-                            Clipboard.pasteModels(x, y, z, 1);
+                            var success = Clipboard.importModels(filename);
+                            if (success) {
+                                Clipboard.pasteModels(x, y, z, 1);
+                            } else {
+                                Window.alert("There was an error importing the model file.");
+                            }
                             return;
                         }
                     }
                 }
-                Clipboard.importModels(filename);
-                self._importing = true;
-                self.setImportVisible(true);
-                Overlays.editOverlay(importBoundaries, { size: s });
+                var success = Clipboard.importModels(filename);
+                if (success) {
+                    self._importing = true;
+                    self.setImportVisible(true);
+                    Overlays.editOverlay(importBoundaries, { size: s });
+                } else {
+                    Window.alert("There was an error importing the model file.");
+                }
             }
         }
     }

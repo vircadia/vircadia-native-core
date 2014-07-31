@@ -317,7 +317,7 @@ public slots:
 
     void pasteModels(float x, float y, float z);
     bool exportModels(const QString& filename, float x, float y, float z, float scale);
-    void importModels(const QString& filename);
+    bool importModels(const QString& filename);
 
     void importVoxels(); // doesn't include source voxel because it goes to clipboard
     void cutVoxels(const VoxelDetail& sourceVoxel);

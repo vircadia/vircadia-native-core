@@ -43,8 +43,8 @@ public slots:
     void nudgeVoxel(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
     void nudgeVoxel(float x, float y, float z, float s, const glm::vec3& nudgeVec);
 
-    void importModels(const QString& filename);
-    void exportModels(const QString& filename, float x, float y, float z, float s);
+    bool importModels(const QString& filename);
+    bool exportModels(const QString& filename, float x, float y, float z, float s);
     void pasteModels(float x, float y, float z, float s);
 };
 
