@@ -255,13 +255,24 @@ function update(deltaTime){
         }
         frame++;
     }
+
+    var locationChanged = false;
+    if (location.hostname != oldHost) {
+        print("Changed domain");
+        for (model in models) {
+            removeIndicators(models[model]);
+        }
+        oldHost = location.hostname;
+        locationChanged = true;
+    }
 	
-    if (MyAvatar.position.x != avatarOldPosition.x &&
-        MyAvatar.position.y != avatarOldPosition.y &&
-        MyAvatar.position.z != avatarOldPosition.z) {
+    if (MyAvatar.position.x != avatarOldPosition.x ||
+        MyAvatar.position.y != avatarOldPosition.y ||
+        MyAvatar.position.z != avatarOldPosition.z ||
+        locationChanged) {
         avatarOldPosition = MyAvatar.position;
         
-        var SEARCH_RADIUS = 10;
+        var SEARCH_RADIUS = 50;
         var foundModels = Models.findModels(MyAvatar.position, SEARCH_RADIUS);
         // Let's remove indicator that got out of radius
         for (model in models) {
@@ -274,7 +285,10 @@ function update(deltaTime){
         for (var i = 0; i < foundModels.length; ++i) {
             var model = foundModels[i];
             if (typeof(models[model.id]) == "undefined") {
-                addIndicators(model);
+                model.properties = Models.getModelProperties(model);
+                if (Vec3.distance(model.properties.position, MyAvatar.position) < SEARCH_RADIUS) {
+                    addIndicators(model);
+                }
             }
         }
         
@@ -283,9 +297,9 @@ function update(deltaTime){
         }
     }
 }
+var oldHost = location.hostname;
 
 function addIndicators(modelID) {
-    modelID.properties = Models.getModelProperties(modelID);
     if (modelID.properties.sittingPoints.length > 0) {
         for (var i = 0; i < modelID.properties.sittingPoints.length; ++i) {
             modelID.properties.sittingPoints[i].indicator = new SeatIndicator(modelID.properties, i);

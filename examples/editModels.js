@@ -752,18 +752,19 @@ function Tooltip() {
     this.updateText = function(properties) {
         var angles = Quat.safeEulerAngles(properties.rotation);
         var text = "Model Properties:\n"
-        text += "x: " + properties.position.x.toFixed(this.decimals) + "\n"
-        text += "y: " + properties.position.y.toFixed(this.decimals) + "\n"
-        text += "z: " + properties.position.z.toFixed(this.decimals) + "\n"
-        text += "pitch: " + angles.x.toFixed(this.decimals) + "\n"
-        text += "yaw:  " + angles.y.toFixed(this.decimals) + "\n"
-        text += "roll:    " + angles.z.toFixed(this.decimals) + "\n"
+        text += "X: " + properties.position.x.toFixed(this.decimals) + "\n"
+        text += "Y: " + properties.position.y.toFixed(this.decimals) + "\n"
+        text += "Z: " + properties.position.z.toFixed(this.decimals) + "\n"
+        text += "Pitch: " + angles.x.toFixed(this.decimals) + "\n"
+        text += "Yaw:  " + angles.y.toFixed(this.decimals) + "\n"
+        text += "Roll:    " + angles.z.toFixed(this.decimals) + "\n"
         text += "Scale: " + 2 * properties.radius.toFixed(this.decimals) + "\n"
         text += "ID: " + properties.id + "\n"
-        text += "model url: " + properties.modelURL + "\n"
-        text += "animation url: " + properties.animationURL + "\n"
+        text += "Model URL: " + properties.modelURL + "\n"
+        text += "Animation URL: " + properties.animationURL + "\n"
+        text += "Animation is playing: " + properties.animationIsPlaying + "\n"
         if (properties.sittingPoints.length > 0) {
-            text += properties.sittingPoints.length + " sitting points: "
+            text += properties.sittingPoints.length + " Sitting points: "
             for (var i = 0; i < properties.sittingPoints.length; ++i) {
                 text += properties.sittingPoints[i].name + " "
             }
@@ -1156,6 +1157,7 @@ function handeMenuEvent(menuItem){
             var decimals = 3;
             array.push({ label: "Model URL:", value: properties.modelURL });
             array.push({ label: "Animation URL:", value: properties.animationURL });
+            array.push({ label: "Animation is playing:", value: properties.animationIsPlaying });
             array.push({ label: "X:", value: properties.position.x.toFixed(decimals) });
             array.push({ label: "Y:", value: properties.position.y.toFixed(decimals) });
             array.push({ label: "Z:", value: properties.position.z.toFixed(decimals) });
@@ -1168,16 +1170,18 @@ function handeMenuEvent(menuItem){
             var propertyName = Window.form("Edit Properties", array);
             modelSelected = false;
             
-            properties.modelURL = array[0].value;
-            properties.animationURL = array[1].value;
-            properties.position.x = array[2].value;
-            properties.position.y = array[3].value;
-            properties.position.z = array[4].value;
-            angles.x = array[5].value;
-            angles.y = array[6].value;
-            angles.z = array[7].value;
+            var index = 0;
+            properties.modelURL = array[index++].value;
+            properties.animationURL = array[index++].value;
+            properties.animationIsPlaying = array[index++].value;
+            properties.position.x = array[index++].value;
+            properties.position.y = array[index++].value;
+            properties.position.z = array[index++].value;
+            angles.x = array[index++].value;
+            angles.y = array[index++].value;
+            angles.z = array[index++].value;
             properties.modelRotation = Quat.fromVec3Degrees(angles);
-            properties.radius = array[8].value / 2;
+            properties.radius = array[index++].value / 2;
 
             Entities.editEntity(editModelID, properties);
         }
@@ -1210,6 +1214,7 @@ Controller.keyPressEvent.connect(function(event) {
         somethingChanged = true;
     }
 });
+
 Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "z" || event.text == "Z") {
         zIsPressed = false;

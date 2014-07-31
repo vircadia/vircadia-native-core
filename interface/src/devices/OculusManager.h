@@ -15,7 +15,6 @@
 
 #ifdef HAVE_LIBOVR
 #include <OVR.h>
-#include <Util_Render_Stereo.h>
 #endif
 
 #include "renderer/ProgramObject.h"
