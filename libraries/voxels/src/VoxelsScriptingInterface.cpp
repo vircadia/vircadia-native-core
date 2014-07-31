@@ -71,7 +71,6 @@ void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
     VoxelDetail addVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE, 
                                     scale / (float)TREE_SCALE, red, green, blue};
 
-
     // handle the local tree also...
     if (_tree) {
         if (_undoStack) {

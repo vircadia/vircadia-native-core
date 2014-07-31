@@ -395,41 +395,25 @@ void AudioMixer::run() {
 
     nodeList->linkedDataCreateCallback = attachNewNodeDataToNode;
     
-    // setup a NetworkAccessManager to ask the domain-server for our settings
-    NetworkAccessManager& networkManager = NetworkAccessManager::getInstance();
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = nodeList->getDomainHandler();
     
-    QUrl settingsJSONURL;
-    settingsJSONURL.setScheme("http");
-    settingsJSONURL.setHost(nodeList->getDomainHandler().getHostname());
-    settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
-    settingsJSONURL.setPath("/settings.json");
-    settingsJSONURL.setQuery(QString("type=%1").arg(_type));
+    qDebug() << "Waiting for domain settings from domain-server.";
     
-    QNetworkReply *reply = NULL;
+    // block until we get the settingsRequestComplete signal
+    QEventLoop loop;
+    connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);
+    domainHandler.requestDomainSettings();
+    loop.exec();
     
-    int failedAttempts = 0;
-    const int MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS = 5;
-    
-    qDebug() << "Requesting settings for assignment from domain-server at" << settingsJSONURL.toString();
-    
-    while (!reply || reply->error() != QNetworkReply::NoError) {
-        reply = networkManager.get(QNetworkRequest(settingsJSONURL));
-        
-        QEventLoop loop;
-        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-        
-        loop.exec();
-        
-        ++failedAttempts;
-        
-        if (failedAttempts == MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS) {
-            qDebug() << "Failed to get settings from domain-server. Bailing on assignment.";
-            setFinished(true);
-            return;
-        }
+    if (domainHandler.getSettingsObject().isEmpty()) {
+        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+        setFinished(true);
+        return;
     }
     
-    QJsonObject settingsObject = QJsonDocument::fromJson(reply->readAll()).object();
+    const QJsonObject& settingsObject = domainHandler.getSettingsObject();
     
     // check the settings object to see if we have anything we can parse out
     const QString AUDIO_GROUP_KEY = "audio";
