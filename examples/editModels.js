@@ -287,7 +287,6 @@ var ModelImporter = function(opts) {
     var cancelWidth = 100;
     var fullWidth = titleWidth + cancelWidth + (2 * margin);
 
-    // TODO: Show import preview
     var localModels = Overlays.addOverlay("localmodels", {
         position: { x: 1, y: 1, z: 1 },
         scale: 1,
@@ -349,7 +348,6 @@ var ModelImporter = function(opts) {
     var importPosition = { x: 0, y: 0, z: 0 };
     this.moveImport = function(position) {
         importPosition = position;
-        // TODO: Show import preview
         Overlays.editOverlay(localModels, {
                              position: { x: importPosition.x, y: importPosition.y, z: importPosition.z }
                              });
