@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 2.8)
-
 # add the test directories
 file(GLOB TEST_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/*")
 foreach(DIR ${TEST_SUBDIRS})
@@ -7,4 +5,3 @@ foreach(DIR ${TEST_SUBDIRS})
         add_subdirectory(${DIR})
     endif()
 endforeach()
-

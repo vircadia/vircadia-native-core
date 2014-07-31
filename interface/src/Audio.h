@@ -31,12 +31,12 @@
 #include <QByteArray>
 
 #include <AbstractAudioInterface.h>
-#include <AudioRingBuffer.h>
 #include <StdDev.h>
+
+#include "MixedAudioStream.h"
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
-static const int INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS = 30;
 
 class QAudioInput;
 class QAudioOutput;
@@ -46,19 +46,23 @@ class Audio : public AbstractAudioInterface {
     Q_OBJECT
 public:
     // setup for audio I/O
-    Audio(int16_t initialJitterBufferSamples, QObject* parent = 0);
+    Audio(QObject* parent = 0);
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
     void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
-        
-    void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
-    int getJitterBufferSamples() { return _jitterBufferSamples; }
     
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
     virtual void startDrumSound(float volume, float frequency, float duration, float decay);
+
+    void setDynamicJitterBuffers(bool dynamicJitterBuffers) { _receivedAudioStream.setDynamicJitterBuffers(dynamicJitterBuffers); }
+    void setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames) { _receivedAudioStream.setStaticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames); }
+
+    void setMaxFramesOverDesired(int maxFramesOverDesired) { _receivedAudioStream.setMaxFramesOverDesired(maxFramesOverDesired); }
+
+    int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
     
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
     
@@ -77,8 +81,6 @@ public:
     int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
 
     bool getProcessSpatialAudio() const { return _processSpatialAudio; }
-
-    const SequenceNumberStats& getIncomingMixedAudioSequenceNumberStats() const { return _incomingMixedAudioSequenceNumberStats; }
     
     float getInputRingBufferMsecsAvailable() const;
     float getInputRingBufferAverageMsecsAvailable() const { return (float)_inputRingBufferMsecsAvailableStats.getWindowAverage(); }
@@ -89,7 +91,7 @@ public:
 public slots:
     void start();
     void stop();
-    void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
+    void addReceivedAudioToStream(const QByteArray& audioByteArray);
     void parseAudioStreamStatsPacket(const QByteArray& packet);
     void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
     void handleAudioInput();
@@ -102,6 +104,7 @@ public slots:
     void toggleScope();
     void toggleScopePause();
     void toggleStats();
+    void toggleStatsShowInjectedStreams();
     void toggleAudioSpatialProcessing();
     void toggleStereoInput();
     void selectAudioScopeFiveFrames();
@@ -110,7 +113,6 @@ public slots:
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
-    AudioStreamStats getDownstreamAudioStreamStats() const;
     void sendDownstreamAudioStatsPacket();
 
     bool switchInputToAudioDevice(const QString& inputDeviceName);
@@ -123,16 +125,8 @@ public slots:
     float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
 
-    const AudioRingBuffer& getDownstreamRingBuffer() const { return _ringBuffer; }
-    
-    int getDesiredJitterBufferFrames() const { return _jitterBufferSamples / _ringBuffer.getNumFrameSamples(); }
-
-    int getStarveCount() const { return _starveCount; }
-    int getConsecutiveNotMixedCount() const { return _consecutiveNotMixedCount; }
-
     const AudioStreamStats& getAudioMixerAvatarStreamAudioStats() const { return _audioMixerAvatarStreamAudioStats; }
     const QHash<QUuid, AudioStreamStats>& getAudioMixerInjectedStreamAudioStatsMap() const { return _audioMixerInjectedStreamAudioStatsMap; }
-    const MovingMinMaxAvg<quint64>& getInterframeTimeGapStats() const { return _interframeTimeGapStats; }
 
 signals:
     bool muteToggled();
@@ -159,7 +153,7 @@ private:
     QAudioOutput* _proceduralAudioOutput;
     QIODevice* _proceduralOutputDevice;
     AudioRingBuffer _inputRingBuffer;
-    AudioRingBuffer _ringBuffer;
+    MixedAudioStream _receivedAudioStream;
     bool _isStereoInput;
 
     QString _inputAudioDeviceName;
@@ -168,8 +162,6 @@ private:
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
     float _averagedLatency;
-    float _measuredJitter;
-    int16_t _jitterBufferSamples;
     float _lastInputLoudness;
     float _timeSinceLastClip;
     float _dcOffset;
@@ -180,7 +172,6 @@ private:
     bool _noiseGateEnabled;
     bool _toneInjectionEnabled;
     int _noiseGateFramesToClose;
-    int _totalPacketsReceived;
     int _totalInputAudioSamples;
     
     float _collisionSoundMagnitude;
@@ -197,7 +188,6 @@ private:
     int _drumSoundSample;
     
     int _proceduralEffectSample;
-    int _numFramesDisplayStarve;
     bool _muted;
     bool _localEcho;
     GLuint _micTextureId;
@@ -224,6 +214,9 @@ private:
     
     // Process received audio
     void processReceivedAudio(const QByteArray& audioByteArray);
+
+    // Pushes frames from the output ringbuffer to the audio output device
+    void pushAudioToOutput();
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
@@ -275,22 +268,16 @@ private:
 #endif
     static const unsigned int STATS_HEIGHT_PER_LINE = 20;
     bool _statsEnabled;
-
-    int _starveCount;
-    int _consecutiveNotMixedCount;
+    bool _statsShowInjectedStreams;
 
     AudioStreamStats _audioMixerAvatarStreamAudioStats;
     QHash<QUuid, AudioStreamStats> _audioMixerInjectedStreamAudioStatsMap;
 
     quint16 _outgoingAvatarAudioSequenceNumber;
-    SequenceNumberStats _incomingMixedAudioSequenceNumberStats;
-
-    MovingMinMaxAvg<quint64> _interframeTimeGapStats;
-
+    
     MovingMinMaxAvg<float> _audioInputMsecsReadStats;
     MovingMinMaxAvg<float> _inputRingBufferMsecsAvailableStats;
 
-    MovingMinMaxAvg<int> _outputRingBufferFramesAvailableStats;
     MovingMinMaxAvg<float> _audioOutputMsecsUnplayedStats;
 };
 
