@@ -12,13 +12,19 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <sys/time.h>
 
-#include <SharedUtil.h> // for usecTimeStampNow()
+//#include <SharedUtil.h> // for usecTimestampNow()
 #include <MovingMinMaxAvg.h> // for MovingMinMaxAvg
 
 void runSend(const char* addressOption, int port, int gap, int size);
 void runReceive(const char* addressOption, int port, int gap, int size);
 
+quint64 usecTimestampNow() {
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    return tv.tv_sec*(uint64_t)1000000+tv.tv_usec;
+}
 
 int main(int argc, const char * argv[]) {
     if (argc != 6) {
