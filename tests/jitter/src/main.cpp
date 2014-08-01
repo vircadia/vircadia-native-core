@@ -65,7 +65,7 @@ void runSend(const char* addressOption, int port, int gap, int size) {
     servaddr.sin_addr.s_addr=inet_addr(addressOption);
     servaddr.sin_port=htons(port);
     
-    const int SAMPLES_FOR_30_SECONDS = 30 * 1000 / gap;
+    const int SAMPLES_FOR_30_SECONDS = 30 * 1000000 / gap;
     MovingMinMaxAvg<int> timeGaps(1, SAMPLES_FOR_30_SECONDS); // stats
  
     quint64 last = usecTimestampNow();
@@ -112,7 +112,7 @@ void runReceive(const char* addressOption, int port, int gap, int size) {
     myaddr.sin_addr.s_addr=htonl(INADDR_ANY);
     myaddr.sin_port=htons(port);
 
-    const int SAMPLES_FOR_30_SECONDS = 30 * 1000 / gap;
+    const int SAMPLES_FOR_30_SECONDS = 30 * 1000000 / gap;
     MovingMinMaxAvg<int> timeGaps(1, SAMPLES_FOR_30_SECONDS); // stats
     
     if (bind(sockfd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
