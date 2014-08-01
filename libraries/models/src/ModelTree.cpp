@@ -397,7 +397,7 @@ void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundM
 }
 
 bool ModelTree::findInCubeOperation(OctreeElement* element, void* extraData) {
-    FindModelsInCubeArgs* args = static_cast< FindModelsInCubeArgs*>(extraData);
+    FindModelsInCubeArgs* args = static_cast<FindModelsInCubeArgs*>(extraData);
     const AACube& elementCube = element->getAACube();
     if (elementCube.touches(args->_cube)) {
         ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
@@ -408,7 +408,7 @@ bool ModelTree::findInCubeOperation(OctreeElement* element, void* extraData) {
 }
 
 bool ModelTree::findInCubeForUpdateOperation(OctreeElement* element, void* extraData) {
-    FindModelsInCubeArgs* args = static_cast< FindModelsInCubeArgs*>(extraData);
+    FindModelsInCubeArgs* args = static_cast<FindModelsInCubeArgs*>(extraData);
     const AACube& elementCube = element->getAACube();
     if (elementCube.touches(args->_cube)) {
         ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
