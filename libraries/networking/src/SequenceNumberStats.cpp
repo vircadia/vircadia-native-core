@@ -13,14 +13,55 @@
 
 #include <limits>
 
-SequenceNumberStats::SequenceNumberStats(int statsHistoryLength)
+SequenceNumberStats::SequenceNumberStats(int statsHistoryLength, int maxRecursion)
     : _received(0),
     _lastReceivedSequence(0),
     _missingSet(),
     _stats(),
     _lastSenderUUID(),
-    _statsHistory(statsHistoryLength)
+    _statsHistory(statsHistoryLength),
+
+    _unreasonableTracker(NULL),
+    _maxRecursion(maxRecursion)
 {
+}
+
+SequenceNumberStats::SequenceNumberStats(const SequenceNumberStats& other)
+    : _received(other._received),
+    _lastReceivedSequence(other._lastReceivedSequence),
+    _missingSet(other._missingSet),
+    _stats(other._stats),
+    _lastSenderUUID(other._lastSenderUUID),
+    _statsHistory(other._statsHistory),
+    _unreasonableTracker(NULL),
+    _maxRecursion(other._maxRecursion)
+{
+    if (other._unreasonableTracker) {
+        _unreasonableTracker = new SequenceNumberStats(*other._unreasonableTracker);
+    }
+}
+
+SequenceNumberStats& SequenceNumberStats::operator=(const SequenceNumberStats& rhs) {
+    _received = rhs._received;
+    _lastReceivedSequence = rhs._lastReceivedSequence;
+    _missingSet = rhs._missingSet;
+    _stats = rhs._stats;
+    _lastSenderUUID = rhs._lastSenderUUID;
+    _statsHistory = rhs._statsHistory;
+    _maxRecursion = rhs._maxRecursion;
+
+    if (rhs._unreasonableTracker) {
+        _unreasonableTracker = new SequenceNumberStats(*rhs._unreasonableTracker);
+    } else {
+        _unreasonableTracker = NULL;
+    }
+    return *this;
+}
+
+SequenceNumberStats::~SequenceNumberStats() {
+    if (_unreasonableTracker) {
+        delete _unreasonableTracker;
+    }
 }
 
 void SequenceNumberStats::reset() {
@@ -29,6 +70,10 @@ void SequenceNumberStats::reset() {
     _stats = PacketStreamStats();
     _lastSenderUUID = QUuid();
     _statsHistory.clear();
+
+    if (_unreasonableTracker) {
+        delete _unreasonableTracker;
+    }
 }
 
 static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
@@ -78,10 +123,64 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
         } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
             arrivalInfo._status = Unreasonable;
 
+            /*
             // ignore packet if gap is unreasonable
             qDebug() << "ignoring unreasonable sequence number:" << incoming
                 << "previous:" << _lastReceivedSequence;
             _stats._unreasonable++;
+            */
+
+            // do not create a child tracker for unreasonable seq nums if this instance is the last one in the chain.
+            // otherwise, create one if we don't have one.
+
+            if (!_unreasonableTracker && _maxRecursion > 0) {
+                _unreasonableTracker = new SequenceNumberStats(0, _maxRecursion - 1);
+            }
+
+
+            if (_unreasonableTracker) {
+
+                // track this unreasonable seq number with our _unreasonableTracker.
+                ArrivalInfo unreasonableTrackerArrivalInfo = _unreasonableTracker->sequenceNumberReceived(incoming);
+                
+
+                const int UNREASONABLE_TRACKER_RECEIVED_THRESHOLD = 10;
+                const float UNRUNREASONABLE_TRACKER_UNREASONABLE_RATE_THRESHOLD = 0.1f;
+                const float UNREASONABLE_TRACKER_OUT_OF_ORDER_RATE_THRESHOLD = 0.1f;
+                
+                // when our _unreasonableTracker has received enough seq nums and doesn't have an _unreasonableTracker of its own,
+                // we'll either inherit its state only if we think its stream is plausible.  it will then be deleted.
+                // (if it has an _unreasonableTracker of its own, its _unreasonableTracker may be detecting a plausible stream
+                // while its parent does not, so we should let it accrue seq nums and decide plausibility first)
+
+                if (!_unreasonableTracker->hasUnreasonableTracker() &&
+                    _unreasonableTracker->_received >= UNREASONABLE_TRACKER_RECEIVED_THRESHOLD) {
+
+                    if (_unreasonableTracker->getUnreasonableRate() < UNRUNREASONABLE_TRACKER_UNREASONABLE_RATE_THRESHOLD &&
+                        _unreasonableTracker->getStats().getOutOfOrderRate() < UNREASONABLE_TRACKER_OUT_OF_ORDER_RATE_THRESHOLD) {
+
+                        // the _unreasonableTracker has detected a plausible stream of seq numbers;
+                        // copy its state to this tracker.
+
+                        _received = _unreasonableTracker->_received;
+                        _lastReceivedSequence = _unreasonableTracker->_lastReceivedSequence;
+                        _missingSet = _unreasonableTracker->_missingSet;
+                        _stats = _unreasonableTracker->_stats;
+
+                        // don't copy _lastSenderUUID; _unreasonableTracker always has null UUID for that member.
+                        // ours should be up-to-date.
+
+                        // don't copy _statsHistory; _unreasonableTracker keeps a history of length 0.
+                        // simply clear ours.
+                        _statsHistory.clear();
+
+                        arrivalInfo = unreasonableTrackerArrivalInfo;
+
+                    }
+                    // remove our _unreasonableTracker
+                    delete _unreasonableTracker;
+                }
+            }
 
             return arrivalInfo;
         }

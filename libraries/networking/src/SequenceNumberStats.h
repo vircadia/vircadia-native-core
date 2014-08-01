@@ -18,6 +18,10 @@
 
 const int MAX_REASONABLE_SEQUENCE_GAP = 1000;
 
+
+const int DEFAULT_MAX_RECURSION = 5;
+
+
 class PacketStreamStats {
 public:
     PacketStreamStats()
@@ -30,7 +34,7 @@ public:
         _duplicate(0)
     {}
 
-    float getUnreasonableRate() const { return (float)_unreasonable / _expectedReceived; }
+    float getOutOfOrderRate() const { return (float)(_early + _late) / _expectedReceived; }
     float getEaryRate() const { return (float)_early / _expectedReceived; }
     float getLateRate() const { return (float)_late / _expectedReceived; }
     float getLostRate() const { return (float)_lost / _expectedReceived; }
@@ -61,14 +65,19 @@ public:
     };
 
 
-    SequenceNumberStats(int statsHistoryLength = 0);
+    SequenceNumberStats(int statsHistoryLength = 0, int maxRecursion = DEFAULT_MAX_RECURSION);
+    SequenceNumberStats(const SequenceNumberStats& other);
+    SequenceNumberStats& operator=(const SequenceNumberStats& rhs);
+    ~SequenceNumberStats();
 
+public:
     void reset();
     ArrivalInfo sequenceNumberReceived(quint16 incoming, QUuid senderUUID = QUuid(), const bool wantExtraDebugging = false);
     void pruneMissingSet(const bool wantExtraDebugging = false);
     void pushStatsToHistory() { _statsHistory.insert(_stats); }
 
     quint32 getReceived() const { return _received; }
+    float getUnreasonableRate() const { return _stats._unreasonable / _received; }
 
     quint32 getExpectedReceived() const { return _stats._expectedReceived; }
     quint32 getUnreasonable() const { return _stats._unreasonable; }
@@ -94,6 +103,14 @@ private:
     QUuid _lastSenderUUID;
 
     RingBufferHistory<PacketStreamStats> _statsHistory;
+
+
+    // to deal with the incoming seq nums going out of sync with this tracker, we'll create another instance
+    // of this class when we encounter an unreasonable 
+    SequenceNumberStats* _unreasonableTracker;
+    int _maxRecursion;
+
+    bool hasUnreasonableTracker() const { return _unreasonableTracker != NULL; }
 };
 
 #endif // hifi_SequenceNumberStats_h
