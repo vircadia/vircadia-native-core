@@ -186,9 +186,9 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
 
         // if we got a reasonable seq num but have a child instance tracking unreasonable seq nums,
         // reset it.  if many consecutive reasonable seq nums have occurred (implying the unreasonable seq num
-        // that caused the creation of the child instance was just a fluke), delete our child instance.
+        // that caused the creation of the child instance was probably a fluke), delete our child instance.
         if (_childInstance) {
-            const int CONSECUTIVE_REASONABLE_CHILD_DELETE_THRESHOLD = 4;
+            const int CONSECUTIVE_REASONABLE_CHILD_DELETE_THRESHOLD = 8;
             if (_consecutiveReasonable >= CONSECUTIVE_REASONABLE_CHILD_DELETE_THRESHOLD) {
                 _childInstance->reset();
             } else {
