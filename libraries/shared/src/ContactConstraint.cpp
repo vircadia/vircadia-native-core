@@ -44,7 +44,9 @@ float ContactConstraint::enforce() {
     glm::vec3 pointA = _shapeA->getTranslation() + _offsetA;
     glm::vec3 pointB = _shapeB->getTranslation() + _offsetB;
     glm::vec3 penetration = pointA - pointB;
-    if (glm::dot(penetration, _normal) > EPSILON) {
+    float pDotN = glm::dot(penetration, _normal);
+    if (pDotN > EPSILON) {
+        penetration = (0.99f * pDotN) * _normal;
         // NOTE: Shape::computeEffectiveMass() has side effects: computes and caches partial Lagrangian coefficients
         // which are then used in the accumulateDelta() calls below.
         float massA = _shapeA->computeEffectiveMass(penetration, pointA);
@@ -56,9 +58,9 @@ float ContactConstraint::enforce() {
         }
         // NOTE: Shape::accumulateDelta() uses the coefficients from previous call to Shape::computeEffectiveMass()
         // and remember that penetration points from A into B
-        _shapeA->accumulateDelta(0.99f * massB / totalMass, -penetration);
-        _shapeB->accumulateDelta(0.99f * massA / totalMass, penetration);
-        return glm::length(penetration);
+        _shapeA->accumulateDelta(massB / totalMass, -penetration);
+        _shapeB->accumulateDelta(massA / totalMass, penetration);
+        return pDotN;
     }
     return 0.0f;
 }
