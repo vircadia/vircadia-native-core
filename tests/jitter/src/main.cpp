@@ -93,11 +93,11 @@ void runSend(const char* addressOption, int port, int gap, int size, int report)
 
             if (now - lastReport >= (report * MSEC_TO_USEC)) {
                 std::cout << "SEND gap Difference From Expected "
-                          << "min: " << timeGaps.getMin() << " usecs "
-                          << "max: " << timeGaps.getMax() << " usecs "
-                          << "avg: " << timeGaps.getAverage() << " usecs "
-                          << "min last 30: " << timeGaps.getWindowMin() << " usecs "
-                          << "max last 30: " << timeGaps.getWindowMax() << " usecs "
+                          << "min: " << timeGaps.getMin() << " usecs, "
+                          << "max: " << timeGaps.getMax() << " usecs, "
+                          << "avg: " << timeGaps.getAverage() << " usecs, "
+                          << "min last 30: " << timeGaps.getWindowMin() << " usecs, "
+                          << "max last 30: " << timeGaps.getWindowMax() << " usecs, "
                           << "avg last 30: " << timeGaps.getWindowAverage() << " usecs "
                           << "\n";
                 lastReport = now;
@@ -152,11 +152,11 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
             
             if (now - lastReport >= (report * MSEC_TO_USEC)) {
                 std::cout << "RECEIVE gap Difference From Expected "
-                          << "min: " << timeGaps.getMin() << " usecs "
-                          << "max: " << timeGaps.getMax() << " usecs "
-                          << "avg: " << timeGaps.getAverage() << " usecs "
-                          << "min last 30: " << timeGaps.getWindowMin() << " usecs "
-                          << "max last 30: " << timeGaps.getWindowMax() << " usecs "
+                          << "min: " << timeGaps.getMin() << " usecs, "
+                          << "max: " << timeGaps.getMax() << " usecs, "
+                          << "avg: " << timeGaps.getAverage() << " usecs, "
+                          << "min last 30: " << timeGaps.getWindowMin() << " usecs, "
+                          << "max last 30: " << timeGaps.getWindowMax() << " usecs, "
                           << "avg last 30: " << timeGaps.getWindowAverage() << " usecs "
                           << "\n";
                 lastReport = now;
