@@ -73,7 +73,7 @@ void CapsuleShape::setEndPoints(const glm::vec3& startPoint, const glm::vec3& en
     if (height > EPSILON) {
         _halfHeight = 0.5f * height;
         axis /= height;
-        computeNewRotation(axis);
+        _rotation = computeNewRotation(axis);
     }
     updateBoundingRadius();
 }
