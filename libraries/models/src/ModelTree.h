@@ -36,8 +36,6 @@ public:
     /// Type safe version of getRoot()
     ModelTreeElement* getRoot() { return static_cast<ModelTreeElement*>(_rootElement); }
 
-    ModelTreeElement* getModelAt(float x, float y, float z, float s) const;
-
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return true; }
