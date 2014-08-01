@@ -20,6 +20,8 @@
 #include "XMLHttpRequestClass.h"
 #include "ScriptEngine.h"
 
+Q_DECLARE_METATYPE(QByteArray*)
+
 XMLHttpRequestClass::XMLHttpRequestClass(QScriptEngine* engine) :
     _engine(engine),
     _async(true),
@@ -212,10 +214,10 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
 }
 
 void XMLHttpRequestClass::send() {
-    send(QString());
+    send(QScriptValue::NullValue);
 }
 
-void XMLHttpRequestClass::send(const QVariant& data) {
+void XMLHttpRequestClass::send(const QScriptValue& data) {
     if (_readyState == OPENED && !_reply) {
         if (!data.isNull()) {
             if (_url.isLocalFile()) {
@@ -223,8 +225,8 @@ void XMLHttpRequestClass::send(const QVariant& data) {
                 return;
             } else {
                 _sendData = new QBuffer(this);
-                if (_responseType == "arraybuffer") {
-                    QByteArray ba = qvariant_cast<QByteArray>(data);
+                if (data.isObject()) {
+                    QByteArray ba = qscriptvalue_cast<QByteArray>(data);
                     _sendData->setData(ba);
                 } else {
                     _sendData->setData(data.toString().toUtf8());

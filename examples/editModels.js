@@ -245,27 +245,23 @@ var httpMultiPart = (function () {
 
     function response() {
         var buffer,
-            view,
-            charCodes,
+            index,
             str,
-            i,
-            j;
+            i;
 
         str = crlf + boundaryString + "--\r\n";
         buffer = str.toArrayBuffer();
         byteLength += buffer.byteLength;
         parts.push(buffer);
 
-        str = "";
+        buffer = new Uint8Array(byteLength);
+        index = 0;
         for (i = 0; i < parts.length; i += 1) {
-            charCodes = [];
-            view = new Uint8Array(parts[i]);
-            for (j = 0; j < view.length; j += 1) {
-                charCodes.push(view[j]);
-            }
-            str = str + String.fromCharCode.apply(String, charCodes);
+            buffer.set(new Uint8Array(parts[i]), index);
+            index += parts[i].byteLength;
         }
-        return str;
+
+        return buffer;
     }
     that.response = response;
 
@@ -685,7 +681,7 @@ var modelUploader = (function () {
             }
         };
 
-        req.send(httpMultiPart.response());
+        req.send(httpMultiPart.response().buffer);
     }
 
     that.upload = function (file, callback) {
