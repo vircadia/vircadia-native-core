@@ -17,7 +17,7 @@
 // MuscleConstraint is a simple constraint that pushes the child toward an offset relative to the parent.
 // It does NOT push the parent.
 
-const float MAX_MUSCLE_STRENGTH = 0.5f;
+const float MAX_MUSCLE_STRENGTH = 0.75f;
 
 class MuscleConstraint : public Constraint {
 public:

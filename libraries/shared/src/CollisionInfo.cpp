@@ -26,6 +26,16 @@ CollisionInfo::CollisionInfo() :
         _addedVelocity(0.f) {
 }
 
+quint64 CollisionInfo::getShapePairKey() const {
+    if (_shapeB == NULL || _shapeA == NULL) {
+        // zero is an invalid key
+        return 0;
+    }
+    quint32 idA = _shapeA->getID();
+    quint32 idB = _shapeB->getID();
+    return idA < idB ? ((quint64)idA << 32) + (quint64)idB : ((quint64)idB << 32) + (quint64)idA;
+}
+
 CollisionList::CollisionList(int maxSize) :
     _maxSize(maxSize),
     _size(0) {
