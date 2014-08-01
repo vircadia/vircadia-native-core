@@ -132,7 +132,6 @@ void Audio::init(QGLWidget *parent) {
 
 void Audio::reset() {
     _receivedAudioStream.reset();
-
     resetStats();
 }
 
@@ -146,6 +145,7 @@ void Audio::resetStats() {
     _inputRingBufferMsecsAvailableStats.reset();
 
     _audioOutputMsecsUnplayedStats.reset();
+    _packetSentTimeGaps.reset();
 }
 
 void Audio::audioMixerKilled() {
