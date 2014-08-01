@@ -7,7 +7,11 @@
 //
 
 #include <iostream>
+#ifdef _WINDOWS
+#include <winsock2.h>
+#else
 #include <sys/socket.h>
+#endif
 #include <netinet/in.h>
 #include <stdio.h>
 #include <unistd.h>
