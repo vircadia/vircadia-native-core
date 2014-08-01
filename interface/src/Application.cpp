@@ -3721,6 +3721,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
     connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
 
+    connect(scriptEngine, SIGNAL(loadScript(const QString&)), this, SLOT(loadScript(const QString&)));
+
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
