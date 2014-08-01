@@ -348,6 +348,7 @@ namespace MenuOption {
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
+    const QString ControlWithSpeech = "Control With Speech";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";

@@ -53,6 +53,7 @@
 #include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
+#include "SpeechRecognizer.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
@@ -324,6 +325,8 @@ public slots:
 
     void setRenderVoxels(bool renderVoxels);
     void setLowVelocityFilter(bool lowVelocityFilter);
+    bool getSpeechRecognitionEnabled() { return _speechRecognizer.getEnabled(); }
+    void setSpeechRecognitionEnabled(bool enabled);
     void doKillLocalVoxels();
     void loadDialog();
     void loadScriptURLDialog();
@@ -592,6 +595,8 @@ private:
     bool _runningScriptsWidgetWasVisible;
 
     QSystemTrayIcon* _trayIcon;
+
+    SpeechRecognizer _speechRecognizer;
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;

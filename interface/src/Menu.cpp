@@ -233,6 +233,8 @@ Menu::Menu() :
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S, this, SLOT(showScriptEditor()));
+    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ControlWithSpeech, Qt::CTRL | Qt::SHIFT | Qt::Key_C, true,
+            Application::getInstance(), SLOT(setSpeechRecognitionEnabled(bool)));
 
 #ifdef HAVE_QXMPP
     _chatAction = addActionToQMenuAndActionHash(toolsMenu,
@@ -651,6 +653,7 @@ void Menu::loadSettings(QSettings* settings) {
     _snapshotsLocation = settings->value("snapshotsLocation",
                                          QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
     setScriptsLocation(settings->value("scriptsLocation", QString()).toString());
+    Application::getInstance()->setSpeechRecognitionEnabled(settings->value("speechRecognitionEnabled", false).toBool());
 
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -699,6 +702,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->setValue("scriptsLocation", _scriptsLocation);
+    settings->setValue("speechRecognitionEnabled", Application::getInstance()->getSpeechRecognitionEnabled());
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
     settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
