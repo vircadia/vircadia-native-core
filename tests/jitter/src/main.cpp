@@ -12,13 +12,10 @@
 #else
 #include <sys/socket.h>
 #endif
-//#include <netinet/in.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
 
-//#include <SharedUtil.h> // for usecTimestampNow()
 #include <MovingMinMaxAvg.h> // for MovingMinMaxAvg
 
 void runSend(const char* addressOption, int port, int gap, int size);
