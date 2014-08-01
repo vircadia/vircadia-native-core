@@ -123,23 +123,28 @@ void runReceive(const char* addressOption, int port, int gap, int size) {
         return;
     }    
     
-    quint64 last = usecTimestampNow();
+    quint64 last = 0; // first case
     
     while (true) {
         n = recvfrom(sockfd, inputBuffer, size, 0, NULL, NULL); // we don't care about where it came from
-
-        quint64 now = usecTimestampNow();
-        int actualGap = now - last;
-        timeGaps.update(actualGap);
-        std::cout << "packet received gap:" << actualGap << " "
-                  << "min:" << timeGaps.getMin() << " "
-                  << "max:" << timeGaps.getMax() << " "
-                  << "avg:" << timeGaps.getAverage() << " "
-                  << "min last 30:" << timeGaps.getWindowMin() << " "
-                  << "max last 30:" << timeGaps.getWindowMax() << " "
-                  << "avg last 30:" << timeGaps.getWindowAverage() << " "
-                  << "\n";
-        last = now;
+        
+        if (last == 0) {
+            last = usecTimestampNow();
+            std::cout << "first packet received\n";
+        } else {
+            quint64 now = usecTimestampNow();
+            int actualGap = now - last;
+            timeGaps.update(actualGap);
+            std::cout << "packet received gap:" << actualGap << " "
+                      << "min:" << timeGaps.getMin() << " "
+                      << "max:" << timeGaps.getMax() << " "
+                      << "avg:" << timeGaps.getAverage() << " "
+                      << "min last 30:" << timeGaps.getWindowMin() << " "
+                      << "max last 30:" << timeGaps.getWindowMax() << " "
+                      << "avg last 30:" << timeGaps.getWindowAverage() << " "
+                      << "\n";
+            last = now;
+        }
     }
 }
 
