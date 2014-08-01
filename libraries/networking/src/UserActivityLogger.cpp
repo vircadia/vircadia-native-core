@@ -70,7 +70,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
 }
 
 void UserActivityLogger::requestFinished(const QJsonObject& object) {
-    qDebug() << object;
+    // qDebug() << object;
 }
 
 void UserActivityLogger::requestError(QNetworkReply::NetworkError error,const QString& string) {

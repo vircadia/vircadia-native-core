@@ -25,6 +25,7 @@
 #include <LimitedNodeList.h>
 
 #include "DomainServerSettingsManager.h"
+#include "DomainServerWebSessionData.h"
 #include "WalletTransaction.h"
 
 #include "PendingAssignedNodeData.h"
@@ -85,8 +86,14 @@ private:
     QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
     
+    bool isAuthenticatedRequest(HTTPConnection* connection, const QUrl& url);
+
     void handleTokenRequestFinished();
+    QNetworkReply* profileRequestGivenTokenReply(QNetworkReply* tokenReply);
     void handleProfileRequestFinished();
+    Headers setupCookieHeadersFromProfileReply(QNetworkReply* profileReply);
+    
+    void loadExistingSessionsFromSettings();
     
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
@@ -108,7 +115,10 @@ private:
     QString _oauthClientSecret;
     QString _hostname;
     QMap<QNetworkReply*, QUuid> _networkReplyUUIDMap;
-    QHash<QUuid, bool> _sessionAuthenticationHash;
+    QHash<QUuid, QString> _sessionAuthenticationHash;
+    
+    QSet<QUuid> _webAuthenticationStateSet;
+    QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
     
     DomainServerSettingsManager _settingsManager;
 };

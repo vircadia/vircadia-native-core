@@ -63,6 +63,7 @@
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
+#include "devices/CaraFaceTracker.h"
 #include "models/ModelTreeRenderer.h"
 #include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
@@ -211,6 +212,7 @@ public:
     Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
+    CaraFaceTracker* getCara() { return &_cara; }
     FaceTracker* getActiveFaceTracker();
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     PrioVR* getPrioVR() { return &_prioVR; }
@@ -340,6 +342,8 @@ public slots:
     void uploadAttachment();
 
     void bumpSettings() { ++_numChangedSettings; }
+    
+    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
 private slots:
     void timer();
@@ -382,6 +386,7 @@ private:
     void updateFaceplus();
     void updateFaceshift();
     void updateVisage();
+    void updateCara();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);
@@ -478,6 +483,7 @@ private:
     Faceplus _faceplus;
     Faceshift _faceshift;
     Visage _visage;
+    CaraFaceTracker _cara;
 
     SixenseManager _sixenseManager;
     PrioVR _prioVR;

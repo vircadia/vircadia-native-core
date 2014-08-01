@@ -401,6 +401,12 @@ BaseVec3Editor::BaseVec3Editor(QWidget* parent) : QWidget(parent) {
     layout->addWidget(_z = createComponentBox());
 }
 
+void BaseVec3Editor::setSingleStep(double singleStep) {
+    _x->setSingleStep(singleStep);
+    _y->setSingleStep(singleStep);
+    _z->setSingleStep(singleStep);
+}
+
 QDoubleSpinBox* BaseVec3Editor::createComponentBox() {
     QDoubleSpinBox* box = new QDoubleSpinBox();
     box->setMinimum(-FLT_MAX);
@@ -411,9 +417,7 @@ QDoubleSpinBox* BaseVec3Editor::createComponentBox() {
 }
 
 Vec3Editor::Vec3Editor(QWidget* parent) : BaseVec3Editor(parent) {
-    _x->setSingleStep(0.01);
-    _y->setSingleStep(0.01);
-    _z->setSingleStep(0.01);
+    setSingleStep(0.01);
 }
 
 static void setComponentValue(QDoubleSpinBox* box, double value) {

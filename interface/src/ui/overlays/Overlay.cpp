@@ -21,6 +21,7 @@
 
 Overlay::Overlay() :
     _parent(NULL),
+    _isLoaded(true),
     _alpha(DEFAULT_ALPHA),
     _color(DEFAULT_OVERLAY_COLOR),
     _visible(true),

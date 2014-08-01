@@ -38,6 +38,9 @@ public slots:
 
     /// returns the top most overlay at the screen point, or 0 if not overlay at that point
     unsigned int getOverlayAtPoint(const glm::vec2& point);
+    
+    /// returns whether the overlay's assets are loaded or not
+    bool isLoaded(unsigned int id);
 
 private:
     QMap<unsigned int, Overlay*> _overlays2D;
