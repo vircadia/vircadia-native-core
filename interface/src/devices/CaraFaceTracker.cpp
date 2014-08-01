@@ -374,7 +374,7 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer) {
     if(jsonError.error == QJsonParseError::NoError) {
 
         //do some noise filtering to the head poses
-        //reduce the noise first by truncating to 1 dp        
+        //reduce the noise first by truncating to 1 dp
         person.pose.roll = glm::floor(person.pose.roll * 10) / 10;
         person.pose.pitch = glm::floor(person.pose.pitch * 10) / 10;
         person.pose.yaw = glm::floor(person.pose.yaw * 10) / 10;
@@ -393,7 +393,6 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer) {
             const float YAW_STANDARD_DEV_DEG = 2.5f;
 
             _headAngularVelocity = theta / AVERAGE_CARA_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
-
             _pitchAverage.updateAverage(person.pose.pitch);
             _rollAverage.updateAverage(person.pose.roll);
 
@@ -413,14 +412,14 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer) {
             // > the standard deviation 2.5 deg, update the yaw smoothing average
             if(glm::abs(person.pose.yaw - _yawAverage.getAverage()) > YAW_STANDARD_DEV_DEG) {
                 //qDebug() << "Yaw Diff: " << glm::abs(person.pose.yaw - _previousYaw);
-                _yawAverage.updateAverage(person.pose.yaw);                
+                _yawAverage.updateAverage(person.pose.yaw);
             }
 
             //set the new rotation
             newRotation = glm::quat(glm::vec3(DEGTORAD(_pitchAverage.getAverage()), DEGTORAD(_yawAverage.getAverage()), DEGTORAD(-_rollAverage.getAverage())));
         } 
         else {
-            //no change in position
+            //no change in position, use previous averages
             newRotation = glm::quat(glm::vec3(DEGTORAD(_pitchAverage.getAverage()), DEGTORAD(_yawAverage.getAverage()), DEGTORAD(-_rollAverage.getAverage())));
             _headAngularVelocity = glm::vec3(0,0,0);
         }
@@ -455,4 +454,3 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer) {
 float CaraFaceTracker::getBlendshapeCoefficient(int index) const {
     return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
 }
-
