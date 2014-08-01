@@ -60,7 +60,7 @@ void runSend(const char* addressOption, int port, int gap, int size) {
     
     sockfd=socket(AF_INET,SOCK_DGRAM,0);
     
-    bzero(&servaddr,sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr=inet_addr(addressOption);
     servaddr.sin_port=htons(port);
@@ -107,7 +107,7 @@ void runReceive(const char* addressOption, int port, int gap, int size) {
     
     sockfd=socket(AF_INET, SOCK_DGRAM, 0);
     
-    bzero(&myaddr,sizeof(myaddr));
+    memset(&myaddr, 0, sizeof(myaddr));
     myaddr.sin_family = AF_INET;
     myaddr.sin_addr.s_addr=htonl(INADDR_ANY);
     myaddr.sin_port=htons(port);
