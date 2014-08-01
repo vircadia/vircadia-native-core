@@ -11,9 +11,9 @@
 #include <winsock2.h>
 #else
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #endif
 #include <stdio.h>
-#include <arpa/inet.h>
 #include <sys/time.h>
 
 #include <MovingMinMaxAvg.h> // for MovingMinMaxAvg
