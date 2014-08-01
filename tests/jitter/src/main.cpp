@@ -89,8 +89,7 @@ void runSend(const char* addressOption, int port, int gap, int size, int report)
             last = now;
 
             if (now - lastReport >= (report * MSEC_TO_USEC)) {
-                std::cout << "packet sent gap: " << actualGap << " "
-                          << "gapDifference: " << gapDifferece << " "
+                std::cout << "SEND gap Difference From Expected "
                           << "min: " << timeGaps.getMin() << " "
                           << "max: " << timeGaps.getMax() << " "
                           << "avg: " << timeGaps.getAverage() << " "
@@ -146,8 +145,7 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
             last = now;
             
             if (now - lastReport >= (report * MSEC_TO_USEC)) {
-                std::cout << "packet received gap:" << actualGap << " "
-                          << "gapDifference: " << gapDifferece << " "
+                std::cout << "RECEIVE gap Difference From Expected "
                           << "min: " << timeGaps.getMin() << " "
                           << "max: " << timeGaps.getMax() << " "
                           << "avg: " << timeGaps.getAverage() << " "
