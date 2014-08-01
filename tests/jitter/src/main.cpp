@@ -66,27 +66,29 @@ void runSend(const char* addressOption, int port, int gap, int size) {
     servaddr.sin_port=htons(port);
     
     const int SAMPLES_FOR_30_SECONDS = 30 * 1000 / gap;
-    MovingMinMaxAvg<quint64> timeGaps(1, SAMPLES_FOR_30_SECONDS); // stats
+    MovingMinMaxAvg<int> timeGaps(1, SAMPLES_FOR_30_SECONDS); // stats
  
     quint64 last = usecTimestampNow();
     
     while (true) {
 
         quint64 now = usecTimestampNow();
-        quint64 actualGap = now - last;
+        int actualGap = now - last;
         
         
         if (actualGap >= gap) {
             sendto(sockfd, outputBuffer, size, 0, (struct sockaddr *)&servaddr, sizeof(servaddr));
             
-            timeGaps.update(actualGap);
-            std::cout << "packet sent gap:" << actualGap << " "
-                      << "min:" << timeGaps.getMin() << " "
-                      << "max:" << timeGaps.getMax() << " "
-                      << "avg:" << timeGaps.getAverage() << " "
-                      << "min last 30:" << timeGaps.getWindowMin() << " "
-                      << "max last 30:" << timeGaps.getWindowMax() << " "
-                      << "avg last 30:" << timeGaps.getWindowAverage() << " "
+            int gapDifferece = actualGap - gap;
+            timeGaps.update(gapDifferece);
+            std::cout << "packet sent gap: " << actualGap << " "
+                      << "gapDifference: " << gapDifferece << " "
+                      << "min: " << timeGaps.getMin() << " "
+                      << "max: " << timeGaps.getMax() << " "
+                      << "avg: " << timeGaps.getAverage() << " "
+                      << "min last 30: " << timeGaps.getWindowMin() << " "
+                      << "max last 30: " << timeGaps.getWindowMax() << " "
+                      << "avg last 30: " << timeGaps.getWindowAverage() << " "
                       << "\n";
             last = now;
         }
@@ -111,7 +113,7 @@ void runReceive(const char* addressOption, int port, int gap, int size) {
     myaddr.sin_port=htons(port);
 
     const int SAMPLES_FOR_30_SECONDS = 30 * 1000 / gap;
-    MovingMinMaxAvg<quint64> timeGaps(1, SAMPLES_FOR_30_SECONDS); // stats
+    MovingMinMaxAvg<int> timeGaps(1, SAMPLES_FOR_30_SECONDS); // stats
     
     if (bind(sockfd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
         std::cout << "bind failed\n";
@@ -129,14 +131,16 @@ void runReceive(const char* addressOption, int port, int gap, int size) {
         } else {
             quint64 now = usecTimestampNow();
             int actualGap = now - last;
-            timeGaps.update(actualGap);
+            int gapDifferece = actualGap - gap;
+            timeGaps.update(gapDifferece);
             std::cout << "packet received gap:" << actualGap << " "
-                      << "min:" << timeGaps.getMin() << " "
-                      << "max:" << timeGaps.getMax() << " "
-                      << "avg:" << timeGaps.getAverage() << " "
-                      << "min last 30:" << timeGaps.getWindowMin() << " "
-                      << "max last 30:" << timeGaps.getWindowMax() << " "
-                      << "avg last 30:" << timeGaps.getWindowAverage() << " "
+                      << "gapDifference: " << gapDifferece << " "
+                      << "min: " << timeGaps.getMin() << " "
+                      << "max: " << timeGaps.getMax() << " "
+                      << "avg: " << timeGaps.getAverage() << " "
+                      << "min last 30: " << timeGaps.getWindowMin() << " "
+                      << "max last 30: " << timeGaps.getWindowMax() << " "
+                      << "avg last 30: " << timeGaps.getWindowAverage() << " "
                       << "\n";
             last = now;
         }
