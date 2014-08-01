@@ -77,6 +77,7 @@ void SequenceNumberStats::reset() {
         delete _childInstance;
         _childInstance = NULL;
     }
+    _consecutiveReasonable = 0;
 }
 
 static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
