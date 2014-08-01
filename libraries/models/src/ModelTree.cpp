@@ -221,7 +221,7 @@ bool ModelTree::sendModelsOperation(OctreeElement* element, void* extraData) {
         uint32_t creatorTokenID = ModelItem::getNextCreatorTokenID();
         ModelItemID id(NEW_MODEL, creatorTokenID, false);
         ModelItemProperties properties;
-        properties.copyFromModelItem(modelList.at(i));
+        properties.copyFromNewModelItem(modelList.at(i));
         properties.setPosition(properties.getPosition() + args->root);
         args->packetSender->queueModelEditMessage(PacketTypeModelAddOrEdit, id, properties);
     }

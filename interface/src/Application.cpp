@@ -1517,7 +1517,7 @@ bool Application::exportModels(const QString& filename, float x, float y, float 
             ModelItemProperties properties;
             ModelItemID id = models.at(i)->getModelItemID();
             id.isKnownID = false;
-            properties.copyFromModelItem(*models.at(i));
+            properties.copyFromNewModelItem(*models.at(i));
             properties.setPosition(properties.getPosition() - root);
             exportTree.addModel(id, properties);
         }

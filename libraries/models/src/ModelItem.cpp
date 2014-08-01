@@ -1142,6 +1142,38 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _id = modelItem.getID();
     _idSet = true;
 
+    _positionChanged = false;
+    _colorChanged = false;
+    _radiusChanged = false;
+    
+    _shouldDieChanged = false;
+    _modelURLChanged = false;
+    _modelRotationChanged = false;
+    _animationURLChanged = false;
+    _animationIsPlayingChanged = false;
+    _animationFrameIndexChanged = false;
+    _animationFPSChanged = false;
+    _glowLevelChanged = false;
+    _defaultSettings = false;
+}
+
+void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem) {
+    _position = modelItem.getPosition() * (float) TREE_SCALE;
+    _color = modelItem.getXColor();
+    _radius = modelItem.getRadius() * (float) TREE_SCALE;
+    _shouldDie = modelItem.getShouldDie();
+    _modelURL = modelItem.getModelURL();
+    _modelRotation = modelItem.getModelRotation();
+    _animationURL = modelItem.getAnimationURL();
+    _animationIsPlaying = modelItem.getAnimationIsPlaying();
+    _animationFrameIndex = modelItem.getAnimationFrameIndex();
+    _animationFPS = modelItem.getAnimationFPS();
+    _glowLevel = modelItem.getGlowLevel();
+    _sittingPoints = modelItem.getSittingPoints();
+
+    _id = modelItem.getID();
+    _idSet = true;
+
     _positionChanged = true;
     _colorChanged = true;
     _radiusChanged = true;
