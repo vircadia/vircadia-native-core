@@ -1,5 +1,5 @@
 //
-//  ContactConstraint.cpp
+//  ContactPoint.cpp
 //  libraries/shared/src
 //
 //  Created by Andrew Meadows 2014.07.30
@@ -9,15 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ContactConstraint.h"
+#include "ContactPoint.h"
 #include "Shape.h"
 #include "SharedUtil.h"
 
-ContactConstraint::ContactConstraint() : _lastFrame(0), _shapeA(NULL), _shapeB(NULL), 
+ContactPoint::ContactPoint() : _lastFrame(0), _shapeA(NULL), _shapeB(NULL), 
         _offsetA(0.0f), _offsetB(0.0f), _normal(0.0f) {
 }
 
-ContactConstraint::ContactConstraint(const CollisionInfo& collision, quint32 frame) : _lastFrame(frame),
+ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) : _lastFrame(frame),
         _shapeA(collision.getShapeA()), _shapeB(collision.getShapeB()), _offsetA(0.0f), _offsetB(0.0f), _normal(0.0f) {
 
     _offsetA = collision._contactPoint - _shapeA->getTranslation();
@@ -40,7 +40,7 @@ ContactConstraint::ContactConstraint(const CollisionInfo& collision, quint32 fra
 }
 
 // virtual 
-float ContactConstraint::enforce() {
+float ContactPoint::enforce() {
     glm::vec3 pointA = _shapeA->getTranslation() + _offsetA;
     glm::vec3 pointB = _shapeB->getTranslation() + _offsetB;
     glm::vec3 penetration = pointA - pointB;
@@ -65,7 +65,7 @@ float ContactConstraint::enforce() {
     return 0.0f;
 }
 
-void ContactConstraint::updateContact(const CollisionInfo& collision, quint32 frame) {
+void ContactPoint::updateContact(const CollisionInfo& collision, quint32 frame) {
     _lastFrame = frame;
     _offsetA = collision._contactPoint - collision._shapeA->getTranslation();
     _offsetB = collision._contactPoint - collision._penetration - collision._shapeB->getTranslation();

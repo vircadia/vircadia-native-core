@@ -17,7 +17,7 @@
 #include <QVector>
 
 #include "CollisionInfo.h"
-#include "ContactConstraint.h"
+#include "ContactPoint.h"
 
 class PhysicsEntity;
 class Ragdoll;
@@ -59,7 +59,7 @@ private:
     QVector<Ragdoll*> _dolls;
     QVector<PhysicsEntity*> _entities;
     CollisionList _collisions;
-    QMap<quint64, ContactConstraint> _contacts;
+    QMap<quint64, ContactPoint> _contacts;
 };
 
 #endif // hifi_PhysicsSimulation

@@ -1,5 +1,5 @@
 //
-//  ContactConstraint.h
+//  ContactPoint.h
 //  libraries/shared/src
 //
 //  Created by Andrew Meadows 2014.07.30
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ContactConstraint_h
-#define hifi_ContactConstraint_h
+#ifndef hifi_ContactPoint_h
+#define hifi_ContactPoint_h
 
 #include <QtGlobal>
 #include <glm/glm.hpp>
@@ -19,10 +19,10 @@
 
 class Shape;
 
-class ContactConstraint {
+class ContactPoint {
 public:
-    ContactConstraint();
-    ContactConstraint(const CollisionInfo& collision, quint32 frame);
+    ContactPoint();
+    ContactPoint(const CollisionInfo& collision, quint32 frame);
 
     virtual float enforce();
    
@@ -41,4 +41,4 @@ protected:
     glm::vec3 _normal; // (points from A toward B)
 };
 
-#endif // hifi_ContactConstraint_h
+#endif // hifi_ContactPoint_h

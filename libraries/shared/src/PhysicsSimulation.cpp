@@ -88,7 +88,7 @@ void PhysicsSimulation::removeEntity(PhysicsEntity* entity) {
         }
     }
     // remove corresponding contacts
-    QMap<quint64, ContactConstraint>::iterator itr = _contacts.begin();
+    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
     while (itr != _contacts.end()) {
         if (entity == itr.value().getShapeA()->getEntity() || entity == itr.value().getShapeB()->getEntity()) {
             itr = _contacts.erase(itr);
@@ -251,7 +251,7 @@ void PhysicsSimulation::enforceContacts() {
         if (key == 0) {
             continue;
         }
-        QMap<quint64, ContactConstraint>::iterator itr = _contacts.find(key);
+        QMap<quint64, ContactPoint>::iterator itr = _contacts.find(key);
         if (itr != _contacts.end()) {
             if (itr.value().enforce() > 0.0f) {
                 shapes.insert(collision->getShapeA());
@@ -276,9 +276,9 @@ void PhysicsSimulation::updateContacts() {
         if (key == 0) {
             continue;
         }
-        QMap<quint64, ContactConstraint>::iterator itr = _contacts.find(key);
+        QMap<quint64, ContactPoint>::iterator itr = _contacts.find(key);
         if (itr == _contacts.end()) {
-            _contacts.insert(key, ContactConstraint(*collision, _frame));
+            _contacts.insert(key, ContactPoint(*collision, _frame));
         } else {
             itr.value().updateContact(*collision, _frame);
         }
@@ -288,7 +288,7 @@ void PhysicsSimulation::updateContacts() {
 const quint32 MAX_CONTACT_FRAME_LIFETIME = 2;
 
 void PhysicsSimulation::pruneContacts() {
-    QMap<quint64, ContactConstraint>::iterator itr = _contacts.begin();
+    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
     while (itr != _contacts.end()) {
         if (_frame - itr.value().getLastFrame() > MAX_CONTACT_FRAME_LIFETIME) {
             itr = _contacts.erase(itr);
