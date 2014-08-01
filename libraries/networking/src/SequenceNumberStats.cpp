@@ -142,9 +142,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
                     _childInstance = new SequenceNumberStats(0, false);
                 }
 
-
                 ArrivalInfo unreasonableTrackerArrivalInfo = _childInstance->sequenceNumberReceived(incoming);
-
 
                 // the child instance will be used to detect some threshold number seq nums in a row that are perfectly
                 // in order.

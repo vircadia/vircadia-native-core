@@ -16,11 +16,10 @@
 
 
 void SequenceNumberStatsTests::runAllTests() {
-    /*
     rolloverTest();
     earlyLateTest();
     duplicateTest();
-    pruneTest();*/
+    pruneTest();
     recursiveTest();
 }
 

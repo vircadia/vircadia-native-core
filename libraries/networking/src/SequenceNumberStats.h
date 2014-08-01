@@ -67,7 +67,6 @@ public:
     SequenceNumberStats& operator=(const SequenceNumberStats& rhs);
     ~SequenceNumberStats();
 
-public:
     void reset();
     ArrivalInfo sequenceNumberReceived(quint16 incoming, QUuid senderUUID = QUuid(), const bool wantExtraDebugging = false);
     void pruneMissingSet(const bool wantExtraDebugging = false);
