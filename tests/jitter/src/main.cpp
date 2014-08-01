@@ -18,12 +18,14 @@
 #include <MovingMinMaxAvg.h> // for MovingMinMaxAvg
 #include <SharedUtil.h> // for usecTimestampNow
 
-void runSend(const char* addressOption, int port, int gap, int size);
-void runReceive(const char* addressOption, int port, int gap, int size);
+const quint64 MSEC_TO_USEC = 1000;
+
+void runSend(const char* addressOption, int port, int gap, int size, int report);
+void runReceive(const char* addressOption, int port, int gap, int size, int report);
 
 int main(int argc, const char * argv[]) {
-    if (argc != 6) {
-        printf("usage: jitter-tests <--send|--receive> <address> <port> <gap in ms> <packet size>\n");
+    if (argc != 7) {
+        printf("usage: jitter-tests <--send|--receive> <address> <port> <gap in usecs> <packet size> <report interval in msecs>\n");
         exit(1);
     }
     const char* typeOption = argv[1];
@@ -31,9 +33,11 @@ int main(int argc, const char * argv[]) {
     const char* portOption = argv[3];
     const char* gapOption = argv[4];
     const char* sizeOption = argv[5];
+    const char* reportOption = argv[6];
     int port = atoi(portOption);
     int gap = atoi(gapOption);
     int size = atoi(sizeOption);
+    int report = atoi(reportOption);
 
     std::cout << "type:" << typeOption << "\n";
     std::cout << "address:" << addressOption << "\n";
@@ -42,14 +46,14 @@ int main(int argc, const char * argv[]) {
     std::cout << "size:" << size << "\n";
 
     if (strcmp(typeOption, "--send") == 0) {
-        runSend(addressOption, port, gap, size);
+        runSend(addressOption, port, gap, size, report);
     } else if (strcmp(typeOption, "--receive") == 0) {
-        runReceive(addressOption, port, gap, size);
+        runReceive(addressOption, port, gap, size, report);
     }
     exit(1);
 }
 
-void runSend(const char* addressOption, int port, int gap, int size) {
+void runSend(const char* addressOption, int port, int gap, int size, int report) {
     std::cout << "runSend...\n";
 
     int sockfd;
@@ -69,6 +73,7 @@ void runSend(const char* addressOption, int port, int gap, int size) {
     MovingMinMaxAvg<int> timeGaps(1, SAMPLES_FOR_30_SECONDS); // stats
  
     quint64 last = usecTimestampNow();
+    quint64 lastReport = 0;
     
     while (true) {
 
@@ -81,21 +86,25 @@ void runSend(const char* addressOption, int port, int gap, int size) {
             
             int gapDifferece = actualGap - gap;
             timeGaps.update(gapDifferece);
-            std::cout << "packet sent gap: " << actualGap << " "
-                      << "gapDifference: " << gapDifferece << " "
-                      << "min: " << timeGaps.getMin() << " "
-                      << "max: " << timeGaps.getMax() << " "
-                      << "avg: " << timeGaps.getAverage() << " "
-                      << "min last 30: " << timeGaps.getWindowMin() << " "
-                      << "max last 30: " << timeGaps.getWindowMax() << " "
-                      << "avg last 30: " << timeGaps.getWindowAverage() << " "
-                      << "\n";
             last = now;
+
+            if (now - lastReport >= (report * MSEC_TO_USEC)) {
+                std::cout << "packet sent gap: " << actualGap << " "
+                          << "gapDifference: " << gapDifferece << " "
+                          << "min: " << timeGaps.getMin() << " "
+                          << "max: " << timeGaps.getMax() << " "
+                          << "avg: " << timeGaps.getAverage() << " "
+                          << "min last 30: " << timeGaps.getWindowMin() << " "
+                          << "max last 30: " << timeGaps.getWindowMax() << " "
+                          << "avg last 30: " << timeGaps.getWindowAverage() << " "
+                          << "\n";
+                lastReport = now;
+            }
         }
     }
 }
 
-void runReceive(const char* addressOption, int port, int gap, int size) {
+void runReceive(const char* addressOption, int port, int gap, int size, int report) {
     std::cout << "runReceive...\n";
 
 
@@ -121,6 +130,7 @@ void runReceive(const char* addressOption, int port, int gap, int size) {
     }    
     
     quint64 last = 0; // first case
+    quint64 lastReport = 0;
     
     while (true) {
         n = recvfrom(sockfd, inputBuffer, size, 0, NULL, NULL); // we don't care about where it came from
@@ -133,16 +143,20 @@ void runReceive(const char* addressOption, int port, int gap, int size) {
             int actualGap = now - last;
             int gapDifferece = actualGap - gap;
             timeGaps.update(gapDifferece);
-            std::cout << "packet received gap:" << actualGap << " "
-                      << "gapDifference: " << gapDifferece << " "
-                      << "min: " << timeGaps.getMin() << " "
-                      << "max: " << timeGaps.getMax() << " "
-                      << "avg: " << timeGaps.getAverage() << " "
-                      << "min last 30: " << timeGaps.getWindowMin() << " "
-                      << "max last 30: " << timeGaps.getWindowMax() << " "
-                      << "avg last 30: " << timeGaps.getWindowAverage() << " "
-                      << "\n";
             last = now;
+            
+            if (now - lastReport >= (report * MSEC_TO_USEC)) {
+                std::cout << "packet received gap:" << actualGap << " "
+                          << "gapDifference: " << gapDifferece << " "
+                          << "min: " << timeGaps.getMin() << " "
+                          << "max: " << timeGaps.getMax() << " "
+                          << "avg: " << timeGaps.getAverage() << " "
+                          << "min last 30: " << timeGaps.getWindowMin() << " "
+                          << "max last 30: " << timeGaps.getWindowMax() << " "
+                          << "avg last 30: " << timeGaps.getWindowAverage() << " "
+                          << "\n";
+                lastReport = now;
+            }
         }
     }
 }
