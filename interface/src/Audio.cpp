@@ -1424,9 +1424,9 @@ void Audio::renderAudioStreamStats(const AudioStreamStats& streamStats, int hori
 
     sprintf(stringBuffer, "                      Packet loss | overall: %5.2f%% (%d lost), last_30s: %5.2f%% (%d lost)",
         streamStats._packetStreamStats.getLostRate() * 100.0f,
-        streamStats._packetStreamStats._numLost,
+        streamStats._packetStreamStats._lost,
         streamStats._packetStreamWindowStats.getLostRate() * 100.0f,
-        streamStats._packetStreamWindowStats._numLost);
+        streamStats._packetStreamWindowStats._lost);
     verticalOffset += STATS_HEIGHT_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
 
