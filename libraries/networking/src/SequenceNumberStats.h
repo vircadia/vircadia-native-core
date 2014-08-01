@@ -19,9 +19,6 @@
 const int MAX_REASONABLE_SEQUENCE_GAP = 1000;
 
 
-const int DEFAULT_MAX_RECURSION = 5;
-
-
 class PacketStreamStats {
 public:
     PacketStreamStats()
@@ -65,7 +62,7 @@ public:
     };
 
 
-    SequenceNumberStats(int statsHistoryLength = 0, int maxRecursion = DEFAULT_MAX_RECURSION);
+    SequenceNumberStats(int statsHistoryLength = 0, bool canDetectOutOfSync = true);
     SequenceNumberStats(const SequenceNumberStats& other);
     SequenceNumberStats& operator=(const SequenceNumberStats& rhs);
     ~SequenceNumberStats();
@@ -107,10 +104,10 @@ private:
 
     // to deal with the incoming seq nums going out of sync with this tracker, we'll create another instance
     // of this class when we encounter an unreasonable 
-    SequenceNumberStats* _unreasonableTracker;
-    int _maxRecursion;
+    bool _canHaveChild;
+    SequenceNumberStats* _childInstance;
 
-    bool hasUnreasonableTracker() const { return _unreasonableTracker != NULL; }
+    int _consecutiveReasonable;
 };
 
 #endif // hifi_SequenceNumberStats_h

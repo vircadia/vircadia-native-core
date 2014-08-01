@@ -16,11 +16,12 @@
 
 
 void SequenceNumberStatsTests::runAllTests() {
-
+    /*
     rolloverTest();
     earlyLateTest();
     duplicateTest();
-    pruneTest();
+    pruneTest();*/
+    recursiveTest();
 }
 
 const quint32 UINT16_RANGE = std::numeric_limits<quint16>::max() + 1;
@@ -277,4 +278,37 @@ void SequenceNumberStatsTests::pruneTest() {
         numEarly = 0;
         numLost = 0;
     }
+}
+
+void SequenceNumberStatsTests::recursiveTest() {
+
+    SequenceNumberStats stats(0);
+
+    quint16 sequence;
+
+    sequence = 89;
+    stats.sequenceNumberReceived(sequence);
+
+    assert(stats.getUnreasonable() == 0);
+
+    sequence = 2990;
+    for (int i = 0; i < 10; i++) {
+        stats.sequenceNumberReceived(sequence);
+        sequence += (quint16)1;
+    }
+
+    assert(stats.getUnreasonable() == 0);
+
+
+    sequence = 0;
+    for (int R = 0; R < 7; R++) {
+        stats.sequenceNumberReceived(sequence);
+        sequence += (quint16)2000;
+    }
+    
+    for (int i = 0; i < 10; i++) {
+        stats.sequenceNumberReceived(sequence);
+        sequence += (quint16)1;
+    }
+    assert(stats.getUnreasonable() == 0);
 }

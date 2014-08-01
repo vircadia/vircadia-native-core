@@ -13,16 +13,16 @@
 
 #include <limits>
 
-SequenceNumberStats::SequenceNumberStats(int statsHistoryLength, int maxRecursion)
+SequenceNumberStats::SequenceNumberStats(int statsHistoryLength, bool canDetectOutOfSync)
     : _received(0),
     _lastReceivedSequence(0),
     _missingSet(),
     _stats(),
     _lastSenderUUID(),
     _statsHistory(statsHistoryLength),
-
-    _unreasonableTracker(NULL),
-    _maxRecursion(maxRecursion)
+    _canHaveChild(canDetectOutOfSync),
+    _childInstance(NULL),
+    _consecutiveReasonable(0)
 {
 }
 
@@ -33,11 +33,12 @@ SequenceNumberStats::SequenceNumberStats(const SequenceNumberStats& other)
     _stats(other._stats),
     _lastSenderUUID(other._lastSenderUUID),
     _statsHistory(other._statsHistory),
-    _unreasonableTracker(NULL),
-    _maxRecursion(other._maxRecursion)
+    _childInstance(NULL),
+    _canHaveChild(other._canHaveChild),
+    _consecutiveReasonable(other._consecutiveReasonable)
 {
-    if (other._unreasonableTracker) {
-        _unreasonableTracker = new SequenceNumberStats(*other._unreasonableTracker);
+    if (other._childInstance) {
+        _childInstance = new SequenceNumberStats(*other._childInstance);
     }
 }
 
@@ -48,19 +49,20 @@ SequenceNumberStats& SequenceNumberStats::operator=(const SequenceNumberStats& r
     _stats = rhs._stats;
     _lastSenderUUID = rhs._lastSenderUUID;
     _statsHistory = rhs._statsHistory;
-    _maxRecursion = rhs._maxRecursion;
+    _canHaveChild = rhs._canHaveChild;
+    _consecutiveReasonable = rhs._consecutiveReasonable;
 
-    if (rhs._unreasonableTracker) {
-        _unreasonableTracker = new SequenceNumberStats(*rhs._unreasonableTracker);
+    if (rhs._childInstance) {
+        _childInstance = new SequenceNumberStats(*rhs._childInstance);
     } else {
-        _unreasonableTracker = NULL;
+        _childInstance = NULL;
     }
     return *this;
 }
 
 SequenceNumberStats::~SequenceNumberStats() {
-    if (_unreasonableTracker) {
-        delete _unreasonableTracker;
+    if (_childInstance) {
+        delete _childInstance;
     }
 }
 
@@ -71,8 +73,9 @@ void SequenceNumberStats::reset() {
     _lastSenderUUID = QUuid();
     _statsHistory.clear();
 
-    if (_unreasonableTracker) {
-        delete _unreasonableTracker;
+    if (_childInstance) {
+        delete _childInstance;
+        _childInstance = NULL;
     }
 }
 
@@ -123,67 +126,77 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
         } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
             arrivalInfo._status = Unreasonable;
 
-            /*
-            // ignore packet if gap is unreasonable
-            qDebug() << "ignoring unreasonable sequence number:" << incoming
-                << "previous:" << _lastReceivedSequence;
+            qDebug() << "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence;
+
             _stats._unreasonable++;
-            */
+            _consecutiveReasonable = 0;
 
-            // do not create a child tracker for unreasonable seq nums if this instance is the last one in the chain.
-            // otherwise, create one if we don't have one.
+            
+            // if _canHaveChild, create a child instance of SequenceNumberStats to track this unreasonable seq num and ones in the future.
+            // if the child instance detects a valid stream of seq nums up to some length, the seq nums sender probably
+            // fell out of sync with us.  
 
-            if (!_unreasonableTracker && _maxRecursion > 0) {
-                _unreasonableTracker = new SequenceNumberStats(0, _maxRecursion - 1);
-            }
+            if (_canHaveChild) {
+
+                if (!_childInstance) {
+                    _childInstance = new SequenceNumberStats(0, false);
+                }
 
 
-            if (_unreasonableTracker) {
+                ArrivalInfo unreasonableTrackerArrivalInfo = _childInstance->sequenceNumberReceived(incoming);
 
-                // track this unreasonable seq number with our _unreasonableTracker.
-                ArrivalInfo unreasonableTrackerArrivalInfo = _unreasonableTracker->sequenceNumberReceived(incoming);
-                
 
-                const int UNREASONABLE_TRACKER_RECEIVED_THRESHOLD = 10;
-                const float UNRUNREASONABLE_TRACKER_UNREASONABLE_RATE_THRESHOLD = 0.1f;
-                const float UNREASONABLE_TRACKER_OUT_OF_ORDER_RATE_THRESHOLD = 0.1f;
-                
-                // when our _unreasonableTracker has received enough seq nums and doesn't have an _unreasonableTracker of its own,
-                // we'll either inherit its state only if we think its stream is plausible.  it will then be deleted.
-                // (if it has an _unreasonableTracker of its own, its _unreasonableTracker may be detecting a plausible stream
-                // while its parent does not, so we should let it accrue seq nums and decide plausibility first)
+                // the child instance will be used to detect some threshold number seq nums in a row that are perfectly
+                // in order.
 
-                if (!_unreasonableTracker->hasUnreasonableTracker() &&
-                    _unreasonableTracker->_received >= UNREASONABLE_TRACKER_RECEIVED_THRESHOLD) {
+                const int UNREASONABLE_TRACKER_RECEIVED_THRESHOLD = 8;
 
-                    if (_unreasonableTracker->getUnreasonableRate() < UNRUNREASONABLE_TRACKER_UNREASONABLE_RATE_THRESHOLD &&
-                        _unreasonableTracker->getStats().getOutOfOrderRate() < UNREASONABLE_TRACKER_OUT_OF_ORDER_RATE_THRESHOLD) {
+                if (unreasonableTrackerArrivalInfo._status != OnTime) {
+                    _childInstance->reset();
 
-                        // the _unreasonableTracker has detected a plausible stream of seq numbers;
-                        // copy its state to this tracker.
+                } else if (_childInstance->getReceived() >= UNREASONABLE_TRACKER_RECEIVED_THRESHOLD) {
 
-                        _received = _unreasonableTracker->_received;
-                        _lastReceivedSequence = _unreasonableTracker->_lastReceivedSequence;
-                        _missingSet = _unreasonableTracker->_missingSet;
-                        _stats = _unreasonableTracker->_stats;
+                    // the child instance has detected a threshold number of consecutive seq nums.
+                    // copy its state to this instance.
 
-                        // don't copy _lastSenderUUID; _unreasonableTracker always has null UUID for that member.
-                        // ours should be up-to-date.
+                    _received = _childInstance->_received;
+                    _lastReceivedSequence = _childInstance->_lastReceivedSequence;
+                    _missingSet = _childInstance->_missingSet;
+                    _stats = _childInstance->_stats;
 
-                        // don't copy _statsHistory; _unreasonableTracker keeps a history of length 0.
-                        // simply clear ours.
-                        _statsHistory.clear();
+                    // don't copy _lastSenderUUID; _unreasonableTracker always has null UUID for that member.
+                    // ours should be up-to-date.
 
-                        arrivalInfo = unreasonableTrackerArrivalInfo;
+                    // don't copy _statsHistory; _unreasonableTracker keeps a history of length 0.
+                    // simply clear ours.
+                    _statsHistory.clear();
 
-                    }
-                    // remove our _unreasonableTracker
-                    delete _unreasonableTracker;
+                    arrivalInfo = unreasonableTrackerArrivalInfo;
+
+                    // delete child instance; 
+                    delete _childInstance;
+                    _childInstance = NULL;
                 }
             }
 
             return arrivalInfo;
         }
+
+        _consecutiveReasonable++;
+
+        // if we got a reasonable seq num but have a child instance tracking unreasonable seq nums,
+        // reset it.  if many consecutive reasonable seq nums have occurred (implying the unreasonable seq num
+        // that caused the creation of the child instance was just a fluke), delete our child instance.
+        if (_childInstance) {
+            const int CONSECUTIVE_REASONABLE_CHILD_DELETE_THRESHOLD = 4;
+            if (_consecutiveReasonable >= CONSECUTIVE_REASONABLE_CHILD_DELETE_THRESHOLD) {
+                _childInstance->reset();
+            } else {
+                delete _childInstance;
+                _childInstance = NULL;
+            }
+        }
+
 
         // now that rollover has been corrected for (if it occurred), incomingInt and expectedInt can be
         // compared to each other directly, though one of them might be negative
@@ -241,6 +254,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
             }
         }
     }
+
     return arrivalInfo;
 }
 
