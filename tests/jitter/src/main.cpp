@@ -70,6 +70,9 @@ void runSend(const char* addressOption, int port, int gap, int size, int report)
     servaddr.sin_port=htons(port);
     
     const int SAMPLES_FOR_30_SECONDS = 30 * 1000000 / gap;
+
+    std::cout << "SAMPLES_FOR_30_SECONDS:" << SAMPLES_FOR_30_SECONDS << "\n";
+
     MovingMinMaxAvg<int> timeGaps(1, SAMPLES_FOR_30_SECONDS); // stats
  
     quint64 last = usecTimestampNow();
@@ -90,12 +93,12 @@ void runSend(const char* addressOption, int port, int gap, int size, int report)
 
             if (now - lastReport >= (report * MSEC_TO_USEC)) {
                 std::cout << "SEND gap Difference From Expected "
-                          << "min: " << timeGaps.getMin() << " "
-                          << "max: " << timeGaps.getMax() << " "
-                          << "avg: " << timeGaps.getAverage() << " "
-                          << "min last 30: " << timeGaps.getWindowMin() << " "
-                          << "max last 30: " << timeGaps.getWindowMax() << " "
-                          << "avg last 30: " << timeGaps.getWindowAverage() << " "
+                          << "min: " << timeGaps.getMin() << " usecs "
+                          << "max: " << timeGaps.getMax() << " usecs "
+                          << "avg: " << timeGaps.getAverage() << " usecs "
+                          << "min last 30: " << timeGaps.getWindowMin() << " usecs "
+                          << "max last 30: " << timeGaps.getWindowMax() << " usecs "
+                          << "avg last 30: " << timeGaps.getWindowAverage() << " usecs "
                           << "\n";
                 lastReport = now;
             }
@@ -121,6 +124,9 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
     myaddr.sin_port=htons(port);
 
     const int SAMPLES_FOR_30_SECONDS = 30 * 1000000 / gap;
+
+    std::cout << "SAMPLES_FOR_30_SECONDS:" << SAMPLES_FOR_30_SECONDS << "\n";
+
     MovingMinMaxAvg<int> timeGaps(1, SAMPLES_FOR_30_SECONDS); // stats
     
     if (bind(sockfd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
@@ -146,12 +152,12 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
             
             if (now - lastReport >= (report * MSEC_TO_USEC)) {
                 std::cout << "RECEIVE gap Difference From Expected "
-                          << "min: " << timeGaps.getMin() << " "
-                          << "max: " << timeGaps.getMax() << " "
-                          << "avg: " << timeGaps.getAverage() << " "
-                          << "min last 30: " << timeGaps.getWindowMin() << " "
-                          << "max last 30: " << timeGaps.getWindowMax() << " "
-                          << "avg last 30: " << timeGaps.getWindowAverage() << " "
+                          << "min: " << timeGaps.getMin() << " usecs "
+                          << "max: " << timeGaps.getMax() << " usecs "
+                          << "avg: " << timeGaps.getAverage() << " usecs "
+                          << "min last 30: " << timeGaps.getWindowMin() << " usecs "
+                          << "max last 30: " << timeGaps.getWindowMax() << " usecs "
+                          << "avg last 30: " << timeGaps.getWindowAverage() << " usecs "
                           << "\n";
                 lastReport = now;
             }
