@@ -38,12 +38,12 @@ void SequenceNumberStatsTests::rolloverTest() {
             stats.sequenceNumberReceived(seq);
             seq = seq + (quint16)1;
 
-            assert(stats.getNumDuplicate() == 0);
-            assert(stats.getNumEarly() == 0);
-            assert(stats.getNumLate() == 0);
-            assert(stats.getNumLost() == 0);
-            assert(stats.getNumReceived() == i + 1);
-            assert(stats.getNumRecovered() == 0);
+            assert(stats.getDuplicate() == 0);
+            assert(stats.getEarly() == 0);
+            assert(stats.getLate() == 0);
+            assert(stats.getLost() == 0);
+            assert(stats.getReceived() == i + 1);
+            assert(stats.getRecovered() == 0);
         }
         stats.reset();
     }
@@ -69,12 +69,12 @@ void SequenceNumberStatsTests::earlyLateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getNumDuplicate() == 0);
-                assert(stats.getNumEarly() == numEarly);
-                assert(stats.getNumLate() == numLate);
-                assert(stats.getNumLost() == numLost);
-                assert(stats.getNumReceived() == numSent);
-                assert(stats.getNumRecovered() == numRecovered);
+                assert(stats.getDuplicate() == 0);
+                assert(stats.getEarly() == numEarly);
+                assert(stats.getLate() == numLate);
+                assert(stats.getLost() == numLost);
+                assert(stats.getReceived() == numSent);
+                assert(stats.getRecovered() == numRecovered);
             }
 
             // skip 10
@@ -89,12 +89,12 @@ void SequenceNumberStatsTests::earlyLateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getNumDuplicate() == 0);
-                assert(stats.getNumEarly() == numEarly);
-                assert(stats.getNumLate() == numLate);
-                assert(stats.getNumLost() == numLost);
-                assert(stats.getNumReceived() == numSent);
-                assert(stats.getNumRecovered() == numRecovered);
+                assert(stats.getDuplicate() == 0);
+                assert(stats.getEarly() == numEarly);
+                assert(stats.getLate() == numLate);
+                assert(stats.getLost() == numLost);
+                assert(stats.getReceived() == numSent);
+                assert(stats.getRecovered() == numRecovered);
             }
 
             // send ones we skipped
@@ -106,12 +106,12 @@ void SequenceNumberStatsTests::earlyLateTest() {
                 numLost--;
                 numRecovered++;
 
-                assert(stats.getNumDuplicate() == 0);
-                assert(stats.getNumEarly() == numEarly);
-                assert(stats.getNumLate() == numLate);
-                assert(stats.getNumLost() == numLost);
-                assert(stats.getNumReceived() == numSent);
-                assert(stats.getNumRecovered() == numRecovered);
+                assert(stats.getDuplicate() == 0);
+                assert(stats.getEarly() == numEarly);
+                assert(stats.getLate() == numLate);
+                assert(stats.getLost() == numLost);
+                assert(stats.getReceived() == numSent);
+                assert(stats.getRecovered() == numRecovered);
             }
         }
         stats.reset();
@@ -145,12 +145,12 @@ void SequenceNumberStatsTests::duplicateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getNumDuplicate() == numDuplicate);
-                assert(stats.getNumEarly() == numEarly);
-                assert(stats.getNumLate() == numLate);
-                assert(stats.getNumLost() == numLost);
-                assert(stats.getNumReceived() == numSent);
-                assert(stats.getNumRecovered() == 0);
+                assert(stats.getDuplicate() == numDuplicate);
+                assert(stats.getEarly() == numEarly);
+                assert(stats.getLate() == numLate);
+                assert(stats.getLost() == numLost);
+                assert(stats.getReceived() == numSent);
+                assert(stats.getRecovered() == 0);
             }
 
             // skip 10
@@ -167,12 +167,12 @@ void SequenceNumberStatsTests::duplicateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getNumDuplicate() == numDuplicate);
-                assert(stats.getNumEarly() == numEarly);
-                assert(stats.getNumLate() == numLate);
-                assert(stats.getNumLost() == numLost);
-                assert(stats.getNumReceived() == numSent);
-                assert(stats.getNumRecovered() == 0);
+                assert(stats.getDuplicate() == numDuplicate);
+                assert(stats.getEarly() == numEarly);
+                assert(stats.getLate() == numLate);
+                assert(stats.getLost() == numLost);
+                assert(stats.getReceived() == numSent);
+                assert(stats.getRecovered() == 0);
             }
 
             // send 5 duplicates from before skip
@@ -183,12 +183,12 @@ void SequenceNumberStatsTests::duplicateTest() {
                 numDuplicate++;
                 numLate++;
 
-                assert(stats.getNumDuplicate() == numDuplicate);
-                assert(stats.getNumEarly() == numEarly);
-                assert(stats.getNumLate() == numLate);
-                assert(stats.getNumLost() == numLost);
-                assert(stats.getNumReceived() == numSent);
-                assert(stats.getNumRecovered() == 0);
+                assert(stats.getDuplicate() == numDuplicate);
+                assert(stats.getEarly() == numEarly);
+                assert(stats.getLate() == numLate);
+                assert(stats.getLost() == numLost);
+                assert(stats.getReceived() == numSent);
+                assert(stats.getRecovered() == 0);
             }
 
             // send 5 duplicates from after skip
@@ -199,12 +199,12 @@ void SequenceNumberStatsTests::duplicateTest() {
                 numDuplicate++;
                 numLate++;
 
-                assert(stats.getNumDuplicate() == numDuplicate);
-                assert(stats.getNumEarly() == numEarly);
-                assert(stats.getNumLate() == numLate);
-                assert(stats.getNumLost() == numLost);
-                assert(stats.getNumReceived() == numSent);
-                assert(stats.getNumRecovered() == 0);
+                assert(stats.getDuplicate() == numDuplicate);
+                assert(stats.getEarly() == numEarly);
+                assert(stats.getLate() == numLate);
+                assert(stats.getLost() == numLost);
+                assert(stats.getReceived() == numSent);
+                assert(stats.getRecovered() == 0);
             }
         }
         stats.reset();

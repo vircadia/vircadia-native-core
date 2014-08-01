@@ -709,7 +709,7 @@ void Audio::handleAudioInput() {
         delete[] inputAudioSamples;
     }
 
-    if (_receivedAudioStream.getPacketReceived() > 0) {
+    if (_receivedAudioStream.getPacketsReceived() > 0) {
         pushAudioToOutput();
     }
 }
