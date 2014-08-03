@@ -1157,6 +1157,38 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _defaultSettings = false;
 }
 
+void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem) {
+    _position = modelItem.getPosition() * (float) TREE_SCALE;
+    _color = modelItem.getXColor();
+    _radius = modelItem.getRadius() * (float) TREE_SCALE;
+    _shouldDie = modelItem.getShouldDie();
+    _modelURL = modelItem.getModelURL();
+    _modelRotation = modelItem.getModelRotation();
+    _animationURL = modelItem.getAnimationURL();
+    _animationIsPlaying = modelItem.getAnimationIsPlaying();
+    _animationFrameIndex = modelItem.getAnimationFrameIndex();
+    _animationFPS = modelItem.getAnimationFPS();
+    _glowLevel = modelItem.getGlowLevel();
+    _sittingPoints = modelItem.getSittingPoints();
+
+    _id = modelItem.getID();
+    _idSet = true;
+
+    _positionChanged = true;
+    _colorChanged = true;
+    _radiusChanged = true;
+    
+    _shouldDieChanged = true;
+    _modelURLChanged = true;
+    _modelRotationChanged = true;
+    _animationURLChanged = true;
+    _animationIsPlayingChanged = true;
+    _animationFrameIndexChanged = true;
+    _animationFPSChanged = true;
+    _glowLevelChanged = true;
+    _defaultSettings = true;
+}
+
 QScriptValue ModelItemPropertiesToScriptValue(QScriptEngine* engine, const ModelItemProperties& properties) {
     return properties.copyToScriptValue(engine);
 }

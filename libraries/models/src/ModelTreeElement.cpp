@@ -399,6 +399,19 @@ void ModelTreeElement::getModels(const glm::vec3& searchPosition, float searchRa
     }
 }
 
+void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels) {
+    QList<ModelItem>::iterator modelItr = _modelItems->begin();
+    QList<ModelItem>::iterator modelEnd = _modelItems->end();
+    AACube modelCube;
+    while(modelItr != modelEnd) {
+        ModelItem* model = &(*modelItr);
+        if (box.contains(model->getPosition())) {
+            foundModels.push_back(model);
+        }
+        ++modelItr;
+    }
+}
+
 void ModelTreeElement::getModelsForUpdate(const AACube& box, QVector<ModelItem*>& foundModels) {
     QList<ModelItem>::iterator modelItr = _modelItems->begin();
     QList<ModelItem>::iterator modelEnd = _modelItems->end();
