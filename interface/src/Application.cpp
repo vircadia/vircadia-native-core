@@ -137,7 +137,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-        _voxelImporter(NULL),
+        _voxelImportDialog(NULL),
+        _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
         _wantToKillLocalVoxels(false),
@@ -428,7 +429,7 @@ Application::~Application() {
     delete idleTimer;
     
     _sharedVoxelSystem.changeTree(new VoxelTree);
-    delete _voxelImporter;
+    delete _voxelImportDialog;
 
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
@@ -463,8 +464,8 @@ void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
 
-    if (_voxelImporter) {
-        _voxelImporter->saveSettings(_settings);
+    if (_voxelImportDialog) {
+        _voxelImportDialog->saveSettings(_settings);
     }
     _settings->sync();
     _numChangedSettings = 0;
@@ -1568,17 +1569,17 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
 void Application::importVoxels() {
     _importSucceded = false;
 
-    if (!_voxelImporter) {
-        _voxelImporter = new VoxelImporter(_window);
-        _voxelImporter->loadSettings(_settings);
+    if (!_voxelImportDialog) {
+        _voxelImportDialog = new VoxelImportDialog(_window);
+        _voxelImportDialog->loadSettings(_settings);
     }
 
-    if (!_voxelImporter->exec()) {
+    if (!_voxelImportDialog->exec()) {
         qDebug() << "Import succeeded." << endl;
         _importSucceded = true;
     } else {
         qDebug() << "Import failed." << endl;
-        if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
+        if (_sharedVoxelSystem.getTree() == _voxelImporter.getVoxelTree()) {
             _sharedVoxelSystem.killLocalVoxels();
             _sharedVoxelSystem.changeTree(&_clipboard);
         }
@@ -1680,7 +1681,7 @@ void Application::init() {
     // Cleanup of the original shared tree
     _sharedVoxelSystem.init();
 
-    _voxelImporter = new VoxelImporter(_window);
+    _voxelImportDialog = new VoxelImportDialog(_window);
 
     _environment.init();
 
