@@ -52,7 +52,7 @@ protected:
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
     /// \param extra extra data to pass to the creator, if appropriate
-    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
+    Q_INVOKABLE QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
         bool delayLoad = false, void* extra = NULL);
 
     /// Creates a new resource.
