@@ -14,6 +14,7 @@
 
 #include <QUdpSocket>
 
+#include <SimpleMovingAverage.h>
 #include "FaceTracker.h"
 
 /*!
@@ -90,10 +91,10 @@ private:
     //head tracking
     glm::vec3 _headAngularVelocity;
 
-    //pose history
-    float _previousPitch;
-    float _previousYaw;
-    float _previousRoll;
+    //pose average
+    SimpleMovingAverage _pitchAverage;
+    SimpleMovingAverage _yawAverage;
+    SimpleMovingAverage _rollAverage;
 
     // eye gaze degrees
     float _eyeGazeLeftPitch;

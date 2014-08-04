@@ -37,6 +37,7 @@ static QString sampleJson = "[{\"id\":1, \
 static const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.0f);
 static const float TRANSLATION_SCALE = 1.0f;
 static const int NUM_BLENDSHAPE_COEFF = 30;
+static const int NUM_SMOOTHING_SAMPLES = 3;
 
 struct CaraPerson {
     struct CaraPose {
@@ -217,9 +218,9 @@ private:
 
 CaraFaceTracker::CaraFaceTracker() :
     _lastReceiveTimestamp(0),
-    _previousPitch(0.0f),
-    _previousYaw(0.0f),
-    _previousRoll(0.0f),
+    _pitchAverage(NUM_SMOOTHING_SAMPLES),
+    _yawAverage(NUM_SMOOTHING_SAMPLES),
+    _rollAverage(NUM_SMOOTHING_SAMPLES),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
@@ -252,9 +253,9 @@ CaraFaceTracker::CaraFaceTracker() :
 
 CaraFaceTracker::CaraFaceTracker(const QHostAddress& host, quint16 port) :
     _lastReceiveTimestamp(0),
-    _previousPitch(0.0f),
-    _previousYaw(0.0f),
-    _previousRoll(0.0f),
+    _pitchAverage(NUM_SMOOTHING_SAMPLES),
+    _yawAverage(NUM_SMOOTHING_SAMPLES),
+    _rollAverage(NUM_SMOOTHING_SAMPLES),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
@@ -371,6 +372,7 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer) {
     CaraPerson person = CaraPacketDecoder::extractOne(buffer, &jsonError);
 
     if(jsonError.error == QJsonParseError::NoError) {
+
         //do some noise filtering to the head poses
         //reduce the noise first by truncating to 1 dp
         person.pose.roll = glm::floor(person.pose.roll * 10) / 10;
@@ -386,43 +388,39 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer) {
         float theta = 2 * acos(r.w);
         if (theta > EPSILON) {
             float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
-            const float AVERAGE_CARA_FRAME_TIME = 0.033f;
+            const float AVERAGE_CARA_FRAME_TIME = 0.04f;
             const float ANGULAR_VELOCITY_MIN = 1.2f;
             const float YAW_STANDARD_DEV_DEG = 2.5f;
 
             _headAngularVelocity = theta / AVERAGE_CARA_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
+            _pitchAverage.updateAverage(person.pose.pitch);
+            _rollAverage.updateAverage(person.pose.roll);
 
-            //use the angular velocity for roll and pitch, if it's below the threshold don't move
-            if(glm::abs(_headAngularVelocity.x) < ANGULAR_VELOCITY_MIN) {           
-                person.pose.pitch = _previousPitch;
-            }
+            //could use the angular velocity to detemine whether to update pitch and roll to further remove the noise.
+            //use the angular velocity for roll and pitch, update if > THRESHOLD
+            //if(glm::abs(_headAngularVelocity.x) > ANGULAR_VELOCITY_MIN) {           
+            //   _pitchAverage.updateAverage(person.pose.pitch);
+            //}
 
-            if(glm::abs(_headAngularVelocity.z) < ANGULAR_VELOCITY_MIN) {
-                person.pose.roll = _previousRoll;
-            }
+            //if(glm::abs(_headAngularVelocity.z) > ANGULAR_VELOCITY_MIN) {
+            //   _rollAverage.updateAverage(person.pose.roll);;
+            //}
 
             //for yaw, the jitter is great, you can't use angular velocity because it swings too much
             //use the previous and current yaw, calculate the 
             //abs difference and move it the difference is above the standard deviation which is around 2.5
-            // (this will introduce some jerks but will not encounter lag)
-            
-            // < the standard deviation 2.5 deg, no move
-            if(glm::abs(person.pose.yaw - _previousYaw) < YAW_STANDARD_DEV_DEG) {
+            // > the standard deviation 2.5 deg, update the yaw smoothing average
+            if(glm::abs(person.pose.yaw - _yawAverage.getAverage()) > YAW_STANDARD_DEV_DEG) {
                 //qDebug() << "Yaw Diff: " << glm::abs(person.pose.yaw - _previousYaw);
-                person.pose.yaw = _previousYaw;
+                _yawAverage.updateAverage(person.pose.yaw);
             }
 
-            //update the previous angles
-            _previousPitch = person.pose.pitch;
-            _previousYaw = person.pose.yaw;
-            _previousRoll = person.pose.roll;
-
             //set the new rotation
-            newRotation = glm::quat(glm::vec3(DEGTORAD(person.pose.pitch), DEGTORAD(person.pose.yaw), DEGTORAD(-person.pose.roll)));
+            newRotation = glm::quat(glm::vec3(DEGTORAD(_pitchAverage.getAverage()), DEGTORAD(_yawAverage.getAverage()), DEGTORAD(-_rollAverage.getAverage())));
         } 
         else {
-            //no change in position
-            newRotation = glm::quat(glm::vec3(DEGTORAD(_previousPitch), DEGTORAD(_previousYaw), DEGTORAD(-_previousRoll)));
+            //no change in position, use previous averages
+            newRotation = glm::quat(glm::vec3(DEGTORAD(_pitchAverage.getAverage()), DEGTORAD(_yawAverage.getAverage()), DEGTORAD(-_rollAverage.getAverage())));
             _headAngularVelocity = glm::vec3(0,0,0);
         }
 
@@ -456,4 +454,3 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer) {
 float CaraFaceTracker::getBlendshapeCoefficient(int index) const {
     return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
 }
-
