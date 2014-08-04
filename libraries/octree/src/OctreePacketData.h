@@ -116,6 +116,9 @@ public:
     bool appendColor(const nodeColor& color);
 
     /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendColor(const xColor& color);
+
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendColor(const rgbColor& color);
 
     /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet

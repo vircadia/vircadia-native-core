@@ -1170,7 +1170,7 @@ function Tooltip() {
         text += "Model URL: " + properties.modelURL + "\n"
         text += "Animation URL: " + properties.animationURL + "\n"
         text += "Animation is playing: " + properties.animationIsPlaying + "\n"
-        if (properties.sittingPoints.length > 0) {
+        if (properties.sittingPoints && properties.sittingPoints.length > 0) {
             text += properties.sittingPoints.length + " Sitting points: "
             for (var i = 0; i < properties.sittingPoints.length; ++i) {
                 text += properties.sittingPoints[i].name + " "

@@ -79,6 +79,7 @@ typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 /// all units for position, radius, etc are in meter units
 class EntityItemProperties {
     friend class EntityItem; // TODO: consider removing this friend relationship and have EntityItem use public methods
+    friend class ModelEntityItem; // TODO: consider removing this friend relationship and have EntityItem use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties() { };
@@ -88,7 +89,6 @@ public:
 
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
-    uint16_t getChangedBits() const;
     EntityPropertyFlags getChangedProperties() const;
 
     /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
@@ -138,7 +138,9 @@ public:
     bool containsPositionChange() const { return _positionChanged; }
     bool containsRadiusChange() const { return _radiusChanged; }
 
-#ifdef HIDE_SUBCLASS_METHODS
+// TODO: this need to be more generic. for now, we're going to have the properties class support these as
+// named getter/setters, but we want to move them to generic types...
+//#ifdef HIDE_SUBCLASS_METHODS
     // properties we want to move to just models and particles
     xColor getColor() const { return _color; }
     const QString& getModelURL() const { return _modelURL; }
@@ -156,7 +158,7 @@ public:
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
-#endif
+//#endif
 
 private:
     friend bool EntityTypes::decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
@@ -178,7 +180,9 @@ private:
     bool _rotationChanged;
     bool _shouldBeDeletedChanged;
     
-#ifdef HIDE_SUBCLASS_METHODS
+// TODO: this need to be more generic. for now, we're going to have the properties class support these as
+// named getter/setters, but we want to move them to generic types...
+//#ifdef HIDE_SUBCLASS_METHODS
     xColor _color;
     QString _modelURL;
     QString _animationURL;
@@ -195,7 +199,7 @@ private:
     bool _animationFrameIndexChanged;
     bool _animationFPSChanged;
     bool _glowLevelChanged;
-#endif
+//#endif
 
     bool _defaultSettings;
 };

@@ -17,6 +17,7 @@
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
 #include "EntityTypes.h"
+#include "ModelEntityItem.h"
 
 QHash<EntityTypes::EntityType_t, QString> EntityTypes::_typeNameHash;
 
@@ -46,10 +47,6 @@ EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const Enti
         // Base, // ??? not supported?
         case Model:
             newEntityItem = new ModelEntityItem(entityID, properties); 
-        break;
-
-        case Particle:
-            newEntityItem = new ParticleEntityItem(entityID, properties); 
         break;
 
         case Box:
@@ -123,7 +120,7 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         EntityItemID tempEntityID;
         EntityItemProperties tempProperties;
 
-        //qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
+qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
         
         return constructEntityItem(entityType, tempEntityID, tempProperties);
     }
@@ -141,7 +138,7 @@ bool EntityTypes::decodeEntityEditPacket(const unsigned char* data, int bytesToR
                         EntityItemID& entityID, EntityItemProperties& properties) {
     bool valid = false;
 
-    bool wantDebug = false;
+    bool wantDebug = true;
     if (wantDebug) {
         qDebug() << "EntityItem EntityItem::decodeEntityEditPacket() bytesToRead=" << bytesToRead;
     }
@@ -283,7 +280,13 @@ qDebug() << "EntityItem::decodeEntityEditPacket() ... lastEdited=" << lastEdited
     //     script would go here...
     
     
-#ifdef HIDE_SUBCLASS_METHODS    
+//#ifdef HIDE_SUBCLASS_METHODS    
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// TODO: this needs to be reconciled...
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
     // PROP_COLOR
     if (propertyFlags.getHasProperty(PROP_COLOR)) {
         xColor color;
@@ -306,6 +309,10 @@ qDebug() << "EntityItem::decodeEntityEditPacket() ... lastEdited=" << lastEdited
         processedBytes += modelURLbytesToRead;
 
         properties.setModelURL(modelURLString);
+    }
+
+    if (wantDebug) {
+        qDebug() << "EntityItem EntityItem::decodeEntityEditPacket() model URL=" << properties.getModelURL();
     }
 
     // PROP_ANIMATION_URL
@@ -347,7 +354,8 @@ qDebug() << "EntityItem::decodeEntityEditPacket() ... lastEdited=" << lastEdited
         processedBytes += sizeof(animationIsPlaying);
         properties.setAnimationIsPlaying(animationIsPlaying);
     }
-#endif
+//#endif
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     const bool wantDebugging = false;
     if (wantDebugging) {

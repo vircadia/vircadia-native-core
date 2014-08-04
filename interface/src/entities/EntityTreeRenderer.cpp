@@ -83,8 +83,8 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem& en
 Model* EntityTreeRenderer::getModel(const EntityItem& entityItem) {
     Model* model = NULL;
  
+#if 0 //def HIDE_SUBCLASS_METHODS
     if (!entityItem.getModelURL().isEmpty()) {
-#ifdef HIDE_SUBCLASS_METHODS
         if (entityItem.isKnownID()) {
             if (_knownEntityItemModels.find(entityItem.getID()) != _knownEntityItemModels.end()) {
                 model = _knownEntityItemModels[entityItem.getID()];
@@ -136,8 +136,8 @@ Model* EntityTreeRenderer::getModel(const EntityItem& entityItem) {
                 _unknownEntityItemModels[entityItem.getCreatorTokenID()] = model;
             }
         }
-#endif
     }
+#endif
     return model;
 }
 
@@ -247,7 +247,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
             float radius = entityItem->getRadius() * (float)TREE_SCALE;
             float size = entityItem->getSize() * (float)TREE_SCALE;
 
-#ifdef HIDE_SUBCLASS_METHODS
+#if 0 //def HIDE_SUBCLASS_METHODS
             bool drawAsModel = entityItem->hasModel();
 #else
             bool drawAsModel = false;
@@ -256,7 +256,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
             args->_itemsRendered++;
 
             if (drawAsModel) {
-#ifdef HIDE_SUBCLASS_METHODS
+#if 0 //def HIDE_SUBCLASS_METHODS
                 glPushMatrix();
                 {
                     const float alpha = 1.0f;

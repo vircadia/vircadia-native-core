@@ -219,6 +219,10 @@ bool OctreePacketData::appendColor(const nodeColor& color) {
     return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
 }
 
+bool OctreePacketData::appendColor(const xColor& color) {
+    return appendColor(color.red, color.green, color.blue);
+}
+
 bool OctreePacketData::appendColor(const rgbColor& color) {
     return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
 }

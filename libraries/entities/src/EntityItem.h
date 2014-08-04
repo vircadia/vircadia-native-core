@@ -12,8 +12,6 @@
 #ifndef hifi_EntityItem_h
 #define hifi_EntityItem_h
 
-#define HIDE_SUBCLASS_METHODS 1
-
 #include <stdint.h>
 
 #include <glm/glm.hpp>
@@ -33,8 +31,6 @@ class EntityTreeElementExtraEncodeData;
 class EntityItem  {
 
 public:
-    EntityItem();
-    EntityItem(const EntityItemID& entityItemID);
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     virtual ~EntityItem();
@@ -50,15 +46,9 @@ public:
     bool isKnownID() const { return getID() != UNKNOWN_ENTITY_ID; }
     EntityItemID getEntityItemID() const { return EntityItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_ENTITY_ID); }
 
-/*
-    // these methods allow you to create models, and later edit them.
-    static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
-    static uint32_t getNextCreatorTokenID();
-    static void handleAddEntityResponse(const QByteArray& packet);
-*/
     // methods for getting/setting all properties of an entity
-    EntityItemProperties getProperties() const;
-    void setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+    virtual EntityItemProperties getProperties() const;
+    virtual void setProperties(const EntityItemProperties& properties, bool forceCopy = false);
 
     quint64 getLastUpdated() const { return _lastUpdated; } /// Last simulated time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; } /// Last edited time of this entity universal usecs
@@ -66,15 +56,14 @@ public:
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - _lastEdited) / (float)USECS_PER_SECOND; }
 
-    OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
+    virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                                 EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;
 
     static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                     ReadBitstreamToTreeParams& args);
-    int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+    virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
-    /// For reading models from pre V3 bitstreams
-    int oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+
     static int expectedBytes();
 
     static bool encodeEntityEditMessageDetails(PacketType command, EntityItemID id, const EntityItemProperties& details,
@@ -108,54 +97,10 @@ public:
     glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
     AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); } /// AACube in domain scale units (0.0 - 1.0)
 
-    // TODO: Move these to subclasses, or other appropriate abstraction
-    // getters/setters applicable to models and particles
-#ifdef HIDE_SUBCLASS_METHODS    
-    const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
-    bool hasModel() const { return !_modelURL.isEmpty(); }
-    const QString& getModelURL() const { return _modelURL; }
-    bool hasAnimation() const { return !_animationURL.isEmpty(); }
-    const QString& getAnimationURL() const { return _animationURL; }
-    float getGlowLevel() const { return _glowLevel; }
-    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
-
-    void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
-    void setColor(const xColor& value) {
-            _color[RED_INDEX] = value.red;
-            _color[GREEN_INDEX] = value.green;
-            _color[BLUE_INDEX] = value.blue;
-    }
-    
-    // model related properties
-    void setModelURL(const QString& url) { _modelURL = url; }
-    void setAnimationURL(const QString& url) { _animationURL = url; }
-    void setAnimationFrameIndex(float value) { _animationFrameIndex = value; }
-    void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
-    void setAnimationFPS(float value) { _animationFPS = value; }
-    void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
-    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
-    
-    void mapJoints(const QStringList& modelJointNames);
-    QVector<glm::quat> getAnimationFrame();
-    bool jointsMapped() const { return _jointMappingCompleted; }
-    
-    bool getAnimationIsPlaying() const { return _animationIsPlaying; }
-    float getAnimationFrameIndex() const { return _animationFrameIndex; }
-    float getAnimationFPS() const { return _animationFPS; }
-#endif
-    
     static void cleanupLoadedAnimations();
 
 protected:
-    void initFromEntityItemID(const EntityItemID& entityItemID);
-    virtual void init(glm::vec3 position, float radius, rgbColor color, uint32_t id = NEW_ENTITY);
-
-    /*
-    static quint32 _nextID;
-    static uint32_t _nextCreatorTokenID; /// used by the static interfaces for creator token ids
-    static std::map<uint32_t,uint32_t> _tokenIDsToIDs;
-    */
+    virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
 
     quint32 _id;
     EntityTypes::EntityType_t _type;
@@ -168,43 +113,6 @@ protected:
     float _radius;
     glm::quat _rotation;
     bool _shouldBeDeleted;
-    
-#ifdef HIDE_SUBCLASS_METHODS
-    rgbColor _color;
-    QString _modelURL;
-    QVector<SittingPoint> _sittingPoints;
-    float _glowLevel;
-
-    quint64 _lastAnimated;
-    QString _animationURL;
-    float _animationFrameIndex; // we keep this as a float and round to int only when we need the exact index
-    bool _animationIsPlaying;
-    float _animationFPS;
-    bool _jointMappingCompleted;
-    QVector<int> _jointMapping;
-    
-    static Animation* getAnimation(const QString& url);
-    static QMap<QString, AnimationPointer> _loadedAnimations;
-    static AnimationCache _animationCache;
-#endif
-
-};
-
-// our non-pure virtual subclass for now...
-class ModelEntityItem : public EntityItem {
-public:
-    ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { _type = EntityTypes::Model; }
-
-    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
-};
-
-class ParticleEntityItem : public EntityItem {
-public:
-    ParticleEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { _type = EntityTypes::Particle; }
-
-    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
 };
 
 class BoxEntityItem : public EntityItem {

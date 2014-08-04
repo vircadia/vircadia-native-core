@@ -29,15 +29,6 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
-EntityItem::EntityItem() {
-qDebug() << "EntityItem::EntityItem()....";
-    _type = EntityTypes::Base;
-    _lastEdited = 0;
-    _lastUpdated = 0;
-    rgbColor noColor = { 0, 0, 0 };
-    init(glm::vec3(0,0,0), 0, noColor, NEW_ENTITY);
-}
-
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _id = entityItemID.id;
     _creatorTokenID = entityItemID.creatorTokenID;
@@ -51,29 +42,6 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _radius = 0;
     _rotation = ENTITY_DEFAULT_ROTATION;
     _shouldBeDeleted = false;
-    
-
-#ifdef HIDE_SUBCLASS_METHODS
-    rgbColor noColor = { 0, 0, 0 };
-    memcpy(_color, noColor, sizeof(_color));
-    _modelURL = ENTITY_DEFAULT_MODEL_URL;
-
-    // animation related
-    _animationURL = ENTITY_DEFAULT_ANIMATION_URL;
-    _animationIsPlaying = false;
-    _animationFrameIndex = 0.0f;
-    _animationFPS = ENTITY_DEFAULT_ANIMATION_FPS;
-    _glowLevel = 0.0f;
-
-    _jointMappingCompleted = false;
-    _lastAnimated = 0;
-#endif
-}
-
-EntityItem::EntityItem(const EntityItemID& entityItemID) {
-    //qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID)....";
-    _type = EntityTypes::Base;
-    initFromEntityItemID(entityItemID);
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
@@ -82,49 +50,10 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEdited = 0;
     _lastUpdated = 0;
     initFromEntityItemID(entityItemID);
-    //qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties).... _lastEdited=" << _lastEdited;
     setProperties(properties, true); // force copy
-    //qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties).... after setProperties() _lastEdited=" << _lastEdited;
 }
 
 EntityItem::~EntityItem() {
-}
-
-void EntityItem::init(glm::vec3 position, float radius, rgbColor color, uint32_t id) {
-    
-    // TODO: is this what we want???
-    /*
-    if (id == NEW_ENTITY) {
-        _id = _nextID;
-        _nextID++;
-    } else {
-        _id = id;
-    }
-    */
-    
-    _id = id;
-    
-    quint64 now = usecTimestampNow();
-    _lastEdited = now;
-    _lastUpdated = now;
-    _position = position;
-    _radius = radius;
-    _rotation = ENTITY_DEFAULT_ROTATION;
-    _shouldBeDeleted = false;
-
-
-#ifdef HIDE_SUBCLASS_METHODS
-    memcpy(_color, color, sizeof(_color));
-    _modelURL = ENTITY_DEFAULT_MODEL_URL;
-    // animation related
-    _animationURL = ENTITY_DEFAULT_ANIMATION_URL;
-    _animationIsPlaying = false;
-    _animationFrameIndex = 0.0f;
-    _animationFPS = ENTITY_DEFAULT_ANIMATION_FPS;
-    _glowLevel = 0.0f;
-    _jointMappingCompleted = false;
-    _lastAnimated = now;
-#endif
 }
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
@@ -292,7 +221,7 @@ qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
         //     script would go here...
         
 
-#ifdef HIDE_SUBCLASS_METHODS    
+#if 0 // def HIDE_SUBCLASS_METHODS
         // PROP_COLOR
         if (requestedProperties.getHasProperty(PROP_COLOR)) {
             //qDebug() << "PROP_COLOR requested...";
@@ -472,103 +401,6 @@ int EntityItem::expectedBytes() {
     return expectedBytes;
 }
 
-int EntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-
-    int bytesRead = 0;
-    if (bytesLeftToRead >= expectedBytes()) {
-        int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
-
-        const unsigned char* dataAt = data;
-
-        // id
-        memcpy(&_id, dataAt, sizeof(_id));
-        dataAt += sizeof(_id);
-        bytesRead += sizeof(_id);
-
-        // _lastUpdated
-        memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
-        dataAt += sizeof(_lastUpdated);
-        bytesRead += sizeof(_lastUpdated);
-        _lastUpdated -= clockSkew;
-
-        // _lastEdited
-        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
-        dataAt += sizeof(_lastEdited);
-        bytesRead += sizeof(_lastEdited);
-        _lastEdited -= clockSkew;
-
-        // radius
-        memcpy(&_radius, dataAt, sizeof(_radius));
-        dataAt += sizeof(_radius);
-        bytesRead += sizeof(_radius);
-
-        // position
-        memcpy(&_position, dataAt, sizeof(_position));
-        dataAt += sizeof(_position);
-        bytesRead += sizeof(_position);
-
-        // color
-#ifdef HIDE_SUBCLASS_METHODS
-        memcpy(_color, dataAt, sizeof(_color));
-        dataAt += sizeof(_color);
-        bytesRead += sizeof(_color);
-#endif
-
-        // shouldBeDeleted
-        memcpy(&_shouldBeDeleted, dataAt, sizeof(_shouldBeDeleted));
-        dataAt += sizeof(_shouldBeDeleted);
-        bytesRead += sizeof(_shouldBeDeleted);
-
-        // modelURL
-        uint16_t modelURLLength;
-        memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
-        dataAt += sizeof(modelURLLength);
-        bytesRead += sizeof(modelURLLength);
-        QString modelURLString((const char*)dataAt);
-#ifdef HIDE_SUBCLASS_METHODS
-        setModelURL(modelURLString);
-#endif
-        dataAt += modelURLLength;
-        bytesRead += modelURLLength;
-
-        // rotation
-        int bytes = unpackOrientationQuatFromBytes(dataAt, _rotation);
-        dataAt += bytes;
-        bytesRead += bytes;
-
-        if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ANIMATION) {
-            // animationURL
-            uint16_t animationURLLength;
-            memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
-            dataAt += sizeof(animationURLLength);
-            bytesRead += sizeof(animationURLLength);
-            QString animationURLString((const char*)dataAt);
-#ifdef HIDE_SUBCLASS_METHODS
-            setAnimationURL(animationURLString);
-#endif
-            dataAt += animationURLLength;
-            bytesRead += animationURLLength;
-
-#ifdef HIDE_SUBCLASS_METHODS
-            // animationIsPlaying
-            memcpy(&_animationIsPlaying, dataAt, sizeof(_animationIsPlaying));
-            dataAt += sizeof(_animationIsPlaying);
-            bytesRead += sizeof(_animationIsPlaying);
-
-            // animationFrameIndex
-            memcpy(&_animationFrameIndex, dataAt, sizeof(_animationFrameIndex));
-            dataAt += sizeof(_animationFrameIndex);
-            bytesRead += sizeof(_animationFrameIndex);
-
-            // animationFPS
-            memcpy(&_animationFPS, dataAt, sizeof(_animationFPS));
-            dataAt += sizeof(_animationFPS);
-            bytesRead += sizeof(_animationFPS);
-#endif
-        }
-    }
-    return bytesRead;
-}
 
 EntityItemID EntityItem::readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                         ReadBitstreamToTreeParams& args) {
@@ -588,7 +420,8 @@ EntityItemID EntityItem::readEntityItemIDFromBuffer(const unsigned char* data, i
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
-        return oldVersionReadEntityDataFromBuffer(data, bytesLeftToRead, args);
+        qDebug() << "EntityItem::readEntityDataFromBuffer()... ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
+        return 0;
     }
 
     // Header bytes
@@ -725,7 +558,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         //     script would go here...
         
         
-#ifdef HIDE_SUBCLASS_METHODS    
+#if 0 //def HIDE_SUBCLASS_METHODS
         // PROP_COLOR
         if (propertyFlags.getHasProperty(PROP_COLOR)) {
             rgbColor color;
@@ -811,7 +644,7 @@ void EntityItem::debugDump() const {
     qDebug(" position:%f,%f,%f", _position.x, _position.y, _position.z);
     qDebug(" radius:%f", getRadius());
 
-#ifdef HIDE_SUBCLASS_METHODS
+#if 0 //def HIDE_SUBCLASS_METHODS
     qDebug(" color:%d,%d,%d", _color[0], _color[1], _color[2]);
     if (!getModelURL().isEmpty()) {
         qDebug() << " modelURL:" << qPrintable(getModelURL());
@@ -1027,7 +860,11 @@ qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... lastEdited=" << la
             //     script would go here...
         
 
-#if 0 // def HIDE_SUBCLASS_METHODS
+//#if 0 // def HIDE_SUBCLASS_METHODS
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// TODO: move these??? how to handle this for subclass properties???
+
             // PROP_COLOR
             if (requestedProperties.getHasProperty(PROP_COLOR)) {
                 //qDebug() << "PROP_COLOR requested...";
@@ -1067,6 +904,8 @@ qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... lastEdited=" << la
                 //qDebug() << "PROP_MODEL_URL NOT requested...";
                 propertiesDidntFit -= PROP_MODEL_URL;
             }
+
+qDebug() << "EntityItem EntityItem::encodeEntityEditMessageDetails() model URL=" << properties.getModelURL();
 
             // PROP_ANIMATION_URL
             if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
@@ -1148,7 +987,8 @@ qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... lastEdited=" << la
                 propertiesDidntFit -= PROP_ANIMATION_PLAYING;
             }
 
-#endif //def HIDE_SUBCLASS_METHODS
+//#endif //def HIDE_SUBCLASS_METHODS
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             
         }
         if (propertyCount > 0) {
@@ -1242,7 +1082,7 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     }
 }
 
-#ifdef HIDE_SUBCLASS_METHODS
+#if 0 //def HIDE_SUBCLASS_METHODS
 QMap<QString, AnimationPointer> EntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
 AnimationCache EntityItem::_animationCache;
 
@@ -1327,7 +1167,7 @@ void EntityItem::update(const quint64& updateTime) {
     quint64 now = usecTimestampNow();
 
     // only advance the frame index if we're playing
-#ifdef HIDE_SUBCLASS_METHODS
+#if 0 //def HIDE_SUBCLASS_METHODS
     if (getAnimationIsPlaying()) {
 
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
@@ -1375,25 +1215,6 @@ EntityItemProperties EntityItem::getProperties() const {
     properties._radiusChanged = false;
     properties._rotationChanged = false;
     properties._shouldBeDeletedChanged = false;
-    
-
-#if 0 //def HIDE_SUBCLASS_METHODS
-    properties._color = getXColor();
-    properties._modelURL = getModelURL();
-    properties._animationURL = getAnimationURL();
-    properties._animationIsPlaying = getAnimationIsPlaying();
-    properties._animationFrameIndex = getAnimationFrameIndex();
-    properties._animationFPS = getAnimationFPS();
-    properties._glowLevel = getGlowLevel();
-    properties._sittingPoints = getSittingPoints(); // sitting support
-    properties._colorChanged = false;
-    properties._modelURLChanged = false;
-    properties._animationURLChanged = false;
-    properties._animationIsPlayingChanged = false;
-    properties._animationFrameIndexChanged = false;
-    properties._animationFPSChanged = false;
-    properties._glowLevelChanged = false;
-#endif
 
     properties._defaultSettings = false;
     
@@ -1421,44 +1242,6 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         setShouldBeDeleted(properties._shouldBeDeleted);
         somethingChanged = true;
     }
-
-
-#if 0 // def HIDE_SUBCLASS_METHODS
-    if (properties._colorChanged || forceCopy) {
-        setColor(properties._color);
-        somethingChanged = true;
-    }
-
-    if (properties._modelURLChanged || forceCopy) {
-        setModelURL(properties._modelURL);
-        somethingChanged = true;
-    }
-
-    if (properties._animationURLChanged || forceCopy) {
-        setAnimationURL(properties._animationURL);
-        somethingChanged = true;
-    }
-
-    if (properties._animationIsPlayingChanged || forceCopy) {
-        setAnimationIsPlaying(properties._animationIsPlaying);
-        somethingChanged = true;
-    }
-
-    if (properties._animationFrameIndexChanged || forceCopy) {
-        setAnimationFrameIndex(properties._animationFrameIndex);
-        somethingChanged = true;
-    }
-    
-    if (properties._animationFPSChanged || forceCopy) {
-        setAnimationFPS(properties._animationFPS);
-        somethingChanged = true;
-    }
-    
-    if (properties._glowLevelChanged || forceCopy) {
-        setGlowLevel(properties._glowLevel);
-        somethingChanged = true;
-    }
-#endif
 
     if (somethingChanged) {
         bool wantDebug = false;

@@ -27,7 +27,6 @@ public:
     typedef enum EntityType {
         Base,
         Model,
-        Particle,
         Box,
         Sphere,
         Plane,

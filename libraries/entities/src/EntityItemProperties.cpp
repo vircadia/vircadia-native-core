@@ -34,7 +34,6 @@ EntityItemProperties::EntityItemProperties() :
     _shouldBeDeletedChanged(false),
 
 
-#if 0 //def HIDE_SUBCLASS_METHODS
     _color(),
     _modelURL(""),
     _animationURL(""),
@@ -50,7 +49,6 @@ EntityItemProperties::EntityItemProperties() :
     _animationFrameIndexChanged(false),
     _animationFPSChanged(false),
     _glowLevelChanged(false),
-#endif
 
     _defaultSettings(true)
 {
@@ -62,54 +60,6 @@ void EntityItemProperties::debugDump() const {
     qDebug() << "   _idSet=" << _idSet;
     qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
     qDebug() << "   _radius=" << _radius;
-}
-
-
-uint16_t EntityItemProperties::getChangedBits() const {
-    uint16_t changedBits = 0;
-    if (_radiusChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_RADIUS;
-    }
-
-    if (_positionChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_POSITION;
-    }
-
-    if (_rotationChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ROTATION;
-    }
-
-    if (_shouldBeDeletedChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_SHOULDDIE;
-    }
-
-#if 0 //def HIDE_SUBCLASS_METHODS
-    if (_colorChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_COLOR;
-    }
-
-    if (_modelURLChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_MODEL_URL;
-    }
-
-    if (_animationURLChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_URL;
-    }
-
-    if (_animationIsPlayingChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING;
-    }
-
-    if (_animationFrameIndexChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_FRAME;
-    }
-
-    if (_animationFPSChanged) {
-        changedBits += ENTITY_PACKET_CONTAINS_ANIMATION_FPS;
-    }
-#endif
-
-    return changedBits;
 }
 
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
@@ -130,7 +80,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
         changedProperties += PROP_SHOULD_BE_DELETED;
     }
 
-#if 0 //def HIDE_SUBCLASS_METHODS
     if (_colorChanged) {
         changedProperties += PROP_COLOR;
     }
@@ -154,7 +103,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     if (_animationFPSChanged) {
         changedProperties += PROP_ANIMATION_FPS;
     }
-#endif
 
     return changedProperties;
 }
@@ -176,10 +124,12 @@ qDebug() << "EntityItemProperties::copyToScriptValue()... isKnownID=" << isKnown
     properties.setProperty("rotation", rotation);
     properties.setProperty("shouldBeDeleted", _shouldBeDeleted);
 
-#if 0 // def HIDE_SUBCLASS_METHODS
     QScriptValue color = xColorToScriptValue(engine, _color);
     properties.setProperty("color", color);
     properties.setProperty("modelURL", _modelURL);
+    
+//qDebug() << "EntityItemProperties::copyToScriptValue().... _modelURL=" << _modelURL;    
+    
     properties.setProperty("animationURL", _animationURL);
     properties.setProperty("animationIsPlaying", _animationIsPlaying);
     properties.setProperty("animationFrameIndex", _animationFrameIndex);
@@ -197,7 +147,6 @@ qDebug() << "EntityItemProperties::copyToScriptValue()... isKnownID=" << isKnown
     }
     sittingPoints.setProperty("length", _sittingPoints.size());
     properties.setProperty("sittingPoints", sittingPoints);
-#endif // HIDE_SUBCLASS_METHODS
 
     return properties;
 }
@@ -267,7 +216,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
         }
     }
 
-#if 0 //def HIDE_SUBCLASS_METHODS
     QScriptValue color = object.property("color");
     if (color.isValid()) {
         QScriptValue red = color.property("red");
@@ -296,6 +244,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
             _modelURLChanged = true;
         }
     }
+    
+qDebug() << "EntityItemProperties::copyFromScriptValue().... _modelURL=" << _modelURL;    
 
     QScriptValue animationURL = object.property("animationURL");
     if (animationURL.isValid()) {
@@ -346,7 +296,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
             _glowLevelChanged = true;
         }
     }
-#endif
 
     _lastEdited = usecTimestampNow();
 }

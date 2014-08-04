@@ -1,6 +1,85 @@
+Base properties...
+    * type
+    * position
+    * size/radius/bounds?? maybe correct is x,y,z scales
+    * rotation
+    * script
+
+should these be included for all entities? Light, Models, planes, etc?
+    * velocity
+    * gravity
+    * damping
+    * rotational velocity? - wouldn't that be cool to be automatic with no edits
+    * rotational damping?? - can you slow a quat rotation by simply multiplying it by a fraction?
+    
+    * color??
+    
+Primitive Object Properties:
+    * color?
+    * texture?
+    
+    
+Model properties:
+    void setModelURL(const QString& url)
+    void setAnimationURL(const QString& url)
+    void setAnimationFrameIndex(float value)
+    void setAnimationIsPlaying(bool value)
+    void setAnimationFPS(float value)
+    void setGlowLevel(float glowLevel)
+    void setSittingPoints(QVector<SittingPoint> sittingPoints) ??? - should this just be a string property??? 
+    
+
+
+
+
+
+
+
+
+
 // Things to do with entities...
 //
 // TODO:
+
+
+
+//   0) handle subclass properties?
+        
+        We use properties for addEntity(id, props) -
+            the result should be that the properties are not really understood by the tree, or element, but should be
+            storable, passable, and reusable by the subclass entity... so "setProperties()" should be virtual and handle
+            storage of any items contained in the properties
+            
+            getProperties() examples:
+                Application::exportModels()
+                EntityScriptingInterface::getEntityProperties()
+                EntityScriptingInterface::findRayIntersection/Blocking/Worker()
+
+            setProperties() examples:
+                EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties); /// ??????
+                UpdateEntityOperator - this seems like it should be able to be virtual and work well.
+                EntityTreeElement::addOrUpdateEntity() -- same use case as UpdateEntityOperator...
+
+
+        basic properties features use getter/setter....
+        all others use:
+            set('propertyName', value)... but... we need to know the type of value 
+            
+            setStringProperty('name', const QString& value);
+            QString getStringProperty('name');
+
+            setFloatProperty('name', float value);
+            float getFloatProperty('name');
+            
+            
+            
+    what about editing?
+    
+    EntityItem::encodeEntityEditMessageDetails() -- this could be a member of EntityItemProperties, or EntityTypes?...
+    EntityTypes::decodeEntityEditPacket() -- this could be a member of EntityItemProperties...??
+
+
+
 //
 //   1) consider moving type to front of buffers to make construction easier
 //   2) EntityTree::update()/EntityTreeElement::update()... for animations and velocity changes...
@@ -36,7 +115,7 @@
 //   12b) Use the delete message instead of shouldDelete property
 
 //   13) add user properties (support sitpoints)
-//   14) implement "Light" entity
+//   14) implement "Light" entity, "Fire" entity?
 
 
 
@@ -55,10 +134,16 @@
         22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
         22b) Local Entities Overlay - from Local Models Overlay
         22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
-        22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
-        22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
+        DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
+        DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
+        
+        
 
 
+
+
+//   23) xColor vs rbgColor????
+//   24) get rid of EntityItem::expectedBytes()...
 
 
 
