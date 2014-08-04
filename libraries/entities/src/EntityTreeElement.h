@@ -15,6 +15,7 @@
 #include <OctreeElement.h>
 #include <QList>
 
+#include "EntityEditPacketSender.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
 
@@ -38,6 +39,12 @@ public:
 class EntityTreeElementExtraEncodeData {
 public:
     QMap<EntityItemID, EntityPropertyFlags> includedItems;
+};
+
+class SendModelsOperationArgs {
+public:
+    glm::vec3 root;
+    EntityEditPacketSender* packetSender;
 };
 
 
@@ -132,6 +139,7 @@ public:
 
     const EntityItem* getEntityWithID(uint32_t id) const;
     const EntityItem* getEntityWithEntityItemID(const EntityItemID& id) const;
+    void getEntitiesInside(const AACube& box, QVector<EntityItem*>& foundEntities);
 
     EntityItem* getEntityWithEntityItemID(const EntityItemID& id);
 

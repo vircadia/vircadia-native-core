@@ -60,6 +60,413 @@ var jointList = MyAvatar.getJointNames();
 
 var mode = 0;
 
+var exportMenu = null;
+
+var ExportMenu = function(opts) {
+    var self = this;
+
+    var windowDimensions = Controller.getViewportDimensions();
+    var pos = { x: windowDimensions.x / 2, y: windowDimensions.y - 100 };
+
+    this._onClose = opts.onClose || function() {};
+    this._position = { x: 0.0, y: 0.0, z: 0.0 };
+    this._scale = 1.0;
+
+    var minScale = 1;
+    var maxScale = 32768;
+    var titleWidth = 120;
+    var locationWidth = 100;
+    var scaleWidth = 144;
+    var exportWidth = 100;
+    var cancelWidth = 100;
+    var margin = 4;
+    var height = 30;
+    var outerHeight = height + (2 * margin);
+    var buttonColor = { red: 128, green: 128, blue: 128};
+
+    var SCALE_MINUS = scaleWidth * 40.0 / 100.0;
+    var SCALE_PLUS = scaleWidth * 63.0 / 100.0;
+
+    var fullWidth = locationWidth + scaleWidth + exportWidth + cancelWidth + (2 * margin);
+    var offset = fullWidth / 2;
+    pos.x -= offset;
+
+    var background= Overlays.addOverlay("text", {
+        x: pos.x,
+        y: pos.y,
+        opacity: 1,
+        width: fullWidth,
+        height: outerHeight,
+        backgroundColor: { red: 200, green: 200, blue: 200 },
+        text: "",
+    });
+
+    var titleText = Overlays.addOverlay("text", {
+        x: pos.x,
+        y: pos.y - height,
+        font: { size: 14 },
+        width: titleWidth,
+        height: height,
+        backgroundColor: { red: 255, green: 255, blue: 255 },
+        color: { red: 255, green: 255, blue: 255 },
+        text: "Export Models"
+    });
+
+    var locationButton = Overlays.addOverlay("text", {
+        x: pos.x + margin,
+        y: pos.y + margin,
+        width: locationWidth,
+        height: height,
+        color: { red: 255, green: 255, blue: 255 },
+        text: "0, 0, 0",
+    });
+    var scaleOverlay = Overlays.addOverlay("image", {
+        x: pos.x + margin + locationWidth,
+        y: pos.y + margin,
+        width: scaleWidth,
+        height: height,
+        subImage: { x: 0, y: 3, width: 144, height: height},
+        imageURL: toolIconUrl + "voxel-size-selector.svg",
+        alpha: 0.9,
+    });
+    var scaleViewWidth = 40;
+    var scaleView = Overlays.addOverlay("text", {
+        x: pos.x + margin + locationWidth + SCALE_MINUS,
+        y: pos.y + margin,
+        width: scaleViewWidth,
+        height: height,
+        alpha: 0.0,
+        color: { red: 255, green: 255, blue: 255 },
+        text: "1"
+    });
+    var exportButton = Overlays.addOverlay("text", {
+        x: pos.x + margin + locationWidth + scaleWidth,
+        y: pos.y + margin,
+        width: exportWidth,
+        height: height,
+        color: { red: 0, green: 255, blue: 255 },
+        text: "Export"
+    });
+    var cancelButton = Overlays.addOverlay("text", {
+        x: pos.x + margin + locationWidth + scaleWidth + exportWidth,
+        y: pos.y + margin,
+        width: cancelWidth,
+        height: height,
+        color: { red: 255, green: 255, blue: 255 },
+        text: "Cancel"
+    });
+
+    var voxelPreview = Overlays.addOverlay("cube", {
+        position: { x: 0, y: 0, z: 0},
+        size: this._scale,
+        color: { red: 255, green: 255, blue: 0},
+        alpha: 1,
+        solid: false,
+        visible: true,
+        lineWidth: 4
+    });
+
+    this.parsePosition = function(str) {
+        var parts = str.split(',');
+        if (parts.length == 3) {
+            var x = parseFloat(parts[0]);
+            var y = parseFloat(parts[1]);
+            var z = parseFloat(parts[2]);
+            if (isFinite(x) && isFinite(y) && isFinite(z)) {
+                return { x: x, y: y, z: z };
+            }
+        }
+        return null;
+    };
+
+    this.showPositionPrompt = function() {
+        var positionStr = self._position.x + ", " + self._position.y + ", " + self._position.z;
+        while (1) {
+            positionStr = Window.prompt("Position to export form:", positionStr);
+            if (positionStr == null) {
+                break;
+            }
+            var position = self.parsePosition(positionStr);
+            if (position != null) {
+                self.setPosition(position.x, position.y, position.z);
+                break;
+            }
+            Window.alert("The position you entered was invalid.");
+        }
+    };
+
+    this.setScale = function(scale) {
+        self._scale = Math.min(maxScale, Math.max(minScale, scale));
+        Overlays.editOverlay(scaleView, { text: self._scale });
+        Overlays.editOverlay(voxelPreview, { size: self._scale });
+    }
+
+    this.decreaseScale = function() {
+        self.setScale(self._scale /= 2);
+    }
+
+    this.increaseScale = function() {
+        self.setScale(self._scale *= 2);
+    }
+
+    this.exportModels = function() {
+        var x = self._position.x;
+        var y = self._position.y;
+        var z = self._position.z;
+        var s = self._scale;
+        var filename = "models__" + Window.location.hostname + "__" + x + "_" + y + "_" + z + "_" + s + "__.svo";
+        filename = Window.save("Select where to save", filename, "*.svo")
+        if (filename) {
+            var success = Clipboard.exportModels(filename, x, y, z, s);
+            if (!success) {
+                Window.alert("Export failed: no models found in selected area.");
+            }
+        }
+        self.close();
+    };
+
+    this.getPosition = function() {
+        return self._position;
+    };
+
+    this.setPosition = function(x, y, z) {
+        self._position = { x: x, y: y, z: z };
+        var positionStr = x + ", " + y + ", " + z;
+        Overlays.editOverlay(locationButton, { text: positionStr });
+        Overlays.editOverlay(voxelPreview, { position: self._position });
+
+    };
+
+    this.mouseReleaseEvent = function(event) {
+        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+
+        if (clickedOverlay == locationButton) {
+            self.showPositionPrompt();
+        } else if (clickedOverlay == exportButton) {
+            self.exportModels();
+        } else if (clickedOverlay == cancelButton) {
+            self.close();
+        } else if (clickedOverlay == scaleOverlay) {
+            var x = event.x - pos.x - margin - locationWidth;
+            print(x);
+            if (x < SCALE_MINUS) {
+                self.decreaseScale();
+            } else if (x > SCALE_PLUS) {
+                self.increaseScale();
+            }
+        }
+    };
+
+    this.close = function() {
+        this.cleanup();
+        this._onClose();
+    };
+
+    this.cleanup = function() {
+        Overlays.deleteOverlay(background);
+        Overlays.deleteOverlay(titleText);
+        Overlays.deleteOverlay(locationButton);
+        Overlays.deleteOverlay(exportButton);
+        Overlays.deleteOverlay(cancelButton);
+        Overlays.deleteOverlay(voxelPreview);
+        Overlays.deleteOverlay(scaleOverlay);
+        Overlays.deleteOverlay(scaleView);
+    };
+
+    print("CONNECTING!");
+    Controller.mouseReleaseEvent.connect(this.mouseReleaseEvent);
+};
+
+var ModelImporter = function(opts) {
+    var self = this;
+
+    var height = 30;
+    var margin = 4;
+    var outerHeight = height + (2 * margin);
+    var titleWidth = 120;
+    var cancelWidth = 100;
+    var fullWidth = titleWidth + cancelWidth + (2 * margin);
+
+    var localModels = Overlays.addOverlay("localmodels", {
+        position: { x: 1, y: 1, z: 1 },
+        scale: 1,
+        visible: false
+    });
+    var importScale = 1;
+    var importBoundaries = Overlays.addOverlay("cube", {
+                                           position: { x: 0, y: 0, z: 0 },
+                                           size: 1,
+                                           color: { red: 128, blue: 128, green: 128 },
+                                           lineWidth: 4,
+                                           solid: false,
+                                           visible: false
+                                           });
+
+    var pos = { x: windowDimensions.x / 2 - (fullWidth / 2), y: windowDimensions.y - 100 };
+
+    var background = Overlays.addOverlay("text", {
+        x: pos.x,
+        y: pos.y,
+        opacity: 1,
+        width: fullWidth,
+        height: outerHeight,
+        backgroundColor: { red: 200, green: 200, blue: 200 },
+        visible: false,
+        text: "",
+    });
+
+    var titleText = Overlays.addOverlay("text", {
+        x: pos.x + margin,
+        y: pos.y + margin,
+        font: { size: 14 },
+        width: titleWidth,
+        height: height,
+        backgroundColor: { red: 255, green: 255, blue: 255 },
+        color: { red: 255, green: 255, blue: 255 },
+        visible: false,
+        text: "Import Models"
+    });
+    var cancelButton = Overlays.addOverlay("text", {
+        x: pos.x + margin + titleWidth,
+        y: pos.y + margin,
+        width: cancelWidth,
+        height: height,
+        color: { red: 255, green: 255, blue: 255 },
+        visible: false,
+        text: "Close"
+    });
+    this._importing = false;
+
+    this.setImportVisible = function(visible) {
+        Overlays.editOverlay(importBoundaries, { visible: visible });
+        Overlays.editOverlay(localModels, { visible: visible });
+        Overlays.editOverlay(cancelButton, { visible: visible });
+        Overlays.editOverlay(titleText, { visible: visible });
+        Overlays.editOverlay(background, { visible: visible });
+    };
+
+    var importPosition = { x: 0, y: 0, z: 0 };
+    this.moveImport = function(position) {
+        importPosition = position;
+        Overlays.editOverlay(localModels, {
+                             position: { x: importPosition.x, y: importPosition.y, z: importPosition.z }
+                             });
+        Overlays.editOverlay(importBoundaries, {
+                             position: { x: importPosition.x, y: importPosition.y, z: importPosition.z }
+                             });
+    }
+
+    this.mouseMoveEvent = function(event) {
+        if (self._importing) {
+            var pickRay = Camera.computePickRay(event.x, event.y);
+            var intersection = Voxels.findRayIntersection(pickRay);
+
+            var distance = 2;// * self._scale;
+
+            if (false) {//intersection.intersects) {
+                var intersectionDistance = Vec3.length(Vec3.subtract(pickRay.origin, intersection.intersection));
+                if (intersectionDistance < distance) {
+                    distance = intersectionDistance * 0.99;
+                }
+
+            }
+
+            var targetPosition = {
+                x: pickRay.origin.x + (pickRay.direction.x * distance),
+                y: pickRay.origin.y + (pickRay.direction.y * distance),
+                z: pickRay.origin.z + (pickRay.direction.z * distance)
+            };
+
+            if (targetPosition.x < 0) targetPosition.x = 0;
+            if (targetPosition.y < 0) targetPosition.y = 0;
+            if (targetPosition.z < 0) targetPosition.z = 0;
+
+            var nudgeFactor = 1;
+            var newPosition = {
+                x: Math.floor(targetPosition.x / nudgeFactor) * nudgeFactor,
+                y: Math.floor(targetPosition.y / nudgeFactor) * nudgeFactor,
+                z: Math.floor(targetPosition.z / nudgeFactor) * nudgeFactor
+            }
+
+            self.moveImport(newPosition);
+        }
+    }
+
+    this.mouseReleaseEvent = function(event) {
+        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+
+        if (clickedOverlay == cancelButton) {
+            self._importing = false;
+            self.setImportVisible(false);
+        }
+    };
+
+    // Would prefer to use {4} for the coords, but it would only capture the last digit.
+    var fileRegex = /__(.+)__(\d+(?:\.\d+)?)_(\d+(?:\.\d+)?)_(\d+(?:\.\d+)?)_(\d+(?:\.\d+)?)__/;
+    this.doImport = function() {
+        if (!self._importing) {
+            var filename = Window.browse("Select models to import", "", "*.svo")
+            if (filename) {
+                parts = fileRegex.exec(filename);
+                if (parts == null) {
+                    Window.alert("The file you selected does not contain source domain or location information");
+                } else {
+                    var hostname = parts[1];
+                    var x = parts[2];
+                    var y = parts[3];
+                    var z = parts[4];
+                    var s = parts[5];
+                    importScale = s;
+                    if (hostname != location.hostname) {
+                        if (!Window.confirm(("These models were not originally exported from this domain. Continue?"))) {
+                            return;
+                        }
+                    } else {
+                        if (Window.confirm(("Would you like to import back to the source location?"))) {
+                            var success = Clipboard.importModels(filename);
+                            if (success) {
+                                Clipboard.pasteModels(x, y, z, 1);
+                            } else {
+                                Window.alert("There was an error importing the model file.");
+                            }
+                            return;
+                        }
+                    }
+                }
+                var success = Clipboard.importModels(filename);
+                if (success) {
+                    self._importing = true;
+                    self.setImportVisible(true);
+                    Overlays.editOverlay(importBoundaries, { size: s });
+                } else {
+                    Window.alert("There was an error importing the model file.");
+                }
+            }
+        }
+    }
+
+    this.paste = function() {
+        if (self._importing) {
+            // self._importing = false;
+            // self.setImportVisible(false);
+            Clipboard.pasteModels(importPosition.x, importPosition.y, importPosition.z, 1);
+        }
+    }
+
+    this.cleanup = function() {
+        Overlays.deleteOverlay(localModels);
+        Overlays.deleteOverlay(importBoundaries);
+        Overlays.deleteOverlay(cancelButton);
+        Overlays.deleteOverlay(titleText);
+        Overlays.deleteOverlay(background);
+    }
+
+    Controller.mouseReleaseEvent.connect(this.mouseReleaseEvent);
+    Controller.mouseMoveEvent.connect(this.mouseMoveEvent);
+};
+
+var modelImporter = new ModelImporter();
+
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
     if (location.hostname == "hq.highfidelity.io" && 
@@ -1076,7 +1483,7 @@ function mouseReleaseEvent(event) {
 var modelMenuAddedDelete = false;
 function setupModelMenus() {
     print("setupModelMenus()");
-    // add our menuitems
+    // adj our menuitems
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Edit Properties...", 
         shortcutKeyEvent: { text: "`" }, afterItem: "Models" });
@@ -1088,6 +1495,12 @@ function setupModelMenus() {
     } else {
         print("delete exists... don't add ours");
     }
+
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
+
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
 }
 
 function cleanupModelMenus() {
@@ -1097,6 +1510,12 @@ function cleanupModelMenus() {
         // delete our menuitems
         Menu.removeMenuItem("Edit", "Delete");
     }
+
+    Menu.removeMenuItem("Edit", "Paste Models");
+
+    Menu.removeSeparator("File", "Models");
+    Menu.removeMenuItem("File", "Export Models");
+    Menu.removeMenuItem("File", "Import Models");
 }
 
 function scriptEnding() {
@@ -1105,6 +1524,10 @@ function scriptEnding() {
     toolBar.cleanup();
     cleanupModelMenus();
     tooltip.cleanup();
+    modelImporter.cleanup();
+    if (exportMenu) {
+        exportMenu.close();
+    }
 }
 Script.scriptEnding.connect(scriptEnding);
 
@@ -1185,6 +1608,18 @@ function handeMenuEvent(menuItem){
 
             Entities.editEntity(editModelID, properties);
         }
+    } else if (menuItem == "Paste Models") {
+        modelImporter.paste();
+    } else if (menuItem == "Export Models") {
+        if (!exportMenu) {
+            exportMenu = new ExportMenu({
+                onClose: function() {
+                    exportMenu = null;
+                }
+            });
+        }
+    } else if (menuItem == "Import Models") {
+        modelImporter.doImport();
     }
     tooltip.show(false);
 }

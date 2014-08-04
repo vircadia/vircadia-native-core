@@ -1,0 +1,120 @@
+// Things to do with entities...
+//
+// TODO:
+//
+//   1) consider moving type to front of buffers to make construction easier
+//   2) EntityTree::update()/EntityTreeElement::update()... for animations and velocity changes...
+//   3) The moving/pruning logic...
+//          The old code used the update loop to handle pruning entities from the
+//          incorrect tree element when they no longer were the best fit
+//
+//   4) can render happen while update is occurring? will this result in flicker??
+
+//   6) are we actually deleting the entities after deleteEntity???
+        Looks like the server is not actually deleting the items, and so they get resent into the scene.
+
+//   8) addOrUpdateEntity()
+        this is inefficient and not needed, the properties should just be updated in entityItem, and in the case
+        of knowing you're moving to new element, just call addEntityItem()
+
+//   10) What's wrong with this picture... we have 3 entities in our map but all have been deleted!!!
+// [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] EntityTree::debugDumpMap() -------------------------- 
+// [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 1 , creatorTokenID: 2 , isKnownID: true ] :  0x7fd71be05970 
+// [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 2 , creatorTokenID: 3 , isKnownID: true ] :  0x7fd71be05970 
+// [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 0 , creatorTokenID: 1 , isKnownID: true ] :  0x7fd71be05970 
+// [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] ----------------------------------------------------- 
+
+//   11) assert in qBitArray
+
+// [DEBUG] [2014-07-28 21:49:15 -0700] [41950:24258] [entity-server] EntityTree::processEditPacketData().... 
+// [FATAL] [2014-07-28 21:49:15 -0700] [41950:24258] [entity-server] ASSERT: "uint(i) < uint(size())" in file /usr/local/Cellar/qt5/5.2.0/lib/QtCore.framework/Headers/qbitarray.h, line 122
+// Abort trap: 6
+
+
+//   12) clean up delete behavior...
+//   12a) make sure server is deleting items??
+//   12b) Use the delete message instead of shouldDelete property
+
+//   13) add user properties (support sitpoints)
+//   14) implement "Light" entity
+
+
+
+//   18) change ID's to UUIDS????
+
+//   19) what about??? rememberDirtyCube()...
+
+//   21) LOD - we've never supported LOD in model server other than not recursing into nodes that can't be seen.
+//   21a) LOD - at higher level nodes with entities that are small, handle don't include small entities for LOD setting would not have sent them.
+//   21b) LOD - generalized "re-averaging"?
+//         how can we allow an entity to present itself to a higher level as an average?
+//              for models - we've talked about storing them as voxels...
+//              for models - if we had access to mesh, we could use numerous mesh LOD algorithms out there
+
+//   22) Import/Export Models - verify it works. /copy/paste??
+        22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
+        22b) Local Entities Overlay - from Local Models Overlay
+        22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
+        22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
+        22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
+
+
+
+
+
+
+===============
+
+
+
+
+// SOLVED - 5) crash in client assert on addEntity() assetting that not viewing???
+// SOLVED - 7) when changing properties that include position OR radius, but not both the update logic gets confused.
+// SOLVED - 8) in assignEntityID() we assert if the containing element exists... this is too harsh, what if someone sends us a bad packet
+//             -- fixed this by only storing assigned IDs in the server's ID base
+// SOLVED - 9) problem here... looks like the client got confused and sent us an unknown edit packet with a creator token id we already had...
+//             we probably can't keep the creator tokens in our server tree or else we'll collide between multiple editors!!
+//             -- fixed this by only storing assigned IDs in the server's ID base
+// 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] setContainingElement() entityItemID= [ id: 0 , creatorTokenID: 0 , isKnownID: true ] element= 0x7ff7b8702c50 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] EntityTree::debugDumpMap() -------------------------- 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] [ id: 0 , creatorTokenID: 0 , isKnownID: true ] :  0x7ff7b8702c50 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] ----------------------------------------------------- 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] AddEntityOperator calling setContainingElement... new entityID= [ id: 0 , creatorTokenID: 0 , isKnownID: true ] 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] EntityTree::debugDumpMap() -------------------------- 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] [ id: 0 , creatorTokenID: 0 , isKnownID: true ] :  0x7ff7b8702c50 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] ----------------------------------------------------- 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] AFTER... about to call recurseTreeWithOperator(AddEntityOperator)... 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] EntityTree::debugDumpMap() -------------------------- 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] [ id: 0 , creatorTokenID: 0 , isKnownID: true ] :  0x7ff7b8702c50 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] ----------------------------------------------------- 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] EntityServer::entityCreated() newEntity.getEntityItemID()= [ id: 0 , creatorTokenID: 0 , isKnownID: true ] 
+// [DEBUG] [2014-07-28 21:22:07 -0700] [41087:24258] [entity-server] EntityServer::entityCreated() writeDatagram() 
+// [DEBUG] [2014-07-28 21:22:10 -0700] [41087:24258] [entity-server] Killed "Agent" (I) {79efcb8c-614c-42f4-abb9-72d096603c85} 50.132.90.94:51973 / 192.168.1.152:51973 
+// [DEBUG] [2014-07-28 21:22:10 -0700] [41087:24258] [entity-server] Entity server killed node: "Agent" (I) {79efcb8c-614c-42f4-abb9-72d096603c85} 50.132.90.94:51973 / 192.168.1.152:51973 
+// [DEBUG] [2014-07-28 21:22:10 -0700] [41087:24258] [entity-server] Added "Agent" (I) {79efcb8c-614c-42f4-abb9-72d096603c85} 50.132.90.94:51973 / 192.168.1.152:51973 
+// [DEBUG] [2014-07-28 21:22:10 -0700] [41087:24258] [entity-server] Entity server added node: "Agent" (I) {79efcb8c-614c-42f4-abb9-72d096603c85} 50.132.90.94:51973 / 192.168.1.152:51973 
+// [DEBUG] [2014-07-28 21:22:10 -0700] [41087:24258] [entity-server] Entity server [ EntityServer(0x7ff7bc000000) ]: client disconnected - ending sending thread [ OctreeSendThread(0x7ff7b9006e00) ] 
+// [DEBUG] [2014-07-28 21:22:14 -0700] [41087:24258] [entity-server] Killed "Agent" (I) {79efcb8c-614c-42f4-abb9-72d096603c85} 50.132.90.94:51973 / 192.168.1.152:51973 
+// [DEBUG] [2014-07-28 21:22:14 -0700] [41087:24258] [entity-server] Entity server killed node: "Agent" (I) {79efcb8c-614c-42f4-abb9-72d096603c85} 50.132.90.94:51973 / 192.168.1.152:51973 
+// [DEBUG] [2014-07-28 21:22:14 -0700] [41087:24258] [entity-server] Entity server node missing linked data node: "Agent" (I) {79efcb8c-614c-42f4-abb9-72d096603c85} 50.132.90.94:51973 / 192.168.1.152:51973 
+// [DEBUG] [2014-07-28 21:22:32 -0700] [41087:24258] [entity-server] saving Octrees to file  "resources/models.svo" ... 
+// [DEBUG] [2014-07-28 21:22:32 -0700] [41087:24258] [entity-server] DONE saving Octrees to file...
+// [DEBUG] [2014-07-28 21:23:59 -0700] [41087:24258] [entity-server] Packet of type 3 received from unknown node with UUID QUuid("{12a522ec-7476-4d68-8e31-da39eb4a18b2}") 
+// [DEBUG] [2014-07-28 21:24:00 -0700] [41087:24258] [entity-server] Added "Agent" (I) {12a522ec-7476-4d68-8e31-da39eb4a18b2} 50.132.90.94:65198 / 192.168.1.152:65198 
+// [DEBUG] [2014-07-28 21:24:00 -0700] [41087:24258] [entity-server] Entity server added node: "Agent" (I) {12a522ec-7476-4d68-8e31-da39eb4a18b2} 50.132.90.94:65198 / 192.168.1.152:65198 
+// [DEBUG] [2014-07-28 21:24:00 -0700] [41087:24258] [entity-server] Activating local socket for node "Agent" (I) {12a522ec-7476-4d68-8e31-da39eb4a18b2} 50.132.90.94:65198 / 192.168.1.152:65198 
+// [DEBUG] [2014-07-28 21:24:02 -0700] [41087:24258] [entity-server] Entity server [ EntityServer(0x7ff7bc000000) ]: client connected - starting sending thread [ OctreeSendThread(0x7ff7bb000c00) ] 
+// [DEBUG] [2014-07-28 21:24:07 -0700] [41087:24258] [entity-server] EntityTree::processEditPacketData().... 
+// [DEBUG] [2014-07-28 21:24:07 -0700] [41087:24258] [entity-server] EntityTree::getContainingElement() entityItemID= [ id: 4294967295 , creatorTokenID: 0 , isKnownID: false ] 
+// [DEBUG] [2014-07-28 21:24:07 -0700] [41087:24258] [entity-server] EntityTree::debugDumpMap() -------------------------- 
+// [DEBUG] [2014-07-28 21:24:07 -0700] [41087:24258] [entity-server] [ id: 0 , creatorTokenID: 0 , isKnownID: true ] :  0x7ff7b8702c50 
+// [DEBUG] [2014-07-28 21:24:07 -0700] [41087:24258] [entity-server] ----------------------------------------------------- 
+// Assertion failed: (!getContainingElement(entityItemID)), function assignEntityID, file /Users/zappoman/Development/HiFi/hifi/libraries/entities/src/EntityTree.cpp, line 958.
+// 
+// 
+// SOLVED - 15) fix all places where "Voxels" turns off some features of models/entities
+// SOLVED - 16) duplicate copies of entity references in the elements... this appears to be caused when "viewing" while editing...
+// SOLVED - 17) Handle the newer on client vs changed on server problem properly for entities
+// SOLVED - 20) Verified that multiple machines viewing real time edits works - fixed bugs in lastEdited.
+

@@ -11,9 +11,11 @@
 
 #include "VerletPoint.h"
 
+const float INTEGRATION_FRICTION_FACTOR = 0.6f;
+
 void VerletPoint::integrateForward() {
     glm::vec3 oldPosition = _position;
-    _position += 0.6f * (_position - _lastPosition);
+    _position += INTEGRATION_FRICTION_FACTOR * (_position - _lastPosition);
     _lastPosition = oldPosition;
 }
 

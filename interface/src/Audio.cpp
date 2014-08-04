@@ -49,6 +49,7 @@ static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_
 static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 
 static const int FRAMES_AVAILABLE_STATS_WINDOW_SECONDS = 10;
+static const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.0f / AUDIO_CALLBACK_MSECS);
 
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
@@ -112,7 +113,10 @@ Audio::Audio(QObject* parent) :
     _outgoingAvatarAudioSequenceNumber(0),
     _audioInputMsecsReadStats(MSECS_PER_SECOND / (float)AUDIO_CALLBACK_MSECS * CALLBACK_ACCELERATOR_RATIO, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _inputRingBufferMsecsAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
-    _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS)
+    _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
+    _lastSentAudioPacket(0),
+    _packetSentTimeGaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS)
+    
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -128,7 +132,6 @@ void Audio::init(QGLWidget *parent) {
 
 void Audio::reset() {
     _receivedAudioStream.reset();
-
     resetStats();
 }
 
@@ -142,6 +145,7 @@ void Audio::resetStats() {
     _inputRingBufferMsecsAvailableStats.reset();
 
     _audioOutputMsecsUnplayedStats.reset();
+    _packetSentTimeGaps.reset();
 }
 
 void Audio::audioMixerKilled() {
@@ -699,6 +703,17 @@ void Audio::handleAudioInput() {
             // memcpy our orientation
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
+
+            // first time this is 0
+            if (_lastSentAudioPacket == 0) {
+                _lastSentAudioPacket = usecTimestampNow();
+            } else {
+                quint64 now = usecTimestampNow();
+                quint64 gap = now - _lastSentAudioPacket;
+                _packetSentTimeGaps.update(gap);
+
+                _lastSentAudioPacket = now;
+            }
             
             nodeList->writeDatagram(audioDataPacket, numAudioBytes + leadingBytes, audioMixer);
             _outgoingAvatarAudioSequenceNumber++;
@@ -709,7 +724,7 @@ void Audio::handleAudioInput() {
         delete[] inputAudioSamples;
     }
 
-    if (_receivedAudioStream.getPacketReceived() > 0) {
+    if (_receivedAudioStream.getPacketsReceived() > 0) {
         pushAudioToOutput();
     }
 }
@@ -1307,10 +1322,10 @@ void Audio::renderStats(const float* color, int width, int height) {
         return;
     }
 
-    const int linesWhenCentered = _statsShowInjectedStreams ? 30 : 23;
+    const int linesWhenCentered = _statsShowInjectedStreams ? 34 : 27;
     const int CENTERED_BACKGROUND_HEIGHT = STATS_HEIGHT_PER_LINE * linesWhenCentered;
 
-    int lines = _statsShowInjectedStreams ? _audioMixerInjectedStreamAudioStatsMap.size() * 7 + 23 : 23;
+    int lines = _statsShowInjectedStreams ? _audioMixerInjectedStreamAudioStatsMap.size() * 7 + 27 : 27;
     int statsHeight = STATS_HEIGHT_PER_LINE * lines;
 
 
@@ -1384,7 +1399,28 @@ void Audio::renderStats(const float* color, int width, int height) {
 
     verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
 
-    char upstreamMicLabelString[] = "Upstream mic audio stats:";
+    char clientUpstreamMicLabelString[] = "Upstream Mic Audio Packets Sent Gaps (by client):";
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, clientUpstreamMicLabelString, color);
+
+    char stringBuffer[512];
+    sprintf(stringBuffer, "  Inter-packet timegaps (overall) | min: %9s, max: %9s, avg: %9s",
+        formatUsecTime(_packetSentTimeGaps.getMin()).toLatin1().data(),
+        formatUsecTime(_packetSentTimeGaps.getMax()).toLatin1().data(),
+        formatUsecTime(_packetSentTimeGaps.getAverage()).toLatin1().data());
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
+
+    sprintf(stringBuffer, " Inter-packet timegaps (last 30s) | min: %9s, max: %9s, avg: %9s",
+        formatUsecTime(_packetSentTimeGaps.getWindowMin()).toLatin1().data(),
+        formatUsecTime(_packetSentTimeGaps.getWindowMax()).toLatin1().data(),
+        formatUsecTime(_packetSentTimeGaps.getWindowAverage()).toLatin1().data());
+    verticalOffset += STATS_HEIGHT_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
+
+    verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
+
+    char upstreamMicLabelString[] = "Upstream mic audio stats (received and reported by audio-mixer):";
     verticalOffset += STATS_HEIGHT_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamMicLabelString, color);
 
@@ -1424,9 +1460,9 @@ void Audio::renderAudioStreamStats(const AudioStreamStats& streamStats, int hori
 
     sprintf(stringBuffer, "                      Packet loss | overall: %5.2f%% (%d lost), last_30s: %5.2f%% (%d lost)",
         streamStats._packetStreamStats.getLostRate() * 100.0f,
-        streamStats._packetStreamStats._numLost,
+        streamStats._packetStreamStats._lost,
         streamStats._packetStreamWindowStats.getLostRate() * 100.0f,
-        streamStats._packetStreamWindowStats._numLost);
+        streamStats._packetStreamWindowStats._lost);
     verticalOffset += STATS_HEIGHT_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
 

@@ -12,6 +12,7 @@
 #ifndef hifi_DomainHandler_h
 #define hifi_DomainHandler_h
 
+#include <QtCore/QJsonObject>
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
@@ -33,6 +34,7 @@ public:
     DomainHandler(QObject* parent = 0);
     
     void clearConnectionInfo();
+    void clearSettings();
     
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
@@ -54,16 +56,26 @@ public:
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
     
+    bool hasSettings() const { return !_settingsObject.isEmpty(); }
+    void requestDomainSettings() const;
+    const QJsonObject& getSettingsObject() const { return _settingsObject; }
+    
     void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
+    
+    void softReset();
     
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
+    void settingsRequestFinished();
 signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);
     
+    void settingsReceived(const QJsonObject& domainSettingsObject);
+    void settingsReceiveFail();
+    
 private:
-    void reset();
+    void hardReset();
     
     QUuid _uuid;
     QString _hostname;
@@ -71,6 +83,8 @@ private:
     QUuid _assignmentUUID;
     bool _isConnected;
     QTimer* _handshakeTimer;
+    QJsonObject _settingsObject;
+    int _failedSettingsRequests;
 };
 
 #endif // hifi_DomainHandler_h

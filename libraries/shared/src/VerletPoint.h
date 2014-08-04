@@ -23,10 +23,6 @@ public:
     void accumulateDelta(const glm::vec3& delta);
     void applyAccumulatedDelta();
 
-    glm::vec3 getAccumulatedDelta() const { 
-        return (_numDeltas > 0) ?  _accumulatedDelta / (float)_numDeltas : glm::vec3(0.0f);
-    }
-
     glm::vec3 _position;
     glm::vec3 _lastPosition;
     float _mass;

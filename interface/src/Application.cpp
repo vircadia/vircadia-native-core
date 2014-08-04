@@ -69,6 +69,7 @@
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
+#include "PaymentManager.h"
 #include "Util.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
@@ -139,6 +140,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(NULL),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
+        _entityClipboardRenderer(),
+        _entityClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
@@ -173,6 +176,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow())
 {
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -233,9 +237,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
 
     audioThread->start();
+    
+    const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
-    connect(&nodeList->getDomainHandler(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
-    connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
+    
+    // hookup VoxelEditSender to PaymentManager so we can pay for octree edits
+    const PaymentManager& paymentManager = PaymentManager::getInstance();
+    connect(&_voxelEditSender, &VoxelEditPacketSender::octreePaymentRequired,
+            &paymentManager, &PaymentManager::sendSignedPayment);
 
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -1500,6 +1512,34 @@ struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
 };
 
+// TODO: change names to entities...
+bool Application::exportModels(const QString& filename, float x, float y, float z, float scale) {
+    QVector<EntityItem*> entities;
+    _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
+                                y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), entities);
+    if (entities.size() > 0) {
+        glm::vec3 root(x, y, z);
+        EntityTree exportTree;
+
+        for (int i = 0; i < entities.size(); i++) {
+            EntityItemProperties properties = entities.at(i)->getProperties();
+            EntityItemID id = entities.at(i)->getEntityItemID();
+            id.isKnownID = false;
+            properties.setPosition(properties.getPosition() - root);
+            exportTree.addEntity(id, properties);
+        }
+
+        exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
+    } else {
+        qDebug() << "No models were selected";
+        return false;
+    }
+
+    // restore the main window's active state
+    _window->activateWindow();
+    return true;
+}
+
 bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
@@ -1579,6 +1619,19 @@ void Application::importVoxels() {
     _window->activateWindow();
 
     emit importDone();
+}
+
+bool Application::importModels(const QString& filename) {
+    _entityClipboard.eraseAllOctreeElements();
+    bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
+    if (success) {
+        _entityClipboard.reaverageOctreeElements();
+    }
+    return success;
+}
+
+void Application::pasteModels(float x, float y, float z) {
+    _entityClipboard.sendEntities(&_entityEditSender, x, y, z);
 }
 
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
@@ -1743,6 +1796,10 @@ void Application::init() {
 
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
+
+    _entityClipboardRenderer.init();
+    _entityClipboardRenderer.setViewFrustum(getViewFrustum());
+    _entityClipboardRenderer.setTree(&_entityClipboard);
 
     _metavoxels.init();
 
@@ -3666,6 +3723,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
     connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
 
+    connect(scriptEngine, SIGNAL(loadScript(const QString&)), this, SLOT(loadScript(const QString&)));
+
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
@@ -3790,6 +3849,38 @@ void Application::uploadSkeleton() {
 
 void Application::uploadAttachment() {
     uploadModel(ATTACHMENT_MODEL);
+}
+
+void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
+    
+    // from the domain-handler, figure out the satoshi cost per voxel and per meter cubed
+    const QString VOXEL_SETTINGS_KEY = "voxels";
+    const QString PER_VOXEL_COST_KEY = "per-voxel-credits";
+    const QString PER_METER_CUBED_COST_KEY = "per-meter-cubed-credits";
+    const QString VOXEL_WALLET_UUID = "voxel-wallet";
+    
+    const QJsonObject& voxelObject = domainSettingsObject[VOXEL_SETTINGS_KEY].toObject();
+    
+    qint64 satoshisPerVoxel = 0;
+    qint64 satoshisPerMeterCubed = 0;
+    QUuid voxelWalletUUID;
+    
+    if (!domainSettingsObject.isEmpty()) {
+        float perVoxelCredits = (float) voxelObject[PER_VOXEL_COST_KEY].toDouble();
+        float perMeterCubedCredits = (float) voxelObject[PER_METER_CUBED_COST_KEY].toDouble();
+        
+        satoshisPerVoxel = (qint64) floorf(perVoxelCredits * SATOSHIS_PER_CREDIT);
+        satoshisPerMeterCubed = (qint64) floorf(perMeterCubedCredits * SATOSHIS_PER_CREDIT);
+        
+        voxelWalletUUID = QUuid(voxelObject[VOXEL_WALLET_UUID].toString());
+    }
+    
+    qDebug() << "Voxel costs are" << satoshisPerVoxel << "per voxel and" << satoshisPerMeterCubed << "per meter cubed";
+    qDebug() << "Destination wallet UUID for voxel payments is" << voxelWalletUUID;
+    
+    _voxelEditSender.setSatoshisPerVoxel(satoshisPerVoxel);
+    _voxelEditSender.setSatoshisPerMeterCubed(satoshisPerMeterCubed);
+    _voxelEditSender.setDestinationWalletUUID(voxelWalletUUID);
 }
 
 QString Application::getPreviousScriptLocation() {

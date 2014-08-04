@@ -178,7 +178,7 @@ void NodeList::reset() {
     setSessionUUID(QUuid());
     
     // clear the domain connection information
-    _domainHandler.clearConnectionInfo();
+    _domainHandler.softReset();
     
     // if we setup the DTLS socket, also disconnect from the DTLS socket readyRead() so it can handle handshaking
     if (_dtlsSocket) {

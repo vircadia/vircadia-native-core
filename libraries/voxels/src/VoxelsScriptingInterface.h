@@ -102,6 +102,7 @@ private:
     void queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails);
     VoxelTree* _tree;
     QUndoStack* _undoStack;
+    QMutex _undoStackMutex;
 };
 
 #endif // hifi_VoxelsScriptingInterface_h

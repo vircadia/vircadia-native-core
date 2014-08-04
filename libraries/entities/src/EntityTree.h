@@ -25,6 +25,14 @@ public:
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem& entityItem) = 0;
 };
 
+
+class SendEntitiesOperationArgs {
+public:
+    glm::vec3 root;
+    EntityEditPacketSender* packetSender;
+};
+
+
 class EntityTree : public Octree {
     Q_OBJECT
 public:
@@ -105,6 +113,7 @@ public:
     void rememberDirtyCube(const AACube& cube);
     void rememberEntityToMove(const EntityItem* entity);
 
+    void sendEntities(EntityEditPacketSender* packetSender, float x, float y, float z);
 
 private:
 
@@ -118,6 +127,7 @@ private:
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateEntityItemIDOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
+    static bool sendEntitiesOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 

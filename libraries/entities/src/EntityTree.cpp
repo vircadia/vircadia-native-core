@@ -1460,3 +1460,33 @@ void EntityTree::rememberEntityToMove(const EntityItem* entity) {
     // TODO: do something here
     qDebug() << "void EntityTree::rememberEntityToMove() CALLED BUT NOT IMPLEMENTED!";
 }
+
+void EntityTree::sendEntities(EntityEditPacketSender* packetSender, float x, float y, float z) {
+    SendEntitiesOperationArgs args;
+    args.packetSender = packetSender;
+    args.root = glm::vec3(x, y, z);
+    recurseTreeWithOperation(sendEntitiesOperation, &args);
+    packetSender->releaseQueuedMessages();
+}
+
+bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {
+    SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+
+    // TODO: implement this!!
+    /**
+    const QList<ModelItem>& modelList = modelTreeElement->getModels();
+
+    for (int i = 0; i < modelList.size(); i++) {
+        uint32_t creatorTokenID = ModelItem::getNextCreatorTokenID();
+        ModelItemID id(NEW_MODEL, creatorTokenID, false);
+        ModelItemProperties properties;
+        properties.copyFromNewModelItem(modelList.at(i));
+        properties.setPosition(properties.getPosition() + args->root);
+        args->packetSender->queueModelEditMessage(PacketTypeModelAddOrEdit, id, properties);
+    }
+    **/
+
+    return true;
+}
+

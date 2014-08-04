@@ -127,6 +127,8 @@ public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void sendStatsPacket();
+    
+    void handleSignedTransactionPaymentResponse(const QJsonObject& jsonObject);
 
 protected:
     void parsePayload();
@@ -137,6 +139,8 @@ protected:
     QString getConfiguration();
     QString getStatusLink();
 
+    void handleSignedTransactionPayment(PacketType packetType, const QByteArray& datagram);
+    
     int _argc;
     const char** _argv;
     char** _parsedArgV;

@@ -17,14 +17,6 @@
 #include <PacketHeaders.h>
 #include "OctreeEditPacketSender.h"
 
-EditPacketBuffer::EditPacketBuffer(PacketType type, unsigned char* buffer, ssize_t length, QUuid nodeUUID) :
-    _nodeUUID(nodeUUID),
-    _currentType(type),
-    _currentSize(length)
-{
-    memcpy(_currentBuffer, buffer, length);
-};
-
 const int OctreeEditPacketSender::DEFAULT_MAX_PENDING_MESSAGES = PacketSender::DEFAULT_PACKETS_PER_SECOND;
 
 
@@ -34,7 +26,10 @@ OctreeEditPacketSender::OctreeEditPacketSender() :
     _maxPendingMessages(DEFAULT_MAX_PENDING_MESSAGES),
     _releaseQueuedMessagesPending(false),
     _serverJurisdictions(NULL),
-    _maxPacketSize(MAX_PACKET_SIZE) {
+    _maxPacketSize(MAX_PACKET_SIZE),
+    _destinationWalletUUID()
+{
+    
 }
 
 OctreeEditPacketSender::~OctreeEditPacketSender() {
@@ -87,7 +82,8 @@ bool OctreeEditPacketSender::serversExist() const {
 
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
 // a known nodeID.
-void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer, ssize_t length) {
+void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer,
+                                               ssize_t length, qint64 satoshiCost) {
     NodeList* nodeList = NodeList::getInstance();
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
@@ -101,10 +97,16 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                 unsigned char* sequenceAt = buffer + numBytesPacketHeader;
                 quint16 sequence = _outgoingSequenceNumbers[nodeUUID]++;
                 memcpy(sequenceAt, &sequence, sizeof(quint16));
-
+                
                 // send packet
                 QByteArray packet(reinterpret_cast<const char*>(buffer), length);
                 queuePacketForSending(node, packet);
+                
+                if (hasDestinationWalletUUID() && satoshiCost > 0) {
+                    // if we have a destination wallet UUID and a cost associated with this packet, signal that it
+                    // needs to be sent
+                    emit octreePaymentRequired(satoshiCost, nodeUUID, _destinationWalletUUID);
+                }
 
                 // add packet to history
                 _sentPacketHistories[nodeUUID].packetSent(sequence, packet);
@@ -120,6 +122,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
 
                     qDebug() << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] <<
                             " - command to node bytes=" << length <<
+                            " satoshiCost=" << satoshiCost <<
                             " sequence=" << sequence <<
                             " transitTimeSoFar=" << transitTime << " usecs";
                 }
@@ -135,7 +138,7 @@ void OctreeEditPacketSender::processPreServerExistsPackets() {
     _pendingPacketsLock.lock();
     while (!_preServerSingleMessagePackets.empty()) {
         EditPacketBuffer* packet = _preServerSingleMessagePackets.front();
-        queuePacketToNodes(&packet->_currentBuffer[0], packet->_currentSize);
+        queuePacketToNodes(&packet->_currentBuffer[0], packet->_currentSize, packet->_satoshiCost);
         delete packet;
         _preServerSingleMessagePackets.erase(_preServerSingleMessagePackets.begin());
     }
@@ -157,11 +160,12 @@ void OctreeEditPacketSender::processPreServerExistsPackets() {
     }
 }
 
-void OctreeEditPacketSender::queuePendingPacketToNodes(PacketType type, unsigned char* buffer, ssize_t length) {
+void OctreeEditPacketSender::queuePendingPacketToNodes(PacketType type, unsigned char* buffer,
+                                                       ssize_t length, qint64 satoshiCost) {
     // If we're asked to save messages while waiting for voxel servers to arrive, then do so...
 
     if (_maxPendingMessages > 0) {
-        EditPacketBuffer* packet = new EditPacketBuffer(type, buffer, length);
+        EditPacketBuffer* packet = new EditPacketBuffer(type, buffer, length, satoshiCost);
         _pendingPacketsLock.lock();
         _preServerSingleMessagePackets.push_back(packet);
         // if we've saved MORE than our max, then clear out the oldest packet...
@@ -175,7 +179,7 @@ void OctreeEditPacketSender::queuePendingPacketToNodes(PacketType type, unsigned
     }
 }
 
-void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t length) {
+void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t length, qint64 satoshiCost) {
     if (!_shouldSend) {
         return; // bail early
     }
@@ -202,7 +206,7 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
             isMyJurisdiction = (map.isMyJurisdiction(octCode, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
             _serverJurisdictions->unlock();
             if (isMyJurisdiction) {
-                queuePacketToNode(nodeUUID, buffer, length);
+                queuePacketToNode(nodeUUID, buffer, length, satoshiCost);
             }
         }
     }
@@ -210,7 +214,8 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
 
 
 // NOTE: editPacketBuffer - is JUST the octcode/color and does not contain the packet header!
-void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned char* editPacketBuffer, ssize_t length) {
+void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned char* editPacketBuffer,
+                                                    ssize_t length, qint64 satoshiCost) {
 
     if (!_shouldSend) {
         return; // bail early
@@ -285,6 +290,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
 
                 memcpy(&packetBuffer._currentBuffer[packetBuffer._currentSize], editPacketBuffer, length);
                 packetBuffer._currentSize += length;
+                packetBuffer._satoshiCost += satoshiCost;
             }
         }
     }
@@ -306,7 +312,8 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
 void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) {
     _releaseQueuedPacketMutex.lock();
     if (packetBuffer._currentSize > 0 && packetBuffer._currentType != PacketTypeUnknown) {
-        queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
+        queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0],
+                          packetBuffer._currentSize, packetBuffer._satoshiCost);
         packetBuffer._currentSize = 0;
         packetBuffer._currentType = PacketTypeUnknown;
     }
@@ -326,6 +333,9 @@ void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, Pa
     packetBuffer._currentSize += sizeof(quint64); // nudge past timestamp
 
     packetBuffer._currentType = type;
+    
+    // reset cost for packet to 0
+    packetBuffer._satoshiCost = 0;
 }
 
 bool OctreeEditPacketSender::process() {
