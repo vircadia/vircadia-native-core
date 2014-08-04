@@ -279,6 +279,9 @@ private:
     MovingMinMaxAvg<float> _inputRingBufferMsecsAvailableStats;
 
     MovingMinMaxAvg<float> _audioOutputMsecsUnplayedStats;
+
+    quint64 _lastSentAudioPacket;
+    MovingMinMaxAvg<quint64> _packetSentTimeGaps;
 };
 
 

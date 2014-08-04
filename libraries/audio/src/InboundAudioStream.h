@@ -108,7 +108,7 @@ public:
     int getSilentFramesDropped() const { return _silentFramesDropped; }
     int getOverflowCount() const { return _ringBuffer.getOverflowCount(); }
 
-    int getPacketReceived() const { return _incomingSequenceNumberStats.getNumReceived(); }
+    int getPacketsReceived() const { return _incomingSequenceNumberStats.getReceived(); }
 
 private:
     void starved();

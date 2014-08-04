@@ -16,8 +16,7 @@
 
 const float DEFAULT_MUSCLE_STRENGTH = 0.5f * MAX_MUSCLE_STRENGTH;
 
-MuscleConstraint::MuscleConstraint(VerletPoint* parent, VerletPoint* child)
-        : _rootPoint(parent), _childPoint(child), 
+MuscleConstraint::MuscleConstraint(VerletPoint* parent, VerletPoint* child) : _rootPoint(parent), _childPoint(child), 
         _parentIndex(-1), _childndex(-1), _strength(DEFAULT_MUSCLE_STRENGTH) {
     _childOffset = child->_position - parent->_position;
 }
