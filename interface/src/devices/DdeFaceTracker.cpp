@@ -45,8 +45,22 @@ struct Packet{
 
 DdeFaceTracker::DdeFaceTracker() :
 _lastReceiveTimestamp(0),
-_reset(false)
+_reset(false),
+_leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+_rightBlinkIndex(1),
+_leftEyeOpenIndex(8),
+_rightEyeOpenIndex(9),
+_browDownLeftIndex(14),
+_browDownRightIndex(15),
+_browUpCenterIndex(16),
+_browUpLeftIndex(17),
+_browUpRightIndex(18),
+_mouthSmileLeftIndex(28),
+_mouthSmileRightIndex(29),
+_jawOpenIndex(21)
 {
+    _blendshapeCoefficients.resize(NUM_EXPRESSION);
+    
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
     connect(&_udpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SLOT(socketStateChanged(QAbstractSocket::SocketState)));
@@ -56,8 +70,22 @@ _reset(false)
 
 DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
 _lastReceiveTimestamp(0),
-_reset(false)
+_reset(false),
+_leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+_rightBlinkIndex(1),
+_leftEyeOpenIndex(8),
+_rightEyeOpenIndex(9),
+_browDownLeftIndex(14),
+_browDownRightIndex(15),
+_browUpCenterIndex(16),
+_browUpLeftIndex(17),
+_browUpRightIndex(18),
+_mouthSmileLeftIndex(28),
+_mouthSmileRightIndex(29),
+_jawOpenIndex(21)
 {
+    _blendshapeCoefficients.resize(NUM_EXPRESSION);
+    
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
     connect(&_udpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SIGNAL(socketStateChanged(QAbstractSocket::SocketState)));
@@ -140,6 +168,10 @@ void DdeFaceTracker::readPendingDatagrams() {
     decodePacket(buffer);
 }
 
+float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
+    return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
+}
+
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     if(buffer.size() > MIN_PACKET_SIZE) {
         Packet packet;
@@ -171,8 +203,16 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _headRotation = rotation;
         
         // Set blendshapes
+        _blendshapeCoefficients[_leftBlinkIndex] = packet.expressions[1];
+        _blendshapeCoefficients[_rightBlinkIndex] = packet.expressions[0];
         
+        _blendshapeCoefficients[_browDownLeftIndex] = packet.expressions[14];
+        _blendshapeCoefficients[_browDownRightIndex] = packet.expressions[15];
+        _blendshapeCoefficients[_browUpCenterIndex] = (packet.expressions[14] + packet.expressions[14]) / 2.0f;
+        _blendshapeCoefficients[_browUpLeftIndex] = packet.expressions[14];
+        _blendshapeCoefficients[_browUpRightIndex] = packet.expressions[15];
         
+        _blendshapeCoefficients[_jawOpenIndex] = packet.expressions[21];
         
     } else {
         qDebug() << "[Error] DDE Face Tracker Decode Error";

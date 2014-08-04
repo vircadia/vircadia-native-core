@@ -34,6 +34,21 @@ public:
     void bindTo(const QHostAddress& host, quint16 port);
     bool isActive() const;
     
+    float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
+    float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }
+    float getLeftEyeOpen() const { return getBlendshapeCoefficient(_leftEyeOpenIndex); }
+    float getRightEyeOpen() const { return getBlendshapeCoefficient(_rightEyeOpenIndex); }
+    
+    float getBrowDownLeft() const { return getBlendshapeCoefficient(_browDownLeftIndex); }
+    float getBrowDownRight() const { return getBlendshapeCoefficient(_browDownRightIndex); }
+    float getBrowUpCenter() const { return getBlendshapeCoefficient(_browUpCenterIndex); }
+    float getBrowUpLeft() const { return getBlendshapeCoefficient(_browUpLeftIndex); }
+    float getBrowUpRight() const { return getBlendshapeCoefficient(_browUpRightIndex); }
+    
+    float getMouthSize() const { return getBlendshapeCoefficient(_jawOpenIndex); }
+    float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
+    float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
+    
 private slots:
     
     //sockets
@@ -42,6 +57,7 @@ private slots:
     void socketStateChanged(QAbstractSocket::SocketState socketState);
     
 private:
+    float getBlendshapeCoefficient(int index) const;
     void decodePacket(const QByteArray& buffer);
     
     // sockets
@@ -51,6 +67,23 @@ private:
     bool _reset;
     glm::vec3 _referenceTranslation;
     glm::quat _referenceRotation;
+    
+    int _leftBlinkIndex;
+    int _rightBlinkIndex;
+    int _leftEyeOpenIndex;
+    int _rightEyeOpenIndex;
+    
+    // Brows
+    int _browDownLeftIndex;
+    int _browDownRightIndex;
+    int _browUpCenterIndex;
+    int _browUpLeftIndex;
+    int _browUpRightIndex;
+    
+    int _mouthSmileLeftIndex;
+    int _mouthSmileRightIndex;
+    
+    int _jawOpenIndex;
 };
 
 #endif // hifi_DdeFaceTracker_h
