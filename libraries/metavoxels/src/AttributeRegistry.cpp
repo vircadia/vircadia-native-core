@@ -559,9 +559,6 @@ bool HeightfieldAttribute::merge(void*& parent, void* children[], bool postRead)
         }
         const QByteArray& childContents = child->getContents();
         int childSize = glm::sqrt((float)childContents.size());
-        if (childSize != size) {
-            continue; // TODO: handle differently-sized children
-        }
         const int INDEX_MASK = 1;
         int xIndex = i & INDEX_MASK;
         const int Y_SHIFT = 1;
@@ -576,13 +573,33 @@ bool HeightfieldAttribute::merge(void*& parent, void* children[], bool postRead)
         char* dest = contents.data() + (zIndex * halfSize * size) + (xIndex * halfSize);
         uchar* src = (uchar*)childContents.data();
         int childSizePlusOne = childSize + 1;
-        for (int z = 0; z < halfSize; z++) {
-            for (char* end = dest + halfSize; dest != end; src += 2) {
-                int max = qMax(qMax(src[0], src[1]), qMax(src[childSize], src[childSizePlusOne]));
-                *dest++ = (max == 0) ? 0 : (yOffset + (max >> 1));
+        if (childSize == size) {
+            // simple case: one destination value for four child values
+            for (int z = 0; z < halfSize; z++) {
+                for (char* end = dest + halfSize; dest != end; src += 2) {
+                    int max = qMax(qMax(src[0], src[1]), qMax(src[childSize], src[childSizePlusOne]));
+                    *dest++ = (max == 0) ? 0 : (yOffset + (max >> 1));
+                }
+                dest += halfSize;
+                src += childSize;
             }
-            dest += halfSize;
-            src += childSize;
+        } else {
+            // more complex: N destination values for four child values
+            int halfChildSize = childSize / 2;
+            int destPerSrc = size / childSize;
+            for (int z = 0; z < halfChildSize; z++) {
+                for (uchar* end = src + childSize; src != end; src += 2) {
+                    int max = qMax(qMax(src[0], src[1]), qMax(src[childSize], src[childSizePlusOne]));
+                    memset(dest, (max == 0) ? 0 : (yOffset + (max >> 1)), destPerSrc);
+                    dest += destPerSrc;
+                }
+                dest += halfSize;
+                for (int j = 1; j < destPerSrc; j++) {
+                    memcpy(dest, dest - size, halfSize);
+                    dest += size;
+                }
+                src += childSize;
+            }
         }
     }
     *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer(new HeightfieldData(contents));
@@ -638,9 +655,6 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
         }
         const QByteArray& childContents = child->getContents();
         int childSize = glm::sqrt(childContents.size() / (float)BYTES_PER_PIXEL);
-        if (childSize != size) {
-            continue; // TODO: handle differently-sized children
-        }
         const int INDEX_MASK = 1;
         int xIndex = i & INDEX_MASK;
         const int Y_SHIFT = 1;
@@ -653,7 +667,8 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
         char* dest = contents.data() + ((zIndex * halfSize * size) + (xIndex * halfSize)) * BYTES_PER_PIXEL;
         uchar* src = (uchar*)childContents.data();
         int childStride = childSize * BYTES_PER_PIXEL;
-        int halfStride = halfSize * BYTES_PER_PIXEL;
+        int stride = size * BYTES_PER_PIXEL;
+        int halfStride = stride / 2;
         int childStep = 2 * BYTES_PER_PIXEL;
         int redOffset3 = childStride + BYTES_PER_PIXEL;
         int greenOffset1 = BYTES_PER_PIXEL + 1;
@@ -662,14 +677,38 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
         int blueOffset1 = BYTES_PER_PIXEL + 2;
         int blueOffset2 = childStride + 2;
         int blueOffset3 = childStride + BYTES_PER_PIXEL + 2;
-        for (int z = 0; z < halfSize; z++) {
-            for (char* end = dest + halfSize * BYTES_PER_PIXEL; dest != end; src += childStep) {
-                *dest++ = ((int)src[0] + (int)src[BYTES_PER_PIXEL] + (int)src[childStride] + (int)src[redOffset3]) >> 2;
-                *dest++ = ((int)src[1] + (int)src[greenOffset1] + (int)src[greenOffset2] + (int)src[greenOffset3]) >> 2;
-                *dest++ = ((int)src[2] + (int)src[blueOffset1] + (int)src[blueOffset2] + (int)src[blueOffset3]) >> 2;
+        if (childSize == size) {
+            // simple case: one destination value for four child values
+            for (int z = 0; z < halfSize; z++) {
+                for (char* end = dest + halfSize * BYTES_PER_PIXEL; dest != end; src += childStep) {
+                    *dest++ = ((int)src[0] + (int)src[BYTES_PER_PIXEL] + (int)src[childStride] + (int)src[redOffset3]) >> 2;
+                    *dest++ = ((int)src[1] + (int)src[greenOffset1] + (int)src[greenOffset2] + (int)src[greenOffset3]) >> 2;
+                    *dest++ = ((int)src[2] + (int)src[blueOffset1] + (int)src[blueOffset2] + (int)src[blueOffset3]) >> 2;
+                }
+                dest += halfStride;
+                src += childStride;
             }
-            dest += halfStride;
-            src += childStride;
+        } else {
+            // more complex: N destination values for four child values
+            int halfChildSize = childSize / 2;
+            int destPerSrc = size / childSize;
+            for (int z = 0; z < halfChildSize; z++) {
+                for (uchar* end = src + childSize * BYTES_PER_PIXEL; src != end; src += childStep) {
+                    *dest++ = ((int)src[0] + (int)src[BYTES_PER_PIXEL] + (int)src[childStride] + (int)src[redOffset3]) >> 2;
+                    *dest++ = ((int)src[1] + (int)src[greenOffset1] + (int)src[greenOffset2] + (int)src[greenOffset3]) >> 2;
+                    *dest++ = ((int)src[2] + (int)src[blueOffset1] + (int)src[blueOffset2] + (int)src[blueOffset3]) >> 2;
+                    for (int j = 1; j < destPerSrc; j++) {
+                        memcpy(dest, dest - BYTES_PER_PIXEL, BYTES_PER_PIXEL);
+                        dest += BYTES_PER_PIXEL;
+                    }
+                }
+                dest += halfStride;
+                for (int j = 1; j < destPerSrc; j++) {
+                    memcpy(dest, dest - stride, halfStride);
+                    dest += stride;
+                }
+                src += childStride;
+            }
         }
     }
     *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer(new HeightfieldData(contents));

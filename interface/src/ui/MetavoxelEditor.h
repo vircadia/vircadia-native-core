@@ -267,10 +267,11 @@ private slots:
 
     void selectHeightFile();
     void selectColorFile();
-
+    void updatePreview();
+    
 private:
 
-    void updatePreview();
+    QSpinBox* _blockSize;
     
     QPushButton* _height;
     QPushButton* _color;
