@@ -196,9 +196,9 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
 
         // Compute relative translation
-        float DAMPING_FACTOR = 40;
+        float LEAN_DAMPING_FACTOR = 40;
         translation -= _referenceTranslation;
-        translation /= DAMPING_FACTOR;
+        translation /= LEAN_DAMPING_FACTOR;
         translation.x *= -1;
         
         // Compute relative rotation
@@ -209,8 +209,9 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _headRotation = rotation;
         
         // Set blendshapes
-        _blendshapeCoefficients[_leftBlinkIndex] = rescaleCoef(packet.expressions[1]) * 2.0f;
-        _blendshapeCoefficients[_rightBlinkIndex] = rescaleCoef(packet.expressions[0]) * 2.0f;
+        float BLINK_MAGNIFIER = 2.0f;
+        _blendshapeCoefficients[_leftBlinkIndex] = rescaleCoef(packet.expressions[1]) * BLINK_MAGNIFIER;
+        _blendshapeCoefficients[_rightBlinkIndex] = rescaleCoef(packet.expressions[0]) * BLINK_MAGNIFIER;
         
         float leftBrow = 1.0f - rescaleCoef(packet.expressions[14]);
         if (leftBrow < 0.5f) {
@@ -229,7 +230,8 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
             _blendshapeCoefficients[_browUpRightIndex] = 2.0f * (rightBrow - 0.5f);
         }
         
-        _blendshapeCoefficients[_jawOpenIndex] = rescaleCoef(packet.expressions[21]) * 1.4f;
+        float JAW_OPEN_MAGNIFIER = 1.4f;
+        _blendshapeCoefficients[_jawOpenIndex] = rescaleCoef(packet.expressions[21]) * JAW_OPEN_MAGNIFIER;
         
         
         _blendshapeCoefficients[_mouthSmileLeftIndex] = rescaleCoef(packet.expressions[24]);
