@@ -108,6 +108,12 @@ int RenderVisitor::visit(MetavoxelInfo& info) {
 }
 
 void MetavoxelSystem::render() {
+    // update the frustum
+    ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
+    _frustum.set(viewFrustum->getFarTopLeft(), viewFrustum->getFarTopRight(), viewFrustum->getFarBottomLeft(),
+        viewFrustum->getFarBottomRight(), viewFrustum->getNearTopLeft(), viewFrustum->getNearTopRight(),
+        viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
+    
     RenderVisitor renderVisitor(getLOD());
     guideToAugmented(renderVisitor);
 }
@@ -628,13 +634,31 @@ public:
     
     SpannerRenderVisitor(const MetavoxelLOD& lod);
     
+    virtual int visit(MetavoxelInfo& info);
     virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
+
+private:
+    
+    int _containmentDepth;
 };
 
 SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
         QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(),
-        lod, encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())) {
+        lod, encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+    _containmentDepth(INT_MAX) {
+}
+
+int SpannerRenderVisitor::visit(MetavoxelInfo& info) {
+    if (_containmentDepth >= _depth) {
+        Frustum::IntersectionType intersection = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
+            info.getBounds());
+        if (intersection == Frustum::NO_INTERSECTION) {
+            return STOP_RECURSION;
+        }
+        _containmentDepth = (intersection == Frustum::CONTAINS_INTERSECTION) ? _depth : INT_MAX;
+    }
+    return SpannerVisitor::visit(info);
 }
 
 bool SpannerRenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
@@ -652,14 +676,24 @@ public:
 private:
     
     int _order;
+    int _containmentDepth;
 };
 
 BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute, const MetavoxelLOD& lod) :
     MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>(), lod),
-    _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())) {
+    _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+    _containmentDepth(INT_MAX) {
 }
 
 int BufferRenderVisitor::visit(MetavoxelInfo& info) {
+    if (_containmentDepth >= _depth) {
+        Frustum::IntersectionType intersection = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
+            info.getBounds());
+        if (intersection == Frustum::NO_INTERSECTION) {
+            return STOP_RECURSION;
+        }
+        _containmentDepth = (intersection == Frustum::CONTAINS_INTERSECTION) ? _depth : INT_MAX;
+    }
     BufferDataPointer buffer = info.inputValues.at(0).getInlineValue<BufferDataPointer>();
     if (buffer) {
         buffer->render();

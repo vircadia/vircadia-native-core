@@ -14,6 +14,7 @@
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
+#include "LocalModelsOverlay.h"
 #include "LocalVoxelsOverlay.h"
 #include "ModelOverlay.h"
 #include "Overlays.h"
@@ -154,6 +155,12 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         is3D = true;
     } else if (type == "localvoxels") {
         thisOverlay = new LocalVoxelsOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
+        is3D = true;
+    } else if (type == "localmodels") {
+        thisOverlay = new LocalModelsOverlay(Application::getInstance()->getModelClipboardRenderer());
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);
         created = true;

@@ -212,7 +212,7 @@ SequenceNumberStats::ArrivalInfo InboundAudioStream::frameReceivedUpdateNetworkS
     // discard the first few packets we receive since they usually have gaps that aren't represensative of normal jitter
     const int NUM_INITIAL_PACKETS_DISCARD = 3;
     quint64 now = usecTimestampNow();
-    if (_incomingSequenceNumberStats.getNumReceived() > NUM_INITIAL_PACKETS_DISCARD) {
+    if (_incomingSequenceNumberStats.getReceived() > NUM_INITIAL_PACKETS_DISCARD) {
         quint64 gap = now - _lastFrameReceivedTime;
         _interframeTimeGapStatsForStatsPacket.update(gap);
 
