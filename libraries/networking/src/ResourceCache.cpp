@@ -40,6 +40,15 @@ void ResourceCache::refresh(const QUrl& url) {
 }
 
 QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, bool delayLoad, void* extra) {
+
+    if (QThread::currentThread() != thread()) {
+        QSharedPointer<Resource> result;
+        QMetaObject::invokeMethod(this, "getResource", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(QSharedPointer<Resource>, result), Q_ARG(const QUrl&, url), Q_ARG(const QUrl&, fallback),
+                                  Q_ARG(bool, delayLoad), Q_ARG(void*, extra));
+        return result;
+    }
+
     if (!url.isValid() && !url.isEmpty() && fallback.isValid()) {
         return getResource(fallback, QUrl(), delayLoad);
     }

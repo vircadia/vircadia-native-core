@@ -102,6 +102,7 @@ public slots:
     void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     void include(const QString& includeFile);
+    void load(const QString& loadfile);
     void print(const QString& message);
 
     void nodeKilled(SharedNodePointer node);
@@ -115,6 +116,7 @@ signals:
     void errorMessage(const QString& message);
     void runningStateChanged();
     void evaluationFinished(QScriptValue result, bool isException);
+    void loadScript(const QString& scriptName);
 
 protected:
     QString _scriptContents;

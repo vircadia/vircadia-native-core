@@ -201,6 +201,8 @@ public:
     bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
+    ModelTree* getModelClipboard() { return &_modelClipboard; }
+    ModelTreeRenderer* getModelClipboardRenderer() { return &_modelClipboardRenderer; }
     Environment* getEnvironment() { return &_environment; }
     bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return _mouseHidden; }
@@ -227,6 +229,7 @@ public:
     float getPacketsPerSecond() const { return _packetsPerSecond; }
     float getBytesPerSecond() const { return _bytesPerSecond; }
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
+    void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
@@ -313,6 +316,10 @@ public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
+
+    void pasteModels(float x, float y, float z);
+    bool exportModels(const QString& filename, float x, float y, float z, float scale);
+    bool importModels(const QString& filename);
 
     void importVoxels(); // doesn't include source voxel because it goes to clipboard
     void cutVoxels(const VoxelDetail& sourceVoxel);
@@ -462,6 +469,8 @@ private:
     ParticleCollisionSystem _particleCollisionSystem;
 
     ModelTreeRenderer _models;
+    ModelTreeRenderer _modelClipboardRenderer;
+    ModelTree _modelClipboard;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
