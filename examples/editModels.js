@@ -1051,6 +1051,11 @@ function checkController(deltaTime) {
     var numberOfTriggers = Controller.getNumberOfTriggers();
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
+
+    if (!isActive) {
+        // So that we hide the lasers bellow and keep updating the overlays position
+        numberOfButtons = 0;
+    }
     
     // this is expected for hydras
     if (numberOfButtons==12 && numberOfTriggers == 2 && controllersPerTrigger == 2) {
@@ -1072,11 +1077,21 @@ function checkController(deltaTime) {
     
     moveOverlays();
 }
+
+var isActive = false;
+var active;
 var newModel;
 var browser;
 function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
     // New Model
+    active = toolBar.addTool({
+                               imageURL: toolIconUrl + "models-tool.svg",
+                               subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                               width: toolWidth, height: toolHeight,
+                               visible: true,
+                               alpha: 0.9
+                               }, true, false);
     newModel = toolBar.addTool({
                                imageURL: toolIconUrl + "add-model-tool.svg",
                                subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
@@ -1194,6 +1209,11 @@ function mousePressEvent(event) {
     modelSelected = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
+    if (active == toolBar.clicked(clickedOverlay)) {
+        isActive = !isActive;
+        return;
+    }
+
     if (newModel == toolBar.clicked(clickedOverlay)) {
         var url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
         if (url == null || url == "") {
@@ -1229,6 +1249,11 @@ function mousePressEvent(event) {
         }
         
     } else {
+        // If we aren't active and didn't click on an overlay: quit
+        if (!isActive) {
+            return;
+        }
+
         var pickRay = Camera.computePickRay(event.x, event.y);
         Vec3.print("[Mouse] Looking at: ", pickRay.origin);
         var foundIntersection = Models.findRayIntersection(pickRay);
@@ -1313,7 +1338,7 @@ var oldModifier = 0;
 var modifier = 0;
 var wasShifted = false;
 function mouseMoveEvent(event)  {
-    if (event.isAlt) {
+    if (event.isAlt || !isActive) {
         return;
     }
     
@@ -1456,7 +1481,7 @@ function mouseMoveEvent(event)  {
 
 
 function mouseReleaseEvent(event) {
-    if (event.isAlt) {
+    if (event.isAlt || !isActive) {
         return;
     }
     
