@@ -537,6 +537,10 @@ void BaseVec3Editor::setSingleStep(double singleStep) {
     _z->setSingleStep(singleStep);
 }
 
+double BaseVec3Editor::getSingleStep() const {
+    return _x->singleStep();
+}
+
 QDoubleSpinBox* BaseVec3Editor::createComponentBox() {
     QDoubleSpinBox* box = new QDoubleSpinBox();
     box->setMinimum(-FLT_MAX);

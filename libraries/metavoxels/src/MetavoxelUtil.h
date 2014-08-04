@@ -191,6 +191,7 @@ public:
     BaseVec3Editor(QWidget* parent);
 
     void setSingleStep(double singleStep);
+    double getSingleStep() const;
 
 protected slots:
     
