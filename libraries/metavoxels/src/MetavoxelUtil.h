@@ -82,7 +82,7 @@ public:
 class Frustum {
 public:
     
-    Frustum(const glm::vec3& farTopLeft, const glm::vec3& farTopRight, const glm::vec3& farBottomLeft,
+    void set(const glm::vec3& farTopLeft, const glm::vec3& farTopRight, const glm::vec3& farBottomLeft,
         const glm::vec3& farBottomRight, const glm::vec3& nearTopLeft, const glm::vec3& nearTopRight,
         const glm::vec3& nearBottomLeft, const glm::vec3& nearBottomRight);
     

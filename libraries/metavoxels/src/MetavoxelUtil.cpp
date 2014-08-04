@@ -327,10 +327,9 @@ AxisExtents::AxisExtents(const glm::vec3& axis, float minimum, float maximum) :
     maximum(maximum) {
 }
 
-Frustum::Frustum(const glm::vec3& farTopLeft, const glm::vec3& farTopRight, const glm::vec3& farBottomLeft,
+void Frustum::set(const glm::vec3& farTopLeft, const glm::vec3& farTopRight, const glm::vec3& farBottomLeft,
         const glm::vec3& farBottomRight, const glm::vec3& nearTopLeft, const glm::vec3& nearTopRight,
-        const glm::vec3& nearBottomLeft, const glm::vec3& nearBottomRight) :
-    _bounds(glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX), glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX)) {
+        const glm::vec3& nearBottomLeft, const glm::vec3& nearBottomRight) {
 
     _vertices[0] = farBottomLeft;
     _vertices[1] = farBottomRight;
@@ -341,6 +340,9 @@ Frustum::Frustum(const glm::vec3& farTopLeft, const glm::vec3& farTopRight, cons
     _vertices[6] = nearTopLeft;
     _vertices[7] = nearTopRight;
     
+    // compute the bounds
+    _bounds.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    _bounds.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     for (int i = 0; i < VERTEX_COUNT; i++) {
         _bounds.minimum = glm::min(_bounds.minimum, _vertices[i]);
         _bounds.maximum = glm::max(_bounds.maximum, _vertices[i]);
