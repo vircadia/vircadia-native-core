@@ -20,7 +20,7 @@ void SequenceNumberStatsTests::runAllTests() {
     earlyLateTest();
     duplicateTest();
     pruneTest();
-    recursiveTest();
+    resyncTest();
 }
 
 const quint32 UINT16_RANGE = std::numeric_limits<quint16>::max() + 1;
@@ -38,7 +38,6 @@ void SequenceNumberStatsTests::rolloverTest() {
             stats.sequenceNumberReceived(seq);
             seq = seq + (quint16)1;
 
-            assert(stats.getDuplicate() == 0);
             assert(stats.getEarly() == 0);
             assert(stats.getLate() == 0);
             assert(stats.getLost() == 0);
@@ -69,7 +68,6 @@ void SequenceNumberStatsTests::earlyLateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getDuplicate() == 0);
                 assert(stats.getEarly() == numEarly);
                 assert(stats.getLate() == numLate);
                 assert(stats.getLost() == numLost);
@@ -89,7 +87,6 @@ void SequenceNumberStatsTests::earlyLateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getDuplicate() == 0);
                 assert(stats.getEarly() == numEarly);
                 assert(stats.getLate() == numLate);
                 assert(stats.getLost() == numLost);
@@ -106,7 +103,6 @@ void SequenceNumberStatsTests::earlyLateTest() {
                 numLost--;
                 numRecovered++;
 
-                assert(stats.getDuplicate() == 0);
                 assert(stats.getEarly() == numEarly);
                 assert(stats.getLate() == numLate);
                 assert(stats.getLost() == numLost);
@@ -135,7 +131,7 @@ void SequenceNumberStatsTests::duplicateTest() {
     quint32 numLost = 0;
 
     for (int R = 0; R < 2; R++) {
-        for (int T = 0; T < 10000; T++) {
+        for (int T = 0; T < 5; T++) {
 
             quint16 duplicate = seq;
 
@@ -145,7 +141,7 @@ void SequenceNumberStatsTests::duplicateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getDuplicate() == numDuplicate);
+                assert(stats.getUnreasonable() == numDuplicate);
                 assert(stats.getEarly() == numEarly);
                 assert(stats.getLate() == numLate);
                 assert(stats.getLost() == numLost);
@@ -167,7 +163,7 @@ void SequenceNumberStatsTests::duplicateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getDuplicate() == numDuplicate);
+                assert(stats.getUnreasonable() == numDuplicate);
                 assert(stats.getEarly() == numEarly);
                 assert(stats.getLate() == numLate);
                 assert(stats.getLost() == numLost);
@@ -183,7 +179,7 @@ void SequenceNumberStatsTests::duplicateTest() {
                 numDuplicate++;
                 numLate++;
 
-                assert(stats.getDuplicate() == numDuplicate);
+                assert(stats.getUnreasonable() == numDuplicate);
                 assert(stats.getEarly() == numEarly);
                 assert(stats.getLate() == numLate);
                 assert(stats.getLost() == numLost);
@@ -199,7 +195,7 @@ void SequenceNumberStatsTests::duplicateTest() {
                 numDuplicate++;
                 numLate++;
 
-                assert(stats.getDuplicate() == numDuplicate);
+                assert(stats.getUnreasonable() == numDuplicate);
                 assert(stats.getEarly() == numEarly);
                 assert(stats.getLate() == numLate);
                 assert(stats.getLost() == numLost);
@@ -279,7 +275,7 @@ void SequenceNumberStatsTests::pruneTest() {
     }
 }
 
-void SequenceNumberStatsTests::recursiveTest() {
+void SequenceNumberStatsTests::resyncTest() {
 
     SequenceNumberStats stats(0);
 
@@ -302,9 +298,20 @@ void SequenceNumberStatsTests::recursiveTest() {
     sequence = 0;
     for (int R = 0; R < 7; R++) {
         stats.sequenceNumberReceived(sequence);
-        sequence += (quint16)2000;
+        sequence += (quint16)1;
     }
-    
+
+    assert(stats.getUnreasonable() == 7);
+
+    sequence = 6000;
+    for (int R = 0; R < 7; R++) {
+        stats.sequenceNumberReceived(sequence);
+        sequence += (quint16)1;
+    }
+
+    assert(stats.getUnreasonable() == 14);
+
+    sequence = 9000;
     for (int i = 0; i < 10; i++) {
         stats.sequenceNumberReceived(sequence);
         sequence += (quint16)1;
