@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hi_fi_CaraFaceTracker_h
-#define hi_fi_CaraFaceTracker_h
+#ifndef hifi_CaraFaceTracker_h
+#define hifi_CaraFaceTracker_h
 
 #include <QUdpSocket>
 
@@ -120,4 +120,4 @@ private:
     int _jawOpenIndex;
 };
 
-#endif //endif hi_fi_CaraFaceTracker_h
+#endif //endif hifi_CaraFaceTracker_h
