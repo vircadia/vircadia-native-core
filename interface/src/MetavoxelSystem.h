@@ -34,6 +34,8 @@ public:
     virtual void init();
 
     virtual MetavoxelLOD getLOD();
+
+    const Frustum& getFrustum() const { return _frustum; }
     
     const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
     const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
@@ -56,6 +58,7 @@ private:
     
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
+    Frustum _frustum;
 };
 
 /// Describes contents of a point in a point buffer.
