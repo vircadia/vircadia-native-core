@@ -11,7 +11,3 @@ int MixedAudioStream::parseStreamProperties(PacketType type, const QByteArray& p
     numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
     return 0;
 }
-
-int MixedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
-    return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
-}

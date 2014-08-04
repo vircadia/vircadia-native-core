@@ -63,8 +63,8 @@ public:
 
     virtual int parseData(const QByteArray& packet);
 
-
-    bool popFrames(int numFrames, bool starveOnFail = true);
+    int popFrames(int maxFrames, bool allOrNothing, bool starveOnFail = true);
+    int popSamples(int maxSamples, bool allOrNothing, bool starveOnFail = true);
 
     bool lastPopSucceeded() const { return _lastPopSucceeded; };
     const AudioRingBuffer::ConstIterator& getLastPopOutput() const { return _lastPopOutput; }
@@ -80,6 +80,8 @@ public:
     AudioStreamStats updateSeqHistoryAndGetAudioStreamStats();
 
     void setMaxFramesOverDesired(int maxFramesOverDesired) { _maxFramesOverDesired = maxFramesOverDesired; }
+
+    void resizeFrame(int numFrameSamples) { _ringBuffer.resizeForFrameSize(numFrameSamples); }
 
     virtual AudioStreamStats getAudioStreamStats() const;
 
@@ -113,11 +115,12 @@ public:
 private:
     void starved();
 
-    SequenceNumberStats::ArrivalInfo frameReceivedUpdateNetworkStats(quint16 sequenceNumber, const QUuid& senderUUID);
+    void frameReceivedUpdateTimingStats();
     int clampDesiredJitterBufferFramesValue(int desired) const;
 
     int writeSamplesForDroppedPackets(int numSamples);
 
+    void popSamplesNoCheck(int samples);
     void framesAvailableChanged();
 
 protected:
@@ -129,8 +132,9 @@ protected:
     /// how many audio samples this packet contains
     virtual int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) = 0;
 
-    /// parses the audio data in the network packet
-    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) = 0;
+    /// parses the audio data in the network packet.
+    /// default implementation assumes packet contains raw audio samples after stream properties
+    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
 
     int writeDroppableSilentSamples(int numSilentSamples);
     

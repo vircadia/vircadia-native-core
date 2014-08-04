@@ -33,7 +33,7 @@
 #include <AbstractAudioInterface.h>
 #include <StdDev.h>
 
-#include "MixedAudioStream.h"
+#include "RawMixedAudioStream.h"
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -45,6 +45,23 @@ class QIODevice;
 class Audio : public AbstractAudioInterface {
     Q_OBJECT
 public:
+
+    class AudioOutputIODevice : public QIODevice {
+    public:
+        AudioOutputIODevice(Audio& parent) : _parent(parent) {};
+
+        void start() { open(QIODevice::ReadOnly); }
+        void stop() { close(); }
+
+        qint64	readData(char * data, qint64 maxSize);
+        qint64	writeData(const char * data, qint64 maxSize) { return 0; }
+
+    private:
+        Audio& _parent;
+        quint64 _lastReadTime;
+    };
+
+
     // setup for audio I/O
     Audio(QObject* parent = 0);
 
@@ -94,6 +111,7 @@ public slots:
     void addReceivedAudioToStream(const QByteArray& audioByteArray);
     void parseAudioStreamStatsPacket(const QByteArray& packet);
     void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
+    void receivedAudioStreamProcessSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void handleAudioInput();
     void reset();
     void resetStats();
@@ -133,7 +151,10 @@ signals:
     void preProcessOriginalInboundAudio(unsigned int sampleTime, QByteArray& samples, const QAudioFormat& format);
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
-    
+
+private:
+    void outputFormatChanged();
+
 private:
 
     QByteArray firstInputFrame;
@@ -146,14 +167,14 @@ private:
     QAudioOutput* _audioOutput;
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
-    QIODevice* _outputDevice;
+    //QIODevice* _outputDevice;
     int _numOutputCallbackBytes;
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
     QAudioOutput* _proceduralAudioOutput;
     QIODevice* _proceduralOutputDevice;
     AudioRingBuffer _inputRingBuffer;
-    MixedAudioStream _receivedAudioStream;
+    RawMixedAudioStream _receivedAudioStream;
     bool _isStereoInput;
 
     QString _inputAudioDeviceName;
@@ -282,6 +303,8 @@ private:
 
     quint64 _lastSentAudioPacket;
     MovingMinMaxAvg<quint64> _packetSentTimeGaps;
+
+    AudioOutputIODevice _audioOutputIODevice;
 };
 
 
