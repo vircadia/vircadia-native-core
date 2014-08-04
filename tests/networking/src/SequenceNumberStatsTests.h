@@ -23,7 +23,7 @@ namespace SequenceNumberStatsTests {
     void earlyLateTest();
     void duplicateTest();
     void pruneTest();
-    void recursiveTest();
+    void resyncTest();
 };
 
 #endif // hifi_SequenceNumberStatsTests_h
