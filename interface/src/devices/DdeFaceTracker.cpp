@@ -209,13 +209,32 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _headRotation = rotation;
         
         // Set blendshapes
-        _blendshapeCoefficients[_leftBlinkIndex] = rescaleCoef(packet.expressions[1]);
-        _blendshapeCoefficients[_rightBlinkIndex] = rescaleCoef(packet.expressions[0]);
+        _blendshapeCoefficients[_leftBlinkIndex] = rescaleCoef(packet.expressions[1]) * 2.0f;
+        _blendshapeCoefficients[_rightBlinkIndex] = rescaleCoef(packet.expressions[0]) * 2.0f;
         
-        _blendshapeCoefficients[_browDownLeftIndex] = rescaleCoef(packet.expressions[14]);
-        _blendshapeCoefficients[_browDownRightIndex] = rescaleCoef(packet.expressions[15]);
+        float leftBrow = 1.0f - rescaleCoef(packet.expressions[14]);
+        if (leftBrow < 0.5f) {
+            _blendshapeCoefficients[_browDownLeftIndex] = 1.0f - 2.0f * leftBrow;
+            _blendshapeCoefficients[_browUpLeftIndex] = 0.0f;
+        } else {
+            _blendshapeCoefficients[_browDownLeftIndex] = 0.0f;
+            _blendshapeCoefficients[_browUpLeftIndex] = 2.0f * (leftBrow - 0.5f);
+        }
+        float rightBrow = 1.0f - rescaleCoef(packet.expressions[15]);
+        if (rightBrow < 0.5f) {
+            _blendshapeCoefficients[_browDownRightIndex] = 1.0f - 2.0f * rightBrow;
+            _blendshapeCoefficients[_browUpRightIndex] = 0.0f;
+        } else {
+            _blendshapeCoefficients[_browDownRightIndex] = 0.0f;
+            _blendshapeCoefficients[_browUpRightIndex] = 2.0f * (rightBrow - 0.5f);
+        }
         
-        _blendshapeCoefficients[_jawOpenIndex] = packet.expressions[21];
+        _blendshapeCoefficients[_jawOpenIndex] = rescaleCoef(packet.expressions[21]) * 1.4f;
+        
+        
+        _blendshapeCoefficients[_mouthSmileLeftIndex] = rescaleCoef(packet.expressions[24]);
+        _blendshapeCoefficients[_mouthSmileRightIndex] = rescaleCoef(packet.expressions[23]);
+        
         
     } else {
         qDebug() << "[Error] DDE Face Tracker Decode Error";
