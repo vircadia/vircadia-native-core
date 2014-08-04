@@ -172,6 +172,12 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
     return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
 }
 
+static const float DDE_MIN_RANGE = -0.2;
+static const float DDE_MAX_RANGE = 1.5;
+float rescaleCoef(float ddeCoef) {
+    return (ddeCoef - DDE_MIN_RANGE) / (DDE_MAX_RANGE - DDE_MIN_RANGE);
+}
+
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     if(buffer.size() > MIN_PACKET_SIZE) {
         Packet packet;
@@ -203,14 +209,11 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _headRotation = rotation;
         
         // Set blendshapes
-        _blendshapeCoefficients[_leftBlinkIndex] = packet.expressions[1];
-        _blendshapeCoefficients[_rightBlinkIndex] = packet.expressions[0];
+        _blendshapeCoefficients[_leftBlinkIndex] = rescaleCoef(packet.expressions[1]);
+        _blendshapeCoefficients[_rightBlinkIndex] = rescaleCoef(packet.expressions[0]);
         
-        _blendshapeCoefficients[_browDownLeftIndex] = packet.expressions[14];
-        _blendshapeCoefficients[_browDownRightIndex] = packet.expressions[15];
-        _blendshapeCoefficients[_browUpCenterIndex] = (packet.expressions[14] + packet.expressions[14]) / 2.0f;
-        _blendshapeCoefficients[_browUpLeftIndex] = packet.expressions[14];
-        _blendshapeCoefficients[_browUpRightIndex] = packet.expressions[15];
+        _blendshapeCoefficients[_browDownLeftIndex] = rescaleCoef(packet.expressions[14]);
+        _blendshapeCoefficients[_browDownRightIndex] = rescaleCoef(packet.expressions[15]);
         
         _blendshapeCoefficients[_jawOpenIndex] = packet.expressions[21];
         
