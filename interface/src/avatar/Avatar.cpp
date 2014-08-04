@@ -27,6 +27,7 @@
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
+#include "ModelReferential.h"
 #include "Physics.h"
 #include "world.h"
 #include "devices/OculusManager.h"
@@ -178,6 +179,21 @@ void Avatar::simulate(float deltaTime) {
             _displayNameAlpha = 1 - (1 - _displayNameAlpha) * coef;
         }
         _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
+    }
+    if (_referential) {
+        if (_referential->hasExtraData()) {
+            switch (_referential->type()) {
+                case Referential::MODEL:
+                    qDebug() << "[DEBUG] Switching to the right referential";
+                    _referential = new ModelReferential(_referential, this);
+                    break;
+                default:
+                    qDebug() << "Non handled referential type";
+                    break;
+            }
+        }
+        
+        _referential->update();
     }
 }
 
@@ -440,6 +456,12 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
             return;
         }
         
+        // make sure we have the right position
+        _skeletonModel.setTranslation(getPosition());
+        static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        _skeletonModel.setRotation(getOrientation() * refOrientation);
+        const float MODEL_SCALE = 0.0006f;
+        _skeletonModel.setScale(glm::vec3(1.0f, 1.0f, 1.0f) * getScale() * MODEL_SCALE);
         _skeletonModel.render(1.0f, modelRenderMode, Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows));
         renderAttachments(renderMode);
         getHand()->render(false, modelRenderMode);

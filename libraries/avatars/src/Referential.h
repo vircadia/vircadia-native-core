@@ -25,12 +25,13 @@ public:
         AVATAR
     };
     
-    Referential(const unsigned char*& sourceBuffer);
+    Referential(const unsigned char*& sourceBuffer, AvatarData* avatar);
     virtual ~Referential();
     
     Type type() { return _type; }
     quint64 createdAt() { return _createdAt; }
     bool isValid() { return _isValid; }
+    bool hasExtraData() { return !_extraDataBuffer.isEmpty(); }
     
     virtual void update() {}
     int packReferential(unsigned char* destinationBuffer);
@@ -39,10 +40,12 @@ public:
 protected:
     Referential(Type type, AvatarData* avatar);
     
+    // packs the base class data
     int pack(unsigned char* destinationBuffer);
     int unpack(const unsigned char* sourceBuffer);
-    int packExtraData(unsigned char* destinationBuffer) { return 0; }
-    int unpackExtraData(const unsigned char* sourceBuffer);
+    // virtual functions that pack fthe extra data of subclasses (needs to be reimplemented in subclass)
+    virtual int packExtraData(unsigned char* destinationBuffer) { return 0; }
+    virtual int unpackExtraData(const unsigned char* sourceBuffer);
     
     Type _type;
     quint64 _createdAt;

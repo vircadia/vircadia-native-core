@@ -66,6 +66,13 @@ AvatarData::~AvatarData() {
     delete _referential;
 }
 
+const glm::vec3& AvatarData::getPosition() {
+    if (_referential) {
+        _referential->update();
+    }
+    return _position;
+}
+
 glm::vec3 AvatarData::getHandPosition() const {
     return getOrientation() * _handPosition + _position;
 }
@@ -148,6 +155,7 @@ QByteArray AvatarData::toByteArray() {
     }
     *destinationBuffer++ = bitItems;
     
+    // Add referential
     if (_referential != NULL && _referential->isValid()) {
         destinationBuffer += _referential->packReferential(destinationBuffer);
     }
@@ -381,21 +389,36 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     } // 1 + chatMessageSize bytes
     
     { // bitFlags and face data
-        unsigned char bitItems = 0;
-        bitItems = (unsigned char)*sourceBuffer++;
-    
+        unsigned char bitItems = *sourceBuffer++;
+        
         // key state, stored as a semi-nibble in the bitItems
         _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
-        
         // hand state, stored as a semi-nibble in the bitItems
         _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
         
         _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
         _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
-        
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
+        
+        // Referential
         if (hasReferential) {
-            _referential = new Referential(sourceBuffer);
+            qDebug() << "Has referencial: " << hasReferential;
+            if (_referential == NULL) {
+                _referential = new Referential(sourceBuffer, this);
+            } else {
+                Referential* ref = new Referential(sourceBuffer, this);
+                if (ref->createdAt() > _referential->createdAt()) {
+                    qDebug() << "Replacing referential";
+                    delete _referential;
+                    _referential = ref;
+                } else {
+                    delete ref;
+                }
+            }
+        } else if (_referential != NULL) {
+            qDebug() << "Erasing referencial";
+            delete _referential;
+            _referential = NULL;
         }
         
         

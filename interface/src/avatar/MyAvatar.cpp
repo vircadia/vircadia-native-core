@@ -128,15 +128,18 @@ void MyAvatar::update(float deltaTime) {
 
     simulate(deltaTime);
     
-    
-    const ModelItem* item = Application::getInstance()->getModels()->getTree()->findModelByID(278);
-    if (_referential) {
-        PerformanceTimer perfTimer("Referential");
-        _referential->update();
-    } else if (item != NULL)  {
-        const Model* model = Application::getInstance()->getModels()->getModelForModelItem(*item);
-        if (model != NULL) {
-            _referential = new ModelReferential(278, Application::getInstance()->getModels()->getTree(), this);
+    bool WANT_REFERENTIAL = true;
+    if (WANT_REFERENTIAL) {
+        int id = 12340;
+        const ModelItem* item = Application::getInstance()->getModels()->getTree()->findModelByID(id);
+        if (_referential) {
+            PerformanceTimer perfTimer("Referential");
+            _referential->update();
+        } else if (item != NULL)  {
+            const Model* model = Application::getInstance()->getModels()->getModelForModelItem(*item);
+            if (model != NULL) {
+                _referential = new ModelReferential(id, Application::getInstance()->getModels()->getTree(), this);
+            }
         }
     }
 }

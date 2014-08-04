@@ -19,11 +19,14 @@ class Model;
 
 class ModelReferential : public Referential {
 public:
-    ModelReferential(Referential* ref);
+    ModelReferential(Referential* ref, AvatarData* avatar);
     ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData* avatar);
     virtual void update();
     
 protected:
+    virtual int packExtraData(unsigned char* destinationBuffer);
+    virtual int unpackExtraData(const unsigned char* sourceBuffer);
+    
     uint32_t _modelID;
     ModelTree* _tree;
 };

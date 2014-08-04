@@ -82,7 +82,7 @@ int numberOfOnes(unsigned char byte);
 bool oneAtBit(unsigned char byte, int bitIndex);
 void setAtBit(unsigned char& byte, int bitIndex);
 void clearAtBit(unsigned char& byte, int bitIndex);
-int  getSemiNibbleAt(unsigned char& byte, int bitIndex);
+int  getSemiNibbleAt(unsigned char byte, int bitIndex);
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value);
 
 int getNthBit(unsigned char byte, int ordinal); /// determines the bit placement 0-7 of the ordinal set bit

@@ -23,11 +23,12 @@ Referential::Referential(Type type, AvatarData* avatar) :
         _isValid = false;
         return;
     }
+    qDebug() << "[DEBUG] New Referential";
 }
 
-Referential::Referential(const unsigned char*& sourceBuffer) :
+Referential::Referential(const unsigned char*& sourceBuffer, AvatarData* avatar) :
     _isValid(false),
-    _avatar(NULL)
+    _avatar(avatar)
 {
     sourceBuffer += unpack(sourceBuffer);
 }
@@ -38,23 +39,24 @@ Referential::~Referential() {
 int Referential::packReferential(unsigned char* destinationBuffer) {
     const unsigned char* startPosition = destinationBuffer;
     destinationBuffer += pack(destinationBuffer);
-    destinationBuffer += packExtraData(destinationBuffer);
+    
+    unsigned char* sizePosition = destinationBuffer++;
+    char size = packExtraData(destinationBuffer);
+    *sizePosition = size;
+    destinationBuffer += size;
+    
     return destinationBuffer - startPosition;
 }
 
 int Referential::unpackReferential(const unsigned char* sourceBuffer) {
     const unsigned char* startPosition = sourceBuffer;
     sourceBuffer += unpack(sourceBuffer);
-    sourceBuffer += unpackExtraData(sourceBuffer);
-    return sourceBuffer - startPosition;
-}
-
-int Referential::unpackExtraData(const unsigned char* sourceBuffer) {
-    const unsigned char* startPosition = sourceBuffer;
-    int size = *sourceBuffer++;
-    _extraDataBuffer.clear();
-    _extraDataBuffer.setRawData(reinterpret_cast<const char*>(sourceBuffer), size);
-    sourceBuffer += size;
+    
+    char expectedSize = *sourceBuffer++;
+    char bytesRead = unpackExtraData(sourceBuffer);
+    _isValid = (bytesRead == expectedSize);
+    sourceBuffer += expectedSize;
+    
     return sourceBuffer - startPosition;
 }
 
@@ -77,8 +79,17 @@ int Referential::unpack(const unsigned char* sourceBuffer) {
     
     sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, _translation, 0);
     sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, _rotation);
-    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*)sourceBuffer, &_scale, 0);
+    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((const int16_t*) sourceBuffer, &_scale, 0);
     return sourceBuffer - startPosition;
 }
 
+
+int Referential::unpackExtraData(const unsigned char* sourceBuffer) {
+    const unsigned char* startPosition = sourceBuffer;
+    int size = *sourceBuffer;
+    _extraDataBuffer.clear();
+    _extraDataBuffer.setRawData(reinterpret_cast<const char*>(sourceBuffer), size + 1);
+    sourceBuffer += size + 1;
+    return sourceBuffer - startPosition;
+}
 

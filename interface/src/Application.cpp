@@ -2176,7 +2176,7 @@ void Application::update(float deltaTime) {
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
-    // loadViewFrumstum() method will get the correct details from the camera
+    // loadViewFrumstum() methodill get the correct details from the camera
     // We could optimize this to not actually load the viewFrustum, since we don't
     // actually need to calculate the view frustum planes to send these details
     // to the server.

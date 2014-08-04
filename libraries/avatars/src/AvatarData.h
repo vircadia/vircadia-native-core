@@ -82,7 +82,7 @@ const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
 const int IS_CHAT_CIRCLING_ENABLED = 5; // 6th bit
-const int HAS_REFERENTIAL = 6;
+const int HAS_REFERENTIAL = 6; // 7th bit
 
 static const float MAX_AVATAR_SCALE = 1000.f;
 static const float MIN_AVATAR_SCALE = .005f;
@@ -143,7 +143,7 @@ public:
 
     const QUuid& getSessionUUID() { return _sessionUUID; }
 
-    const glm::vec3& getPosition() const { return _position; }
+    const glm::vec3& getPosition();
     void setPosition(const glm::vec3 position) { _position = position; }
 
     glm::vec3 getHandPosition() const;

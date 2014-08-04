@@ -16,6 +16,10 @@
 
 #include "ModelReferential.h"
 
+ModelReferential::ModelReferential(Referential* referential, AvatarData* avatar) : Referential(MODEL, avatar) {
+    
+}
+
 ModelReferential::ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData* avatar) :
 Referential(MODEL, avatar),
 _modelID(modelID),
@@ -40,7 +44,7 @@ _tree(tree)
 
 void ModelReferential::update() {
     const ModelItem* item = _tree->findModelByID(_modelID);
-    if (!_isValid || item == NULL || _avatar == NULL) {
+    if (item == NULL || _avatar == NULL) {
         qDebug() << "Not Valid";
         _isValid = false;
         return;
@@ -54,21 +58,25 @@ void ModelReferential::update() {
     }
     if (item->getModelRotation() != _refRotation) {
         _refRotation = item->getModelRotation();
-        _avatar->setOrientation(_refRotation);// * _rotation);
+        _avatar->setOrientation(_refRotation * _rotation);
         somethingChanged = true;
     }
     if (item->getPosition() != _refPosition || somethingChanged) {
         _refPosition = item->getPosition();
-        _avatar->setPosition(_refPosition * (float)TREE_SCALE);// + _refRotation * (_translation * _refScale));
+        _avatar->setPosition(_refPosition * (float)TREE_SCALE + _refRotation * (_translation * _refScale));
         //qDebug() << "Ref: " << item->getLastUpdated() << " " << item->getLastEdited();
         somethingChanged = true;
     }
 }
 
-int ModelReferential::packReferential(unsigned char* destinationBuffer) {
-    int size = packPosition(destinationBuffer);
+int ModelReferential::packExtraData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_modelID, sizeof(_modelID));
-    return size + sizeof(_modelID);
+    return sizeof(_modelID);
+}
+
+int ModelReferential::unpackExtraData(const unsigned char *sourceBuffer) {
+    memcpy(&_modelID, sourceBuffer, sizeof(_modelID));
+    return sizeof(_modelID);
 }
 
 JointReferential::JointReferential(uint32_t jointIndex, uint32_t modelID, ModelTree* tree, AvatarData* avatar) :
@@ -97,7 +105,7 @@ JointReferential::JointReferential(uint32_t jointIndex, uint32_t modelID, ModelT
 void JointReferential::update() {
     const ModelItem* item = _tree->findModelByID(_modelID);
     const Model* model = getModel(item);
-    if (!_isValid || model == NULL || _jointIndex >= model->getJointStateCount()) {
+    if (model == NULL || _jointIndex >= model->getJointStateCount()) {
         qDebug() << "Not Valid";
         _isValid = false;
         return;
