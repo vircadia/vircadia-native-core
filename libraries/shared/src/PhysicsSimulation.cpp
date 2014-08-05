@@ -70,6 +70,7 @@ void PhysicsSimulation::removeEntity(PhysicsEntity* entity) {
     if (!entity || !entity->_simulation || !(entity->_simulation == this)) {
         return;
     }
+    removeShapes(entity);
     int numEntities = _entities.size();
     for (int i = 0; i < numEntities; ++i) {
         if (entity == _entities.at(i)) {
@@ -86,7 +87,10 @@ void PhysicsSimulation::removeEntity(PhysicsEntity* entity) {
             break;
         }
     }
-    // remove corresponding contacts
+}
+
+void PhysicsSimulation::removeShapes(const PhysicsEntity* entity) {
+    // remove data structures with pointers to entity's shapes
     QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
     while (itr != _contacts.end()) {
         if (entity == itr.value().getShapeA()->getEntity() || entity == itr.value().getShapeB()->getEntity()) {
