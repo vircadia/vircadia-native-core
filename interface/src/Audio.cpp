@@ -1747,18 +1747,12 @@ float Audio::getInputRingBufferMsecsAvailable() const {
 }
 
 qint64 Audio::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
-
     MixedProcessedAudioStream& receivedAUdioStream = _parent._receivedAudioStream;
-
-    const QAudioOutput* audioOutput = _parent._audioOutput;
-    if (audioOutput->bytesFree() == audioOutput->bufferSize()) {
-        receivedAUdioStream.setToStarved();
-    }
 
     int samplesRequested = maxSize / sizeof(int16_t);
     int samplesPopped;
     int bytesWritten;
-    if ((samplesPopped = receivedAUdioStream.popSamples(samplesRequested, false, false)) > 0) {
+    if ((samplesPopped = receivedAUdioStream.popSamples(samplesRequested, false)) > 0) {
         AudioRingBuffer::ConstIterator lastPopOutput = receivedAUdioStream.getLastPopOutput();
         lastPopOutput.readSamples((int16_t*)data, samplesPopped);
         bytesWritten = samplesPopped * sizeof(int16_t);

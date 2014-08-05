@@ -63,8 +63,8 @@ public:
 
     virtual int parseData(const QByteArray& packet);
 
-    int popFrames(int maxFrames, bool allOrNothing, bool starveOnFail = true);
-    int popSamples(int maxSamples, bool allOrNothing, bool starveOnFail = true);
+    int popFrames(int maxFrames, bool allOrNothing, bool starveIfNoFramesPopped = true);
+    int popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped = true);
 
     bool lastPopSucceeded() const { return _lastPopSucceeded; };
     const AudioRingBuffer::ConstIterator& getLastPopOutput() const { return _lastPopOutput; }
@@ -111,8 +111,6 @@ public:
     int getPacketsReceived() const { return _incomingSequenceNumberStats.getReceived(); }
 
 private:
-    void starved();
-
     void frameReceivedUpdateTimingStats();
     int clampDesiredJitterBufferFramesValue(int desired) const;
 
