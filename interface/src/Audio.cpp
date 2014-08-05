@@ -1676,8 +1676,8 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            _audioOutput->setBufferSize(AUDIO_OUTPUT_BUFFER_SIZE_FRAMES * _outputFormat.bytesForDuration(BUFFER_SEND_INTERVAL_USECS));
-            qDebug() << "Ring Buffer capacity in frames: " << (float)_outputFormat.durationForBytes(_audioOutput->bufferSize()) / (float)BUFFER_SEND_INTERVAL_USECS;
+            _audioOutput->setBufferSize(AUDIO_OUTPUT_BUFFER_SIZE_FRAMES * _outputFrameSize * sizeof(int16_t));
+            qDebug() << "Ring Buffer capacity in frames: " << _audioOutput->bufferSize() / sizeof(int16_t) / (float)_outputFrameSize;
             
             _audioOutputIODevice.start();
             _audioOutput->start(&_audioOutputIODevice);
