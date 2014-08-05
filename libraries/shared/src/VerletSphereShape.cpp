@@ -48,3 +48,7 @@ void VerletSphereShape::accumulateDelta(float relativeMassFactor, const glm::vec
 void VerletSphereShape::applyAccumulatedDelta() {
     _point->applyAccumulatedDelta();
 }
+
+void VerletSphereShape::getVerletPoints(QVector<VerletPoint*>& points) {
+    points.push_back(_point);
+}

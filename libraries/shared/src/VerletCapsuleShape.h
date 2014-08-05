@@ -47,6 +47,7 @@ public:
     float computeEffectiveMass(const glm::vec3& penetration, const glm::vec3& contactPoint);
     void accumulateDelta(float relativeMassFactor, const glm::vec3& penetration);
     void applyAccumulatedDelta();
+    virtual void getVerletPoints(QVector<VerletPoint*>& points);
 
     //float getRadius() const { return _radius; }
     virtual float getHalfHeight() const;
