@@ -111,6 +111,11 @@ void VerletCapsuleShape::applyAccumulatedDelta() {
     _endPoint->applyAccumulatedDelta();
 }
 
+void VerletCapsuleShape::getVerletPoints(QVector<VerletPoint*>& points) {
+    points.push_back(_startPoint);
+    points.push_back(_endPoint);
+}
+
 // virtual
 float VerletCapsuleShape::getHalfHeight() const {
     return 0.5f * glm::distance(_startPoint->_position, _endPoint->_position);
