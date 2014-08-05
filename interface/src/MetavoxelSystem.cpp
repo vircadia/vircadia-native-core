@@ -388,6 +388,9 @@ void HeightfieldBuffer::render() {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _colorTextureID);
     
+    DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(
+        DefaultMetavoxelRendererImplementation::getHeightScaleLocation(), 1.0f / _heightSize);
+        
     glDrawRangeElements(GL_QUADS, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
     
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -470,6 +473,7 @@ void DefaultMetavoxelRendererImplementation::init() {
         _heightfieldProgram.bind();
         _heightfieldProgram.setUniformValue("heightMap", 0);
         _heightfieldProgram.setUniformValue("diffuseMap", 1);
+        _heightScaleLocation = _heightfieldProgram.uniformLocation("heightScale");
         _heightfieldProgram.release();
     }
 }
@@ -766,6 +770,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
 ProgramObject DefaultMetavoxelRendererImplementation::_pointProgram;
 int DefaultMetavoxelRendererImplementation::_pointScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldProgram;
+int DefaultMetavoxelRendererImplementation::_heightScaleLocation;
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
     GLdouble coefficients[] = { x, y, z, w };
