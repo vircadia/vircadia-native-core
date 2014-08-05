@@ -1589,8 +1589,9 @@ void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset,
 
 
 void Audio::outputFormatChanged() {
-    _outputFrameSize = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormat.channelCount() * _outputFormat.sampleRate() / _desiredOutputFormat.sampleRate();
-    _receivedAudioStream.outputFormatChanged(_outputFormat);
+    int outputFormatChannelCountTimesSampleRate = _outputFormat.channelCount() * _outputFormat.sampleRate();
+    _outputFrameSize = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * outputFormatChannelCountTimesSampleRate / _desiredOutputFormat.sampleRate();
+    _receivedAudioStream.outputFormatChanged(outputFormatChannelCountTimesSampleRate);
 }
 
 bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {

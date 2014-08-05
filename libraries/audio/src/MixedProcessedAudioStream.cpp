@@ -16,8 +16,8 @@ MixedProcessedAudioStream ::MixedProcessedAudioStream (int numFrameSamples, int 
 {
 }
 
-void MixedProcessedAudioStream::outputFormatChanged(const QAudioFormat& outputFormat) {
-    _outputFormatChannelsTimesSampleRate = outputFormat.channelCount() * outputFormat.sampleRate();
+void MixedProcessedAudioStream::outputFormatChanged(int outputFormatChannelCountTimesSampleRate) {
+    _outputFormatChannelsTimesSampleRate = outputFormatChannelCountTimesSampleRate;
     int deviceOutputFrameSize = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormatChannelsTimesSampleRate / SAMPLE_RATE;
     _ringBuffer.resizeForFrameSize(deviceOutputFrameSize);
 }
