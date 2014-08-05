@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
 #include <QtCore/QJsonDocument>
@@ -68,29 +69,35 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
 
     int configIndex = argumentList.indexOf(CONFIG_FILE_OPTION);
 
+    QString configFilePath;
+    
     if (configIndex != -1) {
         // we have a config file - try and read it
-        QString configFilePath = argumentList[configIndex + 1];
-        QFile configFile(configFilePath);
-
-        if (configFile.exists()) {
-            qDebug() << "Reading JSON config file at" << configFilePath;
-            configFile.open(QIODevice::ReadOnly);
-
-            QJsonDocument configDocument = QJsonDocument::fromJson(configFile.readAll());
-            QJsonObject rootObject = configDocument.object();
-
-            // enumerate the keys of the configDocument object
-            foreach(const QString& key, rootObject.keys()) {
-
-                if (!mergedMap.contains(key)) {
-                    // no match in existing list, add it
-                    mergedMap.insert(key, QVariant(rootObject[key]));
-                }
+        configFilePath = argumentList[configIndex + 1];
+    } else {
+        // no config file - try to read a file at resources/config.json
+        configFilePath = QCoreApplication::applicationDirPath() + "/resources/config.json";
+    }
+    
+    QFile configFile(configFilePath);
+    
+    if (configFile.exists()) {
+        qDebug() << "Reading JSON config file at" << configFilePath;
+        configFile.open(QIODevice::ReadOnly);
+        
+        QJsonDocument configDocument = QJsonDocument::fromJson(configFile.readAll());
+        QJsonObject rootObject = configDocument.object();
+        
+        // enumerate the keys of the configDocument object
+        foreach(const QString& key, rootObject.keys()) {
+            
+            if (!mergedMap.contains(key)) {
+                // no match in existing list, add it
+                mergedMap.insert(key, QVariant(rootObject[key]));
             }
-        } else {
-            qDebug() << "Could not find JSON config file at" << configFilePath;
         }
+    } else {
+        qDebug() << "Could not find JSON config file at" << configFilePath;
     }
 
     return mergedMap;
