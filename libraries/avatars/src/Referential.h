@@ -33,6 +33,11 @@ public:
     bool isValid() const { return _isValid; }
     bool hasExtraData() const { return !_extraDataBuffer.isEmpty(); }
     
+    glm::vec3 getTranslation() const { return _translation; }
+    glm::quat getRotation() const { return _rotation; }
+    float getScale() const {return _scale; }
+    QByteArray getExtraData() const { return _extraDataBuffer; }
+    
     virtual void update() {}
     int packReferential(unsigned char* destinationBuffer) const;
     int unpackReferential(const unsigned char* sourceBuffer);

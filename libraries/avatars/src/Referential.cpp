@@ -30,7 +30,7 @@ Referential::Referential(const unsigned char*& sourceBuffer, AvatarData* avatar)
     _isValid(false),
     _avatar(avatar)
 {
-    sourceBuffer += unpack(sourceBuffer);
+    sourceBuffer += unpackReferential(sourceBuffer);
 }
 
 Referential::~Referential() {
