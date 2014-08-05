@@ -21,10 +21,11 @@
 #include "BoxEntityItem.h"
 #include "ModelEntityItem.h"
 
-
-QMap<EntityTypes::EntityType_t, QString> EntityTypes::_typeNameHash;
-QMap<QString, EntityTypes::EntityType_t> EntityTypes::_nameTypeHash;
-QMap<EntityTypes::EntityType_t, EntityTypeFactory> EntityTypes::_typeFactoryHash;
+QMap<EntityTypes::EntityType_t, QString> EntityTypes::_typeToNameMap;
+QMap<QString, EntityTypes::EntityType_t> EntityTypes::_nameToTypeMap;
+QMap<EntityTypes::EntityType_t, EntityTypeFactory> EntityTypes::_typeToFactoryMap;
+EntityTypeRenderer EntityTypes::_renderers[EntityTypes::LAST];
+bool EntityTypes::_renderersInitialized = false;
 
 const QString ENTITY_TYPE_NAME_UNKNOWN = "Unknown";
 
@@ -38,8 +39,19 @@ REGISTER_ENTITY_TYPE(Pyramid)
 
 
 const QString& EntityTypes::getEntityTypeName(EntityType_t entityType) {
-    QMap<EntityType_t, QString>::iterator matchedTypeName = _typeNameHash.find(entityType);
-    return matchedTypeName != _typeNameHash.end() ? matchedTypeName.value() : ENTITY_TYPE_NAME_UNKNOWN;
+    QMap<EntityType_t, QString>::iterator matchedTypeName = _typeToNameMap.find(entityType);
+    if (matchedTypeName != _typeToNameMap.end()) {
+        return matchedTypeName.value();
+    }
+    return ENTITY_TYPE_NAME_UNKNOWN;
+}
+
+EntityTypes::EntityType_t EntityTypes::getEntityTypeFromName(const QString& name) {
+    QMap<QString, EntityTypes::EntityType_t>::iterator matchedTypeName = _nameToTypeMap.find(name);
+    if (matchedTypeName != _nameToTypeMap.end()) {
+        return matchedTypeName.value();
+    }
+    return Unknown;
 }
 
 bool EntityTypes::registerEntityType(EntityType_t entityType, const char* name, EntityTypeFactory factoryMethod) {
@@ -48,78 +60,25 @@ bool EntityTypes::registerEntityType(EntityType_t entityType, const char* name, 
     qDebug() << "    name=" << name;
     qDebug() << "    factoryMethod=" << (void*)factoryMethod;
     
-    _typeNameHash[entityType] = name;
-    _nameTypeHash[name] = entityType;
-    _typeFactoryHash[entityType] = factoryMethod;
+    _typeToNameMap[entityType] = name;
+    _nameToTypeMap[name] = entityType;
+    _typeToFactoryMap[entityType] = factoryMethod;
     return true;
 }
 
-EntityTypes::EntityType_t EntityTypes::getEntityTypeFromName(const QString& name) {
-    qDebug() << "EntityTypes::getEntityTypeFromName() name=" << name;
-
-    QMap<QString, EntityTypes::EntityType_t>::iterator matchedTypeName = _nameTypeHash.find(name);
-    if (matchedTypeName != _nameTypeHash.end()) {
-        qDebug() << "EntityTypes::getEntityTypeFromName() FOUND IT! type=" << matchedTypeName.value();
-        return matchedTypeName.value();
-    }
-    qDebug() << "EntityTypes::getEntityTypeFromName() COULDN'T FIND TYPE!! name=" << name;
-    return Unknown;
-}
-
 EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
-
     qDebug() << "EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
     qDebug() << "   entityType=" << entityType;
     qDebug() << "   entityID=" << entityID;
-    //qDebug() << "   properties=" << properties;
 
     EntityItem* newEntityItem = NULL;
 
-    QMap<EntityTypes::EntityType_t, EntityTypeFactory>::iterator matchedType = _typeFactoryHash.find(entityType);
-    if (matchedType != _typeFactoryHash.end()) {
+    QMap<EntityTypes::EntityType_t, EntityTypeFactory>::iterator matchedType = _typeToFactoryMap.find(entityType);
+    if (matchedType != _typeToFactoryMap.end()) {
         EntityTypeFactory factory = matchedType.value();
         
-        qDebug() << "ABOUT TO CALL FACTORY!!!!!";
         newEntityItem = factory(entityID, properties);
-        qDebug() << "AFTER FACTORY!!!!!";
-    } else {
-        qDebug() << "UNABLE TO CALL FACTORY!!!!!";
     }
-
-    /**
-    
-    // switch statement for now, needs to support registration of constructor
-    switch (entityType) {
-        case Model:
-            newEntityItem = new ModelEntityItem(entityID, properties); 
-        break;
-
-        case Box:
-            newEntityItem = new BoxEntityItem(entityID, properties); 
-        break;
-
-        case Sphere:
-            newEntityItem = new SphereEntityItem(entityID, properties); 
-        break;
-
-        case Plane:
-            newEntityItem = new PlaneEntityItem(entityID, properties); 
-        break;
-
-        case Cylinder:
-            newEntityItem = new CylinderEntityItem(entityID, properties); 
-        break;
-
-        case Pyramid:
-            newEntityItem = new PyramidEntityItem(entityID, properties); 
-        break;
-
-        default:
-            newEntityItem = new ModelEntityItem(entityID, properties); 
-        break;
-    }
-     
-     */
     return newEntityItem;
 }
 
@@ -413,5 +372,28 @@ qDebug() << "EntityItem::decodeEntityEditPacket() ... lastEdited=" << lastEdited
     
     return valid;
 }
+
+bool EntityTypes::registerEntityTypeRenderer(EntityType_t entityType, EntityTypeRenderer renderMethod) {
+    qDebug() << "EntityTypes::registerEntityTypeRenderer()";
+    qDebug() << "    entityType=" << entityType;
+    qDebug() << "    renderMethod=" << (void*)renderMethod;
+
+    if (!_renderersInitialized) {
+        memset(&_renderers,0,sizeof(_renderers));
+        _renderersInitialized = true;
+    }
+    _renderers[entityType] = renderMethod;
+    
+    return true;
+}
+
+void EntityTypes::renderEntityItem(EntityItem* entityItem) {
+    EntityType_t entityType = entityItem->getType();
+    EntityTypeRenderer renderMethod = _renderers[entityType];
+    if (renderMethod) {
+        renderMethod(entityItem);
+    }
+}
+
 
 

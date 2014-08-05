@@ -45,7 +45,37 @@ void EntityTreeRenderer::clearModelsCache() {
     _unknownEntityItemModels.clear();
 }
 
+class ModelEntityItemRenderer {
+public:
+    static void render(EntityItem* entity) {
+        glm::vec3 position = entity->getPosition() * (float)TREE_SCALE;
+        float radius = entity->getRadius() * (float)TREE_SCALE;
+        glColor3f(1.0f, 0.0f, 0.0f);
+        glPushMatrix();
+        glTranslatef(position.x, position.y, position.z);
+        glutSolidSphere(radius, 15, 15);
+        glPopMatrix();
+    }
+};
+
+class BoxEntityItemRenderer {
+public:
+    static void render(EntityItem* entity) {
+        glm::vec3 position = entity->getPosition() * (float)TREE_SCALE;
+        float size = entity->getSize() * (float)TREE_SCALE;
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glPushMatrix();
+        glTranslatef(position.x, position.y, position.z);
+        glutSolidCube(size);
+        glPopMatrix();
+    }
+};
+
+
 void EntityTreeRenderer::init() {
+    REGISTER_ENTITY_TYPE_RENDERER(Model)
+    REGISTER_ENTITY_TYPE_RENDERER(Box)
+
     OctreeRenderer::init();
     static_cast<EntityTree*>(_tree)->setFBXService(this);
 }
@@ -373,21 +403,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                 glPopMatrix();
 #endif
             } else {
-                //glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
-                
-                EntityTypes::EntityType_t type = entityItem->getType();
-                
-                //qDebug() << "rendering type=" << type;
-                
-                if (type == EntityTypes::Model) {
-                    glColor3f(1.0f, 0.0f, 0.0f);
-                } else {
-                    glColor3f(0.0f, 1.0f, 0.0f);
-                }
-                glPushMatrix();
-                    glTranslatef(position.x, position.y, position.z);
-                    glutSolidSphere(radius, 15, 15);
-                glPopMatrix();
+                EntityTypes::renderEntityItem(entityItem);
             }
         } else {
             args->_itemsOutOfView++;
@@ -407,3 +423,8 @@ int EntityTreeRenderer::getBoundaryLevelAdjust() const {
 void EntityTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
     static_cast<EntityTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
 }
+
+
+
+
+
