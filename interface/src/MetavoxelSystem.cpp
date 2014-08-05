@@ -359,9 +359,9 @@ void HeightfieldBuffer::render() {
             int nextLineIndex = (i + 1) * sizeWithSkirt;
             for (int j = 0; j < rows; j++) {
                 *index++ = lineIndex + j;
-                *index++ = lineIndex + j + 1;
-                *index++ = nextLineIndex + j + 1;
                 *index++ = nextLineIndex + j;
+                *index++ = nextLineIndex + j + 1;
+                *index++ = lineIndex + j + 1;
             }
         }
         
@@ -405,6 +405,7 @@ QHash<int, HeightfieldBuffer::BufferPair> HeightfieldBuffer::_bufferPairs;
 
 void HeightfieldPreview::render(const glm::vec3& translation, float scale) const {
     glDisable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_EQUAL, 0.0f);
     
@@ -431,6 +432,7 @@ void HeightfieldPreview::render(const glm::vec3& translation, float scale) const
     glDisableClientState(GL_VERTEX_ARRAY);
     
     glDisable(GL_ALPHA_TEST);
+    glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
 }
 
@@ -737,6 +739,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     
     _pointProgram.release();
     
+    glEnable(GL_CULL_FACE);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_EQUAL, 0.0f);
     
@@ -756,6 +759,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     glDisableClientState(GL_VERTEX_ARRAY);
     
     glDisable(GL_ALPHA_TEST);
+    glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
 }
 
