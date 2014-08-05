@@ -22,7 +22,7 @@ MuscleConstraint::MuscleConstraint(VerletPoint* parent, VerletPoint* child) : _r
 }
 
 float MuscleConstraint::enforce() {
-    _childPoint->_position = (1.0f - _strength) * _childPoint->_position + _strength * (_rootPoint->_position + _childOffset);
+    _childPoint->_position += _strength * (_rootPoint->_position + _childOffset - _childPoint->_position);
     return 0.0f;
 }
 
