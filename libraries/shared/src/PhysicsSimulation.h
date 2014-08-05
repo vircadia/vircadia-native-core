@@ -32,6 +32,7 @@ public:
     bool addEntity(PhysicsEntity* entity);
 
     void removeEntity(PhysicsEntity* entity);
+    void removeShapes(const PhysicsEntity* entity);
 
     /// \return true if doll was added to or is already in the list
     bool addRagdoll(Ragdoll* doll);
