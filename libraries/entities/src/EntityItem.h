@@ -121,6 +121,10 @@ public:
         EntityItem(entityItemID, properties) { _type = EntityTypes::Sphere; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+
+    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+        return new SphereEntityItem(entityID, properties);
+    }
 };
 
 class PlaneEntityItem : public EntityItem {
@@ -129,6 +133,10 @@ public:
         EntityItem(entityItemID, properties) { _type = EntityTypes::Plane; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+
+    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+        return new PlaneEntityItem(entityID, properties);
+    }
 };
 
 class CylinderEntityItem : public EntityItem {
@@ -137,6 +145,10 @@ public:
         EntityItem(entityItemID, properties) { _type = EntityTypes::Cylinder; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+
+    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+        return new CylinderEntityItem(entityID, properties);
+    }
 };
 
 class PyramidEntityItem : public EntityItem {
@@ -145,6 +157,10 @@ public:
         EntityItem(entityItemID, properties) { _type = EntityTypes::Pyramid; }
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+
+    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+        return new PyramidEntityItem(entityID, properties);
+    }
 };
 
 #endif // hifi_EntityItem_h

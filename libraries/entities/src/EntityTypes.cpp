@@ -31,6 +31,11 @@ const QString ENTITY_TYPE_NAME_UNKNOWN = "Unknown";
 // Register Entity Types here...
 REGISTER_ENTITY_TYPE(Model)
 REGISTER_ENTITY_TYPE(Box)
+REGISTER_ENTITY_TYPE(Sphere)
+REGISTER_ENTITY_TYPE(Plane)
+REGISTER_ENTITY_TYPE(Cylinder)
+REGISTER_ENTITY_TYPE(Pyramid)
+
 
 const QString& EntityTypes::getEntityTypeName(EntityType_t entityType) {
     QMap<EntityType_t, QString>::iterator matchedTypeName = _typeNameHash.find(entityType);
