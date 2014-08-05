@@ -14,9 +14,10 @@
 
 #include "EntityItem.h" 
 
-// our non-pure virtual subclass for now...
 class ModelEntityItem : public EntityItem {
 public:
+    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+
     ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
 
     virtual void somePureVirtualFunction() { }; // allow this class to be constructed

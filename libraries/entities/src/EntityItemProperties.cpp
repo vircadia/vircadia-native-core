@@ -21,7 +21,7 @@ EntityItemProperties::EntityItemProperties() :
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
     _lastEdited(0),
-    _type(EntityTypes::Base),
+    _type(EntityTypes::Unknown),
 
     _position(0),
     _radius(ENTITY_DEFAULT_RADIUS),
@@ -157,7 +157,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     if (typeScriptValue.isValid()) {
         QString typeName;
         typeName = typeScriptValue.toVariant().toString();
+qDebug() << "EntityItemProperties::copyFromScriptValue()... typeName=" << typeName;
         _type = EntityTypes::getEntityTypeFromName(typeName);
+qDebug() << "EntityItemProperties::copyFromScriptValue()... _type=" << _type;
     }
 
     QScriptValue position = object.property("position");

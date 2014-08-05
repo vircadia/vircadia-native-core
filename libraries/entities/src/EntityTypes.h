@@ -22,10 +22,12 @@ class EntityItemID;
 class EntityItemProperties;
 class ReadBitstreamToTreeParams;
 
+typedef EntityItem* (*EntityTypeFactory)(const EntityItemID& entityID, const EntityItemProperties& properties);
+
 class EntityTypes {
 public:
     typedef enum EntityType {
-        Base,
+        Unknown,
         Model,
         Box,
         Sphere,
@@ -35,7 +37,7 @@ public:
     } EntityType_t;
 
     static const QString& getEntityTypeName(EntityType_t entityType);
-    static bool registerEntityType(EntityType_t entityType, const QString& name);
+    static bool registerEntityType(EntityType_t entityType, const char* name, EntityTypeFactory factoryMethod);
     static EntityTypes::EntityType_t getEntityTypeFromName(const QString& name);
 
     static EntityItem* constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -43,7 +45,17 @@ public:
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes, 
                                         EntityItemID& entityID, EntityItemProperties& properties);
 private:
-    static QHash<EntityType_t, QString> _typeNameHash;
+    static QMap<EntityType_t, QString> _typeNameHash;
+    static QMap<QString, EntityTypes::EntityType_t> _nameTypeHash;
+    static QMap<EntityType_t, EntityTypeFactory> _typeFactoryHash;
 };
+
+
+/// Macro for registering entity types. Make sure to add an element to the EntityType enum with your name, and your class should be
+/// named NameEntityItem and must of a static method called factory that takes an EnityItemID, and EntityItemProperties and return a newly
+/// constructed (heap allocated) instance of your type. e.g. The following prototype:
+//        static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+#define REGISTER_ENTITY_TYPE(x) static bool x##Registration = EntityTypes::registerEntityType(EntityTypes::x, #x, x##EntityItem::factory);
+
 
 #endif // hifi_EntityTypes_h

@@ -903,12 +903,13 @@ function controller(wichSide) {
                 MyAvatar.detachOne(attachments[attachmentIndex].modelURL, attachments[attachmentIndex].jointName);
                 
                 newProperties = {
-                position: Vec3.sum(MyAvatar.getJointPosition(attachments[attachmentIndex].jointName),
-                                   Vec3.multiplyQbyV(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName), attachments[attachmentIndex].translation)),
-                rotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
-                                             attachments[attachmentIndex].rotation),
-                radius: attachments[attachmentIndex].scale / 2.0,
-                modelURL: attachments[attachmentIndex].modelURL
+                    type: "Model",
+                    position: Vec3.sum(MyAvatar.getJointPosition(attachments[attachmentIndex].jointName),
+                                       Vec3.multiplyQbyV(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName), attachments[attachmentIndex].translation)),
+                    rotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
+                                                 attachments[attachmentIndex].rotation),
+                    radius: attachments[attachmentIndex].scale / 2.0,
+                    modelURL: attachments[attachmentIndex].modelURL
                 };
 
 print(">>>>>  CALLING >>>>> newModel = Entities.addEntity(newProperties);");
@@ -1208,7 +1209,9 @@ function mousePressEvent(event) {
         
         if (position.x > 0 && position.y > 0 && position.z > 0) {
 print(">>>>>  CALLING >>>>> Entities.addEntity(newProperties);");
-            Entities.addEntity({ position: position,
+            Entities.addEntity({ 
+                            type: "Model",
+                            position: position,
                             radius: radiusDefault,
                             modelURL: url
                             });
@@ -1226,7 +1229,9 @@ print(">>>>>  CALLING >>>>> Entities.addEntity(newProperties);");
         
         if (position.x > 0 && position.y > 0 && position.z > 0) {
 print(">>>>>  CALLING >>>>> Entities.addEntity(newProperties);");
-            Entities.addEntity({ position: position,
+            Entities.addEntity({ 
+                            type: "Model",
+                            position: position,
                             radius: radiusDefault,
                             modelURL: url
                             });

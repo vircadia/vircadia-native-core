@@ -1,5 +1,5 @@
 //
-//  ModelEntityItem.cpp
+//  BoxEntityItem.cpp
 //  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
@@ -9,65 +9,53 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+#include <QDebug>
+
 #include <ByteCountCoding.h>
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "ModelEntityItem.h"
+#include "BoxEntityItem.h"
 
 
-//EntityTypes::registerEntityType(EntityTypes::Model, "Model", ModelEntityItem::factory);
+//static bool registerBox = EntityTypes::registerEntityType(EntityTypes::Box, "Box", BoxEntityItem::factory);
+ 
 
-
-EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    qDebug() << "ModelEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
-    return new  ModelEntityItem(entityID, properties);
+EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    qDebug() << "BoxEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
+    return new  BoxEntityItem(entityID, properties);
 }
 
 // our non-pure virtual subclass for now...
-ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 { 
-    qDebug() << "ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
-    _type = EntityTypes::Model;     
+    qDebug() << "BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
+    _type = EntityTypes::Box;
 
-    qDebug() << "ModelEntityItem::ModelEntityItem() properties.getModelURL()=" << properties.getModelURL();
+    qDebug() << "BoxEntityItem::BoxEntityItem() properties.getModelURL()=" << properties.getModelURL();
     
-    qDebug() << "ModelEntityItem::ModelEntityItem() calling setProperties()";
+    qDebug() << "BoxEntityItem::BoxEntityItem() calling setProperties()";
     setProperties(properties);
-    qDebug() << "ModelEntityItem::ModelEntityItem() getModelURL()=" << getModelURL();
+
 
 }
 
-EntityItemProperties ModelEntityItem::getProperties() const {
-    qDebug() << "ModelEntityItem::getProperties()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
+EntityItemProperties BoxEntityItem::getProperties() const {
+    qDebug() << "BoxEntityItem::getProperties()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
 
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
     properties._color = getXColor();
-    properties._modelURL = getModelURL();
-    properties._animationURL = getAnimationURL();
-    properties._animationIsPlaying = getAnimationIsPlaying();
-    properties._animationFrameIndex = getAnimationFrameIndex();
-    properties._animationFPS = getAnimationFPS();
-    properties._glowLevel = getGlowLevel();
-    properties._sittingPoints = getSittingPoints(); // sitting support
     properties._colorChanged = false;
-    properties._modelURLChanged = false;
-    properties._animationURLChanged = false;
-    properties._animationIsPlayingChanged = false;
-    properties._animationFrameIndexChanged = false;
-    properties._animationFPSChanged = false;
-    properties._glowLevelChanged = false;
-
-    qDebug() << "ModelEntityItem::getProperties() getModelURL()=" << getModelURL();
 
     return properties;
 }
 
-void ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    qDebug() << "ModelEntityItem::setProperties()...";
-    qDebug() << "ModelEntityItem::ModelEntityItem() properties.getModelURL()=" << properties.getModelURL();
+void BoxEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+    qDebug() << "BoxEntityItem::setProperties()...";
+    qDebug() << "BoxEntityItem::BoxEntityItem() properties.getModelURL()=" << properties.getModelURL();
     bool somethingChanged = false;
     
     EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
@@ -77,44 +65,12 @@ void ModelEntityItem::setProperties(const EntityItemProperties& properties, bool
         somethingChanged = true;
     }
 
-    if (properties._modelURLChanged || forceCopy) {
-        setModelURL(properties._modelURL);
-        
-qDebug() << "ModelEntityItem::setProperties() getModelURL()=" << getModelURL() << " ---- SETTING!!! --------";
-        somethingChanged = true;
-    }
-
-    if (properties._animationURLChanged || forceCopy) {
-        setAnimationURL(properties._animationURL);
-        somethingChanged = true;
-    }
-
-    if (properties._animationIsPlayingChanged || forceCopy) {
-        setAnimationIsPlaying(properties._animationIsPlaying);
-        somethingChanged = true;
-    }
-
-    if (properties._animationFrameIndexChanged || forceCopy) {
-        setAnimationFrameIndex(properties._animationFrameIndex);
-        somethingChanged = true;
-    }
-    
-    if (properties._animationFPSChanged || forceCopy) {
-        setAnimationFPS(properties._animationFPS);
-        somethingChanged = true;
-    }
-    
-    if (properties._glowLevelChanged || forceCopy) {
-        setGlowLevel(properties._glowLevel);
-        somethingChanged = true;
-    }
-
     if (somethingChanged) {
         bool wantDebug = false;
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - _lastEdited;
-            qDebug() << "ModelEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qDebug() << "BoxEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " _lastEdited=" << _lastEdited;
         }
         setLastEdited(properties._lastEdited);
@@ -123,14 +79,10 @@ qDebug() << "ModelEntityItem::setProperties() getModelURL()=" << getModelURL() <
 
 
 
-int ModelEntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+int BoxEntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
 
 
-qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
-
-    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
-        return oldVersionReadEntityDataFromBuffer(data, bytesLeftToRead, args);
-    }
+qDebug() << "BoxEntityItem::readEntityDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
 
     // Header bytes
     //    object ID [16 bytes]
@@ -281,175 +233,20 @@ qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... <<<<<<<<<<<<<<<<  <<
             bytesRead += sizeof(color);
         }
 
-        // PROP_MODEL_URL
-        if (propertyFlags.getHasProperty(PROP_MODEL_URL)) {
-        
-            // TODO: fix to new format...
-            uint16_t modelURLLength;
-            memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
-            dataAt += sizeof(modelURLLength);
-            bytesRead += sizeof(modelURLLength);
-            QString modelURLString((const char*)dataAt);
-            dataAt += modelURLLength;
-            bytesRead += modelURLLength;
-            if (overwriteLocalData) {
-                setModelURL(modelURLString);
-            }
-        }
-        
-qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... modelURL=" << getModelURL();
-        
 
-        // PROP_ANIMATION_URL
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
-            // animationURL
-            uint16_t animationURLLength;
-            memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
-            dataAt += sizeof(animationURLLength);
-            bytesRead += sizeof(animationURLLength);
-            QString animationURLString((const char*)dataAt);
-            dataAt += animationURLLength;
-            bytesRead += animationURLLength;
-            if (overwriteLocalData) {
-                setAnimationURL(animationURLString);
-            }
-        }        
-
-        // PROP_ANIMATION_FPS
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
-            float animationFPS;
-            memcpy(&animationFPS, dataAt, sizeof(animationFPS));
-            dataAt += sizeof(animationFPS);
-            bytesRead += sizeof(animationFPS);
-            if (overwriteLocalData) {
-                _animationFPS = animationFPS;
-            }
-        }
-
-        // PROP_ANIMATION_FRAME_INDEX
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-            float animationFrameIndex;
-            memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
-            dataAt += sizeof(animationFrameIndex);
-            bytesRead += sizeof(animationFrameIndex);
-            if (overwriteLocalData) {
-                _animationFrameIndex = animationFrameIndex;
-            }
-        }
-
-        // PROP_ANIMATION_PLAYING
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-            bool animationIsPlaying;
-            memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
-            dataAt += sizeof(animationIsPlaying);
-            bytesRead += sizeof(animationIsPlaying);
-            if (overwriteLocalData) {
-                _animationIsPlaying = animationIsPlaying;
-            }
-        }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     }
     return bytesRead;
 }
 
-int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
 
-    int bytesRead = 0;
-    if (bytesLeftToRead >= expectedBytes()) {
-        int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
-
-        const unsigned char* dataAt = data;
-
-        // id
-        memcpy(&_id, dataAt, sizeof(_id));
-        dataAt += sizeof(_id);
-        bytesRead += sizeof(_id);
-
-        // _lastUpdated
-        memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
-        dataAt += sizeof(_lastUpdated);
-        bytesRead += sizeof(_lastUpdated);
-        _lastUpdated -= clockSkew;
-
-        // _lastEdited
-        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
-        dataAt += sizeof(_lastEdited);
-        bytesRead += sizeof(_lastEdited);
-        _lastEdited -= clockSkew;
-
-        // radius
-        memcpy(&_radius, dataAt, sizeof(_radius));
-        dataAt += sizeof(_radius);
-        bytesRead += sizeof(_radius);
-
-        // position
-        memcpy(&_position, dataAt, sizeof(_position));
-        dataAt += sizeof(_position);
-        bytesRead += sizeof(_position);
-
-        // color
-        memcpy(&_color, dataAt, sizeof(_color));
-        dataAt += sizeof(_color);
-        bytesRead += sizeof(_color);
-
-        // shouldBeDeleted
-        memcpy(&_shouldBeDeleted, dataAt, sizeof(_shouldBeDeleted));
-        dataAt += sizeof(_shouldBeDeleted);
-        bytesRead += sizeof(_shouldBeDeleted);
-
-        // modelURL
-        uint16_t modelURLLength;
-        memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
-        dataAt += sizeof(modelURLLength);
-        bytesRead += sizeof(modelURLLength);
-        QString modelURLString((const char*)dataAt);
-        setModelURL(modelURLString);
-        dataAt += modelURLLength;
-        bytesRead += modelURLLength;
-
-        // rotation
-        int bytes = unpackOrientationQuatFromBytes(dataAt, _rotation);
-        dataAt += bytes;
-        bytesRead += bytes;
-
-        if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ANIMATION) {
-            // animationURL
-            uint16_t animationURLLength;
-            memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
-            dataAt += sizeof(animationURLLength);
-            bytesRead += sizeof(animationURLLength);
-            QString animationURLString((const char*)dataAt);
-            setAnimationURL(animationURLString);
-            dataAt += animationURLLength;
-            bytesRead += animationURLLength;
-
-            // animationIsPlaying
-            memcpy(&_animationIsPlaying, dataAt, sizeof(_animationIsPlaying));
-            dataAt += sizeof(_animationIsPlaying);
-            bytesRead += sizeof(_animationIsPlaying);
-
-            // animationFrameIndex
-            memcpy(&_animationFrameIndex, dataAt, sizeof(_animationFrameIndex));
-            dataAt += sizeof(_animationFrameIndex);
-            bytesRead += sizeof(_animationFrameIndex);
-
-            // animationFPS
-            memcpy(&_animationFPS, dataAt, sizeof(_animationFPS));
-            dataAt += sizeof(_animationFPS);
-            bytesRead += sizeof(_animationFPS);
-        }
-    }
-    return bytesRead;
-}
-
-
-OctreeElement::AppendState ModelEntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+OctreeElement::AppendState BoxEntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
                                             EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const {
 
 
 
-qDebug() << "ModelEntityItem::appendEntityData()... ********************************************";
+qDebug() << "BoxEntityItem::appendEntityData()... ********************************************";
 
     // ALL this fits...
     //    object ID [16 bytes]
@@ -466,7 +263,12 @@ qDebug() << "ModelEntityItem::appendEntityData()... ****************************
     QByteArray encodedID = idCoder;
 
     // encode our type as a byte count coded byte stream
-    ByteCountCoded<quint32> typeCoder = getType();
+
+    EntityTypes::EntityType_t type = getType();
+qDebug() << "BoxEntityItem::appendEntityData()... type=" << type;
+    
+
+    ByteCountCoded<quint32> typeCoder = type;
     QByteArray encodedType = typeCoder;
 
     quint64 updateDelta = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
@@ -477,13 +279,8 @@ qDebug() << "ModelEntityItem::appendEntityData()... ****************************
     
     requestedProperties += PROP_POSITION;
     requestedProperties += PROP_RADIUS;
-    requestedProperties += PROP_MODEL_URL;
     requestedProperties += PROP_ROTATION;
     requestedProperties += PROP_COLOR;
-    requestedProperties += PROP_ANIMATION_URL;
-    requestedProperties += PROP_ANIMATION_FPS;
-    requestedProperties += PROP_ANIMATION_FRAME_INDEX;
-    requestedProperties += PROP_ANIMATION_PLAYING;
     requestedProperties += PROP_SHOULD_BE_DELETED;
 
     EntityPropertyFlags propertiesDidntFit = requestedProperties;
@@ -503,7 +300,7 @@ qDebug() << "ModelEntityItem::appendEntityData()... ****************************
     bool successTypeFits = packetData->appendValue(encodedType);
     
     quint64 lastEdited = getLastEdited();
-qDebug() << "ModelEntityItem::appendEntityData() ... lastEdited=" << lastEdited;
+qDebug() << "BoxEntityItem::appendEntityData() ... lastEdited=" << lastEdited;
     
     bool successLastEditedFits = packetData->appendValue(lastEdited);
     bool successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
@@ -631,108 +428,6 @@ qDebug() << "ModelEntityItem::appendEntityData() ... lastEdited=" << lastEdited;
         } else {
             //qDebug() << "PROP_COLOR NOT requested...";
             propertiesDidntFit -= PROP_COLOR;
-        }
-
-        // PROP_MODEL_URL
-        if (requestedProperties.getHasProperty(PROP_MODEL_URL)) {
-            //qDebug() << "PROP_MODEL_URL requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getModelURL());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_MODEL_URL;
-                propertiesDidntFit -= PROP_MODEL_URL;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_MODEL_URL didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_MODEL_URL NOT requested...";
-            propertiesDidntFit -= PROP_MODEL_URL;
-        }
-
-qDebug() << "ModelEntityItem::appendEntityData()... modelURL=" << getModelURL();
-
-        // PROP_ANIMATION_URL
-        if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
-            //qDebug() << "PROP_ANIMATION_URL requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getAnimationURL());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_ANIMATION_URL;
-                propertiesDidntFit -= PROP_ANIMATION_URL;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_ANIMATION_URL didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_ANIMATION_URL NOT requested...";
-            propertiesDidntFit -= PROP_ANIMATION_URL;
-        }
-
-        // PROP_ANIMATION_FPS
-        if (requestedProperties.getHasProperty(PROP_ANIMATION_FPS)) {
-            //qDebug() << "PROP_ANIMATION_FPS requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getAnimationFPS());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_ANIMATION_FPS;
-                propertiesDidntFit -= PROP_ANIMATION_FPS;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_ANIMATION_FPS didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_ANIMATION_FPS NOT requested...";
-            propertiesDidntFit -= PROP_ANIMATION_FPS;
-        }
-
-        // PROP_ANIMATION_FRAME_INDEX
-        if (requestedProperties.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-            //qDebug() << "PROP_ANIMATION_FRAME_INDEX requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getAnimationFrameIndex());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_ANIMATION_FRAME_INDEX;
-                propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_ANIMATION_FRAME_INDEX didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_ANIMATION_FRAME_INDEX NOT requested...";
-            propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
-        }
-
-        // PROP_ANIMATION_PLAYING
-        if (requestedProperties.getHasProperty(PROP_ANIMATION_PLAYING)) {
-            //qDebug() << "PROP_ANIMATION_PLAYING requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getAnimationIsPlaying());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_ANIMATION_PLAYING;
-                propertiesDidntFit -= PROP_ANIMATION_PLAYING;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_ANIMATION_PLAYING didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_ANIMATION_PLAYING NOT requested...";
-            propertiesDidntFit -= PROP_ANIMATION_PLAYING;
         }
     }
     if (propertyCount > 0) {

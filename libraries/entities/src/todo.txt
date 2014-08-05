@@ -11,6 +11,7 @@ should these be included for all entities? Light, Models, planes, etc?
     * damping
     * rotational velocity? - wouldn't that be cool to be automatic with no edits
     * rotational damping?? - can you slow a quat rotation by simply multiplying it by a fraction?
+    * glow level???
     
     * color??
     
@@ -73,7 +74,7 @@ Model properties:
             
             
             
-    what about editing?
+    what about editing/edit messages...
     
     EntityItem::encodeEntityEditMessageDetails() -- this could be a member of EntityItemProperties, or EntityTypes?...
     EntityTypes::decodeEntityEditPacket() -- this could be a member of EntityItemProperties...??
@@ -144,6 +145,10 @@ Model properties:
 
 //   23) xColor vs rbgColor????
 //   24) get rid of EntityItem::expectedBytes()...
+
+
+//   25) consider moving the EntityTypes static Maps to be inside a singleton instance of EntityTypes to ensure initialization order
+//   26) Why can't we call REGISTER_ENTITY_TYPE() in BoxEntityType.cpp
 
 
 

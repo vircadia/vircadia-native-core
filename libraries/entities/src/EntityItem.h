@@ -115,14 +115,6 @@ protected:
     bool _shouldBeDeleted;
 };
 
-class BoxEntityItem : public EntityItem {
-public:
-    BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { _type = EntityTypes::Box; }
-
-    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
-};
-
 class SphereEntityItem : public EntityItem {
 public:
     SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :

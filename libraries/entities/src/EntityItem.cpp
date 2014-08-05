@@ -46,7 +46,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
     //qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)....";
-    _type = EntityTypes::Base;
+    _type = EntityTypes::Unknown;
     _lastEdited = 0;
     _lastUpdated = 0;
     initFromEntityItemID(entityItemID);
@@ -712,6 +712,9 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
 
         // encode our type as a byte count coded byte stream
         ByteCountCoded<quint32> typeCoder = (quint32)properties.getType();
+        
+qDebug() << "(quint32)properties.getType()=" << (quint32)properties.getType();
+
         QByteArray encodedType = typeCoder;
 
         quint64 updateDelta = 0; // this is an edit so by definition, it's update is in sync

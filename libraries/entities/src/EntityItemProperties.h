@@ -80,6 +80,7 @@ typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 class EntityItemProperties {
     friend class EntityItem; // TODO: consider removing this friend relationship and have EntityItem use public methods
     friend class ModelEntityItem; // TODO: consider removing this friend relationship and have EntityItem use public methods
+    friend class BoxEntityItem; // TODO: consider removing this friend relationship and have EntityItem use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties() { };

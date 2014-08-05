@@ -374,7 +374,16 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
 #endif
             } else {
                 //glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem.getColor()[BLUE_INDEX]);
-                glColor3f(1.0f, 0.0f, 0.0f);
+                
+                EntityTypes::EntityType_t type = entityItem->getType();
+                
+                //qDebug() << "rendering type=" << type;
+                
+                if (type == EntityTypes::Model) {
+                    glColor3f(1.0f, 0.0f, 0.0f);
+                } else {
+                    glColor3f(0.0f, 1.0f, 0.0f);
+                }
                 glPushMatrix();
                     glTranslatef(position.x, position.y, position.z);
                     glutSolidSphere(radius, 15, 15);

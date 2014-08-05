@@ -17,34 +17,74 @@
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
 #include "EntityTypes.h"
+
+#include "BoxEntityItem.h"
 #include "ModelEntityItem.h"
 
-QHash<EntityTypes::EntityType_t, QString> EntityTypes::_typeNameHash;
 
-const QString UNKNOWN_EntityType_t_NAME = "Unknown";
+QMap<EntityTypes::EntityType_t, QString> EntityTypes::_typeNameHash;
+QMap<QString, EntityTypes::EntityType_t> EntityTypes::_nameTypeHash;
+QMap<EntityTypes::EntityType_t, EntityTypeFactory> EntityTypes::_typeFactoryHash;
+
+const QString ENTITY_TYPE_NAME_UNKNOWN = "Unknown";
+
+// Register Entity Types here...
+REGISTER_ENTITY_TYPE(Model)
+REGISTER_ENTITY_TYPE(Box)
+
 const QString& EntityTypes::getEntityTypeName(EntityType_t entityType) {
-    QHash<EntityType_t, QString>::iterator matchedTypeName = _typeNameHash.find(entityType);
-    return matchedTypeName != _typeNameHash.end() ? matchedTypeName.value() : UNKNOWN_EntityType_t_NAME;
+    QMap<EntityType_t, QString>::iterator matchedTypeName = _typeNameHash.find(entityType);
+    return matchedTypeName != _typeNameHash.end() ? matchedTypeName.value() : ENTITY_TYPE_NAME_UNKNOWN;
 }
 
-bool EntityTypes::registerEntityType(EntityType_t entityType, const QString& name) {
-    _typeNameHash.insert(entityType, name);
+bool EntityTypes::registerEntityType(EntityType_t entityType, const char* name, EntityTypeFactory factoryMethod) {
+    qDebug() << "EntityTypes::registerEntityType()";
+    qDebug() << "    entityType=" << entityType;
+    qDebug() << "    name=" << name;
+    qDebug() << "    factoryMethod=" << (void*)factoryMethod;
+    
+    _typeNameHash[entityType] = name;
+    _nameTypeHash[name] = entityType;
+    _typeFactoryHash[entityType] = factoryMethod;
     return true;
 }
 
 EntityTypes::EntityType_t EntityTypes::getEntityTypeFromName(const QString& name) {
-    return Base; // TODO: support registration
+    qDebug() << "EntityTypes::getEntityTypeFromName() name=" << name;
+
+    QMap<QString, EntityTypes::EntityType_t>::iterator matchedTypeName = _nameTypeHash.find(name);
+    if (matchedTypeName != _nameTypeHash.end()) {
+        qDebug() << "EntityTypes::getEntityTypeFromName() FOUND IT! type=" << matchedTypeName.value();
+        return matchedTypeName.value();
+    }
+    qDebug() << "EntityTypes::getEntityTypeFromName() COULDN'T FIND TYPE!! name=" << name;
+    return Unknown;
 }
 
 EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
 
-    //qDebug() << "EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
+    qDebug() << "EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
+    qDebug() << "   entityType=" << entityType;
+    qDebug() << "   entityID=" << entityID;
+    //qDebug() << "   properties=" << properties;
 
     EntityItem* newEntityItem = NULL;
 
+    QMap<EntityTypes::EntityType_t, EntityTypeFactory>::iterator matchedType = _typeFactoryHash.find(entityType);
+    if (matchedType != _typeFactoryHash.end()) {
+        EntityTypeFactory factory = matchedType.value();
+        
+        qDebug() << "ABOUT TO CALL FACTORY!!!!!";
+        newEntityItem = factory(entityID, properties);
+        qDebug() << "AFTER FACTORY!!!!!";
+    } else {
+        qDebug() << "UNABLE TO CALL FACTORY!!!!!";
+    }
+
+    /**
+    
     // switch statement for now, needs to support registration of constructor
     switch (entityType) {
-        // Base, // ??? not supported?
         case Model:
             newEntityItem = new ModelEntityItem(entityID, properties); 
         break;
@@ -73,6 +113,8 @@ EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const Enti
             newEntityItem = new ModelEntityItem(entityID, properties); 
         break;
     }
+     
+     */
     return newEntityItem;
 }
 
@@ -366,9 +408,5 @@ qDebug() << "EntityItem::decodeEntityEditPacket() ... lastEdited=" << lastEdited
     
     return valid;
 }
-
-
-bool registered = EntityTypes::registerEntityType(EntityTypes::Base, "Base")
-                    && EntityTypes::registerEntityType(EntityTypes::Model, "Model"); // TODO: move this to model subclass
 
 
