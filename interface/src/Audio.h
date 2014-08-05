@@ -167,7 +167,7 @@ private:
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
     int _outputFrameSize;
-    int16_t _spatialProcessingBuffer[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
+    int16_t _outputProcessingBuffer[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
     int _numOutputCallbackBytes;
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;

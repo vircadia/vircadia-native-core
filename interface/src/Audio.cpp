@@ -754,12 +754,12 @@ void Audio::processReceivedAudioStreamSamples(const QByteArray& inputBuffer, QBy
 
         // copy the samples we'll resample from the spatial audio ring buffer - this also
         // pushes the read pointer of the spatial audio ring buffer forwards
-        _spatialAudioRingBuffer.readSamples(_spatialProcessingBuffer, numNetworkOutputSamples);
+        _spatialAudioRingBuffer.readSamples(_outputProcessingBuffer, numNetworkOutputSamples);
 
         // Advance the start point for the next packet of audio to arrive
         _spatialAudioStart += numNetworkOutputSamples / _desiredOutputFormat.channelCount();
 
-        receivedSamples = _spatialProcessingBuffer;
+        receivedSamples = _outputProcessingBuffer;
     } else {
         // copy the samples we'll resample from the ring buffer - this also
         // pushes the read pointer of the ring buffer forwards
