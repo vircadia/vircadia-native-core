@@ -16,8 +16,26 @@
 
 #include "ModelReferential.h"
 
-ModelReferential::ModelReferential(Referential* referential, AvatarData* avatar) : Referential(MODEL, avatar) {
-    
+ModelReferential::ModelReferential(Referential* referential, ModelTree* tree, AvatarData* avatar) :
+    Referential(MODEL, avatar),
+    _tree(tree) {
+        unpackExtraData(reinterpret_cast<unsigned char*>(referential->getExtraData().data()),
+                        referential->getExtraData().size());
+        if (!isValid()) {
+            qDebug() << "ModelReferential::copyConstructo(): Not Valid";
+            return;
+        }
+        
+        const ModelItem* item = _tree->findModelByID(_modelID);
+        if (item != NULL) {
+            _refScale = item->getRadius();
+            _refRotation = item->getModelRotation();
+            _refPosition = item->getPosition() * (float)TREE_SCALE;
+        }
+        
+        _scale = referential->getScale();
+        _rotation = referential->getRotation();
+        _translation = referential->getTranslation();
 }
 
 ModelReferential::ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData* avatar) :
@@ -26,8 +44,8 @@ _modelID(modelID),
 _tree(tree)
 {
     const ModelItem* item = _tree->findModelByID(_modelID);
-    if (!_isValid || item == NULL) {
-        qDebug() << "Not Validd";
+    if (!isValid() || item == NULL) {
+        qDebug() << "ModelReferential::constructor(): Not Valid";
         _isValid = false;
         return;
     }
@@ -44,9 +62,8 @@ _tree(tree)
 
 void ModelReferential::update() {
     const ModelItem* item = _tree->findModelByID(_modelID);
-    if (item == NULL || _avatar == NULL) {
-        qDebug() << "Not Valid";
-        _isValid = false;
+    if (!isValid() || item == NULL || _avatar == NULL) {
+        //qDebug() << "ModelReferential::update(): Not Valid";
         return;
     }
     
@@ -58,13 +75,12 @@ void ModelReferential::update() {
     }
     if (item->getModelRotation() != _refRotation) {
         _refRotation = item->getModelRotation();
-        _avatar->setOrientation(_refRotation * _rotation);
+        _avatar->setOrientation(_refRotation * _rotation, true);
         somethingChanged = true;
     }
     if (item->getPosition() != _refPosition || somethingChanged) {
         _refPosition = item->getPosition();
-        _avatar->setPosition(_refPosition * (float)TREE_SCALE + _refRotation * (_translation * _refScale));
-        //qDebug() << "Ref: " << item->getLastUpdated() << " " << item->getLastEdited();
+        _avatar->setPosition(_refPosition * (float)TREE_SCALE + _refRotation * (_translation * _refScale), true);
         somethingChanged = true;
     }
 }
@@ -87,7 +103,7 @@ JointReferential::JointReferential(uint32_t jointIndex, uint32_t modelID, ModelT
     const ModelItem* item = _tree->findModelByID(_modelID);
     const Model* model = getModel(item);
     if (!_isValid || model == NULL || _jointIndex >= model->getJointStateCount()) {
-        qDebug() << "Not Validd";
+        qDebug() << "Not Valid";
         _isValid = false;
         return;
     }

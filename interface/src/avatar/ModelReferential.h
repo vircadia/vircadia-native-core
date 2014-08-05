@@ -19,7 +19,7 @@ class Model;
 
 class ModelReferential : public Referential {
 public:
-    ModelReferential(Referential* ref, AvatarData* avatar);
+    ModelReferential(Referential* ref, ModelTree* tree, AvatarData* avatar);
     ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData* avatar);
     virtual void update();
     
