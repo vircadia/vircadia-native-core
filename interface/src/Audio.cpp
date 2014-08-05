@@ -729,9 +729,7 @@ void Audio::handleAudioInput() {
 
 void Audio::processReceivedAudioStreamSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
 
-    // NOTE: we assume inputBuffer contains NETWORK_BUFFER_LENGTH_SAMPLES_STEREO audio samples
-    
-    const int numNetworkOutputSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+    const int numNetworkOutputSamples = inputBuffer.size() / sizeof(int16_t);
     const int numDeviceOutputSamples = numNetworkOutputSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
         / (_desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount());
 
@@ -741,7 +739,7 @@ void Audio::processReceivedAudioStreamSamples(const QByteArray& inputBuffer, QBy
     const int16_t* receivedSamples;
     if (_processSpatialAudio) {
         unsigned int sampleTime = _spatialAudioStart;
-        QByteArray buffer = inputBuffer.left(numNetworkOutputSamples * sizeof(int16_t));
+        QByteArray buffer = inputBuffer;
 
         // Accumulate direct transmission of audio from sender to receiver
         if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
@@ -1595,7 +1593,7 @@ void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset,
 
 void Audio::outputFormatChanged() {
     _outputFrameSize = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormat.channelCount() * _outputFormat.sampleRate() / _desiredOutputFormat.sampleRate();
-    _receivedAudioStream.resizeFrame(_outputFrameSize);
+    _receivedAudioStream.outputFormatChanged(_outputFormat);
 }
 
 bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
@@ -1648,7 +1646,6 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
     // cleanup any previously initialized device
     if (_audioOutput) {
         _audioOutput->stop();
-        //_outputDevice = NULL;
         
         delete _audioOutput;
         _audioOutput = NULL;

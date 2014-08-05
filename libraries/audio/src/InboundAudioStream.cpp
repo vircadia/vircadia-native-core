@@ -91,7 +91,6 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 
     frameReceivedUpdateTimingStats();
 
-
     // TODO: handle generalized silent packet here?????
 
     // parse the info after the seq number and before the audio data.(the stream properties)
@@ -169,7 +168,6 @@ int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing, bool starv
     }
     return samplesPopped;
 }
-
 
 int InboundAudioStream::popFrames(int maxFrames, bool allOrNothing, bool starveOnFail) {
     int framesPopped = 0;

@@ -81,8 +81,6 @@ public:
 
     void setMaxFramesOverDesired(int maxFramesOverDesired) { _maxFramesOverDesired = maxFramesOverDesired; }
 
-    void resizeFrame(int numFrameSamples) { _ringBuffer.resizeForFrameSize(numFrameSamples); }
-
     virtual AudioStreamStats getAudioStreamStats() const;
 
     /// returns the desired number of jitter buffer frames under the dyanmic jitter buffers scheme
@@ -129,7 +127,7 @@ protected:
     InboundAudioStream& operator= (const InboundAudioStream&);
 
     /// parses the info between the seq num and the audio data in the network packet and calculates
-    /// how many audio samples this packet contains
+    /// how many audio samples this packet contains (used when filling in samples for dropped packets).
     virtual int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) = 0;
 
     /// parses the audio data in the network packet.

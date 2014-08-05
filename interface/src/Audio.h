@@ -52,10 +52,8 @@ public:
 
         void start() { open(QIODevice::ReadOnly); }
         void stop() { close(); }
-
         qint64	readData(char * data, qint64 maxSize);
         qint64	writeData(const char * data, qint64 maxSize) { return 0; }
-
     private:
         Audio& _parent;
     };
@@ -299,7 +297,6 @@ private:
     MovingMinMaxAvg<quint64> _packetSentTimeGaps;
 
     AudioOutputIODevice _audioOutputIODevice;
-
 };
 
 

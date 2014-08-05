@@ -12,19 +12,26 @@
 #ifndef hifi_MixedProcessedAudioStream_h
 #define hifi_MixedProcessedAudioStream_h
 
-#include "MixedAudioStream.h"
+#include <QtMultimedia/QAudioFormat>
+#include "InboundAudioStream.h"
 
-class MixedProcessedAudioStream  : public MixedAudioStream {
+class MixedProcessedAudioStream  : public InboundAudioStream {
     Q_OBJECT
 public:
     MixedProcessedAudioStream (int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, int maxFramesOverDesired, bool useStDevForJitterCalc);
 
-signals:
+    void outputFormatChanged(const QAudioFormat& outputFormat);
 
+signals:
+    
     void processSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
 
 protected:
+    int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
     int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
+
+private:
+    int _outputFormatChannelsTimesSampleRate;
 };
 
 #endif // hifi_MixedProcessedAudioStream_h
