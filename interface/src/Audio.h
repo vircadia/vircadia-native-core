@@ -33,7 +33,7 @@
 #include <AbstractAudioInterface.h>
 #include <StdDev.h>
 
-#include "RawMixedAudioStream.h"
+#include "MixedProcessedAudioStream.h"
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -58,7 +58,6 @@ public:
 
     private:
         Audio& _parent;
-        quint64 _lastReadTime;
     };
 
 
@@ -111,7 +110,7 @@ public slots:
     void addReceivedAudioToStream(const QByteArray& audioByteArray);
     void parseAudioStreamStatsPacket(const QByteArray& packet);
     void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
-    void receivedAudioStreamProcessSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
+    void processReceivedAudioStreamSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void handleAudioInput();
     void reset();
     void resetStats();
@@ -167,14 +166,15 @@ private:
     QAudioOutput* _audioOutput;
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
-    //QIODevice* _outputDevice;
+    int _outputFrameSize;
+    int16_t _spatialProcessingBuffer[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
     int _numOutputCallbackBytes;
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
     QAudioOutput* _proceduralAudioOutput;
     QIODevice* _proceduralOutputDevice;
     AudioRingBuffer _inputRingBuffer;
-    RawMixedAudioStream _receivedAudioStream;
+    MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
 
     QString _inputAudioDeviceName;
@@ -232,12 +232,6 @@ private:
 
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
-    
-    // Process received audio
-    void processReceivedAudio(const QByteArray& audioByteArray);
-
-    // Pushes frames from the output ringbuffer to the audio output device
-    void pushAudioToOutput();
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
@@ -305,6 +299,7 @@ private:
     MovingMinMaxAvg<quint64> _packetSentTimeGaps;
 
     AudioOutputIODevice _audioOutputIODevice;
+
 };
 
 

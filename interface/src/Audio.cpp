@@ -64,7 +64,7 @@ Audio::Audio(QObject* parent) :
     _audioOutput(NULL),
     _desiredOutputFormat(),
     _outputFormat(),
-    //_outputDevice(NULL),
+    _outputFrameSize(0),
     _numOutputCallbackBytes(0),
     _loopbackAudioOutput(NULL),
     _loopbackOutputDevice(NULL),
@@ -129,7 +129,7 @@ void Audio::init(QGLWidget *parent) {
     _muteTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic-mute.svg"));
     _boxTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/audio-box.svg"));
 
-    connect(&_receivedAudioStream, &RawMixedAudioStream::processSamples, this, &Audio::receivedAudioStreamProcessSamples, Qt::DirectConnection);
+    connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples, this, &Audio::processReceivedAudioStreamSamples, Qt::DirectConnection);
 }
 
 void Audio::reset() {
@@ -314,7 +314,7 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     }
 }
 
-void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
+void linearResampling(const int16_t* sourceSamples, int16_t* destinationSamples,
                       unsigned int numSourceSamples, unsigned int numDestinationSamples,
                       const QAudioFormat& sourceAudioFormat, const QAudioFormat& destinationAudioFormat) {
     if (sourceAudioFormat == destinationAudioFormat) {
@@ -725,24 +725,20 @@ void Audio::handleAudioInput() {
         }
         delete[] inputAudioSamples;
     }
-
-    /*if (_receivedAudioStream.getPacketsReceived() > 0) {
-        pushAudioToOutput();
-    }*/
 }
 
-void Audio::receivedAudioStreamProcessSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
+void Audio::processReceivedAudioStreamSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
 
-    printf("receivedAudioStreamProcessSamples()\n");
-
-    static const int numNetworkOutputSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
-    static const int numDeviceOutputSamples = numNetworkOutputSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
+    // NOTE: we assume inputBuffer contains NETWORK_BUFFER_LENGTH_SAMPLES_STEREO audio samples
+    
+    const int numNetworkOutputSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+    const int numDeviceOutputSamples = numNetworkOutputSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
         / (_desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount());
 
 
     outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
 
-    int16_t* receivedSamples = new int16_t[numNetworkOutputSamples];
+    const int16_t* receivedSamples;
     if (_processSpatialAudio) {
         unsigned int sampleTime = _spatialAudioStart;
         QByteArray buffer = inputBuffer.left(numNetworkOutputSamples * sizeof(int16_t));
@@ -758,16 +754,18 @@ void Audio::receivedAudioStreamProcessSamples(const QByteArray& inputBuffer, QBy
 
         // copy the samples we'll resample from the spatial audio ring buffer - this also
         // pushes the read pointer of the spatial audio ring buffer forwards
-        _spatialAudioRingBuffer.readSamples(receivedSamples, numNetworkOutputSamples);
+        _spatialAudioRingBuffer.readSamples(_spatialProcessingBuffer, numNetworkOutputSamples);
 
         // Advance the start point for the next packet of audio to arrive
         _spatialAudioStart += numNetworkOutputSamples / _desiredOutputFormat.channelCount();
+
+        receivedSamples = _spatialProcessingBuffer;
     } else {
         // copy the samples we'll resample from the ring buffer - this also
         // pushes the read pointer of the ring buffer forwards
         //receivedAudioStreamPopOutput.readSamples(receivedSamples, numNetworkOutputSamples);
 
-        memcpy(receivedSamples, inputBuffer.data(), numNetworkOutputSamples * sizeof(int16_t));
+        receivedSamples = reinterpret_cast<const int16_t*>(inputBuffer.data());
     }
 
     // copy the packet from the RB to the output
@@ -777,14 +775,10 @@ void Audio::receivedAudioStreamProcessSamples(const QByteArray& inputBuffer, QBy
         numDeviceOutputSamples,
         _desiredOutputFormat, _outputFormat);
 
-    /*if (_outputDevice) {
-        _outputDevice->write(outputBuffer);
-    }*/
-    printf("\t outputBuffer now size %d\n", outputBuffer.size());
 
     if (_scopeEnabled && !_scopeEnabledPause) {
         unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
-        int16_t* samples = receivedSamples;
+        const int16_t* samples = receivedSamples;
         for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
 
             unsigned int audioChannel = 0;
@@ -804,15 +798,13 @@ void Audio::receivedAudioStreamProcessSamples(const QByteArray& inputBuffer, QBy
             samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
         }
     }
-
-    delete[] receivedSamples;
 }
 
 void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
 
     if (_audioOutput) {
         // Audio output must exist and be correctly set up if we're going to process received audio
-        processReceivedAudio(audioByteArray);
+        _receivedAudioStream.parseData(audioByteArray);
     }
 
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
@@ -982,119 +974,6 @@ void Audio::toggleStereoInput() {
         // change in channel count for desired input format, restart the input device
         switchInputToAudioDevice(_inputAudioDeviceName);
     }
-}
-
-void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
-
-    // parse audio data
-    _receivedAudioStream.parseData(audioByteArray);
-
-
-    // This call has been moved to handleAudioInput. handleAudioInput is called at a much more regular interval
-    // than processReceivedAudio since handleAudioInput does not experience network-related jitter.
-    // This way, we reduce the jitter of the frames being pushed to the audio output, allowing us to use a reduced
-    // buffer size for it, which reduces latency.
-
-    //pushAudioToOutput();
-}
-
-void Audio::pushAudioToOutput() {
-
-    /*if (_audioOutput->bytesFree() == _audioOutput->bufferSize()) {
-        // the audio output has no samples to play.  set the downstream audio to starved so that it
-        // refills to its desired size before pushing frames
-        _receivedAudioStream.setToStarved();
-    }
-
-    float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float)_outputFormat.sampleRate())
-        * (_desiredOutputFormat.channelCount() / (float)_outputFormat.channelCount());
-
-    int numFramesToPush;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisableQAudioOutputOverflowCheck)) {
-        numFramesToPush = _receivedAudioStream.getFramesAvailable();
-    } else {
-        // make sure to push a whole number of frames to the audio output
-        int numFramesAudioOutputRoomFor = (int)(_audioOutput->bytesFree() / sizeof(int16_t) * networkOutputToOutputRatio) / _receivedAudioStream.getNumFrameSamples();
-        numFramesToPush = std::min(_receivedAudioStream.getFramesAvailable(), numFramesAudioOutputRoomFor);
-    }
-
-    // if there is data in the received stream and room in the audio output, decide what to do
-
-    if (numFramesToPush > 0 && _receivedAudioStream.popFrames(numFramesToPush, false)) {
-
-        int numNetworkOutputSamples = numFramesToPush * NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
-        int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
-
-        QByteArray outputBuffer;
-        outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
-
-        AudioRingBuffer::ConstIterator receivedAudioStreamPopOutput = _receivedAudioStream.getLastPopOutput();
-
-        int16_t* receivedSamples = new int16_t[numNetworkOutputSamples];
-        if (_processSpatialAudio) {
-            unsigned int sampleTime = _spatialAudioStart;
-            QByteArray buffer;
-            buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
-
-            receivedAudioStreamPopOutput.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
-
-            // Accumulate direct transmission of audio from sender to receiver
-            if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
-                emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
-                addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
-            }
-
-            // Send audio off for spatial processing
-            emit processInboundAudio(sampleTime, buffer, _desiredOutputFormat);
-
-            // copy the samples we'll resample from the spatial audio ring buffer - this also
-            // pushes the read pointer of the spatial audio ring buffer forwards
-            _spatialAudioRingBuffer.readSamples(receivedSamples, numNetworkOutputSamples);
-
-            // Advance the start point for the next packet of audio to arrive
-            _spatialAudioStart += numNetworkOutputSamples / _desiredOutputFormat.channelCount();
-        } else {
-            // copy the samples we'll resample from the ring buffer - this also
-            // pushes the read pointer of the ring buffer forwards
-            receivedAudioStreamPopOutput.readSamples(receivedSamples, numNetworkOutputSamples);
-        }
-
-        // copy the packet from the RB to the output
-        linearResampling(receivedSamples,
-            (int16_t*)outputBuffer.data(),
-            numNetworkOutputSamples,
-            numDeviceOutputSamples,
-            _desiredOutputFormat, _outputFormat);
-
-        if (_outputDevice) {
-            _outputDevice->write(outputBuffer);
-        }
-
-        if (_scopeEnabled && !_scopeEnabledPause) {
-            unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
-            int16_t* samples = receivedSamples;
-            for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
-
-                unsigned int audioChannel = 0;
-                addBufferToScope(
-                    _scopeOutputLeft,
-                    _scopeOutputOffset,
-                    samples, audioChannel, numAudioChannels);
-
-                audioChannel = 1;
-                addBufferToScope(
-                    _scopeOutputRight,
-                    _scopeOutputOffset,
-                    samples, audioChannel, numAudioChannels);
-
-                _scopeOutputOffset += NETWORK_SAMPLES_PER_FRAME;
-                _scopeOutputOffset %= _samplesPerScope;
-                samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
-            }
-        }
-
-        delete[] receivedSamples;
-    }*/
 }
 
 void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
@@ -1715,8 +1594,8 @@ void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset,
 
 
 void Audio::outputFormatChanged() {
-    int deviceOutputFrameSize = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormat.channelCount() * _outputFormat.sampleRate() / _desiredOutputFormat.sampleRate();
-    _receivedAudioStream.resizeFrame(deviceOutputFrameSize);
+    _outputFrameSize = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormat.channelCount() * _outputFormat.sampleRate() / _desiredOutputFormat.sampleRate();
+    _receivedAudioStream.resizeFrame(_outputFrameSize);
 }
 
 bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
@@ -1798,12 +1677,8 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
             _audioOutput->setBufferSize(AUDIO_OUTPUT_BUFFER_SIZE_FRAMES * _outputFormat.bytesForDuration(BUFFER_SEND_INTERVAL_USECS));
-
-            printf("\n\n");
             qDebug() << "Ring Buffer capacity in frames: " << (float)_outputFormat.durationForBytes(_audioOutput->bufferSize()) / (float)BUFFER_SEND_INTERVAL_USECS;
-            printf("\n\n");
-            //_outputDevice = _audioOutput->start();
-
+            
             _audioOutputIODevice.start();
             _audioOutput->start(&_audioOutputIODevice);
 
@@ -1877,53 +1752,25 @@ float Audio::getInputRingBufferMsecsAvailable() const {
 }
 
 qint64 Audio::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
-    printf("readData() request %d bytes\n", maxSize);
-    /*
-    float framesRequested = (float)_parent._outputFormat.durationForBytes(maxSize) / (float)BUFFER_SEND_INTERVAL_USECS;
-    
-    if (framesRequested > 67.0f) {
-        maxSize /= 2;
+
+    MixedProcessedAudioStream& receivedAUdioStream = _parent._receivedAudioStream;
+
+    const QAudioOutput* audioOutput = _parent._audioOutput;
+    if (audioOutput->bytesFree() == audioOutput->bufferSize()) {
+        receivedAUdioStream.setToStarved();
     }
-
-
-    quint64 now = usecTimestampNow();
-    printf("%llu\n", now - _lastReadTime);
-    _lastReadTime = now;
-
-    int16_t* buffer; 
-
-
-
-    buffer = (int16_t*)data;
-
-    for (int i = 0; i < maxSize / 2; i++) {
-        *(buffer++) = (int16_t)randIntInRange(0, 10000);
-    }
-    
-    
-    return 2 * (maxSize / 2);
-    */
 
     int samplesRequested = maxSize / sizeof(int16_t);
-
-    printf("requesting %d samples\n", samplesRequested);
-
     int samplesPopped;
     int bytesWritten;
-    if ((samplesPopped = _parent._receivedAudioStream.popSamples(samplesRequested, false, false)) > 0) {
-        printf("\t pop succeeded: %d samples\n", samplesPopped);
-
-        AudioRingBuffer::ConstIterator lastPopOutput = _parent._receivedAudioStream.getLastPopOutput();
+    if ((samplesPopped = receivedAUdioStream.popSamples(samplesRequested, false, false)) > 0) {
+        AudioRingBuffer::ConstIterator lastPopOutput = receivedAUdioStream.getLastPopOutput();
         lastPopOutput.readSamples((int16_t*)data, samplesPopped);
-
         bytesWritten = samplesPopped * sizeof(int16_t);
     } else {
-        printf("\t pop failed\n");
         memset(data, 0, maxSize);
         bytesWritten = maxSize;
     }
-    printf("\t wrote %d bytes\n", bytesWritten);
 
     return bytesWritten;
 }
-
