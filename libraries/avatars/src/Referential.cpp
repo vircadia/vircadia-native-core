@@ -36,7 +36,7 @@ Referential::Referential(const unsigned char*& sourceBuffer, AvatarData* avatar)
 Referential::~Referential() {
 }
 
-int Referential::packReferential(unsigned char* destinationBuffer) {
+int Referential::packReferential(unsigned char* destinationBuffer) const {
     const unsigned char* startPosition = destinationBuffer;
     destinationBuffer += pack(destinationBuffer);
     
@@ -53,17 +53,21 @@ int Referential::unpackReferential(const unsigned char* sourceBuffer) {
     sourceBuffer += unpack(sourceBuffer);
     
     char expectedSize = *sourceBuffer++;
-    char bytesRead = unpackExtraData(sourceBuffer);
+    char bytesRead = unpackExtraData(sourceBuffer, expectedSize);
     _isValid = (bytesRead == expectedSize);
+    if (!_isValid) {
+        qDebug() << "[ERROR] Referential extra data overflow";
+    }
     sourceBuffer += expectedSize;
     
     return sourceBuffer - startPosition;
 }
 
-int Referential::pack(unsigned char* destinationBuffer) {
+int Referential::pack(unsigned char* destinationBuffer) const {
     unsigned char* startPosition = destinationBuffer;
     *destinationBuffer++ = (unsigned char)_type;
     memcpy(destinationBuffer, &_createdAt, sizeof(_createdAt));
+    destinationBuffer += sizeof(_createdAt);
     
     destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, _translation, 0);
     destinationBuffer += packOrientationQuatToBytes(destinationBuffer, _rotation);
@@ -83,13 +87,14 @@ int Referential::unpack(const unsigned char* sourceBuffer) {
     return sourceBuffer - startPosition;
 }
 
+int Referential::packExtraData(unsigned char *destinationBuffer) const {
+    memcpy(destinationBuffer, _extraDataBuffer.data(), _extraDataBuffer.size());
+    return _extraDataBuffer.size();
+}
 
-int Referential::unpackExtraData(const unsigned char* sourceBuffer) {
-    const unsigned char* startPosition = sourceBuffer;
-    int size = *sourceBuffer;
+int Referential::unpackExtraData(const unsigned char* sourceBuffer, int size) {
     _extraDataBuffer.clear();
-    _extraDataBuffer.setRawData(reinterpret_cast<const char*>(sourceBuffer), size + 1);
-    sourceBuffer += size + 1;
-    return sourceBuffer - startPosition;
+    _extraDataBuffer.setRawData(reinterpret_cast<const char*>(sourceBuffer), size);
+    return size;
 }
 

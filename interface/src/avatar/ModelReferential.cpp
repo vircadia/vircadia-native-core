@@ -69,12 +69,12 @@ void ModelReferential::update() {
     }
 }
 
-int ModelReferential::packExtraData(unsigned char* destinationBuffer) {
+int ModelReferential::packExtraData(unsigned char* destinationBuffer) const {
     memcpy(destinationBuffer, &_modelID, sizeof(_modelID));
     return sizeof(_modelID);
 }
 
-int ModelReferential::unpackExtraData(const unsigned char *sourceBuffer) {
+int ModelReferential::unpackExtraData(const unsigned char *sourceBuffer, int size) {
     memcpy(&_modelID, sourceBuffer, sizeof(_modelID));
     return sizeof(_modelID);
 }

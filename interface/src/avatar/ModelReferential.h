@@ -24,8 +24,8 @@ public:
     virtual void update();
     
 protected:
-    virtual int packExtraData(unsigned char* destinationBuffer);
-    virtual int unpackExtraData(const unsigned char* sourceBuffer);
+    virtual int packExtraData(unsigned char* destinationBuffer) const;
+    virtual int unpackExtraData(const unsigned char* sourceBuffer, int size);
     
     uint32_t _modelID;
     ModelTree* _tree;
