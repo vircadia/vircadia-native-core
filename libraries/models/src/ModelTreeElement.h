@@ -44,6 +44,12 @@ public:
     bool isViewing;
 };
 
+class SendModelsOperationArgs {
+public:
+    glm::vec3 root;
+    ModelEditPacketSender* packetSender;
+};
+
 
 
 class ModelTreeElement : public OctreeElement {
@@ -131,6 +137,8 @@ public:
     /// \param box the query box
     /// \param models[out] vector of non-const ModelItem*
     void getModelsForUpdate(const AACube& box, QVector<ModelItem*>& foundModels);
+
+    void getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels);
 
     const ModelItem* getModelWithID(uint32_t id) const;
 
