@@ -68,6 +68,9 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         if ((_isFaceshiftConnected = faceTracker)) {
             _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
             _isFaceshiftConnected = true;   
+        } else if (Application::getInstance()->getDDE()->isActive()) {
+            faceTracker = Application::getInstance()->getDDE();
+            _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
         }
     }
     
