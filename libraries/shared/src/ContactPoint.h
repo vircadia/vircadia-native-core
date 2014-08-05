@@ -16,6 +16,7 @@
 #include <glm/glm.hpp>
 
 #include "CollisionInfo.h"
+#include "VerletPoint.h"
 
 class Shape;
 
@@ -26,6 +27,7 @@ public:
 
     virtual float enforce();
    
+    void buildConstraints();
     void updateContact(const CollisionInfo& collision, quint32 frame);
     quint32 getLastFrame() const { return _lastFrame; }
 
@@ -38,6 +40,12 @@ protected:
     Shape* _shapeB;
     glm::vec3 _offsetA; // contact point relative to A's center
     glm::vec3 _offsetB; // contact point relative to B's center
+    glm::vec3 _contactPoint; // a "virtual" point that is added to the simulation
+    int _numPointsA; // number of VerletPoints that belong to _shapeA
+    int _numPoints; // total number of VerletPoints
+    QVector<VerletPoint*> _points; // points that belong to colliding shapes
+    QVector<glm::vec3> _offsets;  // offsets to _points from contactPoint
+    QVector<float> _distances; // distances to _points from contactPoint (during enforcement stage)
     glm::vec3 _normal; // (points from A toward B)
 };
 

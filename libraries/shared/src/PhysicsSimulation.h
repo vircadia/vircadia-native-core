@@ -49,7 +49,8 @@ protected:
     void computeCollisions();
     void resolveCollisions();
 
-    void enforceContacts();
+    void buildContactConstraints();
+    void enforceContactConstraints();
     void updateContacts();
     void pruneContacts();
 
