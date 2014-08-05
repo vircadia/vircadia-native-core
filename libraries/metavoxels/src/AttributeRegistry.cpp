@@ -242,6 +242,30 @@ bool Attribute::metavoxelRootsEqual(const MetavoxelNode& firstRoot, const Metavo
     return firstRoot.deepEquals(this, secondRoot, minimum, size, lod);
 }
 
+MetavoxelNode* Attribute::expandMetavoxelRoot(const MetavoxelNode& root) {
+    AttributePointer attribute(this);
+    MetavoxelNode* newParent = new MetavoxelNode(attribute);
+    for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+        MetavoxelNode* newChild = new MetavoxelNode(attribute);
+        newParent->setChild(i, newChild);
+        int index = MetavoxelNode::getOppositeChildIndex(i);
+        if (root.isLeaf()) {
+            newChild->setChild(index, new MetavoxelNode(root.getAttributeValue(attribute)));               
+        } else {
+            MetavoxelNode* grandchild = root.getChild(i);
+            grandchild->incrementReferenceCount();
+            newChild->setChild(index, grandchild);
+        }
+        for (int j = 1; j < MetavoxelNode::CHILD_COUNT; j++) {
+            MetavoxelNode* newGrandchild = new MetavoxelNode(attribute);
+            newChild->setChild((index + j) % MetavoxelNode::CHILD_COUNT, newGrandchild);
+        }
+        newChild->mergeChildren(attribute);
+    }
+    newParent->mergeChildren(attribute);
+    return newParent;
+}
+
 FloatAttribute::FloatAttribute(const QString& name, float defaultValue) :
     SimpleInlineAttribute<float>(name, defaultValue) {
 }
@@ -807,6 +831,29 @@ static bool setsEqual(const SharedObjectSet& firstSet, const SharedObjectSet& se
 
 bool SharedObjectSetAttribute::deepEqual(void* first, void* second) const {
     return setsEqual(decodeInline<SharedObjectSet>(first), decodeInline<SharedObjectSet>(second));
+}
+
+MetavoxelNode* SharedObjectSetAttribute::expandMetavoxelRoot(const MetavoxelNode& root) {
+    AttributePointer attribute(this);
+    MetavoxelNode* newParent = new MetavoxelNode(attribute);
+    for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+        MetavoxelNode* newChild = new MetavoxelNode(root.getAttributeValue(attribute));
+        newParent->setChild(i, newChild);
+        if (root.isLeaf()) {
+            continue;
+        }       
+        MetavoxelNode* grandchild = root.getChild(i);
+        grandchild->incrementReferenceCount();
+        int index = MetavoxelNode::getOppositeChildIndex(i);
+        newChild->setChild(index, grandchild);
+        for (int j = 1; j < MetavoxelNode::CHILD_COUNT; j++) {
+            MetavoxelNode* newGrandchild = new MetavoxelNode(attribute);
+            newChild->setChild((index + j) % MetavoxelNode::CHILD_COUNT, newGrandchild);
+        }
+        newChild->mergeChildren(attribute);
+    }
+    newParent->mergeChildren(attribute);
+    return newParent;
 }
 
 bool SharedObjectSetAttribute::merge(void*& parent, void* children[], bool postRead) const {
