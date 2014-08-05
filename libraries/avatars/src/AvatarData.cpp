@@ -73,6 +73,29 @@ const glm::vec3& AvatarData::getPosition() {
     return _position;
 }
 
+void AvatarData::setPosition(const glm::vec3 position, bool overideReferential) {
+    if (!_referential || overideReferential) {
+        _position = position;
+    }
+}
+
+glm::quat AvatarData::getOrientation() const {
+    if (_referential) {
+        _referential->update();
+    }
+    
+    return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll)));
+}
+
+void AvatarData::setOrientation(const glm::quat& orientation, bool overideReferential) {
+    if (!_referential || overideReferential) {
+        glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(orientation));
+        _bodyPitch = eulerAngles.x;
+        _bodyYaw = eulerAngles.y;
+        _bodyRoll = eulerAngles.z;
+    }
+} 
+
 glm::vec3 AvatarData::getHandPosition() const {
     return getOrientation() * _handPosition + _position;
 }
@@ -402,8 +425,9 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         
         // Referential
         if (hasReferential) {
-            qDebug() << "Has referencial: " << hasReferential;
+            const unsigned char* start = sourceBuffer;
             if (_referential == NULL) {
+                qDebug() << "New referential";
                 _referential = new Referential(sourceBuffer, this);
             } else {
                 Referential* ref = new Referential(sourceBuffer, this);
@@ -415,6 +439,8 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
                     delete ref;
                 }
             }
+            //qDebug() << "Read " << sourceBuffer - start << " bytes.";
+            _referential->update();
         } else if (_referential != NULL) {
             qDebug() << "Erasing referencial";
             delete _referential;
@@ -849,13 +875,6 @@ void AvatarData::setClampedTargetScale(float targetScale) {
     
     _targetScale = targetScale;
     qDebug() << "Changed scale to " << _targetScale;
-}
-
-void AvatarData::setOrientation(const glm::quat& orientation) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(orientation));
-    _bodyPitch = eulerAngles.x;
-    _bodyYaw = eulerAngles.y;
-    _bodyRoll = eulerAngles.z;
 }
 
 void AvatarData::sendIdentityPacket() {

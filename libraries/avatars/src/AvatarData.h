@@ -144,7 +144,7 @@ public:
     const QUuid& getSessionUUID() { return _sessionUUID; }
 
     const glm::vec3& getPosition();
-    void setPosition(const glm::vec3 position) { _position = position; }
+    void setPosition(const glm::vec3 position, bool overideReferential = false);
 
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
@@ -167,8 +167,8 @@ public:
     float getBodyRoll() const { return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
-    glm::quat getOrientation() const { return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll))); }
-    void setOrientation(const glm::quat& orientation);
+    glm::quat getOrientation() const;
+    void setOrientation(const glm::quat& orientation, bool overideReferential = false);
 
     glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
     void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }

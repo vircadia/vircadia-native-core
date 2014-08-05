@@ -182,10 +182,12 @@ void Avatar::simulate(float deltaTime) {
     }
     if (_referential) {
         if (_referential->hasExtraData()) {
+            qDebug() << "Has extra data";
             switch (_referential->type()) {
                 case Referential::MODEL:
                     qDebug() << "[DEBUG] Switching to the right referential";
-                    _referential = new ModelReferential(_referential, this);
+                    _referential = new ModelReferential(_referential,
+                                                        Application::getInstance()->getModels()->getTree(), this);
                     break;
                 default:
                     qDebug() << "Non handled referential type";
@@ -234,6 +236,12 @@ static TextRenderer* textRenderer(TextRendererType type) {
 }
 
 void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
+    // make sure we have the right position
+    _skeletonModel.setTranslation(getPosition());
+    static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+    _skeletonModel.setRotation(getOrientation() * refOrientation);
+    const float MODEL_SCALE = 0.0006f;
+    _skeletonModel.setScale(glm::vec3(1.0f, 1.0f, 1.0f) * getScale() * MODEL_SCALE);
     
     if (glm::distance(Application::getInstance()->getAvatar()->getPosition(),
                       _position) < 10.0f) {
@@ -456,12 +464,6 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
             return;
         }
         
-        // make sure we have the right position
-        _skeletonModel.setTranslation(getPosition());
-        static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        _skeletonModel.setRotation(getOrientation() * refOrientation);
-        const float MODEL_SCALE = 0.0006f;
-        _skeletonModel.setScale(glm::vec3(1.0f, 1.0f, 1.0f) * getScale() * MODEL_SCALE);
         _skeletonModel.render(1.0f, modelRenderMode, Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows));
         renderAttachments(renderMode);
         getHand()->render(false, modelRenderMode);
