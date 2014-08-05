@@ -189,7 +189,7 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, Col
     glm::vec3 capsuleAxis; 
     capsuleB->computeNormalizedAxis(capsuleAxis);
     float axialDistance = - glm::dot(BA, capsuleAxis);
-    float absAxialDistance = fabs(axialDistance);
+    float absAxialDistance = fabsf(axialDistance);
     float totalRadius = sphereA->getRadius() + capsuleB->getRadius();
     if (absAxialDistance < totalRadius + capsuleB->getHalfHeight()) {
         glm::vec3 radialAxis = BA + axialDistance * capsuleAxis; // points from A to axis of B
@@ -274,7 +274,7 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
     glm::vec3 capsuleAxis;
     capsuleA->computeNormalizedAxis(capsuleAxis);
     float axialDistance = - glm::dot(AB, capsuleAxis);
-    float absAxialDistance = fabs(axialDistance);
+    float absAxialDistance = fabsf(axialDistance);
     float totalRadius = sphereB->getRadius() + capsuleA->getRadius();
     if (absAxialDistance < totalRadius + capsuleA->getHalfHeight()) {
         glm::vec3 radialAxis = AB + axialDistance * capsuleAxis; // from sphereB to axis of capsuleA
@@ -501,7 +501,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
         // capsules are approximiately parallel but might still collide
         glm::vec3 BA = centerB - centerA;
         float axialDistance = glm::dot(BA, axisB);
-        if (axialDistance > totalRadius + capsuleA->getHalfHeight() + capsuleB->getHalfHeight()) {
+        if (fabsf(axialDistance) > totalRadius + capsuleA->getHalfHeight() + capsuleB->getHalfHeight()) {
             return false;
         }
         BA = BA - axialDistance * axisB;     // BA now points from centerA to axisB (perp to axis)
@@ -847,7 +847,7 @@ bool sphereAACube_StarkAngles(const glm::vec3& sphereCenter, float sphereRadius,
         // compute the nearest point on sphere
         glm::vec3 surfaceA = sphereCenter + sphereRadius * BA;
         // compute the nearest point on cube
-        float maxBA = glm::max(glm::max(fabs(BA.x), fabs(BA.y)), fabs(BA.z));
+        float maxBA = glm::max(glm::max(fabsf(BA.x), fabsf(BA.y)), fabsf(BA.z));
         glm::vec3 surfaceB = cubeCenter - (0.5f * cubeSide / maxBA) * BA;
         // collision happens when "vector to surfaceA from surfaceB" dots with BA to produce a positive value
         glm::vec3 surfaceAB = surfaceA - surfaceB;
