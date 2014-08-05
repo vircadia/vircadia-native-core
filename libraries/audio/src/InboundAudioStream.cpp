@@ -70,7 +70,12 @@ void InboundAudioStream::clearBuffer() {
     _currentJitterBufferFrames = 0;
 }
 
+int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
+    return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
+}
+
 int InboundAudioStream::parseData(const QByteArray& packet) {
+
     PacketType packetType = packetTypeForPacket(packet);
     QUuid senderUUID = uuidFromPacketHeader(packet);
 
@@ -82,7 +87,9 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     // parse sequence number and track it
     quint16 sequence = *(reinterpret_cast<const quint16*>(sequenceAt));
     readBytes += sizeof(quint16);
-    SequenceNumberStats::ArrivalInfo arrivalInfo = frameReceivedUpdateNetworkStats(sequence, senderUUID);
+    SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence, senderUUID);
+
+    frameReceivedUpdateTimingStats();
 
     // TODO: handle generalized silent packet here?????
 
@@ -130,32 +137,71 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     return readBytes;
 }
 
-bool InboundAudioStream::popFrames(int numFrames, bool starveOnFail) {
-    int numSamplesRequested = numFrames * _ringBuffer.getNumFrameSamples();
+int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped) {
+    int samplesPopped = 0;
+    int samplesAvailable = _ringBuffer.samplesAvailable();
     if (_isStarved) {
         // we're still refilling; don't pop
         _consecutiveNotMixedCount++;
         _lastPopSucceeded = false;
     } else {
-        if (_ringBuffer.samplesAvailable() >= numSamplesRequested) {
-            // we have enough samples to pop, so we're good to mix
-            _lastPopOutput = _ringBuffer.nextOutput();
-            _ringBuffer.shiftReadPosition(numSamplesRequested);
-            framesAvailableChanged();
-
-            _hasStarted = true;
-            _lastPopSucceeded = true;
+        if (samplesAvailable >= maxSamples) {
+            // we have enough samples to pop, so we're good to pop
+            popSamplesNoCheck(maxSamples);
+            samplesPopped = maxSamples;
+        } else if (!allOrNothing && samplesAvailable > 0) {
+            // we don't have the requested number of samples, but we do have some
+            // samples available, so pop all those (except in all-or-nothing mode)
+            popSamplesNoCheck(samplesAvailable);
+            samplesPopped = samplesAvailable;
         } else {
-            // we don't have enough samples, so set this stream to starve
-            // if starveOnFail is true
-            if (starveOnFail) {
-                starved();
+            // we can't pop any samples. set this stream to starved if needed
+            if (starveIfNoSamplesPopped) {
+                setToStarved();
                 _consecutiveNotMixedCount++;
             }
             _lastPopSucceeded = false;
         }
     }
-    return _lastPopSucceeded;
+    return samplesPopped;
+}
+
+int InboundAudioStream::popFrames(int maxFrames, bool allOrNothing, bool starveIfNoFramesPopped) {
+    int framesPopped = 0;
+    int framesAvailable = _ringBuffer.framesAvailable();
+    if (_isStarved) {
+        // we're still refilling; don't pop
+        _consecutiveNotMixedCount++;
+        _lastPopSucceeded = false;
+    } else {
+        if (framesAvailable >= maxFrames) {
+            // we have enough frames to pop, so we're good to pop
+            popSamplesNoCheck(maxFrames * _ringBuffer.getNumFrameSamples());
+            framesPopped = maxFrames;
+        } else if (!allOrNothing && framesAvailable > 0) {
+            // we don't have the requested number of frames, but we do have some
+            // frames available, so pop all those (except in all-or-nothing mode)
+            popSamplesNoCheck(framesAvailable * _ringBuffer.getNumFrameSamples());
+            framesPopped = framesAvailable;
+        } else {
+            // we can't pop any frames. set this stream to starved if needed
+            if (starveIfNoFramesPopped) {
+                setToStarved();
+                _consecutiveNotMixedCount = 1;
+            }
+            _lastPopSucceeded = false;
+        }
+    }
+    return framesPopped;
+}
+
+void InboundAudioStream::popSamplesNoCheck(int samples) {
+    _lastPopOutput = _ringBuffer.nextOutput();
+    _ringBuffer.shiftReadPosition(samples);
+    framesAvailableChanged();
+
+    _hasStarted = true;
+    _lastPopSucceeded = true;
 }
 
 void InboundAudioStream::framesAvailableChanged() {
@@ -168,16 +214,12 @@ void InboundAudioStream::framesAvailableChanged() {
 }
 
 void InboundAudioStream::setToStarved() {
-    starved();
-    if (_ringBuffer.framesAvailable() >= _desiredJitterBufferFrames) {
-        _isStarved = false;
-    }
-}
-
-void InboundAudioStream::starved() {
     _isStarved = true;
     _consecutiveNotMixedCount = 0;
     _starveCount++;
+    // if we have more than the desired frames when setToStarved() is called, then we'll immediately
+    // be considered refilled. in that case, there's no need to set _isStarved to true.
+    _isStarved = (_ringBuffer.framesAvailable() < _desiredJitterBufferFrames);
 }
 
 void InboundAudioStream::setDynamicJitterBuffers(bool dynamicJitterBuffers) {
@@ -204,9 +246,7 @@ int InboundAudioStream::clampDesiredJitterBufferFramesValue(int desired) const {
     return glm::clamp(desired, MIN_FRAMES_DESIRED, MAX_FRAMES_DESIRED);
 }
 
-SequenceNumberStats::ArrivalInfo InboundAudioStream::frameReceivedUpdateNetworkStats(quint16 sequenceNumber, const QUuid& senderUUID) {
-    // track the sequence number we received
-    SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequenceNumber, senderUUID);
+void InboundAudioStream::frameReceivedUpdateTimingStats() {
 
     // update our timegap stats and desired jitter buffer frames if necessary
     // discard the first few packets we receive since they usually have gaps that aren't represensative of normal jitter
@@ -243,8 +283,6 @@ SequenceNumberStats::ArrivalInfo InboundAudioStream::frameReceivedUpdateNetworkS
         }
     }
     _lastFrameReceivedTime = now;
-
-    return arrivalInfo;
 }
 
 int InboundAudioStream::writeDroppableSilentSamples(int numSilentSamples) {
