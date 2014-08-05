@@ -54,6 +54,8 @@ static const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
 
+static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
+
 
 Audio::Audio(QObject* parent) :
     AbstractAudioInterface(parent),
@@ -70,13 +72,8 @@ Audio::Audio(QObject* parent) :
     _loopbackOutputDevice(NULL),
     _proceduralAudioOutput(NULL),
     _proceduralOutputDevice(NULL),
-
-    // NOTE: Be very careful making changes to the initializers of these ring buffers. There is a known problem with some
-    // Mac audio devices that slowly introduce additional delay in the audio device because they play out audio slightly
-    // slower than real time (or at least the desired sample rate). If you increase the size of the ring buffer, then it 
-    // this delay will slowly add up and the longer someone runs, they more delayed their audio will be.
     _inputRingBuffer(0),
-    _receivedAudioStream(0, 100, true, 0, 0, true),
+    _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, true, 0, 0, true),
     _isStereoInput(false),
     _averagedLatency(0.0),
     _lastInputLoudness(0),
