@@ -25,6 +25,8 @@
 
 #include "renderer/Model.h"
 
+class ModelEntityItem;
+
 // Generic client side Octree renderer class.
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
     Q_OBJECT
@@ -50,12 +52,12 @@ public:
     virtual void init();
     virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
 
-    virtual const FBXGeometry* getGeometryForEntity(const EntityItem& modelItem);
+    virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
 
     /// clears the tree
     virtual void clear();
 
-    Q_INVOKABLE Model* getModel(const EntityItem& modelItem);
+    Q_INVOKABLE Model* getModel(const ModelEntityItem* modelEntityItem);
 
     // renderers for various types of entities
     void renderEntityTypeBox(EntityItem* entity, RenderArgs* args);

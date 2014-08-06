@@ -74,7 +74,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
         if (entity) {
         
             // TODO: look into sitting points!!!
-            //entity->setSittingPoints(_entityTree->getGeometryForEntity(*entity)->sittingPoints);
+            //entity->setSittingPoints(_entityTree->getGeometryForEntity(entity)->sittingPoints);
             
             results = entity->getProperties();
         } else {

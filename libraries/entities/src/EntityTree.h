@@ -22,7 +22,7 @@ public:
 
 class EntityItemFBXService {
 public:
-    virtual const FBXGeometry* getGeometryForEntity(const EntityItem& entityItem) = 0;
+    virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) = 0;
 };
 
 
@@ -100,7 +100,7 @@ public:
     void handleAddEntityResponse(const QByteArray& packet);
     
     void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
-    const FBXGeometry* getGeometryForEntity(const EntityItem& entityItem) {
+    const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) {
         return _fbxService ? _fbxService->getGeometryForEntity(entityItem) : NULL;
     }
     

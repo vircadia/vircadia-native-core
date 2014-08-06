@@ -295,7 +295,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
 
         // if the ray doesn't intersect with our cube, we can stop searching!
         if (entityCube.findRayIntersection(origin, direction, localDistance, localFace)) {
-            const FBXGeometry* fbxGeometry = _myTree->getGeometryForEntity(*entity);
+            const FBXGeometry* fbxGeometry = _myTree->getGeometryForEntity(entity);
             if (fbxGeometry && fbxGeometry->meshExtents.isValid()) {
                 Extents extents = fbxGeometry->meshExtents;
 

@@ -79,28 +79,31 @@ void EntityTreeRenderer::render(RenderMode renderMode) {
     //qDebug() << "******* DONE ******* EntityTreeRenderer::render() ************";
 }
 
-const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem& entityItem) {
+const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem* entityItem) {
     const FBXGeometry* result = NULL;
     
-    Model* model = getModel(entityItem);
-    if (model) {
-        result = &model->getGeometry()->getFBXGeometry();
+    if (entityItem->getType() == EntityTypes::Model) {
+        const ModelEntityItem* modelEntityItem = static_cast<const ModelEntityItem*>(entityItem);
+    
+        Model* model = getModel(modelEntityItem);
+        if (model) {
+            result = &model->getGeometry()->getFBXGeometry();
+        }
     }
     return result;
 }
 
-Model* EntityTreeRenderer::getModel(const EntityItem& entityItem) {
+Model* EntityTreeRenderer::getModel(const ModelEntityItem* modelEntityItem) {
     Model* model = NULL;
  
-#if 0 //def HIDE_SUBCLASS_METHODS
-    if (!entityItem.getModelURL().isEmpty()) {
-        if (entityItem.isKnownID()) {
-            if (_knownEntityItemModels.find(entityItem.getID()) != _knownEntityItemModels.end()) {
-                model = _knownEntityItemModels[entityItem.getID()];
-                if (QUrl(entityItem.getModelURL()) != model->getURL()) {
+    if (!modelEntityItem->getModelURL().isEmpty()) {
+        if (modelEntityItem->isKnownID()) {
+            if (_knownEntityItemModels.find(modelEntityItem->getID()) != _knownEntityItemModels.end()) {
+                model = _knownEntityItemModels[modelEntityItem->getID()];
+                if (QUrl(modelEntityItem->getModelURL()) != model->getURL()) {
                     delete model; // delete the old model...
                     model = NULL;
-                    _knownEntityItemModels.remove(entityItem.getID());
+                    _knownEntityItemModels.remove(modelEntityItem->getID());
                 }
             }
 
@@ -110,24 +113,24 @@ Model* EntityTreeRenderer::getModel(const EntityItem& entityItem) {
                 if (QThread::currentThread() != thread()) {
                     qDebug() << "about to call QMetaObject::invokeMethod(this, 'getModel', Qt::BlockingQueuedConnection,...";
                     QMetaObject::invokeMethod(this, "getModel", Qt::BlockingQueuedConnection,
-                        Q_RETURN_ARG(Model*, model), Q_ARG(const EntityItem&, entityItem));
+                        Q_RETURN_ARG(Model*, model), Q_ARG(const ModelEntityItem*, modelEntityItem));
                     qDebug() << "got it... model=" << model;
                     return model;
                 }
 
                 model = new Model();
                 model->init();
-                model->setURL(QUrl(entityItem.getModelURL()));
-                _knownEntityItemModels[entityItem.getID()] = model;
+                model->setURL(QUrl(modelEntityItem->getModelURL()));
+                _knownEntityItemModels[modelEntityItem->getID()] = model;
             }
             
         } else {
-            if (_unknownEntityItemModels.find(entityItem.getCreatorTokenID()) != _unknownEntityItemModels.end()) {
-                model = _unknownEntityItemModels[entityItem.getCreatorTokenID()];
-                if (QUrl(entityItem.getModelURL()) != model->getURL()) {
+            if (_unknownEntityItemModels.find(modelEntityItem->getCreatorTokenID()) != _unknownEntityItemModels.end()) {
+                model = _unknownEntityItemModels[modelEntityItem->getCreatorTokenID()];
+                if (QUrl(modelEntityItem->getModelURL()) != model->getURL()) {
                     delete model; // delete the old model...
                     model = NULL;
-                    _unknownEntityItemModels.remove(entityItem.getID());
+                    _unknownEntityItemModels.remove(modelEntityItem->getID());
                 }
             }
 
@@ -135,18 +138,17 @@ Model* EntityTreeRenderer::getModel(const EntityItem& entityItem) {
                 // Make sure we only create new models on the thread that owns the EntityTreeRenderer
                 if (QThread::currentThread() != thread()) {
                     QMetaObject::invokeMethod(this, "getModel", Qt::BlockingQueuedConnection,
-                        Q_RETURN_ARG(Model*, model), Q_ARG(const EntityItem&, entityItem));
+                        Q_RETURN_ARG(Model*, model), Q_ARG(const ModelEntityItem*, modelEntityItem));
                     return model;
                 }
         
                 model = new Model();
                 model->init();
-                model->setURL(QUrl(entityItem.getModelURL()));
-                _unknownEntityItemModels[entityItem.getCreatorTokenID()] = model;
+                model->setURL(QUrl(modelEntityItem->getModelURL()));
+                _unknownEntityItemModels[modelEntityItem->getCreatorTokenID()] = model;
             }
         }
     }
-#endif
     return model;
 }
 
@@ -282,7 +284,7 @@ void EntityTreeRenderer::renderEntityTypeModel(EntityItem* entity, RenderArgs* a
         {
             const float alpha = 1.0f;
         
-            Model* model = getModel(*entityItem);
+            Model* model = getModel(entityItem);
             
             if (model) {
                 model->setScaleToFit(true, radius * 2.0f);
