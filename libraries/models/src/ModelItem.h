@@ -179,7 +179,6 @@ void ModelItemIDfromScriptValue(const QScriptValue &object, ModelItemID& propert
 
 /// ModelItem class - this is the actual model item class.
 class ModelItem  {
-
 public:
     ModelItem();
 
