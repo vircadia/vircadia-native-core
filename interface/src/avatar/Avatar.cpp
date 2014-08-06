@@ -248,6 +248,12 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     const float MODEL_SCALE = 0.0006f;
     _skeletonModel.setScale(glm::vec3(1.0f, 1.0f, 1.0f) * getScale() * MODEL_SCALE);
     
+    glm::vec3 headPosition = _position;
+    _skeletonModel.getHeadPosition(headPosition);
+    Head* head = getHead();
+    head->setPosition(headPosition);
+    head->setScale(_scale);
+    
     if (glm::distance(Application::getInstance()->getAvatar()->getPosition(),
                       _position) < 10.0f) {
         // render pointing lasers

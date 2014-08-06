@@ -19,8 +19,12 @@
 ModelReferential::ModelReferential(Referential* referential, ModelTree* tree, AvatarData* avatar) :
     Referential(MODEL, avatar),
     _tree(tree) {
+        _translation = referential->getTranslation();
+        _rotation = referential->getRotation();
+        _scale = referential->getScale();
         unpackExtraData(reinterpret_cast<unsigned char*>(referential->getExtraData().data()),
                         referential->getExtraData().size());
+        
         if (!isValid()) {
             qDebug() << "ModelReferential::copyConstructor(): Not Valid";
             return;
@@ -31,8 +35,8 @@ ModelReferential::ModelReferential(Referential* referential, ModelTree* tree, Av
             _refScale = item->getRadius();
             _refRotation = item->getModelRotation();
             _refPosition = item->getPosition() * (float)TREE_SCALE;
+            update();
         }
-        update();
 }
 
 ModelReferential::ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData* avatar) :
