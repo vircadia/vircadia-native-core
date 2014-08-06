@@ -44,7 +44,6 @@ public:
     const QString& getModelURL() const { return _modelURL; }
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
     const QString& getAnimationURL() const { return _animationURL; }
-    float getGlowLevel() const { return _glowLevel; }
     QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
 
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
@@ -60,7 +59,6 @@ public:
     void setAnimationFrameIndex(float value) { _animationFrameIndex = value; }
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
     void setAnimationFPS(float value) { _animationFPS = value; }
-    void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
     void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
     
     void mapJoints(const QStringList& modelJointNames);
@@ -78,7 +76,6 @@ protected:
     rgbColor _color;
     QString _modelURL;
     QVector<SittingPoint> _sittingPoints;
-    float _glowLevel;
 
     quint64 _lastAnimated;
     QString _animationURL;

@@ -47,7 +47,6 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     properties._animationIsPlaying = getAnimationIsPlaying();
     properties._animationFrameIndex = getAnimationFrameIndex();
     properties._animationFPS = getAnimationFPS();
-    properties._glowLevel = getGlowLevel();
     properties._sittingPoints = getSittingPoints(); // sitting support
     properties._colorChanged = false;
     properties._modelURLChanged = false;
@@ -55,6 +54,7 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     properties._animationIsPlayingChanged = false;
     properties._animationFrameIndexChanged = false;
     properties._animationFPSChanged = false;
+    properties._glowLevel = getGlowLevel();
     properties._glowLevelChanged = false;
 
     qDebug() << "ModelEntityItem::getProperties() getModelURL()=" << getModelURL();

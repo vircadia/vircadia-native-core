@@ -1079,6 +1079,7 @@ function checkController(deltaTime) {
 }
 var newModel;
 var browser;
+var newBox;
 function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
     // New Model
@@ -1094,6 +1095,13 @@ function initToolBar() {
                                width: toolWidth, height: toolHeight,
                                visible: true,
                                alpha: 0.7
+                               });
+    newBox = toolBar.addTool({
+                               imageURL: toolIconUrl + "add-model-tool.svg",
+                               subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                               width: toolWidth, height: toolHeight,
+                               visible: true,
+                               alpha: 0.9
                                });
 }
 
@@ -1159,7 +1167,8 @@ function Tooltip() {
     }
     this.updateText = function(properties) {
         var angles = Quat.safeEulerAngles(properties.rotation);
-        var text = "Model Properties:\n"
+        var text = "Entity Properties:\n"
+        text += "type: " + properties.type + "\n"
         text += "X: " + properties.position.x.toFixed(this.decimals) + "\n"
         text += "Y: " + properties.position.y.toFixed(this.decimals) + "\n"
         text += "Z: " + properties.position.z.toFixed(this.decimals) + "\n"
@@ -1208,7 +1217,6 @@ function mousePressEvent(event) {
         var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
         
         if (position.x > 0 && position.y > 0 && position.z > 0) {
-print(">>>>>  CALLING >>>>> Entities.addEntity(newProperties);");
             Entities.addEntity({ 
                             type: "Model",
                             position: position,
@@ -1217,6 +1225,20 @@ print(">>>>>  CALLING >>>>> Entities.addEntity(newProperties);");
                             });
         } else {
             print("Can't create model: Model would be out of bounds.");
+        }
+        
+    } else if (newBox == toolBar.clicked(clickedOverlay)) {
+        var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+        
+        if (position.x > 0 && position.y > 0 && position.z > 0) {
+            Entities.addEntity({ 
+                            type: "Box",
+                            position: position,
+                            radius: radiusDefault,
+                            color: { red: 255, green: 0, blue: 0 }
+                            });
+        } else {
+            print("Can't create box: Box would be out of bounds.");
         }
         
     } else if (browser == toolBar.clicked(clickedOverlay)) {
@@ -1228,7 +1250,6 @@ print(">>>>>  CALLING >>>>> Entities.addEntity(newProperties);");
         var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
         
         if (position.x > 0 && position.y > 0 && position.z > 0) {
-print(">>>>>  CALLING >>>>> Entities.addEntity(newProperties);");
             Entities.addEntity({ 
                             type: "Model",
                             position: position,
@@ -1583,9 +1604,11 @@ function handeMenuEvent(menuItem){
 
             var array = new Array();
             var decimals = 3;
-            array.push({ label: "Model URL:", value: properties.modelURL });
-            array.push({ label: "Animation URL:", value: properties.animationURL });
-            array.push({ label: "Animation is playing:", value: properties.animationIsPlaying });
+            if (properties.type == "Model") {
+                array.push({ label: "Model URL:", value: properties.modelURL });
+                array.push({ label: "Animation URL:", value: properties.animationURL });
+                array.push({ label: "Animation is playing:", value: properties.animationIsPlaying });
+            }
             array.push({ label: "X:", value: properties.position.x.toFixed(decimals) });
             array.push({ label: "Y:", value: properties.position.y.toFixed(decimals) });
             array.push({ label: "Z:", value: properties.position.z.toFixed(decimals) });
@@ -1594,14 +1617,22 @@ function handeMenuEvent(menuItem){
             array.push({ label: "Yaw:", value: angles.y.toFixed(decimals) });
             array.push({ label: "Roll:", value: angles.z.toFixed(decimals) });
             array.push({ label: "Scale:", value: 2 * properties.radius.toFixed(decimals) });
+            
+            if (properties.type == "Box") {
+                array.push({ label: "Red:", value: properties.color.red });
+                array.push({ label: "Green:", value: properties.color.green });
+                array.push({ label: "Blue:", value: properties.color.blue });
+            }
         
             var propertyName = Window.form("Edit Properties", array);
             modelSelected = false;
             
             var index = 0;
-            properties.modelURL = array[index++].value;
-            properties.animationURL = array[index++].value;
-            properties.animationIsPlaying = array[index++].value;
+            if (properties.type == "Model") {
+                properties.modelURL = array[index++].value;
+                properties.animationURL = array[index++].value;
+                properties.animationIsPlaying = array[index++].value;
+            }
             properties.position.x = array[index++].value;
             properties.position.y = array[index++].value;
             properties.position.z = array[index++].value;
@@ -1610,7 +1641,11 @@ function handeMenuEvent(menuItem){
             angles.z = array[index++].value;
             properties.modelRotation = Quat.fromVec3Degrees(angles);
             properties.radius = array[index++].value / 2;
-
+            if (properties.type == "Box") {
+                properties.color.red = array[index++].value;
+                properties.color.green = array[index++].value;
+                properties.color.blue = array[index++].value;
+            }
             Entities.editEntity(editModelID, properties);
         }
     } else if (menuItem == "Paste Models") {

@@ -90,6 +90,9 @@ public:
 
     bool getShouldBeDeleted() const { return _shouldBeDeleted; }
     void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; }
+
+    float getGlowLevel() const { return _glowLevel; }
+    void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
     
     // position, size, and bounds related helpers
     float getSize() const { return _radius * 2.0f; } /// get maximum dimension in domain scale units (0.0 - 1.0)
@@ -111,6 +114,7 @@ protected:
     float _radius;
     glm::quat _rotation;
     bool _shouldBeDeleted;
+    float _glowLevel;
 };
 
 class SphereEntityItem : public EntityItem {

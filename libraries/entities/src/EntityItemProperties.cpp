@@ -117,6 +117,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
 qDebug() << "EntityItemProperties::copyToScriptValue()... isKnownID=" << isKnownID << "id=" << _id;
     }
 
+    properties.setProperty("type", EntityTypes::getEntityTypeName(_type));
+
     QScriptValue position = vec3toScriptValue(engine, _position);
     properties.setProperty("position", position);
     properties.setProperty("radius", _radius);

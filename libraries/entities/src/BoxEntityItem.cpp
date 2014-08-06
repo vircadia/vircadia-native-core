@@ -50,6 +50,9 @@ EntityItemProperties BoxEntityItem::getProperties() const {
     properties._color = getXColor();
     properties._colorChanged = false;
 
+    properties._glowLevel = getGlowLevel();
+    properties._glowLevelChanged = false;
+
     return properties;
 }
 
@@ -62,6 +65,11 @@ void BoxEntityItem::setProperties(const EntityItemProperties& properties, bool f
 
     if (properties._colorChanged || forceCopy) {
         setColor(properties._color);
+        somethingChanged = true;
+    }
+
+    if (properties._glowLevelChanged || forceCopy) {
+        setGlowLevel(properties._glowLevel);
         somethingChanged = true;
     }
 
