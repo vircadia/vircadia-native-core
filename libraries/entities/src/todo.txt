@@ -43,6 +43,8 @@ Model properties:
 // TODO:
 
 
+//   a) crash in entity server on add entity? 
+//   b) entities have same ID? unknown???
 
 //   0) handle subclass properties?
         

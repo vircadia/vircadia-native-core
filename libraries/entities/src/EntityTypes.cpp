@@ -114,6 +114,8 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         ByteCountCoded<quint32> idCoder = encodedID;
         encodedID = idCoder; // determine true length
         bytesRead += encodedID.size();
+        quint32 actualID = idCoder;
+qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID=" << actualID;
 
         // type
         QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
@@ -123,7 +125,7 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         quint32 type = typeCoder;
         EntityTypes::EntityType_t entityType = (EntityTypes::EntityType_t)type;
         
-        EntityItemID tempEntityID;
+        EntityItemID tempEntityID(actualID);
         EntityItemProperties tempProperties;
 
 qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
