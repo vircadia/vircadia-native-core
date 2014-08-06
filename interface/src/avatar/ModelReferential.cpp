@@ -40,9 +40,9 @@ ModelReferential::ModelReferential(Referential* referential, ModelTree* tree, Av
 }
 
 ModelReferential::ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData* avatar) :
-Referential(MODEL, avatar),
-_modelID(modelID),
-_tree(tree)
+    Referential(MODEL, avatar),
+    _modelID(modelID),
+    _tree(tree)
 {
     const ModelItem* item = _tree->findModelByID(_modelID);
     if (!isValid() || item == NULL) {
@@ -81,7 +81,6 @@ void ModelReferential::update() {
     if (item->getPosition() != _refPosition || somethingChanged) {
         _refPosition = item->getPosition();
         _avatar->setPosition(_refPosition * (float)TREE_SCALE + _refRotation * (_translation * _refScale), true);
-        somethingChanged = true;
     }
 }
 
@@ -158,7 +157,6 @@ void JointReferential::update() {
     if (item->getPosition() != _refPosition || somethingChanged) {
         model->getJointPositionInWorldFrame(_jointIndex, _refPosition);
         _avatar->setPosition(_refPosition + _refRotation * (_translation * _refScale), true);
-        somethingChanged = true;
     }
 }
 

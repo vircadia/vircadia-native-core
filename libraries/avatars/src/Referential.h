@@ -21,16 +21,19 @@ class AvatarData;
 class Referential {
 public:
     enum Type {
+        UNKNOWN,
         MODEL,
         JOINT,
-        AVATAR
+        AVATAR,
+        
+        NUM_TYPE
     };
     
     Referential(const unsigned char*& sourceBuffer, AvatarData* avatar);
     virtual ~Referential();
     
     Type type() const { return _type; }
-    quint64 createdAt() const { return _createdAt; }
+    quint8 version() const { return _version; }
     bool isValid() const { return _isValid; }
     bool hasExtraData() const { return !_extraDataBuffer.isEmpty(); }
     
@@ -54,7 +57,7 @@ protected:
     virtual int unpackExtraData(const unsigned char* sourceBuffer, int size);
     
     Type _type;
-    quint64 _createdAt;
+    quint8 _version;
     bool _isValid;
     AvatarData* _avatar;
     QByteArray _extraDataBuffer;

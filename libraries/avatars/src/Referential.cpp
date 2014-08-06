@@ -11,17 +11,21 @@
 
 #include <SharedUtil.h>
 
+#include "AvatarData.h"
 #include "Referential.h"
 
 Referential::Referential(Type type, AvatarData* avatar) :
     _type(type),
-    _createdAt(usecTimestampNow()),
+    _version(0),
     _isValid(true),
     _avatar(avatar)
 {
     if (_avatar == NULL) {
         _isValid = false;
         return;
+    }
+    if (_avatar->hasReferential()) {
+        _version = _avatar->getReferential()->version() + 1;
     }
 }
 
@@ -70,8 +74,8 @@ int Referential::unpackReferential(const unsigned char* sourceBuffer) {
 int Referential::pack(unsigned char* destinationBuffer) const {
     unsigned char* startPosition = destinationBuffer;
     *destinationBuffer++ = (unsigned char)_type;
-    memcpy(destinationBuffer, &_createdAt, sizeof(_createdAt));
-    destinationBuffer += sizeof(_createdAt);
+    memcpy(destinationBuffer, &_version, sizeof(_version));
+    destinationBuffer += sizeof(_version);
     
     destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, _translation, 0);
     destinationBuffer += packOrientationQuatToBytes(destinationBuffer, _rotation);
@@ -82,8 +86,11 @@ int Referential::pack(unsigned char* destinationBuffer) const {
 int Referential::unpack(const unsigned char* sourceBuffer) {
     const unsigned char* startPosition = sourceBuffer;
     _type = (Type)*sourceBuffer++;
-    memcpy(&_createdAt, sourceBuffer, sizeof(_createdAt));
-    sourceBuffer += sizeof(_createdAt);
+    if (_type < 0 || _type >= NUM_TYPE) {
+        _type = UNKNOWN;
+    }
+    memcpy(&_version, sourceBuffer, sizeof(_version));
+    sourceBuffer += sizeof(_version);
     
     sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, _translation, 0);
     sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, _rotation);

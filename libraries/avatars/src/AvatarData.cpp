@@ -449,7 +449,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         if (hasReferential) {
             Referential* ref = new Referential(sourceBuffer, this);
             if (_referential == NULL ||
-                ref->createdAt() > _referential->createdAt()) {
+                ref->version() != _referential->version()) {
                 changeReferential(ref);
             } else {
                 delete ref;

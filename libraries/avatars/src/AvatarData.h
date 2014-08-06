@@ -282,6 +282,8 @@ public:
     QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
      
     virtual float getBoundingRadius() const { return 1.f; }
+    
+    const Referential* getReferential() const { return _referential; }
 
 public slots:
     void sendIdentityPacket();
