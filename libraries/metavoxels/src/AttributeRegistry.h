@@ -238,6 +238,10 @@ public:
     virtual bool metavoxelRootsEqual(const MetavoxelNode& firstRoot, const MetavoxelNode& secondRoot,
         const glm::vec3& minimum, float size, const MetavoxelLOD& lod);
 
+    /// Expands the specified root, doubling its size in each dimension.
+    /// \return a new node representing the result
+    virtual MetavoxelNode* expandMetavoxelRoot(const MetavoxelNode& root);
+
     /// Merges the value of a parent and its children.
     /// \param postRead whether or not the merge is happening after a read
     /// \return whether or not the children and parent values are all equal
@@ -510,6 +514,8 @@ public:
     virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
     
     virtual bool deepEqual(void* first, void* second) const;
+    
+    virtual MetavoxelNode* expandMetavoxelRoot(const MetavoxelNode& root);
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 
