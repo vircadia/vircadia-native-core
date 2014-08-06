@@ -17,6 +17,7 @@
 
 class AvatarData;
 
+/// Stores and enforce the relative position of an avatar to a given referential (ie. model, joint, ...)
 class Referential {
 public:
     enum Type {

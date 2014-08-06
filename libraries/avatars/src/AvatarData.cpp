@@ -425,29 +425,19 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         
         // Referential
         if (hasReferential) {
-            const unsigned char* start = sourceBuffer;
-            if (_referential == NULL) {
-                qDebug() << "New referential";
-                _referential = new Referential(sourceBuffer, this);
+            Referential* ref = new Referential(sourceBuffer, this);
+            if (_referential == NULL ||
+                ref->createdAt() > _referential->createdAt()) {
+                changeReferential(ref);
             } else {
-                Referential* ref = new Referential(sourceBuffer, this);
-                if (ref->createdAt() > _referential->createdAt()) {
-                    qDebug() << "Replacing referential";
-                    delete _referential;
-                    _referential = ref;
-                } else {
-                    delete ref;
-                }
+                delete ref;
             }
-            //qDebug() << "Read " << sourceBuffer - start << " bytes.";
             _referential->update();
         } else if (_referential != NULL) {
-            qDebug() << "Erasing referencial";
-            delete _referential;
-            _referential = NULL;
+            changeReferential(NULL);
         }
-        
-        
+    
+    
         if (_headData->_isFaceshiftConnected) {
             float leftEyeBlink, rightEyeBlink, averageLoudness, browAudioLift;
             minPossibleSize += sizeof(leftEyeBlink) + sizeof(rightEyeBlink) + sizeof(averageLoudness) + sizeof(browAudioLift);
@@ -567,6 +557,15 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     } // numJoints * 8 bytes
     
     return sourceBuffer - startPosition;
+}
+
+bool AvatarData::hasReferential() {
+    return _referential != NULL;
+}
+
+void AvatarData::changeReferential(Referential *ref) {
+    delete _referential;
+    _referential = ref;
 }
 
 void AvatarData::setJointData(int index, const glm::quat& rotation) {

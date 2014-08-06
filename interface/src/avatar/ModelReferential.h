@@ -33,12 +33,14 @@ protected:
 
 class JointReferential : public ModelReferential {
 public:
-    JointReferential(Referential* ref);
+    JointReferential(Referential* ref, ModelTree* tree, AvatarData* avatar);
     JointReferential(uint32_t jointIndex, uint32_t modelID, ModelTree* tree, AvatarData* avatar);
     virtual void update();
     
 protected:
     const Model* getModel(const ModelItem* item);
+    virtual int packExtraData(unsigned char* destinationBuffer) const;
+    virtual int unpackExtraData(const unsigned char* sourceBuffer, int size);
     
     uint32_t _jointIndex;
 };

@@ -23,14 +23,17 @@ Referential::Referential(Type type, AvatarData* avatar) :
         _isValid = false;
         return;
     }
-    qDebug() << "[DEBUG] New Referential";
 }
 
 Referential::Referential(const unsigned char*& sourceBuffer, AvatarData* avatar) :
     _isValid(false),
     _avatar(avatar)
 {
+    // Since we can't return how many byte have been read
+    // We take a reference to the pointer as argument and increment the pointer ouself.
     sourceBuffer += unpackReferential(sourceBuffer);
+    // The actual unpacking to the right referential type happens in Avatar::simulate()
+    // If subclassed, make sure to add a case there to unpack the new referential type correctly
 }
 
 Referential::~Referential() {
@@ -40,9 +43,9 @@ int Referential::packReferential(unsigned char* destinationBuffer) const {
     const unsigned char* startPosition = destinationBuffer;
     destinationBuffer += pack(destinationBuffer);
     
-    unsigned char* sizePosition = destinationBuffer++;
+    unsigned char* sizePosition = destinationBuffer++; // Save a spot for the extra data size
     char size = packExtraData(destinationBuffer);
-    *sizePosition = size;
+    *sizePosition = size; // write extra data size in saved spot here
     destinationBuffer += size;
     
     return destinationBuffer - startPosition;
@@ -56,6 +59,7 @@ int Referential::unpackReferential(const unsigned char* sourceBuffer) {
     char bytesRead = unpackExtraData(sourceBuffer, expectedSize);
     _isValid = (bytesRead == expectedSize);
     if (!_isValid) {
+        // Will occur if the new instance unpacking is of the wrong type
         qDebug() << "[ERROR] Referential extra data overflow";
     }
     sourceBuffer += expectedSize;
@@ -88,9 +92,11 @@ int Referential::unpack(const unsigned char* sourceBuffer) {
 }
 
 int Referential::packExtraData(unsigned char *destinationBuffer) const {
+    // Since we can't interpret that data, just store it in a buffer for later use.
     memcpy(destinationBuffer, _extraDataBuffer.data(), _extraDataBuffer.size());
     return _extraDataBuffer.size();
 }
+
 
 int Referential::unpackExtraData(const unsigned char* sourceBuffer, int size) {
     _extraDataBuffer.clear();

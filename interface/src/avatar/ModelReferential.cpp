@@ -22,20 +22,18 @@ ModelReferential::ModelReferential(Referential* referential, ModelTree* tree, Av
         unpackExtraData(reinterpret_cast<unsigned char*>(referential->getExtraData().data()),
                         referential->getExtraData().size());
         if (!isValid()) {
-            qDebug() << "ModelReferential::copyConstructo(): Not Valid";
+            qDebug() << "ModelReferential::copyConstructor(): Not Valid";
             return;
         }
         
-        const ModelItem* item = _tree->findModelByID(_modelID);
+        const ModelItem* item = _tr
+        ree->findModelByID(_modelID);
         if (item != NULL) {
             _refScale = item->getRadius();
             _refRotation = item->getModelRotation();
             _refPosition = item->getPosition() * (float)TREE_SCALE;
         }
-        
-        _scale = referential->getScale();
-        _rotation = referential->getRotation();
-        _translation = referential->getTranslation();
+        update();
 }
 
 ModelReferential::ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData* avatar) :
@@ -63,7 +61,6 @@ _tree(tree)
 void ModelReferential::update() {
     const ModelItem* item = _tree->findModelByID(_modelID);
     if (!isValid() || item == NULL || _avatar == NULL) {
-        //qDebug() << "ModelReferential::update(): Not Valid";
         return;
     }
     
@@ -95,6 +92,25 @@ int ModelReferential::unpackExtraData(const unsigned char *sourceBuffer, int siz
     return sizeof(_modelID);
 }
 
+JointReferential::JointReferential(Referential* referential, ModelTree* tree, AvatarData* avatar) :
+    ModelReferential(referential, tree, avatar)
+{
+    _type = JOINT;
+    if (!isValid()) {
+        qDebug() << "JointReferential::copyConstructor(): Not Valid";
+        return;
+    }
+    
+    const ModelItem* item = _tree->findModelByID(_modelID);
+    const Model* model = getModel(item);
+    if (!isValid() || model == NULL || _jointIndex >= model->getJointStateCount()) {
+        _refScale = item->getRadius();
+        model->getJointRotationInWorldFrame(_jointIndex, _refRotation);
+        model->getJointPositionInWorldFrame(_jointIndex, _refPosition);
+    }
+    update();
+}
+
 JointReferential::JointReferential(uint32_t jointIndex, uint32_t modelID, ModelTree* tree, AvatarData* avatar) :
     ModelReferential(modelID, tree, avatar),
     _jointIndex(jointIndex)
@@ -102,8 +118,8 @@ JointReferential::JointReferential(uint32_t jointIndex, uint32_t modelID, ModelT
     _type = JOINT;
     const ModelItem* item = _tree->findModelByID(_modelID);
     const Model* model = getModel(item);
-    if (!_isValid || model == NULL || _jointIndex >= model->getJointStateCount()) {
-        qDebug() << "Not Valid";
+    if (!isValid() || model == NULL || _jointIndex >= model->getJointStateCount()) {
+        qDebug() << "JointReferential::constructor(): Not Valid";
         _isValid = false;
         return;
     }
@@ -121,9 +137,7 @@ JointReferential::JointReferential(uint32_t jointIndex, uint32_t modelID, ModelT
 void JointReferential::update() {
     const ModelItem* item = _tree->findModelByID(_modelID);
     const Model* model = getModel(item);
-    if (model == NULL || _jointIndex >= model->getJointStateCount()) {
-        qDebug() << "Not Valid";
-        _isValid = false;
+    if (!isValid() || model == NULL || _jointIndex >= model->getJointStateCount()) {
         return;
     }
     
@@ -150,7 +164,25 @@ const Model* JointReferential::getModel(const ModelItem* item) {
     if (item != NULL && fbxService != NULL) {
         return fbxService->getModelForModelItem(*item);
     }
-    qDebug() << "No Model";
-    
     return NULL;
+}
+
+int JointReferential::packExtraData(unsigned char* destinationBuffer) const {
+    unsigned char* startPosition = destinationBuffer;
+    destinationBuffer += ModelReferential::packExtraData(destinationBuffer);
+    
+    memcpy(destinationBuffer, &_jointIndex, sizeof(_jointIndex));
+    destinationBuffer += sizeof(_jointIndex);
+    
+    return destinationBuffer - startPosition;
+}
+
+int JointReferential::unpackExtraData(const unsigned char *sourceBuffer, int size) {
+    const unsigned char* startPosition = sourceBuffer;
+    sourceBuffer += ModelReferential::unpackExtraData(sourceBuffer, size);
+    
+    memcpy(&_jointIndex, sourceBuffer, sizeof(_jointIndex));
+    sourceBuffer += sizeof(_jointIndex);
+    
+    return sourceBuffer - startPosition;
 }

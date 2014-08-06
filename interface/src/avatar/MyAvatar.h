@@ -18,6 +18,8 @@
 
 #include "Avatar.h"
 
+class ModelItemID;
+
 enum AvatarHandState
 {
     HAND_STATE_NULL = 0,
@@ -149,7 +151,9 @@ public slots:
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getRightPalmPosition();
     
-    void changeReferential(Referential* ref);
+    void clearReferential();
+    bool setModelReferential(int id);
+    bool setJointReferential(int id, int jointIndex);
     
 signals:
     void transformChanged();

@@ -182,15 +182,20 @@ void Avatar::simulate(float deltaTime) {
     }
     if (_referential) {
         if (_referential->hasExtraData()) {
-            qDebug() << "Has extra data";
+            ModelTree* tree = Application::getInstance()->getModels()->getTree();
             switch (_referential->type()) {
                 case Referential::MODEL:
-                    qDebug() << "[DEBUG] Switching to the right referential";
                     _referential = new ModelReferential(_referential,
-                                                        Application::getInstance()->getModels()->getTree(), this);
+                                                        tree,
+                                                        this);
+                    break;
+                case Referential::JOINT:
+                    _referential = new JointReferential(_referential,
+                                                        tree,
+                                                        this);
                     break;
                 default:
-                    qDebug() << "Non handled referential type";
+                    qDebug() << "[WARNING] Avatar::simulate(): Unknown referential type.";
                     break;
             }
         }

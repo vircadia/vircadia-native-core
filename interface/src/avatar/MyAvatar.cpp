@@ -109,6 +109,10 @@ void MyAvatar::reset() {
 }
 
 void MyAvatar::update(float deltaTime) {
+    if (_referential) {
+        _referential->update();
+    }
+    
     Head* head = getHead();
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
@@ -127,22 +131,6 @@ void MyAvatar::update(float deltaTime) {
     }
 
     simulate(deltaTime);
-    
-    bool WANT_REFERENTIAL = false;
-    if (WANT_REFERENTIAL) {
-        int id = 12340;
-        const ModelItem* item = Application::getInstance()->getModels()->getTree()->findModelByID(id);
-        if (_referential) {
-            PerformanceTimer perfTimer("Referential");
-            _referential->update();
-        } else if (item != NULL)  {
-            const Model* model = Application::getInstance()->getModels()->getModelForModelItem(*item);
-            if (model != NULL) {
-                _referential = new ModelReferential(id,
-                                                    Application::getInstance()->getModels()->getTree(), this);
-            }
-        }
-    }
 }
 
 void MyAvatar::simulate(float deltaTime) {
@@ -461,9 +449,30 @@ glm::vec3 MyAvatar::getRightPalmPosition() {
     return rightHandPosition;
 }
 
-void MyAvatar::changeReferential(Referential *ref) {
-    delete _referential;
-    _referential = ref;
+void MyAvatar::clearReferential() {
+    changeReferential(NULL);
+}
+
+bool MyAvatar::setModelReferential(int id) {
+    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+    changeReferential(new ModelReferential(id, tree, this));
+    if (_referential->isValid()) {
+        return true;
+    } else {
+        changeReferential(NULL);
+        return false;
+    }
+}
+
+bool MyAvatar::setJointReferential(int id, int jointIndex) {
+    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+    changeReferential(new JointReferential(jointIndex, id, tree, this));
+    if (!_referential->isValid()) {
+        return true;
+    } else {
+        changeReferential(NULL);
+        return false;
+    }
 }
 
 void MyAvatar::setLocalGravity(glm::vec3 gravity) {

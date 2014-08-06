@@ -289,6 +289,8 @@ public slots:
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& id) { _sessionUUID = id; }
+    bool hasReferential();
+    
 protected:
     QUuid _sessionUUID;
     glm::vec3 _position;
@@ -344,6 +346,7 @@ protected:
     
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
+    void changeReferential(Referential* ref);
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
