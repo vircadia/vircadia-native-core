@@ -103,6 +103,31 @@ float Avatar::getLODDistance() const {
 
 void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
+    
+    // update the avatar's position according to its referential
+    if (_referential) {
+        if (_referential->hasExtraData()) {
+            ModelTree* tree = Application::getInstance()->getModels()->getTree();
+            switch (_referential->type()) {
+                case Referential::MODEL:
+                    _referential = new ModelReferential(_referential,
+                                                        tree,
+                                                        this);
+                    break;
+                case Referential::JOINT:
+                    _referential = new JointReferential(_referential,
+                                                        tree,
+                                                        this);
+                    break;
+                default:
+                    qDebug() << "[WARNING] Avatar::simulate(): Unknown referential type.";
+                    break;
+            }
+        }
+        
+        _referential->update();
+    }
+    
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
@@ -180,28 +205,6 @@ void Avatar::simulate(float deltaTime) {
         }
         _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
-    if (_referential) {
-        if (_referential->hasExtraData()) {
-            ModelTree* tree = Application::getInstance()->getModels()->getTree();
-            switch (_referential->type()) {
-                case Referential::MODEL:
-                    _referential = new ModelReferential(_referential,
-                                                        tree,
-                                                        this);
-                    break;
-                case Referential::JOINT:
-                    _referential = new JointReferential(_referential,
-                                                        tree,
-                                                        this);
-                    break;
-                default:
-                    qDebug() << "[WARNING] Avatar::simulate(): Unknown referential type.";
-                    break;
-            }
-        }
-        
-        _referential->update();
-    }
 }
 
 void Avatar::updateAcceleration(float deltaTime) {
@@ -241,18 +244,9 @@ static TextRenderer* textRenderer(TextRendererType type) {
 }
 
 void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
-    // make sure we have the right position
-    _skeletonModel.setTranslation(getPosition());
-    static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    _skeletonModel.setRotation(getOrientation() * refOrientation);
-    const float MODEL_SCALE = 0.0006f;
-    _skeletonModel.setScale(glm::vec3(1.0f, 1.0f, 1.0f) * getScale() * MODEL_SCALE);
-    
-    glm::vec3 headPosition = _position;
-    _skeletonModel.getHeadPosition(headPosition);
-    Head* head = getHead();
-    head->setPosition(headPosition);
-    head->setScale(_scale);
+    if (_referential) {
+        _referential->update();
+    }
     
     if (glm::distance(Application::getInstance()->getAvatar()->getPosition(),
                       _position) < 10.0f) {
@@ -303,7 +297,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
     float boundingRadius = getBillboardSize();
     ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
         Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getViewFrustum();
-    if (frustum->sphereInFrustum(_position, boundingRadius) == ViewFrustum::OUTSIDE) {
+    if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
 

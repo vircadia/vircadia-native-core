@@ -70,7 +70,7 @@ void ModelReferential::update() {
     bool somethingChanged = false;
     if (item->getRadius() != _refScale) {
         _refScale = item->getRadius();
-        _avatar->setTargetScale(_refScale * _scale);
+        _avatar->setTargetScale(_refScale * _scale, true);
         somethingChanged = true;
     }
     if (item->getModelRotation() != _refRotation) {
@@ -147,17 +147,17 @@ void JointReferential::update() {
     bool somethingChanged = false;
     if (item->getRadius() != _refScale) {
         _refScale = item->getRadius();
-        _avatar->setTargetScale(_refScale * _scale);
+        _avatar->setTargetScale(_refScale * _scale, true);
         somethingChanged = true;
     }
     if (item->getModelRotation() != _refRotation) {
         model->getJointRotationInWorldFrame(_jointIndex, _refRotation);
-        _avatar->setOrientation(_refRotation * _rotation);
+        _avatar->setOrientation(_refRotation * _rotation, true);
         somethingChanged = true;
     }
     if (item->getPosition() != _refPosition || somethingChanged) {
         model->getJointPositionInWorldFrame(_jointIndex, _refPosition);
-        _avatar->setPosition(_refPosition + _refRotation * (_translation * _refScale));
+        _avatar->setPosition(_refPosition + _refRotation * (_translation * _refScale), true);
         somethingChanged = true;
     }
 }

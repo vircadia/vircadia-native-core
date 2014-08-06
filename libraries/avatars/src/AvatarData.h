@@ -190,9 +190,9 @@ public:
     void setAudioAverageLoudness(float value) { _headData->setAudioAverageLoudness(value); }
 
     //  Scale
-    float getTargetScale() const { return _targetScale; }
-    void setTargetScale(float targetScale) { _targetScale = targetScale; }
-    void setClampedTargetScale(float targetScale);
+    float getTargetScale() const;
+    void setTargetScale(float targetScale, bool overideReferential = false);
+    void setClampedTargetScale(float targetScale, bool overideReferential = false);
 
     //  Hand State
     Q_INVOKABLE void setHandState(char s) { _handState = s; }

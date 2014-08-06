@@ -94,7 +94,29 @@ void AvatarData::setOrientation(const glm::quat& orientation, bool overideRefere
         _bodyYaw = eulerAngles.y;
         _bodyRoll = eulerAngles.z;
     }
-} 
+}
+
+float AvatarData::getTargetScale() const {
+    if (_referential) {
+        _referential->update();
+    }
+    
+    return _targetScale;
+}
+
+void AvatarData::setTargetScale(float targetScale, bool overideReferential) {
+    if (!_referential || overideReferential) {
+        _targetScale = targetScale;
+    }
+}
+
+void AvatarData::setClampedTargetScale(float targetScale, bool overideReferential) {
+    
+    targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    
+    setTargetScale(targetScale, overideReferential);
+    qDebug() << "Changed scale to " << _targetScale;
+}
 
 glm::vec3 AvatarData::getHandPosition() const {
     return getOrientation() * _handPosition + _position;
@@ -866,14 +888,6 @@ void AvatarData::setJointMappingsFromNetworkReply() {
     }
     
     networkReply->deleteLater();
-}
-
-void AvatarData::setClampedTargetScale(float targetScale) {
-    
-    targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
-    
-    _targetScale = targetScale;
-    qDebug() << "Changed scale to " << _targetScale;
 }
 
 void AvatarData::sendIdentityPacket() {
