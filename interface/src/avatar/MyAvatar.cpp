@@ -85,12 +85,12 @@ MyAvatar::MyAvatar() :
     _skeletonModel.setEnableShapes(true);
     // The skeleton is both a PhysicsEntity and Ragdoll, so we add it to the simulation once for each type.
     _physicsSimulation.addEntity(&_skeletonModel);
-    _physicsSimulation.addRagdoll(&_skeletonModel);
+    _physicsSimulation.setRagdoll(&_skeletonModel);
 }
 
 MyAvatar::~MyAvatar() {
+    _physicsSimulation.setRagdoll(NULL);
     _physicsSimulation.removeEntity(&_skeletonModel);
-    _physicsSimulation.removeRagdoll(&_skeletonModel);
     _lookAtTargetAvatar.clear();
 }
 
@@ -1532,41 +1532,53 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     }
     float myBoundingRadius = getBoundingRadius();
 
-    const float BODY_COLLISION_RESOLUTION_FACTOR = glm::max(1.0f, deltaTime / BODY_COLLISION_RESOLUTION_TIMESCALE);
-
+    // find nearest avatar
+    float nearestDistance2 = std::numeric_limits<float>::max();
+    Avatar* nearestAvatar = NULL;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         if (static_cast<Avatar*>(this) == avatar) {
             // don't collide with ourselves
             continue;
         }
-        float distance = glm::length(_position - avatar->getPosition());        
-        if (_distanceToNearestAvatar > distance) {
-            _distanceToNearestAvatar = distance;
+        float distance2 = glm::distance2(_position, avatar->getPosition());        
+        if (nearestDistance2 > distance2) {
+            nearestDistance2 = distance2;
+            nearestAvatar = avatar;
         }
-        float theirBoundingRadius = avatar->getBoundingRadius();
-        if (distance < myBoundingRadius + theirBoundingRadius) {
-            // collide our body against theirs
-            QVector<const Shape*> myShapes;
-            _skeletonModel.getBodyShapes(myShapes);
-            QVector<const Shape*> theirShapes;
-            avatar->getSkeletonModel().getBodyShapes(theirShapes);
+    }
+    _distanceToNearestAvatar = glm::sqrt(nearestDistance2);
 
-            CollisionInfo collision;
-            if (ShapeCollider::collideShapesCoarse(myShapes, theirShapes, collision)) {
-                float penetrationDepth = glm::length(collision._penetration);
-                if (penetrationDepth > myBoundingRadius) {
-                    qDebug() << "WARNING: ignoring avatar-avatar penetration depth " << penetrationDepth;
-                }
-                else if (penetrationDepth > EPSILON) {
-                    setPosition(getPosition() - BODY_COLLISION_RESOLUTION_FACTOR * collision._penetration);
-                    _lastBodyPenetration += collision._penetration;
-                    emit collisionWithAvatar(getSessionUUID(), avatar->getSessionUUID(), collision);
-                }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        if (nearestAvatar != NULL) {
+            if (_distanceToNearestAvatar > myBoundingRadius + nearestAvatar->getBoundingRadius()) {
+                // they aren't close enough to put into the _physicsSimulation
+                // so we clear the pointer
+                nearestAvatar = NULL;
             }
-
-            // collide their hands against us
-            avatar->getHand()->collideAgainstAvatar(this, false);
+        }
+    
+        foreach (const AvatarSharedPointer& avatarPointer, avatars) {
+            Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+            if (static_cast<Avatar*>(this) == avatar) {
+                // don't collide with ourselves
+                continue;
+            }
+            SkeletonModel* skeleton = &(avatar->getSkeletonModel());
+            PhysicsSimulation* simulation = skeleton->getSimulation();
+            if (avatar == nearestAvatar) {
+                if (simulation != &(_physicsSimulation)) {
+                    std::cout << "adebug adding other avatar " << avatar << " to simulation" << std::endl;  // adebug
+                    skeleton->setEnableShapes(true);
+                    _physicsSimulation.addEntity(skeleton);
+                    _physicsSimulation.addRagdoll(skeleton);
+                }
+            } else if (simulation == &(_physicsSimulation)) {
+                std::cout << "adebug removing other avatar " << avatar << " from simulation" << std::endl;  // adebug
+                _physicsSimulation.removeRagdoll(skeleton);
+                _physicsSimulation.removeEntity(skeleton);
+                skeleton->setEnableShapes(false);
+            }
         }
     }
 }

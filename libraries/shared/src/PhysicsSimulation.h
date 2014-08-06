@@ -28,6 +28,9 @@ public:
     PhysicsSimulation();
     ~PhysicsSimulation();
 
+    void setRagdoll(Ragdoll* ragdoll) { _ragdoll = ragdoll; }
+    void setEntity(PhysicsEntity* entity);
+
     /// \return true if entity was added to or is already in the list
     bool addEntity(PhysicsEntity* entity);
 
@@ -58,8 +61,11 @@ protected:
 private:
     quint32 _frame;
 
-    QVector<Ragdoll*> _dolls;
-    QVector<PhysicsEntity*> _entities;
+    PhysicsEntity* _entity;
+    Ragdoll* _ragdoll;
+
+    QVector<Ragdoll*> _otherRagdolls;
+    QVector<PhysicsEntity*> _otherEntities;
     CollisionList _collisions;
     QMap<quint64, ContactPoint> _contacts;
 };
