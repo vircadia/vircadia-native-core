@@ -71,6 +71,8 @@ public:
     float getAnimationFrameIndex() const { return _animationFrameIndex; }
     float getAnimationFPS() const { return _animationFPS; }
     
+    static void cleanupLoadedAnimations();
+    
 protected:
 
     rgbColor _color;

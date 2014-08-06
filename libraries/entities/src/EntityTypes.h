@@ -17,13 +17,15 @@
 #include <QHash>
 #include <QString>
 
+#include <OctreeRenderer.h> // for RenderArgs
+
 class EntityItem;
 class EntityItemID;
 class EntityItemProperties;
 class ReadBitstreamToTreeParams;
 
 typedef EntityItem* (*EntityTypeFactory)(const EntityItemID& entityID, const EntityItemProperties& properties);
-typedef void (*EntityTypeRenderer)(EntityItem* entity);
+typedef void (*EntityTypeRenderer)(EntityItem* entity, RenderArgs* args);
 
 class EntityTypes {
 public:
@@ -47,7 +49,7 @@ public:
                                         EntityItemID& entityID, EntityItemProperties& properties);
 
     static bool registerEntityTypeRenderer(EntityType_t entityType, EntityTypeRenderer renderMethod);
-    static void renderEntityItem(EntityItem* entityItem);
+    static void renderEntityItem(EntityItem* entityItem, RenderArgs* args);
 
 private:
     static QMap<EntityType_t, QString> _typeToNameMap;
@@ -65,10 +67,7 @@ private:
 #define REGISTER_ENTITY_TYPE(x) static bool x##Registration = \
             EntityTypes::registerEntityType(EntityTypes::x, #x, x##EntityItem::factory);
 
-#define REGISTER_ENTITY_TYPE_RENDERER(x) static bool x##RendererRegistration = \
-            EntityTypes::registerEntityTypeRenderer(EntityTypes::x, x##EntityItemRenderer::render); \
-            x##RendererRegistration = x##RendererRegistration;
-            
+#define REGISTER_ENTITY_TYPE_RENDERER(x,y) EntityTypes::registerEntityTypeRenderer(EntityTypes::x, y);
 
 
 #endif // hifi_EntityTypes_h

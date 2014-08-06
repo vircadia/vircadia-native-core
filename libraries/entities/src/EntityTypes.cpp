@@ -387,11 +387,11 @@ bool EntityTypes::registerEntityTypeRenderer(EntityType_t entityType, EntityType
     return true;
 }
 
-void EntityTypes::renderEntityItem(EntityItem* entityItem) {
+void EntityTypes::renderEntityItem(EntityItem* entityItem, RenderArgs* args) {
     EntityType_t entityType = entityItem->getType();
     EntityTypeRenderer renderMethod = _renderers[entityType];
     if (renderMethod) {
-        renderMethod(entityItem);
+        renderMethod(entityItem, args);
     }
 }
 

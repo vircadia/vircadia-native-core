@@ -14,8 +14,14 @@
 #include <FBXReader.h>
 
 #include "InterfaceConfig.h"
+
+#include <ModelEntityItem.h>
+
+
 #include "Menu.h"
 #include "EntityTreeRenderer.h"
+
+
 
 EntityTreeRenderer::EntityTreeRenderer() :
     OctreeRenderer() {
@@ -45,36 +51,9 @@ void EntityTreeRenderer::clearModelsCache() {
     _unknownEntityItemModels.clear();
 }
 
-class ModelEntityItemRenderer {
-public:
-    static void render(EntityItem* entity) {
-        glm::vec3 position = entity->getPosition() * (float)TREE_SCALE;
-        float radius = entity->getRadius() * (float)TREE_SCALE;
-        glColor3f(1.0f, 0.0f, 0.0f);
-        glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glutSolidSphere(radius, 15, 15);
-        glPopMatrix();
-    }
-};
-
-class BoxEntityItemRenderer {
-public:
-    static void render(EntityItem* entity) {
-        glm::vec3 position = entity->getPosition() * (float)TREE_SCALE;
-        float size = entity->getSize() * (float)TREE_SCALE;
-        glColor3f(0.0f, 1.0f, 0.0f);
-        glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glutSolidCube(size);
-        glPopMatrix();
-    }
-};
-
-
 void EntityTreeRenderer::init() {
-    REGISTER_ENTITY_TYPE_RENDERER(Model)
-    REGISTER_ENTITY_TYPE_RENDERER(Box)
+    //REGISTER_ENTITY_TYPE_RENDERER(Model, this->renderEntityTypeModel);
+    //REGISTER_ENTITY_TYPE_RENDERER(Box, this->renderEntityTypeBox);
 
     OctreeRenderer::init();
     static_cast<EntityTree*>(_tree)->setFBXService(this);
@@ -272,125 +251,86 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         // render entityItem aspoints
         AACube entityCube = entityItem->getAACube();
         entityCube.scale(TREE_SCALE);
+        
+        // TODO: some entity types (like lights) might want to be rendered even
+        // when they are outside of the view frustum...
         if (args->_viewFrustum->cubeInFrustum(entityCube) != ViewFrustum::OUTSIDE) {
-            glm::vec3 position = entityItem->getPosition() * (float)TREE_SCALE;
-            float radius = entityItem->getRadius() * (float)TREE_SCALE;
-            float size = entityItem->getSize() * (float)TREE_SCALE;
+        
+            if (entityItem->getType() == EntityTypes::Model) {
+                renderEntityTypeModel(entityItem, args);
+            } else if (entityItem->getType() == EntityTypes::Box) {
+                renderEntityTypeBox(entityItem, args);
+            }
+        } else {
+            args->_itemsOutOfView++;
+        }
+    }
+}
 
-#if 0 //def HIDE_SUBCLASS_METHODS
-            bool drawAsModel = entityItem->hasModel();
-#else
-            bool drawAsModel = false;
-#endif
+void EntityTreeRenderer::renderEntityTypeModel(EntityItem* entity, RenderArgs* args) {
+    assert(entity->getType() == EntityTypes::Model);
+    
+    ModelEntityItem* entityItem = static_cast<ModelEntityItem*>(entity);
+    bool drawAsModel = entityItem->hasModel();
 
-            args->_itemsRendered++;
+    glm::vec3 position = entityItem->getPosition() * (float)TREE_SCALE;
+    float radius = entityItem->getRadius() * (float)TREE_SCALE;
+    float size = entity->getSize() * (float)TREE_SCALE;
+    
+    if (drawAsModel) {
+        glPushMatrix();
+        {
+            const float alpha = 1.0f;
+        
+            Model* model = getModel(*entityItem);
+            
+            if (model) {
+                model->setScaleToFit(true, radius * 2.0f);
+                model->setSnapModelToCenter(true);
+        
+                // set the rotation
+                glm::quat rotation = entityItem->getRotation();
+                model->setRotation(rotation);
+        
+                // set the position
+                model->setTranslation(position);
+            
+                // handle animations..
+                if (entityItem->hasAnimation()) {
+                    if (!entityItem->jointsMapped()) {
+                        QStringList modelJointNames = model->getJointNames();
+                        entityItem->mapJoints(modelJointNames);
+                    }
 
-            if (drawAsModel) {
-#if 0 //def HIDE_SUBCLASS_METHODS
-                glPushMatrix();
-                {
-                    const float alpha = 1.0f;
-                
-                    Model* model = getModel(*entityItem);
+                    QVector<glm::quat> frameData = entityItem->getAnimationFrame();
+                    for (int i = 0; i < frameData.size(); i++) {
+                        model->setJointState(i, true, frameData[i]);
+                    }
+                }
+            
+                // make sure to simulate so everything gets set up correctly for rendering
+                model->simulate(0.0f);
+
+                // TODO: should we allow entityItems to have alpha on their models?
+                Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
+                                                        ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+        
+                if (entityItem->getGlowLevel() > 0.0f) {
+                    Glower glower(entityItem->getGlowLevel());
                     
-                    if (model) {
-                        model->setScaleToFit(true, radius * 2.0f);
-                        model->setSnapModelToCenter(true);
-                
-                        // set the rotation
-                        glm::quat rotation = entityItem->getRotation();
-                        model->setRotation(rotation);
-                
-                        // set the position
-                        model->setTranslation(position);
-                    
-                        // handle animations..
-                        if (entityItem->hasAnimation()) {
-                            if (!entityItem->jointsMapped()) {
-                                QStringList modelJointNames = model->getJointNames();
-                                entityItem->mapJoints(modelJointNames);
-                            }
-
-                            QVector<glm::quat> frameData = entityItem->getAnimationFrame();
-                            for (int i = 0; i < frameData.size(); i++) {
-                                model->setJointState(i, true, frameData[i]);
-                            }
-                        }
-                    
-                        // make sure to simulate so everything gets set up correctly for rendering
-                        model->simulate(0.0f);
-
-                        // TODO: should we allow entityItems to have alpha on their models?
-                        Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
-                                                                ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-                
-                        if (entityItem->getGlowLevel() > 0.0f) {
-                            Glower glower(entityItem->getGlowLevel());
-                            
-                            if (model->isActive()) {
-                                model->render(alpha, modelRenderMode);
-                            } else {
-                                // if we couldn't get a model, then just draw a sphere
-                                glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem->getColor()[BLUE_INDEX]);
-                                glPushMatrix();
-                                    glTranslatef(position.x, position.y, position.z);
-                                    glutSolidSphere(radius, 15, 15);
-                                glPopMatrix();
-                            }
-                        } else {
-                            if (model->isActive()) {
-                                model->render(alpha, modelRenderMode);
-                            } else {
-                                // if we couldn't get a model, then just draw a sphere
-                                glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem->getColor()[BLUE_INDEX]);
-                                glPushMatrix();
-                                    glTranslatef(position.x, position.y, position.z);
-                                    glutSolidSphere(radius, 15, 15);
-                                glPopMatrix();
-                            }
-                        }
-
-                        if (!isShadowMode && displayModelBounds) {
-
-                            glm::vec3 unRotatedMinimum = model->getUnscaledMeshExtents().minimum;
-                            glm::vec3 unRotatedMaximum = model->getUnscaledMeshExtents().maximum;
-                            glm::vec3 unRotatedExtents = unRotatedMaximum - unRotatedMinimum;
-         
-                            float width = unRotatedExtents.x;
-                            float height = unRotatedExtents.y;
-                            float depth = unRotatedExtents.z;
-
-                            Extents rotatedExtents = model->getUnscaledMeshExtents();
-                            calculateRotatedExtents(rotatedExtents, rotation);
-
-                            glm::vec3 rotatedSize = rotatedExtents.maximum - rotatedExtents.minimum;
-
-                            const glm::vec3& modelScale = model->getScale();
-
-                            glPushMatrix();
-                                glTranslatef(position.x, position.y, position.z);
-                            
-                                // draw the orignal bounding cube
-                                glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
-                                glutWireCube(size);
-
-                                // draw the rotated bounding cube
-                                glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
-                                glPushMatrix();
-                                    glScalef(rotatedSize.x * modelScale.x, rotatedSize.y * modelScale.y, rotatedSize.z * modelScale.z);
-                                    glutWireCube(1.0);
-                                glPopMatrix();
-                            
-                                // draw the model relative bounding box
-                                glm::vec3 axis = glm::axis(rotation);
-                                glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-                                glScalef(width * modelScale.x, height * modelScale.y, depth * modelScale.z);
-                                glColor3f(0.0f, 1.0f, 0.0f);
-                                glutWireCube(1.0);
-
-                            glPopMatrix();
-                        
-                        }
+                    if (model->isActive()) {
+                        model->render(alpha, modelRenderMode);
+                    } else {
+                        // if we couldn't get a model, then just draw a sphere
+                        glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem->getColor()[BLUE_INDEX]);
+                        glPushMatrix();
+                            glTranslatef(position.x, position.y, position.z);
+                            glutSolidSphere(radius, 15, 15);
+                        glPopMatrix();
+                    }
+                } else {
+                    if (model->isActive()) {
+                        model->render(alpha, modelRenderMode);
                     } else {
                         // if we couldn't get a model, then just draw a sphere
                         glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem->getColor()[BLUE_INDEX]);
@@ -400,16 +340,82 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                         glPopMatrix();
                     }
                 }
-                glPopMatrix();
-#endif
+                
+                bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
+                bool displayModelBounds = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelBounds);
+
+                if (!isShadowMode && displayModelBounds) {
+
+                    glm::vec3 unRotatedMinimum = model->getUnscaledMeshExtents().minimum;
+                    glm::vec3 unRotatedMaximum = model->getUnscaledMeshExtents().maximum;
+                    glm::vec3 unRotatedExtents = unRotatedMaximum - unRotatedMinimum;
+ 
+                    float width = unRotatedExtents.x;
+                    float height = unRotatedExtents.y;
+                    float depth = unRotatedExtents.z;
+
+                    Extents rotatedExtents = model->getUnscaledMeshExtents();
+                    calculateRotatedExtents(rotatedExtents, rotation);
+
+                    glm::vec3 rotatedSize = rotatedExtents.maximum - rotatedExtents.minimum;
+
+                    const glm::vec3& modelScale = model->getScale();
+
+                    glPushMatrix();
+                        glTranslatef(position.x, position.y, position.z);
+                    
+                        // draw the orignal bounding cube
+                        glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
+                        glutWireCube(size);
+
+                        // draw the rotated bounding cube
+                        glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
+                        glPushMatrix();
+                            glScalef(rotatedSize.x * modelScale.x, rotatedSize.y * modelScale.y, rotatedSize.z * modelScale.z);
+                            glutWireCube(1.0);
+                        glPopMatrix();
+                    
+                        // draw the model relative bounding box
+                        glm::vec3 axis = glm::axis(rotation);
+                        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+                        glScalef(width * modelScale.x, height * modelScale.y, depth * modelScale.z);
+                        glColor3f(0.0f, 1.0f, 0.0f);
+                        glutWireCube(1.0);
+
+                    glPopMatrix();
+                
+                }
             } else {
-                EntityTypes::renderEntityItem(entityItem);
+                // if we couldn't get a model, then just draw a sphere
+                glColor3ub(entityItem->getColor()[RED_INDEX],entityItem->getColor()[GREEN_INDEX],entityItem->getColor()[BLUE_INDEX]);
+                glPushMatrix();
+                    glTranslatef(position.x, position.y, position.z);
+                    glutSolidSphere(radius, 15, 15);
+                glPopMatrix();
             }
-        } else {
-            args->_itemsOutOfView++;
         }
+        glPopMatrix();
+    } else {
+        glColor3f(1.0f, 0.0f, 0.0f);
+        glPushMatrix();
+        glTranslatef(position.x, position.y, position.z);
+        glutSolidSphere(radius, 15, 15);
+        glPopMatrix();
     }
 }
+
+
+void EntityTreeRenderer::renderEntityTypeBox(EntityItem* entity, RenderArgs* args) {
+    assert(entity->getType() == EntityTypes::Box);
+    glm::vec3 position = entity->getPosition() * (float)TREE_SCALE;
+    float size = entity->getSize() * (float)TREE_SCALE;
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glPushMatrix();
+    glTranslatef(position.x, position.y, position.z);
+    glutSolidCube(size);
+    glPopMatrix();
+};
+
 
 float EntityTreeRenderer::getSizeScale() const { 
     return Menu::getInstance()->getVoxelSizeScale();

@@ -57,6 +57,10 @@ public:
 
     Q_INVOKABLE Model* getModel(const EntityItem& modelItem);
 
+    // renderers for various types of entities
+    void renderEntityTypeBox(EntityItem* entity, RenderArgs* args);
+    void renderEntityTypeModel(EntityItem* entity, RenderArgs* args);
+
 protected:
     void clearModelsCache();
     QMap<uint32_t, Model*> _knownEntityItemModels;

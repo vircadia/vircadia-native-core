@@ -16,9 +16,6 @@
 #include "ModelEntityItem.h"
 
 
-//EntityTypes::registerEntityType(EntityTypes::Model, "Model", ModelEntityItem::factory);
-
-
 EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     qDebug() << "ModelEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
     return new  ModelEntityItem(entityID, properties);
@@ -778,4 +775,81 @@ qDebug() << "ModelEntityItem::appendEntityData()... modelURL=" << getModelURL();
     }
 
     return appendState;
+}
+
+
+QMap<QString, AnimationPointer> ModelEntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
+AnimationCache ModelEntityItem::_animationCache;
+
+// This class/instance will cleanup the animations once unloaded.
+class EntityAnimationsBookkeeper {
+public:
+    ~EntityAnimationsBookkeeper() {
+        ModelEntityItem::cleanupLoadedAnimations();
+    }
+};
+
+EntityAnimationsBookkeeper modelAnimationsBookkeeperInstance;
+
+void ModelEntityItem::cleanupLoadedAnimations() {
+    foreach(AnimationPointer animation, _loadedAnimations) {
+        animation.clear();
+    }
+    _loadedAnimations.clear();
+}
+
+Animation* ModelEntityItem::getAnimation(const QString& url) {
+    AnimationPointer animation;
+    
+    // if we don't already have this model then create it and initialize it
+    if (_loadedAnimations.find(url) == _loadedAnimations.end()) {
+        animation = _animationCache.getAnimation(url);
+        _loadedAnimations[url] = animation;
+    } else {
+        animation = _loadedAnimations[url];
+    }
+    return animation.data();
+}
+
+void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
+    // if we don't have animation, or we're already joint mapped then bail early
+    if (!hasAnimation() || _jointMappingCompleted) {
+        return;
+    }
+
+    Animation* myAnimation = getAnimation(_animationURL);
+    
+    if (!_jointMappingCompleted) {
+        QStringList animationJointNames = myAnimation->getJointNames();
+
+        if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
+            _jointMapping.resize(modelJointNames.size());
+            for (int i = 0; i < modelJointNames.size(); i++) {
+                _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
+            }
+            _jointMappingCompleted = true;
+        }
+    }
+}
+
+QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
+    QVector<glm::quat> frameData;
+    if (hasAnimation() && _jointMappingCompleted) {
+        Animation* myAnimation = getAnimation(_animationURL);
+        QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
+        int frameCount = frames.size();
+
+        if (frameCount > 0) {
+            int animationFrameIndex = (int)glm::floor(_animationFrameIndex) % frameCount;
+            QVector<glm::quat> rotations = frames[animationFrameIndex].rotations;
+            frameData.resize(_jointMapping.size());
+            for (int j = 0; j < _jointMapping.size(); j++) {
+                int rotationIndex = _jointMapping[j];
+                if (rotationIndex != -1 && rotationIndex < rotations.size()) {
+                    frameData[j] = rotations[rotationIndex];
+                }
+            }
+        }
+    }
+    return frameData;
 }
