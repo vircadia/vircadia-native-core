@@ -930,6 +930,13 @@ void HeightfieldTool::render() {
 ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
     HeightfieldTool(editor, "Import Heightfield") {
     
+    _form->addRow("Block Size:", _blockSize = new QSpinBox());
+    _blockSize->setPrefix("2^");
+    _blockSize->setMinimum(1);
+    _blockSize->setValue(5);
+    
+    connect(_blockSize, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this,
+        &ImportHeightfieldTool::updatePreview);
     _form->addRow("Height:", _height = new QPushButton());
     connect(_height, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectHeightFile);
     _form->addRow("Color:", _color = new QPushButton());
@@ -989,23 +996,22 @@ void ImportHeightfieldTool::selectColorFile() {
     updatePreview();
 }
 
-const int BLOCK_SIZE = 32;
-const int BLOCK_ADVANCEMENT = BLOCK_SIZE - 1;
-
 void ImportHeightfieldTool::updatePreview() {
     QVector<BufferDataPointer> buffers;
     if (_heightImage.width() > 0 && _heightImage.height() > 0) {
         float z = 0.0f;
-        for (int i = 0; i < _heightImage.height(); i += BLOCK_ADVANCEMENT, z++) {
+        int blockSize = pow(2.0, _blockSize->value());
+        int blockAdvancement = blockSize - 1;
+        for (int i = 0; i < _heightImage.height(); i += blockAdvancement, z++) {
             float x = 0.0f;
-            for (int j = 0; j < _heightImage.width(); j += BLOCK_ADVANCEMENT, x++) {
-                QByteArray height(BLOCK_SIZE * BLOCK_SIZE, 0);
-                int rows = qMin(BLOCK_SIZE, _heightImage.height() - i);
-                int columns = qMin(BLOCK_SIZE, _heightImage.width() - j);
+            for (int j = 0; j < _heightImage.width(); j += blockAdvancement, x++) {
+                QByteArray height(blockSize * blockSize, 0);
+                int rows = qMin(blockSize, _heightImage.height() - i);
+                int columns = qMin(blockSize, _heightImage.width() - j);
                 const int BYTES_PER_COLOR = 3;
                 for (int y = 0; y < rows; y++) {
                     uchar* src = _heightImage.scanLine(i + y) + j * BYTES_PER_COLOR;
-                    char* dest = height.data() + y * BLOCK_SIZE;
+                    char* dest = height.data() + y * blockSize;
                     for (int x = 0; x < columns; x++) {
                         *dest++ = *src;
                         src += BYTES_PER_COLOR;
@@ -1014,11 +1020,11 @@ void ImportHeightfieldTool::updatePreview() {
                 
                 QByteArray color;
                 if (!_colorImage.isNull()) {
-                    color = QByteArray(BLOCK_SIZE * BLOCK_SIZE * BYTES_PER_COLOR, 0);
-                    rows = qMax(0, qMin(BLOCK_SIZE, _colorImage.height() - i));
-                    columns = qMax(0, qMin(BLOCK_SIZE, _colorImage.width() - j));
+                    color = QByteArray(blockSize * blockSize * BYTES_PER_COLOR, 0);
+                    rows = qMax(0, qMin(blockSize, _colorImage.height() - i));
+                    columns = qMax(0, qMin(blockSize, _colorImage.width() - j));
                     for (int y = 0; y < rows; y++) {
-                        memcpy(color.data() + y * BLOCK_SIZE * BYTES_PER_COLOR,
+                        memcpy(color.data() + y * blockSize * BYTES_PER_COLOR,
                             _colorImage.scanLine(i + y) + j * BYTES_PER_COLOR, columns * BYTES_PER_COLOR);
                     }
                 }
