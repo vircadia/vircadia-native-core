@@ -26,8 +26,7 @@ ModelReferential::ModelReferential(Referential* referential, ModelTree* tree, Av
             return;
         }
         
-        const ModelItem* item = _tr
-        ree->findModelByID(_modelID);
+        const ModelItem* item = _tree->findModelByID(_modelID);
         if (item != NULL) {
             _refScale = item->getRadius();
             _refRotation = item->getModelRotation();
