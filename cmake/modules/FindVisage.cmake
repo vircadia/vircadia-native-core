@@ -30,7 +30,7 @@ if (APPLE)
   
   find_library(VISAGE_CORE_LIBRARY NAME vscore PATH_SUFFIXES lib HINTS ${VISAGE_SEARCH_DIRS})
   find_library(VISAGE_VISION_LIBRARY NAME vsvision PATH_SUFFIXES lib HINTS ${VISAGE_SEARCH_DIRS})
-  find_library(VISAGE_OPENCV_LIBRARY NAME OpenCV PATH_SUFFIXES dependencies/OpenCV_MacOSX/lib ${VISAGE_SEARCH_DIRS})
+  find_library(VISAGE_OPENCV_LIBRARY NAME OpenCV PATH_SUFFIXES dependencies/OpenCV_MacOSX/lib HINTS ${VISAGE_SEARCH_DIRS})
   
 elseif (WIN32)
   find_path(VISAGE_XML_INCLUDE_DIR libxml/xmlreader.h PATH_SUFFIXES dependencies/libxml2/include HINTS ${VISAGE_SEARCH_DIRS})
