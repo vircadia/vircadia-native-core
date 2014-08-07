@@ -38,7 +38,6 @@ Model properties:
 // REQUIRED TO DO:
 
     A) add velocity, gravity, damping to entity base class
-    B) enable animation in model class
     C) verify "update" works
     D) update and verify all particle examples to use new entity features
     E) memory leaks???
@@ -182,4 +181,5 @@ Model properties:
 // SOLVED - b) entities have same ID? unknown??? - wasn't setting ID on read from buffer...
 // SOLVED - a) crash in entity server on add entity? 
 // SOLVED - 8) addOrUpdateEntity()
+// SOLVED - B) enable animation in model class
 
