@@ -16,12 +16,10 @@ macro(LINK_HIFI_LIBRARY LIBRARY TARGET ROOT_DIR)
   include_directories("${ROOT_DIR}/libraries/${LIBRARY}/src")
 
   add_dependencies(${TARGET} ${LIBRARY})
+  
   target_link_libraries(${TARGET} ${LIBRARY} ${REQUIRED_DEPENDENCY_LIBRARIES})
   
-  if (APPLE)
-    # currently the "shared" library requires CoreServices    
-    # link in required OS X framework
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework CoreServices")
+  if (REQUIRED_DEPENDENCY_QT_MODULES)
+    qt5_use_modules(${TARGET_NAME} ${REQUIRED_DEPENDENCY_QT_MODULES})
   endif ()
-
 endmacro(LINK_HIFI_LIBRARY _library _target _root_dir)

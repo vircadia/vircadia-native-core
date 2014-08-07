@@ -4,7 +4,8 @@ set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 set(TARGET_NAME shared)
 project(${TARGET_NAME})
 
-find_package(Qt5 COMPONENTS Network Widgets Xml Script)
+find_package(Qt5 COMPONENTS Network)
+find_package(Qt5Widgets REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
@@ -21,16 +22,15 @@ if (WIN32)
 endif (WIN32)
 
 # link required libraries on UNIX
-if (UNIX AND NOT APPLE)
-    find_package(Threads REQUIRED)
-    target_link_libraries(${TARGET_NAME} "${CMAKE_THREAD_LIBS_INIT}")
-endif (UNIX AND NOT APPLE)
-
-# There is something special (bug) about Qt5Scripts, that we have to explicitly add its include
-# directory when Qt5 (5.2.1) is compiled from source and is not in a standard place.
-include_directories(SYSTEM "${Qt5Script_INCLUDE_DIRS}")
+if (APPLE)
+  find_library(CoreServices CoreServices)
+  list(APPEND REQUIRED_DEPENDENCY_LIBRARIES ${CoreServices})
+elseif (UNIX)
+  find_package(Threads REQUIRED)
+  LIST(APPEND REQUIRED_DEPENDENCY_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}")
+endif ()
 
 # bubble up the libraries we are dependent on and link them to ourselves
-set(REQUIRED_DEPENDENCY_LIBRARIES Qt5::Network Qt5::Widgets)
+list(APPEND REQUIRED_DEPENDENCY_LIBRARIES Qt5::Network Qt5::Widgets)
 set(SUB_DEPENDENCY_LIBRARIES ${REQUIRED_DEPENDENCY_LIBRARIES} PARENT_SCOPE)
 target_link_libraries(${TARGET_NAME} ${REQUIRED_DEPENDENCY_LIBRARIES})

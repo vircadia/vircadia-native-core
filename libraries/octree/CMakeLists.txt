@@ -6,8 +6,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME octree)
 
-find_package(Qt5Widgets REQUIRED)
-
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
@@ -26,7 +24,7 @@ include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}" "${OPENSSL_INCLUDE_DIR}")
 
 # bubble up the libraries we are dependent on
 set(REQUIRED_DEPENDENCY_LIBRARIES ${REQUIRED_DEPENDENCY_LIBRARIES} 
-  "${ZLIB_LIBRARIES}" "${OPENSSL_LIBRARIES}" Qt5::Widgets PARENT_SCOPE)
+  "${ZLIB_LIBRARIES}" "${OPENSSL_LIBRARIES}" PARENT_SCOPE)
   
 target_link_libraries(${TARGET_NAME} ${REQUIRED_DEPENDENCY_LIBRARIES})
 
