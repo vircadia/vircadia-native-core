@@ -209,7 +209,7 @@ protected:
     virtual void renderAttachments(RenderMode renderMode);
 
     virtual void updateJointMappings();
-
+    
 private:
 
     bool _initialized;

@@ -512,33 +512,11 @@ void MetavoxelData::set(const glm::vec3& minimum, const MetavoxelData& data, boo
     }
 }
 
-static int getOppositeIndex(int index) {
-    return index ^ MAXIMUM_FLAG_MASK;
-}
-
 void MetavoxelData::expand() {
     for (QHash<AttributePointer, MetavoxelNode*>::iterator it = _roots.begin(); it != _roots.end(); it++) {
-        MetavoxelNode* newParent = new MetavoxelNode(it.key());
-        for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
-            MetavoxelNode* newChild = new MetavoxelNode(it.key());
-            newParent->setChild(i, newChild);
-            int index = getOppositeIndex(i);
-            if (it.value()->isLeaf()) {
-                newChild->setChild(index, new MetavoxelNode(it.value()->getAttributeValue(it.key())));               
-            } else {
-                MetavoxelNode* grandchild = it.value()->getChild(i);
-                grandchild->incrementReferenceCount();
-                newChild->setChild(index, grandchild);
-            }
-            for (int j = 1; j < MetavoxelNode::CHILD_COUNT; j++) {
-                MetavoxelNode* newGrandchild = new MetavoxelNode(it.key());
-                newChild->setChild((index + j) % MetavoxelNode::CHILD_COUNT, newGrandchild);
-            }
-            newChild->mergeChildren(it.key());
-        }
-        newParent->mergeChildren(it.key());
+        MetavoxelNode* newNode = it.key()->expandMetavoxelRoot(*it.value());
         it.value()->decrementReferenceCount(it.key());
-        it.value() = newParent;
+        it.value() = newNode;
     }
     _size *= 2.0f;
 }
@@ -821,6 +799,10 @@ bool MetavoxelStreamState::becameSubdividedOrCollapsed() const {
 
 void MetavoxelStreamState::setMinimum(const glm::vec3& lastMinimum, int index) {
     minimum = getNextMinimum(lastMinimum, size, index);
+}
+
+int MetavoxelNode::getOppositeChildIndex(int index) {
+    return index ^ MAXIMUM_FLAG_MASK;
 }
 
 MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue, const MetavoxelNode* copyChildren) :

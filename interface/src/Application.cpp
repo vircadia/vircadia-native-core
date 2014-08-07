@@ -2139,12 +2139,6 @@ void Application::update(float deltaTime) {
         _prioVR.update(deltaTime);
 
     }
-    {
-        PerformanceTimer perfTimer("myAvatar");
-        updateMyAvatarLookAtPosition();
-        updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
-    }
-    
 
     // Dispatch input events
     _controllerScriptingInterface.updateInputControllers();
@@ -2175,6 +2169,12 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
+    }
+    
+    {
+        PerformanceTimer perfTimer("myAvatar");
+        updateMyAvatarLookAtPosition();
+        updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     }
 
     {

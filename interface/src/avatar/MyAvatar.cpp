@@ -32,6 +32,7 @@
 #include "Audio.h"
 #include "Environment.h"
 #include "Menu.h"
+#include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "devices/Faceshift.h"
@@ -108,6 +109,10 @@ void MyAvatar::reset() {
 }
 
 void MyAvatar::update(float deltaTime) {
+    if (_referential) {
+        _referential->update();
+    }
+    
     Head* head = getHead();
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
@@ -441,6 +446,32 @@ glm::vec3 MyAvatar::getRightPalmPosition() {
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
     rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
     return rightHandPosition;
+}
+
+void MyAvatar::clearReferential() {
+    changeReferential(NULL);
+}
+
+bool MyAvatar::setModelReferential(int id) {
+    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+    changeReferential(new ModelReferential(id, tree, this));
+    if (_referential->isValid()) {
+        return true;
+    } else {
+        changeReferential(NULL);
+        return false;
+    }
+}
+
+bool MyAvatar::setJointReferential(int id, int jointIndex) {
+    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+    changeReferential(new JointReferential(jointIndex, id, tree, this));
+    if (!_referential->isValid()) {
+        return true;
+    } else {
+        changeReferential(NULL);
+        return false;
+    }
 }
 
 void MyAvatar::setLocalGravity(glm::vec3 gravity) {

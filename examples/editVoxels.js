@@ -752,7 +752,7 @@ function calculateVoxelFromIntersection(intersection, operation) {
         highlightAt.z = z + zFightingSizeAdjust;
         voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
-            resultVoxel.y += voxelSize;
+            resultVoxel.y += resultVoxel.s;
         }
         
         resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
@@ -782,7 +782,7 @@ function calculateVoxelFromIntersection(intersection, operation) {
         highlightAt.z = z + voxelSize + zFightingSizeAdjust;
         voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
-            resultVoxel.z += voxelSize;
+            resultVoxel.z += resultVoxel.s;
         }
         
         resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
