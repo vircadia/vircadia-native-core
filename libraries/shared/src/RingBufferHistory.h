@@ -83,9 +83,14 @@ private:
     QVector<T> _buffer;
 
 public:
-    class Iterator : public std::iterator < std::forward_iterator_tag, T > {
+    class Iterator : public std::iterator < std::random_access_iterator_tag, T > {
     public:
-        Iterator(T* bufferFirst, T* bufferLast, T* at) : _bufferFirst(bufferFirst), _bufferLast(bufferLast), _at(at) {}
+        Iterator(T* bufferFirst, T* bufferLast, T* newestAt, T* at)
+            : _bufferFirst(bufferFirst),
+            _bufferLast(bufferLast),
+            _bufferLength(bufferLast - bufferFirst + 1),
+            _newestAt(newestAt),
+            _at(at) {}
 
         bool operator==(const Iterator& rhs) { return _at == rhs._at; }
         bool operator!=(const Iterator& rhs) { return _at != rhs._at; }
@@ -103,20 +108,95 @@ public:
             return tmp;
         }
 
+        Iterator& operator--() {
+            _at = (_at == _bufferLast) ? _bufferFirst : _at + 1;
+            return *this;
+        }
+
+        Iterator operator--(int) {
+            Iterator tmp(*this);
+            --(*this);
+            return tmp;
+        }
+
+        Iterator operator+(int add) {
+            Iterator sum(*this);
+            sum._at = atShiftedBy(add);
+            return sum;
+        }
+
+        Iterator operator-(int sub) {
+            Iterator sum(*this);
+            sum._at = atShiftedBy(-sub);
+            return sum;
+        }
+
+        Iterator& operator+=(int add) {
+            _at = atShiftedBy(add);
+            return *this;
+        }
+
+        Iterator& operator-=(int sub) {
+            _at = atShiftedBy(-sub);
+            return *this;
+        }
+
+        T& operator[](int i) {
+            return *(atShiftedBy(i));
+        }
+
+        bool operator<(const Iterator& rhs) {
+            return age() < rhs.age();
+        }
+
+        bool operator>(const Iterator& rhs) {
+            return age() > rhs.age();
+        }
+
+        bool operator<=(const Iterator& rhs) {
+            return age() < rhs.age();
+        }
+
+        bool operator>=(const Iterator& rhs) {
+            return age() >= rhs.age();
+        }
+
+        int operator-(const Iterator& rhs) {
+            return age() - rhs.age();
+        }
+
     private:
-        T* const _bufferFirst;
-        T* const _bufferLast;
+        T* atShiftedBy(int i) { // shifts i places towards _bufferFirst (towards older entries)
+            i = (_at - _bufferFirst - i) % _bufferLength;
+            if (i < 0) {
+                i += _bufferLength;
+            }
+            return _bufferFirst + i;
+        }
+
+        int age() {
+            int age = _newestAt - _at;
+            if (age < 0) {
+                age += _bufferLength;
+            }
+            return age;
+        }
+
+        T* _bufferFirst;
+        T* _bufferLast;
+        int _bufferLength;
+        T* _newestAt;
         T* _at;
     };
 
-    Iterator begin() { return Iterator(&_buffer.first(), &_buffer.last(), &_buffer[_newestEntryAtIndex]); }
+    Iterator begin() { return Iterator(&_buffer.first(), &_buffer.last(), &_buffer[_newestEntryAtIndex], &_buffer[_newestEntryAtIndex]); }
 
     Iterator end() {
         int endAtIndex = _newestEntryAtIndex - _numEntries;
         if (endAtIndex < 0) {
             endAtIndex += _size;
         }
-        return Iterator(&_buffer.first(), &_buffer.last(), &_buffer[endAtIndex]);
+        return Iterator(&_buffer.first(), &_buffer.last(), &_buffer[_newestEntryAtIndex], &_buffer[endAtIndex]);
     }
 };
 

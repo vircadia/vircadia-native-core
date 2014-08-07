@@ -12,30 +12,35 @@
 #include "InboundAudioStream.h"
 #include "PacketHeaders.h"
 
-InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity,
-    bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, int maxFramesOverDesired, bool useStDevForJitterCalc) :
+const int STARVE_HISTORY_CAPACITY = 50;
+
+InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity, const Settings& settings) :
     _ringBuffer(numFrameSamples, false, numFramesCapacity),
     _lastPopSucceeded(false),
     _lastPopOutput(),
-    _dynamicJitterBuffers(dynamicJitterBuffers),
-    _staticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames),
-    _useStDevForJitterCalc(useStDevForJitterCalc),
+    _dynamicJitterBuffers(settings._dynamicJitterBuffers),
+    _staticDesiredJitterBufferFrames(settings._staticDesiredJitterBufferFrames),
+    _useStDevForJitterCalc(settings._useStDevForJitterCalc),
     _calculatedJitterBufferFramesUsingMaxGap(0),
     _calculatedJitterBufferFramesUsingStDev(0),
-    _desiredJitterBufferFrames(dynamicJitterBuffers ? 1 : staticDesiredJitterBufferFrames),
-    _maxFramesOverDesired(maxFramesOverDesired),
+    _desiredJitterBufferFrames(settings._dynamicJitterBuffers ? 1 : settings._staticDesiredJitterBufferFrames),
+    _maxFramesOverDesired(settings._maxFramesOverDesired),
     _isStarved(true),
     _hasStarted(false),
     _consecutiveNotMixedCount(0),
     _starveCount(0),
     _silentFramesDropped(0),
     _oldFramesDropped(0),
-    _incomingSequenceNumberStats(INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS),
+    _incomingSequenceNumberStats(STATS_FOR_STATS_PACKET_WINDOW_SECONDS),
     _lastFrameReceivedTime(0),
-    _interframeTimeGapStatsForJitterCalc(TIME_GAPS_FOR_JITTER_CALC_INTERVAL_SAMPLES, TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS),
-    _interframeTimeGapStatsForStatsPacket(TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES, TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS),
+    _timeGapStatsForDesiredCalcOnTooManyStarves(0, settings._windowSecondsForDesiredCalcOnTooManyStarves),
+    _stdevStatsForDesiredCalcOnTooManyStarves(),
+    _timeGapStatsForDesiredReduction(0, settings._windowSecondsForDesiredReduction),
+    _starveHistoryWindowSeconds(settings._windowSecondsForDesiredCalcOnTooManyStarves),
+    _starveHistory(STARVE_HISTORY_CAPACITY),
     _framesAvailableStat(),
-    _currentJitterBufferFrames(0)
+    _currentJitterBufferFrames(0),
+    _timeGapStatsForStatsPacket(0, STATS_FOR_STATS_PACKET_WINDOW_SECONDS)
 {
 }
 
@@ -58,16 +63,26 @@ void InboundAudioStream::resetStats() {
     _oldFramesDropped = 0;
     _incomingSequenceNumberStats.reset();
     _lastFrameReceivedTime = 0;
-    _interframeTimeGapStatsForJitterCalc.reset();
-    _interframeTimeGapStatsForStatsPacket.reset();
+    _timeGapStatsForDesiredCalcOnTooManyStarves.reset();
+    _stdevStatsForDesiredCalcOnTooManyStarves = StDev();
+    _timeGapStatsForDesiredReduction.reset();
+    _starveHistory.clear();
     _framesAvailableStat.reset();
     _currentJitterBufferFrames = 0;
+    _timeGapStatsForStatsPacket.reset();
 }
 
 void InboundAudioStream::clearBuffer() {
     _ringBuffer.clear();
     _framesAvailableStat.reset();
     _currentJitterBufferFrames = 0;
+}
+
+void InboundAudioStream::perSecondCallbackForUpdatingStats() {
+    _incomingSequenceNumberStats.pushStatsToHistory();
+    _timeGapStatsForDesiredCalcOnTooManyStarves.currentIntervalComplete();
+    _timeGapStatsForDesiredReduction.currentIntervalComplete();
+    _timeGapStatsForStatsPacket.currentIntervalComplete();
 }
 
 int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
@@ -247,14 +262,14 @@ int InboundAudioStream::clampDesiredJitterBufferFramesValue(int desired) const {
 }
 
 void InboundAudioStream::frameReceivedUpdateTimingStats() {
-
+    /*
     // update our timegap stats and desired jitter buffer frames if necessary
     // discard the first few packets we receive since they usually have gaps that aren't represensative of normal jitter
     const int NUM_INITIAL_PACKETS_DISCARD = 3;
     quint64 now = usecTimestampNow();
     if (_incomingSequenceNumberStats.getReceived() > NUM_INITIAL_PACKETS_DISCARD) {
         quint64 gap = now - _lastFrameReceivedTime;
-        _interframeTimeGapStatsForStatsPacket.update(gap);
+        _timeGapStatsForStatsPacket.update(gap);
 
         const float USECS_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * USECS_PER_SECOND / (float)SAMPLE_RATE;
 
@@ -282,7 +297,7 @@ void InboundAudioStream::frameReceivedUpdateTimingStats() {
             }
         }
     }
-    _lastFrameReceivedTime = now;
+    _lastFrameReceivedTime = now;*/
 }
 
 int InboundAudioStream::writeDroppableSilentSamples(int numSilentSamples) {
@@ -318,12 +333,12 @@ int InboundAudioStream::writeSamplesForDroppedPackets(int numSamples) {
 AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
     AudioStreamStats streamStats;
 
-    streamStats._timeGapMin = _interframeTimeGapStatsForStatsPacket.getMin();
-    streamStats._timeGapMax = _interframeTimeGapStatsForStatsPacket.getMax();
-    streamStats._timeGapAverage = _interframeTimeGapStatsForStatsPacket.getAverage();
-    streamStats._timeGapWindowMin = _interframeTimeGapStatsForStatsPacket.getWindowMin();
-    streamStats._timeGapWindowMax = _interframeTimeGapStatsForStatsPacket.getWindowMax();
-    streamStats._timeGapWindowAverage = _interframeTimeGapStatsForStatsPacket.getWindowAverage();
+    streamStats._timeGapMin = _timeGapStatsForStatsPacket.getMin();
+    streamStats._timeGapMax = _timeGapStatsForStatsPacket.getMax();
+    streamStats._timeGapAverage = _timeGapStatsForStatsPacket.getAverage();
+    streamStats._timeGapWindowMin = _timeGapStatsForStatsPacket.getWindowMin();
+    streamStats._timeGapWindowMax = _timeGapStatsForStatsPacket.getWindowMax();
+    streamStats._timeGapWindowAverage = _timeGapStatsForStatsPacket.getWindowAverage();
 
     streamStats._framesAvailable = _ringBuffer.framesAvailable();
     streamStats._framesAvailableAverage = _framesAvailableStat.getAverage();
@@ -339,7 +354,3 @@ AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
     return streamStats;
 }
 
-AudioStreamStats InboundAudioStream::updateSeqHistoryAndGetAudioStreamStats() {
-    _incomingSequenceNumberStats.pushStatsToHistory();
-    return getAudioStreamStats();
-}

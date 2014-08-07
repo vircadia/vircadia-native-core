@@ -22,40 +22,63 @@
 #include "TimeWeightedAvg.h"
 
 // This adds some number of frames to the desired jitter buffer frames target we use when we're dropping frames.
-// The larger this value is, the less aggressive we are about reducing the jitter buffer length.
-// Setting this to 0 will try to get the jitter buffer to be exactly _desiredJitterBufferFrames long when dropping frames,
+// The larger this value is, the less frames we drop when attempting to reduce the jitter buffer length.
+// Setting this to 0 will try to get the jitter buffer to be exactly _desiredJitterBufferFrames when dropping frames,
 // which could lead to a starve soon after.
 const int DESIRED_JITTER_BUFFER_FRAMES_PADDING = 1;
 
-// the time gaps stats for _desiredJitterBufferFrames calculation
-// will recalculate the max for the past 5000 samples every 500 samples
-const int TIME_GAPS_FOR_JITTER_CALC_INTERVAL_SAMPLES = 500;
-const int TIME_GAPS_FOR_JITTER_CALC_WINDOW_INTERVALS = 10;
+// this controls the length of the window for stats used in the stats packet (not the stats used in
+// _desiredJitterBufferFrames calculation)
+const int STATS_FOR_STATS_PACKET_WINDOW_SECONDS = 30;
 
-// the time gap stats for constructing AudioStreamStats will
-// recalculate min/max/avg every ~1 second for the past ~30 seconds of time gap data
-const int TIME_GAPS_FOR_STATS_PACKET_INTERVAL_SAMPLES = USECS_PER_SECOND / BUFFER_SEND_INTERVAL_USECS;
-const int TIME_GAPS_FOR_STATS_PACKET_WINDOW_INTERVALS = 30;
 
 // this controls the window size of the time-weighted avg of frames available.  Every time the window fills up,
 // _currentJitterBufferFrames is updated with the time-weighted avg and the running time-weighted avg is reset.
 const int FRAMES_AVAILABLE_STAT_WINDOW_USECS = 2 * USECS_PER_SECOND;
-
-// the internal history buffer of the incoming seq stats will cover 30s to calculate
-// packet loss % over last 30s
-const int INCOMING_SEQ_STATS_HISTORY_LENGTH_SECONDS = 30;
 
 const int INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
 const int DEFAULT_MAX_FRAMES_OVER_DESIRED = 10;
 const int DEFAULT_DESIRED_JITTER_BUFFER_FRAMES = 1;
 
+const int DEFAULT_WINDOW_STARVE_THRESHOLD = 3;
+const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES = 50;
+const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION = 10;
+
 class InboundAudioStream : public NodeData {
     Q_OBJECT
 public:
-    InboundAudioStream(int numFrameSamples, int numFramesCapacity,
-        bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, int maxFramesOverDesired,
-        bool useStDevForJitterCalc = false);
+    class Settings {
+    public:
+        Settings()
+            : _maxFramesOverDesired(DEFAULT_MAX_FRAMES_OVER_DESIRED),
+            _dynamicJitterBuffers(true),
+            _staticDesiredJitterBufferFrames(DEFAULT_DESIRED_JITTER_BUFFER_FRAMES),
+            _useStDevForJitterCalc(false),
+            _windowStarveThreshold(DEFAULT_WINDOW_STARVE_THRESHOLD),
+            _windowSecondsForDesiredCalcOnTooManyStarves(DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES),
+            _windowSecondsForDesiredReduction(DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION)
+        {}
+
+        // max number of frames over desired in the ringbuffer.
+        int _maxFramesOverDesired; 
+
+        // if false, _desiredJitterBufferFrames will always be _staticDesiredJitterBufferFrames.  Otherwise,
+        // either fred or philip's method will be used to calculate _desiredJitterBufferFrames based on packet timegaps.
+        bool _dynamicJitterBuffers;
+
+        // settings for static jitter buffer mode
+        int _staticDesiredJitterBufferFrames;
+
+        // settings for dynamic jitter buffer mode
+        bool _useStDevForJitterCalc;       // if true, philip's method is used.  otherwise, fred's method is used.
+        int _windowStarveThreshold;
+        int _windowSecondsForDesiredCalcOnTooManyStarves;
+        int _windowSecondsForDesiredReduction;
+    };
+
+public:
+    InboundAudioStream(int numFrameSamples, int numFramesCapacity, const Settings& settings);
 
     void reset();
     void resetStats();
@@ -77,7 +100,8 @@ public:
     void setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames);
 
     /// this function should be called once per second to ensure the seq num stats history spans ~30 seconds
-    AudioStreamStats updateSeqHistoryAndGetAudioStreamStats();
+    //AudioStreamStats updateSeqHistoryAndGetAudioStreamStats();
+
 
     void setMaxFramesOverDesired(int maxFramesOverDesired) { _maxFramesOverDesired = maxFramesOverDesired; }
 
@@ -109,6 +133,12 @@ public:
     int getOverflowCount() const { return _ringBuffer.getOverflowCount(); }
 
     int getPacketsReceived() const { return _incomingSequenceNumberStats.getReceived(); }
+
+public slots:
+    /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
+    /// is enabled, those stats are used to calculate _desiredJitterBufferFrames.
+    /// If the stats are not used and dynamic jitter buffers is disabled, it's not necessary to call this function.
+    void perSecondCallbackForUpdatingStats();
 
 private:
     void frameReceivedUpdateTimingStats();
@@ -169,15 +199,21 @@ protected:
     SequenceNumberStats _incomingSequenceNumberStats;
 
     quint64 _lastFrameReceivedTime;
-    MovingMinMaxAvg<quint64> _interframeTimeGapStatsForJitterCalc;
-    StDev _stdev;
-    MovingMinMaxAvg<quint64> _interframeTimeGapStatsForStatsPacket;
-    
+    MovingMinMaxAvg<quint64> _timeGapStatsForDesiredCalcOnTooManyStarves;
+    StDev _stdevStatsForDesiredCalcOnTooManyStarves;
+    MovingMinMaxAvg<quint64> _timeGapStatsForDesiredReduction;
+
+    int _starveHistoryWindowSeconds;
+    RingBufferHistory<quint64> _starveHistory;
+
     TimeWeightedAvg<int> _framesAvailableStat;
 
-    // this value is based on the time-weighted avg from _framesAvailableStat. it is only used for
+    // this value is periodically updated with the time-weighted avg from _framesAvailableStat. it is only used for
     // dropping silent frames right now.
     int _currentJitterBufferFrames;
+
+
+    MovingMinMaxAvg<quint64> _timeGapStatsForStatsPacket;
 };
 
 #endif // hifi_InboundAudioStream_h

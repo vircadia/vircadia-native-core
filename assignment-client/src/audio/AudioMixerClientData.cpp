@@ -184,7 +184,9 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
         // pack the calculated number of stream stats
         for (int i = 0; i < numStreamStatsToPack; i++) {
-            AudioStreamStats streamStats = audioStreamsIterator.value()->updateSeqHistoryAndGetAudioStreamStats();
+            PositionalAudioStream* stream = audioStreamsIterator.value();
+            stream->perSecondCallbackForUpdatingStats();
+            AudioStreamStats streamStats = stream->getAudioStreamStats();
             memcpy(dataAt, &streamStats, sizeof(AudioStreamStats));
             dataAt += sizeof(AudioStreamStats);
 

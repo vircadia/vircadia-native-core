@@ -846,6 +846,8 @@ void Audio::sendDownstreamAudioStatsPacket() {
 
     _audioOutputMsecsUnplayedStats.update(getAudioOutputMsecsUnplayed());
 
+    _receivedAudioStream.perSecondCallbackForUpdatingStats();
+
     char packet[MAX_PACKET_SIZE];
 
     // pack header
@@ -863,7 +865,7 @@ void Audio::sendDownstreamAudioStatsPacket() {
     dataAt += sizeof(quint16);
 
     // pack downstream audio stream stats
-    AudioStreamStats stats = _receivedAudioStream.updateSeqHistoryAndGetAudioStreamStats();
+    AudioStreamStats stats = _receivedAudioStream.getAudioStreamStats();
     memcpy(dataAt, &stats, sizeof(AudioStreamStats));
     dataAt += sizeof(AudioStreamStats);
     
