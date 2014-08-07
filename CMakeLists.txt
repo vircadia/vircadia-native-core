@@ -44,11 +44,6 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
-# targets not supported on windows
-if (NOT WIN32)
-  add_subdirectory(animation-server)
-endif ()
-
 # targets on all platforms
 add_subdirectory(assignment-client)
 add_subdirectory(domain-server)
