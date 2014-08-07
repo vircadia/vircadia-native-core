@@ -59,7 +59,7 @@ protected:
     void pruneContacts();
 
 private:
-    quint32 _frame;
+    quint32 _frameCount;
 
     PhysicsEntity* _entity;
     Ragdoll* _ragdoll;

@@ -24,7 +24,7 @@ int MAX_ENTITIES_PER_SIMULATION = 64;
 int MAX_COLLISIONS_PER_SIMULATION = 256;
 
 
-PhysicsSimulation::PhysicsSimulation() : _frame(0), _entity(NULL), _ragdoll(NULL), _collisions(MAX_COLLISIONS_PER_SIMULATION) {
+PhysicsSimulation::PhysicsSimulation() : _frameCount(0), _entity(NULL), _ragdoll(NULL), _collisions(MAX_COLLISIONS_PER_SIMULATION) {
 }
 
 PhysicsSimulation::~PhysicsSimulation() {
@@ -157,7 +157,7 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
 }
 
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
-    ++_frame;
+    ++_frameCount;
     if (!_ragdoll) {
         return;
     }
@@ -288,9 +288,9 @@ void PhysicsSimulation::updateContacts() {
         }
         QMap<quint64, ContactPoint>::iterator itr = _contacts.find(key);
         if (itr == _contacts.end()) {
-            _contacts.insert(key, ContactPoint(*collision, _frame));
+            _contacts.insert(key, ContactPoint(*collision, _frameCount));
         } else {
-            itr.value().updateContact(*collision, _frame);
+            itr.value().updateContact(*collision, _frameCount);
         }
     }
 }
@@ -300,7 +300,7 @@ const quint32 MAX_CONTACT_FRAME_LIFETIME = 2;
 void PhysicsSimulation::pruneContacts() {
     QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
     while (itr != _contacts.end()) {
-        if (_frame - itr.value().getLastFrame() > MAX_CONTACT_FRAME_LIFETIME) {
+        if (_frameCount - itr.value().getLastFrame() > MAX_CONTACT_FRAME_LIFETIME) {
             itr = _contacts.erase(itr);
         } else {
             ++itr;
