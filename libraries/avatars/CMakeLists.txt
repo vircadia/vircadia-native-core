@@ -20,10 +20,11 @@ link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 
 find_package(Qt5Network)
+find_package(Qt5Script)
 
 # set a property indicating the libraries we are dependent on and link them to ourselves
-set(DEPENDENCY_LIBRARIES Qt5::Network)
-set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES ${DEPENDENCY_LIBRARIES})
+set(DEPENDENCY_LIBRARIES Qt5::Network Qt5::Script)
+set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES "${DEPENDENCY_LIBRARIES}")
 target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES})
 
 # add a definition for ssize_t so that windows doesn't bail
