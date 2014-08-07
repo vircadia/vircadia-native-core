@@ -13,8 +13,7 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 
-find_package(Qt5Script)
-find_package(Qt5Network)
+find_package(Qt5 COMPONENTS Network Script)
 
 # set a property indicating the libraries we are dependent on and link them to ourselves
 set(DEPENDENCY_LIBRARIES Qt5::Script Qt5::Network)

@@ -19,9 +19,7 @@ link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
-find_package(Qt5Script)
-find_package(Qt5Widgets)
-find_package(Qt5Network)
+find_package(Qt5 COMPONENTS Network Script Widgets)
 
 # set a property indicating the libraries we are dependent on and link them to ourselves
 set(DEPENDENCY_LIBRARIES Qt5::Script Qt5::Widgets Qt5::Network)

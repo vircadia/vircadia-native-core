@@ -6,8 +6,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME script-engine)
 
-find_package(Qt5Widgets REQUIRED)
-
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
@@ -23,11 +21,12 @@ link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(models ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
 
-# link ZLIB
-find_package(ZLIB)
+find_package(Qt5 COMPONENTS Gui Network Script Widgets)
 
-include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets)
+# set a property indicating the libraries we are dependent on and link them to ourselves
+set(DEPENDENCY_LIBRARIES Qt5::Gui Qt5::Network Qt5::Script Qt5::Widgets)
+set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES "${DEPENDENCY_LIBRARIES}")
+target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES})
 
 # add a definition for ssize_t so that windows doesn't bail
 if (WIN32)

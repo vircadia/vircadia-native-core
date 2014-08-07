@@ -52,7 +52,7 @@ foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels pa
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)
 
-find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
+# find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -182,8 +182,6 @@ include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes"
 target_link_libraries(
   ${TARGET_NAME}
   "${ZLIB_LIBRARIES}"
-  Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
-  Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
 )
 
 # assume we are using a Qt build without bearer management
@@ -191,30 +189,30 @@ add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
-    find_library(AppKit AppKit)
-    find_library(CoreAudio CoreAudio)
-    find_library(CoreServices CoreServices)
-    find_library(Carbon Carbon)
-    find_library(Foundation Foundation)
-    find_library(GLUT GLUT)
-    find_library(OpenGL OpenGL)
-    find_library(IOKit IOKit)
-    find_library(QTKit QTKit)
-    find_library(QuartzCore QuartzCore)    
-
-    target_link_libraries(
-        ${TARGET_NAME}
-        ${AppKit}
-        ${CoreAudio}
-        ${CoreServices}
-        ${Carbon}
-        ${Foundation}
-        ${GLUT}
-        ${OpenGL}
-        ${IOKit}
-        ${QTKit}
-        ${QuartzCore}
-    )
+    # find_library(AppKit AppKit)
+ #    find_library(CoreAudio CoreAudio)
+ #    find_library(CoreServices CoreServices)
+ #    find_library(Carbon Carbon)
+ #    find_library(Foundation Foundation)
+ #    find_library(GLUT GLUT)
+ #    find_library(OpenGL OpenGL)
+ #    find_library(IOKit IOKit)
+ #    find_library(QTKit QTKit)
+ #    find_library(QuartzCore QuartzCore)
+ #
+ #    target_link_libraries(
+ #        ${TARGET_NAME}
+ #        ${AppKit}
+ #        ${CoreAudio}
+ #        ${CoreServices}
+ #        ${Carbon}
+ #        ${Foundation}
+ #        ${GLUT}
+ #        ${OpenGL}
+ #        ${IOKit}
+ #        ${QTKit}
+ #        ${QuartzCore}
+ #    )
     
     # install command for OS X bundle
     INSTALL(TARGETS ${TARGET_NAME}

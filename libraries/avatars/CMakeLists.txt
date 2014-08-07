@@ -19,8 +19,7 @@ link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 
-find_package(Qt5Network)
-find_package(Qt5Script)
+find_package(Qt5 COMPONENTS Network Script)
 
 # set a property indicating the libraries we are dependent on and link them to ourselves
 set(DEPENDENCY_LIBRARIES Qt5::Network Qt5::Script)

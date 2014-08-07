@@ -6,7 +6,7 @@ set(TARGET_NAME networking)
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
-find_package(Qt5Network)
+find_package(Qt5 COMPONENTS Network)
 
 # set a property indicating the libraries we are dependent on and link them to ourselves
 set(DEPENDENCY_LIBRARIES Qt5::Network)
