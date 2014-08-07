@@ -32,8 +32,9 @@ public:
 
     virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
-    /// For reading models from pre V3 bitstreams
-    int oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+    virtual void update(const quint64& now);
+    virtual SimuationState getSimulationState() const;
+
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
@@ -72,6 +73,10 @@ public:
     static void cleanupLoadedAnimations();
     
 protected:
+
+    /// For reading models from pre V3 bitstreams
+    int oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+    bool isAnimatingSomething() const;
 
     rgbColor _color;
     QString _modelURL;

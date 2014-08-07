@@ -176,6 +176,9 @@ void EntityTree::addEntityItem(EntityItem* entityItem) {
     //qDebug() << "AFTER... about to call recurseTreeWithOperator(AddEntityOperator)...";
     //debugDumpMap();
 
+    // check to see if we need to simulate this entity..
+    changeEntityState(entityItem, EntityItem::Static, entityItem->getSimulationState());
+
     _isDirty = true;
 }
 
@@ -363,7 +366,6 @@ OctreeElement* UpdateEntityOperator::PossiblyCreateChildAt(OctreeElement* elemen
 
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    bool updated = false;
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
@@ -376,9 +378,16 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         assert(existingEntity); // don't call updateEntity() on entity items that don't exist
         return false;
     }
+    
+    // check to see if we need to simulate this entity...
+    EntityItem::SimuationState oldState = existingEntity->getSimulationState();
+    
     UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
+
+    EntityItem::SimuationState newState = existingEntity->getSimulationState();
+    changeEntityState(existingEntity, oldState, newState);
 
     containingElement = getContainingElement(entityID);
     if (!containingElement) {
@@ -408,7 +417,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     }
 
     // construct the instance of the entity
-    EntityTypes::EntityType_t type = properties.getType();
+    EntityTypes::EntityType type = properties.getType();
     result = EntityTypes::constructEntityItem(type, entityID, properties);
 
     if (result) {
@@ -1068,50 +1077,109 @@ if (childAt) {
     return true;
 }
 
-void EntityTree::update() {
-    // XXXBHG: replace storeEntity with new API!!
-    //qDebug() << "EntityTree::update().... NOT YET IMPLEMENTED!!!";
-    #if 0 //////////////////////////////////////////////////////
+void EntityTree::changeEntityState(EntityItem* const entity, EntityItem::SimuationState oldState, EntityItem::SimuationState newState) {
+    if (oldState != newState) {
+        switch (oldState) {
+            case EntityItem::Changing:
+                _changingEntities.removeAll(entity);
+                break;
 
-    lockForWrite();
-    _isDirty = true;
+            case EntityItem::Moving:
+                _movingEntities.removeAll(entity);
+                break;
+            default:
+                break;
+        }
 
-    // TODO: could we manage this by iterating the known entities map/hash? Would that be faster?
-    EntityTreeUpdateArgs args;
-    recurseTreeWithOperation(updateOperation, &args);
 
-    // now add back any of the particles that moved elements....
-    int movingEntities = args._movingEntities.size();
-    
-    for (int i = 0; i < movingEntities; i++) {
-    
-        bool shouldDie = args._movingEntities[i]->getShouldBeDeleted();
+        switch (newState) {
+            case EntityItem::Changing:
+                _changingEntities.push_back(entity);
+                break;
 
-        // if the particle is still inside our total bounds, then re-add it
-        AACube treeBounds = getRoot()->getAACube();
-
-        if (!shouldDie && treeBounds.contains(args._movingEntities[i]->getPosition())) {
-            storeEntity(*args._movingEntities[i]);
-        } else {
-            uint32_t entityItemID = args._movingEntities[i]->getID();
-            quint64 deletedAt = usecTimestampNow();
-            _recentlyDeletedEntitiesLock.lockForWrite();
-            _recentlyDeletedEntityItemIDs.insert(deletedAt, entityItemID);
-            _recentlyDeletedEntitiesLock.unlock();
+            case EntityItem::Moving:
+                _movingEntities.push_back(entity);
+                break;
+            default:
+                break;
         }
     }
+}
 
+void EntityTree::update() {
 
-    #endif // 0 //////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// NEW CODE!!!!
+//
+// our new strategy should be to segregate entities into three classes:
+//   1) stationary things that are not changing - most models
+//   2) stationary things that are animating - they can be touched linearly and they don't change the tree
+//   3) moving things - these need to scan the tree and update accordingly
 
-
-    // prune the tree...
-    /*
     lockForWrite();
-qDebug() << "pruning tree";
-    recurseTreeWithOperation(pruneOperation, NULL);
+    quint64 now = usecTimestampNow();
+
+    //_movingEntities; // entities that are moving as part of update
+    //_changingEntities; // entities that are changing (like animating), but not moving
+    
+    
+    for (int i = 0; i < _changingEntities.size(); i++) {
+        EntityItem* thisEntity = _changingEntities[i];
+        thisEntity->update(now);
+    }
+
     unlock();
-    */
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// OLD CODE!!!!
+//
+// The old update code scanned the entire tree... this is very expensive, since not all entities are getting simulated
+//
+//    // XXXBHG: replace storeEntity with new API!!
+//    //qDebug() << "EntityTree::update().... NOT YET IMPLEMENTED!!!";
+//    #if 0 //////////////////////////////////////////////////////
+//
+//    lockForWrite();
+//    _isDirty = true;
+//
+//    // TODO: could we manage this by iterating the known entities map/hash? Would that be faster?
+//    EntityTreeUpdateArgs args;
+//    recurseTreeWithOperation(updateOperation, &args);
+//
+//    // now add back any of the particles that moved elements....
+//    int movingEntities = args._movingEntities.size();
+//    
+//    for (int i = 0; i < movingEntities; i++) {
+//    
+//        bool shouldDie = args._movingEntities[i]->getShouldBeDeleted();
+//
+//        // if the particle is still inside our total bounds, then re-add it
+//        AACube treeBounds = getRoot()->getAACube();
+//
+//        if (!shouldDie && treeBounds.contains(args._movingEntities[i]->getPosition())) {
+//            storeEntity(*args._movingEntities[i]);
+//        } else {
+//            uint32_t entityItemID = args._movingEntities[i]->getID();
+//            quint64 deletedAt = usecTimestampNow();
+//            _recentlyDeletedEntitiesLock.lockForWrite();
+//            _recentlyDeletedEntityItemIDs.insert(deletedAt, entityItemID);
+//            _recentlyDeletedEntitiesLock.unlock();
+//        }
+//    }
+//
+//
+//    #endif // 0 //////////////////////////////////////////////////////
+//
+//
+//    // prune the tree...
+//    /*
+//    lockForWrite();
+//qDebug() << "pruning tree";
+//    recurseTreeWithOperation(pruneOperation, NULL);
+//    unlock();
+//    */
 }
 
 

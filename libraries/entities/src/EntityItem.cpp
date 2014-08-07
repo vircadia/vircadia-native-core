@@ -460,7 +460,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += encodedType.size();
         bytesRead += encodedType.size();
         quint32 type = typeCoder;
-        _type = (EntityTypes::EntityType_t)type;
+        _type = (EntityTypes::EntityType)type;
 
 // XXXBHG: is this a good place to handle the last edited time client vs server??
 
@@ -1086,35 +1086,11 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
 }
 
 void EntityItem::update(const quint64& updateTime) {
-    _lastUpdated = updateTime;
-    setShouldBeDeleted(getShouldBeDeleted());
+    // nothing to do here... but will add gravity, etc...
+}
 
-    quint64 now = usecTimestampNow();
-
-    // only advance the frame index if we're playing
-#if 0 //def HIDE_SUBCLASS_METHODS
-    if (getAnimationIsPlaying()) {
-
-        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
-        
-        const bool wantDebugging = false;
-        if (wantDebugging) {
-            qDebug() << "EntityItem::update() now=" << now;
-            qDebug() << "             updateTime=" << updateTime;
-            qDebug() << "          _lastAnimated=" << _lastAnimated;
-            qDebug() << "              deltaTime=" << deltaTime;
-        }
-        _lastAnimated = now;
-        _animationFrameIndex += deltaTime * _animationFPS;
-
-        if (wantDebugging) {
-            qDebug() << "   _animationFrameIndex=" << _animationFrameIndex;
-        }
-
-    } else {
-        _lastAnimated = now;
-    }
-#endif
+EntityItem::SimuationState EntityItem::getSimulationState() const {
+    return EntityItem::Static;  // change this once we support gravity, etc...
 }
 
 void EntityItem::copyChangedProperties(const EntityItem& other) {

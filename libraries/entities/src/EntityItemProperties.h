@@ -119,7 +119,7 @@ public:
     void debugDump() const;
 
     // properties of all entities
-    EntityTypes::EntityType_t getType() const { return _type; }
+    EntityTypes::EntityType getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     float getRadius() const { return _radius; }
     float getMaxDimension() const { return _radius * 2.0f; }
@@ -127,7 +127,7 @@ public:
     const glm::quat& getRotation() const { return _rotation; }
     bool getShouldBeDeleted() const { return _shouldBeDeleted; }
 
-    void setType(EntityTypes::EntityType_t type) { _type = type; }
+    void setType(EntityTypes::EntityType type) { _type = type; }
     /// set position in meter units
     void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
     void setRadius(float value) { _radius = value; _radiusChanged = true; }
@@ -170,7 +170,7 @@ private:
     bool _idSet;
     quint64 _lastEdited;
 
-    EntityTypes::EntityType_t _type;
+    EntityTypes::EntityType _type;
     glm::vec3 _position;
     float _radius;
     glm::quat _rotation;

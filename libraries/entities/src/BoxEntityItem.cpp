@@ -128,7 +128,7 @@ qDebug() << "BoxEntityItem::readEntityDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<
         dataAt += encodedType.size();
         bytesRead += encodedType.size();
         quint32 type = typeCoder;
-        _type = (EntityTypes::EntityType_t)type;
+        _type = (EntityTypes::EntityType)type;
 
 // XXXBHG: is this a good place to handle the last edited time client vs server??
 
@@ -272,7 +272,7 @@ qDebug() << "BoxEntityItem::appendEntityData()... ******************************
 
     // encode our type as a byte count coded byte stream
 
-    EntityTypes::EntityType_t type = getType();
+    EntityTypes::EntityType type = getType();
 qDebug() << "BoxEntityItem::appendEntityData()... type=" << type;
     
 

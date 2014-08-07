@@ -29,7 +29,7 @@ typedef void (*EntityTypeRenderer)(EntityItem* entity, RenderArgs* args);
 
 class EntityTypes {
 public:
-    typedef enum EntityType {
+    typedef enum EntityType_t {
         Unknown,
         Model,
         Box,
@@ -38,22 +38,22 @@ public:
         Cylinder,
         Pyramid,
         LAST = Pyramid
-    } EntityType_t;
+    } EntityType;
 
-    static const QString& getEntityTypeName(EntityType_t entityType);
-    static EntityTypes::EntityType_t getEntityTypeFromName(const QString& name);
-    static bool registerEntityType(EntityType_t entityType, const char* name, EntityTypeFactory factoryMethod);
-    static EntityItem* constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
+    static const QString& getEntityTypeName(EntityType entityType);
+    static EntityTypes::EntityType getEntityTypeFromName(const QString& name);
+    static bool registerEntityType(EntityType entityType, const char* name, EntityTypeFactory factoryMethod);
+    static EntityItem* constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItem* constructEntityItem(const unsigned char* data, int bytesToRead, ReadBitstreamToTreeParams& args);
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes, 
                                         EntityItemID& entityID, EntityItemProperties& properties);
 
-    static bool registerEntityTypeRenderer(EntityType_t entityType, EntityTypeRenderer renderMethod);
+    static bool registerEntityTypeRenderer(EntityType entityType, EntityTypeRenderer renderMethod);
     static void renderEntityItem(EntityItem* entityItem, RenderArgs* args);
 
 private:
-    static QMap<EntityType_t, QString> _typeToNameMap;
-    static QMap<QString, EntityTypes::EntityType_t> _nameToTypeMap;
+    static QMap<EntityType, QString> _typeToNameMap;
+    static QMap<QString, EntityTypes::EntityType> _nameToTypeMap;
     static EntityTypeFactory _factories[LAST];
     static bool _factoriesInitialized;
     static EntityTypeRenderer _renderers[LAST];

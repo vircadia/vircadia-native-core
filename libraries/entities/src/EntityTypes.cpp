@@ -21,8 +21,8 @@
 #include "BoxEntityItem.h"
 #include "ModelEntityItem.h"
 
-QMap<EntityTypes::EntityType_t, QString> EntityTypes::_typeToNameMap;
-QMap<QString, EntityTypes::EntityType_t> EntityTypes::_nameToTypeMap;
+QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
+QMap<QString, EntityTypes::EntityType> EntityTypes::_nameToTypeMap;
 EntityTypeFactory EntityTypes::_factories[EntityTypes::LAST];
 bool EntityTypes::_factoriesInitialized = false;
 EntityTypeRenderer EntityTypes::_renderers[EntityTypes::LAST];
@@ -39,23 +39,23 @@ REGISTER_ENTITY_TYPE(Cylinder)
 REGISTER_ENTITY_TYPE(Pyramid)
 
 
-const QString& EntityTypes::getEntityTypeName(EntityType_t entityType) {
-    QMap<EntityType_t, QString>::iterator matchedTypeName = _typeToNameMap.find(entityType);
+const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
+    QMap<EntityType, QString>::iterator matchedTypeName = _typeToNameMap.find(entityType);
     if (matchedTypeName != _typeToNameMap.end()) {
         return matchedTypeName.value();
     }
     return ENTITY_TYPE_NAME_UNKNOWN;
 }
 
-EntityTypes::EntityType_t EntityTypes::getEntityTypeFromName(const QString& name) {
-    QMap<QString, EntityTypes::EntityType_t>::iterator matchedTypeName = _nameToTypeMap.find(name);
+EntityTypes::EntityType EntityTypes::getEntityTypeFromName(const QString& name) {
+    QMap<QString, EntityTypes::EntityType>::iterator matchedTypeName = _nameToTypeMap.find(name);
     if (matchedTypeName != _nameToTypeMap.end()) {
         return matchedTypeName.value();
     }
     return Unknown;
 }
 
-bool EntityTypes::registerEntityType(EntityType_t entityType, const char* name, EntityTypeFactory factoryMethod) {
+bool EntityTypes::registerEntityType(EntityType entityType, const char* name, EntityTypeFactory factoryMethod) {
     qDebug() << "EntityTypes::registerEntityType()";
     qDebug() << "    entityType=" << entityType;
     qDebug() << "    name=" << name;
@@ -71,8 +71,8 @@ bool EntityTypes::registerEntityType(EntityType_t entityType, const char* name, 
     return true;
 }
 
-EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
-    qDebug() << "EntityTypes::constructEntityItem(EntityType_t entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
+EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
+    qDebug() << "EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
     qDebug() << "   entityType=" << entityType;
     qDebug() << "   entityID=" << entityID;
 
@@ -125,7 +125,7 @@ qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTRE
         encodedType = typeCoder; // determine true length
         bytesRead += encodedType.size();
         quint32 type = typeCoder;
-        EntityTypes::EntityType_t entityType = (EntityTypes::EntityType_t)type;
+        EntityTypes::EntityType entityType = (EntityTypes::EntityType)type;
         
         EntityItemID tempEntityID(actualID);
         EntityItemProperties tempProperties;
@@ -224,7 +224,7 @@ qDebug() << "EntityItem::decodeEntityEditPacket() ... lastEdited=" << lastEdited
     QByteArray encodedType((const char*)dataAt, (bytesToRead - processedBytes));
     ByteCountCoded<quint32> typeCoder = encodedType;
     quint32 entityTypeCode = typeCoder;
-    properties.setType((EntityTypes::EntityType_t)entityTypeCode);
+    properties.setType((EntityTypes::EntityType)entityTypeCode);
     encodedType = typeCoder; // determine true bytesToRead
     dataAt += encodedType.size();
     processedBytes += encodedType.size();
@@ -377,7 +377,7 @@ qDebug() << "EntityItem::decodeEntityEditPacket() ... lastEdited=" << lastEdited
     return valid;
 }
 
-bool EntityTypes::registerEntityTypeRenderer(EntityType_t entityType, EntityTypeRenderer renderMethod) {
+bool EntityTypes::registerEntityTypeRenderer(EntityType entityType, EntityTypeRenderer renderMethod) {
     qDebug() << "EntityTypes::registerEntityTypeRenderer()";
     qDebug() << "    entityType=" << entityType;
     qDebug() << "    renderMethod=" << (void*)renderMethod;
@@ -392,7 +392,7 @@ bool EntityTypes::registerEntityTypeRenderer(EntityType_t entityType, EntityType
 }
 
 void EntityTypes::renderEntityItem(EntityItem* entityItem, RenderArgs* args) {
-    EntityType_t entityType = entityItem->getType();
+    EntityType entityType = entityItem->getType();
     EntityTypeRenderer renderMethod = _renderers[entityType];
     if (renderMethod) {
         renderMethod(entityItem, args);

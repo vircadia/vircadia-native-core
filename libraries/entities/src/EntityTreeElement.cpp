@@ -619,8 +619,11 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     //if (currentContainingElement != this) {
                     //    qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!! CONTAINING ELEMENT MISMATCH!!";
                     //}
-                    
+
+                    EntityItem::SimuationState oldState = entityItem->getSimulationState();
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+                    EntityItem::SimuationState newState = entityItem->getSimulationState();
+                    _myTree->changeEntityState(entityItem, oldState, newState);
 
                     bool bestFitAfter = bestFitEntityBounds(entityItem);
 
@@ -651,9 +654,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     
                     if (entityItem) {
                         bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-                        //qDebug() << "NEW ENTITY CASE!!!!!!!!!!!!!!   EntityTreeElement::readElementDataFromBuffer() BEFORE addEntityItem(entity); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
                         addEntityItem(entityItem); // add this new entity to this elements entities
-                        //qDebug() << "NEW ENTITY CASE!!!!!!!!!!!!!!   EntityTreeElement::readElementDataFromBuffer() AFTER addEntityItem(entity); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
                         _myTree->setContainingElement(entityItem->getEntityItemID(), this);
                         newEntity = true;
                     }

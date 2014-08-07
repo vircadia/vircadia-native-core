@@ -23,7 +23,7 @@
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
-#include "EntityTypes.h" 
+#include "EntityTypes.h"
 
 class EntityTreeElementExtraEncodeData;
 
@@ -70,7 +70,15 @@ public:
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
-    void update(const quint64& now);
+    virtual void update(const quint64& now);
+    
+    typedef enum SimuationState_t {
+        Static,
+        Changing,
+        Moving
+    } SimuationState;
+    
+    virtual SimuationState getSimulationState() const ;
     void debugDump() const;
 
     // similar to assignment/copy, but it handles keeping lifetime accurate
@@ -78,7 +86,7 @@ public:
 
 
     // attributes applicable to all entity types
-    EntityTypes::EntityType_t getType() const { return _type; }
+    EntityTypes::EntityType getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
     void setPosition(const glm::vec3& value) { _position = value; } /// set position in domain scale units (0.0 - 1.0)
 
@@ -100,11 +108,14 @@ public:
     glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
     AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); } /// AACube in domain scale units (0.0 - 1.0)
 
+
+    
+
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
 
     quint32 _id;
-    EntityTypes::EntityType_t _type;
+    EntityTypes::EntityType _type;
     uint32_t _creatorTokenID;
     bool _newlyCreated;
     quint64 _lastUpdated;

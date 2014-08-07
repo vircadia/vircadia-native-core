@@ -112,8 +112,9 @@ public:
 
     void rememberDirtyCube(const AACube& cube);
     void rememberEntityToMove(const EntityItem* entity);
-
     void sendEntities(EntityEditPacketSender* packetSender, float x, float y, float z);
+
+    void changeEntityState(EntityItem* const entity, EntityItem::SimuationState oldState, EntityItem::SimuationState newState);
 
 private:
 
@@ -139,6 +140,10 @@ private:
     EntityItemFBXService* _fbxService;
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
+
+
+    QList<EntityItem*> _movingEntities; // entities that are moving as part of update
+    QList<EntityItem*> _changingEntities; // entities that are changing (like animating), but not moving
 };
 
 #endif // hifi_EntityTree_h

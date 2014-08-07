@@ -33,7 +33,6 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
     qDebug() << "ModelEntityItem::ModelEntityItem() calling setProperties()";
     setProperties(properties);
     qDebug() << "ModelEntityItem::ModelEntityItem() getModelURL()=" << getModelURL();
-
 }
 
 EntityItemProperties ModelEntityItem::getProperties() const {
@@ -165,7 +164,7 @@ qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... <<<<<<<<<<<<<<<<  <<
         dataAt += encodedType.size();
         bytesRead += encodedType.size();
         quint32 type = typeCoder;
-        _type = (EntityTypes::EntityType_t)type;
+        _type = (EntityTypes::EntityType)type;
 
 // XXXBHG: is this a good place to handle the last edited time client vs server??
 
@@ -853,3 +852,47 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
     }
     return frameData;
 }
+
+bool ModelEntityItem::isAnimatingSomething() const { 
+    return getAnimationIsPlaying() && 
+            getAnimationFPS() != 0.0f &&
+            !getAnimationURL().isEmpty();
+}
+
+EntityItem::SimuationState ModelEntityItem::getSimulationState() const {
+    if (isAnimatingSomething()) {
+        return EntityItem::Changing;
+    }
+    return EntityItem::Static;
+}
+
+void ModelEntityItem::update(const quint64& updateTime) {
+    _lastUpdated = updateTime;
+    //setShouldBeDeleted(getShouldBeDeleted());
+
+    quint64 now = updateTime; //usecTimestampNow();
+
+    // only advance the frame index if we're playing
+    if (getAnimationIsPlaying()) {
+
+        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
+        
+        const bool wantDebugging = false;
+        if (wantDebugging) {
+            qDebug() << "EntityItem::update() now=" << now;
+            qDebug() << "             updateTime=" << updateTime;
+            qDebug() << "          _lastAnimated=" << _lastAnimated;
+            qDebug() << "              deltaTime=" << deltaTime;
+        }
+        _lastAnimated = now;
+        _animationFrameIndex += deltaTime * _animationFPS;
+
+        if (wantDebugging) {
+            qDebug() << "   _animationFrameIndex=" << _animationFrameIndex;
+        }
+
+    } else {
+        _lastAnimated = now;
+    }
+}
+
