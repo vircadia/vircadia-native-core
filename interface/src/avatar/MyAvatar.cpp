@@ -84,13 +84,13 @@ MyAvatar::MyAvatar() :
     }
     _skeletonModel.setEnableShapes(true);
     // The skeleton is both a PhysicsEntity and Ragdoll, so we add it to the simulation once for each type.
-    _physicsSimulation.addEntity(&_skeletonModel);
+    _physicsSimulation.setEntity(&_skeletonModel);
     _physicsSimulation.setRagdoll(&_skeletonModel);
 }
 
 MyAvatar::~MyAvatar() {
     _physicsSimulation.setRagdoll(NULL);
-    _physicsSimulation.removeEntity(&_skeletonModel);
+    _physicsSimulation.setEntity(NULL);
     _lookAtTargetAvatar.clear();
 }
 
@@ -1519,8 +1519,6 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     }
     return false;
 }
-
-const float BODY_COLLISION_RESOLUTION_TIMESCALE = 0.5f; // seconds
 
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
