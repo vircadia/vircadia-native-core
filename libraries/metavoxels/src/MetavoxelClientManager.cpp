@@ -64,6 +64,8 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
 class RayHeightfieldIntersectionVisitor : public RayIntersectionVisitor {
 public:
     
+    float intersectionDistance;
+    
     RayHeightfieldIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction, const MetavoxelLOD& lod);
     
     virtual int visit(MetavoxelInfo& info, float distance);
@@ -72,7 +74,8 @@ public:
 RayHeightfieldIntersectionVisitor::RayHeightfieldIntersectionVisitor(const glm::vec3& origin,
         const glm::vec3& direction, const MetavoxelLOD& lod) :
     RayIntersectionVisitor(origin, direction, QVector<AttributePointer>() <<
-        AttributeRegistry::getInstance()->getHeightfieldAttribute(), QVector<AttributePointer>(), lod) {
+        AttributeRegistry::getInstance()->getHeightfieldAttribute(), QVector<AttributePointer>(), lod),
+    intersectionDistance(FLT_MAX) {
 }
 
 static const float EIGHT_BIT_MAXIMUM_RECIPROCAL = 1.0f / 255.0f;
@@ -91,42 +94,129 @@ int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance
     int highest = size - 1;
     float heightScale = highest / EIGHT_BIT_MAXIMUM_RECIPROCAL;
     
-    // find the initial location
-    glm::vec3 location = (_origin + distance * _direction - info.minimum) * (float)highest / info.size;
-    
-    glm::vec3 floors = glm::floor(location);
-    glm::vec3 ceils = glm::ceil(location);
-    int floorX = qMin(qMax((int)floors.x, 0), highest);
-    int floorZ = qMin(qMax((int)floors.z, 0), highest);
-    int ceilX = qMin(qMax((int)ceils.x, 0), highest);
-    int ceilZ = qMin(qMax((int)ceils.z, 0), highest);
-    float upperLeft = src[floorZ * size + floorX] * heightScale;
-    float upperRight = src[floorZ * size + ceilX] * heightScale;
-    float lowerLeft = src[ceilZ * size + floorX] * heightScale;
-    float lowerRight = src[ceilZ * size + ceilX] * heightScale;
-    
-    glm::vec3 relativeLocation = location - glm::vec3(floors.x, upperLeft, floors.z);
-    
-    glm::vec3 lowerNormal(lowerLeft - lowerRight, 1.0f, upperLeft - lowerLeft);
-    float lowerProduct = glm::dot(lowerNormal, _direction);
-    if (lowerProduct < EPSILON) {
-        float distance = -glm::dot(lowerNormal, relativeLocation) / lowerProduct;
-        glm::vec3 intersection = relativeLocation + distance * _direction;
-        if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
-                intersection.z >= intersection.x) {
-            return SHORT_CIRCUIT;
+    // find the initial location in heightfield coordinates
+    glm::vec3 entry = (_origin + distance * _direction - info.minimum) * (float)highest / info.size;
+    glm::vec3 floors = glm::floor(entry);
+    glm::vec3 ceils = glm::ceil(entry);
+    if (floors.x == ceils.x) {
+        if (_direction.x > 0.0f) {
+            ceils.x += 1.0f;
+        } else {
+            floors.x -= 1.0f;
+        } 
+    }
+    if (floors.z == ceils.z) {
+        if (_direction.z > 0.0f) {
+            ceils.z += 1.0f;
+        } else {
+            floors.z -= 1.0f;
         }
     }
     
-    glm::vec3 upperNormal(upperLeft - upperRight, 1.0f, upperRight - lowerRight);
-    float upperProduct = glm::dot(upperNormal, _direction);
-    if (upperProduct < EPSILON) {
-        float distance = -glm::dot(upperNormal, relativeLocation) / upperProduct;
-        glm::vec3 intersection = relativeLocation + distance * _direction;
-        if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
-                intersection.x >= intersection.z) {
-            return SHORT_CIRCUIT;
+    bool withinBounds = true;
+    float accumulatedDistance = 0.0f;
+    while (withinBounds) {
+        // find the heights at the corners of the current cell
+        int floorX = qMin(qMax((int)floors.x, 0), highest);
+        int floorZ = qMin(qMax((int)floors.z, 0), highest);
+        int ceilX = qMin(qMax((int)ceils.x, 0), highest);
+        int ceilZ = qMin(qMax((int)ceils.z, 0), highest);
+        float upperLeft = src[floorZ * size + floorX] * heightScale;
+        float upperRight = src[floorZ * size + ceilX] * heightScale;
+        float lowerLeft = src[ceilZ * size + floorX] * heightScale;
+        float lowerRight = src[ceilZ * size + ceilX] * heightScale;
+        
+        // find the distance to the next x coordinate
+        float xDistance = FLT_MAX;
+        if (_direction.x > 0.0f) {
+            xDistance = (ceils.x - entry.x) / _direction.x;
+        } else if (_direction.x < 0.0f) {
+            xDistance = (floors.x - entry.x) / _direction.x;
         }
+        
+        // and the distance to the next z coordinate
+        float zDistance = FLT_MAX;
+        if (_direction.z > 0.0f) {
+            zDistance = (ceils.z - entry.z) / _direction.z;
+        } else if (_direction.z < 0.0f) {
+            zDistance = (floors.z - entry.z) / _direction.z;
+        }
+        
+        // the exit distance is the lower of those two
+        float exitDistance = qMin(xDistance, zDistance);
+        glm::vec3 exit, nextFloors = floors, nextCeils = ceils;
+        if (exitDistance == FLT_MAX) {
+            if (_direction.y > 0.0f) {
+                return SHORT_CIRCUIT; // line points upwards; no collisions possible
+            }    
+            withinBounds = false; // line points downwards; check this cell only
+            
+        } else {
+            // find the exit point and the next cell, and determine whether it's still within the bounds
+            exit = entry + exitDistance * _direction;
+            withinBounds = (exit.y >= 0.0f && exit.y <= highest);
+            if (exitDistance == xDistance) {
+                if (_direction.x > 0.0f) {
+                    nextFloors.x += 1.0f;
+                    withinBounds &= (nextCeils.x += 1.0f) <= highest;
+                } else {
+                    withinBounds &= (nextFloors.x -= 1.0f) >= 0.0f;
+                    nextCeils.x -= 1.0f;
+                }
+            }
+            if (exitDistance == zDistance) {
+                if (_direction.z > 0.0f) {
+                    nextFloors.z += 1.0f;
+                    withinBounds &= (nextCeils.z += 1.0f) <= highest;
+                } else {
+                    withinBounds &= (nextFloors.z -= 1.0f) >= 0.0f;
+                    nextCeils.z -= 1.0f;
+                }
+            }
+            // check the vertical range of the ray against the ranges of the cell heights
+            if (qMin(entry.y, exit.y) > qMax(qMax(upperLeft, upperRight), qMax(lowerLeft, lowerRight)) ||
+                    qMax(entry.y, exit.y) < qMin(qMin(upperLeft, upperRight), qMin(lowerLeft, lowerRight))) {
+                entry = exit;
+                floors = nextFloors;
+                ceils = nextCeils;
+                accumulatedDistance += exitDistance;
+                continue;
+            } 
+        }
+        // having passed the bounds check, we must check against the planes
+        glm::vec3 relativeEntry = entry - glm::vec3(floors.x, upperLeft, floors.z);
+        
+        // first check the triangle including the Z+ segment
+        glm::vec3 lowerNormal(lowerLeft - lowerRight, 1.0f, upperLeft - lowerLeft);
+        float lowerProduct = glm::dot(lowerNormal, _direction);
+        if (lowerProduct < 0.0f) {
+            float planeDistance = -glm::dot(lowerNormal, relativeEntry) / lowerProduct;
+            glm::vec3 intersection = relativeEntry + planeDistance * _direction;
+            if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
+                    intersection.z >= intersection.x) {
+                intersectionDistance = distance + (accumulatedDistance + planeDistance) * (info.size / highest);
+                return SHORT_CIRCUIT;
+            }
+        }
+        
+        // then the one with the X+ segment
+        glm::vec3 upperNormal(upperLeft - upperRight, 1.0f, upperRight - lowerRight);
+        float upperProduct = glm::dot(upperNormal, _direction);
+        if (upperProduct < 0.0f) {
+            float planeDistance = -glm::dot(upperNormal, relativeEntry) / upperProduct;
+            glm::vec3 intersection = relativeEntry + planeDistance * _direction;
+            if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
+                    intersection.x >= intersection.z) {
+                intersectionDistance = distance + (accumulatedDistance + planeDistance) * (info.size / highest);
+                return SHORT_CIRCUIT;
+            }
+        }
+        
+        // no joy; continue on our way
+        entry = exit;
+        floors = nextFloors;
+        ceils = nextCeils;
+        accumulatedDistance += exitDistance;
     }
     
     return STOP_RECURSION;
@@ -136,7 +226,11 @@ bool MetavoxelClientManager::findFirstRayHeightfieldIntersection(const glm::vec3
         const glm::vec3& direction, float& distance) {
     RayHeightfieldIntersectionVisitor visitor(origin, direction, getLOD());
     guide(visitor);
-    return false;
+    if (visitor.intersectionDistance == FLT_MAX) {
+        return false;
+    }
+    distance = visitor.intersectionDistance;
+    return true;
 }
 
 void MetavoxelClientManager::setSphere(const glm::vec3& center, float radius, const QColor& color) {
@@ -197,6 +291,8 @@ int HeightfieldHeightVisitor::visit(MetavoxelInfo& info) {
     int size = glm::sqrt((float)contents.size());
     int highest = size - 1;
     relative *= highest / info.size;
+    
+    // find the bounds of the cell containing the point and the shared vertex heights
     glm::vec3 floors = glm::floor(relative);
     glm::vec3 ceils = glm::ceil(relative);
     glm::vec3 fracts = glm::fract(relative);
@@ -207,6 +303,8 @@ int HeightfieldHeightVisitor::visit(MetavoxelInfo& info) {
     float upperLeft = src[floorZ * size + floorX];
     float lowerRight = src[ceilZ * size + ceilX];
     float interpolatedHeight;
+    
+    // the final vertex (and thus which triangle we check) depends on which half we're on
     if (fracts.x > fracts.z) {
         float upperRight = src[floorZ * size + ceilX];
         interpolatedHeight = glm::mix(glm::mix(upperLeft, upperRight, fracts.x), lowerRight, fracts.z);
@@ -216,8 +314,10 @@ int HeightfieldHeightVisitor::visit(MetavoxelInfo& info) {
         interpolatedHeight = glm::mix(upperLeft, glm::mix(lowerLeft, lowerRight, fracts.x), fracts.z);
     }
     if (interpolatedHeight == 0.0f) {
-        return STOP_RECURSION;
+        return STOP_RECURSION; // ignore zero values
     }
+    
+    // convert the interpolated height into world space
     height = qMax(height, info.minimum.y + interpolatedHeight * info.size * EIGHT_BIT_MAXIMUM_RECIPROCAL);
     return SHORT_CIRCUIT;
 }

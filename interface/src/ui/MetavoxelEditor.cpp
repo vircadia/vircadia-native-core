@@ -1100,10 +1100,12 @@ void HeightfieldBrushTool::render() {
     glm::vec3 origin = Application::getInstance()->getMouseRayOrigin();
     glm::vec3 direction = Application::getInstance()->getMouseRayDirection();
     
-    float distance = -origin.y / direction.y;
+    float distance;
+    if (!Application::getInstance()->getMetavoxels()->findFirstRayHeightfieldIntersection(origin, direction, distance)) {
+        return;
+    }
+    qDebug() << distance;
     glm::vec3 point = origin + distance * direction;
-    
-    point.y = Application::getInstance()->getMetavoxels()->getHeightfieldHeight(point);
     
     glPushMatrix();
     glTranslatef(point.x, point.y, point.z);
