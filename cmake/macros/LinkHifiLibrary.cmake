@@ -16,7 +16,7 @@ macro(LINK_HIFI_LIBRARY LIBRARY TARGET ROOT_DIR)
   include_directories("${ROOT_DIR}/libraries/${LIBRARY}/src")
 
   add_dependencies(${TARGET} ${LIBRARY})
-  target_link_libraries(${TARGET} ${LIBRARY})
+  target_link_libraries(${TARGET} ${LIBRARY} ${REQUIRED_DEPENDENCY_LIBRARIES})
   
   if (APPLE)
     # currently the "shared" library requires CoreServices    

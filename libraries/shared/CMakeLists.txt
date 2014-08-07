@@ -30,4 +30,7 @@ endif (UNIX AND NOT APPLE)
 # directory when Qt5 (5.2.1) is compiled from source and is not in a standard place.
 include_directories(SYSTEM "${Qt5Script_INCLUDE_DIRS}")
 
-target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets)
+# bubble up the libraries we are dependent on and link them to ourselves
+set(REQUIRED_DEPENDENCY_LIBRARIES Qt5::Network Qt5::Widgets)
+set(SUB_DEPENDENCY_LIBRARIES ${REQUIRED_DEPENDENCY_LIBRARIES} PARENT_SCOPE)
+target_link_libraries(${TARGET_NAME} ${REQUIRED_DEPENDENCY_LIBRARIES})
