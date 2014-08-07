@@ -23,10 +23,10 @@ find_package(ZLIB)
 
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
 
-# bubble up the libraries we are dependent on and link them to ourselves
-set(REQUIRED_DEPENDENCY_LIBRARIES "${ZLIB_LIBRARIES}")
-set(SUB_DEPENDENCY_LIBRARIES ${REQUIRED_DEPENDENCY_LIBRARIES} PARENT_SCOPE)
-target_link_libraries(${TARGET_NAME} ${REQUIRED_DEPENDENCY_LIBRARIES})
+# set a property indicating the libraries we are dependent on and link them to ourselves
+set(DEPENDENCY_LIBRARIES "${ZLIB_LIBRARIES}")
+set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES ${DEPENDENCY_LIBRARIES})
+target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES})
 
 # add a definition for ssize_t so that windows doesn't bail
 if (WIN32)
