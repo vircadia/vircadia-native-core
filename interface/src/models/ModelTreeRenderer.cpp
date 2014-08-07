@@ -76,6 +76,10 @@ const FBXGeometry* ModelTreeRenderer::getGeometryForModel(const ModelItem& model
     return result;
 }
 
+const Model* ModelTreeRenderer::getModelForModelItem(const ModelItem& modelItem) {
+    return getModel(modelItem);
+}
+
 Model* ModelTreeRenderer::getModel(const ModelItem& modelItem) {
     Model* model = NULL;
 
