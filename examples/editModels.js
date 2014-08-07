@@ -688,32 +688,148 @@ var modelUploader = (function () {
         return true;
     }
 
-    function sendToHighFidelity(url, callback) {
-        var req;
+    function sendToHighFidelity(addModelCallback) {
+        var req,
+            modelName,
+            modelURL,
+            uploadedChecks,
+            HTTP_GET_TIMEOUT = 60,  // 1 minute
+            HTTP_SEND_TIMEOUT = 900,  // 15 minutes
+            UPLOADED_CHECKS = 30,
+            CHECK_UPLOADED_TIMEOUT = 1,  // 1 second
+            handleCheckUploadedResponses,
+            handleUploadModelResponses,
+            handleRequestUploadResponses;
 
-        print("Sending model to High Fidelity");
+        function uploadTimedOut() {
+            error("Model upload failed: Internet request timed out!");
+        }
 
-        req = new XMLHttpRequest();
-        req.open("POST", url, true);
-        req.setRequestHeader("Content-Type", "multipart/form-data; boundary=\"" + httpMultiPart.boundary() + "\"");
+        function debugResponse() {
+            print("req.errorCode = " + req.errorCode);
+            print("req.readyState = " + req.readyState);
+            print("req.status = " + req.status);
+            print("req.statusText = " + req.statusText);
+            print("req.responseType = " + req.responseType);
+            print("req.responseText = " + req.responseText);
+            print("req.response = " + req.response);
+            print("req.getAllResponseHeaders() = " + req.getAllResponseHeaders());
+        }
 
-        req.onreadystatechange = function () {
+        function checkUploaded() {
+            print("Checking uploaded model");
+
+            req = new XMLHttpRequest();
+            req.open("HEAD", modelURL, true);
+            req.timeout = HTTP_GET_TIMEOUT * 1000;
+            req.onreadystatechange = handleCheckUploadedResponses;
+            req.ontimeout = uploadTimedOut;
+            req.send();
+        }
+
+        handleCheckUploadedResponses = function () {
+            //debugResponse();
             if (req.readyState === req.DONE) {
                 if (req.status === 200) {
-                    print("Uploaded model: " + url);
-                    callback(url);
+                    // Note: Unlike avatar models, for content models we don't need to refresh texture cache.
+                    addModelCallback(modelURL);  // Add model to the world
+                    print("Model uploaded: " + modelURL);
+                    Window.alert("Your model has been uploaded as: " + modelURL);
+                } else if (req.status === 404) {
+                    if (uploadedChecks > 0) {
+                        uploadedChecks -= 1;
+                        Script.setTimeout(checkUploaded, CHECK_UPLOADED_TIMEOUT * 1000);
+                    } else {
+                        print("Error: " + req.status + " " + req.statusText);
+                        error("We could not verify that your model was successfully uploaded but it may have been at: "
+                            + modelURL);
+                    }
                 } else {
-                    print("Error uploading file: " + req.status + " " + req.statusText);
-                    Window.alert("Could not upload file: " + req.status + " " + req.statusText);
+                    print("Error: " + req.status + " " + req.statusText);
+                    error("There was a problem with your upload, please try again later.");
                 }
             }
         };
 
-        req.send(httpMultiPart.response().buffer);
+        function uploadModel(method) {
+            var url;
+
+            req = new XMLHttpRequest();
+            if (method === "PUT") {
+                url = API_URL + "\/" + modelName;
+                req.open("PUT", url, true);  //print("PUT " + url);
+            } else {
+                url = API_URL;
+                req.open("POST", url, true);  //print("POST " + url);
+            }
+            req.setRequestHeader("Content-Type", "multipart/form-data; boundary=\"" + httpMultiPart.boundary() + "\"");
+            req.timeout = HTTP_SEND_TIMEOUT * 1000;
+            req.onreadystatechange = handleUploadModelResponses;
+            req.ontimeout = uploadTimedOut;
+            req.send(httpMultiPart.response().buffer);
+        }
+
+        handleUploadModelResponses = function () {
+            //debugResponse();
+            if (req.readyState === req.DONE) {
+                if (req.status === 200) {
+                    uploadedChecks = 30;
+                    checkUploaded();
+                } else {
+                    print("Error: " + req.status + " " + req.statusText);
+                    error("There was a problem with your upload, please try again later.");
+                }
+            }
+        };
+
+        function requestUpload() {
+            var url;
+
+            url = API_URL + "\/" + modelName;  // XMLHttpRequest automatically handles authorization of API requests.
+            req = new XMLHttpRequest();
+            req.open("GET", url, true);  //print("GET " + url);
+            req.responseType = "json";
+            req.timeout = HTTP_GET_TIMEOUT * 1000;
+            req.onreadystatechange = handleRequestUploadResponses;
+            req.ontimeout = uploadTimedOut;
+            req.send();
+        }
+
+        handleRequestUploadResponses = function () {
+            var response;
+
+            //debugResponse();
+            if (req.readyState === req.DONE) {
+                if (req.status === 200) {
+                    if (req.responseType === "json") {
+                        response = JSON.parse(req.responseText);
+                        if (response.status === "success") {
+                            if (response.exists === false) {
+                                uploadModel("POST");
+                            } else if (response.can_update === true) {
+                                uploadModel("PUT");
+                            } else {
+                                error("This model file already exists and is owned by someone else!");
+                            }
+                            return;
+                        }
+                    }
+                } else {
+                    print("Error: " + req.status + " " + req.statusText);
+                }
+                error("Model upload failed! Something went wrong at the data server.");
+            }
+        };
+
+        print("Sending model to High Fidelity");
+
+        modelName = mapping[NAME_FIELD];
+        modelURL = MODEL_URL + "\/" + mapping[NAME_FIELD] + ".fst";  // DJRTODO: Do all models get a FST?
+
+        requestUpload();
     }
 
-    that.upload = function (file, callback) {
-        var url = urlBase + file.fileName();
+    that.upload = function (file, addModelCallback) {
 
         modelFile = file;
 
@@ -738,7 +854,8 @@ var modelUploader = (function () {
         }
 
         // Send model to High Fidelity ...
-        sendToHighFidelity(url, callback);
+        sendToHighFidelity(addModelCallback);
+
         resetDataObjects();
     };
 
