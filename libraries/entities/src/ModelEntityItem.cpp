@@ -33,6 +33,8 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
     qDebug() << "ModelEntityItem::ModelEntityItem() calling setProperties()";
     setProperties(properties);
     qDebug() << "ModelEntityItem::ModelEntityItem() getModelURL()=" << getModelURL();
+    
+    _animationFrameIndex = 0.0f;
 }
 
 EntityItemProperties ModelEntityItem::getProperties() const {
@@ -840,6 +842,18 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
 
         if (frameCount > 0) {
             int animationFrameIndex = (int)glm::floor(_animationFrameIndex) % frameCount;
+
+            if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
+                qDebug() << "ModelEntityItem::getAnimationFrame()....";
+                qDebug() << "   frame index out of bounds....";
+                qDebug() << "   _animationFrameIndex=" << _animationFrameIndex;
+                qDebug() << "   frameCount=" << frameCount;
+                qDebug() << "   animationFrameIndex=" << animationFrameIndex;
+                animationFrameIndex = 0;
+            }
+            
+//qDebug() << "ModelEntityItem::getAnimationFrame().... _animationFrameIndex=" << _animationFrameIndex << "frameCount=" << frameCount << "animationFrameIndex=" << animationFrameIndex;
+
             QVector<glm::quat> rotations = frames[animationFrameIndex].rotations;
             frameData.resize(_jointMapping.size());
             for (int j = 0; j < _jointMapping.size(); j++) {

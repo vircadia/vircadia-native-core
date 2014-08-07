@@ -315,9 +315,11 @@ void EntityTreeRenderer::renderEntityTypeModel(EntityItem* entity, RenderArgs* a
                         entityItem->mapJoints(modelJointNames);
                     }
 
-                    QVector<glm::quat> frameData = entityItem->getAnimationFrame();
-                    for (int i = 0; i < frameData.size(); i++) {
-                        model->setJointState(i, true, frameData[i]);
+                    if (entityItem->jointsMapped()) {
+                        QVector<glm::quat> frameData = entityItem->getAnimationFrame();
+                        for (int i = 0; i < frameData.size(); i++) {
+                            model->setJointState(i, true, frameData[i]);
+                        }
                     }
                 }
             

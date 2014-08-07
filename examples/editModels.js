@@ -1609,6 +1609,7 @@ function handeMenuEvent(menuItem){
                 array.push({ label: "Animation URL:", value: properties.animationURL });
                 array.push({ label: "Animation is playing:", value: properties.animationIsPlaying });
                 array.push({ label: "Animation FPS:", value: properties.animationFPS });
+                array.push({ label: "Animation Frame:", value: properties.animationFrameIndex });
             }
             array.push({ label: "X:", value: properties.position.x.toFixed(decimals) });
             array.push({ label: "Y:", value: properties.position.y.toFixed(decimals) });
@@ -1634,6 +1635,7 @@ function handeMenuEvent(menuItem){
                 properties.animationURL = array[index++].value;
                 properties.animationIsPlaying = array[index++].value;
                 properties.animationFPS = array[index++].value;
+                properties.animationFrameIndex = array[index++].value;
             }
             properties.position.x = array[index++].value;
             properties.position.y = array[index++].value;

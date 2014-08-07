@@ -1078,7 +1078,16 @@ if (childAt) {
 }
 
 void EntityTree::changeEntityState(EntityItem* const entity, EntityItem::SimuationState oldState, EntityItem::SimuationState newState) {
-    if (oldState != newState) {
+
+qDebug() << "EntityTree::changeEntityState()....";
+qDebug() << "     oldState:" << oldState;
+qDebug() << "     newState:" << newState;
+
+qDebug() << "EntityTree::changeEntityState() BEFORE....";
+qDebug() << "     _changingEntities:" << _changingEntities;
+qDebug() << "     _movingEntities:" << _movingEntities;
+
+    //if (oldState != newState) {
         switch (oldState) {
             case EntityItem::Changing:
                 _changingEntities.removeAll(entity);
@@ -1103,7 +1112,13 @@ void EntityTree::changeEntityState(EntityItem* const entity, EntityItem::Simuati
             default:
                 break;
         }
-    }
+    //}
+
+qDebug() << "EntityTree::changeEntityState() AFTER....";
+qDebug() << "     _changingEntities:" << _changingEntities;
+qDebug() << "     _movingEntities:" << _movingEntities;
+
+
 }
 
 void EntityTree::update() {
