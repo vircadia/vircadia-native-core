@@ -191,4 +191,5 @@ QByteArray createByteArray(const glm::vec3& vector);
 
 QString formatUsecTime(float usecs, int prec = 3);
 
+
 #endif // hifi_SharedUtil_h
