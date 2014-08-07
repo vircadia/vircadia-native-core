@@ -118,6 +118,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new SetSpannerTool(this));
     addTool(new ImportHeightfieldTool(this));
     addTool(new EraseHeightfieldTool(this));
+    addTool(new HeightBrushTool(this));
     
     updateAttributes();
     
@@ -1080,3 +1081,46 @@ void EraseHeightfieldTool::apply() {
     message.edit = QVariant::fromValue(edit);
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
+
+HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QString& name) :
+    MetavoxelTool(editor, name, false) {
+    
+    QWidget* widget = new QWidget();
+    widget->setLayout(_form = new QFormLayout());
+    layout()->addWidget(widget);
+    
+    _form->addRow("Radius:", _radius = new QDoubleSpinBox());
+    _radius->setSingleStep(0.01);
+    _radius->setMaximum(FLT_MAX);
+    _radius->setValue(1.0);
+}
+
+void HeightfieldBrushTool::render() {
+    // find the intersection with the heightfield
+    glm::vec3 origin = Application::getInstance()->getMouseRayOrigin();
+    glm::vec3 direction = Application::getInstance()->getMouseRayDirection();
+    
+    float distance = -origin.y / direction.y;
+    glm::vec3 point = origin + distance * direction;
+    
+    point.y = Application::getInstance()->getMetavoxels()->getHeight(point);
+    
+    glPushMatrix();
+    glTranslatef(point.x, point.y, point.z);
+    
+    glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
+    
+    glutSolidSphere(0.1f, 8, 8);
+    
+    glPopMatrix();
+}
+
+HeightBrushTool::HeightBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Height Brush") {
+    
+    _form->addRow("Height:", _height = new QDoubleSpinBox());
+    _height->setMinimum(-FLT_MAX);
+    _height->setMaximum(FLT_MAX);
+    _height->setValue(1.0);
+}
+

@@ -282,7 +282,7 @@ private:
     HeightfieldPreview _preview;
 };
 
-// Allows clearing heighfield blocks.
+/// Allows clearing heighfield blocks.
 class EraseHeightfieldTool : public HeightfieldTool {
     Q_OBJECT
 
@@ -300,6 +300,35 @@ private:
     
     QSpinBox* _width;
     QSpinBox* _length;
+};
+
+/// Base class for tools that allow painting on heightfields.
+class HeightfieldBrushTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldBrushTool(MetavoxelEditor* editor, const QString& name);
+    
+    virtual void render();
+
+protected:
+    
+    QFormLayout* _form;
+    QDoubleSpinBox* _radius;
+};
+
+/// Allows raising or lowering parts of the heightfield.
+class HeightBrushTool : public HeightfieldBrushTool {
+    Q_OBJECT
+
+public:
+    
+    HeightBrushTool(MetavoxelEditor* editor);
+    
+private:
+    
+    QDoubleSpinBox* _height;
 };
 
 #endif // hifi_MetavoxelEditor_h

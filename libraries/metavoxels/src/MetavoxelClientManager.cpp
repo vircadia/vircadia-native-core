@@ -78,6 +78,79 @@ void MetavoxelClientManager::applyEdit(const MetavoxelEditMessage& edit, bool re
     QMetaObject::invokeMethod(_updater, "applyEdit", Q_ARG(const MetavoxelEditMessage&, edit), Q_ARG(bool, reliable));
 }
 
+class HeightVisitor : public MetavoxelVisitor {
+public:
+    
+    float height;
+    
+    HeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    glm::vec3 _location;
+};
+
+HeightVisitor::HeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute(),
+        QVector<AttributePointer>(), lod),
+    height(-FLT_MAX),
+    _location(location) {
+}
+
+static const int REVERSE_ORDER = MetavoxelVisitor::encodeOrder(7, 6, 5, 4, 3, 2, 1, 0);
+static const float EIGHT_BIT_MAXIMUM_RECIPROCAL = 1.0f / 255.0f;
+
+int HeightVisitor::visit(MetavoxelInfo& info) {
+    glm::vec3 relative = _location - info.minimum;
+    if (relative.x < 0.0f || relative.z < 0.0f || relative.x > info.size || relative.z > info.size ||
+            height >= info.minimum.y + info.size) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return REVERSE_ORDER;
+    }
+    HeightfieldDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
+    if (!pointer) {
+        return STOP_RECURSION;
+    }
+    const QByteArray& contents = pointer->getContents();
+    const uchar* src = (const uchar*)contents.constData();
+    int size = glm::sqrt((float)contents.size());
+    int highest = size - 1;
+    relative *= highest / info.size;
+    glm::vec3 floors = glm::floor(relative);
+    glm::vec3 ceils = glm::ceil(relative);
+    glm::vec3 fracts = glm::fract(relative);
+    int floorX = qMin(qMax((int)floors.x, 0), highest);
+    int floorZ = qMin(qMax((int)floors.z, 0), highest);
+    int ceilX = qMin(qMax((int)ceils.x, 0), highest);
+    int ceilZ = qMin(qMax((int)ceils.z, 0), highest);
+    float upperLeft = src[floorZ * size + floorX];
+    float lowerRight = src[ceilZ * size + ceilX];
+    float interpolatedHeight;
+    if (fracts.x > fracts.z) {
+        float upperRight = src[floorZ * size + ceilX];
+        interpolatedHeight = glm::mix(glm::mix(upperLeft, upperRight, fracts.x), lowerRight, fracts.z);
+        
+    } else {
+        float lowerLeft = src[ceilZ * size + floorX];
+        interpolatedHeight = glm::mix(upperLeft, glm::mix(lowerLeft, lowerRight, fracts.x), fracts.z);
+    }
+    if (interpolatedHeight == 0.0f) {
+        return STOP_RECURSION;
+    }
+    height = qMax(height, info.minimum.y + interpolatedHeight * info.size * EIGHT_BIT_MAXIMUM_RECIPROCAL);
+    return SHORT_CIRCUIT;
+}
+
+float MetavoxelClientManager::getHeight(const glm::vec3& location) {
+    HeightVisitor visitor(getLOD(), location);
+    guide(visitor);
+    return visitor.height;
+}
+
 MetavoxelLOD MetavoxelClientManager::getLOD() {
     return MetavoxelLOD();
 }

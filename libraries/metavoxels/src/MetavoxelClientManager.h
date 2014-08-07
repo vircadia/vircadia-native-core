@@ -43,6 +43,8 @@ public:
         
     Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
 
+    Q_INVOKABLE float getHeight(const glm::vec3& location);
+
     /// Returns the current LOD.  This must be thread-safe, as it will be called from the updater thread.
     virtual MetavoxelLOD getLOD();
     
