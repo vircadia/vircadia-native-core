@@ -133,6 +133,8 @@ void PhysicsSimulation::removeShapes(const PhysicsEntity* entity) {
     }
 }
 
+const float OTHER_RAGDOLL_MASS_SCALE = 10.0f;
+
 bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
     if (!doll) {
         return false;
@@ -154,6 +156,9 @@ bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
     assert(!(doll->_ragdollSimulation));
     doll->_ragdollSimulation = this;
     _otherRagdolls.push_back(doll);
+
+    // set the massScale of otherRagdolls artificially high
+    doll->setMassScale(OTHER_RAGDOLL_MASS_SCALE);
     return true;
 }
 
@@ -174,6 +179,7 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
                 _otherRagdolls[i] = lastDoll;
             }
             doll->_ragdollSimulation = NULL;
+            doll->setMassScale(1.0f);
             break;
         }
     }
@@ -237,7 +243,7 @@ void PhysicsSimulation::computeCollisions() {
 
     const QVector<Shape*> shapes = _entity->getShapes();
     int numShapes = shapes.size();
-    // collide with self
+    // collide main ragdoll with self
     for (int i = 0; i < numShapes; ++i) {
         const Shape* shape = shapes.at(i);
         if (!shape) {
@@ -251,7 +257,7 @@ void PhysicsSimulation::computeCollisions() {
         }
     }
 
-    // collide with others
+    // collide main ragdoll with others
     int numEntities = _otherEntities.size();
     for (int i = 0; i < numEntities; ++i) {
         const QVector<Shape*> otherShapes = _otherEntities.at(i)->getShapes();

@@ -49,11 +49,15 @@ public:
 
     const glm::vec3& getTranslationInSimulationFrame() const { return _translationInSimulationFrame; }
 
+    void setMassScale(float scale);
+    float getMassScale() const { return _massScale; }
+
 protected:
     void clearRagdollConstraintsAndPoints();
     virtual void initRagdollPoints() = 0;
     virtual void buildRagdollConstraints() = 0;
 
+    float _massScale;
     glm::vec3 _ragdollTranslation;  // world-frame
     glm::quat _ragdollRotation; // world-frame
     glm::vec3 _translationInSimulationFrame;

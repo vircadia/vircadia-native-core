@@ -10,13 +10,11 @@
 //
 
 #include "FixedConstraint.h"
-#include "Shape.h"  // for MAX_SHAPE_MASS
 #include "VerletPoint.h"
 
 FixedConstraint::FixedConstraint(glm::vec3* anchor, VerletPoint* point) : _anchor(anchor), _point(point) {
     assert(anchor);
     assert(point);
-    _point->_mass = MAX_SHAPE_MASS;
 }
 
 float FixedConstraint::enforce() {
@@ -34,5 +32,4 @@ void FixedConstraint::setAnchor(glm::vec3* anchor) {
 void FixedConstraint::setPoint(VerletPoint* point) {
     assert(point);
     _point = point;
-    _point->_mass = MAX_SHAPE_MASS;
 }

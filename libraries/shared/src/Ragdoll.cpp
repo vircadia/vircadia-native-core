@@ -19,7 +19,7 @@
 #include "PhysicsSimulation.h"
 #include "SharedUtil.h" // for EPSILON
 
-Ragdoll::Ragdoll() : _ragdollTranslation(0.0f), _translationInSimulationFrame(0.0f), _ragdollSimulation(NULL) {
+Ragdoll::Ragdoll() : _massScale(1.0f), _ragdollTranslation(0.0f), _translationInSimulationFrame(0.0f), _ragdollSimulation(NULL) {
 }
 
 Ragdoll::~Ragdoll() {
@@ -98,4 +98,18 @@ void Ragdoll::updateSimulationTransforms(const glm::vec3& translation, const glm
     // remember the current transform
     _translationInSimulationFrame = translation;
     _rotationInSimulationFrame = rotation;
+}
+
+void Ragdoll::setMassScale(float scale) {
+    const float MIN_SCALE = 1.0e-2f;
+    const float MAX_SCALE = 1.0e6f;
+    scale = glm::clamp(glm::abs(scale), MIN_SCALE, MAX_SCALE);
+    if (scale != _massScale) {
+        float rescale = scale / _massScale;
+        int numPoints = _ragdollPoints.size();
+        for (int i = 0; i < numPoints; ++i) {
+            _ragdollPoints[i].setMass(rescale * _ragdollPoints[i].getMass());
+        }
+        _massScale = scale;
+    }
 }

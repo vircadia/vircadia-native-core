@@ -671,6 +671,7 @@ void SkeletonModel::buildShapes() {
     }
 
     initRagdollPoints();
+    float massScale = getMassScale();
 
     float uniformScale = extractUniformScale(_scale);
     const int numStates = _jointStates.size();
@@ -689,12 +690,12 @@ void SkeletonModel::buildShapes() {
         if (type == Shape::SPHERE_SHAPE) {
             shape = new VerletSphereShape(radius, &(_ragdollPoints[i]));
             shape->setEntity(this);
-            _ragdollPoints[i]._mass = glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
+            _ragdollPoints[i].setMass(massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume()));
         } else if (type == Shape::CAPSULE_SHAPE) {
             assert(parentIndex != -1);
             shape = new VerletCapsuleShape(radius, &(_ragdollPoints[parentIndex]), &(_ragdollPoints[i]));
             shape->setEntity(this);
-            _ragdollPoints[i]._mass = glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
+            _ragdollPoints[i].setMass(massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume()));
         } 
         if (parentIndex != -1) {
             // always disable collisions between joint and its parent
@@ -702,7 +703,7 @@ void SkeletonModel::buildShapes() {
         } else {
             // give the base joint a very large mass since it doesn't actually move
             // in the local-frame simulation (it defines the origin)
-            _ragdollPoints[i]._mass = VERY_BIG_MASS;
+            _ragdollPoints[i].setMass(VERY_BIG_MASS);
         }
         _shapes.push_back(shape);
     }

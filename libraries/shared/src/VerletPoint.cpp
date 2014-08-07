@@ -38,3 +38,12 @@ void VerletPoint::move(const glm::vec3& deltaPosition, const glm::quat& deltaRot
     arm = _lastPosition - oldPivot;
     _lastPosition += deltaPosition + (deltaRotation * arm - arm);
 }
+
+void VerletPoint::setMass(float mass) {
+    const float MIN_MASS = 1.0e-6f;
+    const float MAX_MASS = 1.0e18f;
+    if (glm::isnan(mass)) {
+        mass = MIN_MASS;
+    }
+    _mass = glm::clamp(glm::abs(mass), MIN_MASS, MAX_MASS);
+}

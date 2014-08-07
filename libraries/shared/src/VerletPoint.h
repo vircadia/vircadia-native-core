@@ -26,11 +26,14 @@ public:
     void applyAccumulatedDelta();
     void move(const glm::vec3& deltaPosition, const glm::quat& deltaRotation, const glm::vec3& oldPivot);
 
+    void setMass(float mass);
+    float getMass() const { return _mass; }
+
     glm::vec3 _position;
     glm::vec3 _lastPosition;
-    float _mass;
 
 private:
+    float _mass;
     glm::vec3 _accumulatedDelta;
     int _numDeltas;
 };
