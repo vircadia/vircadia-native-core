@@ -8,11 +8,8 @@ set(TARGET_NAME models)
 
 find_package(Qt5Widgets REQUIRED)
 
-include(${MACRO_DIR}/AutoMTC.cmake)
-auto_mtc(${TARGET_NAME} "${ROOT_DIR}")
-
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
-setup_hifi_library(${TARGET_NAME} "${AUTOMTC_SRC}")
+setup_hifi_library(${TARGET_NAME})
 
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
@@ -26,12 +23,6 @@ link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
 
 # for streamable
 link_hifi_library(metavoxels ${TARGET_NAME} "${ROOT_DIR}")
-
-# link ZLIB
-find_package(ZLIB)
-
-include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets)
 
 # add a definition for ssize_t so that windows doesn't bail
 if (WIN32)

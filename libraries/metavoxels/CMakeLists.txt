@@ -6,8 +6,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME metavoxels)
 
-find_package(Qt5 COMPONENTS Network Script Widgets)
-
 include(${MACRO_DIR}/AutoMTC.cmake)
 auto_mtc(${TARGET_NAME} "${ROOT_DIR}")
 
@@ -21,7 +19,13 @@ link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
-target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script)
+find_package(Qt5Script)
+find_package(Qt5Widgets)
+
+# set a property indicating the libraries we are dependent on and link them to ourselves
+set(DEPENDENCY_LIBRARIES Qt5::Script Qt5::Widgets)
+set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES "${DEPENDENCY_LIBRARIES}")
+target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES})
 
 # add a definition for ssize_t so that windows doesn't bail
 if (WIN32)

@@ -22,7 +22,11 @@ link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 find_package(ZLIB)
 
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets)
+
+# bubble up the libraries we are dependent on and link them to ourselves
+set(REQUIRED_DEPENDENCY_LIBRARIES "${ZLIB_LIBRARIES}")
+set(SUB_DEPENDENCY_LIBRARIES ${REQUIRED_DEPENDENCY_LIBRARIES} PARENT_SCOPE)
+target_link_libraries(${TARGET_NAME} ${REQUIRED_DEPENDENCY_LIBRARIES})
 
 # add a definition for ssize_t so that windows doesn't bail
 if (WIN32)

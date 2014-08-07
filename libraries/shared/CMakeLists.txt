@@ -14,16 +14,16 @@ include_glm(${TARGET_NAME} "${ROOT_DIR}")
 # link required libraries on UNIX
 if (APPLE)
   find_library(CoreServices CoreServices)
-  list(APPEND REQUIRED_DEPENDENCY_LIBRARIES ${CoreServices})
+  set(DEPENDENCY_LIBRARIES ${CoreServices})
 elseif (UNIX)
   find_package(Threads REQUIRED)
-  LIST(APPEND REQUIRED_DEPENDENCY_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}")
+  set(DEPENDENCY_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}")
 endif ()
 
 find_package(Qt5Network)
 find_package(Qt5Widgets)
 
 # bubble up the libraries we are dependent on and link them to ourselves
-list(APPEND REQUIRED_DEPENDENCY_LIBRARIES Qt5::Network Qt5::Widgets)
-set(SUB_DEPENDENCY_LIBRARIES ${REQUIRED_DEPENDENCY_LIBRARIES} PARENT_SCOPE)
-target_link_libraries(${TARGET_NAME} ${REQUIRED_DEPENDENCY_LIBRARIES})
+list(APPEND DEPENDENCY_LIBRARIES Qt5::Network Qt5::Widgets)
+set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES ${DEPENDENCY_LIBRARIES})
+target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES})

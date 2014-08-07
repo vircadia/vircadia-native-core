@@ -17,5 +17,12 @@ macro(LINK_HIFI_LIBRARY LIBRARY TARGET ROOT_DIR)
 
   add_dependencies(${TARGET} ${LIBRARY})
   
-  target_link_libraries(${TARGET} ${LIBRARY} ${SUB_DEPENDENCY_LIBRARIES})
+  get_target_property(LINKED_TARGET_DEPENDENCY_LIBRARIES ${LIBRARY} DEPENDENCY_LIBRARIES)
+  
+  if (LINKED_TARGET_DEPENDENCY_LIBRARIES)
+    target_link_libraries(${TARGET} ${LIBRARY} ${LINKED_TARGET_DEPENDENCY_LIBRARIES})
+  else ()
+    target_link_libraries(${TARGET} ${LIBRARY})
+  endif ()
+  
 endmacro(LINK_HIFI_LIBRARY _library _target _root_dir)
