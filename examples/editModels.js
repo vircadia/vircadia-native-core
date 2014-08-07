@@ -64,6 +64,13 @@ if (typeof String.prototype.fileName !== "function") {
     };
 }
 
+if (typeof String.prototype.fileBase !== "function") {
+    String.prototype.fileBase = function () {
+        var filename = this.fileName();
+        return filename.slice(0, filename.indexOf("."));
+    };
+}
+
 if (typeof String.prototype.fileType !== "function") {
     String.prototype.fileType = function () {
         return this.slice(this.lastIndexOf(".") + 1);
@@ -272,13 +279,14 @@ var httpMultiPart = (function () {
 
 var modelUploader = (function () {
     var that = {},
-        urlBase = "http://public.highfidelity.io/meshes/",
         modelFile,
         fstBuffer,
         fbxBuffer,
         svoBuffer,
         mapping,
         geometry,
+        API_URL = "https://data.highfidelity.io/api/v1/models",
+        MODEL_URL = "http://public.highfidelity.io/models/content",
         NAME_FIELD = "name",
         SCALE_FIELD = "scale",
         FILENAME_FIELD = "filename",
@@ -290,8 +298,8 @@ var modelUploader = (function () {
         MAX_TEXTURE_SIZE = 1024;
 
     function error(message) {
-        Window.alert(message);
         print(message);
+        Window.alert(message);
     }
 
     function resetDataObjects() {
@@ -460,57 +468,71 @@ var modelUploader = (function () {
     }
 
     function readModel() {
-        var fbxFilename;
+        var fbxFilename,
+            svoFilename,
+            fileType;
 
         print("Reading model file: " + modelFile);
 
-        if (modelFile.toLowerCase().slice(-4) === ".svo") {
-            svoBuffer = readFile(modelFile);
-            if (svoBuffer === null) {
+        if (modelFile.toLowerCase().slice(-4) === ".fst") {
+            fstBuffer = readFile(modelFile);
+            if (fstBuffer === null) {
                 return false;
             }
+            readMapping(fstBuffer);
+            fileType = mapping[FILENAME_FIELD].toLowerCase().fileType();
+            if (mapping.hasOwnProperty(FILENAME_FIELD)) {
+                if (fileType === "fbx") {
+                    fbxFilename = modelFile.path() + "\\" + mapping[FILENAME_FIELD];
+                } else if (fileType === "svo") {
+                    svoFilename = modelFile.path() + "\\" + mapping[FILENAME_FIELD];
+                } else {
+                    error("Unrecognized model type in FST file!");
+                    return false;
+                }
+            } else {
+                error("Model file name not found in FST file!");
+                return false;
+            }
+
+        } else if (modelFile.toLowerCase().slice(-4) === ".fbx") {
+            fbxFilename = modelFile;
+            mapping[FILENAME_FIELD] = modelFile.fileName();
+
+        } else if (modelFile.toLowerCase().slice(-4) === ".svo") {
+            svoFilename = modelFile;
+            mapping[FILENAME_FIELD] = modelFile.fileName();
 
         } else {
+            error("Unrecognized file type: " + modelFile);
+            return false;
+        }
 
-            if (modelFile.toLowerCase().slice(-4) === ".fst") {
-                fstBuffer = readFile(modelFile);
-                if (fstBuffer === null) {
-                    return false;
-                }
-                readMapping(fstBuffer);
-                if (mapping.hasOwnProperty(FILENAME_FIELD)) {
-                    fbxFilename = modelFile.path() + "\\" + mapping[FILENAME_FIELD];
-                } else {
-                    error("FBX file name not found in FST file!");
-                    return false;
-                }
-
-            } else if (modelFile.toLowerCase().slice(-4) === ".fbx") {
-                fbxFilename = modelFile;
-                mapping[FILENAME_FIELD] = modelFile.fileName();
-
-            } else {
-                error("Unrecognized file type: " + modelFile);
-                return false;
-            }
-
+        if (fbxFilename) {
             fbxBuffer = readFile(fbxFilename);
             if (fbxBuffer === null) {
                 return false;
             }
 
             readGeometry(fbxBuffer);
+        }
 
-            if (mapping.hasOwnProperty(SCALE_FIELD)) {
-                mapping[SCALE_FIELD] = parseFloat(mapping[SCALE_FIELD]);
-            } else {
-                mapping[SCALE_FIELD] = (geometry.author === "www.makehuman.org" ? 150.0 : 15.0);
+        if (svoFilename) {
+            svoBuffer = readFile(svoFilename);
+            if (svoBuffer === null) {
+                return false;
             }
+        }
+
+        if (mapping.hasOwnProperty(SCALE_FIELD)) {
+            mapping[SCALE_FIELD] = parseFloat(mapping[SCALE_FIELD]);
+        } else {
+            mapping[SCALE_FIELD] = (geometry.author === "www.makehuman.org" ? 150.0 : 15.0);
         }
 
         // Add any missing basic mappings
         if (!mapping.hasOwnProperty(NAME_FIELD)) {
-            mapping[NAME_FIELD] = modelFile.fileName().slice(0, -4);
+            mapping[NAME_FIELD] = modelFile.fileName().fileBase();
         }
         if (!mapping.hasOwnProperty(TEXDIR_FIELD)) {
             mapping[TEXDIR_FIELD] = ".";
@@ -626,6 +648,9 @@ var modelUploader = (function () {
         for (lodFile in mapping.lod) {
             if (mapping.lod.hasOwnProperty(lodFile)) {
                 lodBuffer = readFile(modelFile.path() + "\/" + lodFile);
+                if (lodBuffer === null) {
+                    return false;
+                }
                 httpMultiPart.add({
                     name: "lod" + lodCount,
                     buffer: lodBuffer
@@ -639,6 +664,9 @@ var modelUploader = (function () {
             textureBuffer = readFile(modelFile.path() + "\/"
                 + (mapping[TEXDIR_FIELD] !== "." ? mapping[TEXDIR_FIELD] + "\/" : "")
                 + geometry.textures[i]);
+            if (textureBuffer === null) {
+                return false;
+            }
 
             textureSourceFormat = geometry.textures[i].fileType().toLowerCase();
             textureTargetFormat = (textureSourceFormat === "jpg" ? "jpg" : "png");
@@ -654,7 +682,7 @@ var modelUploader = (function () {
         // Model category
         httpMultiPart.add({
             name : "model_category",
-            string : "item"  // DJRTODO: What model category to use?
+            string : "content"
         });
 
         return true;
