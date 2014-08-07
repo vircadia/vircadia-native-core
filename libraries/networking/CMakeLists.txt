@@ -11,10 +11,12 @@ setup_hifi_library(${TARGET_NAME})
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
-find_package(Qt5Network REQUIRED)
-set(DEPENDENCY_QT_MODULES Network)
-set(REQUIRED_DEPENDENCY_QT_MODULES ${DEPENDENCY_QT_MODULES} PARENT_SCOPE)
-qt5_use_modules(${TARGET_NAME} ${DEPENDENCY_QT_MODULES})
+find_package(Qt5Network)
+
+# bubble up the libraries we are dependent on and link them to ourselves
+set(REQUIRED_DEPENDENCY_LIBRARIES Qt5::Network)
+set(SUB_DEPENDENCY_LIBRARIES ${REQUIRED_DEPENDENCY_LIBRARIES} PARENT_SCOPE)
+target_link_libraries(${TARGET_NAME} ${REQUIRED_DEPENDENCY_LIBRARIES})
 
 # add a definition for ssize_t so that windows doesn't bail
 if (WIN32)

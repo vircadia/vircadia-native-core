@@ -6,8 +6,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME particles)
 
-find_package(Qt5Widgets REQUIRED)
-
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
@@ -20,12 +18,6 @@ link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
-
-# link ZLIB
-find_package(ZLIB)
-
-include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets)
 
 # add a definition for ssize_t so that windows doesn't bail
 if (WIN32)

@@ -6,9 +6,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME embedded-webserver)
 
-find_package(Qt5Network REQUIRED)
-
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
-target_link_libraries(${TARGET_NAME} Qt5::Network)
+find_package(Qt5Network REQUIRED)
+
+# bubble up the libraries we are dependent on and link them to ourselves
+set(REQUIRED_DEPENDENCY_LIBRARIES Qt5::Network)
+set(SUB_DEPENDENCY_LIBRARIES ${REQUIRED_DEPENDENCY_LIBRARIES} PARENT_SCOPE)
+target_link_libraries(${TARGET_NAME} ${REQUIRED_DEPENDENCY_LIBRARIES})

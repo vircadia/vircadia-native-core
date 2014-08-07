@@ -17,9 +17,5 @@ macro(LINK_HIFI_LIBRARY LIBRARY TARGET ROOT_DIR)
 
   add_dependencies(${TARGET} ${LIBRARY})
   
-  target_link_libraries(${TARGET} ${LIBRARY} ${REQUIRED_DEPENDENCY_LIBRARIES})
-  
-  if (REQUIRED_DEPENDENCY_QT_MODULES)
-    qt5_use_modules(${TARGET_NAME} ${REQUIRED_DEPENDENCY_QT_MODULES})
-  endif ()
+  target_link_libraries(${TARGET} ${LIBRARY} ${SUB_DEPENDENCY_LIBRARIES})
 endmacro(LINK_HIFI_LIBRARY _library _target _root_dir)

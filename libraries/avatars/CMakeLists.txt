@@ -6,8 +6,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME avatars)
 
-find_package(Qt5Script REQUIRED)
-
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
@@ -17,12 +15,9 @@ include_glm(${TARGET_NAME} "${ROOT_DIR}")
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 
-# link in the hifi voxels library
 link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
-
-target_link_libraries(${TARGET_NAME} Qt5::Script)
 
 # add a definition for ssize_t so that windows doesn't bail
 if (WIN32)

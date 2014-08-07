@@ -6,22 +6,16 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME animation)
 
-find_package(Qt5Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Script)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
-
-include(${MACRO_DIR}/IncludeGLM.cmake)
-include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
 
-# link ZLIB
-find_package(ZLIB)
-
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets)
+target_link_libraries(${TARGET_NAME} Qt5::Script)
 
 # add a definition for ssize_t so that windows doesn't bail
 if (WIN32)
