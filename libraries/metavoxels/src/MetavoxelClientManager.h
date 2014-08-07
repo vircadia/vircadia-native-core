@@ -37,13 +37,15 @@ public:
     SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const AttributePointer& attribute, float& distance);
 
+    bool findFirstRayHeightfieldIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
+
     Q_INVOKABLE void setSphere(const glm::vec3& center, float radius, const QColor& color = QColor(Qt::gray));
 
     Q_INVOKABLE void setSpanner(const SharedObjectPointer& object, bool reliable = false);
         
     Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
 
-    Q_INVOKABLE float getHeight(const glm::vec3& location);
+    Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
 
     /// Returns the current LOD.  This must be thread-safe, as it will be called from the updater thread.
     virtual MetavoxelLOD getLOD();

@@ -1103,7 +1103,7 @@ void HeightfieldBrushTool::render() {
     float distance = -origin.y / direction.y;
     glm::vec3 point = origin + distance * direction;
     
-    point.y = Application::getInstance()->getMetavoxels()->getHeight(point);
+    point.y = Application::getInstance()->getMetavoxels()->getHeightfieldHeight(point);
     
     glPushMatrix();
     glTranslatef(point.x, point.y, point.z);

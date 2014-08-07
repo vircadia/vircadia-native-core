@@ -61,6 +61,84 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
     return closestSpanner;
 }
 
+class RayHeightfieldIntersectionVisitor : public RayIntersectionVisitor {
+public:
+    
+    RayHeightfieldIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction, const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info, float distance);
+};
+
+RayHeightfieldIntersectionVisitor::RayHeightfieldIntersectionVisitor(const glm::vec3& origin,
+        const glm::vec3& direction, const MetavoxelLOD& lod) :
+    RayIntersectionVisitor(origin, direction, QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getHeightfieldAttribute(), QVector<AttributePointer>(), lod) {
+}
+
+static const float EIGHT_BIT_MAXIMUM_RECIPROCAL = 1.0f / 255.0f;
+
+int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
+    if (!info.isLeaf) {
+        return _order;
+    }
+    HeightfieldDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
+    if (!pointer) {
+        return STOP_RECURSION;
+    }
+    const QByteArray& contents = pointer->getContents();
+    const uchar* src = (const uchar*)contents.constData();
+    int size = glm::sqrt((float)contents.size());
+    int highest = size - 1;
+    float heightScale = highest / EIGHT_BIT_MAXIMUM_RECIPROCAL;
+    
+    // find the initial location
+    glm::vec3 location = (_origin + distance * _direction - info.minimum) * (float)highest / info.size;
+    
+    glm::vec3 floors = glm::floor(location);
+    glm::vec3 ceils = glm::ceil(location);
+    int floorX = qMin(qMax((int)floors.x, 0), highest);
+    int floorZ = qMin(qMax((int)floors.z, 0), highest);
+    int ceilX = qMin(qMax((int)ceils.x, 0), highest);
+    int ceilZ = qMin(qMax((int)ceils.z, 0), highest);
+    float upperLeft = src[floorZ * size + floorX] * heightScale;
+    float upperRight = src[floorZ * size + ceilX] * heightScale;
+    float lowerLeft = src[ceilZ * size + floorX] * heightScale;
+    float lowerRight = src[ceilZ * size + ceilX] * heightScale;
+    
+    glm::vec3 relativeLocation = location - glm::vec3(floors.x, upperLeft, floors.z);
+    
+    glm::vec3 lowerNormal(lowerLeft - lowerRight, 1.0f, upperLeft - lowerLeft);
+    float lowerProduct = glm::dot(lowerNormal, _direction);
+    if (lowerProduct < EPSILON) {
+        float distance = -glm::dot(lowerNormal, relativeLocation) / lowerProduct;
+        glm::vec3 intersection = relativeLocation + distance * _direction;
+        if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
+                intersection.z >= intersection.x) {
+            return SHORT_CIRCUIT;
+        }
+    }
+    
+    glm::vec3 upperNormal(upperLeft - upperRight, 1.0f, upperRight - lowerRight);
+    float upperProduct = glm::dot(upperNormal, _direction);
+    if (upperProduct < EPSILON) {
+        float distance = -glm::dot(upperNormal, relativeLocation) / upperProduct;
+        glm::vec3 intersection = relativeLocation + distance * _direction;
+        if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
+                intersection.x >= intersection.z) {
+            return SHORT_CIRCUIT;
+        }
+    }
+    
+    return STOP_RECURSION;
+}
+
+bool MetavoxelClientManager::findFirstRayHeightfieldIntersection(const glm::vec3& origin,
+        const glm::vec3& direction, float& distance) {
+    RayHeightfieldIntersectionVisitor visitor(origin, direction, getLOD());
+    guide(visitor);
+    return false;
+}
+
 void MetavoxelClientManager::setSphere(const glm::vec3& center, float radius, const QColor& color) {
     Sphere* sphere = new Sphere();
     sphere->setTranslation(center);
@@ -78,12 +156,12 @@ void MetavoxelClientManager::applyEdit(const MetavoxelEditMessage& edit, bool re
     QMetaObject::invokeMethod(_updater, "applyEdit", Q_ARG(const MetavoxelEditMessage&, edit), Q_ARG(bool, reliable));
 }
 
-class HeightVisitor : public MetavoxelVisitor {
+class HeightfieldHeightVisitor : public MetavoxelVisitor {
 public:
     
     float height;
     
-    HeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location);
+    HeightfieldHeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location);
     
     virtual int visit(MetavoxelInfo& info);
 
@@ -92,7 +170,7 @@ private:
     glm::vec3 _location;
 };
 
-HeightVisitor::HeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location) :
+HeightfieldHeightVisitor::HeightfieldHeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location) :
     MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute(),
         QVector<AttributePointer>(), lod),
     height(-FLT_MAX),
@@ -100,9 +178,8 @@ HeightVisitor::HeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location)
 }
 
 static const int REVERSE_ORDER = MetavoxelVisitor::encodeOrder(7, 6, 5, 4, 3, 2, 1, 0);
-static const float EIGHT_BIT_MAXIMUM_RECIPROCAL = 1.0f / 255.0f;
 
-int HeightVisitor::visit(MetavoxelInfo& info) {
+int HeightfieldHeightVisitor::visit(MetavoxelInfo& info) {
     glm::vec3 relative = _location - info.minimum;
     if (relative.x < 0.0f || relative.z < 0.0f || relative.x > info.size || relative.z > info.size ||
             height >= info.minimum.y + info.size) {
@@ -145,8 +222,8 @@ int HeightVisitor::visit(MetavoxelInfo& info) {
     return SHORT_CIRCUIT;
 }
 
-float MetavoxelClientManager::getHeight(const glm::vec3& location) {
-    HeightVisitor visitor(getLOD(), location);
+float MetavoxelClientManager::getHeightfieldHeight(const glm::vec3& location) {
+    HeightfieldHeightVisitor visitor(getLOD(), location);
     guide(visitor);
     return visitor.height;
 }
