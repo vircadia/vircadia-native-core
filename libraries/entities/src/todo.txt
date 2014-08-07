@@ -40,15 +40,32 @@ Model properties:
 
 // Things to do with entities...
 //
-// TODO:
+// REQUIRED TO DO:
+
+    A) add velocity, gravity, damping to entity base class
+    B) enable animation in model class
+    C) verify "update" works
+    D) update and verify all particle examples to use new entity features
+    E) memory leaks???
+   22) Import/Export Models - verify it works. /copy/paste??
+        22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
+        22b) Local Entities Overlay - from Local Models Overlay
+        22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
+        DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
+        DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
+
+    F) TODO: do we need to handle "killing" viewed entities as well???
+        void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID)...
 
 
-//   c) why does is the Box entity not drawn in it's bounds
-//   d) make the rotated model bounds work for other entity types?
-//   e) maybe make "hasGeometry" be a property of EntityItem base class??
+// NICE TO DO:
+
+//   G) why does is the Box entity not drawn in it's bounds
+//   H) make the rotated model bounds work for other entity types?
+//   I) maybe make "hasGeometry" be a property of EntityItem base class??
 
 
-//   0) handle subclass properties?
+//   J) handle subclass properties?
         
         We use properties for addEntity(id, props) -
             the result should be that the properties are not really understood by the tree, or element, but should be
@@ -97,10 +114,6 @@ Model properties:
 //   6) are we actually deleting the entities after deleteEntity???
         Looks like the server is not actually deleting the items, and so they get resent into the scene.
 
-//   8) addOrUpdateEntity()
-        this is inefficient and not needed, the properties should just be updated in entityItem, and in the case
-        of knowing you're moving to new element, just call addEntityItem()
-
 //   10) What's wrong with this picture... we have 3 entities in our map but all have been deleted!!!
 // [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] EntityTree::debugDumpMap() -------------------------- 
 // [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 1 , creatorTokenID: 2 , isKnownID: true ] :  0x7fd71be05970 
@@ -135,12 +148,6 @@ Model properties:
 //              for models - we've talked about storing them as voxels...
 //              for models - if we had access to mesh, we could use numerous mesh LOD algorithms out there
 
-//   22) Import/Export Models - verify it works. /copy/paste??
-        22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
-        22b) Local Entities Overlay - from Local Models Overlay
-        22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
-        DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
-        DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
         
         
 
@@ -214,3 +221,5 @@ Model properties:
 // SOLVED - 20) Verified that multiple machines viewing real time edits works - fixed bugs in lastEdited.
 // SOLVED - b) entities have same ID? unknown??? - wasn't setting ID on read from buffer...
 // SOLVED - a) crash in entity server on add entity? 
+// SOLVED - 8) addOrUpdateEntity()
+

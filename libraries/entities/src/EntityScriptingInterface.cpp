@@ -108,7 +108,9 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     // the actual id, because we can edit out local models just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
+        qDebug() << "EntityScriptingInterface::editEntity() ******* START _entityTree->updateEntity()...";
         _entityTree->updateEntity(entityID, properties);
+        qDebug() << "EntityScriptingInterface::editEntity() ******* DONE _entityTree->updateEntity()...";
         _entityTree->unlock();
     }
     return entityID;

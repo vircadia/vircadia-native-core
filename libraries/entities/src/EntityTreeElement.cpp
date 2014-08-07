@@ -400,62 +400,9 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
 }
 
 
-// TODO... how do we handle older/newer with this interface?
-// Look at getting rid of this, and moving this logic to Entity Tree
-// AND/OR remove the O(n) lookup for the entity since we know it should already exist in this
-// element list.
-bool EntityTreeElement::addOrUpdateEntity(EntityItem* entity, const EntityItemProperties& properties) {
-    const bool wantDebug = false;
-    if (wantDebug) {
-        EntityItemID entityItemID = entity->getEntityItemID();
-        qDebug() << "EntityTreeElement::updateEntity(entity) entityID.id="
-                        << entityItemID.id << "creatorTokenID=" << entityItemID.creatorTokenID;
-    }
-    
-    // NOTE: this method must first lookup the entity by ID, hence it is O(N)
-    // and "entity is not found" is worst-case (full N) but maybe we don't care?
-    // (guaranteed that num entities per elemen is small?)
-    uint16_t numberOfEntities = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem* thisEntity = (*_entityItems)[i];
-        if (thisEntity == entity) {
-            if (wantDebug) {
-                qDebug() << "found the entity";
-            }
-            thisEntity->setProperties(properties);
-            markWithChangedTime();
-
-            //qDebug() << "***** EntityTreeElement::addOrUpdateEntity() setting properties of existing entity... no need to setContainingElement()?????";
-            //qDebug() << "***** EntityTreeElement::addOrUpdateEntity() this=" << this;
-            //qDebug() << "***** EntityTreeElement::addOrUpdateEntity() _myTree->getContainingElement(entityID)=" << _myTree->getContainingElement(entity->getEntityItemID());
-
-            if (_myTree->getContainingElement(entity->getEntityItemID()) != this) {
-                qDebug() << "EntityTreeElement::addOrUpdateEntity() huh?? what??? looks like our containing element is wrong??";
-                _myTree->setContainingElement(entity->getEntityItemID(), this);
-                qDebug() << "EntityTreeElement::addOrUpdateEntity() CHANGED IT... NOW... _myTree->getContainingElement(entity->getEntityItemID())=" <<
-                        _myTree->getContainingElement(entity->getEntityItemID());
-            }
-            return true;
-        }
-    }
-    
-    // If we didn't find the entity here, then let's check to see if we should add it...
-    //qDebug() << "EntityTreeElement::addOrUpdateEntity() BEFORE _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
-    _entityItems->push_back(entity);
-    //qDebug() << "EntityTreeElement::addOrUpdateEntity() AFTER _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
-    entity->setProperties(properties); // still need to update the properties!
-    //qDebug() << "EntityTreeElement::addOrUpdateEntity() AFTER entity->setProperties(properties); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
-    markWithChangedTime();
-    // Since we're adding this item to this element, we need to let the tree know about it
-    //qDebug() << "EntityTreeElement::addOrUpdateEntity() _myTree->setContainingElement(entity->getEntityItemID(), this)........";
-    _myTree->setContainingElement(entity->getEntityItemID(), this);
-
-    return true;
-}
-
 // TODO: do we need to handle "killing" viewed entities as well???
 void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID) {
-    bool wantDebug = true;
+    bool wantDebug = false;
 
     if (wantDebug) {
         qDebug() << "EntityTreeElement::updateEntityItemID()... LOOKING FOR entity: " <<

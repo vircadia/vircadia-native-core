@@ -128,7 +128,9 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                            sequence, flightTime, packetLength, dataBytes, subsection, sectionLength,
                            packetData.getUncompressedSize());
                 }
+qDebug() << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
                 _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
+qDebug() << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
                 _tree->unlock();
             
                 dataBytes -= sectionLength;

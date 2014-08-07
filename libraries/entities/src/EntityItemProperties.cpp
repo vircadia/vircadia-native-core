@@ -114,7 +114,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
         properties.setProperty("id", _id);
         bool isKnownID = (_id != UNKNOWN_ENTITY_ID);
         properties.setProperty("isKnownID", isKnownID);
-qDebug() << "EntityItemProperties::copyToScriptValue()... isKnownID=" << isKnownID << "id=" << _id;
+//qDebug() << "EntityItemProperties::copyToScriptValue()... isKnownID=" << isKnownID << "id=" << _id;
     }
 
     properties.setProperty("type", EntityTypes::getEntityTypeName(_type));
@@ -159,9 +159,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     if (typeScriptValue.isValid()) {
         QString typeName;
         typeName = typeScriptValue.toVariant().toString();
-qDebug() << "EntityItemProperties::copyFromScriptValue()... typeName=" << typeName;
+//qDebug() << "EntityItemProperties::copyFromScriptValue()... typeName=" << typeName;
         _type = EntityTypes::getEntityTypeFromName(typeName);
-qDebug() << "EntityItemProperties::copyFromScriptValue()... _type=" << _type;
+//qDebug() << "EntityItemProperties::copyFromScriptValue()... _type=" << _type;
     }
 
     QScriptValue position = object.property("position");
@@ -249,7 +249,7 @@ qDebug() << "EntityItemProperties::copyFromScriptValue()... _type=" << _type;
         }
     }
     
-qDebug() << "EntityItemProperties::copyFromScriptValue().... _modelURL=" << _modelURL;    
+//qDebug() << "EntityItemProperties::copyFromScriptValue().... _modelURL=" << _modelURL;    
 
     QScriptValue animationURL = object.property("animationURL");
     if (animationURL.isValid()) {
