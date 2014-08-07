@@ -169,7 +169,7 @@ var httpMultiPart = (function () {
         crlf;
 
     function clear() {
-        boundaryString = "--boundary_" + Uuid.generate() + "=";
+        boundaryString = "--boundary_" + String(Uuid.generate()).slice(1, 36) + "=";
         parts = [];
         byteLength = 0;
         crlf = "";
