@@ -204,6 +204,7 @@ void MyAvatar::simulate(float deltaTime) {
             const int minError = 0.01f;
             const float maxIterations = 10;
             const quint64 maxUsec = 2000;
+            _physicsSimulation.setTranslation(_position);
             _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
         } else {
             _skeletonModel.moveShapesTowardJoints(1.0f);
@@ -230,12 +231,10 @@ void MyAvatar::simulate(float deltaTime) {
         } else {
             _trapDuration = 0.0f;
         }
-    /* TODO: Andrew to make this work
         if (_collisionGroups & COLLISION_GROUP_AVATARS) {
             PerformanceTimer perfTimer("avatars");
             updateCollisionWithAvatars(deltaTime);
         }
-    */
     }
 
     // consider updating our billboard
@@ -1566,13 +1565,11 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
             PhysicsSimulation* simulation = skeleton->getSimulation();
             if (avatar == nearestAvatar) {
                 if (simulation != &(_physicsSimulation)) {
-                    std::cout << "adebug adding other avatar " << avatar << " to simulation" << std::endl;  // adebug
                     skeleton->setEnableShapes(true);
                     _physicsSimulation.addEntity(skeleton);
                     _physicsSimulation.addRagdoll(skeleton);
                 }
             } else if (simulation == &(_physicsSimulation)) {
-                std::cout << "adebug removing other avatar " << avatar << " from simulation" << std::endl;  // adebug
                 _physicsSimulation.removeRagdoll(skeleton);
                 _physicsSimulation.removeEntity(skeleton);
                 skeleton->setEnableShapes(false);

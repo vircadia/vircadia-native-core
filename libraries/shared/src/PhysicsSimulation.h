@@ -31,7 +31,7 @@ public:
     void setTranslation(const glm::vec3& translation) { _translation = translation; }
     const glm::vec3& getTranslation() const { return _translation; }
 
-    void setRagdoll(Ragdoll* ragdoll) { _ragdoll = ragdoll; }
+    void setRagdoll(Ragdoll* ragdoll);
     void setEntity(PhysicsEntity* entity);
 
     /// \return true if entity was added to or is already in the list

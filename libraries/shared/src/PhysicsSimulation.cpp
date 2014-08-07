@@ -44,6 +44,19 @@ PhysicsSimulation::~PhysicsSimulation() {
     _otherRagdolls.clear();
 }
 
+void PhysicsSimulation::setRagdoll(Ragdoll* ragdoll) { 
+    if (_ragdoll != ragdoll) {
+        if (_ragdoll) {
+            _ragdoll->_ragdollSimulation = NULL;
+        }
+        _ragdoll = ragdoll;
+        if (_ragdoll) {
+            assert(!(_ragdoll->_ragdollSimulation));
+            _ragdoll->_ragdollSimulation = this;
+        }
+    }
+}
+
 void PhysicsSimulation::setEntity(PhysicsEntity* entity) {
     if (_entity != entity) {
         if (_entity) {
@@ -79,6 +92,7 @@ bool PhysicsSimulation::addEntity(PhysicsEntity* entity) {
         return false;
     }
     // add to list
+    assert(!(entity->_simulation));
     entity->_simulation = this;
     _otherEntities.push_back(entity);
     return true;
@@ -128,19 +142,26 @@ bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
         // list is full
         return false;
     }
-    for (int i = 0; i < numDolls; ++i) {
-        if (doll == _otherRagdolls[i]) {
-            // already in list
-            return true;
+    if (doll->_ragdollSimulation == this) {
+        for (int i = 0; i < numDolls; ++i) {
+            if (doll == _otherRagdolls[i]) {
+                // already in list
+                return true;
+            }
         }
     }
     // add to list
+    assert(!(doll->_ragdollSimulation));
+    doll->_ragdollSimulation = this;
     _otherRagdolls.push_back(doll);
     return true;
 }
 
 void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
     int numDolls = _otherRagdolls.size();
+    if (doll->_ragdollSimulation != this) {
+        return;
+    }
     for (int i = 0; i < numDolls; ++i) {
         if (doll == _otherRagdolls[i]) {
             if (i == numDolls - 1) {
@@ -152,6 +173,7 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
                 _otherRagdolls.pop_back();
                 _otherRagdolls[i] = lastDoll;
             }
+            doll->_ragdollSimulation = NULL;
             break;
         }
     }
