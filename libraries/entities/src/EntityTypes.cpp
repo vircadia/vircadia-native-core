@@ -23,7 +23,8 @@
 
 QMap<EntityTypes::EntityType_t, QString> EntityTypes::_typeToNameMap;
 QMap<QString, EntityTypes::EntityType_t> EntityTypes::_nameToTypeMap;
-QMap<EntityTypes::EntityType_t, EntityTypeFactory> EntityTypes::_typeToFactoryMap;
+EntityTypeFactory EntityTypes::_factories[EntityTypes::LAST];
+bool EntityTypes::_factoriesInitialized = false;
 EntityTypeRenderer EntityTypes::_renderers[EntityTypes::LAST];
 bool EntityTypes::_renderersInitialized = false;
 
@@ -62,7 +63,11 @@ bool EntityTypes::registerEntityType(EntityType_t entityType, const char* name, 
     
     _typeToNameMap[entityType] = name;
     _nameToTypeMap[name] = entityType;
-    _typeToFactoryMap[entityType] = factoryMethod;
+    if (!_factoriesInitialized) {
+        memset(&_factories,0,sizeof(_factories));
+        _factoriesInitialized = true;
+    }
+    _factories[entityType] = factoryMethod;
     return true;
 }
 
@@ -72,11 +77,8 @@ EntityItem* EntityTypes::constructEntityItem(EntityType_t entityType, const Enti
     qDebug() << "   entityID=" << entityID;
 
     EntityItem* newEntityItem = NULL;
-
-    QMap<EntityTypes::EntityType_t, EntityTypeFactory>::iterator matchedType = _typeToFactoryMap.find(entityType);
-    if (matchedType != _typeToFactoryMap.end()) {
-        EntityTypeFactory factory = matchedType.value();
-        
+    EntityTypeFactory factory = _factories[entityType];
+    if (factory) {
         newEntityItem = factory(entityID, properties);
     }
     return newEntityItem;

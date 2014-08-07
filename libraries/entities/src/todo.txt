@@ -43,8 +43,10 @@ Model properties:
 // TODO:
 
 
-//   a) crash in entity server on add entity? 
-//   b) entities have same ID? unknown???
+//   c) why does is the Box entity not drawn in it's bounds
+//   d) make the rotated model bounds work for other entity types?
+//   e) maybe make "hasGeometry" be a property of EntityItem base class??
+
 
 //   0) handle subclass properties?
         
@@ -150,7 +152,8 @@ Model properties:
 
 
 //   25) consider moving the EntityTypes static Maps to be inside a singleton instance of EntityTypes to ensure initialization order
-//   26) Why can't we call REGISTER_ENTITY_TYPE() in BoxEntityType.cpp
+//   26) Why can't we call REGISTER_ENTITY_TYPE() in BoxEntityType.cpp or the CPP of the implementation?
+//   27) Consider making properties of the entities be registered... and handle their streaming in a more automatice fashion
 
 
 
@@ -209,4 +212,5 @@ Model properties:
 // SOLVED - 16) duplicate copies of entity references in the elements... this appears to be caused when "viewing" while editing...
 // SOLVED - 17) Handle the newer on client vs changed on server problem properly for entities
 // SOLVED - 20) Verified that multiple machines viewing real time edits works - fixed bugs in lastEdited.
-
+// SOLVED - b) entities have same ID? unknown??? - wasn't setting ID on read from buffer...
+// SOLVED - a) crash in entity server on add entity? 

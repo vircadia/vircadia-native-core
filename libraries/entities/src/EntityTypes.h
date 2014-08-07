@@ -54,7 +54,8 @@ public:
 private:
     static QMap<EntityType_t, QString> _typeToNameMap;
     static QMap<QString, EntityTypes::EntityType_t> _nameToTypeMap;
-    static QMap<EntityType_t, EntityTypeFactory> _typeToFactoryMap;
+    static EntityTypeFactory _factories[LAST];
+    static bool _factoriesInitialized;
     static EntityTypeRenderer _renderers[LAST];
     static bool _renderersInitialized;
 };
