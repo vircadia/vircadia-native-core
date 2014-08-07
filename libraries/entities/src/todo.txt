@@ -53,6 +53,8 @@ Model properties:
    13) support sitpoints
    
     K) verify shadows work
+    
+    L) sometimes assert/crashes in server about containing element? I think we're adding entityIDs with UNKNOWN_ID to our maps
 
 
 // NICE TO DO:
