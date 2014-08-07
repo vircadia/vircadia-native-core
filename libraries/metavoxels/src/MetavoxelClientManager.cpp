@@ -92,7 +92,7 @@ int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance
     const uchar* src = (const uchar*)contents.constData();
     int size = glm::sqrt((float)contents.size());
     int highest = size - 1;
-    float heightScale = highest / EIGHT_BIT_MAXIMUM_RECIPROCAL;
+    float heightScale = highest * EIGHT_BIT_MAXIMUM_RECIPROCAL;
     
     // find the initial location in heightfield coordinates
     glm::vec3 entry = (_origin + distance * _direction - info.minimum) * (float)highest / info.size;

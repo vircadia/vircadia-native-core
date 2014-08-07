@@ -1104,7 +1104,6 @@ void HeightfieldBrushTool::render() {
     if (!Application::getInstance()->getMetavoxels()->findFirstRayHeightfieldIntersection(origin, direction, distance)) {
         return;
     }
-    qDebug() << distance;
     glm::vec3 point = origin + distance * direction;
     
     glPushMatrix();
@@ -1112,7 +1111,7 @@ void HeightfieldBrushTool::render() {
     
     glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
     
-    glutSolidSphere(0.1f, 8, 8);
+    glutSolidSphere(1.0f, 8, 8);
     
     glPopMatrix();
 }
