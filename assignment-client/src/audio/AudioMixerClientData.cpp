@@ -73,9 +73,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
                 quint8 channelFlag = *(reinterpret_cast<const quint8*>(channelFlagAt));
                 bool isStereo = channelFlag == 1;
 
-                _audioStreams.insert(nullUUID,
-                    matchingStream = new AvatarAudioStream(isStereo, AudioMixer::getUseDynamicJitterBuffers(),
-                    AudioMixer::getStaticDesiredJitterBufferFrames(), AudioMixer::getMaxFramesOverDesired()));
+                _audioStreams.insert(nullUUID, matchingStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings()));
             } else {
                 matchingStream = _audioStreams.value(nullUUID);
             }
@@ -87,9 +85,8 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             QUuid streamIdentifier = QUuid::fromRfc4122(packet.mid(bytesBeforeStreamIdentifier, NUM_BYTES_RFC4122_UUID));
 
             if (!_audioStreams.contains(streamIdentifier)) {
-                _audioStreams.insert(streamIdentifier,
-                    matchingStream = new InjectedAudioStream(streamIdentifier, AudioMixer::getUseDynamicJitterBuffers(),
-                    AudioMixer::getStaticDesiredJitterBufferFrames(), AudioMixer::getMaxFramesOverDesired()));
+                // we don't have this injected stream yet, so add it
+                _audioStreams.insert(streamIdentifier, matchingStream = new InjectedAudioStream(streamIdentifier, AudioMixer::getStreamSettings()));
             } else {
                 matchingStream = _audioStreams.value(streamIdentifier);
             }

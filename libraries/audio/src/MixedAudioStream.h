@@ -17,7 +17,7 @@
 
 class MixedAudioStream : public InboundAudioStream {
 public:
-    MixedAudioStream(int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, int maxFramesOverDesired, bool useStDevForJitterCalc);
+    MixedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings);
 
     float getNextOutputFrameLoudness() const { return _ringBuffer.getNextOutputFrameLoudness(); }
 

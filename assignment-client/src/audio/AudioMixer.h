@@ -37,9 +37,7 @@ public slots:
     
     void sendStatsPacket();
 
-    static bool getUseDynamicJitterBuffers() { return _useDynamicJitterBuffers; }
-    static int getStaticDesiredJitterBufferFrames() { return _staticDesiredJitterBufferFrames; }
-    static int getMaxFramesOverDesired() { return _maxFramesOverDesired; }
+    static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }
 
 private:
     /// adds one stream to the mix for a listening node
@@ -62,9 +60,7 @@ private:
     AABox* _sourceUnattenuatedZone;
     AABox* _listenerUnattenuatedZone;
 
-    static bool _useDynamicJitterBuffers;
-    static int _staticDesiredJitterBufferFrames;
-    static int _maxFramesOverDesired;
+    static InboundAudioStream::Settings _streamSettings;
 
     quint64 _lastSendAudioStreamStatsTime;
 };

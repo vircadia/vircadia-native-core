@@ -67,9 +67,7 @@ void attachNewNodeDataToNode(Node *newNode) {
     }
 }
 
-bool AudioMixer::_useDynamicJitterBuffers = false;
-int AudioMixer::_staticDesiredJitterBufferFrames = 0;
-int AudioMixer::_maxFramesOverDesired = 0;
+InboundAudioStream::Settings AudioMixer::_streamSettings;
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
@@ -332,7 +330,7 @@ void AudioMixer::readPendingDatagrams() {
 void AudioMixer::sendStatsPacket() {
     static QJsonObject statsObject;
     
-    statsObject["useDynamicJitterBuffers"] = _useDynamicJitterBuffers;
+    statsObject["useDynamicJitterBuffers"] = _streamSettings._dynamicJitterBuffers;
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
@@ -421,36 +419,62 @@ void AudioMixer::run() {
     if (settingsObject.contains(AUDIO_GROUP_KEY)) {
         QJsonObject audioGroupObject = settingsObject[AUDIO_GROUP_KEY].toObject();
         
-        // check the payload to see if we have asked for dynamicJitterBuffer support
-        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "A-dynamic-jitter-buffer";
-        bool shouldUseDynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
-        if (shouldUseDynamicJitterBuffers) {
-            qDebug() << "Enable dynamic jitter buffers.";
-            _useDynamicJitterBuffers = true;
-        } else {
-            qDebug() << "Dynamic jitter buffers disabled.";
-            _useDynamicJitterBuffers = false;
-        }
-
         bool ok;
 
-        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "B-desired-jitter-buffer-frames";
-        _staticDesiredJitterBufferFrames = audioGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _staticDesiredJitterBufferFrames = DEFAULT_DESIRED_JITTER_BUFFER_FRAMES;
+        // check the payload to see if we have asked for dynamicJitterBuffer support
+        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "A-dynamic-jitter-buffer";
+        _streamSettings._dynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
+        if (_streamSettings._dynamicJitterBuffers) {
+            qDebug() << "Enable dynamic jitter buffers.";
+        } else {
+            qDebug() << "Dynamic jitter buffers disabled.";
         }
-        qDebug() << "Static desired jitter buffer frames:" << _staticDesiredJitterBufferFrames;
+
+        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "B-desired-jitter-buffer-frames";
+        _streamSettings._staticDesiredJitterBufferFrames = audioGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._staticDesiredJitterBufferFrames = DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES;
+        }
+        qDebug() << "Static desired jitter buffer frames:" << _streamSettings._staticDesiredJitterBufferFrames;
 
         const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "C-max-frames-over-desired";
-        _maxFramesOverDesired = audioGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
+        _streamSettings._maxFramesOverDesired = audioGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
         if (!ok) {
-            _maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
+            _streamSettings._maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
         }
-        qDebug() << "Max frames over desired:" << _maxFramesOverDesired;
+        qDebug() << "Max frames over desired:" << _streamSettings._maxFramesOverDesired;
+
+        const QString USE_STDEV_FOR_DESIRED_CALC_JSON_KEY = "D-use-stdev-for-desired-calc";
+        _streamSettings._useStDevForJitterCalc = audioGroupObject[USE_STDEV_FOR_DESIRED_CALC_JSON_KEY].toBool();
+        if (_streamSettings._useStDevForJitterCalc) {
+            qDebug() << "Using Philip's stdev method for jitter calc if dynamic jitter buffers enabled";
+        } else {
+            qDebug() << "Using Fred's max-gap method for jitter calc if dynamic jitter buffers enabled";
+        }
+
+        const QString WINDOW_STARVE_THRESHOLD_JSON_KEY = "E-window-starve-threshold";
+        _streamSettings._windowStarveThreshold = audioGroupObject[WINDOW_STARVE_THRESHOLD_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowStarveThreshold = DEFAULT_WINDOW_STARVE_THRESHOLD;
+        }
+        qDebug() << "Window A starve threshold:" << _streamSettings._windowStarveThreshold;
+
+        const QString WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY = "F-window-seconds-for-desired-calc-on-too-many-starves";
+        _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = audioGroupObject[WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES;
+        }
+        qDebug() << "Window A length:" << _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves << "seconds";
+
+        const QString WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY = "G-window-seconds-for-desired-reduction";
+        _streamSettings._windowSecondsForDesiredReduction = audioGroupObject[WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowSecondsForDesiredReduction = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION;
+        }
+        qDebug() << "Window B length:" << _streamSettings._windowSecondsForDesiredReduction << "seconds";
 
 
-
-        const QString UNATTENUATED_ZONE_KEY = "D-unattenuated-zone";
+        const QString UNATTENUATED_ZONE_KEY = "Z-unattenuated-zone";
 
         QString unattenuatedZoneString = audioGroupObject[UNATTENUATED_ZONE_KEY].toString();
         if (!unattenuatedZoneString.isEmpty()) {

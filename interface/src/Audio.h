@@ -71,10 +71,7 @@ public:
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
     virtual void startDrumSound(float volume, float frequency, float duration, float decay);
 
-    void setDynamicJitterBuffers(bool dynamicJitterBuffers) { _receivedAudioStream.setDynamicJitterBuffers(dynamicJitterBuffers); }
-    void setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames) { _receivedAudioStream.setStaticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames); }
-
-    void setMaxFramesOverDesired(int maxFramesOverDesired) { _receivedAudioStream.setMaxFramesOverDesired(maxFramesOverDesired); }
+    void setReceivedAudioStreamSettings(const InboundAudioStream::Settings& settings) { _receivedAudioStream.setSettings(settings); }
 
     int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
     

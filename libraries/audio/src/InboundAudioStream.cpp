@@ -38,6 +38,7 @@ InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacit
     _timeGapStatsForDesiredReduction(0, settings._windowSecondsForDesiredReduction),
     _starveHistoryWindowSeconds(settings._windowSecondsForDesiredCalcOnTooManyStarves),
     _starveHistory(STARVE_HISTORY_CAPACITY),
+    _starveThreshold(settings._windowStarveThreshold),
     _framesAvailableStat(),
     _currentJitterBufferFrames(0),
     _timeGapStatsForStatsPacket(0, STATS_FOR_STATS_PACKET_WINDOW_SECONDS)
@@ -237,6 +238,16 @@ void InboundAudioStream::setToStarved() {
     _isStarved = (_ringBuffer.framesAvailable() < _desiredJitterBufferFrames);
 }
 
+void InboundAudioStream::setSettings(const Settings& settings) {
+    setMaxFramesOverDesired(settings._maxFramesOverDesired);
+    setDynamicJitterBuffers(settings._dynamicJitterBuffers);
+    setStaticDesiredJitterBufferFrames(settings._staticDesiredJitterBufferFrames);
+    setUseStDevForJitterCalc(settings._useStDevForJitterCalc);
+    setWindowStarveThreshold(settings._windowStarveThreshold);
+    setWindowSecondsForDesiredCalcOnTooManyStarves(settings._windowSecondsForDesiredCalcOnTooManyStarves);
+    setWindowSecondsForDesiredReduction(settings._windowSecondsForDesiredReduction);
+}
+
 void InboundAudioStream::setDynamicJitterBuffers(bool dynamicJitterBuffers) {
     if (!dynamicJitterBuffers) {
         _desiredJitterBufferFrames = _staticDesiredJitterBufferFrames;
@@ -254,6 +265,15 @@ void InboundAudioStream::setStaticDesiredJitterBufferFrames(int staticDesiredJit
         _desiredJitterBufferFrames = _staticDesiredJitterBufferFrames;
     }
 }
+
+void InboundAudioStream::setWindowSecondsForDesiredCalcOnTooManyStarves(int windowSecondsForDesiredCalcOnTooManyStarves) {
+    _timeGapStatsForDesiredCalcOnTooManyStarves.setWindowIntervals(windowSecondsForDesiredCalcOnTooManyStarves);
+}
+
+void InboundAudioStream::setWindowSecondsForDesiredReduction(int windowSecondsForDesiredReduction) {
+    _timeGapStatsForDesiredReduction.setWindowIntervals(windowSecondsForDesiredReduction);
+}
+
 
 int InboundAudioStream::clampDesiredJitterBufferFramesValue(int desired) const {
     const int MIN_FRAMES_DESIRED = 0;

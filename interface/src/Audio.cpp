@@ -73,7 +73,7 @@ Audio::Audio(QObject* parent) :
     _proceduralAudioOutput(NULL),
     _proceduralOutputDevice(NULL),
     _inputRingBuffer(0),
-    _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, true, 0, 0, true),
+    _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, InboundAudioStream::Settings()),
     _isStereoInput(false),
     _averagedLatency(0.0),
     _lastInputLoudness(0),
@@ -840,12 +840,11 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
 
 void Audio::sendDownstreamAudioStatsPacket() {
 
-    // since this function is called every second, we'll sample some of our stats here
-
+    // since this function is called every second, we'll sample for some of our stats here
     _inputRingBufferMsecsAvailableStats.update(getInputRingBufferMsecsAvailable());
-
     _audioOutputMsecsUnplayedStats.update(getAudioOutputMsecsUnplayed());
 
+    // also, call _receivedAudioStream's per-second callback
     _receivedAudioStream.perSecondCallbackForUpdatingStats();
 
     char packet[MAX_PACKET_SIZE];

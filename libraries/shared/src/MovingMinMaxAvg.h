@@ -103,6 +103,15 @@ public:
         _newStatsAvailable = false;
     }
 
+    void setWindowIntervals(int windowIntervals) {
+        _windowIntervals = windowIntervals;
+        _overallStats.reset();
+        _windowStats.reset();
+        _currentIntervalStats.reset();
+        _intervalStats.setCapacity(_windowIntervals);
+        _newStatsAvailable = false;
+    }
+
     void update(T newSample) {
         // update overall stats
         _overallStats.update(newSample);

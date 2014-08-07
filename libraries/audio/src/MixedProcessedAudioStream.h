@@ -17,7 +17,7 @@
 class MixedProcessedAudioStream  : public InboundAudioStream {
     Q_OBJECT
 public:
-    MixedProcessedAudioStream (int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, int maxFramesOverDesired, bool useStDevForJitterCalc);
+    MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings);
 
 signals:
     

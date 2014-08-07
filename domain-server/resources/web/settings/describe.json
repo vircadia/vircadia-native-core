@@ -21,7 +21,31 @@
         "placeholder": "10",
         "default": "10"
       },
-	  "D-unattenuated-zone": {
+	  "D-use-stdev": {
+	    "type": "checkbox",
+        "label": "Use Stdev for Desired Jitter Frames Calc:",
+        "help": "If checked, Philip's method (stdev of timegaps) is used to calculate desired jitter frames. Otherwise, Fred's method (max timegap) is used",
+        "default": false
+	  }
+	  "E-window-starve-threshold": {
+        "label": "Window Starve Threshold",
+        "help": "If this many starves occur in an N-second window (N is the number in the next field), then the desired jitter frames will be re-evaluated using Window A.",
+        "placeholder": "3",
+        "default": "3"
+      },
+	  "F-window-seconds-for-desired-calc-on-too-many-starves": {
+		"label": "Timegaps Window (A) Seconds:",
+        "help": "Window A contains a history of timegaps. Its max timegap is used to re-evaluate the desired jitter frames when too many starves occur within it.",
+        "placeholder": "50",
+        "default": "50"
+      },
+	  "G-window-seconds-for-desired-reduction": {
+		"label": "Timegaps Window (B) Seconds:",
+        "help": "Window B contains a history of timegaps. Its max timegap is used as a ceiling for the desired jitter frames value.",
+        "placeholder": "10",
+        "default": "10"
+	  },
+	  "Z-unattenuated-zone": {
         "label": "Unattenuated Zone",
         "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
         "placeholder": "no zone",

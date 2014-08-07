@@ -39,7 +39,9 @@ const int FRAMES_AVAILABLE_STAT_WINDOW_USECS = 2 * USECS_PER_SECOND;
 const int INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
 const int DEFAULT_MAX_FRAMES_OVER_DESIRED = 10;
-const int DEFAULT_DESIRED_JITTER_BUFFER_FRAMES = 1;
+const bool DEFAULT_DYNAMIC_JITTER_BUFFERS = true;
+const int DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES = 1;
+const bool DEFAULT_USE_STDEV_FOR_JITTER_CALC = false;
 
 const int DEFAULT_WINDOW_STARVE_THRESHOLD = 3;
 const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES = 50;
@@ -52,12 +54,24 @@ public:
     public:
         Settings()
             : _maxFramesOverDesired(DEFAULT_MAX_FRAMES_OVER_DESIRED),
-            _dynamicJitterBuffers(true),
-            _staticDesiredJitterBufferFrames(DEFAULT_DESIRED_JITTER_BUFFER_FRAMES),
-            _useStDevForJitterCalc(false),
+            _dynamicJitterBuffers(DEFAULT_DYNAMIC_JITTER_BUFFERS),
+            _staticDesiredJitterBufferFrames(DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES),
+            _useStDevForJitterCalc(DEFAULT_USE_STDEV_FOR_JITTER_CALC),
             _windowStarveThreshold(DEFAULT_WINDOW_STARVE_THRESHOLD),
             _windowSecondsForDesiredCalcOnTooManyStarves(DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES),
             _windowSecondsForDesiredReduction(DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION)
+        {}
+
+        Settings(int maxFramesOverDesired, bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames,
+            bool useStDevForJitterCalc, int windowStarveThreshold, int windowSecondsForDesiredCalcOnTooManyStarves,
+            int _windowSecondsForDesiredReduction)
+            : _maxFramesOverDesired(maxFramesOverDesired),
+            _dynamicJitterBuffers(dynamicJitterBuffers),
+            _staticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames),
+            _useStDevForJitterCalc(useStDevForJitterCalc),
+            _windowStarveThreshold(windowStarveThreshold),
+            _windowSecondsForDesiredCalcOnTooManyStarves(windowSecondsForDesiredCalcOnTooManyStarves),
+            _windowSecondsForDesiredReduction(windowSecondsForDesiredCalcOnTooManyStarves)
         {}
 
         // max number of frames over desired in the ringbuffer.
@@ -95,15 +109,17 @@ public:
 
     void setToStarved();
 
-    
-    void setDynamicJitterBuffers(bool dynamicJitterBuffers);
-    void setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames);
 
-    /// this function should be called once per second to ensure the seq num stats history spans ~30 seconds
-    //AudioStreamStats updateSeqHistoryAndGetAudioStreamStats();
-
+    void setSettings(const Settings& settings);
 
     void setMaxFramesOverDesired(int maxFramesOverDesired) { _maxFramesOverDesired = maxFramesOverDesired; }
+    void setDynamicJitterBuffers(bool setDynamicJitterBuffers);
+    void setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames);
+    void setUseStDevForJitterCalc(bool useStDevForJitterCalc) { _useStDevForJitterCalc = useStDevForJitterCalc; }
+    void setWindowStarveThreshold(int windowStarveThreshold) { _starveThreshold = windowStarveThreshold; }
+    void setWindowSecondsForDesiredCalcOnTooManyStarves(int windowSecondsForDesiredCalcOnTooManyStarves);
+    void setWindowSecondsForDesiredReduction(int windowSecondsForDesiredReduction);
+    
 
     virtual AudioStreamStats getAudioStreamStats() const;
 
@@ -205,6 +221,7 @@ protected:
 
     int _starveHistoryWindowSeconds;
     RingBufferHistory<quint64> _starveHistory;
+    int _starveThreshold;
 
     TimeWeightedAvg<int> _framesAvailableStat;
 

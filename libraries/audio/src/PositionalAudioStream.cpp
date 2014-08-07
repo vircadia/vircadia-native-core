@@ -21,10 +21,9 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 
-PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, bool dynamicJitterBuffers,
-    int staticDesiredJitterBufferFrames, int maxFramesOverDesired) :
+PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, const InboundAudioStream::Settings& settings) :
     InboundAudioStream(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-    AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, dynamicJitterBuffers, staticDesiredJitterBufferFrames, maxFramesOverDesired),
+    AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, settings),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),

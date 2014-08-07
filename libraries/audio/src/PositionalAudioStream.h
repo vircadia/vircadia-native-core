@@ -27,8 +27,7 @@ public:
         Injector
     };
 
-    PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, 
-        int maxFramesOverDesired);
+    PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, const InboundAudioStream::Settings& settings);
     
     virtual AudioStreamStats getAudioStreamStats() const;
 

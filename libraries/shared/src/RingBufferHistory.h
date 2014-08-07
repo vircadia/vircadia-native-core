@@ -35,6 +35,14 @@ public:
         _numEntries = 0;
     }
 
+    void setCapacity(int capacity) {
+        _size = capacity + 1;
+        _capacity = capacity;
+        _newestEntryAtIndex = 0;
+        _numEntries = 0;
+        _buffer.resize(_size);
+    }
+
     void insert(const T& entry) {
         // increment newest entry index cyclically
         _newestEntryAtIndex = (_newestEntryAtIndex == _size - 1) ? 0 : _newestEntryAtIndex + 1;

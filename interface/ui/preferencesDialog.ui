@@ -1464,6 +1464,97 @@ padding: 10px;margin-top:10px</string>
        </item>
       </layout>
      </item>
+
+        <!-- dynamic jitter buffers ____________________________________________________________________________ -->
+        <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_23">
+                <property name="spacing">
+                    <number>0</number>
+                </property>
+                <property name="topMargin">
+                    <number>10</number>
+                </property>
+                <property name="rightMargin">
+                    <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                    <number>10</number>
+                </property>
+                <item>
+                    <widget class="QLabel" name="label_20">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="styleSheet">
+                            <string notr="true">color: rgb(51, 51, 51)</string>
+                        </property>
+                        <property name="text">
+                            <string>Enable Dynamic Jitter Buffers</string>
+                        </property>
+                        <property name="indent">
+                            <number>15</number>
+                        </property>
+                        <property name="buddy">
+                            <cstring>dynamicJitterBuffersCheckBox</cstring>
+                        </property>
+                    </widget>
+                </item>
+                <item>
+                    <spacer name="horizontalSpacer_17">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                            <size>
+                                <width>40</width>
+                                <height>20</height>
+                            </size>
+                        </property>
+                    </spacer>
+                </item>
+                <item>
+                    <widget class="QCheckBox" name="dynamicJitterBuffersCheckBox">
+                        <property name="sizePolicy">
+                            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                            </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>32</width>
+                                <height>0</height>
+                            </size>
+                        </property>
+                        <property name="baseSize">
+                            <size>
+                                <width>0</width>
+                                <height>0</height>
+                            </size>
+                        </property>
+                        <property name="text">
+                            <string/>
+                        </property>
+                        <property name="iconSize">
+                            <size>
+                                <width>32</width>
+                                <height>32</height>
+                            </size>
+                        </property>
+                    </widget>
+                </item>
+            </layout>
+        </item>
+        
+
+        <!-- static desired jitter frames____________________________________________________________________________ -->
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_8">
        <property name="spacing">
@@ -1489,13 +1580,13 @@ padding: 10px;margin-top:10px</string>
           <string notr="true">color: rgb(51, 51, 51)</string>
          </property>
          <property name="text">
-          <string>Audio Jitter Buffer Frames (0 for automatic)</string>
+          <string>Static Jitter Buffer Frames</string>
          </property>
          <property name="indent">
           <number>15</number>
          </property>
          <property name="buddy">
-          <cstring>audioJitterSpin</cstring>
+          <cstring>staticDesiredJitterBufferFramesSpin</cstring>
          </property>
         </widget>
        </item>
@@ -1518,7 +1609,7 @@ padding: 10px;margin-top:10px</string>
         </spacer>
        </item>
        <item>
-        <widget class="QSpinBox" name="audioJitterSpin">
+        <widget class="QSpinBox" name="staticDesiredJitterBufferFramesSpin">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
            <horstretch>0</horstretch>
@@ -1555,6 +1646,7 @@ padding: 10px;margin-top:10px</string>
        </item>
       </layout>
      </item>
+        <!-- max frames over desired ____________________________________________________________________________ -->
      <item>
         <layout class="QHBoxLayout" name="horizontalLayout_13">
             <property name="spacing">
@@ -1646,7 +1738,378 @@ padding: 10px;margin-top:10px</string>
             </item>
         </layout>
     </item>
-        
+
+
+        <!-- use stdev for jitter calc ____________________________________________________________________________ -->
+        <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_19">
+                <property name="spacing">
+                    <number>0</number>
+                </property>
+                <property name="topMargin">
+                    <number>10</number>
+                </property>
+                <property name="rightMargin">
+                    <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                    <number>10</number>
+                </property>
+                <item>
+                    <widget class="QLabel" name="label_16">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="styleSheet">
+                            <string notr="true">color: rgb(51, 51, 51)</string>
+                        </property>
+                        <property name="text">
+                            <string>Use Stdev for Dynamic Jitter Calc</string>
+                        </property>
+                        <property name="indent">
+                            <number>15</number>
+                        </property>
+                        <property name="buddy">
+                            <cstring>useStdevForJitterCalcCheckBox</cstring>
+                        </property>
+                    </widget>
+                </item>
+                <item>
+                    <spacer name="horizontalSpacer_17">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                            <size>
+                                <width>40</width>
+                                <height>20</height>
+                            </size>
+                        </property>
+                    </spacer>
+                </item>
+                <item>
+                    <widget class="QCheckBox" name="useStdevForJitterCalcCheckBox">
+                        <property name="sizePolicy">
+                            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                            </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>32</width>
+                                <height>0</height>
+                            </size>
+                        </property>
+                        <property name="baseSize">
+                            <size>
+                                <width>0</width>
+                                <height>0</height>
+                            </size>
+                        </property>
+                        <property name="text">
+                            <string/>
+                        </property>
+                        <property name="iconSize">
+                            <size>
+                                <width>32</width>
+                                <height>32</height>
+                            </size>
+                        </property>
+                    </widget>
+                </item>
+            </layout>
+        </item>
+
+
+
+        <!-- window starve threshold ____________________________________________________________________________ -->
+        <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_20">
+                <property name="spacing">
+                    <number>0</number>
+                </property>
+                <property name="topMargin">
+                    <number>10</number>
+                </property>
+                <property name="rightMargin">
+                    <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                    <number>10</number>
+                </property>
+                <item alignment="Qt::AlignLeft">
+                    <widget class="QLabel" name="label_17">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="styleSheet">
+                            <string notr="true">color: rgb(51, 51, 51)</string>
+                        </property>
+                        <property name="text">
+                            <string>Window A Starve Threshold</string>
+                        </property>
+                        <property name="indent">
+                            <number>15</number>
+                        </property>
+                        <property name="buddy">
+                            <cstring>windowStarveThresholdSpin</cstring>
+                        </property>
+                    </widget>
+                </item>
+                <item>
+                    <spacer name="horizontalSpacer_12">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                            <size>
+                                <width>40</width>
+                                <height>20</height>
+                            </size>
+                        </property>
+                    </spacer>
+                </item>
+                <item>
+                    <widget class="QSpinBox" name="windowStarveThresholdSpin">
+                        <property name="sizePolicy">
+                            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                            </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>95</width>
+                                <height>36</height>
+                            </size>
+                        </property>
+                        <property name="maximumSize">
+                            <size>
+                                <width>70</width>
+                                <height>16777215</height>
+                            </size>
+                        </property>
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="minimum">
+                            <number>0</number>
+                        </property>
+                        <property name="maximum">
+                            <number>10000</number>
+                        </property>
+                        <property name="value">
+                            <number>1</number>
+                        </property>
+                    </widget>
+                </item>
+            </layout>
+        </item>
+
+
+        <!-- window A seconds ____________________________________________________________________________ -->
+        <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_21">
+                <property name="spacing">
+                    <number>0</number>
+                </property>
+                <property name="topMargin">
+                    <number>10</number>
+                </property>
+                <property name="rightMargin">
+                    <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                    <number>10</number>
+                </property>
+                <item alignment="Qt::AlignLeft">
+                    <widget class="QLabel" name="label_18">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="styleSheet">
+                            <string notr="true">color: rgb(51, 51, 51)</string>
+                        </property>
+                        <property name="text">
+                            <string>Window A (raise desired on N starves) Seconds</string>
+                        </property>
+                        <property name="indent">
+                            <number>15</number>
+                        </property>
+                        <property name="buddy">
+                            <cstring>windowSecondsForDesiredCalcOnTooManyStarvesSpin</cstring>
+                        </property>
+                    </widget>
+                </item>
+                <item>
+                    <spacer name="horizontalSpacer_12">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                            <size>
+                                <width>40</width>
+                                <height>20</height>
+                            </size>
+                        </property>
+                    </spacer>
+                </item>
+                <item>
+                    <widget class="QSpinBox" name="windowSecondsForDesiredCalcOnTooManyStarvesSpin">
+                        <property name="sizePolicy">
+                            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                            </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>95</width>
+                                <height>36</height>
+                            </size>
+                        </property>
+                        <property name="maximumSize">
+                            <size>
+                                <width>70</width>
+                                <height>16777215</height>
+                            </size>
+                        </property>
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="minimum">
+                            <number>0</number>
+                        </property>
+                        <property name="maximum">
+                            <number>10000</number>
+                        </property>
+                        <property name="value">
+                            <number>1</number>
+                        </property>
+                    </widget>
+                </item>
+            </layout>
+        </item>
+
+
+        <!-- window B seconds ____________________________________________________________________________ -->
+        <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_22">
+                <property name="spacing">
+                    <number>0</number>
+                </property>
+                <property name="topMargin">
+                    <number>10</number>
+                </property>
+                <property name="rightMargin">
+                    <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                    <number>10</number>
+                </property>
+                <item alignment="Qt::AlignLeft">
+                    <widget class="QLabel" name="label_19">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="styleSheet">
+                            <string notr="true">color: rgb(51, 51, 51)</string>
+                        </property>
+                        <property name="text">
+                            <string>Window B (desired ceiling) Seconds</string>
+                        </property>
+                        <property name="indent">
+                            <number>15</number>
+                        </property>
+                        <property name="buddy">
+                            <cstring>windowSecondsForDesiredReductionSpin</cstring>
+                        </property>
+                    </widget>
+                </item>
+                <item>
+                    <spacer name="horizontalSpacer_12">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                            <size>
+                                <width>40</width>
+                                <height>20</height>
+                            </size>
+                        </property>
+                    </spacer>
+                </item>
+                <item>
+                    <widget class="QSpinBox" name="windowSecondsForDesiredReductionSpin">
+                        <property name="sizePolicy">
+                            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                            </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>95</width>
+                                <height>36</height>
+                            </size>
+                        </property>
+                        <property name="maximumSize">
+                            <size>
+                                <width>70</width>
+                                <height>16777215</height>
+                            </size>
+                        </property>
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="minimum">
+                            <number>0</number>
+                        </property>
+                        <property name="maximum">
+                            <number>10000</number>
+                        </property>
+                        <property name="value">
+                            <number>1</number>
+                        </property>
+                    </widget>
+                </item>
+            </layout>
+        </item>
         
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_6">

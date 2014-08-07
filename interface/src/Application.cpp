@@ -1763,14 +1763,7 @@ void Application::init() {
     _lastTimeUpdated.start();
 
     Menu::getInstance()->loadSettings();
-    if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
-        _audio.setDynamicJitterBuffers(false);
-        _audio.setStaticDesiredJitterBufferFrames(Menu::getInstance()->getAudioJitterBufferFrames());
-    } else {
-        _audio.setDynamicJitterBuffers(true);
-    }
-
-    _audio.setMaxFramesOverDesired(Menu::getInstance()->getMaxFramesOverDesired());
+    _audio.setReceivedAudioStreamSettings(Menu::getInstance()->getReceivedAudioStreamSettings());
 
     qDebug("Loaded settings");
 
