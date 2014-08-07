@@ -17,6 +17,7 @@
 
 #include <NetworkAccessManager.h>
 
+#include <AccountManager.h>
 #include "XMLHttpRequestClass.h"
 #include "ScriptEngine.h"
 
@@ -201,6 +202,9 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
                 notImplemented();
             }
         } else {
+            if (url.toLower().left(33) == "https://data.highfidelity.io/api/") {
+                _url.setQuery("access_token=" + AccountManager::getInstance().getAccountInfo().getAccessToken().token);
+            }
             if (!username.isEmpty()) {
                 _url.setUserName(username);
             }
