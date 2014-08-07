@@ -31,3 +31,10 @@ void VerletPoint::applyAccumulatedDelta() {
         _numDeltas = 0;
     }
 }
+
+void VerletPoint::move(const glm::vec3& deltaPosition, const glm::quat& deltaRotation, const glm::vec3& oldPivot) {
+    glm::vec3 arm = _position - oldPivot;
+    _position += deltaPosition + (deltaRotation * arm - arm);
+    arm = _lastPosition - oldPivot;
+    _lastPosition += deltaPosition + (deltaRotation * arm - arm);
+}

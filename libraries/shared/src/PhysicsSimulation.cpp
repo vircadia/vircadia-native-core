@@ -24,7 +24,8 @@ int MAX_ENTITIES_PER_SIMULATION = 64;
 int MAX_COLLISIONS_PER_SIMULATION = 256;
 
 
-PhysicsSimulation::PhysicsSimulation() : _frameCount(0), _entity(NULL), _ragdoll(NULL), _collisions(MAX_COLLISIONS_PER_SIMULATION) {
+PhysicsSimulation::PhysicsSimulation() : _translation(0.0f), _frameCount(0), _entity(NULL), _ragdoll(NULL), 
+        _collisions(MAX_COLLISIONS_PER_SIMULATION) {
 }
 
 PhysicsSimulation::~PhysicsSimulation() {
@@ -204,7 +205,7 @@ void PhysicsSimulation::moveRagdolls(float deltaTime) {
     _ragdoll->stepRagdollForward(deltaTime);
     int numDolls = _otherRagdolls.size();
     for (int i = 0; i < numDolls; ++i) {
-        _otherRagdolls.at(i)->stepRagdollForward(deltaTime);
+        _otherRagdolls[i]->stepRagdollForward(deltaTime);
     }
 }
 

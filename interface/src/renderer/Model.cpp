@@ -1243,55 +1243,7 @@ float Model::getLimbLength(int jointIndex) const {
 const int BALL_SUBDIVISIONS = 10;
 
 void Model::renderJointCollisionShapes(float alpha) {
-    glPushMatrix();
-    Application::getInstance()->loadTranslatedViewMatrix(_translation);
-    for (int i = 0; i < _shapes.size(); i++) {
-        Shape* shape = _shapes[i];
-        if (!shape) {
-            continue;
-        }
-
-        glPushMatrix();
-        // NOTE: the shapes are in the avatar local-frame
-        if (shape->getType() == Shape::SPHERE_SHAPE) {
-            // shapes are stored in world-frame, so we have to transform into model frame
-            glm::vec3 position = _rotation * shape->getTranslation();
-            glTranslatef(position.x, position.y, position.z);
-            const glm::quat& rotation = shape->getRotation();
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-            // draw a grey sphere at shape position
-            glColor4f(0.75f, 0.75f, 0.75f, alpha);
-            glutSolidSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-        } else if (shape->getType() == Shape::CAPSULE_SHAPE) {
-            CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
-
-            // draw a blue sphere at the capsule endpoint
-            glm::vec3 endPoint;
-            capsule->getEndPoint(endPoint);
-            endPoint = _rotation * endPoint;
-            glTranslatef(endPoint.x, endPoint.y, endPoint.z);
-            glColor4f(0.6f, 0.6f, 0.8f, alpha);
-            glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-
-            // draw a yellow sphere at the capsule startpoint
-            glm::vec3 startPoint;
-            capsule->getStartPoint(startPoint);
-            startPoint = _rotation * startPoint;
-            glm::vec3 axis = endPoint - startPoint;
-            glTranslatef(-axis.x, -axis.y, -axis.z);
-            glColor4f(0.8f, 0.8f, 0.6f, alpha);
-            glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-            
-            // draw a green cylinder between the two points
-            glm::vec3 origin(0.0f);
-            glColor4f(0.6f, 0.8f, 0.6f, alpha);
-            Avatar::renderJointConnectingCone( origin, axis, capsule->getRadius(), capsule->getRadius());
-        }
-        glPopMatrix();
-    }
-    glPopMatrix();
+    // implement this when we have shapes for regular models
 }
 
 void Model::setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {

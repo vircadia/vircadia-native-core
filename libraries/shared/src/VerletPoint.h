@@ -13,6 +13,8 @@
 #define hifi_VerletPoint_h
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 
 class VerletPoint {
 public:
@@ -22,6 +24,7 @@ public:
     void integrateForward();
     void accumulateDelta(const glm::vec3& delta);
     void applyAccumulatedDelta();
+    void move(const glm::vec3& deltaPosition, const glm::quat& deltaRotation, const glm::vec3& oldPivot);
 
     glm::vec3 _position;
     glm::vec3 _lastPosition;

@@ -28,6 +28,9 @@ public:
     PhysicsSimulation();
     ~PhysicsSimulation();
 
+    void setTranslation(const glm::vec3& translation) { _translation = translation; }
+    const glm::vec3& getTranslation() const { return _translation; }
+
     void setRagdoll(Ragdoll* ragdoll) { _ragdoll = ragdoll; }
     void setEntity(PhysicsEntity* entity);
 
@@ -59,6 +62,8 @@ protected:
     void pruneContacts();
 
 private:
+    glm::vec3 _translation; // origin of simulation in world-frame
+
     quint32 _frameCount;
 
     PhysicsEntity* _entity;
