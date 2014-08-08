@@ -1,10 +1,8 @@
-set(ROOT_DIR ../..)
-set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
-
 set(TARGET_NAME networking)
 
-include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
+
+link_hifi_libraries(${TARGET_NAME} shared)
 
 find_package(Qt5 COMPONENTS Network)
 
