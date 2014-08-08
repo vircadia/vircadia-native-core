@@ -27,9 +27,8 @@ public:
     void outputFormatChanged(int outputFormatChannelCountTimesSampleRate);
 
 protected:
-    int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
-    int parseSilentPacketStreamProperties(const QByteArray& packetAfterSeqNum, int& numAudioSamples);
-    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
+    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
+    int writeDroppableSilentSamples(int silentSamples);
 
 private:
     int networkToDeviceSamples(int networkSamples);

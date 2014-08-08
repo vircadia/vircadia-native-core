@@ -104,13 +104,15 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 
     packetReceivedUpdateTimingStats();
 
-    int numAudioSamples;
+    int networkSamples;
 
     if (packetType == PacketTypeSilentAudioFrame) {
-        readBytes += parseSilentPacketStreamProperties(packet.mid(readBytes), numAudioSamples);
+        quint16 numSilentSamples = *(reinterpret_cast<const quint16*>(dataAt));
+        readBytes += sizeof(quint16);
+        networkSamples = (int)numSilentSamples;
     } else {
         // parse the info after the seq number and before the audio data (the stream properties)
-        readBytes += parseStreamProperties(packetType, packet.mid(readBytes), numAudioSamples);
+        readBytes += parseStreamProperties(packetType, packet.mid(readBytes), networkSamples);
     }
 
     // handle this packet based on its arrival status.
@@ -120,16 +122,16 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
             // NOTE: we assume that each dropped packet contains the same number of samples
             // as the packet we just received.
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
-            writeSamplesForDroppedPackets(packetsDropped * numAudioSamples);
+            writeSamplesForDroppedPackets(packetsDropped * networkSamples);
 
             // fall through to OnTime case
         }
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
             if (packetType == PacketTypeSilentAudioFrame) {
-                writeDroppableSilentSamples(numAudioSamples);
+                writeDroppableSilentSamples(networkSamples);
             } else {
-                readBytes += parseAudioData(packetType, packet.mid(readBytes), numAudioSamples);
+                readBytes += parseAudioData(packetType, packet.mid(readBytes), networkSamples);
             }
             break;
         }
@@ -162,15 +164,40 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     return readBytes;
 }
 
+int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+    // mixed audio packets do not have any info between the seq num and the audio data.
+    numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
+    return 0;
+}
+
 int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
     return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
 }
 
-int InboundAudioStream::parseSilentPacketStreamProperties(const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
-    // this is a general silent packet; parse the number of silent samples
-    quint16 numSilentSamples = *(reinterpret_cast<const quint16*>(packetAfterSeqNum.data()));
-    numAudioSamples = numSilentSamples;
-    return sizeof(quint16);
+int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
+
+    // calculate how many silent frames we should drop.
+    int samplesPerFrame = _ringBuffer.getNumFrameSamples();
+    int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
+    int numSilentFramesToDrop = 0;
+
+    if (silentSamples >= samplesPerFrame && _currentJitterBufferFrames > desiredJitterBufferFramesPlusPadding) {
+
+        // our avg jitter buffer size exceeds its desired value, so ignore some silent
+        // frames to get that size as close to desired as possible
+        int numSilentFramesToDropDesired = _currentJitterBufferFrames - desiredJitterBufferFramesPlusPadding;
+        int numSilentFramesReceived = silentSamples / samplesPerFrame;
+        numSilentFramesToDrop = std::min(numSilentFramesToDropDesired, numSilentFramesReceived);
+
+        // dont reset _currentJitterBufferFrames here; we want to be able to drop further silent frames
+        // without waiting for _framesAvailableStat to fill up to 10s of samples.
+        _currentJitterBufferFrames -= numSilentFramesToDrop;
+        _silentFramesDropped += numSilentFramesToDrop;
+
+        _framesAvailableStat.reset();
+    }
+
+    return _ringBuffer.addSilentFrame(silentSamples - numSilentFramesToDrop * samplesPerFrame);
 }
 
 int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped) {
@@ -386,34 +413,8 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
     _lastPacketReceivedTime = now;
 }
 
-int InboundAudioStream::writeDroppableSilentSamples(int numSilentSamples) {
-    
-    // calculate how many silent frames we should drop.
-    int samplesPerFrame = _ringBuffer.getNumFrameSamples();
-    int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
-    int numSilentFramesToDrop = 0;
-
-    if (numSilentSamples >= samplesPerFrame && _currentJitterBufferFrames > desiredJitterBufferFramesPlusPadding) {
-
-        // our avg jitter buffer size exceeds its desired value, so ignore some silent
-        // frames to get that size as close to desired as possible
-        int numSilentFramesToDropDesired = _currentJitterBufferFrames - desiredJitterBufferFramesPlusPadding;
-        int numSilentFramesReceived = numSilentSamples / samplesPerFrame;
-        numSilentFramesToDrop = std::min(numSilentFramesToDropDesired, numSilentFramesReceived);
-
-        // dont reset _currentJitterBufferFrames here; we want to be able to drop further silent frames
-        // without waiting for _framesAvailableStat to fill up to 10s of samples.
-        _currentJitterBufferFrames -= numSilentFramesToDrop;
-        _silentFramesDropped += numSilentFramesToDrop;
-        
-        _framesAvailableStat.reset();
-    }
-
-    return _ringBuffer.addSilentFrame(numSilentSamples - numSilentFramesToDrop * samplesPerFrame);
-}
-
-int InboundAudioStream::writeSamplesForDroppedPackets(int numSamples) {
-    return writeDroppableSilentSamples(numSamples);
+int InboundAudioStream::writeSamplesForDroppedPackets(int networkSamples) {
+    return writeDroppableSilentSamples(networkSamples);
 }
 
 float InboundAudioStream::getLastPopOutputFrameLoudness() const {

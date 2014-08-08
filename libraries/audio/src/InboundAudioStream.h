@@ -159,7 +159,7 @@ private:
     void packetReceivedUpdateTimingStats();
     int clampDesiredJitterBufferFramesValue(int desired) const;
 
-    int writeSamplesForDroppedPackets(int numSamples);
+    int writeSamplesForDroppedPackets(int networkSamples);
 
     void popSamplesNoCheck(int samples);
     void framesAvailableChanged();
@@ -171,17 +171,15 @@ protected:
 
     /// parses the info between the seq num and the audio data in the network packet and calculates
     /// how many audio samples this packet contains (used when filling in samples for dropped packets).
-    virtual int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) = 0;
+    /// default implementation assumes no stream properties and raw audio samples after stream propertiess
+    virtual int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& networkSamples);
 
-    /// parses a silent packet after the seq. default implementation assumes the number of silent samples 
-    /// is the only thing in packetAfterSeqNum and should work in most cases
-    virtual int parseSilentPacketStreamProperties(const QByteArray& packetAfterSeqNum, int& numAudioSamples);
-    
     /// parses the audio data in the network packet.
     /// default implementation assumes packet contains raw audio samples after stream properties
-    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
+    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
 
-    int writeDroppableSilentSamples(int numSilentSamples);
+    /// writes silent samples to the buffer that may be dropped to reduce latency caused by the buffer
+    virtual int writeDroppableSilentSamples(int silentSamples);
     
 protected:
 
