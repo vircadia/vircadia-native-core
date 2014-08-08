@@ -14,9 +14,5 @@ if (UNIX)
   target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES} ${CMAKE_DL_LIBS})
 endif (UNIX)
 
-IF (WIN32)
-  target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES} Winmm Ws2_32)
-ENDIF(WIN32)
-
 find_package(Qt5 COMPONENTS Gui Network Script Widgets)
 target_link_libraries(${TARGET_NAME} Qt5::Gui Qt5::Network Qt5::Script Qt5::Widgets)

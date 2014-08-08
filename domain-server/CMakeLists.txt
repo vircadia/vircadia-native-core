@@ -14,9 +14,5 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 # link the shared hifi library
 link_hifi_libraries(${TARGET_NAME} embedded-webserver networking shared)
 
-IF (WIN32)
-  target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
-ENDIF(WIN32)
-
 find_package(Qt5 COMPONENTS Network Widgets)
 target_link_libraries(${TARGET_NAME} Qt5::Network)
