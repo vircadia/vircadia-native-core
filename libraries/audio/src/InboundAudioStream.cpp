@@ -284,15 +284,6 @@ void InboundAudioStream::setSettings(const Settings& settings) {
     setWindowStarveThreshold(settings._windowStarveThreshold);
     setWindowSecondsForDesiredCalcOnTooManyStarves(settings._windowSecondsForDesiredCalcOnTooManyStarves);
     setWindowSecondsForDesiredReduction(settings._windowSecondsForDesiredReduction);
-
-
-    printf("\n\nmax frames over desired: %d\n", settings._maxFramesOverDesired);
-    printf("dynamic jitter buffers: %d\n", settings._dynamicJitterBuffers);
-    printf("static desired jbuffer frames: %d\n", settings._staticDesiredJitterBufferFrames);
-    printf("use stdev: %d\n", settings._useStDevForJitterCalc);
-    printf("starve threshold: %d\n", settings._windowStarveThreshold);
-    printf("window A seconds: %d\n", settings._windowSecondsForDesiredCalcOnTooManyStarves);
-    printf("window B seconds: %d\n", settings._windowSecondsForDesiredReduction);
 }
 
 void InboundAudioStream::setDynamicJitterBuffers(bool dynamicJitterBuffers) {
