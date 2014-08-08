@@ -515,9 +515,9 @@ void SkeletonModel::initRagdollPoints() {
 
     initRagdollTransform();
     // one point for each joint
-    int numJoints = _jointStates.size();
-    _ragdollPoints.fill(VerletPoint(), numJoints);
-    for (int i = 0; i < numJoints; ++i) {
+    int numStates = _jointStates.size();
+    _ragdollPoints.fill(VerletPoint(), numStates);
+    for (int i = 0; i < numStates; ++i) {
         const JointState& state = _jointStates.at(i);
         // _ragdollPoints start in model-frame
         _ragdollPoints[i].initPosition(state.getPosition());
@@ -719,8 +719,8 @@ void SkeletonModel::buildShapes() {
 
     // ... then move shapes back to current joint positions
     if (_ragdollPoints.size() == numStates) {
-        int numJoints = _jointStates.size();
-        for (int i = 0; i < numJoints; ++i) {
+        int numStates = _jointStates.size();
+        for (int i = 0; i < numStates; ++i) {
             // ragdollPoints start in model-frame
             _ragdollPoints[i].initPosition(_jointStates.at(i).getPosition());
         }
@@ -765,17 +765,15 @@ void SkeletonModel::updateMuscles() {
 
 void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     // compute default joint transforms
-    int numJoints = geometry.joints.size();
-    if (numJoints != _ragdollPoints.size()) {
-        return;
-    }
+    int numStates = _jointStates.size();
     QVector<glm::mat4> transforms;
-    transforms.fill(glm::mat4(), numJoints);
+    transforms.fill(glm::mat4(), numStates);
 
     // compute the default transforms and slam the ragdoll positions accordingly
     // (which puts the shapes where we want them)
-    for (int i = 0; i < numJoints; i++) {
-        const FBXJoint& joint = geometry.joints.at(i);
+    for (int i = 0; i < numStates; i++) {
+        JointState& state = _jointStates[i];
+        const FBXJoint& joint = state.getFBXJoint();
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1) {
             transforms[i] = _jointStates[i].getTransform();
@@ -847,7 +845,7 @@ void SkeletonModel::resetShapePositionsToDefaultPose() {
     }
     
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.joints.isEmpty() || _shapes.size() != geometry.joints.size()) {
+    if (geometry.joints.isEmpty()) {
         return;
     }
 

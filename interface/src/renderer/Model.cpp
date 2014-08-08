@@ -188,10 +188,38 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
 
 QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
     QVector<JointState> jointStates;
-    foreach (const FBXJoint& joint, geometry.joints) {
-        // NOTE: the state keeps a pointer to an FBXJoint
+    QVector<int> roots;
+    roots.fill(-1, geometry.joints.size());
+    for (int i = 0; i < geometry.joints.size(); ++i) {
+        const FBXJoint& joint = geometry.joints[i];
+        int parentIndex = joint.parentIndex;
+
+        // Some models may have multiple roots (?!), but these are causing problems in 
+        // the Avatar Ragdoll simulation, so we prune them out of the JointState tree.
+        int rootIndex = 0;
+        if (parentIndex == -1) {
+            if (i != 0) {
+                // skip other root
+                continue;
+            }
+        } else {
+            rootIndex = roots[parentIndex];
+            if (rootIndex == -1) {
+                roots[i] = parentIndex;
+                rootIndex = parentIndex;
+            } else {
+                roots[i] = rootIndex;
+            }
+            if (rootIndex != 0) {
+                // skip child of other root
+                continue;
+            }
+        }
+
+        // store a pointer to the FBXJoint in the JointState
         JointState state;
         state.setFBXJoint(&joint);
+
         jointStates.append(state);
     }
     return jointStates;
@@ -199,8 +227,8 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
 
 void Model::initJointTransforms() {
     // compute model transforms
-    int numJoints = _jointStates.size();
-    for (int i = 0; i < numJoints; ++i) {
+    int numStates = _jointStates.size();
+    for (int i = 0; i < numStates; ++i) {
         JointState& state = _jointStates[i];
         const FBXJoint& joint = state.getFBXJoint();
         int parentIndex = joint.parentIndex;
@@ -538,9 +566,9 @@ void Model::setJointStates(QVector<JointState> states) {
     _jointStates = states;
     initJointTransforms();
 
-    int numJoints = _jointStates.size();
+    int numStates = _jointStates.size();
     float radius = 0.0f;
-    for (int i = 0; i < numJoints; ++i) {
+    for (int i = 0; i < numStates; ++i) {
         float distance = glm::length(_jointStates[i].getPosition());
         if (distance > radius) {
             radius = distance;
