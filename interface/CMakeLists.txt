@@ -209,3 +209,6 @@ else (APPLE)
     target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
   endif()
 endif (APPLE)
+
+# link any dependencies bubbled up from our linked dependencies
+link_shared_dependencies_to_target(${TARGET_NAME})

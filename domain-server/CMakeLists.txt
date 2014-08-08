@@ -1,6 +1,7 @@
 set(TARGET_NAME domain-server)
 
-setup_hifi_project(${TARGET_NAME})
+# setup the project and link required Qt modules
+setup_hifi_project(${TARGET_NAME} Network)
 
 # remove and then copy the files for the webserver
 add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
@@ -11,8 +12,8 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
                   "${PROJECT_SOURCE_DIR}/resources/web"
                   $<TARGET_FILE_DIR:${TARGET_NAME}>/resources/web)
 
-# link the shared hifi library
+# link the shared hifi libraries
 link_hifi_libraries(${TARGET_NAME} embedded-webserver networking shared)
 
-find_package(Qt5 COMPONENTS Network Widgets)
-target_link_libraries(${TARGET_NAME} Qt5::Network)
+# link any shared dependencies
+link_shared_dependencies_to_target(${TARGET_NAME})

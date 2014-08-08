@@ -7,3 +7,6 @@ include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 # link in the shared libraries
 link_hifi_libraries(${TARGET_NAME} shared audio networking)
+
+# link any shared dependencies
+link_shared_dependencies_to_target(${TARGET_NAME})
