@@ -14,7 +14,6 @@
 
 #include <QList>
 #include <QOpenGLBuffer>
-#include <QOpenGLTexture>
 #include <QReadWriteLock>
 #include <QVector>
 
@@ -31,8 +30,6 @@ class MetavoxelSystem : public MetavoxelClientManager {
     Q_OBJECT
 
 public:
-
-    MetavoxelSystem();
 
     virtual void init();
 
@@ -64,8 +61,6 @@ private:
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
     Frustum _frustum;
-    
-    QOpenGLTexture _cursorTexture;
 };
 
 /// Describes contents of a point in a point buffer.

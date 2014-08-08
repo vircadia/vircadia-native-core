@@ -31,10 +31,6 @@ REGISTER_META_OBJECT(StaticModelRenderer)
 
 static int bufferPointVectorMetaTypeId = qRegisterMetaType<BufferPointVector>();
 
-MetavoxelSystem::MetavoxelSystem() :
-    _cursorTexture(QOpenGLTexture::Target2D) {
-}
-
 void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
     DefaultMetavoxelRendererImplementation::init();
@@ -155,33 +151,6 @@ int HeightfieldCursorRenderVisitor::visit(MetavoxelInfo& info) {
 }
 
 void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float radius) {
-    // create the cursor texture lazily
-    if (!_cursorTexture.isCreated()) {
-        const int CURSOR_TEXTURE_SIZE = 512;
-        QImage cursorImage(CURSOR_TEXTURE_SIZE, CURSOR_TEXTURE_SIZE, QImage::Format_ARGB32_Premultiplied);
-        cursorImage.fill(0x0);
-        {
-            QPainter painter(&cursorImage);
-            const int ELLIPSE_EDGE = 10;
-            const int OUTER_WIDTH = 10;
-            QPen outerPen;
-            outerPen.setWidth(OUTER_WIDTH);
-            painter.setPen(outerPen);
-            const int HALF_TEXTURE_SIZE = CURSOR_TEXTURE_SIZE / 2;
-            painter.drawEllipse(QPoint(HALF_TEXTURE_SIZE, HALF_TEXTURE_SIZE), HALF_TEXTURE_SIZE - ELLIPSE_EDGE,
-                HALF_TEXTURE_SIZE - ELLIPSE_EDGE);
-            QPen innerPen(Qt::white);
-            const int INNER_WIDTH = 6;
-            innerPen.setWidth(INNER_WIDTH);
-            painter.setPen(innerPen);
-            painter.drawEllipse(QPoint(HALF_TEXTURE_SIZE, HALF_TEXTURE_SIZE), HALF_TEXTURE_SIZE - ELLIPSE_EDGE,
-                HALF_TEXTURE_SIZE - ELLIPSE_EDGE);
-        }
-        _cursorTexture.setData(cursorImage, QOpenGLTexture::DontGenerateMipMaps);
-        _cursorTexture.setWrapMode(QOpenGLTexture::ClampToEdge);
-        _cursorTexture.setMinificationFilter(QOpenGLTexture::Linear);
-    }
-   
     glDepthFunc(GL_LEQUAL);
     glEnable(GL_CULL_FACE);
     glEnable(GL_POLYGON_OFFSET_FILL);
@@ -196,20 +165,15 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
     
     glActiveTexture(GL_TEXTURE4);
     float scale = 1.0f / radius;
-    glm::vec4 sCoefficients(scale, 0.0f, 0.0f, 0.5f - scale * position.x);
-    glm::vec4 tCoefficients(0.0f, 0.0f, scale, 0.5f - scale * position.z);
+    glm::vec4 sCoefficients(scale, 0.0f, 0.0f, -scale * position.x);
+    glm::vec4 tCoefficients(0.0f, 0.0f, scale, -scale * position.z);
     glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&sCoefficients);
     glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&tCoefficients);
-    
-    _cursorTexture.bind(1);
     glActiveTexture(GL_TEXTURE0);
     
     glm::vec3 extents(radius, radius, radius);
     HeightfieldCursorRenderVisitor visitor(getLOD(), Box(position - extents, position + extents));
     guideToAugmented(visitor);
-    
-    _cursorTexture.release(1);
-    glActiveTexture(GL_TEXTURE0);
     
     DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().release();
     
