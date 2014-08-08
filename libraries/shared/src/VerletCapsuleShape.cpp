@@ -97,7 +97,7 @@ float VerletCapsuleShape::computeEffectiveMass(const glm::vec3& penetration, con
         _endLagrangeCoef = 1.0f;
     }
     // the effective mass is the weighted sum of the two endpoints
-    return _startLagrangeCoef * _startPoint->_mass + _endLagrangeCoef * _endPoint->_mass;
+    return _startLagrangeCoef * _startPoint->getMass() + _endLagrangeCoef * _endPoint->getMass();
 }
 
 void VerletCapsuleShape::accumulateDelta(float relativeMassFactor, const glm::vec3& penetration) {
