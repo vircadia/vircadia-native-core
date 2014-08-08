@@ -316,6 +316,7 @@ void InboundAudioStream::setStaticDesiredJitterBufferFrames(int staticDesiredJit
 
 void InboundAudioStream::setWindowSecondsForDesiredCalcOnTooManyStarves(int windowSecondsForDesiredCalcOnTooManyStarves) {
     _timeGapStatsForDesiredCalcOnTooManyStarves.setWindowIntervals(windowSecondsForDesiredCalcOnTooManyStarves);
+    _starveHistoryWindowSeconds = windowSecondsForDesiredCalcOnTooManyStarves;
 }
 
 void InboundAudioStream::setWindowSecondsForDesiredReduction(int windowSecondsForDesiredReduction) {
