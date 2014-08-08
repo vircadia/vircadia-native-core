@@ -3,7 +3,7 @@ set(TARGET_NAME fbx)
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
 setup_hifi_library()
 
-include_glm("${ROOT_DIR}")
+include_glm()
 
 link_hifi_libraries(shared networking octree voxels)
 
