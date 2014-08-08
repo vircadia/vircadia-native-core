@@ -7,13 +7,15 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-macro(LINK_HIFI_LIBRARY LIBRARY TARGET ROOT_DIR)
+macro(LINK_HIFI_LIBRARY LIBRARY TARGET)
+  
+  file(RELATIVE_PATH RELATIVE_LIBRARY_PATH ${CMAKE_CURRENT_SOURCE_DIR} "${HIFI_LIBRARY_DIR}/${LIBRARY}")
   
   if (NOT TARGET ${LIBRARY})
-    add_subdirectory("${ROOT_DIR}/libraries/${LIBRARY}" "${ROOT_DIR}/libraries/${LIBRARY}")
+    add_subdirectory(${RELATIVE_LIBRARY_PATH} ${RELATIVE_LIBRARY_PATH})
   endif ()
   
-  include_directories("${ROOT_DIR}/libraries/${LIBRARY}/src")
+  include_directories("${HIFI_LIBRARY_DIR}/${LIBRARY}/src")
 
   add_dependencies(${TARGET} ${LIBRARY})
   
@@ -25,4 +27,4 @@ macro(LINK_HIFI_LIBRARY LIBRARY TARGET ROOT_DIR)
     target_link_libraries(${TARGET} ${LIBRARY})
   endif ()
   
-endmacro(LINK_HIFI_LIBRARY _library _target _root_dir)
+endmacro(LINK_HIFI_LIBRARY _library _target)
