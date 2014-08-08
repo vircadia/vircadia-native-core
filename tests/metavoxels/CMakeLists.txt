@@ -2,6 +2,8 @@ set(TARGET_NAME metavoxel-tests)
 
 auto_mtc(${TARGET_NAME} "${ROOT_DIR}")
 
+include_glm(${TARGET_NAME})
+
 setup_hifi_project(${TARGET_NAME} Network Script Widgets)
 
 # link in the shared libraries

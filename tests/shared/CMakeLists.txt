@@ -2,6 +2,8 @@ set(TARGET_NAME shared-tests)
 
 setup_hifi_project(${TARGET_NAME})
 
+include_glm(${TARGET_NAME})
+
 # link in the shared libraries
 link_hifi_libraries(${TARGET_NAME} shared)
 
