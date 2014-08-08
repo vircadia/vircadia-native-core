@@ -5,6 +5,7 @@ setup_hifi_library(${TARGET_NAME})
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
 link_hifi_libraries(${TARGET_NAME} shared octree voxels networking)
+include_hifi_library_headers(fbx)
 
 find_package(Qt5 COMPONENTS Network Script)
 
