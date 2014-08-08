@@ -12,8 +12,3 @@ find_package(Qt5 COMPONENTS Widgets Script)
 
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
 target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets Qt5::Script)
-
-# add a definition for ssize_t so that windows doesn't bail
-if (WIN32)
-  add_definitions(-Dssize_t=long)
-endif ()

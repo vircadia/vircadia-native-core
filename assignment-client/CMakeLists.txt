@@ -20,8 +20,3 @@ ENDIF(WIN32)
 
 find_package(Qt5 COMPONENTS Gui Network Script Widgets)
 target_link_libraries(${TARGET_NAME} Qt5::Gui Qt5::Network Qt5::Script Qt5::Widgets)
-
-# add a definition for ssize_t so that windows doesn't bail
-if (WIN32)
-  add_definitions(-Dssize_t=long)
-endif ()

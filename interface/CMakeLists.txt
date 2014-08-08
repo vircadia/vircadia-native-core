@@ -206,9 +206,6 @@ else (APPLE)
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
     
-    # add a definition for ssize_t so that windows doesn't bail
-    add_definitions(-Dssize_t=long)
-    
     target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
   endif()
 endif (APPLE)

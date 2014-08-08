@@ -26,7 +26,7 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
     if (packetsToProcessCount() > WAY_BEHIND && Application::getInstance()->getLogger()->extraDebugging()) {
         qDebug("OctreePacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
     }
-    ssize_t messageLength = mutablePacket.size();
+    int messageLength = mutablePacket.size();
 
     Application* app = Application::getInstance();
     bool wasStatsPacket = false;

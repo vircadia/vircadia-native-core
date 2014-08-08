@@ -634,7 +634,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
+void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew) {
     unsigned char* dataAt = codeColorBuffer;
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);

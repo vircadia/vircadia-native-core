@@ -856,7 +856,7 @@ bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID i
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
+void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew) {
     unsigned char* dataAt = codeColorBuffer;
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);

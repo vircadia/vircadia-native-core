@@ -16,8 +16,3 @@ include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}" "${OPENSSL_INCLUDE_DIR}")
 set(DEPENDENCY_LIBRARIES "${ZLIB_LIBRARIES}" "${OPENSSL_LIBRARIES}")
 set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES ${DEPENDENCY_LIBRARIES})
 target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES})
-
-# add a definition for ssize_t so that windows doesn't bail
-if (WIN32)
-  add_definitions(-Dssize_t=long)
-endif ()

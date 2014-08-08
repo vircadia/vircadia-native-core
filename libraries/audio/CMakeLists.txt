@@ -12,8 +12,3 @@ find_package(Qt5 COMPONENTS Network)
 set(DEPENDENCY_LIBRARIES Qt5::Network)
 set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES ${DEPENDENCY_LIBRARIES})
 target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES})
-
-# add a definition for ssize_t so that windows doesn't bail
-if (WIN32)
-  add_definitions(-Dssize_t=long)
-endif ()
