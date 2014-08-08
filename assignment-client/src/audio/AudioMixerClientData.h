@@ -27,7 +27,7 @@ public:
     
     int parseData(const QByteArray& packet);
 
-    void audioStreamsPopFrameForMixing();
+    void checkBuffersBeforeFrameSend(AABox* checkSourceZone, AABox* listenerZone);
 
     void removeDeadInjectedStreams();
 

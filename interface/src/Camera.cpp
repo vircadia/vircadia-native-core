@@ -47,8 +47,8 @@ Camera::Camera() :
     _targetPosition(0.0f, 0.0f, 0.0f),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
     _aspectRatio(16.0f/9.0f),
-    _nearClip(0.08f), // default
-    _farClip(50.0f * TREE_SCALE), // default
+    _nearClip(DEFAULT_NEAR_CLIP), // default
+    _farClip(DEFAULT_FAR_CLIP), // default
     _upShift(0.0f),
     _distance(0.0f),
     _tightness(10.0f), // default

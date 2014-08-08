@@ -67,7 +67,7 @@ void attachNewNodeDataToNode(Node *newNode) {
     }
 }
 
-bool AudioMixer::_useDynamicJitterBuffers = false;
+InboundAudioStream::Settings AudioMixer::_streamSettings;
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
@@ -113,7 +113,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
             distanceBetween = EPSILON;
         }
         
-        if (streamToAdd->getNextOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
+        if (streamToAdd->getLastPopOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
             // according to mixer performance we have decided this does not get to be mixed in
             // bail out
             return 0;
@@ -287,6 +287,7 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
                 if ((*otherNode != *node || otherNodeStream->shouldLoopbackForNode())
                     && otherNodeStream->lastPopSucceeded()
                     && otherNodeStream->getLastPopOutputFrameLoudness() > 0.0f) {
+                    //&& otherNodeStream->getLastPopOutputTrailingLoudness() > 0.0f) {
 
                     streamsMixed += addStreamToMixForListeningNodeWithStream(otherNodeStream, nodeAudioStream);
                 }
@@ -333,7 +334,7 @@ void AudioMixer::readPendingDatagrams() {
 void AudioMixer::sendStatsPacket() {
     static QJsonObject statsObject;
     
-    statsObject["useDynamicJitterBuffers"] = _useDynamicJitterBuffers;
+    statsObject["useDynamicJitterBuffers"] = _streamSettings._dynamicJitterBuffers;
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
@@ -396,41 +397,25 @@ void AudioMixer::run() {
 
     nodeList->linkedDataCreateCallback = attachNewNodeDataToNode;
     
-    // setup a NetworkAccessManager to ask the domain-server for our settings
-    NetworkAccessManager& networkManager = NetworkAccessManager::getInstance();
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = nodeList->getDomainHandler();
     
-    QUrl settingsJSONURL;
-    settingsJSONURL.setScheme("http");
-    settingsJSONURL.setHost(nodeList->getDomainHandler().getHostname());
-    settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
-    settingsJSONURL.setPath("/settings.json");
-    settingsJSONURL.setQuery(QString("type=%1").arg(_type));
+    qDebug() << "Waiting for domain settings from domain-server.";
     
-    QNetworkReply *reply = NULL;
+    // block until we get the settingsRequestComplete signal
+    QEventLoop loop;
+    connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);
+    domainHandler.requestDomainSettings();
+    loop.exec();
     
-    int failedAttempts = 0;
-    const int MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS = 5;
-    
-    qDebug() << "Requesting settings for assignment from domain-server at" << settingsJSONURL.toString();
-    
-    while (!reply || reply->error() != QNetworkReply::NoError) {
-        reply = networkManager.get(QNetworkRequest(settingsJSONURL));
-        
-        QEventLoop loop;
-        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-        
-        loop.exec();
-        
-        ++failedAttempts;
-        
-        if (failedAttempts == MAX_SETTINGS_REQUEST_FAILED_ATTEMPTS) {
-            qDebug() << "Failed to get settings from domain-server. Bailing on assignment.";
-            setFinished(true);
-            return;
-        }
+    if (domainHandler.getSettingsObject().isEmpty()) {
+        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+        setFinished(true);
+        return;
     }
     
-    QJsonObject settingsObject = QJsonDocument::fromJson(reply->readAll()).object();
+    const QJsonObject& settingsObject = domainHandler.getSettingsObject();
     
     // check the settings object to see if we have anything we can parse out
     const QString AUDIO_GROUP_KEY = "audio";
@@ -438,39 +423,83 @@ void AudioMixer::run() {
     if (settingsObject.contains(AUDIO_GROUP_KEY)) {
         QJsonObject audioGroupObject = settingsObject[AUDIO_GROUP_KEY].toObject();
         
-        const QString UNATTENUATED_ZONE_KEY = "unattenuated-zone";
-        
+        bool ok;
+
+        // check the payload to see if we have asked for dynamicJitterBuffer support
+        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "A-dynamic-jitter-buffer";
+        _streamSettings._dynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
+        if (_streamSettings._dynamicJitterBuffers) {
+            qDebug() << "Enable dynamic jitter buffers.";
+        } else {
+            qDebug() << "Dynamic jitter buffers disabled.";
+        }
+
+        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "B-static-desired-jitter-buffer-frames";
+        _streamSettings._staticDesiredJitterBufferFrames = audioGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._staticDesiredJitterBufferFrames = DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES;
+        }
+        qDebug() << "Static desired jitter buffer frames:" << _streamSettings._staticDesiredJitterBufferFrames;
+
+        const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "C-max-frames-over-desired";
+        _streamSettings._maxFramesOverDesired = audioGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
+        }
+        qDebug() << "Max frames over desired:" << _streamSettings._maxFramesOverDesired;
+
+        const QString USE_STDEV_FOR_DESIRED_CALC_JSON_KEY = "D-use-stdev-for-desired-calc";
+        _streamSettings._useStDevForJitterCalc = audioGroupObject[USE_STDEV_FOR_DESIRED_CALC_JSON_KEY].toBool();
+        if (_streamSettings._useStDevForJitterCalc) {
+            qDebug() << "Using Philip's stdev method for jitter calc if dynamic jitter buffers enabled";
+        } else {
+            qDebug() << "Using Fred's max-gap method for jitter calc if dynamic jitter buffers enabled";
+        }
+
+        const QString WINDOW_STARVE_THRESHOLD_JSON_KEY = "E-window-starve-threshold";
+        _streamSettings._windowStarveThreshold = audioGroupObject[WINDOW_STARVE_THRESHOLD_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowStarveThreshold = DEFAULT_WINDOW_STARVE_THRESHOLD;
+        }
+        qDebug() << "Window A starve threshold:" << _streamSettings._windowStarveThreshold;
+
+        const QString WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY = "F-window-seconds-for-desired-calc-on-too-many-starves";
+        _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = audioGroupObject[WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES;
+        }
+        qDebug() << "Window A length:" << _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves << "seconds";
+
+        const QString WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY = "G-window-seconds-for-desired-reduction";
+        _streamSettings._windowSecondsForDesiredReduction = audioGroupObject[WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowSecondsForDesiredReduction = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION;
+        }
+        qDebug() << "Window B length:" << _streamSettings._windowSecondsForDesiredReduction << "seconds";
+
+
+        const QString UNATTENUATED_ZONE_KEY = "Z-unattenuated-zone";
+
         QString unattenuatedZoneString = audioGroupObject[UNATTENUATED_ZONE_KEY].toString();
         if (!unattenuatedZoneString.isEmpty()) {
             QStringList zoneStringList = unattenuatedZoneString.split(',');
-            
+
             glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
             glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
-            
+
             glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
             glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
-            
+
             _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
             _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
-            
+
             glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
             glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
-            
+
             qDebug() << "There is an unattenuated zone with source center at"
-            << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
+                << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
             qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
-            << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
-        }
-        
-        // check the payload to see if we have asked for dynamicJitterBuffer support
-        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic-jitter-buffer";
-        bool shouldUseDynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
-        if (shouldUseDynamicJitterBuffers) {
-            qDebug() << "Enable dynamic jitter buffers.";
-            _useDynamicJitterBuffers = true;
-        } else {
-            qDebug() << "Dynamic jitter buffers disabled, using old behavior.";
-            _useDynamicJitterBuffers = false;
+                << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
         }
     }
     
@@ -546,16 +575,16 @@ void AudioMixer::run() {
         }
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getActiveSocket() && node->getLinkedData()) {
-                
+            if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 
-                // request a frame from each audio stream. a pointer to the popped data is stored as a member
-                // in InboundAudioStream.  That's how the popped audio data will be read for mixing
-                nodeData->audioStreamsPopFrameForMixing();
-
-                if (node->getType() == NodeType::Agent
-                    && ((AudioMixerClientData*)node->getLinkedData())->getAvatarAudioStream()) {
+                // this function will attempt to pop a frame from each audio stream.
+                // a pointer to the popped data is stored as a member in InboundAudioStream.
+                // That's how the popped audio data will be read for mixing (but only if the pop was successful)
+                nodeData->checkBuffersBeforeFrameSend(_sourceUnattenuatedZone, _listenerUnattenuatedZone);
+            
+                if (node->getType() == NodeType::Agent && node->getActiveSocket()
+                    && nodeData->getAvatarAudioStream()) {
 
                     int streamsMixed = prepareMixForListeningNode(node.data());
 

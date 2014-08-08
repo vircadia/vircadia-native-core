@@ -90,11 +90,9 @@ float VerletCapsuleShape::computeEffectiveMass(const glm::vec3& penetration, con
         // one endpoint will move the full amount while the other will move less.
         _startLagrangeCoef = startCoef / maxCoef;
         _endLagrangeCoef = endCoef / maxCoef;
-        assert(!glm::isnan(_startLagrangeCoef));
-        assert(!glm::isnan(_startLagrangeCoef));
     } else {
         // The coefficients are the same --> the collision will move both equally
-        // as if the object were solid.
+        // as if the contact were at the center of mass.
         _startLagrangeCoef = 1.0f;
         _endLagrangeCoef = 1.0f;
     }
@@ -104,13 +102,18 @@ float VerletCapsuleShape::computeEffectiveMass(const glm::vec3& penetration, con
 
 void VerletCapsuleShape::accumulateDelta(float relativeMassFactor, const glm::vec3& penetration) {
     assert(!glm::isnan(relativeMassFactor));
-    _startPoint->accumulateDelta(relativeMassFactor * _startLagrangeCoef * penetration);
-    _endPoint->accumulateDelta(relativeMassFactor * _endLagrangeCoef * penetration);
+    _startPoint->accumulateDelta((relativeMassFactor * _startLagrangeCoef) * penetration);
+    _endPoint->accumulateDelta((relativeMassFactor * _endLagrangeCoef) * penetration);
 }
 
 void VerletCapsuleShape::applyAccumulatedDelta() {
     _startPoint->applyAccumulatedDelta();
     _endPoint->applyAccumulatedDelta();
+}
+
+void VerletCapsuleShape::getVerletPoints(QVector<VerletPoint*>& points) {
+    points.push_back(_startPoint);
+    points.push_back(_endPoint);
 }
 
 // virtual

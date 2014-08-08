@@ -32,6 +32,7 @@
 #include "Audio.h"
 #include "Environment.h"
 #include "Menu.h"
+#include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "devices/Faceshift.h"
@@ -108,6 +109,10 @@ void MyAvatar::reset() {
 }
 
 void MyAvatar::update(float deltaTime) {
+    if (_referential) {
+        _referential->update();
+    }
+    
     Head* head = getHead();
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
@@ -137,9 +142,6 @@ void MyAvatar::simulate(float deltaTime) {
     }
     _skeletonModel.setShowTrueJointTransforms(! Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll));
 
-    // no extra movement of the hand here any more ...
-    _handState = HAND_STATE_NULL;
-
     {
         PerformanceTimer perfTimer("transform");
         updateOrientation(deltaTime);
@@ -165,9 +167,16 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _jointData.resize(_skeletonModel.getJointStateCount());
-        for (int i = 0; i < _jointData.size(); i++) {
-            JointData& data = _jointData[i];
-            data.valid = _skeletonModel.getJointState(i, data.rotation);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+            for (int i = 0; i < _jointData.size(); i++) {
+                JointData& data = _jointData[i];
+                data.valid = _skeletonModel.getVisibleJointState(i, data.rotation);
+            }
+        } else {
+            for (int i = 0; i < _jointData.size(); i++) {
+                JointData& data = _jointData[i];
+                data.valid = _skeletonModel.getJointState(i, data.rotation);
+            }
         }
     }
 
@@ -438,6 +447,32 @@ glm::vec3 MyAvatar::getRightPalmPosition() {
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
     rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
     return rightHandPosition;
+}
+
+void MyAvatar::clearReferential() {
+    changeReferential(NULL);
+}
+
+bool MyAvatar::setModelReferential(int id) {
+    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+    changeReferential(new ModelReferential(id, tree, this));
+    if (_referential->isValid()) {
+        return true;
+    } else {
+        changeReferential(NULL);
+        return false;
+    }
+}
+
+bool MyAvatar::setJointReferential(int id, int jointIndex) {
+    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+    changeReferential(new JointReferential(jointIndex, id, tree, this));
+    if (!_referential->isValid()) {
+        return true;
+    } else {
+        changeReferential(NULL);
+        return false;
+    }
 }
 
 void MyAvatar::setLocalGravity(glm::vec3 gravity) {
@@ -908,7 +943,7 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
     const Head* head = getHead();
     return (renderMode != NORMAL_RENDER_MODE) || 
-        (glm::length(cameraPosition - head->calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
+        (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
 float MyAvatar::computeDistanceToFloor(const glm::vec3& startPoint) {
@@ -1874,8 +1909,6 @@ void MyAvatar::renderLaserPointers() {
 //Gets the tip position for the laser pointer
 glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
     const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
-    const float PALM_TIP_ROD_LENGTH_MULT = 40.0f;
-
     glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
 
     glm::vec3 position = palm->getPosition();

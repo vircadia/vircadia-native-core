@@ -14,6 +14,7 @@
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
+#include "LocalModelsOverlay.h"
 #include "LocalVoxelsOverlay.h"
 #include "ModelOverlay.h"
 #include "Overlays.h"
@@ -158,6 +159,12 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay->setProperties(properties);
         created = true;
         is3D = true;
+    } else if (type == "localmodels") {
+        thisOverlay = new LocalModelsOverlay(Application::getInstance()->getModelClipboardRenderer());
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
+        is3D = true;
     } else if (type == "model") {
         thisOverlay = new ModelOverlay();
         thisOverlay->init(_parent);
@@ -227,11 +234,23 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         i.previous();
         unsigned int thisID = i.key();
         Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value());
-        if (thisOverlay->getVisible() && thisOverlay->getBounds().contains(point.x, point.y, false)) {
+        if (thisOverlay->getVisible() && thisOverlay->isLoaded() && thisOverlay->getBounds().contains(point.x, point.y, false)) {
             return thisID;
         }
     }
     return 0; // not found
 }
 
+bool Overlays::isLoaded(unsigned int id) {
+    QReadLocker lock(&_lock);
+    Overlay* overlay = _overlays2D.value(id);
+    if (!overlay) {
+        _overlays3D.value(id);
+    }
+    if (!overlay) {
+        return false; // not found
+    }
+
+    return overlay->isLoaded();
+}
 

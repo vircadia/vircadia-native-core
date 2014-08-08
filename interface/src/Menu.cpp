@@ -82,7 +82,7 @@ const int CONSOLE_HEIGHT = 200;
 
 Menu::Menu() :
     _actionHash(),
-    _audioJitterBufferFrames(0),
+    _receivedAudioStreamSettings(),
     _bandwidthDialog(NULL),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
     _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
@@ -242,8 +242,8 @@ Menu::Menu() :
 
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     toggleChat();
-    connect(&xmppClient, SIGNAL(connected()), this, SLOT(toggleChat()));
-    connect(&xmppClient, SIGNAL(disconnected()), this, SLOT(toggleChat()));
+    connect(&xmppClient, &QXmppClient::connected, this, &Menu::toggleChat);
+    connect(&xmppClient, &QXmppClient::disconnected, this, &Menu::toggleChat);
 
     QDir::setCurrent(Application::resourcesPath());
     // init chat window to listen chat
@@ -594,12 +594,16 @@ Menu::Menu() :
                                            false);
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
-                                            0,
+                                            Qt::CTRL | Qt::Key_A,
                                             false,
                                             appInstance->getAudio(),
                                             SLOT(toggleStats()));
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, true);
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
+                                            0,
+                                            false,
+                                            appInstance->getAudio(),
+                                            SLOT(toggleStatsShowInjectedStreams()));
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
@@ -627,7 +631,14 @@ void Menu::loadSettings(QSettings* settings) {
         lockedSettings = true;
     }
 
-    _audioJitterBufferFrames = loadSetting(settings, "audioJitterBufferFrames", 0);
+    _receivedAudioStreamSettings._dynamicJitterBuffers = settings->value("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS).toBool();
+    _receivedAudioStreamSettings._maxFramesOverDesired = settings->value("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED).toInt();
+    _receivedAudioStreamSettings._staticDesiredJitterBufferFrames = settings->value("staticDesiredJitterBufferFrames", DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES).toInt();
+    _receivedAudioStreamSettings._useStDevForJitterCalc = settings->value("useStDevForJitterCalc", DEFAULT_USE_STDEV_FOR_JITTER_CALC).toBool();
+    _receivedAudioStreamSettings._windowStarveThreshold = settings->value("windowStarveThreshold", DEFAULT_WINDOW_STARVE_THRESHOLD).toInt();
+    _receivedAudioStreamSettings._windowSecondsForDesiredCalcOnTooManyStarves = settings->value("windowSecondsForDesiredCalcOnTooManyStarves", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES).toInt();
+    _receivedAudioStreamSettings._windowSecondsForDesiredReduction = settings->value("windowSecondsForDesiredReduction", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION).toInt();
+    
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
@@ -677,7 +688,14 @@ void Menu::saveSettings(QSettings* settings) {
         lockedSettings = true;
     }
 
-    settings->setValue("audioJitterBufferFrames", _audioJitterBufferFrames);
+    settings->setValue("dynamicJitterBuffers", _receivedAudioStreamSettings._dynamicJitterBuffers);
+    settings->setValue("maxFramesOverDesired", _receivedAudioStreamSettings._maxFramesOverDesired);
+    settings->setValue("staticDesiredJitterBufferFrames", _receivedAudioStreamSettings._staticDesiredJitterBufferFrames);
+    settings->setValue("useStDevForJitterCalc", _receivedAudioStreamSettings._useStDevForJitterCalc);
+    settings->setValue("windowStarveThreshold", _receivedAudioStreamSettings._windowStarveThreshold);
+    settings->setValue("windowSecondsForDesiredCalcOnTooManyStarves", _receivedAudioStreamSettings._windowSecondsForDesiredCalcOnTooManyStarves);
+    settings->setValue("windowSecondsForDesiredReduction", _receivedAudioStreamSettings._windowSecondsForDesiredReduction);
+
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("maxVoxels", _maxVoxels);

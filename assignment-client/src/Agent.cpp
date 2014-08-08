@@ -29,14 +29,21 @@
 #include <ParticlesScriptingInterface.h> // TODO: consider moving to scriptengine.h
 #include <ModelsScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
+#include "avatars/ScriptableAvatar.h"
+
 #include "Agent.h"
+
+static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
     _particleEditSender(),
     _modelEditSender(),
-    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 1, false),
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
+        InboundAudioStream::Settings(0, false, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, false,
+        DEFAULT_WINDOW_STARVE_THRESHOLD, DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES,
+        DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION)),
     _avatarHashMap()
 {
     // be the parent of the script engine so it gets moved when we do
@@ -219,8 +226,9 @@ void Agent::run() {
     qDebug() << "Downloaded script:" << scriptContents;
     
     // setup an Avatar for the script to use
-    AvatarData scriptedAvatar;
-    
+    ScriptableAvatar scriptedAvatar(&_scriptEngine);
+    scriptedAvatar.setForceFaceshiftConnected(true);
+
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar.setFaceModelURL(QUrl());
     scriptedAvatar.setSkeletonModelURL(QUrl());

@@ -74,6 +74,7 @@ public:
 
     void copyToModelItem(ModelItem& modelItem) const;
     void copyFromModelItem(const ModelItem& modelItem);
+    void copyFromNewModelItem(const ModelItem& modelItem);
 
     const glm::vec3& getPosition() const { return _position; }
     xColor getColor() const { return _color; }
@@ -178,7 +179,6 @@ void ModelItemIDfromScriptValue(const QScriptValue &object, ModelItemID& propert
 
 /// ModelItem class - this is the actual model item class.
 class ModelItem  {
-
 public:
     ModelItem();
 

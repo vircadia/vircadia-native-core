@@ -2,7 +2,7 @@
 //  MixedAudioStream.h
 //  libraries/audio/src
 //
-//  Created by Stephen Birarda on 6/5/13.
+//  Created by Yixin Wang on 8/4/14.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -17,13 +17,12 @@
 
 class MixedAudioStream : public InboundAudioStream {
 public:
-    MixedAudioStream(int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers, bool useStDevForJitterCalc = false);
+    MixedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings);
 
     float getNextOutputFrameLoudness() const { return _ringBuffer.getNextOutputFrameLoudness(); }
 
 protected:
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
-    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
 };
 
 #endif // hifi_MixedAudioStream_h

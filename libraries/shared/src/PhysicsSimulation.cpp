@@ -10,10 +10,10 @@
 //
 
 #include <glm/glm.hpp>
-#include <iostream>
 
 #include "PhysicsSimulation.h"
 
+#include "PerfStat.h"
 #include "PhysicsEntity.h"
 #include "Ragdoll.h"
 #include "SharedUtil.h"
@@ -24,8 +24,7 @@ int MAX_ENTITIES_PER_SIMULATION = 64;
 int MAX_COLLISIONS_PER_SIMULATION = 256;
 
 
-PhysicsSimulation::PhysicsSimulation() : _collisionList(MAX_COLLISIONS_PER_SIMULATION), 
-        _numIterations(0), _numCollisions(0), _constraintError(0.0f), _stepTime(0) {
+PhysicsSimulation::PhysicsSimulation() : _frame(0), _collisions(MAX_COLLISIONS_PER_SIMULATION) {
 }
 
 PhysicsSimulation::~PhysicsSimulation() {
@@ -71,6 +70,7 @@ void PhysicsSimulation::removeEntity(PhysicsEntity* entity) {
     if (!entity || !entity->_simulation || !(entity->_simulation == this)) {
         return;
     }
+    removeShapes(entity);
     int numEntities = _entities.size();
     for (int i = 0; i < numEntities; ++i) {
         if (entity == _entities.at(i)) {
@@ -85,6 +85,18 @@ void PhysicsSimulation::removeEntity(PhysicsEntity* entity) {
             }
             entity->_simulation = NULL;
             break;
+        }
+    }
+}
+
+void PhysicsSimulation::removeShapes(const PhysicsEntity* entity) {
+    // remove data structures with pointers to entity's shapes
+    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
+    while (itr != _contacts.end()) {
+        if (entity == itr.value().getShapeA()->getEntity() || entity == itr.value().getShapeB()->getEntity()) {
+            itr = _contacts.erase(itr);
+        } else {
+            ++itr;
         }
     }
 }
@@ -128,44 +140,46 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
 }
 
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
+    ++_frame;
     quint64 now = usecTimestampNow();
     quint64 startTime = now;
     quint64 expiry = startTime + maxUsec;
 
     moveRagdolls(deltaTime);
-
+    buildContactConstraints();
     int numDolls = _dolls.size();
-    _numCollisions = 0;
+    {
+        PerformanceTimer perfTimer("enforce");
+        for (int i = 0; i < numDolls; ++i) {
+            _dolls[i]->enforceRagdollConstraints();
+        }
+    }
+
     int iterations = 0;
     float error = 0.0f;
     do {
         computeCollisions();
-        processCollisions();
+        updateContacts();
+        resolveCollisions();
 
-        // enforce constraints
-        error = 0.0f;
-        for (int i = 0; i < numDolls; ++i) {
-            error = glm::max(error, _dolls[i]->enforceRagdollConstraints());
+        { // enforce constraints
+            PerformanceTimer perfTimer("enforce");
+            error = 0.0f;
+            for (int i = 0; i < numDolls; ++i) {
+                error = glm::max(error, _dolls[i]->enforceRagdollConstraints());
+            }
         }
+        enforceContactConstraints();
         ++iterations;
 
         now = usecTimestampNow();
-    } while (_numCollisions != 0 && (iterations < maxIterations) && (error > minError) && (now < expiry));
+    } while (_collisions.size() != 0 && (iterations < maxIterations) && (error > minError) && (now < expiry));
 
-    _numIterations = iterations;
-    _constraintError = error;
-    _stepTime = usecTimestampNow()- startTime;
-
-#ifdef ANDREW_DEBUG
-    // temporary debug info for watching simulation performance
-    static int adebug = 0; ++adebug;
-    if (0 == (adebug % 100)) {
-        std::cout << "adebug Ni = " << _numIterations << "  E = " << error  << "  t = " << _stepTime << std::endl;  // adebug
-    }
-#endif // ANDREW_DEBUG
+    pruneContacts();
 }
 
 void PhysicsSimulation::moveRagdolls(float deltaTime) {
+    PerformanceTimer perfTimer("integrate");
     int numDolls = _dolls.size();
     for (int i = 0; i < numDolls; ++i) {
         _dolls.at(i)->stepRagdollForward(deltaTime);
@@ -173,7 +187,8 @@ void PhysicsSimulation::moveRagdolls(float deltaTime) {
 }
 
 void PhysicsSimulation::computeCollisions() {
-    _collisionList.clear();
+    PerformanceTimer perfTimer("collide");
+    _collisions.clear();
     // TODO: keep track of QSet<PhysicsEntity*> collidedEntities;
     int numEntities = _entities.size();
     for (int i = 0; i < numEntities; ++i) {
@@ -189,7 +204,7 @@ void PhysicsSimulation::computeCollisions() {
             for (int k = j+1; k < numShapes; ++k) {
                 const Shape* otherShape = shapes.at(k);
                 if (otherShape && entity->collisionsAreEnabled(j, k)) {
-                    ShapeCollider::collideShapes(shape, otherShape, _collisionList);
+                    ShapeCollider::collideShapes(shape, otherShape, _collisions);
                 }
             }
         }
@@ -197,18 +212,18 @@ void PhysicsSimulation::computeCollisions() {
         // collide with others
         for (int j = i+1; j < numEntities; ++j) {
             const QVector<Shape*> otherShapes = _entities.at(j)->getShapes();
-            ShapeCollider::collideShapesWithShapes(shapes, otherShapes, _collisionList);
+            ShapeCollider::collideShapesWithShapes(shapes, otherShapes, _collisions);
         }
     }
-    _numCollisions = _collisionList.size();
 }
 
-void PhysicsSimulation::processCollisions() {
+void PhysicsSimulation::resolveCollisions() {
+    PerformanceTimer perfTimer("resolve");
     // walk all collisions, accumulate movement on shapes, and build a list of affected shapes
     QSet<Shape*> shapes;
-    int numCollisions = _collisionList.size();
+    int numCollisions = _collisions.size();
     for (int i = 0; i < numCollisions; ++i) {
-        CollisionInfo* collision = _collisionList.getCollision(i);
+        CollisionInfo* collision = _collisions.getCollision(i);
         collision->apply();
         // there is always a shapeA
         shapes.insert(collision->getShapeA());
@@ -222,5 +237,54 @@ void PhysicsSimulation::processCollisions() {
     while (shapeItr != shapes.constEnd()) {
         (*shapeItr)->applyAccumulatedDelta();
         ++shapeItr;
+    }
+}
+
+void PhysicsSimulation::buildContactConstraints() {
+    PerformanceTimer perfTimer("contacts");
+    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
+    while (itr != _contacts.end()) {
+        itr.value().buildConstraints();
+        ++itr;
+    }
+}
+
+void PhysicsSimulation::enforceContactConstraints() {
+    PerformanceTimer perfTimer("contacts");
+    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
+    while (itr != _contacts.end()) {
+        itr.value().enforce();
+        ++itr;
+    }
+}
+
+void PhysicsSimulation::updateContacts() {
+    PerformanceTimer perfTimer("contacts");
+    int numCollisions = _collisions.size();
+    for (int i = 0; i < numCollisions; ++i) {
+        CollisionInfo* collision = _collisions.getCollision(i);
+        quint64 key = collision->getShapePairKey();
+        if (key == 0) {
+            continue;
+        }
+        QMap<quint64, ContactPoint>::iterator itr = _contacts.find(key);
+        if (itr == _contacts.end()) {
+            _contacts.insert(key, ContactPoint(*collision, _frame));
+        } else {
+            itr.value().updateContact(*collision, _frame);
+        }
+    }
+}
+
+const quint32 MAX_CONTACT_FRAME_LIFETIME = 2;
+
+void PhysicsSimulation::pruneContacts() {
+    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
+    while (itr != _contacts.end()) {
+        if (_frame - itr.value().getLastFrame() > MAX_CONTACT_FRAME_LIFETIME) {
+            itr = _contacts.erase(itr);
+        } else {
+            ++itr;
+        }
     }
 }

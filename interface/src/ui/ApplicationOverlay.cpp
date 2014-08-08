@@ -178,7 +178,7 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direc
     float dist = sqrt(x * x + y * y);
     float z = -sqrt(1.0f - dist * dist);
 
-    glm::vec3 relativePosition = myAvatar->getHead()->calculateAverageEyePosition() + 
+    glm::vec3 relativePosition = myAvatar->getHead()->getEyePosition() +
         glm::normalize(myAvatar->getOrientation() * glm::vec3(x, y, z));
 
     //Rotate the UI pick ray by the avatar orientation
@@ -274,7 +274,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
     MyAvatar* myAvatar = application->getAvatar();
 
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
-    glm::vec3 eyePos = myAvatar->getHead()->calculateAverageEyePosition();
+    glm::vec3 eyePos = myAvatar->getHead()->getEyePosition();
     glm::quat orientation = glm::inverse(myAvatar->getOrientation());
     glm::vec3 dir = orientation * glm::normalize(application->getCamera()->getPosition() - tip); //direction of ray goes towards camera
     glm::vec3 tipPos = orientation * (tip - eyePos);
@@ -331,7 +331,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
     
     glm::quat orientation = myAvatar->getOrientation();
 
-    glm::vec3 relativePosition = orientation * (position - myAvatar->getHead()->calculateAverageEyePosition());
+    glm::vec3 relativePosition = orientation * (position - myAvatar->getHead()->getEyePosition());
     glm::vec3 relativeDirection = orientation * direction;
 
     float t;
@@ -375,7 +375,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     glPushMatrix();
     const glm::quat& orientation = myAvatar->getOrientation();
-    const glm::vec3& position = myAvatar->getHead()->calculateAverageEyePosition();
+    const glm::vec3& position = myAvatar->getHead()->getEyePosition();
 
     glm::mat4 rotation = glm::toMat4(orientation);
 
@@ -535,7 +535,7 @@ void ApplicationOverlay::renderPointers() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     
-    if (OculusManager::isConnected() && application->getLastMouseMoveType() == QEvent::MouseMove) {
+    if (OculusManager::isConnected() && !application->getLastMouseMoveWasSimulated()) {
         //If we are in oculus, render reticle later
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = true;
@@ -546,7 +546,7 @@ void ApplicationOverlay::renderPointers() {
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
         
-    } else if (application->getLastMouseMoveType() == CONTROLLER_MOVE_EVENT && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+    } else if (application->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;
@@ -1212,7 +1212,7 @@ void ApplicationOverlay::renderTexturedHemisphere() {
     Application* application = Application::getInstance();
     MyAvatar* myAvatar = application->getAvatar();
     const glm::quat& orientation = myAvatar->getOrientation();
-    const glm::vec3& position = myAvatar->getHead()->calculateAverageEyePosition();
+    const glm::vec3& position = myAvatar->getHead()->getEyePosition();
 
     glm::mat4 rotation = glm::toMat4(orientation);
 

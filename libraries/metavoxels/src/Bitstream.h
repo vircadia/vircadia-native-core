@@ -430,6 +430,11 @@ public:
     template<class K, class V> void writeRawDelta(const QHash<K, V>& value, const QHash<K, V>& reference);
     template<class K, class V> void readRawDelta(QHash<K, V>& value, const QHash<K, V>& reference);
     
+    /// Writes the specified array aligned on byte boundaries to avoid the inefficiency
+    /// of bit-twiddling (at the cost of up to seven bits of wasted space).
+    void writeAligned(const QByteArray& data);
+    QByteArray readAligned(int bytes);
+    
     Bitstream& operator<<(bool value);
     Bitstream& operator>>(bool& value);
     

@@ -12,9 +12,12 @@
 #ifndef hifi_PhysicsSimulation
 #define hifi_PhysicsSimulation
 
+#include <QtGlobal>
+#include <QMap>
 #include <QVector>
 
 #include "CollisionInfo.h"
+#include "ContactPoint.h"
 
 class PhysicsEntity;
 class Ragdoll;
@@ -29,6 +32,7 @@ public:
     bool addEntity(PhysicsEntity* entity);
 
     void removeEntity(PhysicsEntity* entity);
+    void removeShapes(const PhysicsEntity* entity);
 
     /// \return true if doll was added to or is already in the list
     bool addRagdoll(Ragdoll* doll);
@@ -41,20 +45,23 @@ public:
     /// \return distance of largest movement
     void stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec);
 
+protected:
     void moveRagdolls(float deltaTime);
     void computeCollisions();
-    void processCollisions();
+    void resolveCollisions();
+
+    void buildContactConstraints();
+    void enforceContactConstraints();
+    void updateContacts();
+    void pruneContacts();
 
 private:
-    CollisionList _collisionList;
-    QVector<PhysicsEntity*> _entities;
-    QVector<Ragdoll*> _dolls;
+    quint32 _frame;
 
-    // some stats
-    int _numIterations;
-    int _numCollisions;
-    float _constraintError;
-    quint64 _stepTime;
+    QVector<Ragdoll*> _dolls;
+    QVector<PhysicsEntity*> _entities;
+    CollisionList _collisions;
+    QMap<quint64, ContactPoint> _contacts;
 };
 
 #endif // hifi_PhysicsSimulation

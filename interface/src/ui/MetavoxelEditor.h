@@ -15,6 +15,7 @@
 #include <QList>
 #include <QWidget>
 
+#include "MetavoxelSystem.h"
 #include "renderer/ProgramObject.h"
 
 class QComboBox;
@@ -23,8 +24,10 @@ class QGroupBox;
 class QListWidget;
 class QPushButton;
 class QScrollArea;
+class QSpinBox;
 
 class MetavoxelTool;
+class Vec3Editor;
 
 /// Allows editing metavoxels.
 class MetavoxelEditor : public QWidget {
@@ -221,6 +224,82 @@ public:
 protected:
 
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
+};
+
+/// Base class for heightfield tools.
+class HeightfieldTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldTool(MetavoxelEditor* editor, const QString& name);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+
+    virtual void render();
+    
+protected slots:
+
+    virtual void apply() = 0;
+
+protected:
+    
+    QFormLayout* _form;
+    Vec3Editor* _translation;
+    QDoubleSpinBox* _scale;
+};
+
+/// Allows importing a heightfield.
+class ImportHeightfieldTool : public HeightfieldTool {
+    Q_OBJECT
+
+public:
+    
+    ImportHeightfieldTool(MetavoxelEditor* editor);
+    
+    virtual void render();
+
+protected:
+
+    virtual void apply();
+
+private slots:
+
+    void selectHeightFile();
+    void selectColorFile();
+    void updatePreview();
+    
+private:
+
+    QSpinBox* _blockSize;
+    
+    QPushButton* _height;
+    QPushButton* _color;
+    
+    QImage _heightImage;
+    QImage _colorImage;
+    
+    HeightfieldPreview _preview;
+};
+
+// Allows clearing heighfield blocks.
+class EraseHeightfieldTool : public HeightfieldTool {
+    Q_OBJECT
+
+public:
+    
+    EraseHeightfieldTool(MetavoxelEditor* editor);
+    
+    virtual void render();
+    
+protected:
+    
+    virtual void apply();
+
+private:
+    
+    QSpinBox* _width;
+    QSpinBox* _length;
 };
 
 #endif // hifi_MetavoxelEditor_h

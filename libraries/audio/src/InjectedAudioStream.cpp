@@ -19,8 +19,8 @@
 
 #include "InjectedAudioStream.h"
 
-InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, bool dynamicJitterBuffer) :
-    PositionalAudioStream(PositionalAudioStream::Injector, false, dynamicJitterBuffer),
+InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, const InboundAudioStream::Settings& settings) :
+    PositionalAudioStream(PositionalAudioStream::Injector, false, settings),
     _streamIdentifier(streamIdentifier),
     _radius(0.0f),
     _attenuationRatio(0)

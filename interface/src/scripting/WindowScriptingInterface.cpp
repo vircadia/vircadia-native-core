@@ -67,6 +67,15 @@ QScriptValue WindowScriptingInterface::browse(const QString& title, const QStrin
     return retVal;
 }
 
+QScriptValue WindowScriptingInterface::save(const QString& title, const QString& directory,  const QString& nameFilter) {
+    QScriptValue retVal;
+    QMetaObject::invokeMethod(this, "showBrowse", Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(QScriptValue, retVal),
+                              Q_ARG(const QString&, title), Q_ARG(const QString&, directory), Q_ARG(const QString&, nameFilter),
+                              Q_ARG(QFileDialog::AcceptMode, QFileDialog::AcceptSave));
+    return retVal;
+}
+
 QScriptValue WindowScriptingInterface::s3Browse(const QString& nameFilter) {
     QScriptValue retVal;
     QMetaObject::invokeMethod(this, "showS3Browse", Qt::BlockingQueuedConnection,
@@ -182,18 +191,26 @@ QScriptValue WindowScriptingInterface::showPrompt(const QString& message, const 
 /// \param const QString& directory directory to start the file browser at
 /// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
 /// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
-QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QString& directory, const QString& nameFilter) {
+QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QString& directory, const QString& nameFilter,
+                                                  QFileDialog::AcceptMode acceptMode) {
     // On OS X `directory` does not work as expected unless a file is included in the path, so we append a bogus
     // filename if the directory is valid.
     QString path = "";
     QFileInfo fileInfo = QFileInfo(directory);
+    qDebug() << "File: " << directory << fileInfo.isFile();
     if (fileInfo.isDir()) {
         fileInfo.setFile(directory, "__HIFI_INVALID_FILE__");
         path = fileInfo.filePath();
     }
     
     QFileDialog fileDialog(Application::getInstance()->getWindow(), title, path, nameFilter);
-    fileDialog.setFileMode(QFileDialog::ExistingFile);
+    fileDialog.setAcceptMode(acceptMode);
+    qDebug() << "Opening!";
+    QUrl fileUrl(directory);
+    if (acceptMode == QFileDialog::AcceptSave) {
+        fileDialog.setFileMode(QFileDialog::Directory);
+        fileDialog.selectFile(fileUrl.fileName());
+    }
     if (fileDialog.exec()) {
         return QScriptValue(fileDialog.selectedFiles().first());
     }

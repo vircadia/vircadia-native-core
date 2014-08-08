@@ -14,8 +14,8 @@
 Q_DECLARE_METATYPE(QByteArray*)
 
 ArrayBufferViewClass::ArrayBufferViewClass(ScriptEngine* scriptEngine) :
-QObject(scriptEngine->getEngine()),
-QScriptClass(scriptEngine->getEngine()),
+QObject(scriptEngine),
+QScriptClass(scriptEngine),
 _scriptEngine(scriptEngine) {
     // Save string handles for quick lookup
     _bufferName = engine()->toStringHandle(BUFFER_PROPERTY_NAME.toLatin1());

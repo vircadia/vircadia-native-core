@@ -65,6 +65,43 @@ Box operator*(const glm::mat4& matrix, const Box& box);
 
 QDebug& operator<<(QDebug& out, const Box& box);
 
+/// Represents the extents along an axis.
+class AxisExtents {
+public:
+    glm::vec3 axis;
+    float minimum;
+    float maximum;
+    
+    /// Creates a set of extents given three points on the first plane and one on the second.
+    AxisExtents(const glm::vec3& first0, const glm::vec3& first1, const glm::vec3& first2, const glm::vec3& second);
+    
+    AxisExtents(const glm::vec3& axis = glm::vec3(), float minimum = 0.0f, float maximum = 0.0f);
+};
+
+/// A simple pyramidal frustum for intersection testing.
+class Frustum {
+public:
+    
+    void set(const glm::vec3& farTopLeft, const glm::vec3& farTopRight, const glm::vec3& farBottomLeft,
+        const glm::vec3& farBottomRight, const glm::vec3& nearTopLeft, const glm::vec3& nearTopRight,
+        const glm::vec3& nearBottomLeft, const glm::vec3& nearBottomRight);
+    
+    enum IntersectionType { NO_INTERSECTION, PARTIAL_INTERSECTION, CONTAINS_INTERSECTION };
+    
+    IntersectionType getIntersectionType(const Box& box) const;
+    
+private:
+    
+    static const int VERTEX_COUNT = 8;
+    static const int SIDE_EXTENT_COUNT = 5;
+    static const int CROSS_PRODUCT_EXTENT_COUNT = 18;
+    
+    glm::vec3 _vertices[VERTEX_COUNT];
+    Box _bounds;
+    AxisExtents _sideExtents[SIDE_EXTENT_COUNT];
+    AxisExtents _crossProductExtents[CROSS_PRODUCT_EXTENT_COUNT];
+};
+
 /// Editor for meta-object values.
 class QMetaObjectEditor : public QWidget {
     Q_OBJECT
@@ -153,6 +190,9 @@ public:
     
     BaseVec3Editor(QWidget* parent);
 
+    void setSingleStep(double singleStep);
+    double getSingleStep() const;
+
 protected slots:
     
     virtual void updateValue() = 0;
@@ -174,6 +214,8 @@ class Vec3Editor : public BaseVec3Editor {
 public:
     
     Vec3Editor(QWidget* parent);
+
+    const glm::vec3& getValue() const { return _value; }
 
 signals:
 

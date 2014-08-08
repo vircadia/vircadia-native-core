@@ -125,7 +125,7 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
-}
+} 
 
 void Hand::renderHandTargets(bool isMine) {
     glPushMatrix();

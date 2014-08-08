@@ -31,7 +31,7 @@ public:
         _starveCount(0),
         _consecutiveNotMixedCount(0),
         _overflowCount(0),
-        _silentFramesDropped(0),
+        _framesDropped(0),
         _packetStreamStats(),
         _packetStreamWindowStats()
     {}
@@ -52,7 +52,7 @@ public:
     quint32 _starveCount;
     quint32 _consecutiveNotMixedCount;
     quint32 _overflowCount;
-    quint32 _silentFramesDropped;
+    quint32 _framesDropped;
 
     PacketStreamStats _packetStreamStats;
     PacketStreamStats _packetStreamWindowStats;

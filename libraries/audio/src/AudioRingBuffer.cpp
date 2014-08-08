@@ -222,6 +222,7 @@ float AudioRingBuffer::getFrameLoudness(const int16_t* frameStart) const {
     float loudness = 0.0f;
     const int16_t* sampleAt = frameStart;
     const int16_t* _bufferLastAt = _buffer + _sampleCapacity - 1;
+    
     for (int i = 0; i < _numFrameSamples; ++i) {
         loudness += fabsf(*sampleAt);
         sampleAt = sampleAt == _bufferLastAt ? _buffer : sampleAt + 1;
@@ -232,10 +233,10 @@ float AudioRingBuffer::getFrameLoudness(const int16_t* frameStart) const {
     return loudness;
 }
 
-float AudioRingBuffer::getFrameLoudness(ConstIterator frameStart) const {
-    return getFrameLoudness(&(*frameStart));
-}
-
 float AudioRingBuffer::getNextOutputFrameLoudness() const {
     return getFrameLoudness(_nextOutput);
+}
+
+float AudioRingBuffer::getFrameLoudness(ConstIterator frameStart) const {
+    return getFrameLoudness(&(*frameStart));
 }

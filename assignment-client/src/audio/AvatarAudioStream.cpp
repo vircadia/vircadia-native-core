@@ -13,8 +13,8 @@
 
 #include "AvatarAudioStream.h"
 
-AvatarAudioStream::AvatarAudioStream(bool isStereo, bool dynamicJitterBuffer) :
-    PositionalAudioStream(PositionalAudioStream::Microphone, isStereo, dynamicJitterBuffer)
+AvatarAudioStream::AvatarAudioStream(bool isStereo, const InboundAudioStream::Settings& settings) :
+    PositionalAudioStream(PositionalAudioStream::Microphone, isStereo, settings)
 {
 }
 

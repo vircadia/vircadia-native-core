@@ -36,6 +36,7 @@ using namespace std;
 AvatarData::AvatarData() :
     _sessionUUID(),
     _handPosition(0,0,0),
+    _referential(NULL),
     _bodyYaw(-90.f),
     _bodyPitch(0.0f),
     _bodyRoll(0.0f),
@@ -43,6 +44,7 @@ AvatarData::AvatarData() :
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
+    _forceFaceshiftConnected(false),
     _hasNewJointRotations(true),
     _headData(NULL),
     _handData(NULL),
@@ -61,6 +63,59 @@ AvatarData::AvatarData() :
 AvatarData::~AvatarData() {
     delete _headData;
     delete _handData;
+    delete _referential;
+}
+
+const glm::vec3& AvatarData::getPosition() {
+    if (_referential) {
+        _referential->update();
+    }
+    return _position;
+}
+
+void AvatarData::setPosition(const glm::vec3 position, bool overideReferential) {
+    if (!_referential || overideReferential) {
+        _position = position;
+    }
+}
+
+glm::quat AvatarData::getOrientation() const {
+    if (_referential) {
+        _referential->update();
+    }
+    
+    return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll)));
+}
+
+void AvatarData::setOrientation(const glm::quat& orientation, bool overideReferential) {
+    if (!_referential || overideReferential) {
+        glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(orientation));
+        _bodyPitch = eulerAngles.x;
+        _bodyYaw = eulerAngles.y;
+        _bodyRoll = eulerAngles.z;
+    }
+}
+
+float AvatarData::getTargetScale() const {
+    if (_referential) {
+        _referential->update();
+    }
+    
+    return _targetScale;
+}
+
+void AvatarData::setTargetScale(float targetScale, bool overideReferential) {
+    if (!_referential || overideReferential) {
+        _targetScale = targetScale;
+    }
+}
+
+void AvatarData::setClampedTargetScale(float targetScale, bool overideReferential) {
+    
+    targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    
+    setTargetScale(targetScale, overideReferential);
+    qDebug() << "Changed scale to " << _targetScale;
 }
 
 glm::vec3 AvatarData::getHandPosition() const {
@@ -80,6 +135,9 @@ QByteArray AvatarData::toByteArray() {
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);
+        if (_forceFaceshiftConnected) {
+            _headData->_isFaceshiftConnected = true;
+        }
     }
     
     QByteArray avatarDataByteArray;
@@ -131,11 +189,21 @@ QByteArray AvatarData::toByteArray() {
     // hand state
     setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
     // faceshift state
-    if (_headData->_isFaceshiftConnected) { setAtBit(bitItems, IS_FACESHIFT_CONNECTED); }
+    if (_headData->_isFaceshiftConnected) {
+        setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+    }
     if (_isChatCirclingEnabled) {
         setAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
     }
+    if (_referential != NULL && _referential->isValid()) {
+        setAtBit(bitItems, HAS_REFERENTIAL);
+    }
     *destinationBuffer++ = bitItems;
+    
+    // Add referential
+    if (_referential != NULL && _referential->isValid()) {
+        destinationBuffer += _referential->packReferential(destinationBuffer);
+    }
 
     // If it is connected, pack up the data
     if (_headData->_isFaceshiftConnected) {
@@ -366,18 +434,32 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     } // 1 + chatMessageSize bytes
     
     { // bitFlags and face data
-        unsigned char bitItems = 0;
-        bitItems = (unsigned char)*sourceBuffer++;
-    
+        unsigned char bitItems = *sourceBuffer++;
+        
         // key state, stored as a semi-nibble in the bitItems
         _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
-        
         // hand state, stored as a semi-nibble in the bitItems
         _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
         
         _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
         _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
+        bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
         
+        // Referential
+        if (hasReferential) {
+            Referential* ref = new Referential(sourceBuffer, this);
+            if (_referential == NULL ||
+                ref->version() != _referential->version()) {
+                changeReferential(ref);
+            } else {
+                delete ref;
+            }
+            _referential->update();
+        } else if (_referential != NULL) {
+            changeReferential(NULL);
+        }
+    
+    
         if (_headData->_isFaceshiftConnected) {
             float leftEyeBlink, rightEyeBlink, averageLoudness, browAudioLift;
             minPossibleSize += sizeof(leftEyeBlink) + sizeof(rightEyeBlink) + sizeof(averageLoudness) + sizeof(browAudioLift);
@@ -497,6 +579,15 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     } // numJoints * 8 bytes
     
     return sourceBuffer - startPosition;
+}
+
+bool AvatarData::hasReferential() {
+    return _referential != NULL;
+}
+
+void AvatarData::changeReferential(Referential *ref) {
+    delete _referential;
+    _referential = ref;
 }
 
 void AvatarData::setJointData(int index, const glm::quat& rotation) {
@@ -797,21 +888,6 @@ void AvatarData::setJointMappingsFromNetworkReply() {
     }
     
     networkReply->deleteLater();
-}
-
-void AvatarData::setClampedTargetScale(float targetScale) {
-    
-    targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
-    
-    _targetScale = targetScale;
-    qDebug() << "Changed scale to " << _targetScale;
-}
-
-void AvatarData::setOrientation(const glm::quat& orientation) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(orientation));
-    _bodyPitch = eulerAngles.x;
-    _bodyYaw = eulerAngles.y;
-    _bodyRoll = eulerAngles.z;
 }
 
 void AvatarData::sendIdentityPacket() {
