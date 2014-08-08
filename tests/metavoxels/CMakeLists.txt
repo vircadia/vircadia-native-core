@@ -4,7 +4,7 @@ find_package(Qt5 COMPONENTS Network Script Widgets)
 
 auto_mtc(${TARGET_NAME} "${ROOT_DIR}")
 
-setup_hifi_project(${TARGET_NAME} TRUE "${AUTOMTC_SRC}")
+setup_hifi_project(${TARGET_NAME})
 
 # link in the shared libraries
 link_hifi_libraries(${TARGET_NAME} metavoxels networking shared)

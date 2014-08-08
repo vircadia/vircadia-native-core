@@ -1,0 +1,25 @@
+# 
+#  LinkHifiLibrary.cmake
+#  cmake/macros
+# 
+#  Copyright 2014 High Fidelity, Inc.
+#  Created by Stephen Birarda on August 8, 2014
+# 
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+# 
+
+macro(LINK_SHARED_DEPENDENCIES_TO_TARGET TARGET)  
+  if (${TARGET}_LIBRARIES_TO_LINK)
+    list(REMOVE_DUPLICATES ${TARGET}_LIBRARIES_TO_LINK)
+    
+    # link these libraries to our target
+    target_link_libraries(${TARGET} ${${TARGET}_LIBRARIES_TO_LINK})
+  endif ()
+  
+  # we've already linked our Qt modules, but we need to bubble them up to parents
+  list(APPEND ${TARGET}_LIBRARIES_TO_LINK "${${TARGET}_QT_MODULES_TO_LINK}")
+  
+  # set the property on this target so it can be retreived by targets linking to us
+  set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES "${${TARGET}_LIBRARIES_TO_LINK}")
+endmacro(LINK_SHARED_DEPENDENCIES_TO_TARGET _target)

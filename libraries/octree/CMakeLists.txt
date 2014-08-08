@@ -7,13 +7,15 @@ include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
 link_hifi_libraries(${TARGET_NAME} shared networking)
 
-# link ZLIB
+# find ZLIB and OpenSSL
 find_package(ZLIB)
 find_package(OpenSSL REQUIRED)
 
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}" "${OPENSSL_INCLUDE_DIR}")
-  
-# set a property indicating the libraries we are dependent on and link them to ourselves
-set(DEPENDENCY_LIBRARIES "${ZLIB_LIBRARIES}" "${OPENSSL_LIBRARIES}")
-set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES ${DEPENDENCY_LIBRARIES})
-target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES})
+
+# append ZLIB and OpenSSL to our list of libraries to link
+list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${ZLIB_LIBRARIES}")
+list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${OPENSSL_LIBRARIES}")
+
+# call macro to link our dependencies and bubble them up via a property on our target
+link_shared_dependencies_to_target(${TARGET_NAME})

@@ -7,10 +7,12 @@ include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
 link_hifi_libraries(${TARGET_NAME} shared octree networking)
 
-# link ZLIB
+# find ZLIB
 find_package(ZLIB)
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
 
-get_target_property(LINKED_LIBRARIES ${TARGET_NAME} DEPENDENCY_LIBRARIES)
-list(APPEND DEPENDENCY_LIBRARIES "${ZLIB_LIBRARIES}")
-list(REMOVE_DUPLICATES DEPENDENCY_LIBRARIES)
+# add it to our list of libraries to link
+list(APPEND ${TARGET}_LIBRARIES_TO_LINK "${ZLIB_LIBRARIES}")
+
+# call macro to link our dependencies and bubble them up via a property on our target
+link_shared_dependencies_to_target(${TARGET_NAME})

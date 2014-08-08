@@ -1,6 +1,6 @@
 set(TARGET_NAME domain-server)
 
-setup_hifi_project(${TARGET_NAME} TRUE)
+setup_hifi_project(${TARGET_NAME})
 
 # remove and then copy the files for the webserver
 add_custom_command(TARGET ${TARGET_NAME} POST_BUILD

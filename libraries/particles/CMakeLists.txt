@@ -7,3 +7,6 @@ include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
 link_hifi_libraries(${TARGET_NAME} shared octree fbx networking animation)
 include_hifi_library_headers(script-engine)
+
+# call macro to link our dependencies and bubble them up via a property on our target
+link_shared_dependencies_to_target(${TARGET_NAME})

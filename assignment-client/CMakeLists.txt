@@ -1,6 +1,6 @@
 set(TARGET_NAME assignment-client)
 
-setup_hifi_project(${TARGET_NAME} TRUE)
+setup_hifi_project(${TARGET_NAME} Core Gui Network Script Widgets)
 
 include_glm(${TARGET_NAME})
 
@@ -11,8 +11,7 @@ link_hifi_libraries(${TARGET_NAME}
 )
 
 if (UNIX)
-  target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES} ${CMAKE_DL_LIBS})
+  list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK ${CMAKE_DL_LIBS})
 endif (UNIX)
 
-find_package(Qt5 COMPONENTS Gui Network Script Widgets)
-target_link_libraries(${TARGET_NAME} Qt5::Gui Qt5::Network Qt5::Script Qt5::Widgets)
+link_shared_dependencies_to_target(${TARGET_NAME})

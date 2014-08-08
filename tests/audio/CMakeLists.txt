@@ -1,6 +1,6 @@
 set(TARGET_NAME audio-tests)
 
-setup_hifi_project(${TARGET_NAME} TRUE)
+setup_hifi_project(${TARGET_NAME})
 
 #include glm
 include_glm(${TARGET_NAME} ${ROOT_DIR})
