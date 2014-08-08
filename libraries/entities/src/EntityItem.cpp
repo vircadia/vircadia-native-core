@@ -29,6 +29,15 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
+const float EntityItem::IMMORTAL = -1.0f; /// special lifetime which means the entity lives for ever. default lifetime
+const float EntityItem::DEFAULT_GLOW_LEVEL = 0.0f;
+const float EntityItem::DEFAULT_MASS = 1.0f;
+const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
+const float EntityItem::DEFAULT_DAMPING = 0.99f;
+const glm::vec3 EntityItem::DEFAULT_VELOCITY = glm::vec3(0, 0, 0);
+const glm::vec3 EntityItem::DEFAULT_GRAVITY = glm::vec3(0, (-9.8f / TREE_SCALE), 0);
+const QString EntityItem::DEFAULT_SCRIPT = QString("");
+
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _id = entityItemID.id;
     _creatorTokenID = entityItemID.creatorTokenID;
@@ -42,6 +51,13 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _radius = 0;
     _rotation = ENTITY_DEFAULT_ROTATION;
     _shouldBeDeleted = false;
+
+    _glowLevel = DEFAULT_GLOW_LEVEL;
+    _mass = DEFAULT_MASS;
+    _velocity = DEFAULT_VELOCITY;
+    _gravity = DEFAULT_GRAVITY;
+    _damping = DEFAULT_DAMPING;
+    _lifetime = DEFAULT_LIFETIME;
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
@@ -219,129 +235,7 @@ qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
         // PROP_SCRIPT
         //     script would go here...
         
-
-#if 0 // def HIDE_SUBCLASS_METHODS
-        // PROP_COLOR
-        if (requestedProperties.getHasProperty(PROP_COLOR)) {
-            //qDebug() << "PROP_COLOR requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendColor(getColor());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_COLOR;
-                propertiesDidntFit -= PROP_COLOR;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_COLOR didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_COLOR NOT requested...";
-            propertiesDidntFit -= PROP_COLOR;
-        }
-
-        // PROP_MODEL_URL
-        if (requestedProperties.getHasProperty(PROP_MODEL_URL)) {
-            //qDebug() << "PROP_MODEL_URL requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getModelURL());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_MODEL_URL;
-                propertiesDidntFit -= PROP_MODEL_URL;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_MODEL_URL didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_MODEL_URL NOT requested...";
-            propertiesDidntFit -= PROP_MODEL_URL;
-        }
-
-        // PROP_ANIMATION_URL
-        if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
-            //qDebug() << "PROP_ANIMATION_URL requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getAnimationURL());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_ANIMATION_URL;
-                propertiesDidntFit -= PROP_ANIMATION_URL;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_ANIMATION_URL didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_ANIMATION_URL NOT requested...";
-            propertiesDidntFit -= PROP_ANIMATION_URL;
-        }
-
-        // PROP_ANIMATION_FPS
-        if (requestedProperties.getHasProperty(PROP_ANIMATION_FPS)) {
-            //qDebug() << "PROP_ANIMATION_FPS requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getAnimationFPS());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_ANIMATION_FPS;
-                propertiesDidntFit -= PROP_ANIMATION_FPS;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_ANIMATION_FPS didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_ANIMATION_FPS NOT requested...";
-            propertiesDidntFit -= PROP_ANIMATION_FPS;
-        }
-
-        // PROP_ANIMATION_FRAME_INDEX
-        if (requestedProperties.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-            //qDebug() << "PROP_ANIMATION_FRAME_INDEX requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getAnimationFrameIndex());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_ANIMATION_FRAME_INDEX;
-                propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_ANIMATION_FRAME_INDEX didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_ANIMATION_FRAME_INDEX NOT requested...";
-            propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
-        }
-
-        // PROP_ANIMATION_PLAYING
-        if (requestedProperties.getHasProperty(PROP_ANIMATION_PLAYING)) {
-            //qDebug() << "PROP_ANIMATION_PLAYING requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getAnimationIsPlaying());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_ANIMATION_PLAYING;
-                propertiesDidntFit -= PROP_ANIMATION_PLAYING;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_ANIMATION_PLAYING didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_ANIMATION_PLAYING NOT requested...";
-            propertiesDidntFit -= PROP_ANIMATION_PLAYING;
-        }
-
-#endif //def HIDE_SUBCLASS_METHODS    
+        // TO DO - put all the other default items here!!!!
     }
     if (propertyCount > 0) {
         int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -542,82 +436,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // PROP_SCRIPT
         //     script would go here...
         
-        
-#if 0 //def HIDE_SUBCLASS_METHODS
-        // PROP_COLOR
-        if (propertyFlags.getHasProperty(PROP_COLOR)) {
-            rgbColor color;
-            if (overwriteLocalData) {
-                memcpy(_color, dataAt, sizeof(_color));
-            }
-            dataAt += sizeof(color);
-            bytesRead += sizeof(color);
-        }
-
-        // PROP_MODEL_URL
-        if (propertyFlags.getHasProperty(PROP_MODEL_URL)) {
-        
-            // TODO: fix to new format...
-            uint16_t modelURLLength;
-            memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
-            dataAt += sizeof(modelURLLength);
-            bytesRead += sizeof(modelURLLength);
-            QString modelURLString((const char*)dataAt);
-            dataAt += modelURLLength;
-            bytesRead += modelURLLength;
-            if (overwriteLocalData) {
-                setModelURL(modelURLString);
-            }
-        }
-
-        // PROP_ANIMATION_URL
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
-            // animationURL
-            uint16_t animationURLLength;
-            memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
-            dataAt += sizeof(animationURLLength);
-            bytesRead += sizeof(animationURLLength);
-            QString animationURLString((const char*)dataAt);
-            dataAt += animationURLLength;
-            bytesRead += animationURLLength;
-            if (overwriteLocalData) {
-                setAnimationURL(animationURLString);
-            }
-        }        
-
-        // PROP_ANIMATION_FPS
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
-            float animationFPS;
-            memcpy(&animationFPS, dataAt, sizeof(animationFPS));
-            dataAt += sizeof(animationFPS);
-            bytesRead += sizeof(animationFPS);
-            if (overwriteLocalData) {
-                _animationFPS = animationFPS;
-            }
-        }
-
-        // PROP_ANIMATION_FRAME_INDEX
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-            float animationFrameIndex;
-            memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
-            dataAt += sizeof(animationFrameIndex);
-            bytesRead += sizeof(animationFrameIndex);
-            if (overwriteLocalData) {
-                _animationFrameIndex = animationFrameIndex;
-            }
-        }
-
-        // PROP_ANIMATION_PLAYING
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-            bool animationIsPlaying;
-            memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
-            dataAt += sizeof(animationIsPlaying);
-            bytesRead += sizeof(animationIsPlaying);
-            if (overwriteLocalData) {
-                _animationIsPlaying = animationIsPlaying;
-            }
-        }
-#endif
     }
     return bytesRead;
 }
@@ -628,15 +446,6 @@ void EntityItem::debugDump() const {
     qDebug(" should die:%s", debug::valueOf(getShouldBeDeleted()));
     qDebug(" position:%f,%f,%f", _position.x, _position.y, _position.z);
     qDebug(" radius:%f", getRadius());
-
-#if 0 //def HIDE_SUBCLASS_METHODS
-    qDebug(" color:%d,%d,%d", _color[0], _color[1], _color[2]);
-    if (!getModelURL().isEmpty()) {
-        qDebug() << " modelURL:" << qPrintable(getModelURL());
-    } else {
-        qDebug() << " modelURL: NONE";
-    }
-#endif
 }
 
 
@@ -846,14 +655,98 @@ qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... lastEdited=" << la
                 //qDebug() << "PROP_SHOULD_BE_DELETED NOT requested...";
                 propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
             }
+            
+            // PROP_MASS,
+            if (requestedProperties.getHasProperty(PROP_MASS)) {
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getMass());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_MASS;
+                    propertiesDidntFit -= PROP_MASS;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                propertiesDidntFit -= PROP_MASS;
+            }
+
+            // PROP_VELOCITY,
+            if (requestedProperties.getHasProperty(PROP_VELOCITY)) {
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getVelocity());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_VELOCITY;
+                    propertiesDidntFit -= PROP_VELOCITY;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                propertiesDidntFit -= PROP_VELOCITY;
+            }
+
+            // PROP_GRAVITY,
+            if (requestedProperties.getHasProperty(PROP_GRAVITY)) {
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getGravity());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_GRAVITY;
+                    propertiesDidntFit -= PROP_GRAVITY;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                propertiesDidntFit -= PROP_GRAVITY;
+            }
+
+            // PROP_DAMPING,
+            if (requestedProperties.getHasProperty(PROP_DAMPING)) {
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getDamping());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_DAMPING;
+                    propertiesDidntFit -= PROP_DAMPING;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                propertiesDidntFit -= PROP_DAMPING;
+            }
+
+            // PROP_LIFETIME,
+            if (requestedProperties.getHasProperty(PROP_LIFETIME)) {
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getLifetime());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_LIFETIME;
+                    propertiesDidntFit -= PROP_LIFETIME;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                propertiesDidntFit -= PROP_LIFETIME;
+            }
+            
 
             // PROP_SCRIPT
             //     script would go here...
-        
 
-//#if 0 // def HIDE_SUBCLASS_METHODS
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 // TODO: move these??? how to handle this for subclass properties???
 
             // PROP_COLOR
@@ -978,7 +871,6 @@ qDebug() << "EntityItem EntityItem::encodeEntityEditMessageDetails() model URL="
                 propertiesDidntFit -= PROP_ANIMATION_PLAYING;
             }
 
-//#endif //def HIDE_SUBCLASS_METHODS
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             
         }

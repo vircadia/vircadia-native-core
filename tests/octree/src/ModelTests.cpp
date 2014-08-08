@@ -27,7 +27,6 @@
 
 void EntityTests::entityTreeTests(bool verbose) {
 
-//#ifdef HIDE_SUBCLASS_METHODS
     bool extraVerbose = false;
     int testsTaken = 0;
     int testsPassed = 0;
@@ -513,8 +512,6 @@ void EntityTests::entityTreeTests(bool verbose) {
     if (verbose) {
         qDebug() << "******************************************************************************************";
     }
-//#endif
-//#endif // 0
 }
 
 

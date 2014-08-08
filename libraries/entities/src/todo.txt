@@ -7,7 +7,9 @@ Base properties...
     * velocity
     * gravity
     * damping
+    * mass
     * glow level
+    * lifetime
 
 should these be included for all entities? Light, Models, planes, etc?
     * rotational velocity? - wouldn't that be cool to be automatic with no edits
@@ -38,6 +40,7 @@ Model properties:
 // REQUIRED TO DO:
 
     A) add velocity, gravity, damping to entity base class
+    Aa) visible???
     2) EntityTree::update()/EntityTreeElement::update()... velocity changes...
     C) verify "update" works
 
@@ -47,26 +50,35 @@ Model properties:
         22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
         22b) Local Entities Overlay - from Local Models Overlay
         22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
+             bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {...
         DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
         DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
 
-    F) TODO: do we need to handle "killing" viewed entities as well???
-        void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID)...
    13) support sitpoints
    
     K) verify shadows work
     
         
-    M) change EntityTree::handleAddEntityResponse() to not scan entire tree... it can use the containing element stuff!!!
     N) Handle the ID -> UUID swap in old files to new files
     
     O) Test models -> attachments logic
     
+   12) clean up delete behavior...
+   12a) make sure server is deleting items??
+   12b) Use the delete message instead of shouldDelete property
 
+    Q) Referentials????
+    
+    R) fix these!!! 
+           EntityItem::encodeEntityEditMessageDetails()
+           EntityTypes::decodeEntityEditPacket()
+       These both contain details about non base class properties I think moving this to the EntityItemProperties is better...
 
+    
 // NICE TO DO:
 
     P) unit tests?
+    Pa) OctreeTests::modelItemTests()...????
 
 //   G) why does is the Box entity not drawn in it's bounds
 //   H) make the rotated model bounds work for other entity types?
@@ -135,9 +147,6 @@ Model properties:
 // Abort trap: 6
 
 
-//   12) clean up delete behavior...
-//   12a) make sure server is deleting items??
-//   12b) Use the delete message instead of shouldDelete property
 
 //   13b) add user properties
 //   14) implement "Light" entity, "Fire" entity?
@@ -191,4 +200,9 @@ Model properties:
 // SOLVED - B) enable animation in model class
 // SOLVED - 18) change ID's to UUIDS????
 // SOLVED - L) sometimes assert/crashes in server about containing element? I think we're adding entityIDs with UNKNOWN_ID to our maps
-//            this crash is definitely caused by starting a server with an existing models file which has ID's already in use...
+//             this crash is definitely caused by starting a server with an existing models file which has ID's already in use...
+// SOLVED - M) change EntityTree::handleAddEntityResponse() to not scan entire tree... it can use the containing element stuff!!!
+// SOLVED - F) TODO: do we need to handle "killing" viewed entities as well???
+//             void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID)...
+
+

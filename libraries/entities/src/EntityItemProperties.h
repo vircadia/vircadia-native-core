@@ -12,8 +12,6 @@
 #ifndef hifi_EntityItemProperties_h
 #define hifi_EntityItemProperties_h
 
-#define HIDE_SUBCLASS_METHODS 1
-
 #include <stdint.h>
 
 #include <glm/glm.hpp>
@@ -33,17 +31,7 @@
 #include "EntityTypes.h"
 
 
-const uint16_t ENTITY_PACKET_CONTAINS_RADIUS = 1;
-const uint16_t ENTITY_PACKET_CONTAINS_POSITION = 2;
-const uint16_t ENTITY_PACKET_CONTAINS_COLOR = 4;
-const uint16_t ENTITY_PACKET_CONTAINS_SHOULDDIE = 8;
-const uint16_t ENTITY_PACKET_CONTAINS_MODEL_URL = 16;
-const uint16_t ENTITY_PACKET_CONTAINS_ROTATION = 32;
-const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_URL = 64;
-const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_PLAYING = 128;
-const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_FRAME = 256;
-const uint16_t ENTITY_PACKET_CONTAINS_ANIMATION_FPS = 512;
-
+// TODO: should these be static members of EntityItem or EntityItemProperties?
 const float ENTITY_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
 const float ENTITY_MINIMUM_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
 const QString ENTITY_DEFAULT_MODEL_URL("");
@@ -55,13 +43,22 @@ const float ENTITY_DEFAULT_ANIMATION_FPS = 30.0f;
 enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
     PROP_CUSTOM_PROPERTIES_INCLUDED,
+    
+    // these properties are supported by the EntityItem base class
     PROP_VISIBLE,
     PROP_POSITION,
     PROP_RADIUS,
     PROP_ROTATION,
+    PROP_MASS,
+    PROP_VELOCITY,
+    PROP_GRAVITY,
+    PROP_DAMPING,
+    PROP_LIFETIME,
     PROP_SCRIPT,
-    PROP_MODEL_URL,
+
+    // these properties are supported by some derived classes
     PROP_COLOR,
+    PROP_MODEL_URL,
     PROP_ANIMATION_URL,
     PROP_ANIMATION_FPS,
     PROP_ANIMATION_FRAME_INDEX,
@@ -133,15 +130,29 @@ public:
     void setRadius(float value) { _radius = value; _radiusChanged = true; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; _rotationChanged = true; }
     void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; _shouldBeDeletedChanged = true;  }
+
+    float getMass() const { return _mass; }
+    void setMass(float value) { _mass = value; }
+
+    const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
+    void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
+
+    const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
+    void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
+
+    float getDamping() const { return _damping; }
+    void setDamping(float value) { _damping = value; }
+
+    float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
+    void setLifetime(float value) { _lifetime = value; } /// set the lifetime in seconds for the entity
     
     // NOTE: how do we handle _defaultSettings???
     bool containsBoundsProperties() const { return (_positionChanged || _radiusChanged); }
     bool containsPositionChange() const { return _positionChanged; }
     bool containsRadiusChange() const { return _radiusChanged; }
 
-// TODO: this need to be more generic. for now, we're going to have the properties class support these as
-// named getter/setters, but we want to move them to generic types...
-//#ifdef HIDE_SUBCLASS_METHODS
+    // TODO: this need to be more generic. for now, we're going to have the properties class support these as
+    // named getter/setters, but we want to move them to generic types...
     // properties we want to move to just models and particles
     xColor getColor() const { return _color; }
     const QString& getModelURL() const { return _modelURL; }
@@ -159,7 +170,6 @@ public:
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
-//#endif
 
 private:
     friend bool EntityTypes::decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
@@ -175,15 +185,20 @@ private:
     float _radius;
     glm::quat _rotation;
     bool _shouldBeDeleted;
+    float _mass;
+    glm::vec3 _velocity;
+    glm::vec3 _gravity;
+    float _damping;
+    float _lifetime;
+    QString _script;
 
     bool _positionChanged;
     bool _radiusChanged;
     bool _rotationChanged;
     bool _shouldBeDeletedChanged;
     
-// TODO: this need to be more generic. for now, we're going to have the properties class support these as
-// named getter/setters, but we want to move them to generic types...
-//#ifdef HIDE_SUBCLASS_METHODS
+    // TODO: this need to be more generic. for now, we're going to have the properties class support these as
+    // named getter/setters, but we want to move them to generic types...
     xColor _color;
     QString _modelURL;
     QString _animationURL;
@@ -200,7 +215,6 @@ private:
     bool _animationFrameIndexChanged;
     bool _animationFPSChanged;
     bool _glowLevelChanged;
-//#endif
 
     bool _defaultSettings;
 };

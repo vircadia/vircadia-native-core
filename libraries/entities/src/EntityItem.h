@@ -84,7 +84,6 @@ public:
     // similar to assignment/copy, but it handles keeping lifetime accurate
     void copyChangedProperties(const EntityItem& other);
 
-
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
@@ -99,17 +98,50 @@ public:
     bool getShouldBeDeleted() const { return _shouldBeDeleted; }
     void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; }
 
+    static const float DEFAULT_GLOW_LEVEL;
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
+
+    static const float DEFAULT_MASS;
+    float getMass() const { return _mass; }
+    void setMass(float value) { _mass = value; }
+
+    static const glm::vec3 DEFAULT_VELOCITY;
+    const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
+    void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
+
+    static const glm::vec3 DEFAULT_GRAVITY;
+    const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
+    void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
+
+    static const float DEFAULT_DAMPING;
+    float getDamping() const { return _damping; }
+    void setDamping(float value) { _damping = value; }
+
+    // lifetime related properties.
+    static const float IMMORTAL; /// special lifetime which means the entity lives for ever. default lifetime
+    static const float DEFAULT_LIFETIME;
+    float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
+    void setLifetime(float value) { _lifetime = value; } /// set the lifetime in seconds for the entity
+
+    /// is this entity immortal, in that it has no lifetime set, and will exist until manually deleted
+    bool isImmortal() const { return _lifetime == IMMORTAL; }
+
+    /// is this entity mortal, in that it has a lifetime set, and will automatically be deleted when that lifetime expires
+    bool isMortal() const { return _lifetime != IMMORTAL; }
     
+    /// age of this entity in seconds
+    float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
+
     // position, size, and bounds related helpers
     float getSize() const { return _radius * 2.0f; } /// get maximum dimension in domain scale units (0.0 - 1.0)
     glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
     glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
     AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); } /// AACube in domain scale units (0.0 - 1.0)
 
-
-    
+    static const QString DEFAULT_SCRIPT;
+    const QString& getScript() const { return _script; }
+    void setScript(const QString& value) { _script = value; }
 
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
@@ -120,12 +152,19 @@ protected:
     bool _newlyCreated;
     quint64 _lastUpdated;
     quint64 _lastEdited;
+    quint64 _created;
 
     glm::vec3 _position;
     float _radius;
     glm::quat _rotation;
     bool _shouldBeDeleted;
     float _glowLevel;
+    float _mass;
+    glm::vec3 _velocity;
+    glm::vec3 _gravity;
+    float _damping;
+    float _lifetime;
+    QString _script;
 };
 
 class SphereEntityItem : public EntityItem {

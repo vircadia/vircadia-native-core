@@ -290,12 +290,9 @@ qDebug() << "EntityTypes::decodeEntityEditPacket() ... lastEdited=" << lastEdite
     //     script would go here...
     
     
-//#ifdef HIDE_SUBCLASS_METHODS    
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // TODO: this needs to be reconciled...
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 
     // PROP_COLOR
     if (propertyFlags.getHasProperty(PROP_COLOR)) {
@@ -364,7 +361,6 @@ qDebug() << "EntityTypes::decodeEntityEditPacket() ... lastEdited=" << lastEdite
         processedBytes += sizeof(animationIsPlaying);
         properties.setAnimationIsPlaying(animationIsPlaying);
     }
-//#endif
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     const bool wantDebugging = false;
@@ -378,10 +374,6 @@ qDebug() << "EntityTypes::decodeEntityEditPacket() ... lastEdited=" << lastEdite
 }
 
 bool EntityTypes::registerEntityTypeRenderer(EntityType entityType, EntityTypeRenderer renderMethod) {
-    qDebug() << "EntityTypes::registerEntityTypeRenderer()";
-    qDebug() << "    entityType=" << entityType;
-    qDebug() << "    renderMethod=" << (void*)renderMethod;
-
     if (!_renderersInitialized) {
         memset(&_renderers,0,sizeof(_renderers));
         _renderersInitialized = true;
