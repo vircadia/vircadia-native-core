@@ -157,7 +157,7 @@ public slots:
     void perSecondCallbackForUpdatingStats();
 
 private:
-    void frameReceivedUpdateTimingStats();
+    void packetReceivedUpdateTimingStats();
     int clampDesiredJitterBufferFramesValue(int desired) const;
 
     int writeSamplesForDroppedPackets(int numSamples);
@@ -214,6 +214,7 @@ protected:
 
     quint64 _lastPacketReceivedTime;
     MovingMinMaxAvg<quint64> _timeGapStatsForDesiredCalcOnTooManyStarves;   // for Freddy's method
+    int _calculatedJitterBufferFramesUsingMaxGap;
     StDev _stdevStatsForDesiredCalcOnTooManyStarves;                        // for Philip's method
     int _calculatedJitterBufferFramesUsingStDev;                     // the most recent desired frames calculated by Philip's method
     MovingMinMaxAvg<quint64> _timeGapStatsForDesiredReduction;
