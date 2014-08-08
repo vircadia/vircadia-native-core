@@ -188,34 +188,8 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
 
 QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
     QVector<JointState> jointStates;
-    QVector<int> roots;
-    roots.fill(-1, geometry.joints.size());
     for (int i = 0; i < geometry.joints.size(); ++i) {
         const FBXJoint& joint = geometry.joints[i];
-        int parentIndex = joint.parentIndex;
-
-        // Some models may have multiple roots (?!), but these are causing problems in 
-        // the Avatar Ragdoll simulation, so we prune them out of the JointState tree.
-        int rootIndex = 0;
-        if (parentIndex == -1) {
-            if (i != 0) {
-                // skip other root
-                continue;
-            }
-        } else {
-            rootIndex = roots[parentIndex];
-            if (rootIndex == -1) {
-                roots[i] = parentIndex;
-                rootIndex = parentIndex;
-            } else {
-                roots[i] = rootIndex;
-            }
-            if (rootIndex != 0) {
-                // skip child of other root
-                continue;
-            }
-        }
-
         // store a pointer to the FBXJoint in the JointState
         JointState state;
         state.setFBXJoint(&joint);
