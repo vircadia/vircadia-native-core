@@ -329,31 +329,67 @@ var modelUploader = (function () {
         };
     }
 
-    function readMapping(fstBuffer) {
-        var dv = new DataView(fstBuffer.buffer),
+    function readMapping(buffer) {
+        var dv = new DataView(buffer.buffer),
             lines,
             line,
-            values,
+            tokens,
+            i,
             name,
-            i;
+            value,
+            remainder;
 
-        // Simplified to target values relevant to model uploading.
+        mapping = {};  // { name : value | name : { value : remainder } }
         lines = dv.string(0, dv.byteLength).split(/\r\n|\r|\n/);
         for (i = 0; i < lines.length; i += 1) {
             line = lines[i].trim();
             if (line.length > 0 && line[0] !== "#") {
-                values = line.split(/\s*=\s*/);
-                name = values[0].toLowerCase();
-                if (values.length === 2) {
-                    mapping[name] = values[1];
-                } else if (values.length === 3 && name === "lod") {
-                    if (mapping[name] === undefined) {
-                        mapping[name] = {};
+                tokens = line.split(/\s*=\s*/);
+                if (tokens.length > 1) {
+                    name = tokens[0];
+                    value = tokens[1];
+                    if (tokens.length === 2) {
+                        mapping[name] = value;
+                    } else {
+                        // We're only interested in the first two fields so put the rest in the remainder
+                        remainder = tokens.slice(2, tokens.length).join(" = ");
+                        if (mapping[name] === undefined) {
+                            mapping[name] = {};
+                        }
+                        mapping[name][value] = remainder;
                     }
-                    mapping[name][values[1]] = values[2];
                 }
             }
         }
+    }
+
+    function writeMapping(buffer) {
+        var name,
+            value,
+            remainder,
+            string = "";
+
+        for (name in mapping) {
+            if (mapping.hasOwnProperty(name)) {
+                if (typeof mapping[name] === "string") {
+                    string += (name + " = " + mapping[name] + "\n");
+                } else {
+                    for (value in mapping[name]) {
+                        if (mapping[name].hasOwnProperty(value)) {
+                            remainder = mapping[name][value];
+                            if (remainder === null) {
+                                remainder = "";
+                            } else {
+                                remainder = " = " + remainder;
+                            }
+                            string += (name + " = " + value + remainder + "\n");
+                        }
+                    }
+                }
+            }
+        }
+
+        buffer.buffer = string.toArrayBuffer();
     }
 
     function readGeometry(fbxBuffer) {
@@ -590,6 +626,8 @@ var modelUploader = (function () {
         mapping[YAW_FIELD] = form[4].value;
         mapping[ROLL_FIELD] = form[5].value;
         mapping[SCALE_FIELD] = form[6].value;
+
+        writeMapping(fstBuffer);
 
         return true;
     }
