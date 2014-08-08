@@ -483,8 +483,6 @@ void EntityItem::copyChangedProperties(const EntityItem& other) {
 
 EntityItemProperties EntityItem::getProperties() const {
     EntityItemProperties properties;
-    //properties.copyFromEntityItem(*this);
-    
     
     properties._id = getID();
     properties._idSet = true;
@@ -496,10 +494,23 @@ EntityItemProperties EntityItem::getProperties() const {
     properties._rotation = getRotation();
     properties._shouldBeDeleted = getShouldBeDeleted();
 
+    properties._mass = getMass();
+    properties._velocity = getVelocity() * (float) TREE_SCALE;
+    properties._gravity = getGravity() * (float) TREE_SCALE;
+    properties._damping = getDamping();
+    properties._lifetime = getLifetime();
+    properties._script = getScript();
+
     properties._positionChanged = false;
     properties._radiusChanged = false;
     properties._rotationChanged = false;
     properties._shouldBeDeletedChanged = false;
+    properties._massChanged = false;
+    properties._velocityChanged = false;
+    properties._gravityChanged = false;
+    properties._dampingChanged = false;
+    properties._lifetimeChanged = false;
+    properties._scriptChanged = false;
 
     properties._defaultSettings = false;
     
@@ -525,6 +536,39 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
 
     if (properties._shouldBeDeletedChanged || forceCopy) {
         setShouldBeDeleted(properties._shouldBeDeleted);
+        somethingChanged = true;
+    }
+
+    if (properties._massChanged || forceCopy) {
+        setMass(properties._mass);
+        somethingChanged = true;
+    }
+
+    if (properties._velocityChanged || forceCopy) {
+        setVelocity(properties._velocity / (float) TREE_SCALE);
+        somethingChanged = true;
+    }
+
+    if (properties._massChanged || forceCopy) {
+        setMass(properties._mass);
+        somethingChanged = true;
+    }
+    if (properties._gravityChanged || forceCopy) {
+        setGravity(properties._gravity / (float) TREE_SCALE);
+        somethingChanged = true;
+    }
+
+    if (properties._dampingChanged || forceCopy) {
+        setDamping(properties._damping);
+        somethingChanged = true;
+    }
+    if (properties._lifetimeChanged || forceCopy) {
+        setLifetime(properties._lifetime);
+        somethingChanged = true;
+    }
+
+    if (properties._scriptChanged || forceCopy) {
+        setScript(properties._script);
         somethingChanged = true;
     }
 

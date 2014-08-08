@@ -85,10 +85,7 @@ void BoxEntityItem::setProperties(const EntityItemProperties& properties, bool f
     }
 }
 
-
-
 int BoxEntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-
 
 qDebug() << "BoxEntityItem::readEntityDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
 

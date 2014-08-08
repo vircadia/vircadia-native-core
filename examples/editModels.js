@@ -1648,7 +1648,7 @@ function handeMenuEvent(menuItem){
             array.push({ label: "Velocity X:", value: properties.velocity.x.toFixed(decimals) });
             array.push({ label: "Velocity Y:", value: properties.velocity.y.toFixed(decimals) });
             array.push({ label: "Velocity Z:", value: properties.velocity.z.toFixed(decimals) });
-            array.push({ label: "Damping:", value: properties.damping.toFixed(decimals) });
+            array.push({ label: "Damping:", value: properties.damping });
             
             if (properties.type == "Box") {
                 array.push({ label: "Red:", value: properties.color.red });
@@ -1679,7 +1679,7 @@ function handeMenuEvent(menuItem){
             properties.velocity.x = array[index++].value;
             properties.velocity.y = array[index++].value;
             properties.velocity.z = array[index++].value;
-            properties.damping = array[index++].value / 2;
+            properties.damping = array[index++].value;
 
             if (properties.type == "Box") {
                 properties.color.red = array[index++].value;
