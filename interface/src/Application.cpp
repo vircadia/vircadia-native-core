@@ -170,7 +170,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
-        _speechRecognizer(),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow())
 {
@@ -1442,10 +1441,6 @@ void Application::setRenderVoxels(bool voxelRender) {
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
     getSixenseManager()->setLowVelocityFilter(lowVelocityFilter);
-}
-
-void Application::setSpeechRecognitionEnabled(bool enabled) {
-    _speechRecognizer.setEnabled(enabled);
 }
 
 void Application::doKillLocalVoxels() {
@@ -3664,7 +3659,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
 
-    scriptEngine->registerGlobalObject("SpeechRecognizer", &_speechRecognizer);
+    scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
 
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);

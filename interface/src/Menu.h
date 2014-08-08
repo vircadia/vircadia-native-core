@@ -22,6 +22,7 @@
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
+#include "SpeechRecognizer.h"
 
 #include "location/LocationManager.h"
 #include "ui/PreferencesDialog.h"
@@ -136,6 +137,10 @@ public:
     float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
+
+#ifdef Q_OS_MAC
+    SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
+#endif
 
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
@@ -274,6 +279,9 @@ private:
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     UserLocationsDialog* _userLocationsDialog;
+#ifdef Q_OS_MAC
+    SpeechRecognizer _speechRecognizer;
+#endif
     int _maxVoxels;
     float _voxelSizeScale;
     float _oculusUIAngularSize;

@@ -94,6 +94,9 @@ Menu::Menu() :
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
     _userLocationsDialog(NULL),
+#ifdef Q_OS_MAC
+    _speechRecognizer(),
+#endif
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
@@ -233,8 +236,12 @@ Menu::Menu() :
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S, this, SLOT(showScriptEditor()));
-    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ControlWithSpeech, Qt::CTRL | Qt::SHIFT | Qt::Key_C, true,
-            Application::getInstance(), SLOT(setSpeechRecognitionEnabled(bool)));
+
+#ifdef Q_OS_MAC
+    QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ControlWithSpeech,
+            Qt::CTRL | Qt::SHIFT | Qt::Key_C, _speechRecognizer.getEnabled(), &_speechRecognizer, SLOT(setEnabled(bool)));
+    connect(&_speechRecognizer, SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
+#endif
 
 #ifdef HAVE_QXMPP
     _chatAction = addActionToQMenuAndActionHash(toolsMenu,
@@ -653,7 +660,10 @@ void Menu::loadSettings(QSettings* settings) {
     _snapshotsLocation = settings->value("snapshotsLocation",
                                          QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
     setScriptsLocation(settings->value("scriptsLocation", QString()).toString());
-    Application::getInstance()->setSpeechRecognitionEnabled(settings->value("speechRecognitionEnabled", false).toBool());
+
+#ifdef Q_OS_MAC
+    _speechRecognizer.setEnabled(settings->value("speechRecognitionEnabled", false).toBool());
+#endif
 
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -702,7 +712,9 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->setValue("scriptsLocation", _scriptsLocation);
-    settings->setValue("speechRecognitionEnabled", Application::getInstance()->getSpeechRecognitionEnabled());
+#ifdef Q_OS_MAC
+    settings->setValue("speechRecognitionEnabled", _speechRecognizer.getEnabled());
+#endif
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
     settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
