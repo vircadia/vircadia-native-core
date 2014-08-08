@@ -12,6 +12,7 @@
 #include <QDebug>
 #include <QObject>
 
+#include <ByteCountCoding.h>
 #include <RegisteredMetaTypes.h>
 
 #include "EntityItemProperties.h"
@@ -310,4 +311,729 @@ QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const Enti
 
 void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties) {
     properties.copyFromScriptValue(object);
+}
+
+
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+//Change this to use property flags...
+//How do we also change this to support spanning multiple MTUs...
+//Need to output the encode structure like handling packets over the wire...
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+
+bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
+        unsigned char* bufferOut, int sizeIn, int& sizeOut) {
+
+    OctreePacketData packetData(false, sizeIn); // create a packetData object to add out packet details too.
+
+    bool success = true; // assume the best
+    OctreeElement::AppendState appendState = OctreeElement::COMPLETED; // assume the best
+    sizeOut = 0;
+
+    // TODO: We need to review how jurisdictions should be handled for entities. (The old Models and Particles code
+    // didn't do anything special for jurisdictions, so we're keeping that same behavior here.)
+    //
+    // Always include the root octcode. This is only because the OctreeEditPacketSender will check these octcodes
+    // to determine which server to send the changes to in the case of multiple jurisdictions. The root will be sent
+    // to all servers.
+    glm::vec3 rootPosition(0);
+    float rootScale = 0.5f;
+    unsigned char* octcode = pointToOctalCode(rootPosition.x, rootPosition.y, rootPosition.z, rootScale);
+
+    success = packetData.startSubTree(octcode);
+    delete[] octcode;
+    
+    // assuming we have rome to fit our octalCode, proceed...
+    if (success) {
+
+        // Now add our edit content details...
+        bool isNewEntityItem = (id.id == NEW_ENTITY);
+
+        // id
+        // encode our ID as a byte count coded byte stream
+        QByteArray encodedID = id.id.toRfc4122(); // NUM_BYTES_RFC4122_UUID
+
+        // encode our ID as a byte count coded byte stream
+        ByteCountCoded<quint32> tokenCoder;
+        QByteArray encodedToken;
+
+        // special case for handling "new" modelItems
+        if (isNewEntityItem) {
+            // encode our creator token as a byte count coded byte stream
+            tokenCoder = id.creatorTokenID;
+            encodedToken = tokenCoder;
+        }
+
+        // encode our type as a byte count coded byte stream
+        ByteCountCoded<quint32> typeCoder = (quint32)properties.getType();
+        
+qDebug() << "(quint32)properties.getType()=" << (quint32)properties.getType();
+
+        QByteArray encodedType = typeCoder;
+
+        quint64 updateDelta = 0; // this is an edit so by definition, it's update is in sync
+        ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
+        QByteArray encodedUpdateDelta = updateDeltaCoder;
+
+//qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... updateDelta=" << updateDelta;
+//qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... encodedUpdateDelta=" << encodedUpdateDelta;
+
+        EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
+        EntityPropertyFlags requestedProperties = properties.getChangedProperties();
+        EntityPropertyFlags propertiesDidntFit = requestedProperties;
+
+        // TODO: we need to handle the multi-pass form of this, similar to how we handle entity data
+        //
+        // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
+        // then our modelTreeElementExtraEncodeData should include data about which properties we need to append.
+        //if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getEntityItemID())) {
+        //    requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
+        //}
+
+        //qDebug() << "requestedProperties=";
+        //requestedProperties.debugDumpBits();
+
+        LevelDetails entityLevel = packetData.startLevel();
+
+        // Last Edited quint64 always first, before any other details, which allows us easy access to adjusting this
+        // timestamp for clock skew
+        quint64 lastEdited = properties.getLastEdited();
+
+qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... lastEdited=" << lastEdited;
+
+        bool successLastEditedFits = packetData.appendValue(lastEdited);
+    
+        bool successIDFits = packetData.appendValue(encodedID);
+        if (isNewEntityItem && successIDFits) {
+            successIDFits = packetData.appendValue(encodedToken);
+        }
+        bool successTypeFits = packetData.appendValue(encodedType);
+
+        // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
+        bool successLastUpdatedFits = packetData.appendValue(encodedUpdateDelta);
+    
+        int propertyFlagsOffset = packetData.getUncompressedByteOffset();
+        QByteArray encodedPropertyFlags = propertyFlags;
+        int oldPropertyFlagsLength = encodedPropertyFlags.length();
+        bool successPropertyFlagsFits = packetData.appendValue(encodedPropertyFlags);
+        int propertyCount = 0;
+
+        bool headerFits = successIDFits && successTypeFits && successLastEditedFits 
+                                  && successLastUpdatedFits && successPropertyFlagsFits;
+
+        int startOfEntityItemData = packetData.getUncompressedByteOffset();
+
+        if (headerFits) {
+            bool successPropertyFits;
+
+            propertyFlags -= PROP_LAST_ITEM; // clear the last item for now, we may or may not set it as the actual item
+
+            // These items would go here once supported....
+            //      PROP_PAGED_PROPERTY,
+            //      PROP_CUSTOM_PROPERTIES_INCLUDED,
+            //      PROP_VISIBLE,
+
+            // PROP_POSITION
+            if (requestedProperties.getHasProperty(PROP_POSITION)) {
+                //qDebug() << "PROP_POSITION requested...";
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendPosition(properties.getPosition());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_POSITION;
+                    propertiesDidntFit -= PROP_POSITION;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    //qDebug() << "PROP_POSITION didn't fit...";
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                //qDebug() << "PROP_POSITION NOT requested...";
+                propertiesDidntFit -= PROP_POSITION;
+            }
+
+            // PROP_RADIUS
+            if (requestedProperties.getHasProperty(PROP_RADIUS)) {
+                //qDebug() << "PROP_RADIUS requested...";
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getRadius());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_RADIUS;
+                    propertiesDidntFit -= PROP_RADIUS;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    //qDebug() << "PROP_RADIUS didn't fit...";
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                //qDebug() << "PROP_RADIUS NOT requested...";
+                propertiesDidntFit -= PROP_RADIUS;
+            }
+
+            // PROP_ROTATION
+            if (requestedProperties.getHasProperty(PROP_ROTATION)) {
+                //qDebug() << "PROP_ROTATION requested...";
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getRotation());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_ROTATION;
+                    propertiesDidntFit -= PROP_ROTATION;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    //qDebug() << "PROP_ROTATION didn't fit...";
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                //qDebug() << "PROP_ROTATION NOT requested...";
+                propertiesDidntFit -= PROP_ROTATION;
+            }
+
+            // PROP_SHOULD_BE_DELETED
+            if (requestedProperties.getHasProperty(PROP_SHOULD_BE_DELETED)) {
+                //qDebug() << "PROP_SHOULD_BE_DELETED requested...";
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getShouldBeDeleted());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_SHOULD_BE_DELETED;
+                    propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    //qDebug() << "PROP_SHOULD_BE_DELETED didn't fit...";
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                //qDebug() << "PROP_SHOULD_BE_DELETED NOT requested...";
+                propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
+            }
+            
+            // PROP_MASS,
+            if (requestedProperties.getHasProperty(PROP_MASS)) {
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getMass());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_MASS;
+                    propertiesDidntFit -= PROP_MASS;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                propertiesDidntFit -= PROP_MASS;
+            }
+
+            // PROP_VELOCITY,
+            if (requestedProperties.getHasProperty(PROP_VELOCITY)) {
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getVelocity());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_VELOCITY;
+                    propertiesDidntFit -= PROP_VELOCITY;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                propertiesDidntFit -= PROP_VELOCITY;
+            }
+
+            // PROP_GRAVITY,
+            if (requestedProperties.getHasProperty(PROP_GRAVITY)) {
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getGravity());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_GRAVITY;
+                    propertiesDidntFit -= PROP_GRAVITY;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                propertiesDidntFit -= PROP_GRAVITY;
+            }
+
+            // PROP_DAMPING,
+            if (requestedProperties.getHasProperty(PROP_DAMPING)) {
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getDamping());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_DAMPING;
+                    propertiesDidntFit -= PROP_DAMPING;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                propertiesDidntFit -= PROP_DAMPING;
+            }
+
+            // PROP_LIFETIME,
+            if (requestedProperties.getHasProperty(PROP_LIFETIME)) {
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getLifetime());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_LIFETIME;
+                    propertiesDidntFit -= PROP_LIFETIME;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                propertiesDidntFit -= PROP_LIFETIME;
+            }
+            
+
+            // PROP_SCRIPT
+            //     script would go here...
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// TODO: move these??? how to handle this for subclass properties???
+
+            // PROP_COLOR
+            if (requestedProperties.getHasProperty(PROP_COLOR)) {
+                //qDebug() << "PROP_COLOR requested...";
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendColor(properties.getColor());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_COLOR;
+                    propertiesDidntFit -= PROP_COLOR;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    //qDebug() << "PROP_COLOR didn't fit...";
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                //qDebug() << "PROP_COLOR NOT requested...";
+                propertiesDidntFit -= PROP_COLOR;
+            }
+
+            // PROP_MODEL_URL
+            if (requestedProperties.getHasProperty(PROP_MODEL_URL)) {
+                //qDebug() << "PROP_MODEL_URL requested...";
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getModelURL());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_MODEL_URL;
+                    propertiesDidntFit -= PROP_MODEL_URL;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    //qDebug() << "PROP_MODEL_URL didn't fit...";
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                //qDebug() << "PROP_MODEL_URL NOT requested...";
+                propertiesDidntFit -= PROP_MODEL_URL;
+            }
+
+qDebug() << "EntityItem EntityItem::encodeEntityEditMessageDetails() model URL=" << properties.getModelURL();
+
+            // PROP_ANIMATION_URL
+            if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
+                //qDebug() << "PROP_ANIMATION_URL requested...";
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getAnimationURL());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_ANIMATION_URL;
+                    propertiesDidntFit -= PROP_ANIMATION_URL;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    //qDebug() << "PROP_ANIMATION_URL didn't fit...";
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                //qDebug() << "PROP_ANIMATION_URL NOT requested...";
+                propertiesDidntFit -= PROP_ANIMATION_URL;
+            }
+
+            // PROP_ANIMATION_FPS
+            if (requestedProperties.getHasProperty(PROP_ANIMATION_FPS)) {
+                //qDebug() << "PROP_ANIMATION_FPS requested...";
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getAnimationFPS());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_ANIMATION_FPS;
+                    propertiesDidntFit -= PROP_ANIMATION_FPS;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    //qDebug() << "PROP_ANIMATION_FPS didn't fit...";
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                //qDebug() << "PROP_ANIMATION_FPS NOT requested...";
+                propertiesDidntFit -= PROP_ANIMATION_FPS;
+            }
+
+            // PROP_ANIMATION_FRAME_INDEX
+            if (requestedProperties.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
+                //qDebug() << "PROP_ANIMATION_FRAME_INDEX requested...";
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getAnimationFrameIndex());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_ANIMATION_FRAME_INDEX;
+                    propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    //qDebug() << "PROP_ANIMATION_FRAME_INDEX didn't fit...";
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                //qDebug() << "PROP_ANIMATION_FRAME_INDEX NOT requested...";
+                propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
+            }
+
+            // PROP_ANIMATION_PLAYING
+            if (requestedProperties.getHasProperty(PROP_ANIMATION_PLAYING)) {
+                //qDebug() << "PROP_ANIMATION_PLAYING requested...";
+                LevelDetails propertyLevel = packetData.startLevel();
+                successPropertyFits = packetData.appendValue(properties.getAnimationIsPlaying());
+                if (successPropertyFits) {
+                    propertyFlags |= PROP_ANIMATION_PLAYING;
+                    propertiesDidntFit -= PROP_ANIMATION_PLAYING;
+                    propertyCount++;
+                    packetData.endLevel(propertyLevel);
+                } else {
+                    //qDebug() << "PROP_ANIMATION_PLAYING didn't fit...";
+                    packetData.discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                //qDebug() << "PROP_ANIMATION_PLAYING NOT requested...";
+                propertiesDidntFit -= PROP_ANIMATION_PLAYING;
+            }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
+        }
+        if (propertyCount > 0) {
+            int endOfEntityItemData = packetData.getUncompressedByteOffset();
+        
+            encodedPropertyFlags = propertyFlags;
+            int newPropertyFlagsLength = encodedPropertyFlags.length();
+            packetData.updatePriorBytes(propertyFlagsOffset, 
+                    (const unsigned char*)encodedPropertyFlags.constData(), encodedPropertyFlags.length());
+        
+            // if the size of the PropertyFlags shrunk, we need to shift everything down to front of packet.
+            if (newPropertyFlagsLength < oldPropertyFlagsLength) {
+                int oldSize = packetData.getUncompressedSize();
+
+                const unsigned char* modelItemData = packetData.getUncompressedData(propertyFlagsOffset + oldPropertyFlagsLength);
+                int modelItemDataLength = endOfEntityItemData - startOfEntityItemData;
+                int newEntityItemDataStart = propertyFlagsOffset + newPropertyFlagsLength;
+                packetData.updatePriorBytes(newEntityItemDataStart, modelItemData, modelItemDataLength);
+
+                int newSize = oldSize - (oldPropertyFlagsLength - newPropertyFlagsLength);
+                packetData.setUncompressedSize(newSize);
+
+            } else {
+                assert(newPropertyFlagsLength == oldPropertyFlagsLength); // should not have grown
+            }
+       
+            packetData.endLevel(entityLevel);
+        } else {
+            packetData.discardLevel(entityLevel);
+            appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
+        }
+    
+        //qDebug() << "propertyFlags=";
+        //propertyFlags.debugDumpBits();
+
+        //qDebug() << "propertiesDidntFit=";
+        //propertiesDidntFit.debugDumpBits();
+
+        // If any part of the model items didn't fit, then the element is considered partial
+        if (appendState != OctreeElement::COMPLETED) {
+
+
+            // TODO: handle mechanism for handling partial fitting data!
+            // add this item into our list for the next appendElementData() pass
+            //modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
+
+            // for now, if it's not complete, it's not successful
+            success = false;
+        }
+    }
+    
+    if (success) {
+        packetData.endSubTree();
+        const unsigned char* finalizedData = packetData.getFinalizedData();
+        int  finalizedSize = packetData.getFinalizedSize();
+        memcpy(bufferOut, finalizedData, finalizedSize);
+        sizeOut = finalizedSize;
+        
+        bool wantDebug = false;
+        if (wantDebug) {
+            qDebug() << "encodeEntityEditMessageDetails().... ";
+            outputBufferBits(finalizedData, finalizedSize);
+        }
+        
+    } else {
+        packetData.discardSubTree();
+        sizeOut = 0;
+    }
+    return success;
+}
+
+// TODO: 
+//   how to handle lastEdited?
+//   how to handle lastUpdated?
+//   consider handling case where no properties are included... we should just ignore this packet...
+bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
+                        EntityItemID& entityID, EntityItemProperties& properties) {
+    bool valid = false;
+
+    bool wantDebug = true;
+    if (wantDebug) {
+        qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() bytesToRead=" << bytesToRead;
+    }
+
+    const unsigned char* dataAt = data;
+    processedBytes = 0;
+
+    // the first part of the data is an octcode, this is a required element of the edit packet format, but we don't
+    // actually use it, we do need to skip it and read to the actual data we care about.
+    int octets = numberOfThreeBitSectionsInCode(data);
+    int bytesToReadOfOctcode = bytesRequiredForCodeLength(octets);
+
+    if (wantDebug) {
+        qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() bytesToReadOfOctcode=" << bytesToReadOfOctcode;
+    }
+
+    // we don't actually do anything with this octcode...
+    dataAt += bytesToReadOfOctcode;
+    processedBytes += bytesToReadOfOctcode;
+    
+    // Edit packets have a last edited time stamp immediately following the octcode.
+    // NOTE: the edit times have been set by the editor to match out clock, so we don't need to adjust
+    // these times for clock skew at this point.
+    quint64 lastEdited;
+    memcpy(&lastEdited, dataAt, sizeof(lastEdited));
+    dataAt += sizeof(lastEdited);
+    processedBytes += sizeof(lastEdited);
+qDebug() << "EntityTypes::decodeEntityEditPacket() ... lastEdited=" << lastEdited;
+    properties.setLastEdited(lastEdited);
+
+    // encoded id
+    QByteArray encodedID((const char*)dataAt, NUM_BYTES_RFC4122_UUID); // maximum possible size
+    QUuid editID = QUuid::fromRfc4122(encodedID);
+    dataAt += encodedID.size();
+    processedBytes += encodedID.size();
+
+    if (wantDebug) {
+        qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() editID=" << editID;
+    }
+
+    bool isNewEntityItem = (editID == NEW_ENTITY);
+
+    qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() isNewEntityItem=" << isNewEntityItem;
+
+    if (isNewEntityItem) {
+        // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
+        // we want to send back to the creator as an map to the actual id
+
+        QByteArray encodedToken((const char*)dataAt, (bytesToRead - processedBytes));
+        ByteCountCoded<quint32> tokenCoder = encodedToken;
+        quint32 creatorTokenID = tokenCoder;
+        encodedToken = tokenCoder; // determine true bytesToRead
+        dataAt += encodedToken.size();
+        processedBytes += encodedToken.size();
+
+        //newEntityItem.setCreatorTokenID(creatorTokenID);
+        //newEntityItem._newlyCreated = true;
+        
+        entityID.id = NEW_ENTITY;
+        entityID.creatorTokenID = creatorTokenID;
+        entityID.isKnownID = false;
+
+        valid = true;
+
+    } else {
+        entityID.id = editID;
+        entityID.creatorTokenID = UNKNOWN_ENTITY_TOKEN;
+        entityID.isKnownID = true;
+        valid = true;
+    }
+
+    qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() entityID=" << entityID;
+    
+    // Entity Type...
+    QByteArray encodedType((const char*)dataAt, (bytesToRead - processedBytes));
+    ByteCountCoded<quint32> typeCoder = encodedType;
+    quint32 entityTypeCode = typeCoder;
+    properties.setType((EntityTypes::EntityType)entityTypeCode);
+    encodedType = typeCoder; // determine true bytesToRead
+    dataAt += encodedType.size();
+    processedBytes += encodedType.size();
+    
+
+    // Update Delta - when was this item updated relative to last edit... this really should be 0
+    // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
+    // TODO: do properties need to handle lastupdated???
+
+    // last updated is stored as ByteCountCoded delta from lastEdited
+    QByteArray encodedUpdateDelta((const char*)dataAt, (bytesToRead - processedBytes));
+    ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
+    quint64 updateDelta = updateDeltaCoder;
+    quint64 lastUpdated = lastEdited + updateDelta; // don't adjust for clock skew since we already did that for lastEdited
+    encodedUpdateDelta = updateDeltaCoder; // determine true bytesToRead
+    dataAt += encodedUpdateDelta.size();
+    processedBytes += encodedUpdateDelta.size();
+    
+    // Property Flags...
+    QByteArray encodedPropertyFlags((const char*)dataAt, (bytesToRead - processedBytes));
+    EntityPropertyFlags propertyFlags = encodedPropertyFlags;
+    dataAt += propertyFlags.getEncodedLength();
+    processedBytes += propertyFlags.getEncodedLength();
+    
+
+    // PROP_POSITION
+    if (propertyFlags.getHasProperty(PROP_POSITION)) {
+        glm::vec3 position;
+        memcpy(&position, dataAt, sizeof(position));
+        dataAt += sizeof(position);
+        processedBytes += sizeof(position);
+        properties.setPosition(position);
+    }
+    
+    // PROP_RADIUS
+    if (propertyFlags.getHasProperty(PROP_RADIUS)) {
+        float radius;
+        memcpy(&radius, dataAt, sizeof(radius));
+        dataAt += sizeof(radius);
+        processedBytes += sizeof(radius);
+        properties.setRadius(radius);
+    }
+
+    // PROP_ROTATION
+    if (propertyFlags.getHasProperty(PROP_ROTATION)) {
+        glm::quat rotation;
+        int bytes = unpackOrientationQuatFromBytes(dataAt, rotation);
+        dataAt += bytes;
+        processedBytes += bytes;
+        properties.setRotation(rotation);
+    }
+
+    // PROP_SHOULD_BE_DELETED
+    if (propertyFlags.getHasProperty(PROP_SHOULD_BE_DELETED)) {
+        bool shouldBeDeleted;
+        memcpy(&shouldBeDeleted, dataAt, sizeof(shouldBeDeleted));
+        dataAt += sizeof(shouldBeDeleted);
+        processedBytes += sizeof(shouldBeDeleted);
+        properties.setShouldBeDeleted(shouldBeDeleted);
+    }
+
+    // PROP_SCRIPT
+    //     script would go here...
+    
+    
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// TODO: this needs to be reconciled...
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // PROP_COLOR
+    if (propertyFlags.getHasProperty(PROP_COLOR)) {
+        xColor color;
+        memcpy(&color, dataAt, sizeof(color));
+        dataAt += sizeof(color);
+        processedBytes += sizeof(color);
+        properties.setColor(color);
+    }
+
+    // PROP_MODEL_URL
+    if (propertyFlags.getHasProperty(PROP_MODEL_URL)) {
+    
+        // TODO: fix to new format...
+        uint16_t modelURLbytesToRead;
+        memcpy(&modelURLbytesToRead, dataAt, sizeof(modelURLbytesToRead));
+        dataAt += sizeof(modelURLbytesToRead);
+        processedBytes += sizeof(modelURLbytesToRead);
+        QString modelURLString((const char*)dataAt);
+        dataAt += modelURLbytesToRead;
+        processedBytes += modelURLbytesToRead;
+
+        properties.setModelURL(modelURLString);
+    }
+
+    if (wantDebug) {
+        qDebug() << "EntityItem EntityItem::decodeEntityEditPacket() model URL=" << properties.getModelURL();
+    }
+
+    // PROP_ANIMATION_URL
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
+        // animationURL
+        uint16_t animationURLbytesToRead;
+        memcpy(&animationURLbytesToRead, dataAt, sizeof(animationURLbytesToRead));
+        dataAt += sizeof(animationURLbytesToRead);
+        processedBytes += sizeof(animationURLbytesToRead);
+        QString animationURLString((const char*)dataAt);
+        dataAt += animationURLbytesToRead;
+        processedBytes += animationURLbytesToRead;
+        properties.setAnimationURL(animationURLString);
+    }        
+
+    // PROP_ANIMATION_FPS
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
+        float animationFPS;
+        memcpy(&animationFPS, dataAt, sizeof(animationFPS));
+        dataAt += sizeof(animationFPS);
+        processedBytes += sizeof(animationFPS);
+        properties.setAnimationFPS(animationFPS);
+    }
+
+    // PROP_ANIMATION_FRAME_INDEX
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
+        float animationFrameIndex; // we keep this as a float and round to int only when we need the exact index
+        memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
+        dataAt += sizeof(animationFrameIndex);
+        processedBytes += sizeof(animationFrameIndex);
+        properties.setAnimationFrameIndex(animationFrameIndex);
+    }
+
+    // PROP_ANIMATION_PLAYING
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
+        bool animationIsPlaying;
+        memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
+        dataAt += sizeof(animationIsPlaying);
+        processedBytes += sizeof(animationIsPlaying);
+        properties.setAnimationIsPlaying(animationIsPlaying);
+    }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    const bool wantDebugging = false;
+    if (wantDebugging) {
+        qDebug("EntityItem::fromEditPacket()...");
+        qDebug() << "   EntityItem id in packet:" << editID;
+        //newEntityItem.debugDump();
+    }
+    
+    return valid;
 }

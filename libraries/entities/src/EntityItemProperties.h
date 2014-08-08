@@ -171,9 +171,14 @@ public:
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
 
-private:
-    friend bool EntityTypes::decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
+
+    static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
+        unsigned char* bufferOut, int sizeIn, int& sizeOut);
+
+    static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                         EntityItemID& entityID, EntityItemProperties& properties);
+
+private:
     void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
 
     QUuid _id;

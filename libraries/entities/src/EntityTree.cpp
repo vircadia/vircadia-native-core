@@ -902,7 +902,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
             EntityItemID entityItemID;
             EntityItemProperties properties;
             
-            bool validEditPacket = EntityTypes::decodeEntityEditPacket(editData, maxLength, 
+            bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength,
                                                     processedBytes, entityItemID, properties);
             
             // If we got a valid edit packet, then it could be a new entity or it could be an update to

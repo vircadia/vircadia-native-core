@@ -27,7 +27,7 @@ void EntityEditPacketSender::sendEditEntityMessage(PacketType type, EntityItemID
     int sizeOut = 0;
 
     // This encodes the voxel edit message into a buffer...
-    if (EntityItem::encodeEntityEditMessageDetails(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)){
+    if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)){
         // If we don't have voxel jurisdictions, then we will simply queue up these packets and wait till we have
         // jurisdictions for processing
         if (!serversExist()) {
@@ -53,7 +53,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemI
     static unsigned char bufferOut[MAX_PACKET_SIZE];
     int sizeOut = 0;
 
-    if (EntityItem::encodeEntityEditMessageDetails(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
+    if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
         queueOctreeEditMessage(type, bufferOut, sizeOut);
     }
 }
