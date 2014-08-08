@@ -22,7 +22,7 @@
 // I'm open to other potential solutions. Could we change cmake to allow libraries to reference each others
 // headers, but not link to each other, this is essentially what this construct is doing, but would be
 // better to add includes to the include path, but not link
-#include "../../script-engine/src/ScriptEngine.h"
+#include <ScriptEngine.h>
 
 #include "ParticlesScriptingInterface.h"
 #include "Particle.h"
