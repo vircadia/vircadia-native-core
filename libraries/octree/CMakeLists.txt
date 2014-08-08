@@ -1,5 +1,6 @@
 set(TARGET_NAME octree)
 
+# use setup_hifi_library macro to setup our project and link appropriate Qt modules
 setup_hifi_library(${TARGET_NAME})
 
 include_glm(${TARGET_NAME} "${ROOT_DIR}")

@@ -1,15 +1,9 @@
 set(TARGET_NAME particles)
 
-setup_hifi_library(${TARGET_NAME})
+# use setup_hifi_library macro to setup our project and link appropriate Qt modules
+setup_hifi_library(${TARGET_NAME} Gui Network Script)
 
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
 link_hifi_libraries(${TARGET_NAME} shared octree fbx networking animation)
 include_hifi_library_headers(script-engine)
-
-find_package(Qt5 COMPONENTS Gui Network Script)
-
-# set a property indicating the libraries we are dependent on and link them to ourselves
-set(DEPENDENCY_LIBRARIES Qt5::Network Qt5::Script Qt5::Gui)
-set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES "${DEPENDENCY_LIBRARIES}")
-target_link_libraries(${TARGET_NAME} ${DEPENDENCY_LIBRARIES})
