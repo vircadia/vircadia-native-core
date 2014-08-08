@@ -201,6 +201,12 @@ private:
     bool _radiusChanged;
     bool _rotationChanged;
     bool _shouldBeDeletedChanged;
+    bool _massChanged;
+    bool _velocityChanged;
+    bool _gravityChanged;
+    bool _dampingChanged;
+    bool _lifetimeChanged;
+    bool _scriptChanged;
     
     // TODO: this need to be more generic. for now, we're going to have the properties class support these as
     // named getter/setters, but we want to move them to generic types...

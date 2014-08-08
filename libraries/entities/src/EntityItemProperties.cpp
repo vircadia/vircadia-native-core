@@ -15,6 +15,7 @@
 #include <ByteCountCoding.h>
 #include <RegisteredMetaTypes.h>
 
+#include "EntityItem.h"
 #include "EntityItemProperties.h"
 
 EntityItemProperties::EntityItemProperties() :
@@ -28,12 +29,23 @@ EntityItemProperties::EntityItemProperties() :
     _radius(ENTITY_DEFAULT_RADIUS),
     _rotation(ENTITY_DEFAULT_ROTATION),
     _shouldBeDeleted(false),
+    _mass(EntityItem::DEFAULT_MASS),
+    _velocity(EntityItem::DEFAULT_VELOCITY),
+    _gravity(EntityItem::DEFAULT_GRAVITY),
+    _damping(EntityItem::DEFAULT_DAMPING),
+    _lifetime(EntityItem::DEFAULT_LIFETIME),
+    _script(EntityItem::DEFAULT_SCRIPT),
 
     _positionChanged(false),
     _radiusChanged(false),
     _rotationChanged(false),
     _shouldBeDeletedChanged(false),
-
+    _massChanged(false),
+    _velocityChanged(false),
+    _gravityChanged(false),
+    _dampingChanged(false),
+    _lifetimeChanged(false),
+    _scriptChanged(false),
 
     _color(),
     _modelURL(""),
@@ -126,6 +138,14 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     QScriptValue rotation = quatToScriptValue(engine, _rotation);
     properties.setProperty("rotation", rotation);
     properties.setProperty("shouldBeDeleted", _shouldBeDeleted);
+    properties.setProperty("mass", _mass);
+    QScriptValue velocity = vec3toScriptValue(engine, _velocity);
+    properties.setProperty("velocity", velocity);
+    QScriptValue gravity = vec3toScriptValue(engine, _gravity);
+    properties.setProperty("gravity", gravity);
+    properties.setProperty("damping", _damping);
+    properties.setProperty("lifetime", _lifetime);
+    properties.setProperty("script", _script);
 
     QScriptValue color = xColorToScriptValue(engine, _color);
     properties.setProperty("color", color);
@@ -218,6 +238,80 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
         if (_defaultSettings || newShouldBeDeleted != _shouldBeDeleted) {
             _shouldBeDeleted = newShouldBeDeleted;
             _shouldBeDeletedChanged = true;
+        }
+    }
+    
+    QScriptValue mass = object.property("mass");
+    if (mass.isValid()) {
+        float newValue;
+        newValue = mass.toVariant().toFloat();
+        if (_defaultSettings || newValue != _mass) {
+            _mass = newValue;
+            _massChanged = true;
+        }
+    }
+    
+    QScriptValue velocity = object.property("velocity");
+    if (velocity.isValid()) {
+        QScriptValue x = velocity.property("x");
+        QScriptValue y = velocity.property("y");
+        QScriptValue z = velocity.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newValue;
+            newValue.x = x.toVariant().toFloat();
+            newValue.y = y.toVariant().toFloat();
+            newValue.z = z.toVariant().toFloat();
+            if (_defaultSettings || newValue != _velocity) {
+                _velocity = newValue;
+                _velocityChanged = true;
+            }
+        }
+    }
+
+    QScriptValue gravity = object.property("gravity");
+    if (gravity.isValid()) {
+        QScriptValue x = gravity.property("x");
+        QScriptValue y = gravity.property("y");
+        QScriptValue z = gravity.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newValue;
+            newValue.x = x.toVariant().toFloat();
+            newValue.y = y.toVariant().toFloat();
+            newValue.z = z.toVariant().toFloat();
+            if (_defaultSettings || newValue != _gravity) {
+                _gravity = newValue;
+                _gravityChanged = true;
+            }
+        }
+    }
+
+    QScriptValue damping = object.property("damping");
+    if (damping.isValid()) {
+        float newValue;
+        newValue = damping.toVariant().toFloat();
+        if (_defaultSettings || newValue != _damping) {
+            _damping = newValue;
+            _dampingChanged = true;
+        }
+    }
+
+    QScriptValue lifetime = object.property("lifetime");
+    if (lifetime.isValid()) {
+        float newValue;
+        newValue = lifetime.toVariant().toFloat();
+        if (_defaultSettings || newValue != _lifetime) {
+            _lifetime = newValue;
+            _lifetimeChanged = true;
+        }
+    }
+
+    QScriptValue script = object.property("script");
+    if (script.isValid()) {
+        QString newValue;
+        newValue = script.toVariant().toString();
+        if (_defaultSettings || newValue != _script) {
+            _script = newValue;
+            _scriptChanged = true;
         }
     }
 
