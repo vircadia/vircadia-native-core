@@ -298,6 +298,18 @@ var modelUploader = (function () {
         Window.alert(message);
     }
 
+    function randomChar(length) {
+        var characters = "0123457689abcdefghijklmnopqrstuvwxyz",
+            string = "",
+            i;
+
+        for (i = 0; i < length; i += 1) {
+            string += characters[Math.floor(Math.random() * 36)];
+        }
+
+        return string;
+    }
+
     function resetDataObjects() {
         fstBuffer = null;
         fbxBuffer = null;
@@ -506,7 +518,7 @@ var modelUploader = (function () {
 
         print("Reading model file: " + modelFile);
 
-        if (modelFile.toLowerCase().slice(-4) === ".fst") {
+        if (modelFile.toLowerCase().fileType() === "fst") {
             fstBuffer = readFile(modelFile);
             if (fstBuffer === null) {
                 return false;
@@ -526,18 +538,24 @@ var modelUploader = (function () {
                 error("Model file name not found in FST file!");
                 return false;
             }
-
-        } else if (modelFile.toLowerCase().slice(-4) === ".fbx") {
-            fbxFilename = modelFile;
-            mapping[FILENAME_FIELD] = modelFile.fileName();
-
-        } else if (modelFile.toLowerCase().slice(-4) === ".svo") {
-            svoFilename = modelFile;
-            mapping[FILENAME_FIELD] = modelFile.fileName();
-
         } else {
-            error("Unrecognized file type: " + modelFile);
-            return false;
+            fstBuffer = {
+                filename: "Interface." + randomChar(6),  // Simulate avatar model uploading behaviour
+                buffer: null
+            };
+
+            if (modelFile.toLowerCase().fileType() === "fbx") {
+                fbxFilename = modelFile;
+                mapping[FILENAME_FIELD] = modelFile.fileName();
+
+            } else if (modelFile.toLowerCase().fileType() === "svo") {
+                svoFilename = modelFile;
+                mapping[FILENAME_FIELD] = modelFile.fileName();
+
+            } else {
+                error("Unrecognized file type: " + modelFile);
+                return false;
+            }
         }
 
         if (fbxFilename) {
@@ -851,7 +869,7 @@ var modelUploader = (function () {
         print("Sending model to High Fidelity");
 
         modelName = mapping[NAME_FIELD];
-        modelURL = MODEL_URL + "\/" + mapping[NAME_FIELD] + ".fst";  // DJRTODO: Do all models get a FST?
+        modelURL = MODEL_URL + "\/" + mapping[NAME_FIELD] + ".fst";  // All models are uploaded as an FST
 
         requestUpload();
     }
