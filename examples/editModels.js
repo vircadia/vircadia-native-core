@@ -732,9 +732,10 @@ var modelUploader = (function () {
             if (req.readyState === req.DONE) {
                 if (req.status === 200) {
                     // Note: Unlike avatar models, for content models we don't need to refresh texture cache.
-                    addModelCallback(modelURL);  // Add model to the world
                     print("Model uploaded: " + modelURL);
-                    Window.alert("Your model has been uploaded as: " + modelURL);
+                    if (Window.confirm("Your model has been uploaded as: " + modelURL + "\nDo you want to rez it?")) {
+                        addModelCallback(modelURL);
+                    }
                 } else if (req.status === 404) {
                     if (uploadedChecks > 0) {
                         uploadedChecks -= 1;
@@ -943,8 +944,9 @@ var toolBar = (function () {
                 radius: DEFAULT_RADIUS,
                 modelURL: url
             });
+            print("Model added: " + url);
         } else {
-            print("Can't create model: Model would be out of bounds.");
+            print("Can't add model: Model would be out of bounds.");
         }
     }
 
