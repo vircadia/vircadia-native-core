@@ -36,7 +36,7 @@ const glm::vec3& VerletSphereShape::getTranslation() const {
 
 // virtual
 float VerletSphereShape::computeEffectiveMass(const glm::vec3& penetration, const glm::vec3& contactPoint) {
-    return _point->_mass;
+    return _point->getMass();
 }
 
 // virtual
@@ -47,4 +47,8 @@ void VerletSphereShape::accumulateDelta(float relativeMassFactor, const glm::vec
 // virtual
 void VerletSphereShape::applyAccumulatedDelta() {
     _point->applyAccumulatedDelta();
+}
+
+void VerletSphereShape::getVerletPoints(QVector<VerletPoint*>& points) {
+    points.push_back(_point);
 }

@@ -167,7 +167,7 @@ bool oneAtBit(unsigned char byte, int bitIndex) {
 }
 
 void setAtBit(unsigned char& byte, int bitIndex) {
-    byte += (1 << (7 - bitIndex));
+    byte |= (1 << (7 - bitIndex));
 }
 
 void clearAtBit(unsigned char& byte, int bitIndex) {
@@ -176,7 +176,7 @@ void clearAtBit(unsigned char& byte, int bitIndex) {
     }
 }
 
-int  getSemiNibbleAt(unsigned char& byte, int bitIndex) {
+int  getSemiNibbleAt(unsigned char byte, int bitIndex) {
     return (byte >> (6 - bitIndex) & 3); // semi-nibbles store 00, 01, 10, or 11
 }
 
@@ -207,7 +207,7 @@ bool isBetween(int64_t value, int64_t max, int64_t min) {
 
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
     //assert(value <= 3 && value >= 0);
-    byte += ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
+    byte |= ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
 }
 
 bool isInEnvironment(const char* environment) {
@@ -496,7 +496,7 @@ int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int
     return sizeof(uint16_t);
 }
 
-int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix) {
+int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, float* destinationPointer, int radix) {
     *destinationPointer = *byteFixedPointer / (float)(1 << radix);
     return sizeof(int16_t);
 }

@@ -15,8 +15,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <QtGlobal>
+#include <QVector>
 
 class PhysicsEntity;
+class VerletPoint;
 
 const float MAX_SHAPE_MASS = 1.0e18f; // something less than sqrt(FLT_MAX)
 
@@ -72,6 +74,8 @@ public:
 
     /// \return volume of shape in cubic meters
     virtual float getVolume() const { return 1.0; }
+
+    virtual void getVerletPoints(QVector<VerletPoint*>& points) {}
 
 protected:
     // these ctors are protected (used by derived classes only)

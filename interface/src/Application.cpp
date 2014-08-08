@@ -262,8 +262,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
-    connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
-    connect(nodeList, SIGNAL(uuidChanged(const QUuid&)), _myAvatar, SLOT(setSessionUUID(const QUuid&)));
+    connect(nodeList, &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
 
     // connect to appropriate slots on AccountManager
@@ -1503,10 +1502,11 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    return _cara.isActive() ? static_cast<FaceTracker*>(&_cara) : 
-        (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
-        (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
-            (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
+    return (_dde.isActive() ? static_cast<FaceTracker*>(&_dde) :
+            (_cara.isActive() ? static_cast<FaceTracker*>(&_cara) :
+             (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
+              (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
+               (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)))));
 }
 
 struct SendVoxelsOperationArgs {
@@ -1938,13 +1938,21 @@ void Application::updateVisage() {
     _visage.update();
 }
 
+void Application::updateDDE() {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateDDE()");
+    
+    //  Update Cara
+    _dde.update();
+}
+
 void Application::updateCara() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCara()");
-
+    
     //  Update Cara
     _cara.update();
-
+    
     //  Copy angular velocity if measured by cara, to the head
     if (_cara.isActive()) {
         _myAvatar->getHead()->setAngularVelocity(_cara.getHeadAngularVelocity());
@@ -2131,12 +2139,6 @@ void Application::update(float deltaTime) {
         _prioVR.update(deltaTime);
 
     }
-    {
-        PerformanceTimer perfTimer("myAvatar");
-        updateMyAvatarLookAtPosition();
-        updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
-    }
-    
 
     // Dispatch input events
     _controllerScriptingInterface.updateInputControllers();
@@ -2167,6 +2169,12 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
+    }
+    
+    {
+        PerformanceTimer perfTimer("myAvatar");
+        updateMyAvatarLookAtPosition();
+        updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     }
 
     {
@@ -3266,6 +3274,7 @@ void Application::resetSensors() {
     _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
+    _dde.reset();
 
     OculusManager::reset();
 

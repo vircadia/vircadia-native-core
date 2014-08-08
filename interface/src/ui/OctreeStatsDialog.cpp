@@ -366,13 +366,12 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             QString incomingBytesString = locale.toString((uint)stats.getIncomingBytes());
                             QString incomingWastedBytesString = locale.toString((uint)stats.getIncomingWastedBytes());
                             const SequenceNumberStats& seqStats = stats.getIncomingOctreeSequenceNumberStats();
-                            QString incomingOutOfOrderString = locale.toString((uint)seqStats.getNumOutOfOrder());
-                            QString incomingLateString = locale.toString((uint)seqStats.getNumLate());
-                            QString incomingUnreasonableString = locale.toString((uint)seqStats.getNumUnreasonable());
-                            QString incomingEarlyString = locale.toString((uint)seqStats.getNumEarly());
-                            QString incomingLikelyLostString = locale.toString((uint)seqStats.getNumLost());
-                            QString incomingRecovered = locale.toString((uint)seqStats.getNumRecovered());
-                            QString incomingDuplicateString = locale.toString((uint)seqStats.getNumDuplicate());
+                            QString incomingOutOfOrderString = locale.toString((uint)seqStats.getOutOfOrder());
+                            QString incomingLateString = locale.toString((uint)seqStats.getLate());
+                            QString incomingUnreasonableString = locale.toString((uint)seqStats.getUnreasonable());
+                            QString incomingEarlyString = locale.toString((uint)seqStats.getEarly());
+                            QString incomingLikelyLostString = locale.toString((uint)seqStats.getLost());
+                            QString incomingRecovered = locale.toString((uint)seqStats.getRecovered());
                             
                             int clockSkewInMS = node->getClockSkewUsec() / (int)USECS_PER_MSEC;
                             QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
@@ -386,8 +385,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             serverDetails << "<br/>" << " Out of Order: " << qPrintable(incomingOutOfOrderString) <<
                                 "/ Early: " << qPrintable(incomingEarlyString) <<
                                 "/ Late: " << qPrintable(incomingLateString) <<
-                                "/ Unreasonable: " << qPrintable(incomingUnreasonableString) <<
-                                "/ Duplicate: " << qPrintable(incomingDuplicateString);
+                                "/ Unreasonable: " << qPrintable(incomingUnreasonableString);
                             
                             serverDetails << "<br/>" <<
                                 " Average Flight Time: " << qPrintable(incomingFlightTimeString) << " msecs";

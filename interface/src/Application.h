@@ -64,6 +64,7 @@
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
 #include "devices/CaraFaceTracker.h"
+#include "devices/DdeFaceTracker.h"
 #include "models/ModelTreeRenderer.h"
 #include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
@@ -216,6 +217,7 @@ public:
     Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
+    DdeFaceTracker* getDDE() { return &_dde; }
     CaraFaceTracker* getCara() { return &_cara; }
     FaceTracker* getActiveFaceTracker();
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
@@ -395,6 +397,7 @@ private:
     void updateFaceplus();
     void updateFaceshift();
     void updateVisage();
+    void updateDDE();
     void updateCara();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
@@ -496,6 +499,7 @@ private:
     Faceshift _faceshift;
     Visage _visage;
     CaraFaceTracker _cara;
+    DdeFaceTracker _dde;
 
     SixenseManager _sixenseManager;
     PrioVR _prioVR;

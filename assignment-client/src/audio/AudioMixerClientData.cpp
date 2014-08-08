@@ -104,7 +104,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(AABox* checkSourceZone, A
     QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
         PositionalAudioStream* stream = i.value();
-        if (stream->popFrames(1)) {
+        if (stream->popFrames(1, true) > 0) {
             // this is a ring buffer that is ready to go
 
             // calculate the trailing avg loudness for the next frame
