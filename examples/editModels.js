@@ -613,7 +613,7 @@ var modelUploader = (function () {
         if (mapping[TEXDIR_FIELD] === "") {
             mapping[TEXDIR_FIELD] = ".";
         }
-        mapping[SCALE_FIELD] = form[6].value;
+        mapping[SCALE_FIELD] = form[2].value;
 
         writeMapping(fstBuffer);
 
@@ -800,7 +800,7 @@ var modelUploader = (function () {
             //debugResponse();
             if (req.readyState === req.DONE) {
                 if (req.status === 200) {
-                    uploadedChecks = 30;
+                    uploadedChecks = UPLOADED_CHECKS;
                     checkUploaded();
                 } else {
                     print("Error: " + req.status + " " + req.statusText);
