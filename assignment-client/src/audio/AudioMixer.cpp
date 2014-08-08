@@ -430,7 +430,7 @@ void AudioMixer::run() {
             qDebug() << "Dynamic jitter buffers disabled.";
         }
 
-        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "B-desired-jitter-buffer-frames";
+        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "B-static-desired-jitter-buffer-frames";
         _streamSettings._staticDesiredJitterBufferFrames = audioGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
         if (!ok) {
             _streamSettings._staticDesiredJitterBufferFrames = DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES;
