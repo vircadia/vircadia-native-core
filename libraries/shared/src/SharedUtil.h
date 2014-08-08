@@ -122,4 +122,5 @@ bool isNaN(float value);
 
 QString formatUsecTime(float usecs, int prec = 3);
 
+
 #endif // hifi_SharedUtil_h
