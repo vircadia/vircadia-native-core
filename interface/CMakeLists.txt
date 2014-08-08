@@ -162,7 +162,7 @@ include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes"
 include_directories("${OPENSSL_INCLUDE_DIR}")
 
 target_link_libraries(
-  ${TARGET_NAME} "${ZLIB_LIBRARIES}" "${OPENSSL_LIBRARIES}"
+  ${TARGET_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL Qt5::Script Qt5::Svg Qt5::WebKitWidgets
 )
 
