@@ -194,7 +194,8 @@ int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance
             glm::vec3 intersection = relativeEntry + planeDistance * _direction;
             if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
                     intersection.z >= intersection.x) {
-                intersectionDistance = distance + (accumulatedDistance + planeDistance) * (info.size / highest);
+                intersectionDistance = qMin(intersectionDistance, distance +
+                    (accumulatedDistance + planeDistance) * (info.size / highest));
                 return SHORT_CIRCUIT;
             }
         }
@@ -207,7 +208,8 @@ int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance
             glm::vec3 intersection = relativeEntry + planeDistance * _direction;
             if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
                     intersection.x >= intersection.z) {
-                intersectionDistance = distance + (accumulatedDistance + planeDistance) * (info.size / highest);
+                intersectionDistance = qMin(intersectionDistance, distance +
+                    (accumulatedDistance + planeDistance) * (info.size / highest));
                 return SHORT_CIRCUIT;
             }
         }

@@ -1105,15 +1105,7 @@ void HeightfieldBrushTool::render() {
         return;
     }
     glm::vec3 point = origin + distance * direction;
-    
-    glPushMatrix();
-    glTranslatef(point.x, point.y, point.z);
-    
-    glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
-    
-    glutSolidSphere(1.0f, 8, 8);
-    
-    glPopMatrix();
+    Application::getInstance()->getMetavoxels()->renderHeightfieldCursor(point, _radius->value());
 }
 
 HeightBrushTool::HeightBrushTool(MetavoxelEditor* editor) :

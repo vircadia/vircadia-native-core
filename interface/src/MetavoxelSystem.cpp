@@ -31,6 +31,10 @@ REGISTER_META_OBJECT(StaticModelRenderer)
 
 static int bufferPointVectorMetaTypeId = qRegisterMetaType<BufferPointVector>();
 
+MetavoxelSystem::MetavoxelSystem() :
+    _cursorTexture(QOpenGLTexture::Target2D) {
+}
+
 void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
     DefaultMetavoxelRendererImplementation::init();
@@ -116,6 +120,105 @@ void MetavoxelSystem::render() {
     
     RenderVisitor renderVisitor(getLOD());
     guideToAugmented(renderVisitor);
+}
+
+class HeightfieldCursorRenderVisitor : public MetavoxelVisitor {
+public:
+    
+    HeightfieldCursorRenderVisitor(const MetavoxelLOD& lod, const Box& bounds);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    Box _bounds;
+};
+
+HeightfieldCursorRenderVisitor::HeightfieldCursorRenderVisitor(const MetavoxelLOD& lod, const Box& bounds) :
+    MetavoxelVisitor(QVector<AttributePointer>() <<
+        Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), QVector<AttributePointer>(), lod),
+    _bounds(bounds) {
+}
+
+int HeightfieldCursorRenderVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_bounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    BufferDataPointer buffer = info.inputValues.at(0).getInlineValue<BufferDataPointer>();
+    if (buffer) {
+        buffer->render(true);
+    }
+    return STOP_RECURSION;
+}
+
+void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float radius) {
+    // create the cursor texture lazily
+    if (!_cursorTexture.isCreated()) {
+        const int CURSOR_TEXTURE_SIZE = 512;
+        QImage cursorImage(CURSOR_TEXTURE_SIZE, CURSOR_TEXTURE_SIZE, QImage::Format_ARGB32_Premultiplied);
+        cursorImage.fill(0x0);
+        {
+            QPainter painter(&cursorImage);
+            const int ELLIPSE_EDGE = 10;
+            const int OUTER_WIDTH = 10;
+            QPen outerPen;
+            outerPen.setWidth(OUTER_WIDTH);
+            painter.setPen(outerPen);
+            const int HALF_TEXTURE_SIZE = CURSOR_TEXTURE_SIZE / 2;
+            painter.drawEllipse(QPoint(HALF_TEXTURE_SIZE, HALF_TEXTURE_SIZE), HALF_TEXTURE_SIZE - ELLIPSE_EDGE,
+                HALF_TEXTURE_SIZE - ELLIPSE_EDGE);
+            QPen innerPen(Qt::white);
+            const int INNER_WIDTH = 6;
+            innerPen.setWidth(INNER_WIDTH);
+            painter.setPen(innerPen);
+            painter.drawEllipse(QPoint(HALF_TEXTURE_SIZE, HALF_TEXTURE_SIZE), HALF_TEXTURE_SIZE - ELLIPSE_EDGE,
+                HALF_TEXTURE_SIZE - ELLIPSE_EDGE);
+        }
+        _cursorTexture.setData(cursorImage, QOpenGLTexture::DontGenerateMipMaps);
+        _cursorTexture.setWrapMode(QOpenGLTexture::ClampToEdge);
+        _cursorTexture.setMinificationFilter(QOpenGLTexture::Linear);
+    }
+   
+    glDepthFunc(GL_LEQUAL);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(-1.0f, -1.0f);
+    
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().bind();
+    
+    glActiveTexture(GL_TEXTURE4);
+    float scale = 1.0f / radius;
+    glm::vec4 sCoefficients(scale, 0.0f, 0.0f, 0.5f - scale * position.x);
+    glm::vec4 tCoefficients(0.0f, 0.0f, scale, 0.5f - scale * position.z);
+    glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&sCoefficients);
+    glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&tCoefficients);
+    
+    _cursorTexture.bind(1);
+    glActiveTexture(GL_TEXTURE0);
+    
+    glm::vec3 extents(radius, radius, radius);
+    HeightfieldCursorRenderVisitor visitor(getLOD(), Box(position - extents, position + extents));
+    guideToAugmented(visitor);
+    
+    _cursorTexture.release(1);
+    glActiveTexture(GL_TEXTURE0);
+    
+    DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().release();
+    
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glDisable(GL_CULL_FACE);
+    glDepthFunc(GL_LESS);
 }
 
 void MetavoxelSystem::deleteTextures(int heightID, int colorID) {
@@ -239,7 +342,7 @@ PointBuffer::PointBuffer(const BufferPointVector& points) :
     _points(points) {
 }
 
-void PointBuffer::render() {
+void PointBuffer::render(bool cursor) {
     // initialize buffer, etc. on first render
     if (!_buffer.isCreated()) {
         _buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
@@ -294,7 +397,7 @@ public:
     glm::vec3 vertex;
 };
 
-void HeightfieldBuffer::render() {
+void HeightfieldBuffer::render(bool cursor) {
     // initialize textures, etc. on first render
     if (_heightTextureID == 0) {
         glGenTextures(1, &_heightTextureID);
@@ -385,17 +488,24 @@ void HeightfieldBuffer::render() {
     
     glBindTexture(GL_TEXTURE_2D, _heightTextureID);
     
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+    int heightScaleLocation;
+    if (cursor) {
+        heightScaleLocation = DefaultMetavoxelRendererImplementation::getCursorHeightScaleLocation();
+    } else {
+        heightScaleLocation = DefaultMetavoxelRendererImplementation::getHeightScaleLocation();
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+    }
     
-    DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(
-        DefaultMetavoxelRendererImplementation::getHeightScaleLocation(), 1.0f / _heightSize);
+    DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(heightScaleLocation, 1.0f / _heightSize);
         
     glDrawRangeElements(GL_QUADS, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
     
-    glBindTexture(GL_TEXTURE_2D, 0);
+    if (!cursor) {
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE0); 
+    }
     
-    glActiveTexture(GL_TEXTURE0); 
     glBindTexture(GL_TEXTURE_2D, 0);
     
     glPopMatrix();
@@ -475,6 +585,18 @@ void DefaultMetavoxelRendererImplementation::init() {
         _heightfieldProgram.setUniformValue("diffuseMap", 1);
         _heightScaleLocation = _heightfieldProgram.uniformLocation("heightScale");
         _heightfieldProgram.release();
+        
+        _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_cursor.vert");
+        _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_cursor.frag");
+        _heightfieldCursorProgram.link();
+        
+        _heightfieldCursorProgram.bind();
+        _heightfieldCursorProgram.setUniformValue("heightMap", 0);
+        _heightfieldCursorProgram.setUniformValue("cursorMap", 1);
+        _cursorHeightScaleLocation = _heightfieldCursorProgram.uniformLocation("heightScale");
+        _heightfieldCursorProgram.release();
     }
 }
 
@@ -771,6 +893,8 @@ ProgramObject DefaultMetavoxelRendererImplementation::_pointProgram;
 int DefaultMetavoxelRendererImplementation::_pointScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldProgram;
 int DefaultMetavoxelRendererImplementation::_heightScaleLocation;
+ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldCursorProgram;
+int DefaultMetavoxelRendererImplementation::_cursorHeightScaleLocation;
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
     GLdouble coefficients[] = { x, y, z, w };
