@@ -34,6 +34,8 @@ public:
     virtual void init();
 
     virtual MetavoxelLOD getLOD();
+
+    const Frustum& getFrustum() const { return _frustum; }
     
     const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
     const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
@@ -56,6 +58,7 @@ private:
     
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
+    Frustum _frustum;
 };
 
 /// Describes contents of a point in a point buffer.
@@ -188,6 +191,7 @@ public:
     static void init();
 
     static ProgramObject& getHeightfieldProgram() { return _heightfieldProgram; }
+    static int getHeightScaleLocation() { return _heightScaleLocation; }
 
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
@@ -201,6 +205,7 @@ private:
     static int _pointScaleLocation;
     
     static ProgramObject _heightfieldProgram;
+    static int _heightScaleLocation;
 };
 
 /// Base class for spanner renderers; provides clipping.

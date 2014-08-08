@@ -53,7 +53,8 @@ public:
     virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
 
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
-
+    virtual const Model* getModelForEntityItem(const EntityItem* entityItem);
+    
     /// clears the tree
     virtual void clear();
 

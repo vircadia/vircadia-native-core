@@ -15,6 +15,9 @@
 #include <Octree.h>
 #include "EntityTreeElement.h"
 
+
+class Model;
+
 class NewlyCreatedEntityHook {
 public:
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) = 0;
@@ -23,6 +26,7 @@ public:
 class EntityItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) = 0;
+    virtual const Model* getModelForForEntityItem(const EntityItem* entityItem) = 0;    
 };
 
 
@@ -99,6 +103,7 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     void handleAddEntityResponse(const QByteArray& packet);
     
+    EntityItemFBXService* getFBXService() const { return _fbxService; }
     void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
     const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) {
         return _fbxService ? _fbxService->getGeometryForEntity(entityItem) : NULL;

@@ -94,6 +94,16 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem* en
     return result;
 }
 
+const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityItem) {
+    const Model* result = NULL;
+    if (entityItem->getType() == EntityTypes::Model) {
+        const ModelEntityItem* modelEntityItem = static_cast<const ModelEntityItem*>(entityItem);
+    
+        result = getModel(modelEntityItem);
+    }
+    return result;
+}
+
 Model* EntityTreeRenderer::getModel(const ModelEntityItem* modelEntityItem) {
     Model* model = NULL;
  

@@ -1,3 +1,13 @@
+//
+//  MixedAudioStream.cpp
+//  libraries/audio/src
+//
+//  Created by Yixin Wang on 8/4/14.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include "MixedAudioStream.h"
 
@@ -10,8 +20,4 @@ int MixedAudioStream::parseStreamProperties(PacketType type, const QByteArray& p
     // mixed audio packets do not have any info between the seq num and the audio data.
     numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
     return 0;
-}
-
-int MixedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
-    return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
 }

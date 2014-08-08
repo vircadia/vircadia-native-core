@@ -108,6 +108,12 @@ int RenderVisitor::visit(MetavoxelInfo& info) {
 }
 
 void MetavoxelSystem::render() {
+    // update the frustum
+    ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
+    _frustum.set(viewFrustum->getFarTopLeft(), viewFrustum->getFarTopRight(), viewFrustum->getFarBottomLeft(),
+        viewFrustum->getFarBottomRight(), viewFrustum->getNearTopLeft(), viewFrustum->getNearTopRight(),
+        viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
+    
     RenderVisitor renderVisitor(getLOD());
     guideToAugmented(renderVisitor);
 }
@@ -353,9 +359,9 @@ void HeightfieldBuffer::render() {
             int nextLineIndex = (i + 1) * sizeWithSkirt;
             for (int j = 0; j < rows; j++) {
                 *index++ = lineIndex + j;
-                *index++ = lineIndex + j + 1;
-                *index++ = nextLineIndex + j + 1;
                 *index++ = nextLineIndex + j;
+                *index++ = nextLineIndex + j + 1;
+                *index++ = lineIndex + j + 1;
             }
         }
         
@@ -382,6 +388,9 @@ void HeightfieldBuffer::render() {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _colorTextureID);
     
+    DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(
+        DefaultMetavoxelRendererImplementation::getHeightScaleLocation(), 1.0f / _heightSize);
+        
     glDrawRangeElements(GL_QUADS, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
     
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -399,6 +408,7 @@ QHash<int, HeightfieldBuffer::BufferPair> HeightfieldBuffer::_bufferPairs;
 
 void HeightfieldPreview::render(const glm::vec3& translation, float scale) const {
     glDisable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_EQUAL, 0.0f);
     
@@ -425,6 +435,7 @@ void HeightfieldPreview::render(const glm::vec3& translation, float scale) const
     glDisableClientState(GL_VERTEX_ARRAY);
     
     glDisable(GL_ALPHA_TEST);
+    glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
 }
 
@@ -462,6 +473,7 @@ void DefaultMetavoxelRendererImplementation::init() {
         _heightfieldProgram.bind();
         _heightfieldProgram.setUniformValue("heightMap", 0);
         _heightfieldProgram.setUniformValue("diffuseMap", 1);
+        _heightScaleLocation = _heightfieldProgram.uniformLocation("heightScale");
         _heightfieldProgram.release();
     }
 }
@@ -628,13 +640,31 @@ public:
     
     SpannerRenderVisitor(const MetavoxelLOD& lod);
     
+    virtual int visit(MetavoxelInfo& info);
     virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
+
+private:
+    
+    int _containmentDepth;
 };
 
 SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
         QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(),
-        lod, encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())) {
+        lod, encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+    _containmentDepth(INT_MAX) {
+}
+
+int SpannerRenderVisitor::visit(MetavoxelInfo& info) {
+    if (_containmentDepth >= _depth) {
+        Frustum::IntersectionType intersection = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
+            info.getBounds());
+        if (intersection == Frustum::NO_INTERSECTION) {
+            return STOP_RECURSION;
+        }
+        _containmentDepth = (intersection == Frustum::CONTAINS_INTERSECTION) ? _depth : INT_MAX;
+    }
+    return SpannerVisitor::visit(info);
 }
 
 bool SpannerRenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
@@ -652,14 +682,24 @@ public:
 private:
     
     int _order;
+    int _containmentDepth;
 };
 
 BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute, const MetavoxelLOD& lod) :
     MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>(), lod),
-    _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())) {
+    _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+    _containmentDepth(INT_MAX) {
 }
 
 int BufferRenderVisitor::visit(MetavoxelInfo& info) {
+    if (_containmentDepth >= _depth) {
+        Frustum::IntersectionType intersection = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
+            info.getBounds());
+        if (intersection == Frustum::NO_INTERSECTION) {
+            return STOP_RECURSION;
+        }
+        _containmentDepth = (intersection == Frustum::CONTAINS_INTERSECTION) ? _depth : INT_MAX;
+    }
     BufferDataPointer buffer = info.inputValues.at(0).getInlineValue<BufferDataPointer>();
     if (buffer) {
         buffer->render();
@@ -703,6 +743,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     
     _pointProgram.release();
     
+    glEnable(GL_CULL_FACE);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_EQUAL, 0.0f);
     
@@ -722,12 +763,14 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     glDisableClientState(GL_VERTEX_ARRAY);
     
     glDisable(GL_ALPHA_TEST);
+    glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
 }
 
 ProgramObject DefaultMetavoxelRendererImplementation::_pointProgram;
 int DefaultMetavoxelRendererImplementation::_pointScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldProgram;
+int DefaultMetavoxelRendererImplementation::_heightScaleLocation;
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
     GLdouble coefficients[] = { x, y, z, w };

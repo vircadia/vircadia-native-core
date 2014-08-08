@@ -17,7 +17,7 @@
 #include <QVector>
 
 #include "CollisionInfo.h"
-#include "ContactConstraint.h"
+#include "ContactPoint.h"
 
 class PhysicsEntity;
 class Ragdoll;
@@ -28,10 +28,17 @@ public:
     PhysicsSimulation();
     ~PhysicsSimulation();
 
+    void setTranslation(const glm::vec3& translation) { _translation = translation; }
+    const glm::vec3& getTranslation() const { return _translation; }
+
+    void setRagdoll(Ragdoll* ragdoll);
+    void setEntity(PhysicsEntity* entity);
+
     /// \return true if entity was added to or is already in the list
     bool addEntity(PhysicsEntity* entity);
 
     void removeEntity(PhysicsEntity* entity);
+    void removeShapes(const PhysicsEntity* entity);
 
     /// \return true if doll was added to or is already in the list
     bool addRagdoll(Ragdoll* doll);
@@ -49,17 +56,23 @@ protected:
     void computeCollisions();
     void resolveCollisions();
 
-    void enforceContacts();
+    void buildContactConstraints();
+    void enforceContactConstraints();
     void updateContacts();
     void pruneContacts();
 
 private:
-    quint32 _frame;
+    glm::vec3 _translation; // origin of simulation in world-frame
 
-    QVector<Ragdoll*> _dolls;
-    QVector<PhysicsEntity*> _entities;
+    quint32 _frameCount;
+
+    PhysicsEntity* _entity;
+    Ragdoll* _ragdoll;
+
+    QVector<Ragdoll*> _otherRagdolls;
+    QVector<PhysicsEntity*> _otherEntities;
     CollisionList _collisions;
-    QMap<quint64, ContactConstraint> _contacts;
+    QMap<quint64, ContactPoint> _contacts;
 };
 
 #endif // hifi_PhysicsSimulation
