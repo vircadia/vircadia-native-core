@@ -12,9 +12,7 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
                   $<TARGET_FILE_DIR:${TARGET_NAME}>/resources/web)
 
 # link the shared hifi library
-link_hifi_library(networking ${TARGET_NAME})
-link_hifi_library(shared ${TARGET_NAME})
-link_hifi_library(embedded-webserver ${TARGET_NAME})
+link_hifi_libraries(${TARGET_NAME} embedded-webserver networking shared)
 
 IF (WIN32)
   target_link_libraries(${TARGET_NAME} Winmm Ws2_32)

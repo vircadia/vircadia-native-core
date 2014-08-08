@@ -1,24 +1,5 @@
-set(ROOT_DIR ../..)
-set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
-
 set(TARGET_NAME shared)
-project(${TARGET_NAME})
-
-include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
-
-# include GLM
-include(${MACRO_DIR}/IncludeGLM.cmake)
-include_glm(${TARGET_NAME} "${ROOT_DIR}")
-
-# link required libraries on UNIX
-if (APPLE)
-  find_library(CoreServices CoreServices)
-  set(DEPENDENCY_LIBRARIES ${CoreServices})
-elseif (UNIX)
-  find_package(Threads REQUIRED)
-  set(DEPENDENCY_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}")
-endif ()
 
 find_package(Qt5 COMPONENTS Network Widgets)
 

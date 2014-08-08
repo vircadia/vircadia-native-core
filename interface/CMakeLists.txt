@@ -97,22 +97,8 @@ endif()
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
-# link in the hifi shared library
-include(${MACRO_DIR}/LinkHifiLibrary.cmake)
-
 # link required hifi libraries
-link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(metavoxels ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(models ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(avatars ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(audio ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_libraries(${TARGET_NAME} shared octree voxels fbx metavoxels networking particles models avatars audio animation script-engine)
 
 # find any optional and required libraries
 find_package(Faceplus)
