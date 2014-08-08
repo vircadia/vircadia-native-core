@@ -1096,6 +1096,10 @@ HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QStrin
 }
 
 void HeightfieldBrushTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
+    
     // find the intersection with the heightfield
     glm::vec3 origin = Application::getInstance()->getMouseRayOrigin();
     glm::vec3 direction = Application::getInstance()->getMouseRayDirection();
