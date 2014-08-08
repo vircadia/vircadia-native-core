@@ -26,7 +26,7 @@ public:
 class EntityItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) = 0;
-    virtual const Model* getModelForForEntityItem(const EntityItem* entityItem) = 0;    
+    virtual const Model* getModelForEntityItem(const EntityItem* entityItem) = 0;    
 };
 
 
@@ -72,8 +72,8 @@ public:
     void deleteEntities(QSet<EntityItemID> entityIDs);
 
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
-    EntityItem* findEntityByID(uint32_t id, bool alreadyLocked = false)  /*const*/;
-    EntityItem* findEntityByEntityItemID(const EntityItemID& entityID)  /*const*/;
+    EntityItem* findEntityByID(const QUuid& id);
+    EntityItem* findEntityByEntityItemID(const EntityItemID& entityID);
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 

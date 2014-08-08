@@ -54,7 +54,16 @@ Model properties:
         DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
         DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
 
-   13) support sitpoints
+   13) support sitpoints and referentials....
+    Q) Referentials????
+   
+            For sitting points and referentials you can kill two birds with one stone.
+            Put this model in world: http://highfidelity-public.s3-us-west-1.amazonaws.com/ozan/theater.fst
+            Launch sit.js
+            See sitting points
+            Sit somewhere
+            Move model with another avatar.
+            Observe first avatar moving.   
    
     K) verify shadows work
     
@@ -67,7 +76,6 @@ Model properties:
    12a) make sure server is deleting items??
    12b) Use the delete message instead of shouldDelete property
 
-    Q) Referentials????
     
     R) fix these!!! 
            EntityItem::encodeEntityEditMessageDetails()

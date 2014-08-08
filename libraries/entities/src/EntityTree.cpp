@@ -855,8 +855,7 @@ void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*> foundEnti
     foundEntities.swap(args._foundEntities);
 }
 
-#if 0 ///////////////////////////////////
-EntityItem* EntityTree::findEntityByID(uint32_t id, bool alreadyLocked)  /*const*/ {
+EntityItem* EntityTree::findEntityByID(const QUuid& id) {
     EntityItemID entityID(id);
 
     bool wantDebug = false;
@@ -869,7 +868,6 @@ EntityItem* EntityTree::findEntityByID(uint32_t id, bool alreadyLocked)  /*const
 
     return findEntityByEntityItemID(entityID);
 }
-#endif ////////////////////////////
 
 EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /*const*/ {
     EntityItem* foundEntity = NULL;

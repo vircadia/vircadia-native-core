@@ -107,7 +107,7 @@ void Avatar::simulate(float deltaTime) {
     // update the avatar's position according to its referential
     if (_referential) {
         if (_referential->hasExtraData()) {
-            ModelTree* tree = Application::getInstance()->getModels()->getTree();
+            EntityTree* tree = Application::getInstance()->getEntities()->getTree();
             switch (_referential->type()) {
                 case Referential::MODEL:
                     _referential = new ModelReferential(_referential,
