@@ -93,6 +93,31 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
         changedProperties += PROP_SHOULD_BE_DELETED;
     }
 
+
+    if (_massChanged) {
+        changedProperties += PROP_MASS;
+    }
+
+    if (_velocityChanged) {
+        changedProperties += PROP_VELOCITY;
+    }
+
+    if (_gravityChanged) {
+        changedProperties += PROP_GRAVITY;
+    }
+
+    if (_dampingChanged) {
+        changedProperties += PROP_DAMPING;
+    }
+
+    if (_lifetimeChanged) {
+        changedProperties += PROP_LIFETIME;
+    }
+
+    if (_scriptChanged) {
+        changedProperties += PROP_SCRIPT;
+    }
+
     if (_colorChanged) {
         changedProperties += PROP_COLOR;
     }
@@ -464,7 +489,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         // encode our type as a byte count coded byte stream
         ByteCountCoded<quint32> typeCoder = (quint32)properties.getType();
         
-qDebug() << "(quint32)properties.getType()=" << (quint32)properties.getType();
+qDebug() << "EntityItemProperties::encodeEntityEditPacket()... (quint32)properties.getType()=" << (quint32)properties.getType();
 
         QByteArray encodedType = typeCoder;
 
@@ -496,7 +521,7 @@ qDebug() << "(quint32)properties.getType()=" << (quint32)properties.getType();
         // timestamp for clock skew
         quint64 lastEdited = properties.getLastEdited();
 
-qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... lastEdited=" << lastEdited;
+qDebug() << "EntityItemProperties::encodeEntityEditPacket()...  lastEdited=" << lastEdited;
 
         bool successLastEditedFits = packetData.appendValue(lastEdited);
     
@@ -632,6 +657,9 @@ qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... lastEdited=" << la
                 LevelDetails propertyLevel = packetData.startLevel();
                 successPropertyFits = packetData.appendValue(properties.getVelocity());
                 if (successPropertyFits) {
+
+qDebug() << "EntityItemProperties::encodeEntityEditPacket()...  PROP_VELOCITY properties.getVelocity()=" << properties.getVelocity();
+
                     propertyFlags |= PROP_VELOCITY;
                     propertiesDidntFit -= PROP_VELOCITY;
                     propertyCount++;
@@ -666,6 +694,9 @@ qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... lastEdited=" << la
                 LevelDetails propertyLevel = packetData.startLevel();
                 successPropertyFits = packetData.appendValue(properties.getDamping());
                 if (successPropertyFits) {
+
+qDebug() << "EntityItemProperties::encodeEntityEditPacket()...  PROP_DAMPING getDamping()=" << properties.getDamping();
+
                     propertyFlags |= PROP_DAMPING;
                     propertiesDidntFit -= PROP_DAMPING;
                     propertyCount++;
@@ -907,7 +938,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     bool wantDebug = true;
     if (wantDebug) {
-        qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() bytesToRead=" << bytesToRead;
+        qDebug() << "EntityItemProperties::decodeEntityEditPacket() bytesToRead=" << bytesToRead;
     }
 
     const unsigned char* dataAt = data;
@@ -919,7 +950,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     int bytesToReadOfOctcode = bytesRequiredForCodeLength(octets);
 
     if (wantDebug) {
-        qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() bytesToReadOfOctcode=" << bytesToReadOfOctcode;
+        qDebug() << "EntityItemProperties::decodeEntityEditPacket() bytesToReadOfOctcode=" << bytesToReadOfOctcode;
     }
 
     // we don't actually do anything with this octcode...
@@ -933,7 +964,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     memcpy(&lastEdited, dataAt, sizeof(lastEdited));
     dataAt += sizeof(lastEdited);
     processedBytes += sizeof(lastEdited);
-qDebug() << "EntityTypes::decodeEntityEditPacket() ... lastEdited=" << lastEdited;
+qDebug() << "EntityItemProperties::decodeEntityEditPacket() ... lastEdited=" << lastEdited;
     properties.setLastEdited(lastEdited);
 
     // encoded id
@@ -943,12 +974,12 @@ qDebug() << "EntityTypes::decodeEntityEditPacket() ... lastEdited=" << lastEdite
     processedBytes += encodedID.size();
 
     if (wantDebug) {
-        qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() editID=" << editID;
+        qDebug() << "EntityItemProperties::decodeEntityEditPacket() editID=" << editID;
     }
 
     bool isNewEntityItem = (editID == NEW_ENTITY);
 
-    qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() isNewEntityItem=" << isNewEntityItem;
+    qDebug() << "EntityItemProperties::decodeEntityEditPacket() isNewEntityItem=" << isNewEntityItem;
 
     if (isNewEntityItem) {
         // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
@@ -977,7 +1008,7 @@ qDebug() << "EntityTypes::decodeEntityEditPacket() ... lastEdited=" << lastEdite
         valid = true;
     }
 
-    qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() entityID=" << entityID;
+    qDebug() << "EntityItemProperties::decodeEntityEditPacket() entityID=" << entityID;
     
     // Entity Type...
     QByteArray encodedType((const char*)dataAt, (bytesToRead - processedBytes));
@@ -1008,7 +1039,6 @@ qDebug() << "EntityTypes::decodeEntityEditPacket() ... lastEdited=" << lastEdite
     dataAt += propertyFlags.getEncodedLength();
     processedBytes += propertyFlags.getEncodedLength();
     
-
     // PROP_POSITION
     if (propertyFlags.getHasProperty(PROP_POSITION)) {
         glm::vec3 position;
@@ -1044,6 +1074,54 @@ qDebug() << "EntityTypes::decodeEntityEditPacket() ... lastEdited=" << lastEdite
         processedBytes += sizeof(shouldBeDeleted);
         properties.setShouldBeDeleted(shouldBeDeleted);
     }
+
+    // PROP_MASS,
+    if (propertyFlags.getHasProperty(PROP_MASS)) {
+        float value;
+        memcpy(&value, dataAt, sizeof(value));
+        dataAt += sizeof(value);
+        processedBytes += sizeof(value);
+        properties.setMass(value);
+    }
+
+    // PROP_VELOCITY,
+    if (propertyFlags.getHasProperty(PROP_VELOCITY)) {
+        glm::vec3 value;
+        memcpy(&value, dataAt, sizeof(value));
+        dataAt += sizeof(value);
+        processedBytes += sizeof(value);
+        properties.setVelocity(value);
+        qDebug() << "EntityItemProperties::decodeEntityEditPacket() PROP_VELOCITY value=" << value;
+    }
+
+    // PROP_GRAVITY,
+    if (propertyFlags.getHasProperty(PROP_GRAVITY)) {
+        glm::vec3 value;
+        memcpy(&value, dataAt, sizeof(value));
+        dataAt += sizeof(value);
+        processedBytes += sizeof(value);
+        properties.setGravity(value);
+    }
+
+    // PROP_DAMPING,
+    if (propertyFlags.getHasProperty(PROP_DAMPING)) {
+        float value;
+        memcpy(&value, dataAt, sizeof(value));
+        dataAt += sizeof(value);
+        processedBytes += sizeof(value);
+        properties.setDamping(value);
+        qDebug() << "EntityItemProperties::decodeEntityEditPacket() PROP_DAMPING value=" << value;
+    }
+
+    // PROP_LIFETIME,
+    if (propertyFlags.getHasProperty(PROP_LIFETIME)) {
+        float value;
+        memcpy(&value, dataAt, sizeof(value));
+        dataAt += sizeof(value);
+        processedBytes += sizeof(value);
+        properties.setLifetime(value);
+    }
+    
 
     // PROP_SCRIPT
     //     script would go here...
