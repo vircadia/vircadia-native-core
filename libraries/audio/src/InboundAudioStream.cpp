@@ -86,10 +86,6 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
     _timeGapStatsForStatsPacket.currentIntervalComplete();
 }
 
-int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
-    return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
-}
-
 int InboundAudioStream::parseData(const QByteArray& packet) {
 
     PacketType packetType = packetTypeForPacket(packet);
