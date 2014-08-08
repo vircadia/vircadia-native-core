@@ -615,16 +615,15 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     }
 }
 
-/// This class is used to recurse the tree and find and fix entity IDs that are shifting from creator token based to
-/// known ID based entity IDs. This should only be used on a client side (viewing) tree. The typical usage is that
-/// a local editor has been creating entities in the local tree, those entities have creatorToken based entity IDs.
-/// But those entity edits are also sent up to the server, and the server eventually sends back to the client two
-/// messages that can come in varying order. The first message would be a typical query/viewing data message conversation
-/// in which the viewer "sees" the newly created entity. Those entities that have been seen, will have the authoritative
-/// "known ID". Therefore there is a potential that there can be two copies of the same entity in the tree:
-/// the "local only" "creator token" version of the entity and the "seen" "knownID" version of the entity.
-/// The server also sends an "entityAdded" message to the client which contains the mapping of the creator token to
-/// the known ID. These messages can come in any order, so we need to handle the follow cases:
+/// This method is used to find and fix entity IDs that are shifting from creator token based to known ID based entity IDs. 
+/// This should only be used on a client side (viewing) tree. The typical usage is that a local editor has been creating 
+/// entities in the local tree, those entities have creatorToken based entity IDs. But those entity edits are also sent up to
+/// the server, and the server eventually sends back to the client two messages that can come in varying order. The first 
+/// message would be a typical query/viewing data message conversation in which the viewer "sees" the newly created entity. 
+/// Those entities that have been seen, will have the authoritative "known ID". Therefore there is a potential that there can 
+/// be two copies of the same entity in the tree: the "local only" "creator token" version of the entity and the "seen" 
+/// "knownID" version of the entity. The server also sends an "entityAdded" message to the client which contains the mapping 
+/// of the creator token to the known ID. These messages can come in any order, so we need to handle the follow cases:
 ///
 ///     Case A: The local edit occurs, the addEntity message arrives, the "viewed data" has not yet arrived.
 ///             In this case, we can expect that our local tree has only one copy of the entity (the creator token), 
@@ -637,134 +636,13 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
 ///             In this case we need to fix up that entity with a new version of the ID that includes the knownID and
 ///             we need to delete the extra copy of the entity.
 ///
-/// This operator handles both of these cases.
-class UpdateEntityIDOperator : public RecurseOctreeOperator {
-public:
-    UpdateEntityIDOperator(EntityTree* tree, const EntityItemID& searchEntityID);
-    virtual bool PreRecursion(OctreeElement* element);
-    virtual bool PostRecursion(OctreeElement* element);
-private:
-    EntityTree* _tree;
-    EntityItemID _entityIDKnownID;
-    EntityItemID _entityIDCreatorToken;
-    EntityTreeElement* _containingElementKnownID;
-    AACube _containingElementCubeKnownID;
-    EntityTreeElement* _containingElementCreatorToken;
-    AACube _containingElementCubeCreatorToken;
-    bool _entityFoundKnownID;
-    bool _entityFoundCreatorToken;
-};
-
-UpdateEntityIDOperator::UpdateEntityIDOperator(EntityTree* tree, const EntityItemID& searchEntityID) :
-    _tree(tree),
-    _entityIDKnownID(searchEntityID.convertToKnownIDVersion()),
-    _entityIDCreatorToken(searchEntityID.convertToCreatorTokenVersion()),
-    _containingElementKnownID(_tree->getContainingElement(_entityIDKnownID)),
-    _containingElementCubeKnownID(),
-    _containingElementCreatorToken(_tree->getContainingElement(_entityIDCreatorToken)),
-    _containingElementCubeCreatorToken(),
-    _entityFoundKnownID(false),
-    _entityFoundCreatorToken(false)
-{
-    qDebug() << "UpdateEntityIDOperator::UpdateEntityIDOperator()...";
-    qDebug() << "    searchEntityID=" << searchEntityID;
-    qDebug() << "    _entityIDKnownID=" << _entityIDKnownID;
-    qDebug() << "    _entityIDCreatorToken=" << _entityIDCreatorToken;
-    qDebug() << "    _containingElementKnownID=" << _containingElementKnownID;
-    qDebug() << "    _containingElementCreatorToken=" << _containingElementCreatorToken;
-    
-    if (_containingElementKnownID) {
-        _containingElementCubeKnownID = _containingElementKnownID->getAACube();
-    } else {
-        _entityFoundKnownID = true; // entity doesn't exist... by definition it's updated
-    }
-
-    if (_containingElementCreatorToken) {
-        _containingElementCubeCreatorToken = _containingElementCreatorToken->getAACube();
-    } else {
-        _entityFoundCreatorToken = true; // entity doesn't exist... by definition it's updated
-    }
-
-    qDebug() << "    _containingElementCubeKnownID=" << _containingElementCubeKnownID;
-    qDebug() << "    _containingElementCubeCreatorToken=" << _containingElementCubeCreatorToken;
-    qDebug() << "    _entityFoundKnownID=" << _entityFoundKnownID;
-    qDebug() << "    _entityFoundCreatorToken=" << _entityFoundCreatorToken;
-
-}
-
-bool UpdateEntityIDOperator::PreRecursion(OctreeElement* element) {
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-    
-    // In Pre-recursion, we're generally deciding whether or not we want to recurse this
-    // path of the tree. For this operation, we want to recurse the branch of the tree if
-    // and of the following are true:
-    //   * We have not yet found the KnownID version of the entity, and this branch contains that entity
-    //   * We have not yet found the CreatorToken version of the entity, and this branch contains that entity
-    //
-    // Note: it's often the case that the branch in question contains both versions of the entity
-    
-    bool keepSearching = false; // assume we don't need to search this branch of the tree any more
-    
-    // If we haven't yet found the creator token version entity, and this sub tree contains it then we need to keep searching.
-    if (!_entityFoundCreatorToken && element->getAACube().contains(_containingElementCubeCreatorToken)) {
-
-        qDebug() << "recursing tree for creator token";
-
-        // If this is the element we're looking for, then ask it to update the entity's ID accordingly
-        if (element == _containingElementCreatorToken) {
-            qDebug() << "FOUND creator token entity";
-            qDebug() << "FOUND creator token entity... entityTreeElement->updateEntityItemID()...";
-            entityTreeElement->updateEntityItemID(_entityIDCreatorToken, _entityIDKnownID);
-            qDebug() << "FOUND creator token entity... _tree->setContainingElement(_entityIDCreatorToken, NULL);...";
-            _tree->setContainingElement(_entityIDCreatorToken, NULL);
-            qDebug() << "FOUND creator token entity... _tree->setContainingElement(_entityIDKnownID, entityTreeElement);...";
-            _tree->setContainingElement(_entityIDKnownID, entityTreeElement);
-            _entityFoundCreatorToken = true;
-        }
-        
-        // if we haven't found this version keep searching, but only in the case where this tree contains it
-        keepSearching = !_entityFoundCreatorToken;
-    }
-
-    // If we haven't yet found the knownID version entity, and this sub tree contains our entity then we need to keep searching.
-    if (!_entityFoundKnownID && element->getAACube().contains(_containingElementCubeKnownID)) {
-
-        // If this is the element we're looking for, then ask it to update the entity's ID accordingly
-        if (element == _containingElementKnownID) {
-            qDebug() << "FOUND known ID entity";
-            qDebug() << "FOUND known ID entity... entityTreeElement->removeEntityWithEntityItemID(_entityIDKnownID)...";
-            qDebug() << "UpdateEntityIDOperator::PreRecursion() BEFORE entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << _entityIDKnownID;
-            entityTreeElement->removeEntityWithEntityItemID(_entityIDKnownID);
-            qDebug() << "UpdateEntityIDOperator::PreRecursion() AFTER entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << _entityIDKnownID;
-            qDebug() << "FOUND known ID entity... entityTreeElement->setContainingElement(_entityIDKnownID, NULL)...";
-            _tree->setContainingElement(_entityIDKnownID, NULL);
-
-            _entityFoundKnownID = true;
-        }
-        
-        // if we haven't found this version keep searching, but only in the case where this tree contains it
-        keepSearching = keepSearching || !_entityFoundKnownID;
-    }
-
-    return keepSearching; // if we haven't yet found it, keep looking
-}
-
-bool UpdateEntityIDOperator::PostRecursion(OctreeElement* element) {
-    // Post-recursion is the unwinding process. For this operation, while we
-    // unwind we want to mark the path as being dirty if we changed it below.
-    bool keepSearching = !_entityFoundKnownID || !_entityFoundCreatorToken;
-
-    // As we unwind, if we're in either of these two paths, we mark our element
-    // as dirty.
-    // If we haven't yet found the knownID version entity, and this sub tree contains our entity then we need to keep searching.
-    if (element->getAACube().contains(_containingElementCubeKnownID) ||
-            element->getAACube().contains(_containingElementCubeCreatorToken)) {
-        element->markWithChangedTime();
-    }
-    return keepSearching; // if we haven't yet found it, keep looking
-}
-
+/// This method handles both of these cases.
+///
+/// NOTE: unlike some operations on the tree, this process does not mark the tree as being changed. This is because
+/// we're not changing the content of the tree, we're only changing the internal IDs that map entities from creator
+/// based to known IDs. This means we don't have to recurse the tree to mark the changed path as dirty.
 void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
+
     //assert(getIsClient()); // we should only call this on client trees
     if (!getIsClient()) {
         qDebug() << "UNEXPECTED!!! EntityTree::handleAddEntityResponse() with !getIsClient() ***";
@@ -783,10 +661,6 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     QUuid entityID = QUuid::fromRfc4122(packet.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
     dataAt += NUM_BYTES_RFC4122_UUID;
 
-qDebug() << "EntityTree::handleAddEntityResponse()... entityID=" << entityID << "creatorTokenID=" << creatorTokenID;
-
-    // TODO: do we want callers to lock the tree before using this method???
-
     // First, look for the existing entity in the tree..
     EntityItemID searchEntityID;
     searchEntityID.id = entityID;
@@ -794,16 +668,69 @@ qDebug() << "EntityTree::handleAddEntityResponse()... entityID=" << entityID << 
 
     lockForWrite();
 
+    // find the creator token version, it's containing element, and the entity itself    
+    EntityItem* foundEntity = NULL;
+    EntityItemID  creatorTokenVersion = searchEntityID.convertToCreatorTokenVersion();
+    EntityItemID  knownIDVersion = searchEntityID.convertToKnownIDVersion();
+
     bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "EntityTree::handleAddEntityResponse()..."; 
         qDebug() << "    creatorTokenID=" << creatorTokenID;
         qDebug() << "    entityID=" << entityID;
         qDebug() << "    searchEntityID=" << searchEntityID;
+        qDebug() << "    creatorTokenVersion=" << creatorTokenVersion;
+        qDebug() << "    knownIDVersion=" << knownIDVersion;
     }
 
-    UpdateEntityIDOperator theOperator(this, searchEntityID);
-    recurseTreeWithOperator(&theOperator);
+    // First look for and find the "viewed version" of this entity... it's possible we got
+    // the known ID version sent to us between us creating our local version, and getting this
+    // remapping message. If this happened, we actually want to find and delete that version of
+    // the entity.
+    EntityTreeElement* knownIDVersionContainingElement = getContainingElement(knownIDVersion);
+
+    if (wantDebug) {
+        qDebug() << "    knownIDVersionContainingElement=" << knownIDVersionContainingElement;
+    }
+
+    if (knownIDVersionContainingElement) {
+        foundEntity = knownIDVersionContainingElement->getEntityWithEntityItemID(knownIDVersion);
+
+        if (wantDebug) {
+            qDebug() << "    foundEntity=" << foundEntity;
+        }
+
+        if (foundEntity) {
+            knownIDVersionContainingElement->removeEntityWithEntityItemID(knownIDVersion);
+            setContainingElement(knownIDVersion, NULL);
+            
+            if (wantDebug) {
+                qDebug() << "    FOUND VIEWED VERSION, removing entity, resetting containing element";
+            }
+            
+        }
+    }
+
+    EntityTreeElement* creatorTokenContainingElement = getContainingElement(creatorTokenVersion);
+    if (wantDebug) {
+        qDebug() << "    creatorTokenContainingElement=" << creatorTokenContainingElement;
+    }
+    if (creatorTokenContainingElement) {
+        foundEntity = creatorTokenContainingElement->getEntityWithEntityItemID(creatorTokenVersion);
+        if (wantDebug) {
+            qDebug() << "    foundEntity=" << foundEntity;
+        }
+        if (foundEntity) {
+            creatorTokenContainingElement->updateEntityItemID(creatorTokenVersion, knownIDVersion);
+            setContainingElement(creatorTokenVersion, NULL);
+            setContainingElement(knownIDVersion, creatorTokenContainingElement);
+
+            if (wantDebug) {
+                qDebug() << "    FOUND CREATOR VERSION, updating entity ID and resetting containing element";
+            }
+
+        }
+    }
     unlock();
 }
 

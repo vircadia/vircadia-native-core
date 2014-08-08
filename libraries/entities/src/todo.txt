@@ -38,7 +38,9 @@ Model properties:
 // REQUIRED TO DO:
 
     A) add velocity, gravity, damping to entity base class
+    2) EntityTree::update()/EntityTreeElement::update()... velocity changes...
     C) verify "update" works
+
     D) update and verify all particle examples to use new entity features
     E) memory leaks???
    22) Import/Export Models - verify it works. /copy/paste??
@@ -54,16 +56,17 @@ Model properties:
    
     K) verify shadows work
     
-    L) sometimes assert/crashes in server about containing element? I think we're adding entityIDs with UNKNOWN_ID to our maps
-        // this crash is definitely caused by starting a server with an existing models file which has ID's already in use...
         
     M) change EntityTree::handleAddEntityResponse() to not scan entire tree... it can use the containing element stuff!!!
-   18) change ID's to UUIDS????
-   
     N) Handle the ID -> UUID swap in old files to new files
+    
+    O) Test models -> attachments logic
+    
 
 
 // NICE TO DO:
+
+    P) unit tests?
 
 //   G) why does is the Box entity not drawn in it's bounds
 //   H) make the rotated model bounds work for other entity types?
@@ -109,7 +112,6 @@ Model properties:
 
 //
 //   1) consider moving type to front of buffers to make construction easier
-//   2) EntityTree::update()/EntityTreeElement::update()... for animations and velocity changes...
 //   3) The moving/pruning logic...
 //          The old code used the update loop to handle pruning entities from the
 //          incorrect tree element when they no longer were the best fit
@@ -172,8 +174,6 @@ Model properties:
 ===============
 
 
-
-
 // SOLVED - 5) crash in client assert on addEntity() assetting that not viewing???
 // SOLVED - 7) when changing properties that include position OR radius, but not both the update logic gets confused.
 // SOLVED - 8) in assignEntityID() we assert if the containing element exists... this is too harsh, what if someone sends us a bad packet
@@ -189,4 +189,6 @@ Model properties:
 // SOLVED - a) crash in entity server on add entity? 
 // SOLVED - 8) addOrUpdateEntity()
 // SOLVED - B) enable animation in model class
-
+// SOLVED - 18) change ID's to UUIDS????
+// SOLVED - L) sometimes assert/crashes in server about containing element? I think we're adding entityIDs with UNKNOWN_ID to our maps
+//            this crash is definitely caused by starting a server with an existing models file which has ID's already in use...
