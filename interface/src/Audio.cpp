@@ -1481,17 +1481,17 @@ void Audio::renderScope(int width, int height) {
         return;
 
     static const float backgroundColor[4] = { 0.4f, 0.4f, 0.4f, 0.6f };
-    static const float gridColor[4] = { 0.3f, 0.3f, 0.3f, 0.6f };
+    static const float gridColor[4] = { 0.7f, 0.7f, 0.7f, 1.0f };
     static const float inputColor[4] = { 0.3f, 1.0f, 0.3f, 1.0f };
     static const float outputLeftColor[4] = { 1.0f, 0.3f, 0.3f, 1.0f };
     static const float outputRightColor[4] = { 0.3f, 0.3f, 1.0f, 1.0f };
     static const int gridRows = 2;
     int gridCols = _framesPerScope;
 
-    int x = (width - SCOPE_WIDTH) / 2;
-    int y = (height - SCOPE_HEIGHT) / 2;
-    int w = SCOPE_WIDTH;
-    int h = SCOPE_HEIGHT;
+    int x = (width - (int)SCOPE_WIDTH) / 2;
+    int y = (height - (int)SCOPE_HEIGHT) / 2;
+    int w = (int)SCOPE_WIDTH;
+    int h = (int)SCOPE_HEIGHT;
 
     renderBackground(backgroundColor, x, y, w, h);
     renderGrid(gridColor, x, y, w, h, gridRows, gridCols);

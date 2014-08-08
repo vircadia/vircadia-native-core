@@ -28,8 +28,11 @@ public:
 
 protected:
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
+    int parseSilentPacketStreamProperties(const QByteArray& packetAfterSeqNum, int& numAudioSamples);
     int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
 
+private:
+    int networkToDeviceSamples(int networkSamples);
 private:
     int _outputFormatChannelsTimesSampleRate;
 };

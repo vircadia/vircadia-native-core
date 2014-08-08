@@ -107,12 +107,7 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     int numAudioSamples;
 
     if (packetType == PacketTypeSilentAudioFrame) {
-        // this is a general silent packet; parse the number of silent samples
-        quint16 numSilentSamples = *(reinterpret_cast<const quint16*>(dataAt));
-        dataAt += sizeof(quint16);
-        readBytes += sizeof(quint16);
-
-        numAudioSamples = numSilentSamples;
+        readBytes += parseSilentPacketStreamProperties(packet.mid(readBytes), numAudioSamples);
     } else {
         // parse the info after the seq number and before the audio data (the stream properties)
         readBytes += parseStreamProperties(packetType, packet.mid(readBytes), numAudioSamples);
@@ -171,6 +166,12 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
     return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
 }
 
+int InboundAudioStream::parseSilentPacketStreamProperties(const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+    // this is a general silent packet; parse the number of silent samples
+    quint16 numSilentSamples = *(reinterpret_cast<const quint16*>(packetAfterSeqNum.data()));
+    numAudioSamples = numSilentSamples;
+    return sizeof(quint16);
+}
 
 int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped) {
     int samplesPopped = 0;
