@@ -31,18 +31,15 @@ const int DESIRED_JITTER_BUFFER_FRAMES_PADDING = 1;
 // _desiredJitterBufferFrames calculation)
 const int STATS_FOR_STATS_PACKET_WINDOW_SECONDS = 30;
 
-
 // this controls the window size of the time-weighted avg of frames available.  Every time the window fills up,
 // _currentJitterBufferFrames is updated with the time-weighted avg and the running time-weighted avg is reset.
 const int FRAMES_AVAILABLE_STAT_WINDOW_USECS = 2 * USECS_PER_SECOND;
 
-const int INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
-
+// default values for members of the Settings struct
 const int DEFAULT_MAX_FRAMES_OVER_DESIRED = 10;
 const bool DEFAULT_DYNAMIC_JITTER_BUFFERS = true;
 const int DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES = 1;
 const bool DEFAULT_USE_STDEV_FOR_JITTER_CALC = false;
-
 const int DEFAULT_WINDOW_STARVE_THRESHOLD = 3;
 const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES = 50;
 const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION = 10;
@@ -228,7 +225,6 @@ protected:
     // this value is periodically updated with the time-weighted avg from _framesAvailableStat. it is only used for
     // dropping silent frames right now.
     int _currentJitterBufferFrames;
-
 
     MovingMinMaxAvg<quint64> _timeGapStatsForStatsPacket;
 };

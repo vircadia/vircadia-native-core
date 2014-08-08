@@ -262,7 +262,7 @@ void PreferencesDialog::savePreferences() {
     streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->value();
     streamSettings._windowSecondsForDesiredReduction = ui.windowSecondsForDesiredReductionSpin->value();
 
-    Menu::getInstance()->getReceivedAudioStreamSettings(streamSettings);
+    Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
     Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);
 
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),

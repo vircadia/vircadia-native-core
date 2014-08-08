@@ -86,7 +86,7 @@ public:
     QAction* getActionForOption(const QString& menuOption);
 
     const InboundAudioStream::Settings& getReceivedAudioStreamSettings() const { return _receivedAudioStreamSettings; }
-    void getReceivedAudioStreamSettings(const InboundAudioStream::Settings& receivedAudioStreamSettings) { _receivedAudioStreamSettings = receivedAudioStreamSettings; }
+    void setReceivedAudioStreamSettings(const InboundAudioStream::Settings& receivedAudioStreamSettings) { _receivedAudioStreamSettings = receivedAudioStreamSettings; }
     float getFieldOfView() const { return _fieldOfView; }
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }

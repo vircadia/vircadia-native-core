@@ -351,7 +351,6 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
         }
 
         if (_dynamicJitterBuffers) {
-
             // if the max gap in window B (_timeGapStatsForDesiredReduction) corresponds to a smaller number of frames than _desiredJitterBufferFrames,
             // then reduce _desiredJitterBufferFrames to that number of frames.
             if (_timeGapStatsForDesiredReduction.getNewStatsAvailableFlag() && _timeGapStatsForDesiredReduction.isWindowFilled()) {
