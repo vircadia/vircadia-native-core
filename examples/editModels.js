@@ -1644,6 +1644,11 @@ function handeMenuEvent(menuItem){
             array.push({ label: "Yaw:", value: angles.y.toFixed(decimals) });
             array.push({ label: "Roll:", value: angles.z.toFixed(decimals) });
             array.push({ label: "Scale:", value: 2 * properties.radius.toFixed(decimals) });
+
+            array.push({ label: "Velocity X:", value: properties.velocity.x.toFixed(decimals) });
+            array.push({ label: "Velocity Y:", value: properties.velocity.y.toFixed(decimals) });
+            array.push({ label: "Velocity Z:", value: properties.velocity.z.toFixed(decimals) });
+            array.push({ label: "Damping:", value: properties.damping.toFixed(decimals) });
             
             if (properties.type == "Box") {
                 array.push({ label: "Red:", value: properties.color.red });
@@ -1670,6 +1675,12 @@ function handeMenuEvent(menuItem){
             angles.z = array[index++].value;
             properties.modelRotation = Quat.fromVec3Degrees(angles);
             properties.radius = array[index++].value / 2;
+
+            properties.velocity.x = array[index++].value;
+            properties.velocity.y = array[index++].value;
+            properties.velocity.z = array[index++].value;
+            properties.damping = array[index++].value / 2;
+
             if (properties.type == "Box") {
                 properties.color.red = array[index++].value;
                 properties.color.green = array[index++].value;
