@@ -64,8 +64,9 @@ qDebug() << "EntityServer::entityCreated() newEntity.getEntityItemID()=" << newE
     packetLength += sizeof(creatorTokenID);
 
     // encode the entity ID
-    uint32_t entityID = newEntity.getID();
-    memcpy(copyAt, &entityID, sizeof(entityID));
+    QUuid entityID = newEntity.getID();
+    QByteArray encodedID = entityID.toRfc4122();
+    memcpy(copyAt, encodedID.constData(), encodedID.size());
     copyAt += sizeof(entityID);
     packetLength += sizeof(entityID);
 

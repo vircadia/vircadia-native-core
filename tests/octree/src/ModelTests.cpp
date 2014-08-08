@@ -41,7 +41,7 @@ void EntityTests::entityTreeTests(bool verbose) {
 
     // Tree, id, and entity properties used in many tests below...
     EntityTree tree;
-    uint32_t id = 1;
+    QUuid id = QUuid::createUuid();
     EntityItemID entityID(id);
     entityID.isKnownID = false; // this is a temporary workaround to allow local tree entities to be added with known IDs
     EntityItemProperties properties;
@@ -68,7 +68,7 @@ void EntityTests::entityTreeTests(bool verbose) {
         
         float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenterInTreeUnits, targetRadius);
-        const EntityItem* foundEntityByID = tree.findEntityByID(id);
+        const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
         EntityTreeElement* containingElement = tree.getContainingElement(entityID);
         AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
         
@@ -111,7 +111,7 @@ void EntityTests::entityTreeTests(bool verbose) {
         
         float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionNearOriginInTreeUnits, targetRadius);
-        const EntityItem* foundEntityByID = tree.findEntityByID(id);
+        const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
         EntityTreeElement* containingElement = tree.getContainingElement(entityID);
         AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
         
@@ -151,7 +151,7 @@ void EntityTests::entityTreeTests(bool verbose) {
         
         float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenterInTreeUnits, targetRadius);
-        const EntityItem* foundEntityByID = tree.findEntityByID(id);
+        const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
         EntityTreeElement* containingElement = tree.getContainingElement(entityID);
         AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
         
@@ -218,8 +218,9 @@ void EntityTests::entityTreeTests(bool verbose) {
 
         quint64 start = usecTimestampNow();
         const EntityItem* foundEntityByID = NULL;
-        for (int i = 0; i < TEST_ITERATIONS; i++) {        
-            foundEntityByID = tree.findEntityByID(id);
+        for (int i = 0; i < TEST_ITERATIONS; i++) {
+            // TODO: does this need to be updated??
+            foundEntityByID = tree.findEntityByEntityItemID(entityID);
         }
         quint64 end = usecTimestampNow();
         
@@ -254,7 +255,7 @@ void EntityTests::entityTreeTests(bool verbose) {
         quint64 totalElapsedAdd = 0;
         quint64 totalElapsedFind = 0;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
-            uint32_t id = i + 2; // make sure it doesn't collide with previous entity ids
+            QUuid id = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
             EntityItemID entityID(id);
             entityID.isKnownID = false; // this is a temporary workaround to allow local tree entities to be added with known IDs
 
@@ -286,7 +287,7 @@ void EntityTests::entityTreeTests(bool verbose) {
             quint64 startFind = usecTimestampNow();
             float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
             const EntityItem* foundEntityByRadius = tree.findClosestEntity(randomPositionInTreeUnits, targetRadius);
-            const EntityItem* foundEntityByID = tree.findEntityByID(id);
+            const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
             quint64 endFind = usecTimestampNow();
             totalElapsedFind += (endFind - startFind);
 
@@ -358,7 +359,7 @@ void EntityTests::entityTreeTests(bool verbose) {
         quint64 totalElapsedDelete = 0;
         quint64 totalElapsedFind = 0;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
-            uint32_t id = i + 2; // These are the entities we added above
+            QUuid id = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
             EntityItemID entityID(id);
             entityID.isKnownID = true; // this is a temporary workaround to allow local tree entities to be added with known IDs
 
@@ -376,7 +377,7 @@ void EntityTests::entityTreeTests(bool verbose) {
             }
 
             quint64 startFind = usecTimestampNow();
-            const EntityItem* foundEntityByID = tree.findEntityByID(id);
+            const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
             quint64 endFind = usecTimestampNow();
             totalElapsedFind += (endFind - startFind);
 
@@ -441,7 +442,8 @@ void EntityTests::entityTreeTests(bool verbose) {
 
             QSet<EntityItemID> entitiesToDelete;
             for (int j = 0; j < ENTITIES_PER_ITERATION; j++) {        
-                uint32_t id = 2 + (i * ENTITIES_PER_ITERATION) + j; // These are the entities we added above
+                //uint32_t id = 2 + (i * ENTITIES_PER_ITERATION) + j; // These are the entities we added above
+                QUuid id = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
                 EntityItemID entityID(id);
                 entitiesToDelete << entityID;
             }
@@ -461,9 +463,10 @@ void EntityTests::entityTreeTests(bool verbose) {
 
             quint64 startFind = usecTimestampNow();
             for (int j = 0; j < ENTITIES_PER_ITERATION; j++) {        
-                uint32_t id = 2 + (i * ENTITIES_PER_ITERATION) + j; // These are the entities we added above
+                //uint32_t id = 2 + (i * ENTITIES_PER_ITERATION) + j; // These are the entities we added above
+                QUuid id = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
                 EntityItemID entityID(id);
-                const EntityItem* foundEntityByID = tree.findEntityByID(id);
+                const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
                 EntityTreeElement* containingElement = tree.getContainingElement(entityID);
 
                 if (extraVerbose) {

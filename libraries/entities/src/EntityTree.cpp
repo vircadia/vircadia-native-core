@@ -412,6 +412,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
+        qDebug() << "UNEXPECTED!!! ----- EntityTree::addEntity()... entityID=" << entityID << "containingElement=" << containingElement;
         assert(containingElement == NULL); // don't call addEntity() on existing entity items
         return result;
     }
@@ -769,19 +770,20 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
         qDebug() << "UNEXPECTED!!! EntityTree::handleAddEntityResponse() with !getIsClient() ***";
     }
 
-    const bool wantDebug = true;
-
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data());
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
+    int bytesRead = numBytesPacketHeader;
+    dataAt += numBytesPacketHeader;
 
     uint32_t creatorTokenID;
     memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
     dataAt += sizeof(creatorTokenID);
+    bytesRead += sizeof(creatorTokenID);
 
-    uint32_t entityID;
-    memcpy(&entityID, dataAt, sizeof(entityID));
-    dataAt += sizeof(entityID);
+    QUuid entityID = QUuid::fromRfc4122(packet.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
+    dataAt += NUM_BYTES_RFC4122_UUID;
+
+qDebug() << "EntityTree::handleAddEntityResponse()... entityID=" << entityID << "creatorTokenID=" << creatorTokenID;
 
     // TODO: do we want callers to lock the tree before using this method???
 
@@ -792,6 +794,7 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
 
     lockForWrite();
 
+    bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "EntityTree::handleAddEntityResponse()..."; 
         qDebug() << "    creatorTokenID=" << creatorTokenID;
@@ -925,6 +928,7 @@ void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*> foundEnti
     foundEntities.swap(args._foundEntities);
 }
 
+#if 0 ///////////////////////////////////
 EntityItem* EntityTree::findEntityByID(uint32_t id, bool alreadyLocked)  /*const*/ {
     EntityItemID entityID(id);
 
@@ -938,6 +942,7 @@ EntityItem* EntityTree::findEntityByID(uint32_t id, bool alreadyLocked)  /*const
 
     return findEntityByEntityItemID(entityID);
 }
+#endif ////////////////////////////
 
 EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /*const*/ {
     EntityItem* foundEntity = NULL;
@@ -1003,7 +1008,9 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
 
 
                     // this is a new entity... assign a new entityID
+qDebug() << "EntityTree::processEditPacketData() ... BEFORE assignEntityID()... entityItemID=" << entityItemID;
                     entityItemID = assignEntityID(entityItemID);
+qDebug() << "EntityTree::processEditPacketData() ... AFTER assignEntityID()... entityItemID=" << entityItemID;
                     
                     EntityItem* newEntity = addEntity(entityItemID, properties);
                     if (newEntity) {
@@ -1327,6 +1334,8 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
 
 void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+    
+#if 0 ///////////////
 
 
     qDebug() << "EntityTree::processEraseMessage()...";
@@ -1368,6 +1377,9 @@ void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Shar
         qDebug() << "EntityTree::processEraseMessage()... deleteEntities(entityItemIDsToDelete)";
         deleteEntities(entityItemIDsToDelete);
     }
+    
+#endif // 0 ///////////////
+    
 }
 
 

@@ -65,7 +65,7 @@ public:
 
 protected:
     void clearModelsCache();
-    QMap<uint32_t, Model*> _knownEntityItemModels;
+    QMap<QUuid, Model*> _knownEntityItemModels;
     QMap<uint32_t, Model*> _unknownEntityItemModels;
 };
 

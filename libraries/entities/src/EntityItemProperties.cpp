@@ -111,7 +111,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     QScriptValue properties = engine->newObject();
 
     if (_idSet) {
-        properties.setProperty("id", _id);
+        properties.setProperty("id", _id.toString());
         bool isKnownID = (_id != UNKNOWN_ENTITY_ID);
         properties.setProperty("isKnownID", isKnownID);
 //qDebug() << "EntityItemProperties::copyToScriptValue()... isKnownID=" << isKnownID << "id=" << _id;

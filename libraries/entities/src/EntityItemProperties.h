@@ -166,7 +166,7 @@ private:
                         EntityItemID& entityID, EntityItemProperties& properties);
     void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
 
-    quint32 _id;
+    QUuid _id;
     bool _idSet;
     quint64 _lastEdited;
 

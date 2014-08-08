@@ -150,14 +150,12 @@ qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... <<<<<<<<<<<<<<<<  <<
         const unsigned char* dataAt = data;
 
         // id
-        QByteArray encodedID = originalDataBuffer.mid(bytesRead); // maximum possible size
-        ByteCountCoded<quint32> idCoder = encodedID;
-        encodedID = idCoder; // determine true length
-        dataAt += encodedID.size();
-        bytesRead += encodedID.size();
-        _id = idCoder;
+        QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
+        _id = QUuid::fromRfc4122(encodedID);
         _creatorTokenID = UNKNOWN_ENTITY_TOKEN; // if we know the id, then we don't care about the creator token
         _newlyCreated = false;
+        dataAt += encodedID.size();
+        bytesRead += encodedID.size();
 
         // type
         QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
@@ -460,8 +458,8 @@ qDebug() << "ModelEntityItem::appendEntityData()... ****************************
     OctreeElement::AppendState appendState = OctreeElement::COMPLETED; // assume the best
 
     // encode our ID as a byte count coded byte stream
-    ByteCountCoded<quint32> idCoder = getID();
-    QByteArray encodedID = idCoder;
+    //ByteCountCoded<quint32> idCoder = getID();
+    QByteArray encodedID = getID().toRfc4122();
 
     // encode our type as a byte count coded byte stream
     ByteCountCoded<quint32> typeCoder = getType();

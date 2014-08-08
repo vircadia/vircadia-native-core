@@ -45,7 +45,7 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
 }
 
 EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
-    uint32_t actualID = entityID.id;
+    EntityItemID actualID = entityID;
 
     if (!entityID.isKnownID) {
         actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
@@ -54,7 +54,7 @@ EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
         }
         
         // found it!
-        entityID.id = actualID;
+        entityID.id = actualID.id;
         entityID.isKnownID = true;
         qDebug() << "EntityScriptingInterface::identifyEntity() ...found it... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
     }
@@ -70,7 +70,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
     }
     if (_entityTree) {
         _entityTree->lockForRead();
-        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByID(identity.id, true));
+        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(identity));
         if (entity) {
         
             // TODO: look into sitting points!!!
@@ -89,7 +89,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
 
 
 EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const EntityItemProperties& properties) {
-    uint32_t actualID = entityID.id;
+    EntityItemID actualID = entityID;
     
     // if the model is unknown, attempt to look it up
     if (!entityID.isKnownID) {
@@ -97,8 +97,8 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     }
 
     // if at this point, we know the id, send the update to the model server
-    if (actualID != UNKNOWN_ENTITY_ID) {
-        entityID.id = actualID;
+    if (actualID.id != UNKNOWN_ENTITY_ID) {
+        entityID.id = actualID.id;
         entityID.isKnownID = true;
         //qDebug() << "EntityScriptingInterface::editEntity()... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
@@ -127,7 +127,7 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     EntityItemProperties properties;
     properties.setShouldBeDeleted(true);
 
-    uint32_t actualID = entityID.id;
+    EntityItemID actualID = entityID;
     
     // if the model is unknown, attempt to look it up
     if (!entityID.isKnownID) {
@@ -135,8 +135,8 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     }
 
     // if at this point, we know the id, send the update to the model server
-    if (actualID != UNKNOWN_ENTITY_ID) {
-        entityID.id = actualID;
+    if (actualID.id != UNKNOWN_ENTITY_ID) {
+        entityID.id = actualID.id;
         entityID.isKnownID = true;
         //qDebug() << "EntityScriptingInterface::deleteEntity()... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);

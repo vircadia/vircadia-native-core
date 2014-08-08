@@ -38,8 +38,8 @@ public:
     virtual void somePureVirtualFunction() = 0;
 
     // ID and EntityItemID related methods
-    uint32_t getID() const { return _id; }
-    void setID(uint32_t id) { _id = id; }
+    QUuid getID() const { return _id; }
+    void setID(const QUuid& id) { _id = id; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
     bool isNewlyCreated() const { return _newlyCreated; }
@@ -114,8 +114,8 @@ public:
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
 
-    quint32 _id;
     EntityTypes::EntityType _type;
+    QUuid _id;
     uint32_t _creatorTokenID;
     bool _newlyCreated;
     quint64 _lastUpdated;

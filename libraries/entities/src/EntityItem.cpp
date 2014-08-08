@@ -70,8 +70,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     OctreeElement::AppendState appendState = OctreeElement::COMPLETED; // assume the best
 
     // encode our ID as a byte count coded byte stream
-    ByteCountCoded<quint32> idCoder = getID();
-    QByteArray encodedID = idCoder;
+    QByteArray encodedID = getID().toRfc4122();
 
     // encode our type as a byte count coded byte stream
     ByteCountCoded<quint32> typeCoder = getType();
@@ -389,7 +388,9 @@ qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
     return appendState;
 }
 
+// TODO: correct this to reflect changes...
 int EntityItem::expectedBytes() {
+    
     int expectedBytes = sizeof(uint32_t) // id
                 + sizeof(float) // age
                 + sizeof(quint64) // last updated
@@ -401,21 +402,6 @@ int EntityItem::expectedBytes() {
     return expectedBytes;
 }
 
-
-EntityItemID EntityItem::readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
-                                        ReadBitstreamToTreeParams& args) {
-    EntityItemID result;
-    if (bytesLeftToRead >= sizeof(uint32_t)) {
-        // id
-        QByteArray encodedID((const char*)data, bytesLeftToRead);
-        ByteCountCoded<quint32> idCoder = encodedID;
-        quint32 id = idCoder;
-        result.id = id;
-        result.isKnownID = true;
-        result.creatorTokenID = UNKNOWN_ENTITY_TOKEN;
-    }
-    return result;
-}
 
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
 
@@ -444,14 +430,20 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         const unsigned char* dataAt = data;
 
         // id
-        QByteArray encodedID = originalDataBuffer.mid(bytesRead); // maximum possible size
+        QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
+        _id = QUuid::fromRfc4122(encodedID);
+        _creatorTokenID = UNKNOWN_ENTITY_TOKEN; // if we know the id, then we don't care about the creator token
+        _newlyCreated = false;
+        dataAt += encodedID.size();
+        bytesRead += encodedID.size();
+        
+        /**
         ByteCountCoded<quint32> idCoder = encodedID;
         encodedID = idCoder; // determine true length
         dataAt += encodedID.size();
         bytesRead += encodedID.size();
         _id = idCoder;
-        _creatorTokenID = UNKNOWN_ENTITY_TOKEN; // if we know the id, then we don't care about the creator token
-        _newlyCreated = false;
+        **/
 
         // type
         QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
@@ -461,13 +453,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         bytesRead += encodedType.size();
         quint32 type = typeCoder;
         _type = (EntityTypes::EntityType)type;
-
-// XXXBHG: is this a good place to handle the last edited time client vs server??
-
-// If the edit time encoded in the packet is NEWER than our known edit time... 
-//     then we WANT to over-write our local data.
-// If the edit time encoded in the packet is OLDER than our known edit time...
-//     then we WANT to preserve our local data. (NOTE: what if I change color, and you change position?? last one wins!)
 
         bool overwriteLocalData = true; // assume the new content overwrites our local data
         
@@ -696,8 +681,11 @@ bool EntityItem::encodeEntityEditMessageDetails(PacketType command, EntityItemID
 
         // id
         // encode our ID as a byte count coded byte stream
+        /*
         ByteCountCoded<quint32> idCoder = id.id;
         QByteArray encodedID = idCoder;
+        */
+        QByteArray encodedID = id.id.toRfc4122(); // NUM_BYTES_RFC4122_UUID
 
         // encode our ID as a byte count coded byte stream
         ByteCountCoded<quint32> tokenCoder;

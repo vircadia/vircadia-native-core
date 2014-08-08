@@ -112,11 +112,9 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         QByteArray originalDataBuffer((const char*)data, originalLength);
 
         // id
-        QByteArray encodedID = originalDataBuffer.mid(bytesRead); // maximum possible size
-        ByteCountCoded<quint32> idCoder = encodedID;
-        encodedID = idCoder; // determine true length
+        QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
+        QUuid actualID = QUuid::fromRfc4122(encodedID);
         bytesRead += encodedID.size();
-        quint32 actualID = idCoder;
 qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID=" << actualID;
 
         // type
@@ -150,7 +148,7 @@ bool EntityTypes::decodeEntityEditPacket(const unsigned char* data, int bytesToR
 
     bool wantDebug = true;
     if (wantDebug) {
-        qDebug() << "EntityItem EntityItem::decodeEntityEditPacket() bytesToRead=" << bytesToRead;
+        qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() bytesToRead=" << bytesToRead;
     }
 
     const unsigned char* dataAt = data;
@@ -162,7 +160,7 @@ bool EntityTypes::decodeEntityEditPacket(const unsigned char* data, int bytesToR
     int bytesToReadOfOctcode = bytesRequiredForCodeLength(octets);
 
     if (wantDebug) {
-        qDebug() << "EntityItem EntityItem::decodeEntityEditPacket() bytesToReadOfOctcode=" << bytesToReadOfOctcode;
+        qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() bytesToReadOfOctcode=" << bytesToReadOfOctcode;
     }
 
     // we don't actually do anything with this octcode...
@@ -176,22 +174,22 @@ bool EntityTypes::decodeEntityEditPacket(const unsigned char* data, int bytesToR
     memcpy(&lastEdited, dataAt, sizeof(lastEdited));
     dataAt += sizeof(lastEdited);
     processedBytes += sizeof(lastEdited);
-qDebug() << "EntityItem::decodeEntityEditPacket() ... lastEdited=" << lastEdited;
+qDebug() << "EntityTypes::decodeEntityEditPacket() ... lastEdited=" << lastEdited;
     properties.setLastEdited(lastEdited);
 
     // encoded id
-    QByteArray encodedID((const char*)dataAt, (bytesToRead - processedBytes));
-    ByteCountCoded<quint32> idCoder = encodedID;
-    quint32 editID = idCoder;
-    encodedID = idCoder; // determine true bytesToRead
+    QByteArray encodedID((const char*)dataAt, NUM_BYTES_RFC4122_UUID); // maximum possible size
+    QUuid editID = QUuid::fromRfc4122(encodedID);
     dataAt += encodedID.size();
     processedBytes += encodedID.size();
 
     if (wantDebug) {
-        qDebug() << "EntityItem EntityItem::decodeEntityEditPacket() editID=" << editID;
+        qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() editID=" << editID;
     }
 
     bool isNewEntityItem = (editID == NEW_ENTITY);
+
+    qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() isNewEntityItem=" << isNewEntityItem;
 
     if (isNewEntityItem) {
         // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
@@ -219,6 +217,8 @@ qDebug() << "EntityItem::decodeEntityEditPacket() ... lastEdited=" << lastEdited
         entityID.isKnownID = true;
         valid = true;
     }
+
+    qDebug() << "EntityItem EntityTypes::decodeEntityEditPacket() entityID=" << entityID;
     
     // Entity Type...
     QByteArray encodedType((const char*)dataAt, (bytesToRead - processedBytes));

@@ -55,6 +55,12 @@ Model properties:
     K) verify shadows work
     
     L) sometimes assert/crashes in server about containing element? I think we're adding entityIDs with UNKNOWN_ID to our maps
+        // this crash is definitely caused by starting a server with an existing models file which has ID's already in use...
+        
+    M) change EntityTree::handleAddEntityResponse() to not scan entire tree... it can use the containing element stuff!!!
+   18) change ID's to UUIDS????
+   
+    N) Handle the ID -> UUID swap in old files to new files
 
 
 // NICE TO DO:
@@ -136,7 +142,6 @@ Model properties:
 
 
 
-//   18) change ID's to UUIDS????
 
 //   19) what about??? rememberDirtyCube()...
 

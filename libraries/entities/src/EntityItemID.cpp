@@ -16,10 +16,10 @@
 
 #include "EntityItemID.h"
 
-uint32_t EntityItemID::_nextID = 0; // TODO: should be changed to UUID
+//uint32_t EntityItemID::_nextID = 0; // TODO: should be changed to UUID
 
 // for locally created models
-std::map<uint32_t,uint32_t> EntityItemID::_tokenIDsToIDs;
+QHash<uint32_t, QUuid> EntityItemID::_tokenIDsToIDs;
 uint32_t EntityItemID::_nextCreatorTokenID = 0;
 
 
@@ -42,7 +42,7 @@ EntityItemID::EntityItemID(const EntityItemID& other)  :
 }
 
 
-EntityItemID::EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID) :
+EntityItemID::EntityItemID(const QUuid& id, uint32_t creatorTokenID, bool isKnownID) :
     id(id), 
     creatorTokenID(creatorTokenID), 
     isKnownID(isKnownID) 
@@ -51,7 +51,7 @@ EntityItemID::EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID)
     //      << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
 };
 
-EntityItemID::EntityItemID(uint32_t id) :
+EntityItemID::EntityItemID(const QUuid& id) :
     id(id), 
     creatorTokenID(UNKNOWN_ENTITY_TOKEN), 
     isKnownID(true) 
@@ -60,11 +60,11 @@ EntityItemID::EntityItemID(uint32_t id) :
     //      << isKnownID << "id=" << id << "creatorTokenID=" << creatorTokenID;
 };
 
-uint32_t EntityItemID::getIDfromCreatorTokenID(uint32_t creatorTokenID) {
+EntityItemID EntityItemID::getIDfromCreatorTokenID(uint32_t creatorTokenID) {
     if (_tokenIDsToIDs.find(creatorTokenID) != _tokenIDsToIDs.end()) {
-        return _tokenIDsToIDs[creatorTokenID];
+        return EntityItemID(_tokenIDsToIDs[creatorTokenID], creatorTokenID, true);
     }
-    return UNKNOWN_ENTITY_ID;
+    return EntityItemID(UNKNOWN_ENTITY_ID);
 }
 
 uint32_t EntityItemID::getNextCreatorTokenID() {
@@ -78,8 +78,8 @@ EntityItemID EntityItemID::assignActualIDForToken() const {
 
     newlyAssignedEntityID.creatorTokenID = creatorTokenID;
     newlyAssignedEntityID.isKnownID = true;
-    newlyAssignedEntityID.id = _nextID;
-    _nextID++;
+    newlyAssignedEntityID.id = QUuid::createUuid();
+    //_nextID++;
     
     return newlyAssignedEntityID;
 }
@@ -104,41 +104,58 @@ EntityItemID EntityItemID::convertToCreatorTokenVersion() const {
     return knownIDVersionEntityID;
 }
 
+EntityItemID EntityItemID::readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead) {
+    EntityItemID result;
+    
+    if (bytesLeftToRead >= NUM_BYTES_RFC4122_UUID) {
+        // id
+        QByteArray encodedID((const char*)data, NUM_BYTES_RFC4122_UUID);
+        result.id = QUuid::fromRfc4122(encodedID);
+        result.isKnownID = true;
+        result.creatorTokenID = UNKNOWN_ENTITY_TOKEN;
+    }
+    return result;
+}
+
+
 void EntityItemID::handleAddEntityResponse(const QByteArray& packet) {
 
 qDebug() << "EntityItemID::handleAddEntityResponse()...";
 
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data());
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    int bytesRead = numBytesPacketHeader;
     dataAt += numBytesPacketHeader;
 
     uint32_t creatorTokenID;
     memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
     dataAt += sizeof(creatorTokenID);
+    bytesRead += sizeof(creatorTokenID);
 
-    uint32_t entityItemID;
-    memcpy(&entityItemID, dataAt, sizeof(entityItemID));
-    dataAt += sizeof(entityItemID);
+    QUuid entityID = QUuid::fromRfc4122(packet.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
+    dataAt += NUM_BYTES_RFC4122_UUID;
 
-qDebug() << "EntityItemID::handleAddEntityResponse()... entityItemID=" << entityItemID << "creatorTokenID=" << creatorTokenID;
+qDebug() << "EntityItemID::handleAddEntityResponse()... entityID=" << entityID << "creatorTokenID=" << creatorTokenID;
 
     // add our token to id mapping
-    _tokenIDsToIDs[creatorTokenID] = entityItemID;
+    _tokenIDsToIDs[creatorTokenID] = entityID;
 }
 
 QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID& id) {
     QScriptValue obj = engine->newObject();
-    obj.setProperty("id", id.id);
+    obj.setProperty("id", id.id.toString());
     obj.setProperty("creatorTokenID", id.creatorTokenID);
     obj.setProperty("isKnownID", id.isKnownID);
     return obj;
 }
 
 void EntityItemIDfromScriptValue(const QScriptValue &object, EntityItemID& id) {
-    id.id = object.property("id").toVariant().toUInt();
+    id.id = QUuid(object.property("id").toVariant().toString());
     id.creatorTokenID = object.property("creatorTokenID").toVariant().toUInt();
     id.isKnownID = object.property("isKnownID").toVariant().toBool();
 }
+
+
 
 
 

@@ -470,6 +470,7 @@ void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& fou
     }
 }
 
+/*
 const EntityItem* EntityTreeElement::getEntityWithID(uint32_t id) const {
     // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num entities per elemen is small?)
     const EntityItem* foundEntity = NULL;
@@ -482,6 +483,7 @@ const EntityItem* EntityTreeElement::getEntityWithID(uint32_t id) const {
     }
     return foundEntity;
 }
+*/
 
 const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) const {
     const EntityItem* foundEntity = NULL;
@@ -507,6 +509,7 @@ EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id)
     return foundEntity;
 }
 
+/*
 bool EntityTreeElement::removeEntityWithID(uint32_t id) {
     bool foundEntity = false;
     uint16_t numberOfEntities = _entityItems->size();
@@ -523,6 +526,7 @@ bool EntityTreeElement::removeEntityWithID(uint32_t id) {
     }
     return foundEntity;
 }
+*/
 
 bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     bool foundEntity = false;
@@ -593,7 +597,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
         if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
             for (uint16_t i = 0; i < numberOfEntities; i++) {
                 int bytesForThisEntity = 0;
-                EntityItemID entityItemID = EntityItem::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead, args);
+                EntityItemID entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
                 EntityItem* entityItem = _myTree->findEntityByEntityItemID(entityItemID);
                 bool newEntity = false;
                 

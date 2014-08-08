@@ -14,12 +14,19 @@
 
 #include <stdint.h>
 
-#include <QtScript/QScriptEngine>
-#include <QtCore/QObject>
 
-const uint32_t NEW_ENTITY = 0xFFFFFFFF;
+#include <QObject>
+#include <QHash>
+#include <QScriptEngine>
+#include <QUuid>
+
 const uint32_t UNKNOWN_ENTITY_TOKEN = 0xFFFFFFFF;
-const uint32_t UNKNOWN_ENTITY_ID = 0xFFFFFFFF;
+
+//const uint32_t NEW_ENTITY = 0xFFFFFFFF;
+//const uint32_t UNKNOWN_ENTITY_ID = 0xFFFFFFFF;
+
+const QUuid NEW_ENTITY;
+const QUuid UNKNOWN_ENTITY_ID;
 
 
 /// Abstract ID for editing model items. Used in EntityItem JS API - When models are created in the JS api, they are given a
@@ -29,10 +36,12 @@ class EntityItemID {
 public:
     EntityItemID();
     EntityItemID(const EntityItemID& other);
-    EntityItemID(uint32_t id, uint32_t creatorTokenID, bool isKnownID);
-    EntityItemID(uint32_t id);
+    EntityItemID(const QUuid& id, uint32_t creatorTokenID, bool isKnownID);
+    EntityItemID(const QUuid& id);
 
-    uint32_t id;
+    //uint32_t id;
+    QUuid id;
+    
     uint32_t creatorTokenID;
     bool isKnownID;
 
@@ -41,17 +50,19 @@ public:
     EntityItemID convertToCreatorTokenVersion() const;
 
     // these methods allow you to create models, and later edit them.
-    static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
+    //static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
+
+    static EntityItemID getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
     static void handleAddEntityResponse(const QByteArray& packet);
+    static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead);
     
 private:
     friend class EntityTree;
     EntityItemID assignActualIDForToken() const; // only called by EntityTree
 
-    static quint32 _nextID;
     static uint32_t _nextCreatorTokenID; /// used by the static interfaces for creator token ids
-    static std::map<uint32_t,uint32_t> _tokenIDsToIDs;
+    static QHash<uint32_t, QUuid> _tokenIDsToIDs;
 };
 
 inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
@@ -66,9 +77,9 @@ inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
 }
 
 inline uint qHash(const EntityItemID& a, uint seed) {
-    qint64 temp;
+    QUuid temp;
     if (a.id == UNKNOWN_ENTITY_ID) {
-        temp = -a.creatorTokenID;
+        temp = QUuid(a.creatorTokenID,0,0,0,0,0,0,0,0,0,0);
     } else {
         temp = a.id;
     }

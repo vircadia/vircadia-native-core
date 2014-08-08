@@ -131,7 +131,7 @@ Model* EntityTreeRenderer::getModel(const ModelEntityItem* modelEntityItem) {
                 if (QUrl(modelEntityItem->getModelURL()) != model->getURL()) {
                     delete model; // delete the old model...
                     model = NULL;
-                    _unknownEntityItemModels.remove(modelEntityItem->getID());
+                    _unknownEntityItemModels.remove(modelEntityItem->getCreatorTokenID());
                 }
             }
 
