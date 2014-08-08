@@ -1,11 +1,5 @@
-set(ROOT_DIR ..)
-set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
-
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
-
-# setup for find modules
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "faceplus" "faceshift" "oculus" "priovr" "sixense" "visage" "leapmotion" "rtmidi" "qxmpp")
@@ -38,7 +32,6 @@ elseif (WIN32)
 endif ()
 
 # set up the external glm library
-include("${MACRO_DIR}/IncludeGLM.cmake")
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
 # create the InterfaceConfig.h file based on GL_HEADERS above

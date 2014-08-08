@@ -5,7 +5,7 @@ auto_mtc(${TARGET_NAME} "${ROOT_DIR}")
 setup_hifi_library(${TARGET_NAME} "${AUTOMTC_SRC}")
 
 # link in the networking library
-link_hifi_libraries(${TARGET_NAME} networking)
+link_hifi_libraries(${TARGET_NAME} shared networking)
 
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 

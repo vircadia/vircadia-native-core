@@ -9,8 +9,8 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-macro(include_hifi_library_headers LIBRARY ROOT_DIR)
+macro(include_hifi_library_headers LIBRARY)
   
-  include_directories("${ROOT_DIR}/libraries/${LIBRARY}/src")
+  include_directories("${HIFI_LIBRARY_DIR}/libraries/${LIBRARY}/src")
   
 endmacro(include_hifi_library_headers _library _root_dir)
