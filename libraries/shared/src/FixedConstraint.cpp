@@ -10,26 +10,26 @@
 //
 
 #include "FixedConstraint.h"
-#include "Shape.h"  // for MAX_SHAPE_MASS
 #include "VerletPoint.h"
 
-FixedConstraint::FixedConstraint(VerletPoint* point, const glm::vec3& anchor) : _point(point), _anchor(anchor) {
+FixedConstraint::FixedConstraint(glm::vec3* anchor, VerletPoint* point) : _anchor(anchor), _point(point) {
+    assert(anchor);
+    assert(point);
 }
 
 float FixedConstraint::enforce() {
     assert(_point != NULL);
-    // TODO: use fast approximate sqrt here
-    float distance = glm::distance(_anchor, _point->_position);
-    _point->_position = _anchor;
-    return distance;
+    _point->_position = *_anchor;
+    _point->_lastPosition = *_anchor;
+    return 0.0f;
+}
+
+void FixedConstraint::setAnchor(glm::vec3* anchor) { 
+    assert(anchor);
+    _anchor = anchor; 
 }
 
 void FixedConstraint::setPoint(VerletPoint* point) {
     assert(point);
     _point = point;
-    _point->_mass = MAX_SHAPE_MASS;
-}
-
-void FixedConstraint::setAnchor(const glm::vec3& anchor) {
-    _anchor = anchor;
 }
