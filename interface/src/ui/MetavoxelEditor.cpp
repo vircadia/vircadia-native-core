@@ -1138,7 +1138,8 @@ HeightfieldHeightBrushTool::HeightfieldHeightBrushTool(MetavoxelEditor* editor) 
 }
 
 QVariant HeightfieldHeightBrushTool::createEdit(bool alternate) {
-    return QVariant::fromValue(PaintHeightfieldHeightEdit(_position, _radius->value(), _height->value()));
+    return QVariant::fromValue(PaintHeightfieldHeightEdit(_position, _radius->value(),
+        alternate ? (-_height->value() : _height->value())));
 }
 
 HeightfieldColorBrushTool::HeightfieldColorBrushTool(MetavoxelEditor* editor) :

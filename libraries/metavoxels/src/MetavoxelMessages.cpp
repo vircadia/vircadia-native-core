@@ -370,6 +370,7 @@ int PaintHeightfieldHeightEditVisitor::visit(MetavoxelInfo& info) {
     glm::vec3 start = glm::floor(center - extents);
     glm::vec3 end = glm::ceil(center + extents);
     
+    // raise/lower all points within the radius
     float z = qMax(start.z, 0.0f);
     float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
     uchar* lineDest = (uchar*)contents.data() + (int)z * size + (int)startX;
@@ -383,6 +384,7 @@ int PaintHeightfieldHeightEditVisitor::visit(MetavoxelInfo& info) {
             float dx = x - center.x, dz = z - center.z;
             float distanceSquared = dx * dx + dz * dz;
             if (distanceSquared <= squaredRadius) {
+                // height falls off towards edges
                 int value = *dest + scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
                 *dest = qMin(qMax(value, 0), EIGHT_BIT_MAXIMUM);
             }
@@ -452,6 +454,7 @@ int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
     glm::vec3 start = glm::floor(center - extents);
     glm::vec3 end = glm::ceil(center + extents);
     
+    // paint all points within the radius
     float z = qMax(start.z, 0.0f);
     float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
     int stride = size * BYTES_PER_PIXEL;
