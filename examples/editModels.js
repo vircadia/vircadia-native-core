@@ -291,10 +291,6 @@ var modelUploader = (function () {
         SCALE_FIELD = "scale",
         FILENAME_FIELD = "filename",
         TEXDIR_FIELD = "texdir",
-        ANIMATION_URL_FIELD = "animationurl",
-        PITCH_FIELD = "pitch",
-        YAW_FIELD = "yaw",
-        ROLL_FIELD = "roll",
         MAX_TEXTURE_SIZE = 1024;
 
     function error(message) {
@@ -604,10 +600,6 @@ var modelUploader = (function () {
             errorMessage: "Texture directory must be subdirectory of model directory."
         });
 
-        form.push({ label: "Animation URL:", value: "" });
-        form.push({ label: "Pitch:", value: (0).toFixed(decimals) });
-        form.push({ label: "Yaw:", value: (0).toFixed(decimals) });
-        form.push({ label: "Roll:", value: (0).toFixed(decimals) });
         form.push({ label: "Scale:", value: mapping[SCALE_FIELD].toFixed(decimals) });
         form.push({ button: "Cancel" });
 
@@ -621,10 +613,6 @@ var modelUploader = (function () {
         if (mapping[TEXDIR_FIELD] === "") {
             mapping[TEXDIR_FIELD] = ".";
         }
-        mapping[ANIMATION_URL_FIELD] = form[2].value;
-        mapping[PITCH_FIELD] = form[3].value;
-        mapping[YAW_FIELD] = form[4].value;
-        mapping[ROLL_FIELD] = form[5].value;
         mapping[SCALE_FIELD] = form[6].value;
 
         writeMapping(fstBuffer);
