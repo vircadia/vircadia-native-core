@@ -15,5 +15,4 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 # link the shared hifi libraries
 link_hifi_libraries(embedded-webserver networking shared)
 
-# link any shared dependencies
 link_shared_dependencies()

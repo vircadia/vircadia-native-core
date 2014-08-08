@@ -1,5 +1,8 @@
 set(TARGET_NAME json2bitstream)
-setup_hifi_project()
+setup_hifi_project(Widgets Script)
 
-# link any shared dependencies
+include_glm()
+
+link_hifi_libraries(metavoxels)
+
 link_shared_dependencies()

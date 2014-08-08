@@ -9,5 +9,4 @@ setup_hifi_project(Network Script Widgets)
 # link in the shared libraries
 link_hifi_libraries(metavoxels networking shared)
 
-# link any shared dependencies
 link_shared_dependencies()

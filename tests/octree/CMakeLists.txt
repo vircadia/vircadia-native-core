@@ -7,5 +7,4 @@ include_glm()
 # link in the shared libraries
 link_hifi_libraries(animation fbx models networking octree shared)
 
-# link any shared dependencies
 link_shared_dependencies()
