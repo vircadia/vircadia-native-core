@@ -558,7 +558,6 @@ void DefaultMetavoxelRendererImplementation::init() {
         
         _heightfieldCursorProgram.bind();
         _heightfieldCursorProgram.setUniformValue("heightMap", 0);
-        _heightfieldCursorProgram.setUniformValue("cursorMap", 1);
         _cursorHeightScaleLocation = _heightfieldCursorProgram.uniformLocation("heightScale");
         _heightfieldCursorProgram.release();
     }
