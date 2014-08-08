@@ -1,9 +1,9 @@
 set(TARGET_NAME networking-tests)
 
-setup_hifi_project(${TARGET_NAME})
+setup_hifi_project()
 
 # link in the shared libraries
-link_hifi_libraries(${TARGET_NAME} shared networking)
+link_hifi_libraries(shared networking)
 
 # link any shared dependencies
-link_shared_dependencies_to_target(${TARGET_NAME})
+link_shared_dependencies()

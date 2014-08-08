@@ -1,12 +1,11 @@
 set(TARGET_NAME audio-tests)
 
-setup_hifi_project(${TARGET_NAME})
+setup_hifi_project()
 
-#include glm
-include_glm(${TARGET_NAME} ${ROOT_DIR})
+include_glm()
 
 # link in the shared libraries
-link_hifi_libraries(${TARGET_NAME} shared audio networking)
+link_hifi_libraries(shared audio networking)
 
 # link any shared dependencies
-link_shared_dependencies_to_target(${TARGET_NAME})
+link_shared_dependencies()

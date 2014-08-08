@@ -1,5 +1,5 @@
 set(TARGET_NAME mtc)
-setup_hifi_project(${TARGET_NAME})
+setup_hifi_project()
 
 # link any shared dependencies
-link_shared_dependencies_to_target(${TARGET_NAME})
+link_shared_dependencies()

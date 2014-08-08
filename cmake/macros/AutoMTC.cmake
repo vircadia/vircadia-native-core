@@ -8,8 +8,8 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-macro(AUTO_MTC TARGET)
-  set(AUTOMTC_SRC ${TARGET}_automtc.cpp)
+macro(AUTO_MTC)
+  set(AUTOMTC_SRC ${TARGET_NAME}_automtc.cpp)
   
   file(GLOB INCLUDE_FILES src/*.h)
   

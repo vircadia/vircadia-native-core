@@ -1,11 +1,11 @@
 set(TARGET_NAME voxels)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-setup_hifi_library(${TARGET_NAME} Widgets Script)
+setup_hifi_library(Widgets Script)
 
-include_glm(${TARGET_NAME} "${ROOT_DIR}")
+include_glm()
 
-link_hifi_libraries(${TARGET_NAME} shared octree networking)
+link_hifi_libraries(shared octree networking)
 
 # find ZLIB
 find_package(ZLIB)
@@ -15,4 +15,4 @@ include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
 list(APPEND ${TARGET}_LIBRARIES_TO_LINK "${ZLIB_LIBRARIES}")
 
 # call macro to link our dependencies and bubble them up via a property on our target
-link_shared_dependencies_to_target(${TARGET_NAME})
+link_shared_dependencies()

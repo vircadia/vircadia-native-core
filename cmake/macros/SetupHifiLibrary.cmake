@@ -7,16 +7,16 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-macro(SETUP_HIFI_LIBRARY TARGET)
+macro(SETUP_HIFI_LIBRARY)
   
-  project(${TARGET})
+  project(${TARGET_NAME})
 
   # grab the implemenation and header files
   file(GLOB LIB_SRCS src/*.h src/*.cpp)
   set(LIB_SRCS ${LIB_SRCS})
 
   # create a library and set the property so it can be referenced later
-  add_library(${TARGET} ${LIB_SRCS} ${AUTOMTC_SRC})
+  add_library(${TARGET_NAME} ${LIB_SRCS} ${AUTOMTC_SRC})
   
   set(QT_MODULES_TO_LINK ${ARGN})
   list(APPEND QT_MODULES_TO_LINK Core)
@@ -27,7 +27,7 @@ macro(SETUP_HIFI_LIBRARY TARGET)
     get_target_property(QT_LIBRARY_LOCATION Qt5::${QT_MODULE} LOCATION)
     
     # add the actual path to the Qt module to our LIBRARIES_TO_LINK variable
-    target_link_libraries(${TARGET} Qt5::${QT_MODULE})
-    list(APPEND ${TARGET}_QT_MODULES_TO_LINK ${QT_LIBRARY_LOCATION})
+    target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})
+    list(APPEND ${TARGET_NAME}_QT_MODULES_TO_LINK ${QT_LIBRARY_LOCATION})
   endforeach()
-endmacro(SETUP_HIFI_LIBRARY _target)
+endmacro(SETUP_HIFI_LIBRARY)

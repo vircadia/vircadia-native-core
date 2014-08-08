@@ -32,7 +32,7 @@ elseif (WIN32)
 endif ()
 
 # set up the external glm library
-include_glm(${TARGET_NAME} "${ROOT_DIR}")
+include_glm()
 
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")
@@ -91,7 +91,7 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link required hifi libraries
-link_hifi_libraries(${TARGET_NAME} shared octree voxels fbx metavoxels networking particles models avatars audio animation script-engine)
+link_hifi_libraries(shared octree voxels fbx metavoxels networking particles models avatars audio animation script-engine)
 
 # find any optional and required libraries
 find_package(Faceplus)
@@ -211,4 +211,4 @@ else (APPLE)
 endif (APPLE)
 
 # link any dependencies bubbled up from our linked dependencies
-link_shared_dependencies_to_target(${TARGET_NAME})
+link_shared_dependencies()
