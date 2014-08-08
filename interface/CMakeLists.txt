@@ -52,7 +52,7 @@ foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels pa
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)
 
-# find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
+find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Script Svg WebKitWidgets)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -180,8 +180,8 @@ endif ()
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
 target_link_libraries(
-  ${TARGET_NAME}
-  "${ZLIB_LIBRARIES}"
+  ${TARGET_NAME} "${ZLIB_LIBRARIES}"
+  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL Qt5::Script Qt5::Svg Qt5::WebKitWidgets
 )
 
 # assume we are using a Qt build without bearer management
@@ -189,30 +189,11 @@ add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
-    # find_library(AppKit AppKit)
- #    find_library(CoreAudio CoreAudio)
- #    find_library(CoreServices CoreServices)
- #    find_library(Carbon Carbon)
- #    find_library(Foundation Foundation)
- #    find_library(GLUT GLUT)
- #    find_library(OpenGL OpenGL)
- #    find_library(IOKit IOKit)
- #    find_library(QTKit QTKit)
- #    find_library(QuartzCore QuartzCore)
- #
- #    target_link_libraries(
- #        ${TARGET_NAME}
- #        ${AppKit}
- #        ${CoreAudio}
- #        ${CoreServices}
- #        ${Carbon}
- #        ${Foundation}
- #        ${GLUT}
- #        ${OpenGL}
- #        ${IOKit}
- #        ${QTKit}
- #        ${QuartzCore}
- #    )
+    find_library(CoreAudio CoreAudio)
+    find_library(GLUT GLUT)
+    find_library(OpenGL OpenGL)
+
+    target_link_libraries(${TARGET_NAME} ${CoreAudio} ${GLUT} ${OpenGL})
     
     # install command for OS X bundle
     INSTALL(TARGETS ${TARGET_NAME}

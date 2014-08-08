@@ -13,7 +13,7 @@
 
 #include <Octree.h>
 #include <RegisteredMetaTypes.h>
-#include <SharedUtil.h> // usecTimestampNow()
+#include <GLMHelpers.h>
 #include <VoxelsScriptingInterface.h>
 #include <VoxelDetail.h>
 

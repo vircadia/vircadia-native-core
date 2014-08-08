@@ -11,6 +11,7 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <GLMHelpers.h>
 #include <OctreeConstants.h>
 
 #include "AvatarData.h"

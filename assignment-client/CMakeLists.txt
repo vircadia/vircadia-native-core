@@ -9,6 +9,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 include("${MACRO_DIR}/SetupHifiProject.cmake")
 setup_hifi_project(${TARGET_NAME} TRUE)
 
+include(${MACRO_DIR}/IncludeGLM.cmake)
+include_glm(${TARGET_NAME} "${ROOT_DIR}")
+
 # link in the shared libraries
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")

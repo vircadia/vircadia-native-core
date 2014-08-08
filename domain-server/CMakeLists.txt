@@ -7,7 +7,6 @@ set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
-
 setup_hifi_project(${TARGET_NAME} TRUE)
 
 # remove and then copy the files for the webserver
@@ -34,5 +33,5 @@ if (WIN32)
   add_definitions(-Dssize_t=long)
 endif ()
 
-find_package(Qt5 COMPONENTS Network)
+find_package(Qt5 COMPONENTS Network Widgets)
 target_link_libraries(${TARGET_NAME} Qt5::Network)
