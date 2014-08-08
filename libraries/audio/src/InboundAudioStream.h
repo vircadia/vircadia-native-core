@@ -193,8 +193,6 @@ protected:
     // if jitter buffer is dynamic, this determines what method of calculating _desiredJitterBufferFrames 
     // if true, Philip's timegap std dev calculation is used.  Otherwise, Freddy's max timegap calculation is used
     bool _useStDevForJitterCalc;
-    int _calculatedJitterBufferFramesUsingMaxGap;
-    int _calculatedJitterBufferFramesUsingStDev;
 
     int _desiredJitterBufferFrames;
 
@@ -214,9 +212,10 @@ protected:
 
     SequenceNumberStats _incomingSequenceNumberStats;
 
-    quint64 _lastFrameReceivedTime;
-    MovingMinMaxAvg<quint64> _timeGapStatsForDesiredCalcOnTooManyStarves;
-    StDev _stdevStatsForDesiredCalcOnTooManyStarves;
+    quint64 _lastPacketReceivedTime;
+    MovingMinMaxAvg<quint64> _timeGapStatsForDesiredCalcOnTooManyStarves;   // for Freddy's method
+    StDev _stdevStatsForDesiredCalcOnTooManyStarves;                        // for Philip's method
+    int _calculatedJitterBufferFramesUsingStDev;                     // the most recent desired frames calculated by Philip's method
     MovingMinMaxAvg<quint64> _timeGapStatsForDesiredReduction;
 
     int _starveHistoryWindowSeconds;
