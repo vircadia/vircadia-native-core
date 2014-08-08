@@ -34,6 +34,7 @@ if (APPLE)
   
   find_library(AppKit AppKit)
   find_library(QuartzCore QuartzCore)
+  find_library(QTKit QTKit)
 elseif (WIN32)
   find_path(VISAGE_XML_INCLUDE_DIR libxml/xmlreader.h PATH_SUFFIXES dependencies/libxml2/include HINTS ${VISAGE_SEARCH_DIRS})
   find_path(VISAGE_OPENCV_INCLUDE_DIR opencv/cv.h PATH_SUFFIXES dependencies/OpenCV/include HINTS ${VISAGE_SEARCH_DIRS})
@@ -51,7 +52,7 @@ list(APPEND VISAGE_ARGS_LIST VISAGE_BASE_INCLUDE_DIR VISAGE_XML_INCLUDE_DIR
   VISAGE_CORE_LIBRARY VISAGE_VISION_LIBRARY VISAGE_OPENCV_LIBRARY)
   
 if (APPLE)
-  list(APPEND VISAGE_ARGS_LIST QuartzCore AppKit)
+  list(APPEND VISAGE_ARGS_LIST QuartzCore AppKit QTKit)
 endif ()
 
 find_package_handle_standard_args(VISAGE DEFAULT_MSG ${VISAGE_ARGS_LIST})
@@ -60,7 +61,7 @@ set(VISAGE_INCLUDE_DIRS "${VISAGE_XML_INCLUDE_DIR}" "${VISAGE_OPENCV_INCLUDE_DIR
 set(VISAGE_LIBRARIES "${VISAGE_CORE_LIBRARY}" "${VISAGE_VISION_LIBRARY}" "${VISAGE_OPENCV_LIBRARY}")
 
 if (APPLE)
-  list(APPEND VISAGE_LIBRARIES ${QuartzCore} ${AppKit})
+  list(APPEND VISAGE_LIBRARIES ${QuartzCore} ${AppKit} ${QTKit})
 endif ()
 
 mark_as_advanced(VISAGE_INCLUDE_DIRS VISAGE_LIBRARIES)
