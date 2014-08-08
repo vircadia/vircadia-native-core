@@ -118,7 +118,8 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new SetSpannerTool(this));
     addTool(new ImportHeightfieldTool(this));
     addTool(new EraseHeightfieldTool(this));
-    addTool(new HeightBrushTool(this));
+    addTool(new HeightfieldHeightBrushTool(this));
+    addTool(new HeightfieldColorBrushTool(this));
     
     updateAttributes();
     
@@ -1108,11 +1109,26 @@ void HeightfieldBrushTool::render() {
     if (!Application::getInstance()->getMetavoxels()->findFirstRayHeightfieldIntersection(origin, direction, distance)) {
         return;
     }
-    glm::vec3 point = origin + distance * direction;
-    Application::getInstance()->getMetavoxels()->renderHeightfieldCursor(point, _radius->value());
+    Application::getInstance()->getMetavoxels()->renderHeightfieldCursor(
+        _position = origin + distance * direction, _radius->value());
 }
 
-HeightBrushTool::HeightBrushTool(MetavoxelEditor* editor) :
+bool HeightfieldBrushTool::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::Wheel) {
+        float angle = static_cast<QWheelEvent*>(event)->angleDelta().y();
+        const float ANGLE_SCALE = 1.0f / 1000.0f;
+        _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
+        return true;
+    
+    } else if (event->type() == QEvent::MouseButtonPress) {
+        MetavoxelEditMessage message = { createEdit(static_cast<QMouseEvent*>(event)->button() == Qt::RightButton) };
+        Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+        return true;
+    }
+    return false;
+}
+
+HeightfieldHeightBrushTool::HeightfieldHeightBrushTool(MetavoxelEditor* editor) :
     HeightfieldBrushTool(editor, "Height Brush") {
     
     _form->addRow("Height:", _height = new QDoubleSpinBox());
@@ -1121,3 +1137,16 @@ HeightBrushTool::HeightBrushTool(MetavoxelEditor* editor) :
     _height->setValue(1.0);
 }
 
+QVariant HeightfieldHeightBrushTool::createEdit(bool alternate) {
+    return QVariant::fromValue(PaintHeightfieldHeightEdit(_position, _radius->value(), _height->value()));
+}
+
+HeightfieldColorBrushTool::HeightfieldColorBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Color Brush") {
+    
+    _form->addRow("Color:", _color = new QColorEditor(this));
+}
+
+QVariant HeightfieldColorBrushTool::createEdit(bool alternate) {
+    return QVariant::fromValue(PaintHeightfieldColorEdit(_position, _radius->value(), _color->getColor()));
+}

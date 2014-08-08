@@ -18,6 +18,7 @@
 #include "MetavoxelSystem.h"
 #include "renderer/ProgramObject.h"
 
+class QColorEditor;
 class QComboBox;
 class QDoubleSpinBox;
 class QGroupBox;
@@ -312,23 +313,50 @@ public:
     
     virtual void render();
 
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+    
 protected:
+    
+    virtual QVariant createEdit(bool alternate) = 0;
     
     QFormLayout* _form;
     QDoubleSpinBox* _radius;
+    
+    glm::vec3 _position;
 };
 
 /// Allows raising or lowering parts of the heightfield.
-class HeightBrushTool : public HeightfieldBrushTool {
+class HeightfieldHeightBrushTool : public HeightfieldBrushTool {
     Q_OBJECT
 
 public:
     
-    HeightBrushTool(MetavoxelEditor* editor);
+    HeightfieldHeightBrushTool(MetavoxelEditor* editor);
+    
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
     
 private:
     
     QDoubleSpinBox* _height;
+};
+
+/// Allows coloring parts of the heightfield.
+class HeightfieldColorBrushTool : public HeightfieldBrushTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldColorBrushTool(MetavoxelEditor* editor);
+
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+    
+private:
+    
+    QColorEditor* _color;
 };
 
 #endif // hifi_MetavoxelEditor_h
