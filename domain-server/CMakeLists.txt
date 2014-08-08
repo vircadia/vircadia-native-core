@@ -33,3 +33,6 @@ ENDIF(WIN32)
 if (WIN32)
   add_definitions(-Dssize_t=long)
 endif ()
+
+find_package(Qt5 COMPONENTS Network)
+target_link_libraries(${TARGET_NAME} Qt5::Network)
