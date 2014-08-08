@@ -7,7 +7,7 @@ include_glm("${ROOT_DIR}")
 
 link_hifi_libraries(shared networking octree voxels)
 
-find_package(ZLIB)
+find_package(ZLIB REQUIRED)
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
 list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${ZLIB_LIBRARIES}")
 

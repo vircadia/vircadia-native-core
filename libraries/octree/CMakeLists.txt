@@ -8,7 +8,7 @@ include_glm()
 link_hifi_libraries(shared networking)
 
 # find ZLIB and OpenSSL
-find_package(ZLIB)
+find_package(ZLIB REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}" "${OPENSSL_INCLUDE_DIR}")

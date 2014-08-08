@@ -8,7 +8,7 @@ include_glm()
 link_hifi_libraries(shared octree networking)
 
 # find ZLIB
-find_package(ZLIB)
+find_package(ZLIB REQUIRED)
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
 
 # add it to our list of libraries to link

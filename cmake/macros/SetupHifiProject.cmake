@@ -28,7 +28,7 @@ macro(SETUP_HIFI_PROJECT)
   set(QT_MODULES_TO_LINK ${ARGN})
   list(APPEND QT_MODULES_TO_LINK Core)
   
-  find_package(Qt5 COMPONENTS ${QT_MODULES_TO_LINK})
+  find_package(Qt5 COMPONENTS ${QT_MODULES_TO_LINK} REQUIRED)
   
   foreach(QT_MODULE ${QT_MODULES_TO_LINK})    
     target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})

@@ -102,9 +102,11 @@ find_package(SDL)
 find_package(Sixense)
 find_package(Visage)
 find_package(LeapMotion)
-find_package(ZLIB)
 find_package(Qxmpp)
 find_package(RtMidi)
+
+find_package(ZLIB REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -157,9 +159,10 @@ endif ()
 
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
+include_directories("${OPENSSL_INCLUDE_DIR}")
 
 target_link_libraries(
-  ${TARGET_NAME} "${ZLIB_LIBRARIES}"
+  ${TARGET_NAME} "${ZLIB_LIBRARIES}" "${OPENSSL_LIBRARIES}"
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL Qt5::Script Qt5::Svg Qt5::WebKitWidgets
 )
 
