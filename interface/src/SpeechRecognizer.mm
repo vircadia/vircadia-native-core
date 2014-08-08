@@ -9,8 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtGlobal>
+#ifdef Q_OS_MAC
+
 #import <Foundation/Foundation.h>
 #import <AppKit/NSSpeechRecognizer.h>
+#import <AppKit/NSWorkspace.h>
 
 #include <QDebug>
 
@@ -40,10 +44,11 @@
 SpeechRecognizer::SpeechRecognizer() :
     QObject(),
     _enabled(false),
-    _speechRecognizerDelegate(NULL),
+    _commands(),
+    _speechRecognizerDelegate([[SpeechRecognizerDelegate alloc] init]),
     _speechRecognizer(NULL) {
 
-    init();
+    [(id)_speechRecognizerDelegate setListener:this];
 }
 
 SpeechRecognizer::~SpeechRecognizer() {
@@ -55,40 +60,50 @@ SpeechRecognizer::~SpeechRecognizer() {
     }
 }
 
-void SpeechRecognizer::init() {
-    _speechRecognizerDelegate = [[SpeechRecognizerDelegate alloc] init];
-    [(id)_speechRecognizerDelegate setListener:this];
-
-    _speechRecognizer = [[NSSpeechRecognizer alloc] init];
-
-    [(id)_speechRecognizer setCommands:[NSArray array]];
-    [(id)_speechRecognizer setDelegate:(id)_speechRecognizerDelegate];
-
-    setEnabled(_enabled);
-}
-
 void SpeechRecognizer::handleCommandRecognized(const char* command) {
-    qDebug() << "Got command: " << command;
     emit commandRecognized(QString(command));
 }
 
 void SpeechRecognizer::setEnabled(bool enabled) {
+    if (enabled == _enabled) {
+        return;
+    }
+
     _enabled = enabled;
-    if (enabled) {
+    if (_enabled) {
+        _speechRecognizer = [[NSSpeechRecognizer alloc] init];
+
+        reloadCommands();
+
+        [(id)_speechRecognizer setDelegate:(id)_speechRecognizerDelegate];
         [(id)_speechRecognizer startListening];
     } else {
         [(id)_speechRecognizer stopListening];
+        [(id)_speechRecognizer dealloc];
+        _speechRecognizer = NULL;
+    }
+
+    emit enabledUpdated(_enabled);
+}
+
+void SpeechRecognizer::reloadCommands() {
+    if (_speechRecognizer) {
+        NSMutableArray* cmds = [NSMutableArray array];
+        for (QSet<QString>::const_iterator iter = _commands.constBegin(); iter != _commands.constEnd(); iter++) {
+            [cmds addObject:[NSString stringWithUTF8String:(*iter).toLocal8Bit().data()]];
+        }
+        [(id)_speechRecognizer setCommands:cmds];
     }
 }
 
 void SpeechRecognizer::addCommand(const QString& command) {
-    NSArray *cmds = [(id)_speechRecognizer commands];
-    NSString *cmd = [NSString stringWithUTF8String:command.toLocal8Bit().data()];
-    [(id)_speechRecognizer setCommands:[cmds arrayByAddingObject:cmd]];
+    _commands.insert(command);
+    reloadCommands();
 }
 
 void SpeechRecognizer::removeCommand(const QString& command) {
-    NSMutableArray* cmds = [NSMutableArray arrayWithArray:[(id)_speechRecognizer commands]];
-    [cmds removeObject:[NSString stringWithUTF8String:command.toLocal8Bit().data()]];
-    [(id)_speechRecognizer setCommands:cmds];
+    _commands.remove(command);
+    reloadCommands();
 }
+
+#endif // Q_OS_MAC
