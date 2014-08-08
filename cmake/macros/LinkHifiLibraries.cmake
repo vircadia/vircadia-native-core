@@ -22,8 +22,8 @@ macro(LINK_HIFI_LIBRARIES TARGET)
 
     add_dependencies(${TARGET} ${HIFI_LIBRARY})
   
-    # link the actual library
-    list(APPEND ${TARGET}_LIBRARIES_TO_LINK ${HIFI_LIBRARY})
+    # link the actual library - it is static so don't bubble it up
+    target_link_libraries(${TARGET} ${HIFI_LIBRARY})
     
     # ask the library what its dynamic dependencies are and link them
     get_target_property(LINKED_TARGET_DEPENDENCY_LIBRARIES ${HIFI_LIBRARY} DEPENDENCY_LIBRARIES)
