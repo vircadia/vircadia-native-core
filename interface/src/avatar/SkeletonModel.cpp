@@ -685,6 +685,9 @@ void SkeletonModel::buildShapes() {
             // this shape is forced to be a sphere
             type = Shape::SPHERE_SHAPE;
         }
+        if (radius < EPSILON) {
+            type = Shape::UNKNOWN_SHAPE;
+        }
         Shape* shape = NULL;
         int parentIndex = joint.parentIndex;
         if (type == Shape::SPHERE_SHAPE) {
@@ -699,7 +702,9 @@ void SkeletonModel::buildShapes() {
         } 
         if (parentIndex != -1) {
             // always disable collisions between joint and its parent
-            disableCollisions(i, parentIndex);
+            if (shape) {
+                disableCollisions(i, parentIndex);
+            }
         } else {
             // give the base joint a very large mass since it doesn't actually move
             // in the local-frame simulation (it defines the origin)
