@@ -12,7 +12,8 @@
 #include "MixedProcessedAudioStream.h"
 
 MixedProcessedAudioStream::MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings)
-    : InboundAudioStream(numFrameSamples, numFramesCapacity, settings)
+    : InboundAudioStream(numFrameSamples, numFramesCapacity, settings),
+    _networkSamplesWritten(0)
 {
 }
 
@@ -24,6 +25,9 @@ void MixedProcessedAudioStream::outputFormatChanged(int outputFormatChannelCount
 
 int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples) {
 
+    memcpy(&_networkSamples[_networkSamplesWritten], packetAfterStreamProperties.data(), packetAfterStreamProperties.size());
+    _networkSamplesWritten += packetAfterStreamProperties.size() / sizeof(int16_t);
+
     QByteArray outputBuffer;
     emit processSamples(packetAfterStreamProperties, outputBuffer);
     
@@ -33,10 +37,21 @@ int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray&
 }
 
 int MixedProcessedAudioStream::writeDroppableSilentSamples(int silentSamples) {
-    return InboundAudioStream::writeDroppableSilentSamples(networkToDeviceSamples(silentSamples));
+    int deviceSilentSamplesWritten = InboundAudioStream::writeDroppableSilentSamples(networkToDeviceSamples(silentSamples));
+
+    int networkSilentSamplesWritten = deviceToNetworkSamples(deviceSilentSamplesWritten);
+    memset(&_networkSamples[_networkSamplesWritten], 0, networkSilentSamplesWritten * sizeof(int16_t));
+    _networkSamplesWritten += networkSilentSamplesWritten;
+
+    return deviceSilentSamplesWritten;
 }
 
+static const int STEREO_FACTOR = 2;
+
 int MixedProcessedAudioStream::networkToDeviceSamples(int networkSamples) {
-    const int STEREO_DIVIDER = 2;
-    return networkSamples * _outputFormatChannelsTimesSampleRate / (STEREO_DIVIDER * SAMPLE_RATE);
+    return networkSamples * _outputFormatChannelsTimesSampleRate / (STEREO_FACTOR * SAMPLE_RATE);
+}
+
+int MixedProcessedAudioStream::deviceToNetworkSamples(int deviceSamples) {
+    return deviceSamples * (STEREO_FACTOR * SAMPLE_RATE) / _outputFormatChannelsTimesSampleRate;
 }

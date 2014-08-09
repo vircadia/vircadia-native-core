@@ -32,8 +32,12 @@ protected:
 
 private:
     int networkToDeviceSamples(int networkSamples);
+    int deviceToNetworkSamples(int deviceSamples);
 private:
     int _outputFormatChannelsTimesSampleRate;
+
+    int16_t _networkSamples[10 * NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
+    int _networkSamplesWritten;
 };
 
 #endif // hifi_MixedProcessedAudioStream_h

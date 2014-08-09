@@ -905,7 +905,7 @@ void Audio::addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& s
             unsigned int delayCount = delay * _desiredOutputFormat.channelCount();
             unsigned int silentCount = (remaining < delayCount) ? remaining : delayCount;
             if (silentCount) {
-               _spatialAudioRingBuffer.addSilentFrame(silentCount);
+               _spatialAudioRingBuffer.addSilentSamples(silentCount);
             }
 
             // Recalculate the number of remaining samples
