@@ -197,7 +197,7 @@ int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
         _framesAvailableStat.reset();
     }
 
-    return _ringBuffer.addSilentFrame(silentSamples - numSilentFramesToDrop * samplesPerFrame);
+    return _ringBuffer.addSilentSamples(silentSamples - numSilentFramesToDrop * samplesPerFrame);
 }
 
 int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped) {
