@@ -34,11 +34,9 @@ public:
                                     int& propertyCount, 
                                     OctreeElement::AppendState& appendState) const;
 
-    virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
-
-
-    // TODO: Move these to subclasses, or other appropriate abstraction
-    // getters/setters applicable to models and particles
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+                                                ReadBitstreamToTreeParams& args,
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
@@ -51,7 +49,6 @@ public:
     }
     
 protected:
-
     rgbColor _color;
 };
 
