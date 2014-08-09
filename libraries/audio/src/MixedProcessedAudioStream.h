@@ -26,6 +26,11 @@ signals:
 public:
     void outputFormatChanged(int outputFormatChannelCountTimesSampleRate);
 
+    const int16_t* getNetworkSamples() const { return _networkSamples; }
+    int getNetworkSamplesWritten() const { return _networkSamplesWritten; }
+
+    void clearNetworkSamples() { _networkSamplesWritten = 0; }
+
 protected:
     int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
     int writeDroppableSilentSamples(int silentSamples);

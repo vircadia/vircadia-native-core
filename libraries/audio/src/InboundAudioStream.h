@@ -149,6 +149,9 @@ public:
 
     int getPacketsReceived() const { return _incomingSequenceNumberStats.getReceived(); }
 
+signals:
+    void dataParsed();
+
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
     /// is enabled, those stats are used to calculate _desiredJitterBufferFrames.

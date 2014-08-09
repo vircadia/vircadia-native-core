@@ -106,6 +106,7 @@ public slots:
     void parseAudioStreamStatsPacket(const QByteArray& packet);
     void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
     void processReceivedAudioStreamSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
+    void updateScopeBuffers();
     void handleAudioInput();
     void reset();
     void resetStats();

@@ -161,6 +161,8 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 
     framesAvailableChanged();
 
+    emit dataParsed();
+
     return readBytes;
 }
 

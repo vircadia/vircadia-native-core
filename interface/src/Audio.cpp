@@ -121,6 +121,7 @@ Audio::Audio(QObject* parent) :
     _noiseSampleFrames = new float[NUMBER_OF_NOISE_SAMPLE_FRAMES];
 
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples, this, &Audio::processReceivedAudioStreamSamples, Qt::DirectConnection);
+    connect(&_receivedAudioStream, &MixedProcessedAudioStream::dataParsed, this, &Audio::updateScopeBuffers, Qt::DirectConnection);
 }
 
 void Audio::init(QGLWidget *parent) {
@@ -777,11 +778,13 @@ void Audio::processReceivedAudioStreamSamples(const QByteArray& inputBuffer, QBy
         numNetworkOutputSamples,
         numDeviceOutputSamples,
         _desiredOutputFormat, _outputFormat);
+}
 
-
+void Audio::updateScopeBuffers() {
     if (_scopeEnabled && !_scopeEnabledPause) {
         unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
-        const int16_t* samples = receivedSamples;
+        const int16_t* samples = _receivedAudioStream.getNetworkSamples();
+        int numNetworkOutputSamples = _receivedAudioStream.getNetworkSamplesWritten();
         for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
 
             unsigned int audioChannel = 0;
@@ -801,6 +804,8 @@ void Audio::processReceivedAudioStreamSamples(const QByteArray& inputBuffer, QBy
             samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
         }
     }
+
+    _receivedAudioStream.clearNetworkSamples();
 }
 
 void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
