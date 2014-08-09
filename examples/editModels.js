@@ -445,11 +445,6 @@ var modelUploader = (function () {
                     textures[filename] = "";
                     geometry.textures.push(filename);
                 }
-
-            } else if (name === "author") {
-                author = view.string(index + 5, view.getUint32(index + 1, true));
-                geometry.author = author;
-
             }
 
             index += (propertyListLength);
@@ -476,12 +471,6 @@ var modelUploader = (function () {
                 charCode = view[index];
                 if (charCode === 10) {  // Can ignore EOF
                     line = String.fromCharCode.apply(String, charCodes).trim();
-
-                    if (line.slice(0, 7).toLowerCase() === "author:") {
-                        author = line.slice(line.indexOf("\""), line.lastIndexOf("\"") - line.length);
-                        geometry.author = author;
-
-                    }
                     if (line.slice(0, 17).toLowerCase() === "relativefilename:") {
                         filename = line.slice(line.indexOf("\""), line.lastIndexOf("\"") - line.length).fileName();
                         if (!textures.hasOwnProperty(filename)) {
@@ -489,7 +478,6 @@ var modelUploader = (function () {
                             geometry.textures.push(filename);
                         }
                     }
-
                     charCodes = [];
                 } else {
                     charCodes.push(charCode);
@@ -574,12 +562,6 @@ var modelUploader = (function () {
             }
         }
 
-        if (mapping.hasOwnProperty(SCALE_FIELD)) {
-            mapping[SCALE_FIELD] = parseFloat(mapping[SCALE_FIELD]);
-        } else {
-            mapping[SCALE_FIELD] = (geometry.author === "www.makehuman.org" ? 150.0 : 15.0);
-        }
-
         // Add any missing basic mappings
         if (!mapping.hasOwnProperty(NAME_FIELD)) {
             mapping[NAME_FIELD] = modelFile.fileName().fileBase();
@@ -588,7 +570,7 @@ var modelUploader = (function () {
             mapping[TEXDIR_FIELD] = ".";
         }
         if (!mapping.hasOwnProperty(SCALE_FIELD)) {
-            mapping[SCALE_FIELD] = 0.2;  // For SVO models.
+            mapping[SCALE_FIELD] = 1.0;
         }
 
         return true;
@@ -618,7 +600,6 @@ var modelUploader = (function () {
             errorMessage: "Texture directory must be subdirectory of model directory."
         });
 
-        form.push({ label: "Scale:", value: mapping[SCALE_FIELD].toFixed(decimals) });
         form.push({ button: "Cancel" });
 
         if (!Window.form("Set Model Properties", form)) {
@@ -631,7 +612,6 @@ var modelUploader = (function () {
         if (mapping[TEXDIR_FIELD] === "") {
             mapping[TEXDIR_FIELD] = ".";
         }
-        mapping[SCALE_FIELD] = form[2].value;
 
         writeMapping(fstBuffer);
 
