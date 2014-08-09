@@ -83,6 +83,12 @@ if (typeof String.prototype.path !== "function") {
     };
 }
 
+if (typeof String.prototype.regExpEscape !== "function") {
+    String.prototype.regExpEscape = function () {
+        return this.replace(/([$^.+*?|\\\/{}()\[\]])/g, '\\$1');
+    }
+}
+
 if (typeof String.prototype.toArrayBuffer !== "function") {
     String.prototype.toArrayBuffer = function () {
         var length,
@@ -588,8 +594,8 @@ var modelUploader = (function () {
         form.push({ label: "Name:", value: mapping[NAME_FIELD] });
 
         directory = modelFile.path() + "/" + mapping[TEXDIR_FIELD];
-        displayAs = new RegExp("^" + modelFile.path().replace(/[\\\\\\\/]/, "[\\\\\\\/]") + "[\\\\\\\/](.*)");
-        validateAs = new RegExp("^" + modelFile.path().replace(/[\\\\\\\/]/, "[\\\\\\\/]") + "([\\\\\\\/].*)?");
+        displayAs = new RegExp("^" + modelFile.path().regExpEscape() + "[\\\\\\\/](.*)");
+        validateAs = new RegExp("^" + modelFile.path().regExpEscape() + "([\\\\\\\/].*)?");
 
         form.push({
             label: "Texture directory:",
@@ -597,7 +603,7 @@ var modelUploader = (function () {
             title: "Choose Texture Directory",
             displayAs: displayAs,
             validateAs: validateAs,
-            errorMessage: "Texture directory must be subdirectory of model directory."
+            errorMessage: "Texture directory must be subdirectory of the model directory."
         });
 
         form.push({ button: "Cancel" });
