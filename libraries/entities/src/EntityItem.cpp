@@ -98,6 +98,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties;
     
+    // TODO: make this a virtual method that allows the subclass to fill in the properties it supports...
     requestedProperties += PROP_POSITION;
     requestedProperties += PROP_RADIUS;
     requestedProperties += PROP_MODEL_URL;
@@ -232,11 +233,120 @@ qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
             propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
         }
 
-        // PROP_SCRIPT
-        //     script would go here...
-        
-        // TO DO - put all the other default items here!!!!
+        // PROP_MASS,
+        if (requestedProperties.getHasProperty(PROP_MASS)) {
+            LevelDetails propertyLevel = packetData->startLevel();
+            successPropertyFits = packetData->appendValue(getMass());
+            if (successPropertyFits) {
+                propertyFlags |= PROP_MASS;
+                propertiesDidntFit -= PROP_MASS;
+                propertyCount++;
+                packetData->endLevel(propertyLevel);
+            } else {
+                packetData->discardLevel(propertyLevel);
+                appendState = OctreeElement::PARTIAL;
+            }
+        } else {
+            propertiesDidntFit -= PROP_MASS;
+        }
+
+        // PROP_VELOCITY,
+        if (requestedProperties.getHasProperty(PROP_VELOCITY)) {
+            LevelDetails propertyLevel = packetData->startLevel();
+            successPropertyFits = packetData->appendValue(getVelocity());
+            if (successPropertyFits) {
+                propertyFlags |= PROP_VELOCITY;
+                propertiesDidntFit -= PROP_VELOCITY;
+                propertyCount++;
+                packetData->endLevel(propertyLevel);
+            } else {
+                packetData->discardLevel(propertyLevel);
+                appendState = OctreeElement::PARTIAL;
+            }
+        } else {
+            propertiesDidntFit -= PROP_VELOCITY;
+        }
+
+        // PROP_GRAVITY,
+        if (requestedProperties.getHasProperty(PROP_GRAVITY)) {
+            LevelDetails propertyLevel = packetData->startLevel();
+            successPropertyFits = packetData->appendValue(getGravity());
+            if (successPropertyFits) {
+                propertyFlags |= PROP_GRAVITY;
+                propertiesDidntFit -= PROP_GRAVITY;
+                propertyCount++;
+                packetData->endLevel(propertyLevel);
+            } else {
+                packetData->discardLevel(propertyLevel);
+                appendState = OctreeElement::PARTIAL;
+            }
+        } else {
+            propertiesDidntFit -= PROP_GRAVITY;
+        }
+
+        // PROP_DAMPING,
+        if (requestedProperties.getHasProperty(PROP_DAMPING)) {
+            LevelDetails propertyLevel = packetData->startLevel();
+            successPropertyFits = packetData->appendValue(getDamping());
+            if (successPropertyFits) {
+                propertyFlags |= PROP_DAMPING;
+                propertiesDidntFit -= PROP_DAMPING;
+                propertyCount++;
+                packetData->endLevel(propertyLevel);
+            } else {
+                packetData->discardLevel(propertyLevel);
+                appendState = OctreeElement::PARTIAL;
+            }
+        } else {
+            propertiesDidntFit -= PROP_DAMPING;
+        }
+
+        // PROP_LIFETIME,
+        if (requestedProperties.getHasProperty(PROP_LIFETIME)) {
+            LevelDetails propertyLevel = packetData->startLevel();
+            successPropertyFits = packetData->appendValue(getLifetime());
+            if (successPropertyFits) {
+                propertyFlags |= PROP_LIFETIME;
+                propertiesDidntFit -= PROP_LIFETIME;
+                propertyCount++;
+                packetData->endLevel(propertyLevel);
+            } else {
+                packetData->discardLevel(propertyLevel);
+                appendState = OctreeElement::PARTIAL;
+            }
+        } else {
+            propertiesDidntFit -= PROP_LIFETIME;
+        }
+
+        // PROP_SCRIPT,
+        if (requestedProperties.getHasProperty(PROP_SCRIPT)) {
+            LevelDetails propertyLevel = packetData->startLevel();
+            successPropertyFits = packetData->appendValue(getScript());
+            if (successPropertyFits) {
+                propertyFlags |= PROP_SCRIPT;
+                propertiesDidntFit -= PROP_SCRIPT;
+                propertyCount++;
+                packetData->endLevel(propertyLevel);
+            } else {
+                packetData->discardLevel(propertyLevel);
+                appendState = OctreeElement::PARTIAL;
+            }
+        } else {
+            propertiesDidntFit -= PROP_SCRIPT;
+        }
+
+        //appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+        //                            EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+        //                            int& propertyCount, OctreeElement::AppendState& appendState);
+
+        appendSubclassData(packetData, params, modelTreeElementExtraEncodeData,
+                                requestedProperties,
+                                propertyFlags,
+                                propertiesDidntFit,
+                                propertyCount,
+                                appendState);
     }
+    
     if (propertyCount > 0) {
         int endOfEntityItemData = packetData->getUncompressedByteOffset();
         

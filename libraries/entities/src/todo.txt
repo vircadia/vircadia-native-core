@@ -40,7 +40,12 @@ Model properties:
 // REQUIRED TO DO:
 
     A) add velocity, gravity, damping to entity base class
-    Aa) visible???
+    Aa) handle sublass appendEntityData() and readEntityItemIDFromBuffer() similar to how we 
+        handle setProperty()/getProperty() so that each subclass doesn't have to completely reimplement
+        the entire base class data stream...
+    Az) visible???
+    
+    
     2) EntityTree::update()/EntityTreeElement::update()... velocity changes...
     C) verify "update" works
 
@@ -67,7 +72,6 @@ Model properties:
    
     K) verify shadows work
     
-        
     N) Handle the ID -> UUID swap in old files to new files
     
     O) Test models -> attachments logic
@@ -75,12 +79,9 @@ Model properties:
    12) clean up delete behavior...
    12a) make sure server is deleting items??
    12b) Use the delete message instead of shouldDelete property
-
+   
+    S) What happens if the edit properties don't fit in a single message MTU???
     
-    R) fix these!!! 
-           EntityItem::encodeEntityEditMessageDetails()
-           EntityTypes::decodeEntityEditPacket()
-       These both contain details about non base class properties I think moving this to the EntityItemProperties is better...
 
     
 // NICE TO DO:
@@ -212,5 +213,8 @@ Model properties:
 // SOLVED - M) change EntityTree::handleAddEntityResponse() to not scan entire tree... it can use the containing element stuff!!!
 // SOLVED - F) TODO: do we need to handle "killing" viewed entities as well???
 //             void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID)...
+// SOLVED - R) move to EntityItemProperties
+//                        EntityItem::encodeEntityEditMessageDetails()
+//                        EntityTypes::decodeEntityEditPacket()
 
 

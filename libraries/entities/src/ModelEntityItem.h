@@ -26,8 +26,13 @@ public:
     virtual EntityItemProperties getProperties() const;
     virtual void setProperties(const EntityItemProperties& properties, bool forceCopy = false);
 
-    virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                                EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;
+    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+                                    EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                    EntityPropertyFlags& requestedProperties,
+                                    EntityPropertyFlags& propertyFlags,
+                                    EntityPropertyFlags& propertiesDidntFit,
+                                    int& propertyCount, 
+                                    OctreeElement::AppendState& appendState) const;
 
 
     virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);

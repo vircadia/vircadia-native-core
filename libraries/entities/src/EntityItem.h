@@ -59,6 +59,14 @@ public:
     virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                                 EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;
 
+    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+                                    EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                    EntityPropertyFlags& requestedProperties,
+                                    EntityPropertyFlags& propertyFlags,
+                                    EntityPropertyFlags& propertiesDidntFit,
+                                    int& propertyCount, 
+                                    OctreeElement::AppendState& appendState) const { /* do nothing*/ };
+
     static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                     ReadBitstreamToTreeParams& args);
     virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);

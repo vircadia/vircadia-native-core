@@ -152,7 +152,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
         properties.setProperty("id", _id.toString());
         bool isKnownID = (_id != UNKNOWN_ENTITY_ID);
         properties.setProperty("isKnownID", isKnownID);
-//qDebug() << "EntityItemProperties::copyToScriptValue()... isKnownID=" << isKnownID << "id=" << _id;
     }
 
     properties.setProperty("type", EntityTypes::getEntityTypeName(_type));
@@ -175,8 +174,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     QScriptValue color = xColorToScriptValue(engine, _color);
     properties.setProperty("color", color);
     properties.setProperty("modelURL", _modelURL);
-    
-//qDebug() << "EntityItemProperties::copyToScriptValue().... _modelURL=" << _modelURL;    
     
     properties.setProperty("animationURL", _animationURL);
     properties.setProperty("animationIsPlaying", _animationIsPlaying);
@@ -205,9 +202,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     if (typeScriptValue.isValid()) {
         QString typeName;
         typeName = typeScriptValue.toVariant().toString();
-//qDebug() << "EntityItemProperties::copyFromScriptValue()... typeName=" << typeName;
         _type = EntityTypes::getEntityTypeFromName(typeName);
-//qDebug() << "EntityItemProperties::copyFromScriptValue()... _type=" << _type;
     }
 
     QScriptValue position = object.property("position");
@@ -369,8 +364,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
         }
     }
     
-//qDebug() << "EntityItemProperties::copyFromScriptValue().... _modelURL=" << _modelURL;    
-
     QScriptValue animationURL = object.property("animationURL");
     if (animationURL.isValid()) {
         QString newAnimationURL;
@@ -488,17 +481,11 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
         // encode our type as a byte count coded byte stream
         ByteCountCoded<quint32> typeCoder = (quint32)properties.getType();
-        
-qDebug() << "EntityItemProperties::encodeEntityEditPacket()... (quint32)properties.getType()=" << (quint32)properties.getType();
-
         QByteArray encodedType = typeCoder;
 
         quint64 updateDelta = 0; // this is an edit so by definition, it's update is in sync
         ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
         QByteArray encodedUpdateDelta = updateDeltaCoder;
-
-//qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... updateDelta=" << updateDelta;
-//qDebug() << "EntityItem::encodeEntityEditMessageDetails() ... encodedUpdateDelta=" << encodedUpdateDelta;
 
         EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
         EntityPropertyFlags requestedProperties = properties.getChangedProperties();
@@ -520,8 +507,6 @@ qDebug() << "EntityItemProperties::encodeEntityEditPacket()... (quint32)properti
         // Last Edited quint64 always first, before any other details, which allows us easy access to adjusting this
         // timestamp for clock skew
         quint64 lastEdited = properties.getLastEdited();
-
-qDebug() << "EntityItemProperties::encodeEntityEditPacket()...  lastEdited=" << lastEdited;
 
         bool successLastEditedFits = packetData.appendValue(lastEdited);
     
@@ -657,9 +642,6 @@ qDebug() << "EntityItemProperties::encodeEntityEditPacket()...  lastEdited=" << 
                 LevelDetails propertyLevel = packetData.startLevel();
                 successPropertyFits = packetData.appendValue(properties.getVelocity());
                 if (successPropertyFits) {
-
-qDebug() << "EntityItemProperties::encodeEntityEditPacket()...  PROP_VELOCITY properties.getVelocity()=" << properties.getVelocity();
-
                     propertyFlags |= PROP_VELOCITY;
                     propertiesDidntFit -= PROP_VELOCITY;
                     propertyCount++;
@@ -694,9 +676,6 @@ qDebug() << "EntityItemProperties::encodeEntityEditPacket()...  PROP_VELOCITY pr
                 LevelDetails propertyLevel = packetData.startLevel();
                 successPropertyFits = packetData.appendValue(properties.getDamping());
                 if (successPropertyFits) {
-
-qDebug() << "EntityItemProperties::encodeEntityEditPacket()...  PROP_DAMPING getDamping()=" << properties.getDamping();
-
                     propertyFlags |= PROP_DAMPING;
                     propertiesDidntFit -= PROP_DAMPING;
                     propertyCount++;
