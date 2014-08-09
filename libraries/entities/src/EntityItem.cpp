@@ -543,9 +543,12 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
         }
 
+        // other properties velocit, etc should go here...
         // PROP_SCRIPT
         //     script would go here...
-        
+
+        bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
+
     }
     return bytesRead;
 }

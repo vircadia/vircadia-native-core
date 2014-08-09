@@ -36,6 +36,9 @@ public:
 
 
     virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+                                                ReadBitstreamToTreeParams& args,
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
     virtual void update(const quint64& now);
     virtual SimuationState getSimulationState() const;

@@ -122,230 +122,105 @@ qDebug() << "ModelEntityItem::setProperties() getModelURL()=" << getModelURL() <
 
 
 int ModelEntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-
-
-qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
-
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
         return oldVersionReadEntityDataFromBuffer(data, bytesLeftToRead, args);
     }
+    
+    // let our base class do most of the work... it will call us back for our porition...
+    return EntityItem::readEntityDataFromBuffer(data, bytesLeftToRead, args);
+}
 
-    // Header bytes
-    //    object ID [16 bytes]
-    //    ByteCountCoded(type code) [~1 byte]
-    //    last edited [8 bytes]
-    //    ByteCountCoded(last_edited to last_updated delta) [~1-8 bytes]
-    //    PropertyFlags<>( everything ) [1-2 bytes]
-    // ~27-35 bytes...
-    const int MINIMUM_HEADER_BYTES = 27; // TODO: this is not correct, we don't yet have 16 byte IDs
-
+int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+                                                ReadBitstreamToTreeParams& args,
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+    
     int bytesRead = 0;
-    if (bytesLeftToRead >= MINIMUM_HEADER_BYTES) {
+    const unsigned char* dataAt = data;
 
-        int originalLength = bytesLeftToRead;
-        QByteArray originalDataBuffer((const char*)data, originalLength);
-
-        int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
-
-        const unsigned char* dataAt = data;
-
-        // id
-        QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
-        _id = QUuid::fromRfc4122(encodedID);
-        _creatorTokenID = UNKNOWN_ENTITY_TOKEN; // if we know the id, then we don't care about the creator token
-        _newlyCreated = false;
-        dataAt += encodedID.size();
-        bytesRead += encodedID.size();
-
-        // type
-        QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
-        ByteCountCoded<quint32> typeCoder = encodedType;
-        encodedType = typeCoder; // determine true length
-        dataAt += encodedType.size();
-        bytesRead += encodedType.size();
-        quint32 type = typeCoder;
-        _type = (EntityTypes::EntityType)type;
-
-// XXXBHG: is this a good place to handle the last edited time client vs server??
-
-// If the edit time encoded in the packet is NEWER than our known edit time... 
-//     then we WANT to over-write our local data.
-// If the edit time encoded in the packet is OLDER than our known edit time...
-//     then we WANT to preserve our local data. (NOTE: what if I change color, and you change position?? last one wins!)
-
-        bool overwriteLocalData = true; // assume the new content overwrites our local data
-        
-        quint64 lastEditedFromBuffer = 0;
-
-        // _lastEdited
-        memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
-        dataAt += sizeof(lastEditedFromBuffer);
-        bytesRead += sizeof(lastEditedFromBuffer);
-        lastEditedFromBuffer -= clockSkew;
-        
-        // If we've changed our local tree more recently than the new data from this packet
-        // then we will not be changing our values, instead we just read and skip the data
-        if (_lastEdited > lastEditedFromBuffer) {
-            overwriteLocalData = false;
-            qDebug() << "IGNORING old data from server!!! **************** _lastEdited=" << _lastEdited 
-                        << "lastEditedFromBuffer=" << lastEditedFromBuffer << "now=" << usecTimestampNow();
-        } else {
-
-            qDebug() << "USING NEW data from server!!! **************** OLD _lastEdited=" << _lastEdited 
-                        << "lastEditedFromBuffer=" << lastEditedFromBuffer << "now=" << usecTimestampNow();
-
-            _lastEdited = lastEditedFromBuffer;
-        }
-
-        // last updated is stored as ByteCountCoded delta from lastEdited
-        QByteArray encodedUpdateDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
-        ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
-        quint64 updateDelta = updateDeltaCoder;
-        if (overwriteLocalData) {
-            _lastUpdated = _lastEdited + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
-        }
-        encodedUpdateDelta = updateDeltaCoder; // determine true length
-        dataAt += encodedUpdateDelta.size();
-        bytesRead += encodedUpdateDelta.size();
-
-        // Property Flags
-        QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
-        EntityPropertyFlags propertyFlags = encodedPropertyFlags;
-        dataAt += propertyFlags.getEncodedLength();
-        bytesRead += propertyFlags.getEncodedLength();
-
-        // PROP_POSITION
-        if (propertyFlags.getHasProperty(PROP_POSITION)) {
-            glm::vec3 positionFromBuffer;
-            memcpy(&positionFromBuffer, dataAt, sizeof(positionFromBuffer));
-            dataAt += sizeof(positionFromBuffer);
-            bytesRead += sizeof(positionFromBuffer);
-            if (overwriteLocalData) {
-                _position = positionFromBuffer;
-            }
-        }
-        
-        // PROP_RADIUS
-        if (propertyFlags.getHasProperty(PROP_RADIUS)) {
-            float radiusFromBuffer;
-            memcpy(&radiusFromBuffer, dataAt, sizeof(radiusFromBuffer));
-            dataAt += sizeof(radiusFromBuffer);
-            bytesRead += sizeof(radiusFromBuffer);
-            if (overwriteLocalData) {
-                _radius = radiusFromBuffer;
-            }
-        }
-
-        // PROP_ROTATION
-        if (propertyFlags.getHasProperty(PROP_ROTATION)) {
-            glm::quat rotation;
-            int bytes = unpackOrientationQuatFromBytes(dataAt, rotation);
-            dataAt += bytes;
-            bytesRead += bytes;
-            if (overwriteLocalData) {
-                _rotation = rotation;
-            }
-        }
-
-        // PROP_SHOULD_BE_DELETED
-        if (propertyFlags.getHasProperty(PROP_SHOULD_BE_DELETED)) {
-            bool shouldBeDeleted;
-            memcpy(&shouldBeDeleted, dataAt, sizeof(shouldBeDeleted));
-            dataAt += sizeof(shouldBeDeleted);
-            bytesRead += sizeof(shouldBeDeleted);
-            if (overwriteLocalData) {
-                _shouldBeDeleted = shouldBeDeleted;
-            }
-        }
-
-        // PROP_SCRIPT
-        //     script would go here...
-        
+qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // TODO: only handle these subclass items here, use the base class for the rest...
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         
-        // PROP_COLOR
-        if (propertyFlags.getHasProperty(PROP_COLOR)) {
-            rgbColor color;
-            if (overwriteLocalData) {
-                memcpy(_color, dataAt, sizeof(_color));
-            }
-            dataAt += sizeof(color);
-            bytesRead += sizeof(color);
+    // PROP_COLOR
+    if (propertyFlags.getHasProperty(PROP_COLOR)) {
+        rgbColor color;
+        if (overwriteLocalData) {
+            memcpy(_color, dataAt, sizeof(_color));
         }
-
-        // PROP_MODEL_URL
-        if (propertyFlags.getHasProperty(PROP_MODEL_URL)) {
-        
-            // TODO: fix to new format...
-            uint16_t modelURLLength;
-            memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
-            dataAt += sizeof(modelURLLength);
-            bytesRead += sizeof(modelURLLength);
-            QString modelURLString((const char*)dataAt);
-            dataAt += modelURLLength;
-            bytesRead += modelURLLength;
-            if (overwriteLocalData) {
-                setModelURL(modelURLString);
-            }
-        }
-        
-qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... modelURL=" << getModelURL();
-        
-
-        // PROP_ANIMATION_URL
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
-            // animationURL
-            uint16_t animationURLLength;
-            memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
-            dataAt += sizeof(animationURLLength);
-            bytesRead += sizeof(animationURLLength);
-            QString animationURLString((const char*)dataAt);
-            dataAt += animationURLLength;
-            bytesRead += animationURLLength;
-            if (overwriteLocalData) {
-                setAnimationURL(animationURLString);
-            }
-        }        
-
-        // PROP_ANIMATION_FPS
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
-            float animationFPS;
-            memcpy(&animationFPS, dataAt, sizeof(animationFPS));
-            dataAt += sizeof(animationFPS);
-            bytesRead += sizeof(animationFPS);
-            if (overwriteLocalData) {
-                _animationFPS = animationFPS;
-            }
-        }
-
-        // PROP_ANIMATION_FRAME_INDEX
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-            float animationFrameIndex;
-            memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
-            dataAt += sizeof(animationFrameIndex);
-            bytesRead += sizeof(animationFrameIndex);
-            if (overwriteLocalData) {
-                _animationFrameIndex = animationFrameIndex;
-            }
-        }
-
-        // PROP_ANIMATION_PLAYING
-        if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-            bool animationIsPlaying;
-            memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
-            dataAt += sizeof(animationIsPlaying);
-            bytesRead += sizeof(animationIsPlaying);
-            if (overwriteLocalData) {
-                _animationIsPlaying = animationIsPlaying;
-            }
-        }
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+        dataAt += sizeof(color);
+        bytesRead += sizeof(color);
     }
+
+    // PROP_MODEL_URL
+    if (propertyFlags.getHasProperty(PROP_MODEL_URL)) {
+    
+        // TODO: fix to new format...
+        uint16_t modelURLLength;
+        memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
+        dataAt += sizeof(modelURLLength);
+        bytesRead += sizeof(modelURLLength);
+        QString modelURLString((const char*)dataAt);
+        dataAt += modelURLLength;
+        bytesRead += modelURLLength;
+        if (overwriteLocalData) {
+            setModelURL(modelURLString);
+        }
+    }
+    
+qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... modelURL=" << getModelURL();
+    
+
+    // PROP_ANIMATION_URL
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
+        // animationURL
+        uint16_t animationURLLength;
+        memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
+        dataAt += sizeof(animationURLLength);
+        bytesRead += sizeof(animationURLLength);
+        QString animationURLString((const char*)dataAt);
+        dataAt += animationURLLength;
+        bytesRead += animationURLLength;
+        if (overwriteLocalData) {
+            setAnimationURL(animationURLString);
+        }
+    }        
+
+    // PROP_ANIMATION_FPS
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
+        float animationFPS;
+        memcpy(&animationFPS, dataAt, sizeof(animationFPS));
+        dataAt += sizeof(animationFPS);
+        bytesRead += sizeof(animationFPS);
+        if (overwriteLocalData) {
+            _animationFPS = animationFPS;
+        }
+    }
+
+    // PROP_ANIMATION_FRAME_INDEX
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
+        float animationFrameIndex;
+        memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
+        dataAt += sizeof(animationFrameIndex);
+        bytesRead += sizeof(animationFrameIndex);
+        if (overwriteLocalData) {
+            _animationFrameIndex = animationFrameIndex;
+        }
+    }
+
+    // PROP_ANIMATION_PLAYING
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
+        bool animationIsPlaying;
+        memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
+        dataAt += sizeof(animationIsPlaying);
+        bytesRead += sizeof(animationIsPlaying);
+        if (overwriteLocalData) {
+            _animationIsPlaying = animationIsPlaying;
+        }
+    }
+
     return bytesRead;
 }
 
@@ -358,6 +233,8 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
         const unsigned char* dataAt = data;
 
         // id
+        //      TODO: this is where we should handle reading old style IDs and converting them into UUIDs... maybe we just discard them
+        //      and create the new ID from that...
         memcpy(&_id, dataAt, sizeof(_id));
         dataAt += sizeof(_id);
         bytesRead += sizeof(_id);
