@@ -379,9 +379,7 @@ var modelUploader = (function () {
 
         for (name in mapping) {
             if (mapping.hasOwnProperty(name)) {
-                if (typeof mapping[name] === "string") {
-                    string += (name + " = " + mapping[name] + "\n");
-                } else {
+                if (typeof mapping[name] === "object") {
                     for (value in mapping[name]) {
                         if (mapping[name].hasOwnProperty(value)) {
                             remainder = mapping[name][value];
@@ -393,6 +391,8 @@ var modelUploader = (function () {
                             string += (name + " = " + value + remainder + "\n");
                         }
                     }
+                } else {
+                    string += (name + " = " + mapping[name] + "\n");
                 }
             }
         }
