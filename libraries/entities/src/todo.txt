@@ -40,9 +40,6 @@ Model properties:
 // REQUIRED TO DO:
 
     A) add velocity, gravity, damping to entity base class
-    Aa) handle sublass appendEntityData() and readEntityItemIDFromBuffer() similar to how we 
-        handle setProperty()/getProperty() so that each subclass doesn't have to completely reimplement
-        the entire base class data stream...
     Az) visible???
     
     
@@ -216,5 +213,8 @@ Model properties:
 // SOLVED - R) move to EntityItemProperties
 //                        EntityItem::encodeEntityEditMessageDetails()
 //                        EntityTypes::decodeEntityEditPacket()
+// SOLVED - Aa) handle sublass appendEntityData() and readEntityItemIDFromBuffer() similar to how we 
+//                  handle setProperty()/getProperty() so that each subclass doesn't have to completely reimplement
+//                  the entire base class data stream...
 
 

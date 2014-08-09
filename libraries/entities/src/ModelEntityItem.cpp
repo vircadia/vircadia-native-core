@@ -156,7 +156,6 @@ qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer()... <<<<<<<<<<<<
 
     // PROP_MODEL_URL
     if (propertyFlags.getHasProperty(PROP_MODEL_URL)) {
-    
         // TODO: fix to new format...
         uint16_t modelURLLength;
         memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));

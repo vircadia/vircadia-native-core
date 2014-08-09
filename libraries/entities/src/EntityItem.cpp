@@ -335,10 +335,6 @@ qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
             propertiesDidntFit -= PROP_SCRIPT;
         }
 
-        //appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-        //                            EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
-        //                            int& propertyCount, OctreeElement::AppendState& appendState);
-
         appendSubclassData(packetData, params, modelTreeElementExtraEncodeData,
                                 requestedProperties,
                                 propertyFlags,
@@ -543,9 +539,75 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
         }
 
-        // other properties velocit, etc should go here...
-        // PROP_SCRIPT
-        //     script would go here...
+        // PROP_MASS,
+        if (propertyFlags.getHasProperty(PROP_MASS)) {
+            float value;
+            memcpy(&value, dataAt, sizeof(value));
+            dataAt += sizeof(value);
+            bytesRead += sizeof(value);
+            if (overwriteLocalData) {
+                _mass = value;
+            }
+        }
+
+        // PROP_VELOCITY,
+        if (propertyFlags.getHasProperty(PROP_VELOCITY)) {
+            glm::vec3 value;
+            memcpy(&value, dataAt, sizeof(value));
+            dataAt += sizeof(value);
+            bytesRead += sizeof(value);
+            if (overwriteLocalData) {
+                _velocity = value;
+            }
+        }
+
+        // PROP_GRAVITY,
+        if (propertyFlags.getHasProperty(PROP_GRAVITY)) {
+            glm::vec3 value;
+            memcpy(&value, dataAt, sizeof(value));
+            dataAt += sizeof(value);
+            bytesRead += sizeof(value);
+            if (overwriteLocalData) {
+                _gravity = value;
+            }
+        }
+
+        // PROP_DAMPING,
+        if (propertyFlags.getHasProperty(PROP_DAMPING)) {
+            float value;
+            memcpy(&value, dataAt, sizeof(value));
+            dataAt += sizeof(value);
+            bytesRead += sizeof(value);
+            if (overwriteLocalData) {
+                _damping = value;
+            }
+        }
+
+        // PROP_LIFETIME,
+        if (propertyFlags.getHasProperty(PROP_LIFETIME)) {
+            float value;
+            memcpy(&value, dataAt, sizeof(value));
+            dataAt += sizeof(value);
+            bytesRead += sizeof(value);
+            if (overwriteLocalData) {
+                _lifetime = value;
+            }
+        }
+
+        // PROP_SCRIPT,
+        if (propertyFlags.getHasProperty(PROP_SCRIPT)) {
+            // TODO: fix to new format...
+            uint16_t length;
+            memcpy(&length, dataAt, sizeof(length));
+            dataAt += sizeof(length);
+            bytesRead += sizeof(length);
+            QString value((const char*)dataAt);
+            dataAt += length;
+            bytesRead += length;
+            if (overwriteLocalData) {
+                setScript(value);
+            }
+        }
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
