@@ -103,7 +103,7 @@ if (typeof String.prototype.toArrayBuffer !== "function") {
         length = this.length;
         for (i = 0; i < length; i += 1) {
             charCode = this.charCodeAt(i);
-            if (i <= 255) {
+            if (charCode <= 255) {
                 charCodes.push(charCode);
             } else {
                 charCodes.push(charCode / 256);
@@ -351,7 +351,8 @@ var modelUploader = (function () {
             i,
             name,
             value,
-            remainder;
+            remainder,
+            existing;
 
         mapping = {};  // { name : value | name : { value : remainder } }
         lines = dv.string(0, dv.byteLength).split(/\r\n|\r|\n/);
@@ -362,13 +363,19 @@ var modelUploader = (function () {
                 if (tokens.length > 1) {
                     name = tokens[0];
                     value = tokens[1];
-                    if (tokens.length === 2) {
+                    if (tokens.length > 2) {
+                        remainder = tokens.slice(2, tokens.length).join(" = ");
+                    } else {
+                        remainder = null;
+                    }
+                    if (tokens.length === 2 && mapping[name] === undefined) {
                         mapping[name] = value;
                     } else {
-                        // We're only interested in the first two fields so put the rest in the remainder
-                        remainder = tokens.slice(2, tokens.length).join(" = ");
                         if (mapping[name] === undefined) {
                             mapping[name] = {};
+                        } else if (typeof mapping[name] !== "object") {
+                            existing = mapping[name];
+                            mapping[name] = { existing: null };
                         }
                         mapping[name][value] = remainder;
                     }
