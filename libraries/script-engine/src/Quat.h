@@ -30,6 +30,7 @@ public slots:
     glm::quat fromPitchYawRollDegrees(float pitch, float yaw, float roll); // degrees
     glm::quat fromPitchYawRollRadians(float pitch, float yaw, float roll); // radians
     glm::quat inverse(const glm::quat& q);
+    glm::vec3 rotate(const glm::quat& q, const glm::vec3& v);
     glm::vec3 getFront(const glm::quat& orientation);
     glm::vec3 getRight(const glm::quat& orientation);
     glm::vec3 getUp(const glm::quat& orientation);
