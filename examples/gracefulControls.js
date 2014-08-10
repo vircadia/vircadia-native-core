@@ -1,0 +1,176 @@
+// Coefficient to use for linear drag.  Higher numbers will cause motion to
+// slow down more quickly.
+var DRAG_COEFFICIENT = 1.0;
+var MAX_SPEED = 1000.0;
+var MAX_LOOK_SPEED = Math.PI * 2;
+var ACCELERATION = 200;
+
+var MOUSE_YAW_SCALE = -0.125;
+var MOUSE_PITCH_SCALE = -0.125;
+var MOUSE_SENSITIVITY = 1.0;
+
+// Adjust this to change the mouse look damping behavior.  Keep it below 1.
+var W = 0.9;
+
+// Movement keys
+var KEY_FORWARD = "g";
+var KEY_BACKWARD = "b";
+var KEY_LEFT = "v";
+var KEY_RIGHT = "n";
+var KEY_UP = "y";
+var KEY_DOWN = "h";
+var CAPTURED_KEYS = [KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN];
+
+// Global Variables
+var keys = {};
+var velocity = { x: 0, y: 0, z: 0 };
+var enabled = true;
+
+var lastX = 0;
+var lastY = 0;
+var yawFromMouse = 0;
+var pitchFromMouse = 0;
+var maxAccel = Math.PI / 1;
+
+var yawSpeed = 0;
+var pitchSpeed = 0;
+
+function keyPressEvent(event) {
+    if (event.text == "ESC") {
+        disable();
+    } else if (event.text == " ") {
+        if (Window.hasFocus()) {
+            enable();
+        }
+    }
+    keys[event.text] = true;
+}
+
+function keyReleaseEvent(event) {
+    delete keys[event.text];
+}
+
+function mouseMoveEvent(event) {
+    if (enabled) {
+        var MOUSE_YAW_SCALE = -0.25;
+        var MOUSE_PITCH_SCALE = -12.5;
+        var FIXED_MOUSE_TIMESTEP = 0.016;
+        yawFromMouse += ((event.x - lastX) * MOUSE_YAW_SCALE * FIXED_MOUSE_TIMESTEP);
+        pitchFromMouse += ((event.y - lastY) * MOUSE_PITCH_SCALE * FIXED_MOUSE_TIMESTEP);
+        lastX = event.x;
+        lastY = event.y;
+        Window.setCursorPosition(Window.innerWidth / 2, Window.innerHeight / 2);
+    }
+
+}
+
+var maxPerSec = 3;
+var lastX = Window.getCursorPositionX();
+var lastY = Window.getCursorPositionY();
+
+function update(dt) {
+    var maxMove = 3.0 * dt;
+    // print("Pos: " + yawFromMouse + ", " + pitchFromMouse);
+    var targetVelocity = { x: 0, y: 0, z: 0 };
+    var accelY = 0;
+    if (keys[KEY_FORWARD]) {
+        targetVelocity.z -= ACCELERATION * dt;
+    }
+    if (keys[KEY_LEFT]) {
+        targetVelocity.x -= ACCELERATION * dt;
+    }
+    if (keys[KEY_BACKWARD]) {
+        targetVelocity.z += ACCELERATION * dt;
+    }
+    if (keys[KEY_RIGHT]) {
+        targetVelocity.x += ACCELERATION * dt;
+    }
+    if (keys[KEY_UP]) {
+        accelY += ACCELERATION * dt;
+    }
+    if (keys[KEY_DOWN]) {
+        accelY -= ACCELERATION * dt;
+    }
+
+    if (enabled && Window.hasFocus()) {
+        var x = Window.getCursorPositionX();
+        var y = Window.getCursorPositionY();
+
+        yawFromMouse += ((x - lastX) * MOUSE_YAW_SCALE * MOUSE_SENSITIVITY);
+        pitchFromMouse += ((y - lastY) * MOUSE_PITCH_SCALE * MOUSE_SENSITIVITY);
+        pitchFromMouse = Math.max(-180, Math.min(180, pitchFromMouse));
+
+        var newX = Window.innerWidth / 2;
+        var newY = Window.innerHeight / 2;
+        Window.setCursorPosition(newX, newY);
+
+        lastX = newX;
+        lastY = newY;
+    }
+
+    // Here we use a linear damping model - http://en.wikipedia.org/wiki/Damping#Linear_damping
+    // Because we are using a critically damped model (no oscillation), ζ = 1 and
+    // so we derive the formula: acceleration = -(2 * w0 * v) - (w0^2 * x)
+    yawAccel = (W * W * yawFromMouse) - (2 * W * yawSpeed);
+    pitchAccel = (W * W * pitchFromMouse) - (2 * W * pitchSpeed);
+
+    yawSpeed += yawAccel * dt;
+    var yawMove = yawSpeed * dt;
+    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees( { x: 0, y: yawMove, z: 0 } ));
+    MyAvatar.orientation = newOrientation;
+    yawFromMouse -= yawMove;
+
+    pitchSpeed += pitchAccel * dt;
+    var pitchMove = pitchSpeed * dt;
+    var newPitch = MyAvatar.headPitch + pitchMove;
+    MyAvatar.headPitch = newPitch;
+    pitchFromMouse -= pitchMove;
+
+    // If force isn't being applied in a direction, add drag;
+    if (targetVelocity.x == 0) {
+        targetVelocity.x -= (velocity.x * DRAG_COEFFICIENT * dt);
+    }
+    if (targetVelocity.z == 0) {
+        targetVelocity.z -= (velocity.z * DRAG_COEFFICIENT * dt);
+    }
+    velocity = Vec3.sum(velocity, targetVelocity);
+
+    velocity.x = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, velocity.x));
+    velocity.z = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, velocity.z));
+    var v = Quat.rotate(MyAvatar.headOrientation, velocity);
+    v.y += accelY * dt;
+    MyAvatar.setVelocity(v);
+}
+
+function vecToString(vec) {
+    return vec.x + ", " + vec.y + ", " + vec.z;
+}
+
+function scriptEnding() {
+    disable();
+}
+
+function enable() {
+    enabled = true;
+    lastX = Window.getCursorPositionX();
+    lastY = Window.getCursorPositionY();
+    for (var i = 0; i < CAPTURED_KEYS.length; i++) {
+        Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
+    }
+}
+
+function disable() {
+    enabled = false;
+    for (var i = 0; i < CAPTURED_KEYS.length; i++) {
+        Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
+    }
+}
+
+enable();
+
+Controller.keyPressEvent.connect(keyPressEvent);
+Controller.keyReleaseEvent.connect(keyReleaseEvent);
+
+Script.scriptEnding.connect(scriptEnding);
+
+Script.update.connect(update);
