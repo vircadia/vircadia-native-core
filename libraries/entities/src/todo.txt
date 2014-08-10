@@ -40,7 +40,10 @@ Model properties:
 // REQUIRED TO DO:
 
     A) add velocity, gravity, damping to entity base class
+    Ab) implement support for requestedProperties in appendEntityData() to be virtual to handle various subclasses
+    Ac) implement support for requestedProperties in appendEntityData() that only include CHANGED properties for the viewer...
     Az) visible???
+    
     
     
     2) EntityTree::update()/EntityTreeElement::update()... velocity changes...

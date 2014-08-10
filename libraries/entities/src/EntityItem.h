@@ -56,6 +56,9 @@ public:
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - _lastEdited) / (float)USECS_PER_SECOND; }
 
+    // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
+        
     virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                                 EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;
 

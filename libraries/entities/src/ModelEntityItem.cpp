@@ -65,7 +65,7 @@ EntityItemProperties ModelEntityItem::getProperties() const {
 
 void ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     qDebug() << "ModelEntityItem::setProperties()...";
-    qDebug() << "ModelEntityItem::ModelEntityItem() properties.getModelURL()=" << properties.getModelURL();
+    qDebug() << "ModelEntityItem::setProperties() properties.getModelURL()=" << properties.getModelURL();
     bool somethingChanged = false;
     
     EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
@@ -316,6 +316,18 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
 }
 
 
+// TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
+    EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
+
+    requestedProperties += PROP_MODEL_URL;
+    requestedProperties += PROP_ANIMATION_URL;
+    requestedProperties += PROP_ANIMATION_FPS;
+    requestedProperties += PROP_ANIMATION_FRAME_INDEX;
+    requestedProperties += PROP_ANIMATION_PLAYING;
+    
+    return requestedProperties;
+}
 
 
 void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 

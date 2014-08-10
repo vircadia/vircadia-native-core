@@ -26,6 +26,9 @@ public:
     virtual EntityItemProperties getProperties() const;
     virtual void setProperties(const EntityItemProperties& properties, bool forceCopy = false);
 
+    // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
+
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
                                     EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,

@@ -1680,6 +1680,7 @@ function handeMenuEvent(menuItem){
             properties.velocity.y = array[index++].value;
             properties.velocity.z = array[index++].value;
             properties.damping = array[index++].value;
+print("properties.damping=" + properties.damping);
 
             if (properties.type == "Box") {
                 properties.color.red = array[index++].value;

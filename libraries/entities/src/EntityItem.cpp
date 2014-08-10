@@ -72,6 +72,22 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 EntityItem::~EntityItem() {
 }
 
+EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
+    EntityPropertyFlags requestedProperties;
+
+    requestedProperties += PROP_POSITION;
+    requestedProperties += PROP_RADIUS;
+    requestedProperties += PROP_ROTATION;
+    requestedProperties += PROP_MASS;
+    requestedProperties += PROP_VELOCITY;
+    requestedProperties += PROP_GRAVITY;
+    requestedProperties += PROP_DAMPING;
+    requestedProperties += PROP_LIFETIME;
+    requestedProperties += PROP_SCRIPT;
+    
+    return requestedProperties;
+}
+
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
                                             EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const {
 
@@ -96,20 +112,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
     QByteArray encodedUpdateDelta = updateDeltaCoder;
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
-    EntityPropertyFlags requestedProperties;
-    
-    // TODO: make this a virtual method that allows the subclass to fill in the properties it supports...
-    requestedProperties += PROP_POSITION;
-    requestedProperties += PROP_RADIUS;
-    requestedProperties += PROP_MODEL_URL;
-    requestedProperties += PROP_ROTATION;
-    requestedProperties += PROP_COLOR;
-    requestedProperties += PROP_ANIMATION_URL;
-    requestedProperties += PROP_ANIMATION_FPS;
-    requestedProperties += PROP_ANIMATION_FRAME_INDEX;
-    requestedProperties += PROP_ANIMATION_PLAYING;
-    requestedProperties += PROP_SHOULD_BE_DELETED;
-
+    EntityPropertyFlags requestedProperties = getEntityProperties(params);
     EntityPropertyFlags propertiesDidntFit = requestedProperties;
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
@@ -289,6 +292,7 @@ qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
             LevelDetails propertyLevel = packetData->startLevel();
             successPropertyFits = packetData->appendValue(getDamping());
             if (successPropertyFits) {
+qDebug() << "success writing PROP_DAMPING=" << getDamping();
                 propertyFlags |= PROP_DAMPING;
                 propertiesDidntFit -= PROP_DAMPING;
                 propertyCount++;
@@ -296,9 +300,11 @@ qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
             } else {
                 packetData->discardLevel(propertyLevel);
                 appendState = OctreeElement::PARTIAL;
+qDebug() << "didn't fit PROP_DAMPING=" << getDamping();
             }
         } else {
             propertiesDidntFit -= PROP_DAMPING;
+qDebug() << "not requested PROP_DAMPING=" << getDamping();
         }
 
         // PROP_LIFETIME,
@@ -574,12 +580,18 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         // PROP_DAMPING,
         if (propertyFlags.getHasProperty(PROP_DAMPING)) {
+
             float value;
             memcpy(&value, dataAt, sizeof(value));
             dataAt += sizeof(value);
             bytesRead += sizeof(value);
+
+qDebug() << "property included in buffer PROP_DAMPING=" << value;
+
             if (overwriteLocalData) {
                 _damping = value;
+
+qDebug() << " overwriting local value... PROP_DAMPING=" << getDamping();
             }
         }
 
@@ -693,6 +705,9 @@ EntityItemProperties EntityItem::getProperties() const {
 }
 
 void EntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+    qDebug() << "EntityItem::setProperties()... forceCopy=" << forceCopy;
+    qDebug() << "EntityItem::setProperties() properties.getDamping()=" << properties.getDamping();
+
     bool somethingChanged = false;
     if (properties._positionChanged || forceCopy) {
         setPosition(properties._position / (float) TREE_SCALE);
@@ -732,6 +747,8 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         setGravity(properties._gravity / (float) TREE_SCALE);
         somethingChanged = true;
     }
+
+qDebug() << ">>>>>>>>>>>>>>>>>>> EntityItem::setProperties(); <<<<<<<<<<<<<<<<<<<<<<<<<   properties._dampingChanged=" << properties._dampingChanged;
 
     if (properties._dampingChanged || forceCopy) {
         setDamping(properties._damping);

@@ -109,6 +109,13 @@ int BoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
 }
 
 
+// TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+EntityPropertyFlags BoxEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
+    EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
+    requestedProperties += PROP_COLOR;
+    return requestedProperties;
+}
+
 void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
                                     EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,

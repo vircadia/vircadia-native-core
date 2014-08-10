@@ -108,6 +108,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
     if (_dampingChanged) {
         changedProperties += PROP_DAMPING;
+        qDebug() << "******************************* _dampingChanged!!! changedProperties += PROP_DAMPING;";
+    } else {
+        qDebug() << "******************************* NOT _dampingChanged!!! not adding PROP_DAMPING;";
     }
 
     if (_lifetimeChanged) {
@@ -306,12 +309,17 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     }
 
     QScriptValue damping = object.property("damping");
+qDebug() << "damping.isValid()=" << damping.isValid();
     if (damping.isValid()) {
         float newValue;
         newValue = damping.toVariant().toFloat();
+qDebug() << "damping  newValue=" << newValue;
         if (_defaultSettings || newValue != _damping) {
             _damping = newValue;
             _dampingChanged = true;
+qDebug() << "damping  _dampingChanged=" << _dampingChanged;
+        } else {
+qDebug() << "NOT setting damping  _dampingChanged=" << _dampingChanged;
         }
     }
 
@@ -673,19 +681,29 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             // PROP_DAMPING,
             if (requestedProperties.getHasProperty(PROP_DAMPING)) {
+
+qDebug() << "******************************* requestedProperties.getHasProperty(PROP_DAMPING);";
+
                 LevelDetails propertyLevel = packetData.startLevel();
                 successPropertyFits = packetData.appendValue(properties.getDamping());
                 if (successPropertyFits) {
+
+qDebug() << "******************************* PROP_DAMPING fit... getDamping()=" << properties.getDamping();
+
                     propertyFlags |= PROP_DAMPING;
                     propertiesDidntFit -= PROP_DAMPING;
                     propertyCount++;
                     packetData.endLevel(propertyLevel);
                 } else {
+
+qDebug() << "******************************* PROP_DAMPING didn't fit...";
+
                     packetData.discardLevel(propertyLevel);
                     appendState = OctreeElement::PARTIAL;
                 }
             } else {
                 propertiesDidntFit -= PROP_DAMPING;
+qDebug() << "******************************* PROP_DAMPING not requested...";
             }
 
             // PROP_LIFETIME,
@@ -1089,7 +1107,7 @@ qDebug() << "EntityItemProperties::decodeEntityEditPacket() ... lastEdited=" << 
         dataAt += sizeof(value);
         processedBytes += sizeof(value);
         properties.setDamping(value);
-        qDebug() << "EntityItemProperties::decodeEntityEditPacket() PROP_DAMPING value=" << value;
+        qDebug() << "******************************* EntityItemProperties::decodeEntityEditPacket() PROP_DAMPING value=" << value;
     }
 
     // PROP_LIFETIME,

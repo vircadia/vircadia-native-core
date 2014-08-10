@@ -132,19 +132,19 @@ public:
     void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; _shouldBeDeletedChanged = true;  }
 
     float getMass() const { return _mass; }
-    void setMass(float value) { _mass = value; }
+    void setMass(float value) { _mass = value; _massChanged = true; }
 
     const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
-    void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
+    void setVelocity(const glm::vec3& value) { _velocity = value; _velocityChanged = true; } /// velocity in domain scale units (0.0-1.0) per second
 
     const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
-    void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
+    void setGravity(const glm::vec3& value) { _gravity = value; _gravityChanged = true; } /// gravity in domain scale units (0.0-1.0) per second squared
 
     float getDamping() const { return _damping; }
-    void setDamping(float value) { _damping = value; }
+    void setDamping(float value) { _damping = value; _dampingChanged = true; }
 
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
-    void setLifetime(float value) { _lifetime = value; } /// set the lifetime in seconds for the entity
+    void setLifetime(float value) { _lifetime = value; _lifetimeChanged = true; } /// set the lifetime in seconds for the entity
     
     // NOTE: how do we handle _defaultSettings???
     bool containsBoundsProperties() const { return (_positionChanged || _radiusChanged); }

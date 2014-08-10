@@ -319,11 +319,15 @@ bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
                 assert(!_removeOld); // We shouldn't be in a remove old case and also be the new best fit
 
                 // set the entity properties and mark our element as changed.
+qDebug() << "BEFORE _existingEntity->setProperties(_properties); <<<<<<<<<<<<<<<<<<<<<<<<< _properties.getDamping()=" << _properties.getDamping();
                 _existingEntity->setProperties(_properties);
+qDebug() << "AFTER _existingEntity->setProperties(_properties); <<<<<<<<<<<<<<<<<<<<<<<<<";
             } else {
                 // otherwise, this is an add case.
                 entityTreeElement->addEntityItem(_existingEntity);
+qDebug() << "BEFORE _existingEntity->setProperties(_properties); <<<<<<<<<<<<<<<<<<<<<<<<< _properties.getDamping()=" << _properties.getDamping();
                 _existingEntity->setProperties(_properties); // still need to update the properties!
+qDebug() << "AFTER _existingEntity->setProperties(_properties); <<<<<<<<<<<<<<<<<<<<<<<<<";
                 _tree->setContainingElement(_entityItemID, entityTreeElement);
             }
             _foundNew = true; // we found the new item!
