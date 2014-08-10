@@ -53,7 +53,6 @@ public:
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
-    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     void setLeanScale(float scale) { _leanScale = scale; }
     void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
@@ -145,6 +144,8 @@ public slots:
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
+
+    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
 
     void updateMotionBehaviorsFromMenu();
     
