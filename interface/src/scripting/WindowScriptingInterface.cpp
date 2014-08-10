@@ -30,6 +30,24 @@ WindowScriptingInterface* WindowScriptingInterface::getInstance() {
 WindowScriptingInterface::WindowScriptingInterface() {
 }
 
+QScriptValue WindowScriptingInterface::hasFocus() {
+    return Application::getInstance()->getGLWidget()->hasFocus();
+}
+
+void WindowScriptingInterface::setCursorPosition(int x, int y) {
+    QCursor::setPos(x, y);
+}
+
+QScriptValue WindowScriptingInterface::getCursorPositionX() {
+    QPoint pos = QCursor::pos();
+    return pos.x();
+}
+
+QScriptValue WindowScriptingInterface::getCursorPositionY() {
+    QPoint pos = QCursor::pos();
+    return pos.y();
+}
+
 QScriptValue WindowScriptingInterface::alert(const QString& message) {
     QScriptValue retVal;
     QMetaObject::invokeMethod(this, "showAlert", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QScriptValue, retVal), Q_ARG(const QString&, message));

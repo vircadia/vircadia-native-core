@@ -26,6 +26,10 @@ public:
     int getInnerHeight();
 
 public slots:
+    QScriptValue getCursorPositionX();
+    QScriptValue getCursorPositionY();
+    void setCursorPosition(int x, int y);
+    QScriptValue hasFocus();
     QScriptValue alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
     QScriptValue form(const QString& title, QScriptValue array);
