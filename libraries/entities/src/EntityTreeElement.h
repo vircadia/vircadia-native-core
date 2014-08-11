@@ -118,7 +118,6 @@ public:
     void setTree(EntityTree* tree) { _myTree = tree; }
 
     bool updateEntity(const EntityItem& entity);
-    //bool addOrUpdateEntity(EntityItem* entity, const EntityItemProperties& properties);
     void addEntityItem(EntityItem* entity);
 
 

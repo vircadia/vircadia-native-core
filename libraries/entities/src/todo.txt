@@ -40,11 +40,6 @@ Model properties:
 // REQUIRED TO DO:
 
     A) add velocity, gravity, damping to entity base class
-    Ab) implement support for requestedProperties in appendEntityData() to be virtual to handle various subclasses
-    Ac) implement support for requestedProperties in appendEntityData() that only include CHANGED properties for the viewer...
-    Az) visible???
-    
-    
     
     2) EntityTree::update()/EntityTreeElement::update()... velocity changes...
     C) verify "update" works
@@ -85,6 +80,9 @@ Model properties:
 
     
 // NICE TO DO:
+
+    Ac) implement support for requestedProperties in appendEntityData() that only include CHANGED properties for the viewer...
+    Az) visible???
 
     P) unit tests?
     Pa) OctreeTests::modelItemTests()...????
@@ -173,9 +171,7 @@ Model properties:
 //              for models - if we had access to mesh, we could use numerous mesh LOD algorithms out there
 
         
-        
-
-
+       
 
 
 //   23) xColor vs rbgColor????
@@ -219,5 +215,5 @@ Model properties:
 // SOLVED - Aa) handle sublass appendEntityData() and readEntityItemIDFromBuffer() similar to how we 
 //                  handle setProperty()/getProperty() so that each subclass doesn't have to completely reimplement
 //                  the entire base class data stream...
-
+// SOLVED - Ab) implement support for requestedProperties in appendEntityData() to be virtual to handle various subclasses
 

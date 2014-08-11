@@ -692,9 +692,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
 }
 
 void EntityTreeElement::addEntityItem(EntityItem* entity) {
-    //qDebug() << "EntityTreeElement::addEntityItem() BEFORE _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
     _entityItems->push_back(entity);
-    //qDebug() << "EntityTreeElement::addEntityItem() AFTER _entityItems->push_back(entity); element=" << this << "entity=" << entity << "id=" << entity->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entity);
 }
 
 // will average a "common reduced LOD view" from the the child elements...

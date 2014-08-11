@@ -561,15 +561,24 @@ bool ModelEntityItem::isAnimatingSomething() const {
 }
 
 EntityItem::SimuationState ModelEntityItem::getSimulationState() const {
-    if (isAnimatingSomething()) {
-        return EntityItem::Changing;
+    EntityItem::SimuationState baseClassState = EntityItem::getSimulationState();
+    
+    // if the base class is static, then consider our animation state, and upgrade to changing if
+    // we are animating. If the base class has a higher simulation state than static, then
+    // use the base class state.
+    if (baseClassState == EntityItem::Static) {
+        if (isAnimatingSomething()) {
+            return EntityItem::Changing;
+        }
     }
-    return EntityItem::Static;
+    return baseClassState;
 }
 
 void ModelEntityItem::update(const quint64& updateTime) {
-    _lastUpdated = updateTime;
+    //_lastUpdated = updateTime;
     //setShouldBeDeleted(getShouldBeDeleted());
+
+    EntityItem::update(updateTime); // let our base class handle it's updates...
 
     quint64 now = updateTime; //usecTimestampNow();
 

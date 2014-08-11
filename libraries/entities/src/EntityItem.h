@@ -94,7 +94,7 @@ public:
         Moving
     } SimuationState;
     
-    virtual SimuationState getSimulationState() const ;
+    virtual SimuationState getSimulationState() const;
     void debugDump() const;
 
     // similar to assignment/copy, but it handles keeping lifetime accurate
@@ -123,12 +123,17 @@ public:
     void setMass(float value) { _mass = value; }
 
     static const glm::vec3 DEFAULT_VELOCITY;
+    static const glm::vec3 NO_VELOCITY;
     const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
+    bool hasVelocity() const { return _velocity != NO_VELOCITY; }
 
     static const glm::vec3 DEFAULT_GRAVITY;
+    static const glm::vec3 REGULAR_GRAVITY;
+    static const glm::vec3 NO_GRAVITY;
     const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
+    bool hasGravity() const { return _gravity != NO_GRAVITY; }
 
     static const float DEFAULT_DAMPING;
     float getDamping() const { return _damping; }

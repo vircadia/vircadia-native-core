@@ -34,8 +34,11 @@ const float EntityItem::DEFAULT_GLOW_LEVEL = 0.0f;
 const float EntityItem::DEFAULT_MASS = 1.0f;
 const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
 const float EntityItem::DEFAULT_DAMPING = 0.99f;
-const glm::vec3 EntityItem::DEFAULT_VELOCITY = glm::vec3(0, 0, 0);
-const glm::vec3 EntityItem::DEFAULT_GRAVITY = glm::vec3(0, (-9.8f / TREE_SCALE), 0);
+const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
+const glm::vec3 EntityItem::DEFAULT_VELOCITY = EntityItem::NO_VELOCITY;
+const glm::vec3 EntityItem::NO_GRAVITY = glm::vec3(0, 0, 0);
+const glm::vec3 EntityItem::REGULAR_GRAVITY = glm::vec3(0, (-9.8f / TREE_SCALE), 0);
+const glm::vec3 EntityItem::DEFAULT_GRAVITY = EntityItem::NO_GRAVITY;
 const QString EntityItem::DEFAULT_SCRIPT = QString("");
 
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
@@ -657,11 +660,60 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
 }
 
 void EntityItem::update(const quint64& updateTime) {
-    // nothing to do here... but will add gravity, etc...
+    float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
+    _lastUpdated = updateTime;
+
+    if (isMortal()) {
+        if (getAge() > getLifetime()) {
+            qDebug() << "Lifetime has expired... WHAT TO DO??? getAge()=" << getAge() << "getLifetime()=" << getLifetime();
+            //setShouldDie(true); // TODO get rid of this stuff!!
+        }
+    }
+
+    if (hasVelocity() || hasGravity()) {
+        glm::vec3 position = getPosition();
+        glm::vec3 velocity = getVelocity();
+        position += velocity * timeElapsed;
+
+        // handle bounces off the ground...
+        if (position.y <= 0) {
+            velocity = velocity * glm::vec3(1,-1,1);
+            position.y = 0;
+        }
+
+        // handle gravity....
+        velocity += getGravity() * timeElapsed;
+
+        // handle damping
+        glm::vec3 dampingResistance = velocity * getDamping();
+        velocity -= dampingResistance * timeElapsed;
+        
+        qDebug() << "EntityItem::update()....";
+        qDebug() << "    old AACube:" << getAACube();
+        qDebug() << "    position:" << position;
+        qDebug() << "    velocity:" << velocity;
+        setPosition(position);
+        setVelocity(velocity);
+        qDebug() << "    new AACube:" << getAACube();
+    }
 }
 
 EntityItem::SimuationState EntityItem::getSimulationState() const {
-    return EntityItem::Static;  // change this once we support gravity, etc...
+    qDebug() << "EntityItem::getSimulationState()... ";
+    qDebug() << "    hasVelocity()=" << hasVelocity();
+    qDebug() << "    getVelocity()=" << getVelocity();
+    qDebug() << "    hasGravity()=" << hasGravity();
+    qDebug() << "    isMortal()=" << isMortal();
+    if (hasVelocity() || hasGravity()) {
+        qDebug() << "    return EntityItem::Moving;";
+        return EntityItem::Moving;
+    }
+    if (isMortal()) {
+        qDebug() << "    return EntityItem::Changing;";
+        return EntityItem::Changing;
+    }
+    qDebug() << "    return EntityItem::Static;";
+    return EntityItem::Static;
 }
 
 void EntityItem::copyChangedProperties(const EntityItem& other) {
@@ -707,6 +759,7 @@ EntityItemProperties EntityItem::getProperties() const {
 void EntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     qDebug() << "EntityItem::setProperties()... forceCopy=" << forceCopy;
     qDebug() << "EntityItem::setProperties() properties.getDamping()=" << properties.getDamping();
+    qDebug() << "EntityItem::setProperties() properties.getVelocity()=" << properties.getVelocity();
 
     bool somethingChanged = false;
     if (properties._positionChanged || forceCopy) {
@@ -736,6 +789,7 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
 
     if (properties._velocityChanged || forceCopy) {
         setVelocity(properties._velocity / (float) TREE_SCALE);
+        qDebug() << "EntityItem::setProperties() AFTER setVelocity() getVelocity()=" << getVelocity();
         somethingChanged = true;
     }
 
