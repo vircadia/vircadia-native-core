@@ -3,7 +3,10 @@
 //  hifi
 //
 //  Created by Craig Hansen-Sturm on 8/9/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #ifndef hifi_AudioFilter_h
@@ -117,14 +120,14 @@ class AudioParametricEQ {
 
         const float a       =  _gain;
         const float omega   =  TWO_PI * _frequency / _sampleRate;
-        const float alpha   =  0.5 * sinf(omega) / _slope;
-        const float gamma   =  1.0 / ( 1.0 + (alpha/a) );
+        const float alpha   =  0.5f * sinf(omega) / _slope;
+        const float gamma   =  1.0f / ( 1.0f + (alpha/a) );
 
-        const float a0      =  1.0 + (alpha*a);
-        const float a1      = -2.0 * cosf(omega);
-        const float a2      =  1.0 - (alpha*a);
+        const float a0      =  1.0f + (alpha*a);
+        const float a1      = -2.0f * cosf(omega);
+        const float a2      =  1.0f - (alpha*a);
         const float b1      =  a1;
-        const float b2      =  1.0 - (alpha/a);
+        const float b2      =  1.0f - (alpha/a);
 
         _kernel.setParameters( a0*gamma,a1*gamma,a2*gamma,b1*gamma,b2*gamma );
     }
@@ -257,7 +260,7 @@ public:
     }
 
     void render( const int16_t* in, int16_t* out, const int frameCount ) {
-        if( !_buffer || ( frameCount > _frameCount ) )
+        if (!_buffer || ( frameCount > _frameCount ))
             return;
 
         const int scale = (2 << ((8*sizeof(int16_t))-1));
