@@ -224,3 +224,45 @@ float AudioRingBuffer::getFrameLoudness(ConstIterator frameStart) const {
 float AudioRingBuffer::getNextOutputFrameLoudness() const {
     return getFrameLoudness(_nextOutput);
 }
+
+int AudioRingBuffer::writeSamples(ConstIterator source, int maxSamples) {
+    int samplesToCopy = std::min(maxSamples, _sampleCapacity);
+    int samplesRoomFor = _sampleCapacity - samplesAvailable();
+    if (samplesToCopy > samplesRoomFor) {
+        // there's not enough room for this write.  erase old data to make room for this new data
+        int samplesToDelete = samplesToCopy - samplesRoomFor;
+        _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
+        _overflowCount++;
+        qDebug() << "Overflowed ring buffer! Overwriting old data";
+    }
+
+    int16_t* bufferLast = _buffer + _bufferLength - 1;
+    for (int i = 0; i < samplesToCopy; i++) {
+        *_endOfLastWrite = *source;
+        _endOfLastWrite = (_endOfLastWrite == bufferLast) ? _buffer : _endOfLastWrite + 1;
+        ++source;
+    }
+
+    return samplesToCopy;
+}
+
+int AudioRingBuffer::writeSamplesWithFade(ConstIterator source, int maxSamples, float fade) {
+    int samplesToCopy = std::min(maxSamples, _sampleCapacity);
+    int samplesRoomFor = _sampleCapacity - samplesAvailable();
+    if (samplesToCopy > samplesRoomFor) {
+        // there's not enough room for this write.  erase old data to make room for this new data
+        int samplesToDelete = samplesToCopy - samplesRoomFor;
+        _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
+        _overflowCount++;
+        qDebug() << "Overflowed ring buffer! Overwriting old data";
+    }
+
+    int16_t* bufferLast = _buffer + _bufferLength - 1;
+    for (int i = 0; i < samplesToCopy; i++) {
+        *_endOfLastWrite = (int16_t)((float)(*source) * fade);
+        _endOfLastWrite = (_endOfLastWrite == bufferLast) ? _buffer : _endOfLastWrite + 1;
+        ++source;
+    }
+
+    return samplesToCopy;
+}

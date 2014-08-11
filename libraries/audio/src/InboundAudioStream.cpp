@@ -162,8 +162,6 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 
     framesAvailableChanged();
 
-    emit dataParsed();
-
     return readBytes;
 }
 
@@ -418,7 +416,29 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
 }
 
 int InboundAudioStream::writeSamplesForDroppedPackets(int networkSamples) {
+    if (_repetitionWithFade) {
+        return writeLastFrameRepeatedWithFade(networkSamples);
+    }
     return writeDroppableSilentSamples(networkSamples);
+}
+
+int InboundAudioStream::writeLastFrameRepeatedWithFade(int samples) {
+    AudioRingBuffer::ConstIterator frameToRepeat = _ringBuffer.lastFrameWritten();
+    int frameSize = _ringBuffer.getNumFrameSamples();
+    int samplesToWrite = samples;
+    int indexOfRepeat = 0;
+    do {
+        int samplesToWriteThisIteration = std::min(samplesToWrite, frameSize);
+        float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
+        if (fade == 1.0f) {
+            samplesToWrite -= _ringBuffer.writeSamples(frameToRepeat, samplesToWriteThisIteration);
+        } else {
+            samplesToWrite -= _ringBuffer.writeSamplesWithFade(frameToRepeat, samplesToWriteThisIteration, fade);
+        }
+        indexOfRepeat++;
+    } while (samplesToWrite > 0);
+
+    return samples;
 }
 
 float InboundAudioStream::getLastPopOutputFrameLoudness() const {
@@ -447,4 +467,26 @@ AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
     streamStats._packetStreamWindowStats = _incomingSequenceNumberStats.getStatsForHistoryWindow();
 
     return streamStats;
+}
+
+float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
+    // fade factor scheme is from this paper:
+    // http://inst.eecs.berkeley.edu/~ee290t/sp04/lectures/packet_loss_recov_paper11.pdf
+
+    const float INITIAL_MSECS_NO_FADE = 20.0f;
+    const float MSECS_FADE_TO_ZERO = 320.0f;
+
+    const float INITIAL_FRAMES_NO_FADE = INITIAL_MSECS_NO_FADE * (float)USECS_PER_MSEC / (float)BUFFER_SEND_INTERVAL_USECS;
+    const float FRAMES_FADE_TO_ZERO = MSECS_FADE_TO_ZERO * (float)USECS_PER_MSEC / (float)BUFFER_SEND_INTERVAL_USECS;
+
+    const float SAMPLE_RANGE = std::numeric_limits<int16_t>::max();
+
+    if (indexOfRepeat <= INITIAL_FRAMES_NO_FADE) {
+        return 1.0f;
+    } else if (indexOfRepeat <= INITIAL_FRAMES_NO_FADE + FRAMES_FADE_TO_ZERO) {
+        return pow(SAMPLE_RANGE, -(indexOfRepeat - INITIAL_FRAMES_NO_FADE) / FRAMES_FADE_TO_ZERO);
+
+        //return 1.0f - ((indexOfRepeat - INITIAL_FRAMES_NO_FADE) / FRAMES_FADE_TO_ZERO);
+    }
+    return 0.0f;
 }

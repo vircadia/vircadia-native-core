@@ -14,6 +14,8 @@
 
 #include "InboundAudioStream.h"
 
+class Audio;
+
 class MixedProcessedAudioStream  : public InboundAudioStream {
     Q_OBJECT
 public:
@@ -21,30 +23,26 @@ public:
 
 signals:
     
+    void addedSilence(int silentSamplesPerChannel);
+    void addedLastFrameRepeatedWithFade(int samplesPerChannel);
+    void addedStereoSamples(const QByteArray& samples);
+
     void processSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
 
 public:
     void outputFormatChanged(int outputFormatChannelCountTimesSampleRate);
 
-    const int16_t* getNetworkSamples() const { return _networkSamples; }
-    int getNetworkSamplesWritten() const { return _networkSamplesWritten; }
-
-    void clearNetworkSamples() { _networkSamplesWritten = 0; }
-
 protected:
-    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
     int writeDroppableSilentSamples(int silentSamples);
+    int writeLastFrameRepeatedWithFade(int samples);
+    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
 
 private:
     int networkToDeviceSamples(int networkSamples);
     int deviceToNetworkSamples(int deviceSamples);
+
 private:
     int _outputFormatChannelsTimesSampleRate;
-
-    // this buffer keeps a copy of the network samples written during parseData() for the sole purpose
-    // of passing it on to the audio scope
-    int16_t _networkSamples[10 * NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
-    int _networkSamplesWritten;
 };
 
 #endif // hifi_MixedProcessedAudioStream_h

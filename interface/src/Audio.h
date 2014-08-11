@@ -48,14 +48,14 @@ public:
 
     class AudioOutputIODevice : public QIODevice {
     public:
-        AudioOutputIODevice(Audio& parent) : _parent(parent) {};
+        AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream) : _receivedAudioStream(receivedAudioStream) {};
 
         void start() { open(QIODevice::ReadOnly); }
         void stop() { close(); }
         qint64	readData(char * data, qint64 maxSize);
         qint64	writeData(const char * data, qint64 maxSize) { return 0; }
     private:
-        Audio& _parent;
+        MixedProcessedAudioStream& _receivedAudioStream;
     };
 
 
@@ -105,8 +105,6 @@ public slots:
     void addReceivedAudioToStream(const QByteArray& audioByteArray);
     void parseAudioStreamStatsPacket(const QByteArray& packet);
     void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
-    void processReceivedAudioStreamSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
-    void updateScopeBuffers();
     void handleAudioInput();
     void reset();
     void resetStats();
@@ -123,6 +121,11 @@ public slots:
     void selectAudioScopeFiveFrames();
     void selectAudioScopeTwentyFrames();
     void selectAudioScopeFiftyFrames();
+
+    void addStereoSilenceToScope(int silentSamplesPerChannel);
+    void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
+    void addStereoSamplesToScope(const QByteArray& samples);
+    void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
@@ -244,8 +247,9 @@ private:
     void reallocateScope(int frames);
 
     // Audio scope methods for data acquisition
-    void addBufferToScope(
-        QByteArray* byteArray, unsigned int frameOffset, const int16_t* source, unsigned int sourceChannel, unsigned int sourceNumberOfChannels);
+    int addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamples,
+        unsigned int sourceChannel, unsigned int sourceNumberOfChannels, float fade = 1.0f);
+    int addSilenceToScope(QByteArray* byteArray, int frameOffset, int silentSamples);
 
     // Audio scope methods for rendering
     void renderBackground(const float* color, int x, int y, int width, int height);
@@ -272,6 +276,7 @@ private:
     QByteArray* _scopeInput;
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
+    QByteArray _scopeLastFrame;
 #ifdef _WIN32
     static const unsigned int STATS_WIDTH = 1500;
 #else

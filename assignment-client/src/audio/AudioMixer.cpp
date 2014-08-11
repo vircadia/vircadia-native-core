@@ -95,6 +95,26 @@ const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
 
 int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
                                                           AvatarAudioStream* listeningNodeStream) {
+    // If repetition with fade is enabled:
+    // If streamToAdd could not provide a frame (it was starved), then we'll mix its previously-mixed frame
+    // This is preferable to not mixing it at all since that's equivalent to inserting silence.
+    // Basically, we'll repeat that last frame until it has a frame to mix.  Depending on how many times
+    // we've repeated that frame in a row, we'll gradually fade that repeated frame into silence.
+    // This improves the perceived quality of the audio slightly.
+
+    float repeatedFrameFadeFactor = 1.0f;
+
+    if (!streamToAdd->lastPopSucceeded()) {
+        if (_streamSettings._repetitionWithFade) {
+            repeatedFrameFadeFactor = calculateRepeatedFrameFadeFactor(streamToAdd->getConsecutiveNotMixedCount() - 1);
+            if (repeatedFrameFadeFactor == 0.0f) {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
+
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
     int numSamplesDelay = 0;
@@ -216,12 +236,13 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         int delayedChannelIndex = 0;
         
         const int SINGLE_STEREO_OFFSET = 2;
+        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
         
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
             
             // setup the int16_t variables for the two sample sets
-            correctStreamSample[0] = streamPopOutput[s / 2] * attenuationCoefficient;
-            correctStreamSample[1] = streamPopOutput[(s / 2) + 1] * attenuationCoefficient;
+            correctStreamSample[0] = streamPopOutput[s / 2] * attenuationAndFade;
+            correctStreamSample[1] = streamPopOutput[(s / 2) + 1] * attenuationAndFade;
             
             delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
             
@@ -237,7 +258,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         if (numSamplesDelay > 0) {
             // if there was a sample delay for this stream, we need to pull samples prior to the popped output
             // to stick at the beginning
-            float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
+            float attenuationAndWeakChannelRatioAndFade = attenuationCoefficient * weakChannelAmplitudeRatio * repeatedFrameFadeFactor;
             AudioRingBuffer::ConstIterator delayStreamPopOutput = streamPopOutput - numSamplesDelay;
 
             // TODO: delayStreamPopOutput may be inside the last frame written if the ringbuffer is completely full
@@ -245,7 +266,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
             
             for (int i = 0; i < numSamplesDelay; i++) {
                 int parentIndex = i * 2;
-                _clientSamples[parentIndex + delayedChannelOffset] += *delayStreamPopOutput * attenuationAndWeakChannelRatio;
+                _clientSamples[parentIndex + delayedChannelOffset] += *delayStreamPopOutput * attenuationAndWeakChannelRatioAndFade;
                 ++delayStreamPopOutput;
             }
         }
@@ -256,8 +277,10 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
             attenuationCoefficient = 1.0f;
         }
 
+        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
+
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
-            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationCoefficient),
+            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationAndFade),
                                             MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
     }
@@ -285,7 +308,6 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
                 PositionalAudioStream* otherNodeStream = i.value();
                 
                 if ((*otherNode != *node || otherNodeStream->shouldLoopbackForNode())
-                    && otherNodeStream->lastPopSucceeded()
                     && otherNodeStream->getLastPopOutputFrameLoudness() > 0.0f) {
                     //&& otherNodeStream->getLastPopOutputTrailingLoudness() > 0.0f) {
 
@@ -627,6 +649,7 @@ void AudioMixer::run() {
                     }
 
                     // send mixed audio packet
+                    if (nodeData->getOutgoingSequenceNumber() % 100 < 50)
                     nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
@@ -654,6 +677,4 @@ void AudioMixer::run() {
             usleep(usecToSleep);
         }
     }
-    
-    delete[] clientMixBuffer;
 }

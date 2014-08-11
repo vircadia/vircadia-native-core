@@ -33,7 +33,7 @@ const int STATS_FOR_STATS_PACKET_WINDOW_SECONDS = 30;
 
 // this controls the window size of the time-weighted avg of frames available.  Every time the window fills up,
 // _currentJitterBufferFrames is updated with the time-weighted avg and the running time-weighted avg is reset.
-const int FRAMES_AVAILABLE_STAT_WINDOW_USECS = 2 * USECS_PER_SECOND;
+const int FRAMES_AVAILABLE_STAT_WINDOW_USECS = 10 * USECS_PER_SECOND;
 
 // default values for members of the Settings struct
 const int DEFAULT_MAX_FRAMES_OVER_DESIRED = 10;
@@ -157,9 +157,6 @@ public:
 
     int getPacketsReceived() const { return _incomingSequenceNumberStats.getReceived(); }
 
-signals:
-    void dataParsed();
-
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
     /// is enabled, those stats are used to calculate _desiredJitterBufferFrames.
@@ -191,6 +188,10 @@ protected:
 
     /// writes silent samples to the buffer that may be dropped to reduce latency caused by the buffer
     virtual int writeDroppableSilentSamples(int silentSamples);
+
+    /// writes the last written frame repeatedly, gradually fading to silence.
+    /// used for writing samples for dropped packets.
+    virtual int writeLastFrameRepeatedWithFade(int samples);
     
 protected:
 
@@ -245,5 +246,7 @@ protected:
 
     bool _repetitionWithFade;
 };
+
+float calculateRepeatedFrameFadeFactor(int indexOfRepeat);
 
 #endif // hifi_InboundAudioStream_h

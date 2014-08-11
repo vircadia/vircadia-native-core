@@ -189,8 +189,12 @@ public:
     };
 
     ConstIterator nextOutput() const { return ConstIterator(_buffer, _bufferLength, _nextOutput); }
-    
+    ConstIterator lastFrameWritten() const { return ConstIterator(_buffer, _bufferLength, _endOfLastWrite) - _numFrameSamples; }
+
     float getFrameLoudness(ConstIterator frameStart) const;
+
+    int writeSamples(ConstIterator source, int maxSamples);
+    int writeSamplesWithFade(ConstIterator source, int maxSamples, float fade);
 };
 
 #endif // hifi_AudioRingBuffer_h
