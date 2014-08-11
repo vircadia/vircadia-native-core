@@ -23,9 +23,9 @@
 #include <glm/gtx/transform.hpp>
 
 #include <GeometryUtil.h>
+#include <GLMHelpers.h>
 #include <OctalCode.h>
 #include <Shape.h>
-#include <SharedUtil.h>
 
 #include <VoxelTree.h>
 

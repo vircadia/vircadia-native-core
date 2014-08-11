@@ -24,10 +24,6 @@ public:
     ReceivedPacketProcessor() { }
 
     /// Add packet from network receive thread to the processing queue.
-    /// \param sockaddr& senderAddress the address of the sender
-    /// \param packetData pointer to received data
-    /// \param ssize_t packetLength size of received data
-    /// \thread network receive thread
     void queueReceivedPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 
     /// Are there received packets waiting to be processed
