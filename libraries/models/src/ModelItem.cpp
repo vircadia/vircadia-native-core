@@ -11,18 +11,11 @@
 
 #include <QtCore/QObject>
 
+#include <GLMHelpers.h> 
 #include <Octree.h>
 #include <RegisteredMetaTypes.h>
-#include <SharedUtil.h> // usecTimestampNow()
 #include <VoxelsScriptingInterface.h>
 #include <VoxelDetail.h>
-
-
-// This is not ideal, but adding script-engine as a linked library, will cause a circular reference
-// I'm open to other potential solutions. Could we change cmake to allow libraries to reference each others
-// headers, but not link to each other, this is essentially what this construct is doing, but would be
-// better to add includes to the include path, but not link
-#include "../../script-engine/src/ScriptEngine.h"
 
 #include "ModelsScriptingInterface.h"
 #include "ModelItem.h"
@@ -641,7 +634,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
+void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew) {
     unsigned char* dataAt = codeColorBuffer;
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);

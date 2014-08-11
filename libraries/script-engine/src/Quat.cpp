@@ -14,7 +14,7 @@
 #include <QDebug>
 
 #include <OctreeConstants.h>
-#include <SharedUtil.h>
+#include <GLMHelpers.h>
 #include "Quat.h"
 
 

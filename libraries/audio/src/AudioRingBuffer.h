@@ -15,12 +15,10 @@
 #include <limits>
 #include <stdint.h>
 
-#include <glm/glm.hpp>
-
 #include <QtCore/QIODevice>
 
-#include "NodeData.h"
-#include "SharedUtil.h"
+#include <SharedUtil.h>
+#include <NodeData.h>
 
 const int SAMPLE_RATE = 24000;
 
