@@ -292,7 +292,7 @@ public:
     static bool encodeParticleEditMessageDetails(PacketType command, ParticleID id, const ParticleProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
-    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
+    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
     
     void applyHardCollision(const CollisionInfo& collisionInfo);
 

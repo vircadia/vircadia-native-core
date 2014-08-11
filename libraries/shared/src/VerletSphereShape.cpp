@@ -36,7 +36,7 @@ const glm::vec3& VerletSphereShape::getTranslation() const {
 
 // virtual
 float VerletSphereShape::computeEffectiveMass(const glm::vec3& penetration, const glm::vec3& contactPoint) {
-    return _point->_mass;
+    return _point->getMass();
 }
 
 // virtual
