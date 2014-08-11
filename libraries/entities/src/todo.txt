@@ -39,10 +39,6 @@ Model properties:
 //
 // REQUIRED TO DO:
 
-    A) add velocity, gravity, damping to entity base class
-    
-    2) EntityTree::update()/EntityTreeElement::update()... velocity changes...
-    C) verify "update" works
 
     D) update and verify all particle examples to use new entity features
     E) memory leaks???
@@ -216,4 +212,7 @@ Model properties:
 //                  handle setProperty()/getProperty() so that each subclass doesn't have to completely reimplement
 //                  the entire base class data stream...
 // SOLVED - Ab) implement support for requestedProperties in appendEntityData() to be virtual to handle various subclasses
+// SOLVED - A) add velocity, gravity, damping to entity base class
+// SOLVED - 2) EntityTree::update()/EntityTreeElement::update()... velocity changes...
+// SOLVED - C) verify "update" works
 

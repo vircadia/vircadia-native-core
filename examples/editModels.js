@@ -1648,7 +1648,11 @@ function handeMenuEvent(menuItem){
             array.push({ label: "Velocity X:", value: properties.velocity.x.toFixed(decimals) });
             array.push({ label: "Velocity Y:", value: properties.velocity.y.toFixed(decimals) });
             array.push({ label: "Velocity Z:", value: properties.velocity.z.toFixed(decimals) });
-            array.push({ label: "Damping:", value: properties.damping });
+            array.push({ label: "Damping:", value: properties.damping.toFixed(decimals) });
+
+            array.push({ label: "Gravity X:", value: properties.gravity.x.toFixed(decimals) });
+            array.push({ label: "Gravity Y:", value: properties.gravity.y.toFixed(decimals) });
+            array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
             
             if (properties.type == "Box") {
                 array.push({ label: "Red:", value: properties.color.red });
@@ -1680,7 +1684,9 @@ function handeMenuEvent(menuItem){
             properties.velocity.y = array[index++].value;
             properties.velocity.z = array[index++].value;
             properties.damping = array[index++].value;
-print("properties.damping=" + properties.damping);
+            properties.gravity.x = array[index++].value;
+            properties.gravity.y = array[index++].value;
+            properties.gravity.z = array[index++].value;
 
             if (properties.type == "Box") {
                 properties.color.red = array[index++].value;
