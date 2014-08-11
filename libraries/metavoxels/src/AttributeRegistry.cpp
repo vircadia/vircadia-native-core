@@ -505,11 +505,7 @@ HeightfieldData::HeightfieldData(Bitstream& in, int bytes, const HeightfieldData
     reference->_encodedDelta = in.readAligned(bytes);
     reference->_deltaData = this;
     _contents = reference->_contents;
-    
-    QBuffer buffer(&reference->_encodedDelta);
-    buffer.open(QIODevice::ReadOnly);
-    QImage image;
-    image.load(&buffer, "PNG");
+    QImage image = QImage::fromData(reference->_encodedDelta);
     QPoint offset = image.offset();
     image = image.convertToFormat(QImage::Format_RGB888);
     if (offset.x() == 0) {
