@@ -1683,7 +1683,7 @@ padding: 10px;margin-top:10px</string>
                 </widget>
             </item>
             <item>
-                <spacer name="horizontalSpacer_12">
+                <spacer name="horizontalSpacer_20">
                     <property name="font">
                         <font>
                             <family>Arial</family>
@@ -1777,7 +1777,7 @@ padding: 10px;margin-top:10px</string>
                     </widget>
                 </item>
                 <item>
-                    <spacer name="horizontalSpacer_17">
+                    <spacer name="horizontalSpacer_21">
                         <property name="font">
                             <font>
                                 <family>Arial</family>
@@ -1867,7 +1867,7 @@ padding: 10px;margin-top:10px</string>
                     </widget>
                 </item>
                 <item>
-                    <spacer name="horizontalSpacer_12">
+                    <spacer name="horizontalSpacer_22">
                         <property name="font">
                             <font>
                                 <family>Arial</family>
@@ -1961,7 +1961,7 @@ padding: 10px;margin-top:10px</string>
                     </widget>
                 </item>
                 <item>
-                    <spacer name="horizontalSpacer_12">
+                    <spacer name="horizontalSpacer_23">
                         <property name="font">
                             <font>
                                 <family>Arial</family>
@@ -2055,7 +2055,7 @@ padding: 10px;margin-top:10px</string>
                     </widget>
                 </item>
                 <item>
-                    <spacer name="horizontalSpacer_12">
+                    <spacer name="horizontalSpacer_24">
                         <property name="font">
                             <font>
                                 <family>Arial</family>
@@ -2105,6 +2105,95 @@ padding: 10px;margin-top:10px</string>
                         </property>
                         <property name="value">
                             <number>1</number>
+                        </property>
+                    </widget>
+                </item>
+            </layout>
+        </item>
+
+
+        <!-- repetition with fade ____________________________________________________________________________ -->
+        <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_24">
+                <property name="spacing">
+                    <number>0</number>
+                </property>
+                <property name="topMargin">
+                    <number>10</number>
+                </property>
+                <property name="rightMargin">
+                    <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                    <number>10</number>
+                </property>
+                <item>
+                    <widget class="QLabel" name="label_21">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="styleSheet">
+                            <string notr="true">color: rgb(51, 51, 51)</string>
+                        </property>
+                        <property name="text">
+                            <string>Repetition with Fade</string>
+                        </property>
+                        <property name="indent">
+                            <number>15</number>
+                        </property>
+                        <property name="buddy">
+                            <cstring>repetitionWithFadeCheckBox</cstring>
+                        </property>
+                    </widget>
+                </item>
+                <item>
+                    <spacer name="horizontalSpacer_25">
+                        <property name="font">
+                            <font>
+                                <family>Arial</family>
+                            </font>
+                        </property>
+                        <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                            <size>
+                                <width>40</width>
+                                <height>20</height>
+                            </size>
+                        </property>
+                    </spacer>
+                </item>
+                <item>
+                    <widget class="QCheckBox" name="repetitionWithFadeCheckBox">
+                        <property name="sizePolicy">
+                            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                            </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>32</width>
+                                <height>0</height>
+                            </size>
+                        </property>
+                        <property name="baseSize">
+                            <size>
+                                <width>0</width>
+                                <height>0</height>
+                            </size>
+                        </property>
+                        <property name="text">
+                            <string/>
+                        </property>
+                        <property name="iconSize">
+                            <size>
+                                <width>32</width>
+                                <height>32</height>
+                            </size>
                         </property>
                     </widget>
                 </item>

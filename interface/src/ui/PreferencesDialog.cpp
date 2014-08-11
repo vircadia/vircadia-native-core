@@ -152,18 +152,13 @@ void PreferencesDialog::loadPreferences() {
     const InboundAudioStream::Settings& streamSettings = menuInstance->getReceivedAudioStreamSettings();
 
     ui.dynamicJitterBuffersCheckBox->setChecked(streamSettings._dynamicJitterBuffers);
-    
     ui.staticDesiredJitterBufferFramesSpin->setValue(streamSettings._staticDesiredJitterBufferFrames);
-    
     ui.maxFramesOverDesiredSpin->setValue(streamSettings._maxFramesOverDesired);
-
     ui.useStdevForJitterCalcCheckBox->setChecked(streamSettings._useStDevForJitterCalc);
-
     ui.windowStarveThresholdSpin->setValue(streamSettings._windowStarveThreshold);
-
     ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->setValue(streamSettings._windowSecondsForDesiredCalcOnTooManyStarves);
-
     ui.windowSecondsForDesiredReductionSpin->setValue(streamSettings._windowSecondsForDesiredReduction);
+    ui.repetitionWithFadeCheckBox->setChecked(streamSettings._repetitionWithFade);
 
     ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
 
@@ -261,6 +256,7 @@ void PreferencesDialog::savePreferences() {
     streamSettings._windowStarveThreshold = ui.windowStarveThresholdSpin->value();
     streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->value();
     streamSettings._windowSecondsForDesiredReduction = ui.windowSecondsForDesiredReductionSpin->value();
+    streamSettings._repetitionWithFade = ui.repetitionWithFadeCheckBox->isChecked();
 
     Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
     Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);

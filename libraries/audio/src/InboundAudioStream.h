@@ -43,6 +43,7 @@ const bool DEFAULT_USE_STDEV_FOR_JITTER_CALC = false;
 const int DEFAULT_WINDOW_STARVE_THRESHOLD = 3;
 const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES = 50;
 const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION = 10;
+const bool DEFAULT_REPETITION_WITH_FADE = true;
 
 class InboundAudioStream : public NodeData {
     Q_OBJECT
@@ -56,19 +57,21 @@ public:
             _useStDevForJitterCalc(DEFAULT_USE_STDEV_FOR_JITTER_CALC),
             _windowStarveThreshold(DEFAULT_WINDOW_STARVE_THRESHOLD),
             _windowSecondsForDesiredCalcOnTooManyStarves(DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES),
-            _windowSecondsForDesiredReduction(DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION)
+            _windowSecondsForDesiredReduction(DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION),
+            _repetitionWithFade(DEFAULT_REPETITION_WITH_FADE)
         {}
 
         Settings(int maxFramesOverDesired, bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames,
             bool useStDevForJitterCalc, int windowStarveThreshold, int windowSecondsForDesiredCalcOnTooManyStarves,
-            int _windowSecondsForDesiredReduction)
+            int _windowSecondsForDesiredReduction, bool repetitionWithFade)
             : _maxFramesOverDesired(maxFramesOverDesired),
             _dynamicJitterBuffers(dynamicJitterBuffers),
             _staticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames),
             _useStDevForJitterCalc(useStDevForJitterCalc),
             _windowStarveThreshold(windowStarveThreshold),
             _windowSecondsForDesiredCalcOnTooManyStarves(windowSecondsForDesiredCalcOnTooManyStarves),
-            _windowSecondsForDesiredReduction(windowSecondsForDesiredCalcOnTooManyStarves)
+            _windowSecondsForDesiredReduction(windowSecondsForDesiredCalcOnTooManyStarves),
+            _repetitionWithFade(repetitionWithFade)
         {}
 
         // max number of frames over desired in the ringbuffer.
@@ -86,6 +89,10 @@ public:
         int _windowStarveThreshold;
         int _windowSecondsForDesiredCalcOnTooManyStarves;
         int _windowSecondsForDesiredReduction;
+
+        // if true, the prev frame will be repeated (fading to silence) for dropped frames.
+        // otherwise, silence will be inserted.
+        bool _repetitionWithFade;
     };
 
 public:
@@ -116,7 +123,8 @@ public:
     void setWindowStarveThreshold(int windowStarveThreshold) { _starveThreshold = windowStarveThreshold; }
     void setWindowSecondsForDesiredCalcOnTooManyStarves(int windowSecondsForDesiredCalcOnTooManyStarves);
     void setWindowSecondsForDesiredReduction(int windowSecondsForDesiredReduction);
-    
+    void setRepetitionWithFade(bool repetitionWithFade) { _repetitionWithFade = repetitionWithFade; }
+
 
     virtual AudioStreamStats getAudioStreamStats() const;
 
@@ -234,6 +242,8 @@ protected:
     int _currentJitterBufferFrames;
 
     MovingMinMaxAvg<quint64> _timeGapStatsForStatsPacket;
+
+    bool _repetitionWithFade;
 };
 
 #endif // hifi_InboundAudioStream_h

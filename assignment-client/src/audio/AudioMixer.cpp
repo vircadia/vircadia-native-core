@@ -477,6 +477,14 @@ void AudioMixer::run() {
         }
         qDebug() << "Window B length:" << _streamSettings._windowSecondsForDesiredReduction << "seconds";
 
+        const QString REPETITION_WITH_FADE_JSON_KEY = "H-repetition-with-fade";
+        _streamSettings._repetitionWithFade = audioGroupObject[REPETITION_WITH_FADE_JSON_KEY].toBool();
+        if (_streamSettings._repetitionWithFade) {
+            qDebug() << "Repetition with fade enabled";
+        } else {
+            qDebug() << "Repetition with fade disabled";
+        }
+
 
         const QString UNATTENUATED_ZONE_KEY = "Z-unattenuated-zone";
 

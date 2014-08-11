@@ -45,6 +45,12 @@
         "placeholder": "10",
         "default": "10"
 	  },
+	  "H-repetition-with-fade": {
+        "type": "checkbox",
+        "label": "Repetition with Fade:",
+        "help": "If enabled, dropped frames and mixing during starves will repeat the last frame, eventually fading to silence",
+        "default": true
+      },
 	  "Z-unattenuated-zone": {
         "label": "Unattenuated Zone",
         "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",

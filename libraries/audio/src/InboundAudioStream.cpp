@@ -41,7 +41,8 @@ InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacit
     _starveThreshold(settings._windowStarveThreshold),
     _framesAvailableStat(),
     _currentJitterBufferFrames(0),
-    _timeGapStatsForStatsPacket(0, STATS_FOR_STATS_PACKET_WINDOW_SECONDS)
+    _timeGapStatsForStatsPacket(0, STATS_FOR_STATS_PACKET_WINDOW_SECONDS),
+    _repetitionWithFade(settings._repetitionWithFade)
 {
 }
 
@@ -333,6 +334,7 @@ void InboundAudioStream::setSettings(const Settings& settings) {
     setWindowStarveThreshold(settings._windowStarveThreshold);
     setWindowSecondsForDesiredCalcOnTooManyStarves(settings._windowSecondsForDesiredCalcOnTooManyStarves);
     setWindowSecondsForDesiredReduction(settings._windowSecondsForDesiredReduction);
+    setRepetitionWithFade(settings._repetitionWithFade);
 }
 
 void InboundAudioStream::setDynamicJitterBuffers(bool dynamicJitterBuffers) {
