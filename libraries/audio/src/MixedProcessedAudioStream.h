@@ -41,6 +41,8 @@ private:
 private:
     int _outputFormatChannelsTimesSampleRate;
 
+    // this buffer keeps a copy of the network samples written during parseData() for the sole purpose
+    // of passing it on to the audio scope
     int16_t _networkSamples[10 * NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
     int _networkSamplesWritten;
 };
