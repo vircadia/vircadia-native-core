@@ -354,7 +354,7 @@ var modelUploader = (function () {
             remainder,
             existing;
 
-        mapping = {};  // { name : value | name : { value : remainder } }
+        mapping = {};  // { name : value | name : { value : [remainder] } }
         lines = dv.string(0, dv.byteLength).split(/\r\n|\r|\n/);
         for (i = 0; i < lines.length; i += 1) {
             line = lines[i].trim();
@@ -373,11 +373,16 @@ var modelUploader = (function () {
                     } else {
                         if (mapping[name] === undefined) {
                             mapping[name] = {};
+
                         } else if (typeof mapping[name] !== "object") {
                             existing = mapping[name];
-                            mapping[name] = { existing: null };
+                            mapping[name] = { existing : null };
                         }
-                        mapping[name][value] = remainder;
+
+                        if (mapping[name][value] === undefined) {
+                            mapping[name][value] = [];
+                        }
+                        mapping[name][value].push(remainder);
                     }
                 }
             }
@@ -388,6 +393,7 @@ var modelUploader = (function () {
         var name,
             value,
             remainder,
+            i,
             string = "";
 
         for (name in mapping) {
@@ -397,11 +403,12 @@ var modelUploader = (function () {
                         if (mapping[name].hasOwnProperty(value)) {
                             remainder = mapping[name][value];
                             if (remainder === null) {
-                                remainder = "";
+                                string += (name + " = " + value + "\n");
                             } else {
-                                remainder = " = " + remainder;
+                                for (i = 0; i < remainder.length; i += 1) {
+                                    string += (name + " = " + value + " = " + remainder[i] + "\n");
+                                }
                             }
-                            string += (name + " = " + value + remainder + "\n");
                         }
                     }
                 } else {
