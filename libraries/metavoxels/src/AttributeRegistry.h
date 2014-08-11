@@ -28,6 +28,7 @@ class QScriptEngine;
 class QScriptValue;
 
 class Attribute;
+class HeightfieldData;
 class MetavoxelData;
 class MetavoxelLOD;
 class MetavoxelNode;
@@ -421,25 +422,34 @@ public:
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
+typedef QExplicitlySharedDataPointer<HeightfieldData> HeightfieldDataPointer;
+
 /// Contains a block of heightfield data.
 class HeightfieldData : public QSharedData {
 public:
 
     HeightfieldData(const QByteArray& contents);
     HeightfieldData(Bitstream& in, int bytes, bool color);
-
+    HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& reference, bool color);
+    
     const QByteArray& getContents() const { return _contents; }
 
     void write(Bitstream& out, bool color);
+    void writeDelta(Bitstream& out, const HeightfieldDataPointer& reference, bool color);
 
 private:
+    
+    void read(Bitstream& in, int bytes, bool color);
+    void set(const QImage& image, bool color);
     
     QByteArray _contents;
     QByteArray _encoded;
     QMutex _encodedMutex;
+    
+    HeightfieldDataPointer _deltaData;
+    QByteArray _encodedDelta;
+    QMutex _encodedDeltaMutex;
 };
-
-typedef QExplicitlySharedDataPointer<HeightfieldData> HeightfieldDataPointer;
 
 /// An attribute that stores heightfield data.
 class HeightfieldAttribute : public InlineAttribute<HeightfieldDataPointer> {
@@ -451,7 +461,10 @@ public:
     
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
-    
+        
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
+
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };
 
@@ -465,6 +478,9 @@ public:
     
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };

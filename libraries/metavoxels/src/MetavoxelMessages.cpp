@@ -378,6 +378,7 @@ int PaintHeightfieldHeightEditVisitor::visit(MetavoxelInfo& info) {
     float squaredRadiusReciprocal = 1.0f / squaredRadius;
     const int EIGHT_BIT_MAXIMUM = 255; 
     float scaledHeight = _edit.height * EIGHT_BIT_MAXIMUM / info.size;
+    bool changed = false;
     for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
         uchar* dest = lineDest;
         for (float x = startX; x <= endX; x += 1.0f, dest++) {
@@ -386,14 +387,18 @@ int PaintHeightfieldHeightEditVisitor::visit(MetavoxelInfo& info) {
             if (distanceSquared <= squaredRadius) {
                 // height falls off towards edges
                 int value = *dest + scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
-                *dest = qMin(qMax(value, 0), EIGHT_BIT_MAXIMUM);
+                if (value != *dest) {
+                    *dest = qMin(qMax(value, 0), EIGHT_BIT_MAXIMUM);
+                    changed = true;
+                }
             }
         }
         lineDest += size;
     }
-    
-    HeightfieldDataPointer newPointer(new HeightfieldData(contents));
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldDataPointer>(newPointer));
+    if (changed) {
+        HeightfieldDataPointer newPointer(new HeightfieldData(contents));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldDataPointer>(newPointer));
+    }
     return STOP_RECURSION;
 }
 
@@ -461,6 +466,7 @@ int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
     char* lineDest = contents.data() + (int)z * stride + (int)startX * BYTES_PER_PIXEL;
     float squaredRadius = scaledRadius * scaledRadius; 
     char red = _edit.color.red(), green = _edit.color.green(), blue = _edit.color.blue();
+    bool changed = false;
     for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
         char* dest = lineDest;
         for (float x = startX; x <= endX; x += 1.0f, dest += BYTES_PER_PIXEL) {
@@ -469,13 +475,15 @@ int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
                 dest[0] = red;
                 dest[1] = green;
                 dest[2] = blue;
+                changed = true;
             }
         }
         lineDest += stride;
     }
-    
-    HeightfieldDataPointer newPointer(new HeightfieldData(contents));
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldDataPointer>(newPointer));
+    if (changed) {
+        HeightfieldDataPointer newPointer(new HeightfieldData(contents));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldDataPointer>(newPointer));
+    }
     return STOP_RECURSION;
 }
 

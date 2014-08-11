@@ -490,21 +490,52 @@ HeightfieldData::HeightfieldData(const QByteArray& contents) :
 }
 
 const int BYTES_PER_PIXEL = 3;
+const int ZERO_OFFSET = 128;
 
-HeightfieldData::HeightfieldData(Bitstream& in, int bytes, bool color) :
-    _encoded(in.readAligned(bytes)) {
+HeightfieldData::HeightfieldData(Bitstream& in, int bytes, bool color) {
+    read(in, bytes, color);
+}
+
+HeightfieldData::HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& reference, bool color) {
+    if (!reference) {
+        read(in, bytes, color);
+        return;
+    }
+    QMutexLocker locker(&reference->_encodedDeltaMutex);
+    reference->_encodedDelta = in.readAligned(bytes);
+    reference->_deltaData = this;
+    _contents = reference->_contents;
     
-    QImage image = QImage::fromData(_encoded).convertToFormat(QImage::Format_RGB888);
+    QBuffer buffer(&reference->_encodedDelta);
+    buffer.open(QIODevice::ReadOnly);
+    QImage image;
+    image.load(&buffer, "PNG");
+    QPoint offset = image.offset();
+    image = image.convertToFormat(QImage::Format_RGB888);
+    if (offset.x() == 0) {
+        set(image, color);
+        return;
+    }
+    int minX = offset.x() - 1;
+    int minY = offset.y() - 1;
     if (color) {
-        _contents.resize(image.width() * image.height() * BYTES_PER_PIXEL);
-        memcpy(_contents.data(), image.constBits(), _contents.size());
-        
+        int size = glm::sqrt(_contents.size() / (float)BYTES_PER_PIXEL);
+        char* dest = _contents.data() + (minY * size + minX) * BYTES_PER_PIXEL;
+        int destStride = size * BYTES_PER_PIXEL;
+        int srcStride = image.width() * BYTES_PER_PIXEL;
+        for (int y = 0; y < image.height(); y++) {
+            memcpy(dest, image.constScanLine(y), srcStride);
+            dest += destStride;
+        }
     } else {
-        _contents.resize(image.width() * image.height());
-        char* dest = _contents.data();
-        for (const uchar* src = image.constBits(), *end = src + _contents.size() * BYTES_PER_PIXEL;
-                src != end; src += BYTES_PER_PIXEL) {
-            *dest++ = *src;
+        int size = glm::sqrt((float)_contents.size());
+        char* lineDest = _contents.data() + minY * size + minX;
+        for (int y = 0; y < image.height(); y++) {
+            const uchar* src = image.constScanLine(y);
+            for (char* dest = lineDest, *end = dest + image.width(); dest != end; dest++, src += BYTES_PER_PIXEL) {
+                *dest = *src;
+            }
+            lineDest += size;
         }
     }
 }
@@ -528,10 +559,114 @@ void HeightfieldData::write(Bitstream& out, bool color) {
         }
         QBuffer buffer(&_encoded);
         buffer.open(QIODevice::WriteOnly);
-        image.save(&buffer, "JPG");
+        image.save(&buffer, "PNG");
     }
     out << _encoded.size();
     out.writeAligned(_encoded);
+}
+
+void HeightfieldData::writeDelta(Bitstream& out, const HeightfieldDataPointer& reference, bool color) {
+    if (!reference || reference->getContents().size() != _contents.size()) {
+        write(out, color);
+        return;
+    }
+    QMutexLocker locker(&reference->_encodedDeltaMutex);
+    if (reference->_encodedDelta.isEmpty() || reference->_deltaData != this) {
+        QImage image;
+        int minX, minY;
+        if (color) {
+            int size = glm::sqrt(_contents.size() / (float)BYTES_PER_PIXEL);
+            minX = size;
+            minY = size;
+            int maxX = -1, maxY = -1;
+            const char* src = _contents.constData();
+            const char* ref = reference->_contents.constData();
+            for (int y = 0; y < size; y++) {
+                bool difference = false;
+                for (int x = 0; x < size; x++, src += BYTES_PER_PIXEL, ref += BYTES_PER_PIXEL) {
+                    if (src[0] != ref[0] || src[1] != ref[1] || src[2] != ref[2]) {
+                        minX = qMin(minX, x);
+                        maxX = qMax(maxX, x);
+                        difference = true;
+                    }
+                }
+                if (difference) {
+                    minY = qMin(minY, y);
+                    maxY = qMax(maxY, y);
+                }
+            }
+            int width = qMax(maxX - minX + 1, 0);
+            int height = qMax(maxY - minY + 1, 0);
+            image = QImage(width, height, QImage::Format_RGB888);
+            src = _contents.constData() + (minY * size + minX) * BYTES_PER_PIXEL;
+            int srcStride = size * BYTES_PER_PIXEL;
+            int destStride = width * BYTES_PER_PIXEL;
+            for (int y = 0; y < height; y++) {
+                memcpy(image.scanLine(y), src, destStride);
+                src += srcStride;
+            }
+        } else {
+            int size = glm::sqrt((float)_contents.size());
+            minX = size;
+            minY = size;
+            int maxX = -1, maxY = -1;
+            const char* src = _contents.constData();
+            const char* ref = reference->_contents.constData();
+            for (int y = 0; y < size; y++) {
+                bool difference = false;
+                for (int x = 0; x < size; x++) {
+                    if (*src++ != *ref++) {
+                        minX = qMin(minX, x);
+                        maxX = qMax(maxX, x);
+                        difference = true;
+                    }
+                }
+                if (difference) {
+                    minY = qMin(minY, y);
+                    maxY = qMax(maxY, y);
+                }
+            }
+            int width = qMax(maxX - minX + 1, 0);
+            int height = qMax(maxY - minY + 1, 0);
+            image = QImage(width, height, QImage::Format_RGB888);
+            const uchar* lineSrc = (const uchar*)_contents.constData() + minY * size + minX;
+            for (int y = 0; y < height; y++) {
+                uchar* dest = image.scanLine(y);
+                for (const uchar* src = lineSrc, *end = src + width; src != end; src++) {
+                    *dest++ = *src;
+                    *dest++ = *src;
+                    *dest++ = *src;
+                }
+                lineSrc += size;
+            }
+        }
+        QBuffer buffer(&reference->_encodedDelta);
+        buffer.open(QIODevice::WriteOnly);
+        image.setOffset(QPoint(minX + 1, minY + 1));
+        image.save(&buffer, "PNG");
+        reference->_deltaData = this;
+    }
+    out << reference->_encodedDelta.size();
+    out.writeAligned(reference->_encodedDelta);
+}
+
+void HeightfieldData::read(Bitstream& in, int bytes, bool color) {
+    set(QImage::fromData(_encoded = in.readAligned(bytes)).convertToFormat(QImage::Format_RGB888), color);
+}
+
+void HeightfieldData::set(const QImage& image, bool color) {
+    if (color) {
+        _contents.resize(image.width() * image.height() * BYTES_PER_PIXEL);
+        memcpy(_contents.data(), image.constBits(), _contents.size());
+        
+    } else {
+        _contents.resize(image.width() * image.height());
+        char* dest = _contents.data();
+        for (const uchar* src = image.constBits(), *end = src + _contents.size() * BYTES_PER_PIXEL;
+                src != end; src += BYTES_PER_PIXEL) {
+            *dest++ = *src;
+        }
+    }
 }
 
 HeightfieldAttribute::HeightfieldAttribute(const QString& name) :
@@ -539,25 +674,53 @@ HeightfieldAttribute::HeightfieldAttribute(const QString& name) :
 }
 
 void HeightfieldAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
-    if (isLeaf) { 
-        int size;
-        in >> size;
-        if (size == 0) {
-            *(HeightfieldDataPointer*)&value = HeightfieldDataPointer();
-        } else {
-            *(HeightfieldDataPointer*)&value = HeightfieldDataPointer(new HeightfieldData(in, size, false));
-        }
+    if (!isLeaf) {
+        return;
+    } 
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(HeightfieldDataPointer*)&value = HeightfieldDataPointer();
+    } else {
+        *(HeightfieldDataPointer*)&value = HeightfieldDataPointer(new HeightfieldData(in, size, false));
     }
 }
 
 void HeightfieldAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
-    if (isLeaf) {
-        HeightfieldDataPointer data = decodeInline<HeightfieldDataPointer>(value);
-        if (data) {
-            data->write(out, false);
-        } else {
-            out << 0;
-        }
+    if (!isLeaf) {
+        return;
+    }
+    HeightfieldDataPointer data = decodeInline<HeightfieldDataPointer>(value);
+    if (data) {
+        data->write(out, false);
+    } else {
+        out << 0;
+    }
+}
+
+void HeightfieldAttribute::readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(HeightfieldDataPointer*)&value = HeightfieldDataPointer(); 
+    } else {
+        *(HeightfieldDataPointer*)&value = HeightfieldDataPointer(new HeightfieldData(
+            in, size, decodeInline<HeightfieldDataPointer>(reference), false));
+    }
+}
+
+void HeightfieldAttribute::writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    HeightfieldDataPointer data = decodeInline<HeightfieldDataPointer>(value);
+    if (data) {
+        data->writeDelta(out, decodeInline<HeightfieldDataPointer>(reference), false);
+    } else {
+        out << 0;
     }
 }
 
@@ -635,25 +798,53 @@ HeightfieldColorAttribute::HeightfieldColorAttribute(const QString& name) :
 }
 
 void HeightfieldColorAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
-    if (isLeaf) {
-        int size;
-        in >> size;
-        if (size == 0) {
-            *(HeightfieldDataPointer*)&value = HeightfieldDataPointer();
-        } else {
-            *(HeightfieldDataPointer*)&value = HeightfieldDataPointer(new HeightfieldData(in, size, true));
-        }
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(HeightfieldDataPointer*)&value = HeightfieldDataPointer();
+    } else {
+        *(HeightfieldDataPointer*)&value = HeightfieldDataPointer(new HeightfieldData(in, size, true));
     }
 }
 
 void HeightfieldColorAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
-    if (isLeaf) {
-        HeightfieldDataPointer data = decodeInline<HeightfieldDataPointer>(value);
-        if (data) {
-            data->write(out, true);
-        } else {
-            out << 0;
-        }
+    if (!isLeaf) {
+        return;
+    }
+    HeightfieldDataPointer data = decodeInline<HeightfieldDataPointer>(value);
+    if (data) {
+        data->write(out, true);
+    } else {
+        out << 0;
+    }
+}
+
+void HeightfieldColorAttribute::readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(HeightfieldDataPointer*)&value = HeightfieldDataPointer(); 
+    } else {
+        *(HeightfieldDataPointer*)&value = HeightfieldDataPointer(new HeightfieldData(
+            in, size, decodeInline<HeightfieldDataPointer>(reference), true));
+    }
+}
+
+void HeightfieldColorAttribute::writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    HeightfieldDataPointer data = decodeInline<HeightfieldDataPointer>(value);
+    if (data) {
+        data->writeDelta(out, decodeInline<HeightfieldDataPointer>(reference), true);
+    } else {
+        out << 0;
     }
 }
 
