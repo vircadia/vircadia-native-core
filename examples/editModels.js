@@ -85,8 +85,8 @@ if (typeof String.prototype.path !== "function") {
 
 if (typeof String.prototype.regExpEscape !== "function") {
     String.prototype.regExpEscape = function () {
-        return this.replace(/([$^.+*?|\\\/{}()\[\]])/g, '\\$1');
-    }
+        return this.replace(/([$\^.+*?|\\\/{}()\[\]])/g, '\\$1');
+    };
 }
 
 if (typeof String.prototype.toArrayBuffer !== "function") {
@@ -333,7 +333,7 @@ var modelUploader = (function () {
         req.responseType = "arraybuffer";
         req.send();
         if (req.status !== 200) {
-            error("Could not read file: " + filename + " : " + req.status + " " + req.statusText);
+            error("Could not read file: " + filename + " : " + req.statusText);
             return null;
         }
 
@@ -439,8 +439,7 @@ var modelUploader = (function () {
                 propertyListLength,
                 nameLength,
                 name,
-                filename,
-                author;
+                filename;
 
             endOffset = view.getUint32(index, true);
             numProperties = view.getUint32(index + 4, true);
@@ -480,7 +479,6 @@ var modelUploader = (function () {
                 viewLength,
                 charCode,
                 charCodes,
-                author,
                 filename;
 
             view = new Uint8Array(fbxBuffer.buffer);
@@ -598,7 +596,6 @@ var modelUploader = (function () {
 
     function setProperties() {
         var form = [],
-            decimals = 3,
             directory,
             displayAs,
             validateAs;
@@ -749,16 +746,16 @@ var modelUploader = (function () {
             error("Model upload failed: Internet request timed out!");
         }
 
-        function debugResponse() {
-            print("req.errorCode = " + req.errorCode);
-            print("req.readyState = " + req.readyState);
-            print("req.status = " + req.status);
-            print("req.statusText = " + req.statusText);
-            print("req.responseType = " + req.responseType);
-            print("req.responseText = " + req.responseText);
-            print("req.response = " + req.response);
-            print("req.getAllResponseHeaders() = " + req.getAllResponseHeaders());
-        }
+        //function debugResponse() {
+        //    print("req.errorCode = " + req.errorCode);
+        //    print("req.readyState = " + req.readyState);
+        //    print("req.status = " + req.status);
+        //    print("req.statusText = " + req.statusText);
+        //    print("req.responseType = " + req.responseType);
+        //    print("req.responseText = " + req.responseText);
+        //    print("req.response = " + req.response);
+        //    print("req.getAllResponseHeaders() = " + req.getAllResponseHeaders());
+        //}
 
         function checkUploaded() {
             print("Checking uploaded model");
