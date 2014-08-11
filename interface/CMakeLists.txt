@@ -176,7 +176,7 @@ if (APPLE)
     find_library(GLUT GLUT)
     find_library(OpenGL OpenGL)
 
-    target_link_libraries(${TARGET_NAME} ${CoreFoundation} ${CoreAudio} ${GLUT} ${OpenGL})
+    target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${GLUT} ${OpenGL})
     
     # install command for OS X bundle
     INSTALL(TARGETS ${TARGET_NAME}
