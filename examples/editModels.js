@@ -288,7 +288,7 @@ var modelUploader = (function () {
         modelFile,
         fstBuffer,
         fbxBuffer,
-        svoBuffer,
+        //svoBuffer,
         mapping,
         geometry,
         API_URL = "https://data.highfidelity.io/api/v1/models",
@@ -319,7 +319,7 @@ var modelUploader = (function () {
     function resetDataObjects() {
         fstBuffer = null;
         fbxBuffer = null;
-        svoBuffer = null;
+        //svoBuffer = null;
         mapping = {};
         geometry = {};
         geometry.textures = [];
@@ -521,7 +521,7 @@ var modelUploader = (function () {
 
     function readModel() {
         var fbxFilename,
-            svoFilename,
+            //svoFilename,
             fileType;
 
         print("Reading model file: " + modelFile);
@@ -536,8 +536,8 @@ var modelUploader = (function () {
             if (mapping.hasOwnProperty(FILENAME_FIELD)) {
                 if (fileType === "fbx") {
                     fbxFilename = modelFile.path() + "\\" + mapping[FILENAME_FIELD];
-                } else if (fileType === "svo") {
-                    svoFilename = modelFile.path() + "\\" + mapping[FILENAME_FIELD];
+                //} else if (fileType === "svo") {
+                //    svoFilename = modelFile.path() + "\\" + mapping[FILENAME_FIELD];
                 } else {
                     error("Unrecognized model type in FST file!");
                     return false;
@@ -556,9 +556,9 @@ var modelUploader = (function () {
                 fbxFilename = modelFile;
                 mapping[FILENAME_FIELD] = modelFile.fileName();
 
-            } else if (modelFile.toLowerCase().fileType() === "svo") {
-                svoFilename = modelFile;
-                mapping[FILENAME_FIELD] = modelFile.fileName();
+            //} else if (modelFile.toLowerCase().fileType() === "svo") {
+            //    svoFilename = modelFile;
+            //    mapping[FILENAME_FIELD] = modelFile.fileName();
 
             } else {
                 error("Unrecognized file type: " + modelFile);
@@ -575,12 +575,12 @@ var modelUploader = (function () {
             readGeometry(fbxBuffer);
         }
 
-        if (svoFilename) {
-            svoBuffer = readFile(svoFilename);
-            if (svoBuffer === null) {
-                return false;
-            }
-        }
+        //if (svoFilename) {
+        //    svoBuffer = readFile(svoFilename);
+        //    if (svoBuffer === null) {
+        //        return false;
+        //    }
+        //}
 
         // Add any missing basic mappings
         if (!mapping.hasOwnProperty(NAME_FIELD)) {
@@ -680,12 +680,12 @@ var modelUploader = (function () {
         }
 
         // SVO file
-        if (svoBuffer) {
-            httpMultiPart.add({
-                name : "svo",
-                buffer: svoBuffer
-            });
-        }
+        //if (svoBuffer) {
+        //    httpMultiPart.add({
+        //        name : "svo",
+        //        buffer: svoBuffer
+        //    });
+        //}
 
         // LOD files
         lodCount = 0;
@@ -1044,7 +1044,8 @@ var toolBar = (function () {
             toggleToolbar(false);
             file = Window.browse("Select your model file ...",
                 Settings.getValue("LastModelUploadLocation").path(),
-                "Model files (*.fst *.fbx *.svo)");
+                "Model files (*.fst *.fbx)");
+                //"Model files (*.fst *.fbx *.svo)");
             if (file !== null) {
                 Settings.setValue("LastModelUploadLocation", file);
                 modelUploader.upload(file, addModel);
