@@ -35,6 +35,7 @@ const float EntityItem::DEFAULT_MASS = 1.0f;
 const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
 const float EntityItem::DEFAULT_DAMPING = 0.99f;
 const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
+const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 10000.0f) / (float)TREE_SCALE; // really small
 const glm::vec3 EntityItem::DEFAULT_VELOCITY = EntityItem::NO_VELOCITY;
 const glm::vec3 EntityItem::NO_GRAVITY = glm::vec3(0, 0, 0);
 const glm::vec3 EntityItem::REGULAR_GRAVITY = glm::vec3(0, (-9.8f / TREE_SCALE), 0);
@@ -493,6 +494,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         quint64 updateDelta = updateDeltaCoder;
         if (overwriteLocalData) {
             _lastUpdated = _lastEdited + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
+qDebug() << "%%%%%%%%%%%%%%%% EntityItem::readEntityDataFromBuffer() .... SETTING _lastUpdated=" << _lastUpdated;
         }
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += encodedUpdateDelta.size();
@@ -663,6 +665,8 @@ void EntityItem::update(const quint64& updateTime) {
     float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = updateTime;
 
+qDebug() << "********** EntityItem::update() .... SETTING _lastUpdated=" << _lastUpdated;
+
     if (isMortal()) {
         if (getAge() > getLifetime()) {
             qDebug() << "Lifetime has expired... WHAT TO DO??? getAge()=" << getAge() << "getLifetime()=" << getLifetime();
@@ -673,25 +677,45 @@ void EntityItem::update(const quint64& updateTime) {
     if (hasVelocity() || hasGravity()) {
         glm::vec3 position = getPosition();
         glm::vec3 velocity = getVelocity();
+        
+        qDebug() << "EntityItem::update()....";
+        qDebug() << "    timeElapsed:" << timeElapsed;
+        qDebug() << "    old AACube:" << getAACube();
+        qDebug() << "    old position:" << position;
+        qDebug() << "    old velocity:" << velocity;
+        
         position += velocity * timeElapsed;
 
         // handle bounces off the ground...
         if (position.y <= 0) {
             velocity = velocity * glm::vec3(1,-1,1);
             position.y = 0;
+            qDebug() << "################### handle bounces off the ground...... velocity=" << velocity;
         }
 
         // handle gravity....
-        velocity += getGravity() * timeElapsed;
+        if (hasGravity()) {
+            velocity += getGravity() * timeElapsed;
+            qDebug() << "################### apply gravity......";
+            qDebug() << "        getGravity()=" << getGravity();
+            qDebug() << "        velocity=" << velocity;
+        }
 
         // handle damping
         glm::vec3 dampingResistance = velocity * getDamping();
+        qDebug() << "    getDamping():" << getDamping();
+        qDebug() << "    dampingResistance:" << dampingResistance;
+        qDebug() << "    dampingResistance * timeElapsed:" << dampingResistance * timeElapsed;
         velocity -= dampingResistance * timeElapsed;
+        qDebug() << "    velocity AFTER dampingResistance:" << velocity;
         
-        qDebug() << "EntityItem::update()....";
-        qDebug() << "    old AACube:" << getAACube();
-        qDebug() << "    position:" << position;
-        qDebug() << "    velocity:" << velocity;
+        // round velocity to zero if it's close enough...
+        if (glm::length(velocity) <= EPSILON_VELOCITY_LENGTH) {
+            velocity = NO_VELOCITY;
+        }
+        
+        qDebug() << "    new position:" << position;
+        qDebug() << "    new velocity:" << velocity;
         setPosition(position);
         setVelocity(velocity);
         qDebug() << "    new AACube:" << getAACube();

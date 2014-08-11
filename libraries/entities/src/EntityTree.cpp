@@ -1079,6 +1079,9 @@ void EntityTree::update() {
     }
     
     MovingEntitiesOperator moveOperator(this);
+    
+    QSet<EntityItem*> entitiesBecomingStatic;
+    QSet<EntityItem*> entitiesBecomingChanging;
 
     for (int i = 0; i < _movingEntities.size(); i++) {
         EntityItem* thisEntity = _movingEntities[i];
@@ -1091,9 +1094,25 @@ void EntityTree::update() {
         qDebug() << "   newCube=" << newCube;
                 
         moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
+
+        // check to see if this entity is no longer moving
+        EntityItem::SimuationState newState = thisEntity->getSimulationState();
+        if (newState == EntityItem::Changing) {
+            entitiesBecomingChanging << thisEntity;
+        } else if (newState == EntityItem::Static) {
+            entitiesBecomingStatic << thisEntity;
+        }
     }
     recurseTreeWithOperator(&moveOperator);
 
+    // for any and all entities that were moving but are now either static or changing
+    // change their state accordingly
+    foreach(EntityItem* entity, entitiesBecomingStatic) {
+        changeEntityState(entity, EntityItem::Moving, EntityItem::Static);
+    }
+    foreach(EntityItem* entity, entitiesBecomingChanging) {
+        changeEntityState(entity, EntityItem::Moving, EntityItem::Changing);
+    }
 
     unlock();
 

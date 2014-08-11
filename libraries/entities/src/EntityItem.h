@@ -52,7 +52,7 @@ public:
 
     quint64 getLastUpdated() const { return _lastUpdated; } /// Last simulated time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; } /// Last edited time of this entity universal usecs
-    void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
+    void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; _lastUpdated = lastEdited; }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - _lastEdited) / (float)USECS_PER_SECOND; }
 
@@ -124,6 +124,7 @@ public:
 
     static const glm::vec3 DEFAULT_VELOCITY;
     static const glm::vec3 NO_VELOCITY;
+    static const float EPSILON_VELOCITY_LENGTH;
     const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
     bool hasVelocity() const { return _velocity != NO_VELOCITY; }
