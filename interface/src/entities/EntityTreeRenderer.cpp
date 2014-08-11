@@ -320,12 +320,15 @@ void EntityTreeRenderer::renderEntityTypeModel(EntityItem* entity, RenderArgs* a
             
                 // handle animations..
                 if (entityItem->hasAnimation()) {
+                    //qDebug() << "entityItem->hasAnimation()...";                
                     if (!entityItem->jointsMapped()) {
                         QStringList modelJointNames = model->getJointNames();
                         entityItem->mapJoints(modelJointNames);
+                        //qDebug() << "entityItem->mapJoints()...";                
                     }
 
                     if (entityItem->jointsMapped()) {
+                        //qDebug() << "model->setJointState()...";
                         QVector<glm::quat> frameData = entityItem->getAnimationFrame();
                         for (int i = 0; i < frameData.size(); i++) {
                             model->setJointState(i, true, frameData[i]);

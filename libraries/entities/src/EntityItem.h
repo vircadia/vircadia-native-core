@@ -135,6 +135,9 @@ public:
     const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
     bool hasGravity() const { return _gravity != NO_GRAVITY; }
+    
+    // TODO: this should eventually be updated to support resting on collisions with other surfaces
+    bool isRestingOnSurface() const;
 
     static const float DEFAULT_DAMPING;
     float getDamping() const { return _damping; }

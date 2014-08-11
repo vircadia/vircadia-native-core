@@ -539,7 +539,7 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
                 animationFrameIndex = 0;
             }
             
-//qDebug() << "ModelEntityItem::getAnimationFrame().... _animationFrameIndex=" << _animationFrameIndex << "frameCount=" << frameCount << "animationFrameIndex=" << animationFrameIndex;
+            //qDebug() << "ModelEntityItem::getAnimationFrame().... _animationFrameIndex=" << _animationFrameIndex << "frameCount=" << frameCount << "animationFrameIndex=" << animationFrameIndex;
 
             QVector<glm::quat> rotations = frames[animationFrameIndex].rotations;
             frameData.resize(_jointMapping.size());
@@ -581,13 +581,15 @@ void ModelEntityItem::update(const quint64& updateTime) {
     EntityItem::update(updateTime); // let our base class handle it's updates...
 
     quint64 now = updateTime; //usecTimestampNow();
+    
+    qDebug() << "ModelEntityItem::update() getAnimationIsPlaying()="<< getAnimationIsPlaying();
 
     // only advance the frame index if we're playing
     if (getAnimationIsPlaying()) {
 
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
         
-        const bool wantDebugging = false;
+        const bool wantDebugging = true;
         if (wantDebugging) {
             qDebug() << "EntityItem::update() now=" << now;
             qDebug() << "             updateTime=" << updateTime;

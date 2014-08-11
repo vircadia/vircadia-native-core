@@ -661,11 +661,21 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     }
 }
 
+bool EntityItem::isRestingOnSurface() const { 
+    return _position.y <= _radius 
+            && _velocity.y >= -EPSILON && _velocity.y <= EPSILON
+            && _gravity.y < 0.0f;
+}
+
+
 void EntityItem::update(const quint64& updateTime) {
+    bool wantDebug = false;
     float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = updateTime;
 
-qDebug() << "********** EntityItem::update() .... SETTING _lastUpdated=" << _lastUpdated;
+    if (wantDebug) {
+        qDebug() << "********** EntityItem::update() .... SETTING _lastUpdated=" << _lastUpdated;
+    }
 
     if (isMortal()) {
         if (getAge() > getLifetime()) {
@@ -677,66 +687,97 @@ qDebug() << "********** EntityItem::update() .... SETTING _lastUpdated=" << _las
     if (hasVelocity() || hasGravity()) {
         glm::vec3 position = getPosition();
         glm::vec3 velocity = getVelocity();
-        
-        qDebug() << "EntityItem::update()....";
-        qDebug() << "    timeElapsed:" << timeElapsed;
-        qDebug() << "    old AACube:" << getAACube();
-        qDebug() << "    old position:" << position;
-        qDebug() << "    old velocity:" << velocity;
+
+        if (wantDebug) {        
+            qDebug() << "EntityItem::update()....";
+            qDebug() << "    timeElapsed:" << timeElapsed;
+            qDebug() << "    old AACube:" << getAACube();
+            qDebug() << "    old position:" << position;
+            qDebug() << "    old velocity:" << velocity;
+        }
         
         position += velocity * timeElapsed;
 
-        // handle bounces off the ground...
-        if (position.y <= 0) {
+        // handle bounces off the ground... We bounce at the height of our radius...
+        if (position.y <= _radius) {
             velocity = velocity * glm::vec3(1,-1,1);
-            position.y = 0;
-            qDebug() << "################### handle bounces off the ground...... velocity=" << velocity;
+
+            // if we've slowed considerably, then just stop moving
+            if (glm::length(velocity) <= EPSILON_VELOCITY_LENGTH) {
+                velocity = NO_VELOCITY;
+            }
+            
+            position.y = _radius;
         }
 
         // handle gravity....
-        if (hasGravity()) {
+        if (hasGravity() && !isRestingOnSurface()) {
             velocity += getGravity() * timeElapsed;
-            qDebug() << "################### apply gravity......";
-            qDebug() << "        getGravity()=" << getGravity();
-            qDebug() << "        velocity=" << velocity;
+        }
+
+        // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
+        // "ground" plane of the domain, but for now it
+        if (hasGravity() && isRestingOnSurface()) {
+            velocity.y = 0.0f;
+            position.y = _radius;
         }
 
         // handle damping
         glm::vec3 dampingResistance = velocity * getDamping();
-        qDebug() << "    getDamping():" << getDamping();
-        qDebug() << "    dampingResistance:" << dampingResistance;
-        qDebug() << "    dampingResistance * timeElapsed:" << dampingResistance * timeElapsed;
+        if (wantDebug) {        
+            qDebug() << "    getDamping():" << getDamping();
+            qDebug() << "    dampingResistance:" << dampingResistance;
+            qDebug() << "    dampingResistance * timeElapsed:" << dampingResistance * timeElapsed;
+        }
         velocity -= dampingResistance * timeElapsed;
-        qDebug() << "    velocity AFTER dampingResistance:" << velocity;
+
+        if (wantDebug) {        
+            qDebug() << "    velocity AFTER dampingResistance:" << velocity;
+        }
         
         // round velocity to zero if it's close enough...
         if (glm::length(velocity) <= EPSILON_VELOCITY_LENGTH) {
             velocity = NO_VELOCITY;
         }
         
-        qDebug() << "    new position:" << position;
-        qDebug() << "    new velocity:" << velocity;
+        if (wantDebug) {        
+            qDebug() << "    new position:" << position;
+            qDebug() << "    new velocity:" << velocity;
+        }
         setPosition(position);
         setVelocity(velocity);
-        qDebug() << "    new AACube:" << getAACube();
+        if (wantDebug) {        
+            qDebug() << "    new AACube:" << getAACube();
+        }
     }
 }
 
 EntityItem::SimuationState EntityItem::getSimulationState() const {
-    qDebug() << "EntityItem::getSimulationState()... ";
-    qDebug() << "    hasVelocity()=" << hasVelocity();
-    qDebug() << "    getVelocity()=" << getVelocity();
-    qDebug() << "    hasGravity()=" << hasGravity();
-    qDebug() << "    isMortal()=" << isMortal();
-    if (hasVelocity() || hasGravity()) {
-        qDebug() << "    return EntityItem::Moving;";
+    bool wantDebug = false;
+    
+    if (wantDebug) {
+        qDebug() << "EntityItem::getSimulationState()... ";
+        qDebug() << "    hasVelocity()=" << hasVelocity();
+        qDebug() << "    getVelocity()=" << getVelocity();
+        qDebug() << "    hasGravity()=" << hasGravity();
+        qDebug() << "    isRestingOnSurface()=" << isRestingOnSurface();
+        qDebug() << "    isMortal()=" << isMortal();
+    }
+    if (hasVelocity() || (hasGravity() && !isRestingOnSurface())) {
+        if (wantDebug) {
+            qDebug() << "    return EntityItem::Moving;";
+        }
         return EntityItem::Moving;
     }
     if (isMortal()) {
-        qDebug() << "    return EntityItem::Changing;";
+        if (wantDebug) {
+            qDebug() << "    return EntityItem::Changing;";
+        }
         return EntityItem::Changing;
     }
-    qDebug() << "    return EntityItem::Static;";
+    if (wantDebug) {
+        qDebug() << "    return EntityItem::Static;";
+    }
     return EntityItem::Static;
 }
 
