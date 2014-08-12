@@ -17,6 +17,7 @@
 
 #include <MovingMinMaxAvg.h> // for MovingMinMaxAvg
 #include <SequenceNumberStats.h>
+#include <StdDev.h>
 #include <SharedUtil.h> // for usecTimestampNow
 
 const quint64 MSEC_TO_USEC = 1000;
@@ -83,6 +84,10 @@ void runSend(const char* addressOption, int port, int gap, int size, int report)
     std::cout << "SAMPLES_PER_REPORT:" << SAMPLES_PER_REPORT << "\n";
     
     MovingMinMaxAvg<int> timeGapsPerReport(1, SAMPLES_PER_REPORT);
+
+    StDev stDevReportInterval;
+    StDev stDev30s;
+    StDev stDev;
  
     quint64 last = usecTimestampNow();
     quint64 lastReport = 0;
@@ -104,24 +109,35 @@ void runSend(const char* addressOption, int port, int gap, int size, int report)
             int gapDifferece = actualGap - gap;
             timeGaps.update(gapDifferece);
             timeGapsPerReport.update(gapDifferece);
+            stDev.addValue(gapDifferece);
             last = now;
 
             if (now - lastReport >= (report * MSEC_TO_USEC)) {
+
                 std::cout << "\n"
                           << "SEND gap Difference From Expected\n"
                           << "Overall:\n"
                           << "min: " << timeGaps.getMin() << " usecs, "
                           << "max: " << timeGaps.getMax() << " usecs, "
-                          << "avg: " << timeGaps.getAverage() << " usecs\n"
+                          << "avg: " << timeGaps.getAverage() << " usecs, "
+                << "stdev: " << stDev.getStDev() << " usecs\n"
                           << "Last 30s:\n"
                           << "min: " << timeGaps.getWindowMin() << " usecs, "
                           << "max: " << timeGaps.getWindowMax() << " usecs, "
-                          << "avg: " << timeGaps.getWindowAverage() << " usecs\n"
+                          << "avg: " << timeGaps.getWindowAverage() << " usecs, "
+                << "stdev: " << stDev30s.getStDev() << " usecs\n"
                           << "Last report interval:\n"
                           << "min: " << timeGapsPerReport.getWindowMin() << " usecs, "
                           << "max: " << timeGapsPerReport.getWindowMax() << " usecs, "
-                          << "avg: " << timeGapsPerReport.getWindowAverage() << " usecs\n"
+                          << "avg: " << timeGapsPerReport.getWindowAverage() << " usecs, "
+                << "stdev: " << stDevReportInterval.getStDev() << " usecs\n"
                           << "\n";
+
+                stDevReportInterval.reset();
+                if (stDev30s.getSamples() > SAMPLES_FOR_30_SECONDS) {
+                    stDev30s.reset();
+                }
+
                 lastReport = now;
             }
         }
@@ -162,6 +178,10 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
     std::cout << "REPORTS_FOR_30_SECONDS:" << REPORTS_FOR_30_SECONDS << "\n";
 
     SequenceNumberStats seqStats(REPORTS_FOR_30_SECONDS);
+
+    StDev stDevReportInterval;
+    StDev stDev30s;
+    StDev stDev;
     
     if (bind(sockfd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
         std::cout << "bind failed\n";
@@ -197,16 +217,24 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
                           << "Overall:\n"
                           << "min: " << timeGaps.getMin() << " usecs, "
                           << "max: " << timeGaps.getMax() << " usecs, "
-                          << "avg: " << timeGaps.getAverage() << " usecs\n"
+                          << "avg: " << timeGaps.getAverage() << " usecs, "
+                << "stdev: " << stDev.getStDev() << " usecs\n"
                           << "Last 30s:\n"
                           << "min: " << timeGaps.getWindowMin() << " usecs, "
                           << "max: " << timeGaps.getWindowMax() << " usecs, "
-                          << "avg: " << timeGaps.getWindowAverage() << " usecs\n"
+                          << "avg: " << timeGaps.getWindowAverage() << " usecs, "
+                << "stdev: " << stDev30s.getStDev() << " usecs\n"
                           << "Last report interval:\n"
                           << "min: " << timeGapsPerReport.getWindowMin() << " usecs, "
                           << "max: " << timeGapsPerReport.getWindowMax() << " usecs, "
-                          << "avg: " << timeGapsPerReport.getWindowAverage() << " usecs\n"
+                          << "avg: " << timeGapsPerReport.getWindowAverage() << " usecs, "
+                << "stdev: " << stDevReportInterval.getStDev() << " usecs\n"
                           << "\n";
+
+                stDevReportInterval.reset();
+                if (stDev30s.getSamples() > SAMPLES_FOR_30_SECONDS) {
+                    stDev30s.reset();
+                }
 
                 PacketStreamStats packetStatsLast30s = seqStats.getStatsForHistoryWindow();
                 PacketStreamStats packetStatsLastReportInterval = seqStats.getStatsForLastHistoryInterval();
