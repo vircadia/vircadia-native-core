@@ -553,6 +553,7 @@ void AudioMixer::run() {
             sendAudioStreamStats = true;
         }
 
+        bool streamStatsPrinted = false;
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
@@ -587,14 +588,20 @@ void AudioMixer::run() {
                     // send an audio stream stats packet if it's time
                     if (sendAudioStreamStats) {
                         nodeData->sendAudioStreamStatsPackets(node);
-
-                        printf("\nStats for agent %s\n:", node->getUUID().toString().toLatin1().data());
-                        nodeData->printUpstreamDownstreamStats();
+                        
+                        if (_printStreamStats) {
+                            printf("\nStats for agent %s:\n", node->getUUID().toString().toLatin1().data());
+                            nodeData->printUpstreamDownstreamStats();
+                            streamStatsPrinted = true;
+                        }
                     }
 
                     ++_sumListeners;
                 }
             }
+        }
+        if (streamStatsPrinted) {
+            printf("\n----------------------------------------------------------------\n");
         }
         
         ++_numStatFrames;
