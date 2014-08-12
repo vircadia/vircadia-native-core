@@ -24,6 +24,8 @@
 #include <QVBoxLayout>
 #include <QtDebug>
 
+#include <GLMHelpers.h>
+
 #include "MetavoxelUtil.h"
 #include "ScriptCache.h"
 #include "StreamUtils.h"
