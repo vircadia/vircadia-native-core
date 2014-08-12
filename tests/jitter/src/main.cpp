@@ -110,6 +110,8 @@ void runSend(const char* addressOption, int port, int gap, int size, int report)
             timeGaps.update(gapDifferece);
             timeGapsPerReport.update(gapDifferece);
             stDev.addValue(gapDifferece);
+            stDev30s.addValue(gapDifferece);
+            stDevReportInterval.addValue(gapDifferece);
             last = now;
 
             if (now - lastReport >= (report * MSEC_TO_USEC)) {
@@ -208,6 +210,8 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
             timeGaps.update(gapDifferece);
             timeGapsPerReport.update(gapDifferece);
             stDev.addValue(gapDifferece);
+            stDev30s.addValue(gapDifferece);
+            stDevReportInterval.addValue(gapDifferece);
             last = now;
             
             if (now - lastReport >= (report * MSEC_TO_USEC)) {
