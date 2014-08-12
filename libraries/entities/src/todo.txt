@@ -76,6 +76,7 @@ Model properties:
         UNEXPECTED -- OctreeElement::getMyChildContaining() cubeScale=[0.000012] > ourScale=[0.000004] 
     
     V) crash/assert when you move an entity out of domain bounds???
+            also seems to cause duplicate items in elements...
     
         [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityItemProperties::decodeEntityEditPacket() PROP_VELOCITY value= {type='glm::vec3', x=0, y=-0.00194919, z=0}
         [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] ******************************* EntityItemProperties::decodeEntityEditPacket() PROP_DAMPING value= 0.99 
@@ -98,6 +99,7 @@ Model properties:
         Assertion failed: (containingElement), function updateEntity, file /Users/zappoman/Development/HiFi/hifi/libraries/entities/src/EntityTree.cpp, line 404.
     
 
+    W) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
     
 // NICE TO DO:
 

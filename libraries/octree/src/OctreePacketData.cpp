@@ -287,9 +287,6 @@ bool OctreePacketData::appendValue(quint64 value) {
     if (success) {
         _bytesOfValues += length;
         _totalBytesOfValues += length;
-        qDebug() << "OctreePacketData::appendValue(quint64 value) SUCCESS length=" << length;
-    } else {
-        qDebug() << "OctreePacketData::appendValue(quint64 value) FAILED length=" << length;
     }
     return success;
 }

@@ -116,11 +116,13 @@ bool MovingEntitiesOperator::PostRecursion(OctreeElement* element) {
         element->markWithChangedTime();
     }
     
+    /*
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     bool somethingPruned = entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
     if (somethingPruned) {
         qDebug() << "MovingEntitiesOperator::PostRecursion() something pruned!!!";
     }
+    */
 
     return keepSearching; // if we haven't yet found it, keep looking
 }

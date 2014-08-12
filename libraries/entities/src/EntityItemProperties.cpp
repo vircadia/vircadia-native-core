@@ -108,9 +108,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
     if (_dampingChanged) {
         changedProperties += PROP_DAMPING;
-        qDebug() << "******************************* _dampingChanged!!! changedProperties += PROP_DAMPING;";
-    } else {
-        qDebug() << "******************************* NOT _dampingChanged!!! not adding PROP_DAMPING;";
     }
 
     if (_lifetimeChanged) {
@@ -309,17 +306,12 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     }
 
     QScriptValue damping = object.property("damping");
-qDebug() << "damping.isValid()=" << damping.isValid();
     if (damping.isValid()) {
         float newValue;
         newValue = damping.toVariant().toFloat();
-qDebug() << "damping  newValue=" << newValue;
         if (_defaultSettings || newValue != _damping) {
             _damping = newValue;
             _dampingChanged = true;
-qDebug() << "damping  _dampingChanged=" << _dampingChanged;
-        } else {
-qDebug() << "NOT setting damping  _dampingChanged=" << _dampingChanged;
         }
     }
 
@@ -681,29 +673,19 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             // PROP_DAMPING,
             if (requestedProperties.getHasProperty(PROP_DAMPING)) {
-
-qDebug() << "******************************* requestedProperties.getHasProperty(PROP_DAMPING);";
-
                 LevelDetails propertyLevel = packetData.startLevel();
                 successPropertyFits = packetData.appendValue(properties.getDamping());
                 if (successPropertyFits) {
-
-qDebug() << "******************************* PROP_DAMPING fit... getDamping()=" << properties.getDamping();
-
                     propertyFlags |= PROP_DAMPING;
                     propertiesDidntFit -= PROP_DAMPING;
                     propertyCount++;
                     packetData.endLevel(propertyLevel);
                 } else {
-
-qDebug() << "******************************* PROP_DAMPING didn't fit...";
-
                     packetData.discardLevel(propertyLevel);
                     appendState = OctreeElement::PARTIAL;
                 }
             } else {
                 propertiesDidntFit -= PROP_DAMPING;
-qDebug() << "******************************* PROP_DAMPING not requested...";
             }
 
             // PROP_LIFETIME,
@@ -770,8 +752,6 @@ qDebug() << "******************************* PROP_DAMPING not requested...";
                 //qDebug() << "PROP_MODEL_URL NOT requested...";
                 propertiesDidntFit -= PROP_MODEL_URL;
             }
-
-qDebug() << "EntityItem EntityItem::encodeEntityEditMessageDetails() model URL=" << properties.getModelURL();
 
             // PROP_ANIMATION_URL
             if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
@@ -933,7 +913,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
                         EntityItemID& entityID, EntityItemProperties& properties) {
     bool valid = false;
 
-    bool wantDebug = true;
+    bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "EntityItemProperties::decodeEntityEditPacket() bytesToRead=" << bytesToRead;
     }
@@ -1005,7 +985,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         valid = true;
     }
 
-    qDebug() << "EntityItemProperties::decodeEntityEditPacket() entityID=" << entityID;
+    //qDebug() << "EntityItemProperties::decodeEntityEditPacket() entityID=" << entityID;
     
     // Entity Type...
     QByteArray encodedType((const char*)dataAt, (bytesToRead - processedBytes));
@@ -1024,12 +1004,12 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     // last updated is stored as ByteCountCoded delta from lastEdited
     QByteArray encodedUpdateDelta((const char*)dataAt, (bytesToRead - processedBytes));
     ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
-    quint64 updateDelta = updateDeltaCoder;
     encodedUpdateDelta = updateDeltaCoder; // determine true bytesToRead
     dataAt += encodedUpdateDelta.size();
     processedBytes += encodedUpdateDelta.size();
 
     // TODO: Do we need this lastUpdated?? We don't seem to use it.
+    //quint64 updateDelta = updateDeltaCoder;
     //quint64 lastUpdated = lastEdited + updateDelta; // don't adjust for clock skew since we already did that for lastEdited
     
     // Property Flags...
@@ -1090,7 +1070,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         dataAt += sizeof(value);
         processedBytes += sizeof(value);
         properties.setVelocity(value);
-        qDebug() << "EntityItemProperties::decodeEntityEditPacket() PROP_VELOCITY value=" << value;
+        //qDebug() << "EntityItemProperties::decodeEntityEditPacket() PROP_VELOCITY value=" << value;
     }
 
     // PROP_GRAVITY,
@@ -1109,7 +1089,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         dataAt += sizeof(value);
         processedBytes += sizeof(value);
         properties.setDamping(value);
-        qDebug() << "******************************* EntityItemProperties::decodeEntityEditPacket() PROP_DAMPING value=" << value;
     }
 
     // PROP_LIFETIME,

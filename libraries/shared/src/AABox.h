@@ -92,7 +92,7 @@ inline QDebug operator<<(QDebug debug, const AABox& box) {
             << box.getCorner().x * (float)TREE_SCALE << "," << box.getCorner().y * (float)TREE_SCALE << "," << box.getCorner().z * (float)TREE_SCALE << " ) to ("
             << box.calcTopFarLeft().x * (float)TREE_SCALE << "," << box.calcTopFarLeft().y * (float)TREE_SCALE << "," << box.calcTopFarLeft().z * (float)TREE_SCALE << ") size: ("
             << box.getDimensions().x * (float)TREE_SCALE << "," << box.getDimensions().y * (float)TREE_SCALE << "," << box.getDimensions().z * (float)TREE_SCALE << ")"
-            << "]";
+            << " in meters]";
 
     return debug;
 }

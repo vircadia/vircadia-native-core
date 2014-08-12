@@ -25,20 +25,19 @@ EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityI
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 { 
-    qDebug() << "ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
+    //qDebug() << "ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
     _type = EntityTypes::Model;     
 
-    qDebug() << "ModelEntityItem::ModelEntityItem() properties.getModelURL()=" << properties.getModelURL();
-    
-    qDebug() << "ModelEntityItem::ModelEntityItem() calling setProperties()";
+    //qDebug() << "ModelEntityItem::ModelEntityItem() properties.getModelURL()=" << properties.getModelURL();
+    //qDebug() << "ModelEntityItem::ModelEntityItem() calling setProperties()";
     setProperties(properties);
-    qDebug() << "ModelEntityItem::ModelEntityItem() getModelURL()=" << getModelURL();
+    //qDebug() << "ModelEntityItem::ModelEntityItem() getModelURL()=" << getModelURL();
     
     _animationFrameIndex = 0.0f;
 }
 
 EntityItemProperties ModelEntityItem::getProperties() const {
-    qDebug() << "ModelEntityItem::getProperties()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
+    //qDebug() << "ModelEntityItem::getProperties()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
 
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
@@ -58,14 +57,13 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     properties._glowLevel = getGlowLevel();
     properties._glowLevelChanged = false;
 
-    qDebug() << "ModelEntityItem::getProperties() getModelURL()=" << getModelURL();
+    //qDebug() << "ModelEntityItem::getProperties() getModelURL()=" << getModelURL();
 
     return properties;
 }
 
 void ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    qDebug() << "ModelEntityItem::setProperties()...";
-    qDebug() << "ModelEntityItem::setProperties() properties.getModelURL()=" << properties.getModelURL();
+    //qDebug() << "ModelEntityItem::setProperties()...";
     bool somethingChanged = false;
     
     EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
@@ -77,8 +75,6 @@ void ModelEntityItem::setProperties(const EntityItemProperties& properties, bool
 
     if (properties._modelURLChanged || forceCopy) {
         setModelURL(properties._modelURL);
-        
-qDebug() << "ModelEntityItem::setProperties() getModelURL()=" << getModelURL() << " ---- SETTING!!! --------";
         somethingChanged = true;
     }
 
@@ -137,13 +133,8 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
+    //qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// TODO: only handle these subclass items here, use the base class for the rest...
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        
     // PROP_COLOR
     if (propertyFlags.getHasProperty(PROP_COLOR)) {
         rgbColor color;
@@ -169,8 +160,7 @@ qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer()... <<<<<<<<<<<<
         }
     }
     
-qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... modelURL=" << getModelURL();
-    
+    //qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... modelURL=" << getModelURL();
 
     // PROP_ANIMATION_URL
     if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
@@ -337,7 +327,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
                                 EntityPropertyFlags& propertiesDidntFit,
                                 int& propertyCount, OctreeElement::AppendState& appendState) const {
 
-qDebug() << "ModelEntityItem::appendSubclassData()... ********************************************";
+    //qDebug() << "ModelEntityItem::appendSubclassData()... ********************************************";
     
     bool successPropertyFits = true;
 
@@ -381,7 +371,7 @@ qDebug() << "ModelEntityItem::appendSubclassData()... **************************
         propertiesDidntFit -= PROP_MODEL_URL;
     }
 
-qDebug() << "ModelEntityItem::appendEntityData()... modelURL=" << getModelURL();
+    //qDebug() << "ModelEntityItem::appendEntityData()... modelURL=" << getModelURL();
 
     // PROP_ANIMATION_URL
     if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
@@ -521,6 +511,7 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
 }
 
 QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
+    bool wantDebug = false;
     QVector<glm::quat> frameData;
     if (hasAnimation() && _jointMappingCompleted) {
         Animation* myAnimation = getAnimation(_animationURL);
@@ -531,11 +522,13 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
             int animationFrameIndex = (int)glm::floor(_animationFrameIndex) % frameCount;
 
             if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
-                qDebug() << "ModelEntityItem::getAnimationFrame()....";
-                qDebug() << "   frame index out of bounds....";
-                qDebug() << "   _animationFrameIndex=" << _animationFrameIndex;
-                qDebug() << "   frameCount=" << frameCount;
-                qDebug() << "   animationFrameIndex=" << animationFrameIndex;
+                if (wantDebug) {
+                    qDebug() << "ModelEntityItem::getAnimationFrame()....";
+                    qDebug() << "   frame index out of bounds....";
+                    qDebug() << "   _animationFrameIndex=" << _animationFrameIndex;
+                    qDebug() << "   frameCount=" << frameCount;
+                    qDebug() << "   animationFrameIndex=" << animationFrameIndex;
+                }
                 animationFrameIndex = 0;
             }
             
@@ -582,14 +575,14 @@ void ModelEntityItem::update(const quint64& updateTime) {
 
     quint64 now = updateTime; //usecTimestampNow();
     
-    qDebug() << "ModelEntityItem::update() getAnimationIsPlaying()="<< getAnimationIsPlaying();
+    //qDebug() << "ModelEntityItem::update() getAnimationIsPlaying()="<< getAnimationIsPlaying();
 
     // only advance the frame index if we're playing
     if (getAnimationIsPlaying()) {
 
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
         
-        const bool wantDebugging = true;
+        const bool wantDebugging = false;
         if (wantDebugging) {
             qDebug() << "EntityItem::update() now=" << now;
             qDebug() << "             updateTime=" << updateTime;

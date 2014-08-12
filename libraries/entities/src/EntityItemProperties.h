@@ -103,11 +103,11 @@ public:
         glm::vec3 cornerInTreeUnits = getMinimumPointMeters()/(float)TREE_SCALE;
         float dimensionInTreeUnits = getMaxDimension()/(float)TREE_SCALE;
     
-    qDebug() << "getAACubeTreeUnits()";
-    qDebug() << "   corner in meters=" << getMinimumPointMeters().x << "," << getMinimumPointMeters().y << "," << getMinimumPointMeters().z;
-    qDebug() << "   dimension in meters=" << getMaxDimension();
-    qDebug() << "   corner in tree units=" << cornerInTreeUnits.x << "," << cornerInTreeUnits.y << "," << cornerInTreeUnits.z;
-    qDebug() << "   dimension in tree units=" << dimensionInTreeUnits;
+    qDebug() << "        getAACubeTreeUnits()";
+    qDebug() << "           corner in meters=" << getMinimumPointMeters().x << "," << getMinimumPointMeters().y << "," << getMinimumPointMeters().z;
+    qDebug() << "           dimension in meters=" << getMaxDimension();
+    qDebug() << "           corner in tree units=" << cornerInTreeUnits.x << "," << cornerInTreeUnits.y << "," << cornerInTreeUnits.z;
+    qDebug() << "           dimension in tree units=" << dimensionInTreeUnits;
 
         return AACube(cornerInTreeUnits, dimensionInTreeUnits); 
     }

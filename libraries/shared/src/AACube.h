@@ -80,7 +80,7 @@ inline QDebug operator<<(QDebug debug, const AACube& cube) {
             << cube.getCorner().x * (float)TREE_SCALE << "," << cube.getCorner().y * (float)TREE_SCALE << "," << cube.getCorner().z * (float)TREE_SCALE << " ) to ("
             << cube.calcTopFarLeft().x * (float)TREE_SCALE << "," << cube.calcTopFarLeft().y * (float)TREE_SCALE << "," << cube.calcTopFarLeft().z * (float)TREE_SCALE << ") size: ("
             << cube.getDimensions().x * (float)TREE_SCALE << "," << cube.getDimensions().y * (float)TREE_SCALE << "," << cube.getDimensions().z * (float)TREE_SCALE << ")"
-            << "]";
+            << " in meters]";
     return debug;
 }
 

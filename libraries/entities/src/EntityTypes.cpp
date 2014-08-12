@@ -56,10 +56,13 @@ EntityTypes::EntityType EntityTypes::getEntityTypeFromName(const QString& name) 
 }
 
 bool EntityTypes::registerEntityType(EntityType entityType, const char* name, EntityTypeFactory factoryMethod) {
-    qDebug() << "EntityTypes::registerEntityType()";
-    qDebug() << "    entityType=" << entityType;
-    qDebug() << "    name=" << name;
-    qDebug() << "    factoryMethod=" << (void*)factoryMethod;
+    bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "EntityTypes::registerEntityType()";
+        qDebug() << "    entityType=" << entityType;
+        qDebug() << "    name=" << name;
+        qDebug() << "    factoryMethod=" << (void*)factoryMethod;
+    }
     
     _typeToNameMap[entityType] = name;
     _nameToTypeMap[name] = entityType;
@@ -72,12 +75,18 @@ bool EntityTypes::registerEntityType(EntityType entityType, const char* name, En
 }
 
 EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
-    qDebug() << "EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
-    qDebug() << "   entityType=" << entityType;
-    qDebug() << "   entityID=" << entityID;
+    bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
+        qDebug() << "   entityType=" << entityType;
+        qDebug() << "   entityID=" << entityID;
+    }
 
     EntityItem* newEntityItem = NULL;
-    EntityTypeFactory factory = _factories[entityType];
+    EntityTypeFactory factory = NULL;
+    if (entityType >= 0 && entityType <= LAST) {
+        factory = _factories[entityType];
+    }
     if (factory) {
         newEntityItem = factory(entityID, properties);
     }
@@ -115,7 +124,7 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
         QUuid actualID = QUuid::fromRfc4122(encodedID);
         bytesRead += encodedID.size();
-qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID=" << actualID;
+        qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID=" << actualID;
 
         // type
         QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
@@ -128,7 +137,7 @@ qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTRE
         EntityItemID tempEntityID(actualID);
         EntityItemProperties tempProperties;
 
-qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
+        qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
         
         return constructEntityItem(entityType, tempEntityID, tempProperties);
     }

@@ -134,7 +134,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     bool successTypeFits = packetData->appendValue(encodedType);
     
     quint64 lastEdited = getLastEdited();
-qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
+    //qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
     
     bool successLastEditedFits = packetData->appendValue(lastEdited);
     bool successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
@@ -296,7 +296,7 @@ qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
             LevelDetails propertyLevel = packetData->startLevel();
             successPropertyFits = packetData->appendValue(getDamping());
             if (successPropertyFits) {
-qDebug() << "success writing PROP_DAMPING=" << getDamping();
+                //qDebug() << "success writing PROP_DAMPING=" << getDamping();
                 propertyFlags |= PROP_DAMPING;
                 propertiesDidntFit -= PROP_DAMPING;
                 propertyCount++;
@@ -304,11 +304,11 @@ qDebug() << "success writing PROP_DAMPING=" << getDamping();
             } else {
                 packetData->discardLevel(propertyLevel);
                 appendState = OctreeElement::PARTIAL;
-qDebug() << "didn't fit PROP_DAMPING=" << getDamping();
+                //qDebug() << "didn't fit PROP_DAMPING=" << getDamping();
             }
         } else {
             propertiesDidntFit -= PROP_DAMPING;
-qDebug() << "not requested PROP_DAMPING=" << getDamping();
+            //qDebug() << "not requested PROP_DAMPING=" << getDamping();
         }
 
         // PROP_LIFETIME,
@@ -414,6 +414,7 @@ int EntityItem::expectedBytes() {
 
 
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+    bool wantDebug = false;
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
         qDebug() << "EntityItem::readEntityDataFromBuffer()... ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
@@ -478,12 +479,17 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // then we will not be changing our values, instead we just read and skip the data
         if (_lastEdited > lastEditedFromBuffer) {
             overwriteLocalData = false;
-            qDebug() << "IGNORING old data from server!!! **************** _lastEdited=" << _lastEdited 
-                        << "lastEditedFromBuffer=" << lastEditedFromBuffer << "now=" << usecTimestampNow();
+            
+            if (wantDebug) {
+                qDebug() << "IGNORING old data from server!!! **************** _lastEdited=" << _lastEdited 
+                            << "lastEditedFromBuffer=" << lastEditedFromBuffer << "now=" << usecTimestampNow();
+            }
         } else {
 
-            qDebug() << "USING NEW data from server!!! **************** OLD _lastEdited=" << _lastEdited 
-                        << "lastEditedFromBuffer=" << lastEditedFromBuffer << "now=" << usecTimestampNow();
+            if (wantDebug) {
+                qDebug() << "USING NEW data from server!!! **************** OLD _lastEdited=" << _lastEdited 
+                            << "lastEditedFromBuffer=" << lastEditedFromBuffer << "now=" << usecTimestampNow();
+            }
 
             _lastEdited = lastEditedFromBuffer;
         }
@@ -494,7 +500,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         quint64 updateDelta = updateDeltaCoder;
         if (overwriteLocalData) {
             _lastUpdated = _lastEdited + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
-qDebug() << "%%%%%%%%%%%%%%%% EntityItem::readEntityDataFromBuffer() .... SETTING _lastUpdated=" << _lastUpdated;
+            //qDebug() << "%%%%%%%%%%%%%%%% EntityItem::readEntityDataFromBuffer() .... SETTING _lastUpdated=" << _lastUpdated;
         }
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += encodedUpdateDelta.size();
@@ -591,12 +597,12 @@ qDebug() << "%%%%%%%%%%%%%%%% EntityItem::readEntityDataFromBuffer() .... SETTIN
             dataAt += sizeof(value);
             bytesRead += sizeof(value);
 
-qDebug() << "property included in buffer PROP_DAMPING=" << value;
+            //qDebug() << "property included in buffer PROP_DAMPING=" << value;
 
             if (overwriteLocalData) {
                 _damping = value;
 
-qDebug() << " overwriting local value... PROP_DAMPING=" << getDamping();
+                //qDebug() << " overwriting local value... PROP_DAMPING=" << getDamping();
             }
         }
 
@@ -822,9 +828,9 @@ EntityItemProperties EntityItem::getProperties() const {
 }
 
 void EntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    qDebug() << "EntityItem::setProperties()... forceCopy=" << forceCopy;
-    qDebug() << "EntityItem::setProperties() properties.getDamping()=" << properties.getDamping();
-    qDebug() << "EntityItem::setProperties() properties.getVelocity()=" << properties.getVelocity();
+    //qDebug() << "EntityItem::setProperties()... forceCopy=" << forceCopy;
+    //qDebug() << "EntityItem::setProperties() properties.getDamping()=" << properties.getDamping();
+    //qDebug() << "EntityItem::setProperties() properties.getVelocity()=" << properties.getVelocity();
 
     bool somethingChanged = false;
     if (properties._positionChanged || forceCopy) {
@@ -854,7 +860,7 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
 
     if (properties._velocityChanged || forceCopy) {
         setVelocity(properties._velocity / (float) TREE_SCALE);
-        qDebug() << "EntityItem::setProperties() AFTER setVelocity() getVelocity()=" << getVelocity();
+        //qDebug() << "EntityItem::setProperties() AFTER setVelocity() getVelocity()=" << getVelocity();
         somethingChanged = true;
     }
 
@@ -867,7 +873,7 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         somethingChanged = true;
     }
 
-qDebug() << ">>>>>>>>>>>>>>>>>>> EntityItem::setProperties(); <<<<<<<<<<<<<<<<<<<<<<<<<   properties._dampingChanged=" << properties._dampingChanged;
+    //qDebug() << ">>>>>>>>>>>>>>>>>>> EntityItem::setProperties(); <<<<<<<<<<<<<<<<<<<<<<<<<   properties._dampingChanged=" << properties._dampingChanged;
 
     if (properties._dampingChanged || forceCopy) {
         setDamping(properties._damping);

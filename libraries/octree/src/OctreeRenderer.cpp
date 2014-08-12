@@ -128,9 +128,13 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                            sequence, flightTime, packetLength, dataBytes, subsection, sectionLength,
                            packetData.getUncompressedSize());
                 }
-qDebug() << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
+                if (extraDebugging) {
+                    qDebug() << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
+                }
                 _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
-qDebug() << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
+                if (extraDebugging) {
+                    qDebug() << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
+                }
                 _tree->unlock();
             
                 dataBytes -= sectionLength;
@@ -161,9 +165,9 @@ void OctreeRenderer::render(RenderMode renderMode) {
     RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 0, 0, 0 };
     if (_tree) {
         _tree->lockForRead();
-//qDebug() << "OctreeRenderer::render() tree locked START RENDER RECURSION...";
+        //qDebug() << "OctreeRenderer::render() tree locked START RENDER RECURSION...";
         _tree->recurseTreeWithOperation(renderOperation, &args);
-//qDebug() << "OctreeRenderer::render() tree locked ENDED RENDER RECURSION...";
+        //qDebug() << "OctreeRenderer::render() tree locked ENDED RENDER RECURSION...";
         _tree->unlock();
     }
 }

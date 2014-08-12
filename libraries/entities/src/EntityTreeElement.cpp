@@ -213,21 +213,54 @@ bool EntityTreeElement::containsBounds(const glm::vec3& minPoint, const glm::vec
 }
 
 bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
+    bool wantDebug = false;
+
     glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
     glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
+
+    if (wantDebug) {
+        qDebug() << "        EntityTreeElement::bestFitBounds()";
+        qDebug() << "            minPoint=" << minPoint;
+        qDebug() << "            maxPoint=" << maxPoint;
+        qDebug() << "            clampedMin=" << clampedMin;
+        qDebug() << "            clampedMax=" << clampedMax;
+        qDebug() << "            _cube=" << _cube;
+    }
+
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
         int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
         int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
+
+        if (wantDebug) {
+            qDebug() << "            _cube.contains BOTH";
+            qDebug() << "            childForMinimumPoint=" << childForMinimumPoint;
+            qDebug() << "            childForMaximumPoint=" << childForMaximumPoint;
+        }
         
         // if this is a really small box, then it's close enough!
         if (_cube.getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+
+            if (wantDebug) {
+                qDebug() << "            (_cube.getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE).... RETURN TRUE";
+            }
+
             return true;
         }
         // If I contain both the minimum and maximum point, but two different children of mine
         // contain those points, then I am the best fit for that entity
         if (childForMinimumPoint != childForMaximumPoint) {
+            if (wantDebug) {
+                qDebug() << "            (childForMinimumPoint != childForMaximumPoint).... RETURN TRUE";
+            }
             return true;
         }
+    } else {
+        if (wantDebug) {
+            qDebug() << "            NOT _cube.contains BOTH";
+        }
+    }
+    if (wantDebug) {
+        qDebug() << "            RETURN FALSE....";
     }
     return false;
 }
@@ -717,7 +750,7 @@ bool EntityTreeElement::pruneChildren() {
         // if my child is a leaf, but has no entities, then it's safe to delete my child
         if (child && child->isLeaf() && !child->hasEntities()) {
             qDebug() << "EntityTreeElement::pruneChildren()... WANT TO PRUNE!!!! childIndex=" << childIndex;
-            deleteChildAtIndex(childIndex);
+            //deleteChildAtIndex(childIndex);
             somethingPruned = true;
         }
     }
