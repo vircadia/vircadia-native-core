@@ -27,8 +27,8 @@ find_path(LIBOVR_SRC_DIR Util_Render_Stereo.h PATH_SUFFIXES Src/Util HINTS ${LIB
 include(SelectLibraryConfigurations)
 
 if (APPLE)
-  find_library(LIBOVR_LIBRARY_DEBUG NAMES ovr PATH_SUFFIXES Lib/Mac/Debug HINTS ${OCULUS_SEARCH_DIRS})
-  find_library(LIBOVR_LIBRARY_RELEASE NAMES ovr PATH_SUFFIXES Lib/Mac/Release HINTS ${OCULUS_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_DEBUG NAMES ovr PATH_SUFFIXES Lib/Mac/Debug HINTS ${LIBOVR_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_RELEASE NAMES ovr PATH_SUFFIXES Lib/Mac/Release HINTS ${LIBOVR_SEARCH_DIRS})
   find_library(ApplicationServices ApplicationServices)
   find_library(IOKit IOKit)
 elseif (UNIX)
@@ -53,21 +53,20 @@ elseif (WIN32)
 endif ()
 
 select_library_configurations(LIBOVR)
-set(LIBOVR_LIBRARIES "${LIBOVR_LIBRARY}")
+set(LIBOVR_LIBRARIES ${LIBOVR_LIBRARY})
+
+list(APPEND LIBOVR_ARGS_LIST LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARY)
 
 if (APPLE)
-  set(LIBOVR_LIBRARIES "${LIBOVR_LIBRARIES}" ${IOKit} ${ApplicationServices})
+  list(APPEND LIBOVR_LIBRARIES ${IOKit} ${ApplicationServices})
+  list(APPEND LIBOVR_ARGS_LIST IOKit ApplicationServices)
 elseif (UNIX) 
-  set(LIBOVR_LIBRARIES "${LIBOVR_LIBRARIES}" "${UDEV_LIBRARY}" "${XINERAMA_LIBRARY}")
+  list(APPEND LIBOVR_LIBRARIES "${UDEV_LIBRARY}" "${XINERAMA_LIBRARY}")
+  list(APPEND LIBOVR_ARGS_LIST UDEV_LIBRARY XINERAMA_LIBRARY)
 endif ()
 
 include(FindPackageHandleStandardArgs)
-if (APPLE)
-  find_package_handle_standard_args(LibOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES IOKit ApplicationServices)
-elseif (UNIX)
-  find_package_handle_standard_args(LibOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES UDEV_LIBRARY XINERAMA_LIBRARY)
-else ()
-  find_package_handle_standard_args(LibOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES)
-endif ()
 
-mark_as_advanced(LIBOVR_INCLUDE_DIRS LIBOVR_LIBRARIES OCULUS_SEARCH_DIRS)
+find_package_handle_standard_args(LibOVR DEFAULT_MSG ${LIBOVR_ARGS_LIST})
+
+mark_as_advanced(LIBOVR_INCLUDE_DIRS LIBOVR_LIBRARIES LIBOVR_SEARCH_DIRS)
