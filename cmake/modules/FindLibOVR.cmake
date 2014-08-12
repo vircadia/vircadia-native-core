@@ -27,8 +27,8 @@ find_path(LIBOVR_SRC_DIR Util_Render_Stereo.h PATH_SUFFIXES Src/Util HINTS ${OCU
 include(SelectLibraryConfigurations)
 
 if (APPLE)
-  find_library(LIBOVR_LIBRARY_DEBUG NAMES ovr PATH_SUFFIXES Lib/MacOS/Debug HINTS ${OCULUS_SEARCH_DIRS})
-  find_library(LIBOVR_LIBRARY_RELEASE NAMES ovr PATH_SUFFIXES Lib/MacOS/Release HINTS ${OCULUS_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_DEBUG NAMES ovr PATH_SUFFIXES Lib/Mac/Debug HINTS ${OCULUS_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_RELEASE NAMES ovr PATH_SUFFIXES Lib/Mac/Release HINTS ${OCULUS_SEARCH_DIRS})
   find_library(ApplicationServices ApplicationServices)
   find_library(IOKit IOKit)
 elseif (UNIX)
