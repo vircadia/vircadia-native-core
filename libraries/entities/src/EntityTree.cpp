@@ -349,6 +349,13 @@ bool UpdateEntityOperator::PostRecursion(OctreeElement* element) {
             (_foundNew && subTreeContainsNewEntity(element))) {
         element->markWithChangedTime();
     }
+    
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    bool somethingPruned = entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
+    if (somethingPruned) {
+        qDebug() << "UpdateEntityOperator::PostRecursion() something pruned!!!";
+    }
+    
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
@@ -573,6 +580,13 @@ bool DeleteEntityOperator::PostRecursion(OctreeElement* element) {
     if ((subTreeContainsSomeEntitiesToDelete(element))) {
         element->markWithChangedTime();
     }
+
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    bool somethingPruned = entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
+    if (somethingPruned) {
+        qDebug() << "DeleteEntityOperator::PostRecursion() something pruned!!!";
+    }
+    
     return keepSearching; // if we haven't yet found it, keep looking
 }
 

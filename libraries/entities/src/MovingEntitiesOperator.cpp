@@ -80,11 +80,8 @@ bool MovingEntitiesOperator::PreRecursion(OctreeElement* element) {
             if (!details.oldFound && entityTreeElement == details.oldContainingElement) {
                 EntityItemID entityItemID = details.entity->getEntityItemID();
                 entityTreeElement->removeEntityWithEntityItemID(entityItemID);
-qDebug() << "removing entityItem from element... entityItemID=" << entityItemID << "entityTreeElement=" << entityTreeElement;
-                // if we haven't yet found the entity's new location clear our containing element
-                //if (!details.newFound) {
-                //    _tree->setContainingElement(entityItemID, NULL);
-                //}
+
+                //qDebug() << "removing entityItem from element... entityItemID=" << entityItemID << "entityTreeElement=" << entityTreeElement;
                 _foundOldCount++;
                 //details.oldFound = true; // TODO: would be nice to add this optimization
             }
@@ -94,7 +91,7 @@ qDebug() << "removing entityItem from element... entityItemID=" << entityItemID 
                 EntityItemID entityItemID = details.entity->getEntityItemID();
                 entityTreeElement->addEntityItem(details.entity);
                 _tree->setContainingElement(entityItemID, entityTreeElement);
-qDebug() << "adding entityItem to element... entityItemID=" << entityItemID << "entityTreeElement=" << entityTreeElement;
+                //qDebug() << "adding entityItem to element... entityItemID=" << entityItemID << "entityTreeElement=" << entityTreeElement;
                 _foundNewCount++;
                 //details.newFound = true; // TODO: would be nice to add this optimization
             }
@@ -118,6 +115,13 @@ bool MovingEntitiesOperator::PostRecursion(OctreeElement* element) {
     if ((shouldRecurseSubTree(element))) {
         element->markWithChangedTime();
     }
+    
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    bool somethingPruned = entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
+    if (somethingPruned) {
+        qDebug() << "MovingEntitiesOperator::PostRecursion() something pruned!!!";
+    }
+
     return keepSearching; // if we haven't yet found it, keep looking
 }
 

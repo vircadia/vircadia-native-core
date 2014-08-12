@@ -177,8 +177,6 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     //qDebug() << "EntityTreeRenderer::renderElement() element=" << element << "numberOfEntities=" << numberOfEntities;
     
     bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
-
-    bool displayModelBounds = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelBounds);
     bool displayElementProxy = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelElementProxy);
     bool displayElementChildProxies = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelElementChildProxies);
 

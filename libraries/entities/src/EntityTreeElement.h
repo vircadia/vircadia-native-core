@@ -163,6 +163,8 @@ public:
 
     void debugDump();
 
+    bool pruneChildren();
+
 protected:
     virtual void init(unsigned char * octalCode);
     EntityTree* _myTree;

@@ -709,6 +709,21 @@ bool EntityTreeElement::collapseChildren() {
     return false;
 }
 
+bool EntityTreeElement::pruneChildren() {
+    bool somethingPruned = false;
+    for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
+        EntityTreeElement* child = getChildAtIndex(childIndex);
+        
+        // if my child is a leaf, but has no entities, then it's safe to delete my child
+        if (child && child->isLeaf() && !child->hasEntities()) {
+            qDebug() << "EntityTreeElement::pruneChildren()... WANT TO PRUNE!!!! childIndex=" << childIndex;
+            deleteChildAtIndex(childIndex);
+            somethingPruned = true;
+        }
+    }
+    return somethingPruned;
+}
+
 
 void EntityTreeElement::debugDump() {
     qDebug() << "EntityTreeElement...";

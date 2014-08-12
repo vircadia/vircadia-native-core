@@ -39,8 +39,10 @@ Model properties:
 //
 // REQUIRED TO DO:
 
+   12) clean up delete behavior...
+   12a) make sure server is deleting items??
+   12b) Use the delete message instead of shouldDelete property
 
-    D) update and verify all particle examples to use new entity features
     E) memory leaks???
    22) Import/Export Models - verify it works. /copy/paste??
         22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
@@ -67,15 +69,39 @@ Model properties:
     
     O) Test models -> attachments logic
     
-   12) clean up delete behavior...
-   12a) make sure server is deleting items??
-   12b) Use the delete message instead of shouldDelete property
    
     S) What happens if the edit properties don't fit in a single message MTU???
+    T) animations not always working?????
+    U) ---- WHAT'S THIS -------
+        UNEXPECTED -- OctreeElement::getMyChildContaining() cubeScale=[0.000012] > ourScale=[0.000004] 
+    
+    V) crash/assert when you move an entity out of domain bounds???
+    
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityItemProperties::decodeEntityEditPacket() PROP_VELOCITY value= {type='glm::vec3', x=0, y=-0.00194919, z=0}
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] ******************************* EntityItemProperties::decodeEntityEditPacket() PROP_DAMPING value= 0.99 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityItem EntityItem::decodeEntityEditPacket() model URL= "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx" 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] getAACubeTreeUnits() 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]    corner in meters= 33.735 , -0.189079 , 13.3167 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]    dimension in meters= 0.2 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]    corner in tree units= 0.00205902 , -1.15405e-05 , 0.000812788 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]    dimension in tree units= 1.2207e-05 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityTree::changeEntityState().... 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      oldState: 2 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      newState: 2 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityTree::changeEntityState() BEFORE.... 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      _changingEntities: () 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      _movingEntities: (0x7ff58b4964e0) 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityTree::changeEntityState() AFTER.... 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      _changingEntities: () 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      _movingEntities: (0x7ff58b4964e0) 
+        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] after updateEntity() we no longer have a containing element??? 
+        Assertion failed: (containingElement), function updateEntity, file /Users/zappoman/Development/HiFi/hifi/libraries/entities/src/EntityTree.cpp, line 404.
     
 
     
 // NICE TO DO:
+
+    D) update and verify all particle examples to use new entity features
 
     Ac) implement support for requestedProperties in appendEntityData() that only include CHANGED properties for the viewer...
     Az) visible???

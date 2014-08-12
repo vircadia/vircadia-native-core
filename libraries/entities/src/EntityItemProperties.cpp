@@ -961,7 +961,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     memcpy(&lastEdited, dataAt, sizeof(lastEdited));
     dataAt += sizeof(lastEdited);
     processedBytes += sizeof(lastEdited);
-qDebug() << "EntityItemProperties::decodeEntityEditPacket() ... lastEdited=" << lastEdited;
+    //qDebug() << "EntityItemProperties::decodeEntityEditPacket() ... lastEdited=" << lastEdited;
     properties.setLastEdited(lastEdited);
 
     // encoded id
@@ -976,7 +976,7 @@ qDebug() << "EntityItemProperties::decodeEntityEditPacket() ... lastEdited=" << 
 
     bool isNewEntityItem = (editID == NEW_ENTITY);
 
-    qDebug() << "EntityItemProperties::decodeEntityEditPacket() isNewEntityItem=" << isNewEntityItem;
+    //qDebug() << "EntityItemProperties::decodeEntityEditPacket() isNewEntityItem=" << isNewEntityItem;
 
     if (isNewEntityItem) {
         // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
@@ -1025,10 +1025,12 @@ qDebug() << "EntityItemProperties::decodeEntityEditPacket() ... lastEdited=" << 
     QByteArray encodedUpdateDelta((const char*)dataAt, (bytesToRead - processedBytes));
     ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
     quint64 updateDelta = updateDeltaCoder;
-    quint64 lastUpdated = lastEdited + updateDelta; // don't adjust for clock skew since we already did that for lastEdited
     encodedUpdateDelta = updateDeltaCoder; // determine true bytesToRead
     dataAt += encodedUpdateDelta.size();
     processedBytes += encodedUpdateDelta.size();
+
+    // TODO: Do we need this lastUpdated?? We don't seem to use it.
+    //quint64 lastUpdated = lastEdited + updateDelta; // don't adjust for clock skew since we already did that for lastEdited
     
     // Property Flags...
     QByteArray encodedPropertyFlags((const char*)dataAt, (bytesToRead - processedBytes));
