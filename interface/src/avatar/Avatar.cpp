@@ -27,6 +27,7 @@
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
+#include "ModelReferential.h"
 #include "Physics.h"
 #include "world.h"
 #include "devices/OculusManager.h"
@@ -102,6 +103,31 @@ float Avatar::getLODDistance() const {
 
 void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
+    
+    // update the avatar's position according to its referential
+    if (_referential) {
+        if (_referential->hasExtraData()) {
+            ModelTree* tree = Application::getInstance()->getModels()->getTree();
+            switch (_referential->type()) {
+                case Referential::MODEL:
+                    _referential = new ModelReferential(_referential,
+                                                        tree,
+                                                        this);
+                    break;
+                case Referential::JOINT:
+                    _referential = new JointReferential(_referential,
+                                                        tree,
+                                                        this);
+                    break;
+                default:
+                    qDebug() << "[WARNING] Avatar::simulate(): Unknown referential type.";
+                    break;
+            }
+        }
+        
+        _referential->update();
+    }
+    
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
@@ -218,11 +244,60 @@ static TextRenderer* textRenderer(TextRendererType type) {
 }
 
 void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
+    if (_referential) {
+        _referential->update();
+    }
+    
+    if (glm::distance(Application::getInstance()->getAvatar()->getPosition(),
+                      _position) < 10.0f) {
+        // render pointing lasers
+        glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
+        float laserLength = 50.0f;
+        if (_handState == HAND_STATE_LEFT_POINTING ||
+            _handState == HAND_STATE_BOTH_POINTING) {
+            int leftIndex = _skeletonModel.getLeftHandJointIndex();
+            glm::vec3 leftPosition;
+            glm::quat leftRotation;
+            _skeletonModel.getJointPositionInWorldFrame(leftIndex, leftPosition);
+            _skeletonModel.getJointRotationInWorldFrame(leftIndex, leftRotation);
+            glPushMatrix(); {
+                glTranslatef(leftPosition.x, leftPosition.y, leftPosition.z);
+                float angle = glm::degrees(glm::angle(leftRotation));
+                glm::vec3 axis = glm::axis(leftRotation);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glBegin(GL_LINES);
+                glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, laserLength, 0.0f);
+                glEnd();
+            } glPopMatrix();
+        }
+        if (_handState == HAND_STATE_RIGHT_POINTING ||
+            _handState == HAND_STATE_BOTH_POINTING) {
+            int rightIndex = _skeletonModel.getRightHandJointIndex();
+            glm::vec3 rightPosition;
+            glm::quat rightRotation;
+            _skeletonModel.getJointPositionInWorldFrame(rightIndex, rightPosition);
+            _skeletonModel.getJointRotationInWorldFrame(rightIndex, rightRotation);
+            glPushMatrix(); {
+                glTranslatef(rightPosition.x, rightPosition.y, rightPosition.z);
+                float angle = glm::degrees(glm::angle(rightRotation));
+                glm::vec3 axis = glm::axis(rightRotation);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glBegin(GL_LINES);
+                glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, laserLength, 0.0f);
+                glEnd();
+            } glPopMatrix();
+        }
+    }
+    
     // simple frustum check
     float boundingRadius = getBillboardSize();
     ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
         Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getViewFrustum();
-    if (frustum->sphereInFrustum(_position, boundingRadius) == ViewFrustum::OUTSIDE) {
+    if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
 

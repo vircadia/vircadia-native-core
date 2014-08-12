@@ -188,10 +188,12 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
 
 QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
     QVector<JointState> jointStates;
-    foreach (const FBXJoint& joint, geometry.joints) {
-        // NOTE: the state keeps a pointer to an FBXJoint
+    for (int i = 0; i < geometry.joints.size(); ++i) {
+        const FBXJoint& joint = geometry.joints[i];
+        // store a pointer to the FBXJoint in the JointState
         JointState state;
         state.setFBXJoint(&joint);
+
         jointStates.append(state);
     }
     return jointStates;
@@ -199,8 +201,8 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
 
 void Model::initJointTransforms() {
     // compute model transforms
-    int numJoints = _jointStates.size();
-    for (int i = 0; i < numJoints; ++i) {
+    int numStates = _jointStates.size();
+    for (int i = 0; i < numStates; ++i) {
         JointState& state = _jointStates[i];
         const FBXJoint& joint = state.getFBXJoint();
         int parentIndex = joint.parentIndex;
@@ -538,9 +540,9 @@ void Model::setJointStates(QVector<JointState> states) {
     _jointStates = states;
     initJointTransforms();
 
-    int numJoints = _jointStates.size();
+    int numStates = _jointStates.size();
     float radius = 0.0f;
-    for (int i = 0; i < numJoints; ++i) {
+    for (int i = 0; i < numStates; ++i) {
         float distance = glm::length(_jointStates[i].getPosition());
         if (distance > radius) {
             radius = distance;
@@ -676,12 +678,18 @@ bool Model::getJointState(int index, glm::quat& rotation) const {
     if (index == -1 || index >= _jointStates.size()) {
         return false;
     }
-    rotation = _jointStates.at(index).getRotationInConstrainedFrame();
-    const glm::quat& defaultRotation = _geometry->getFBXGeometry().joints.at(index).rotation;
-    return glm::abs(rotation.x - defaultRotation.x) >= EPSILON ||
-        glm::abs(rotation.y - defaultRotation.y) >= EPSILON ||
-        glm::abs(rotation.z - defaultRotation.z) >= EPSILON ||
-        glm::abs(rotation.w - defaultRotation.w) >= EPSILON;
+    const JointState& state = _jointStates.at(index);
+    rotation = state.getRotationInConstrainedFrame();
+    return !state.rotationIsDefault(rotation);
+}
+
+bool Model::getVisibleJointState(int index, glm::quat& rotation) const {
+    if (index == -1 || index >= _jointStates.size()) {
+        return false;
+    }
+    const JointState& state = _jointStates.at(index);
+    rotation = state.getVisibleRotationInConstrainedFrame();
+    return !state.rotationIsDefault(rotation);
 }
 
 void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
@@ -916,7 +924,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 void Model::simulateInternal(float deltaTime) {
     // NOTE: this is a recursive call that walks all attachments, and their attachments
     // update the world space transforms for all joints
-
+    
     // update animations
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
         handle->simulate(deltaTime);
@@ -925,8 +933,11 @@ void Model::simulateInternal(float deltaTime) {
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
     }
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].resetTransformChanged();
+    }
 
-    _shapesAreDirty = ! _shapes.isEmpty();
+    _shapesAreDirty = !_shapes.isEmpty();
     
     // update the attachment transforms and simulate them
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -988,7 +999,7 @@ void Model::updateJointState(int index) {
         state.computeTransform(parentTransform);
     } else {
         const JointState& parentState = _jointStates.at(parentIndex);
-        state.computeTransform(parentState.getTransform());
+        state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
     }
 }
 
@@ -1234,55 +1245,7 @@ float Model::getLimbLength(int jointIndex) const {
 const int BALL_SUBDIVISIONS = 10;
 
 void Model::renderJointCollisionShapes(float alpha) {
-    glPushMatrix();
-    Application::getInstance()->loadTranslatedViewMatrix(_translation);
-    for (int i = 0; i < _shapes.size(); i++) {
-        Shape* shape = _shapes[i];
-        if (!shape) {
-            continue;
-        }
-
-        glPushMatrix();
-        // NOTE: the shapes are in the avatar local-frame
-        if (shape->getType() == Shape::SPHERE_SHAPE) {
-            // shapes are stored in world-frame, so we have to transform into model frame
-            glm::vec3 position = _rotation * shape->getTranslation();
-            glTranslatef(position.x, position.y, position.z);
-            const glm::quat& rotation = shape->getRotation();
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-            // draw a grey sphere at shape position
-            glColor4f(0.75f, 0.75f, 0.75f, alpha);
-            glutSolidSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-        } else if (shape->getType() == Shape::CAPSULE_SHAPE) {
-            CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
-
-            // draw a blue sphere at the capsule endpoint
-            glm::vec3 endPoint;
-            capsule->getEndPoint(endPoint);
-            endPoint = _rotation * endPoint;
-            glTranslatef(endPoint.x, endPoint.y, endPoint.z);
-            glColor4f(0.6f, 0.6f, 0.8f, alpha);
-            glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-
-            // draw a yellow sphere at the capsule startpoint
-            glm::vec3 startPoint;
-            capsule->getStartPoint(startPoint);
-            startPoint = _rotation * startPoint;
-            glm::vec3 axis = endPoint - startPoint;
-            glTranslatef(-axis.x, -axis.y, -axis.z);
-            glColor4f(0.8f, 0.8f, 0.6f, alpha);
-            glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-            
-            // draw a green cylinder between the two points
-            glm::vec3 origin(0.0f);
-            glColor4f(0.6f, 0.8f, 0.6f, alpha);
-            Avatar::renderJointConnectingCone( origin, axis, capsule->getRadius(), capsule->getRadius());
-        }
-        glPopMatrix();
-    }
-    glPopMatrix();
+    // implement this when we have shapes for regular models
 }
 
 void Model::setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {

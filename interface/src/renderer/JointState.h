@@ -16,6 +16,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include <GLMHelpers.h>
 #include <FBXReader.h>
 
 class AngularConstraint;
@@ -33,7 +34,9 @@ public:
     void copyState(const JointState& state);
 
     void initTransform(const glm::mat4& parentTransform);
-    void computeTransform(const glm::mat4& parentTransform);
+    // if synchronousRotationCompute is true, then _transform is still computed synchronously,
+    // but _rotation will be asynchronously extracted
+    void computeTransform(const glm::mat4& parentTransform, bool parentTransformChanged = true, bool synchronousRotationCompute = false);
 
     void computeVisibleTransform(const glm::mat4& parentTransform);
     const glm::mat4& getVisibleTransform() const { return _visibleTransform; }
@@ -41,8 +44,10 @@ public:
     glm::vec3 getVisiblePosition() const { return extractTranslation(_visibleTransform); }
 
     const glm::mat4& getTransform() const { return _transform; }
+    void resetTransformChanged() { _transformChanged = false; }
+    bool getTransformChanged() const { return _transformChanged; }
 
-    glm::quat getRotation() const { return _rotation; }
+    glm::quat getRotation() const;
     glm::vec3 getPosition() const { return extractTranslation(_transform); }
 
     /// \return rotation from bind to model frame
@@ -51,6 +56,7 @@ public:
     glm::quat getRotationInParentFrame() const;
     glm::quat getVisibleRotationInParentFrame() const;
     const glm::vec3& getPositionInParentFrame() const { return _positionInParentFrame; }
+    float getDistanceToParent() const { return _distanceToParent; }
 
     int getParentIndex() const { return _fbxJoint->parentIndex; }
 
@@ -81,6 +87,9 @@ public:
     void setRotationInConstrainedFrame(const glm::quat& targetRotation);
     void setVisibleRotationInConstrainedFrame(const glm::quat& targetRotation);
     const glm::quat& getRotationInConstrainedFrame() const { return _rotationInConstrainedFrame; }
+    const glm::quat& getVisibleRotationInConstrainedFrame() const { return _visibleRotationInConstrainedFrame; }
+
+    const bool rotationIsDefault(const glm::quat& rotation, float tolerance = EPSILON) const;
 
     const glm::vec3& getDefaultTranslationInConstrainedFrame() const;
 
@@ -100,10 +109,13 @@ private:
     /// debug helper function
     void loadBindRotation();
 
+    bool _transformChanged;
     glm::mat4 _transform; // joint- to model-frame
+    bool _rotationIsValid;
     glm::quat _rotation;  // joint- to model-frame
     glm::quat _rotationInConstrainedFrame; // rotation in frame where angular constraints would be applied
     glm::vec3 _positionInParentFrame; // only changes when the Model is scaled
+    float _distanceToParent;
 
     glm::mat4 _visibleTransform;
     glm::quat _visibleRotation;

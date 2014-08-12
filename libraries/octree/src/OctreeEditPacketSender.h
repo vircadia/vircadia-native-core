@@ -15,19 +15,10 @@
 #include <qqueue.h>
 #include <PacketSender.h>
 #include <PacketHeaders.h>
+
+#include "EditPacketBuffer.h"
 #include "JurisdictionMap.h"
 #include "SentPacketHistory.h"
-
-/// Used for construction of edit packets
-class EditPacketBuffer {
-public:
-    EditPacketBuffer() : _nodeUUID(), _currentType(PacketTypeUnknown), _currentSize(0) { }
-    EditPacketBuffer(PacketType type, unsigned char* codeColorBuffer, ssize_t length, const QUuid nodeUUID = QUuid());
-    QUuid _nodeUUID;
-    PacketType _currentType;
-    unsigned char _currentBuffer[MAX_PACKET_SIZE];
-    ssize_t _currentSize;
-};
 
 /// Utility for processing, packing, queueing and sending of outbound edit messages.
 class OctreeEditPacketSender :  public PacketSender {
@@ -39,7 +30,7 @@ public:
     /// Queues a single edit message. Will potentially send a pending multi-command packet. Determines which server
     /// node or nodes the packet should be sent to. Can be called even before servers are known, in which case up to 
     /// MaxPendingMessages will be buffered and processed when servers are known.
-    void queueOctreeEditMessage(PacketType type, unsigned char* buffer, ssize_t length);
+    void queueOctreeEditMessage(PacketType type, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
 
     /// Releases all queued messages even if those messages haven't filled an MTU packet. This will move the packed message 
     /// packets onto the send queue. If running in threaded mode, the caller does not need to do any further processing to
@@ -90,19 +81,25 @@ public:
 
     // you must override these...
     virtual char getMyNodeType() const = 0;
-    virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { };
+    virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew) { };
+    
+    bool hasDestinationWalletUUID() const { return !_destinationWalletUUID.isNull(); }
+    void setDestinationWalletUUID(const QUuid& destinationWalletUUID) { _destinationWalletUUID = destinationWalletUUID; }
+    const QUuid& getDestinationWalletUUID() { return _destinationWalletUUID; }
+    
+    void processNackPacket(const QByteArray& packet);
 
 public slots:
     void nodeKilled(SharedNodePointer node);
 
-public:
-    void processNackPacket(const QByteArray& packet);
-
+signals:
+    void octreePaymentRequired(qint64 satoshiAmount, const QUuid& nodeUUID, const QUuid& destinationWalletUUID);
+    
 protected:
     bool _shouldSend;
-    void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, ssize_t length);
-    void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, ssize_t length);
-    void queuePacketToNodes(unsigned char* buffer, ssize_t length);
+    void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
+    void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
+    void queuePacketToNodes(unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
     void initializePacket(EditPacketBuffer& packetBuffer, PacketType type);
     void releaseQueuedPacket(EditPacketBuffer& packetBuffer); // releases specific queued packet
     
@@ -127,5 +124,7 @@ protected:
     // TODO: add locks for this and _pendingEditPackets
     QHash<QUuid, SentPacketHistory> _sentPacketHistories;
     QHash<QUuid, quint16> _outgoingSequenceNumbers;
+    
+    QUuid _destinationWalletUUID;
 };
 #endif // hifi_OctreeEditPacketSender_h

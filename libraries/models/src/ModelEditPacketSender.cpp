@@ -38,7 +38,7 @@ void ModelEditPacketSender::sendEditModelMessage(PacketType type, ModelItemID mo
     }
 }
 
-void ModelEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
+void ModelEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew) {
     ModelItem::adjustEditPacketForClockSkew(codeColorBuffer, length, clockSkew);
 }
 

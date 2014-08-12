@@ -23,9 +23,9 @@
 #include <glm/gtx/transform.hpp>
 
 #include <GeometryUtil.h>
+#include <GLMHelpers.h>
 #include <OctalCode.h>
 #include <Shape.h>
-#include <SharedUtil.h>
 
 #include <VoxelTree.h>
 
@@ -576,6 +576,8 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "CheekSquint_R",
     ""
 };
+
+const int NUM_FACESHIFT_BLENDSHAPES = sizeof(FACESHIFT_BLENDSHAPES) / sizeof(char*);
 
 const char* HUMANIK_JOINTS[] = {
     "RightHand",

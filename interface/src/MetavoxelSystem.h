@@ -14,6 +14,7 @@
 
 #include <QList>
 #include <QOpenGLBuffer>
+#include <QReadWriteLock>
 #include <QVector>
 
 #include <glm/glm.hpp>
@@ -30,57 +31,47 @@ class MetavoxelSystem : public MetavoxelClientManager {
 
 public:
 
-    MetavoxelSystem();
-
     virtual void init();
 
-    virtual MetavoxelLOD getLOD() const;
+    virtual MetavoxelLOD getLOD();
+
+    const Frustum& getFrustum() const { return _frustum; }
+    
+    const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
+    const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
     
     void simulate(float deltaTime);
     void render();
 
+    Q_INVOKABLE void deleteTextures(int heightID, int colorID);
+
 protected:
 
     virtual MetavoxelClient* createClient(const SharedNodePointer& node);
-    virtual void updateClient(MetavoxelClient* client); 
 
 private:
     
-    class Point {
-    public:
-        glm::vec4 vertex;
-        quint8 color[4];
-        quint8 normal[3];
-    };
+    void guideToAugmented(MetavoxelVisitor& visitor);
     
-    class SimulateVisitor : public SpannerVisitor {
-    public:
-        SimulateVisitor(QVector<Point>& points);
-        void setDeltaTime(float deltaTime) { _deltaTime = deltaTime; }
-        void setOrder(const glm::vec3& direction) { _order = encodeOrder(direction); }
-        virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
-        virtual int visit(MetavoxelInfo& info);
+    AttributePointer _pointBufferAttribute;
+    AttributePointer _heightfieldBufferAttribute;
     
-    private:
-        QVector<Point>& _points;
-        float _deltaTime;
-        int _order;
-    };
-    
-    class RenderVisitor : public SpannerVisitor {
-    public:
-        RenderVisitor();
-        virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
-    };
-    
-    static ProgramObject _program;
-    static int _pointScaleLocation;
-    
-    QVector<Point> _points;
-    SimulateVisitor _simulateVisitor;
-    RenderVisitor _renderVisitor;
-    QOpenGLBuffer _buffer;
+    MetavoxelLOD _lod;
+    QReadWriteLock _lodLock;
+    Frustum _frustum;
 };
+
+/// Describes contents of a point in a point buffer.
+class BufferPoint {
+public:
+    glm::vec4 vertex;
+    quint8 color[3];
+    quint8 normal[3];
+};
+
+typedef QVector<BufferPoint> BufferPointVector;
+
+Q_DECLARE_METATYPE(BufferPointVector)
 
 /// A client session associated with a single server.
 class MetavoxelSystemClient : public MetavoxelClient {
@@ -88,13 +79,133 @@ class MetavoxelSystemClient : public MetavoxelClient {
     
 public:
     
-    MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelSystem* system);
+    MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelUpdater* updater);
+    
+    Q_INVOKABLE void setAugmentedData(const MetavoxelData& data);
+    
+    /// Returns a copy of the augmented data.  This function is thread-safe.
+    MetavoxelData getAugmentedData();
     
     virtual int parseData(const QByteArray& packet);
 
 protected:
     
+    virtual void dataChanged(const MetavoxelData& oldData);
     virtual void sendDatagram(const QByteArray& data);
+
+private:
+    
+    MetavoxelData _augmentedData;
+    QReadWriteLock _augmentedDataLock;
+};
+
+/// Base class for cached static buffers.
+class BufferData : public QSharedData {
+public:
+    
+    virtual ~BufferData();
+
+    virtual void render() = 0;
+};
+
+typedef QExplicitlySharedDataPointer<BufferData> BufferDataPointer;
+
+/// Contains the information necessary to render a group of points.
+class PointBuffer : public BufferData {
+public:
+
+    PointBuffer(const BufferPointVector& points);
+
+    virtual void render();
+
+private:
+    
+    BufferPointVector _points;
+    QOpenGLBuffer _buffer;
+    int _pointCount;
+};
+
+/// Contains the information necessary to render a heightfield block.
+class HeightfieldBuffer : public BufferData {
+public:
+    
+    /// Creates a new heightfield buffer.
+    /// \param clearAfterLoading if true, clear the data arrays after we load them into textures in order to reclaim the space
+    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color,
+        bool clearAfterLoading = true);
+    ~HeightfieldBuffer();
+    
+    const glm::vec3& getTranslation() const { return _translation; }
+    
+    const QByteArray& getHeight() const { return _height; }
+    const QByteArray& getColor() const { return _color; }
+    
+    virtual void render();
+
+private:
+    
+    glm::vec3 _translation;
+    float _scale;
+    QByteArray _height;
+    QByteArray _color;
+    bool _clearAfterLoading;
+    GLuint _heightTextureID;
+    GLuint _colorTextureID;
+    int _heightSize;
+
+    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
+    static QHash<int, BufferPair> _bufferPairs;
+};
+
+/// Convenience class for rendering a preview of a heightfield.
+class HeightfieldPreview {
+public:
+    
+    void setBuffers(const QVector<BufferDataPointer>& buffers) { _buffers = buffers; }
+    const QVector<BufferDataPointer>& getBuffers() const { return _buffers; }
+    
+    void render(const glm::vec3& translation, float scale) const;
+    
+private:
+    
+    QVector<BufferDataPointer> _buffers;
+};
+
+/// A client-side attribute that stores renderable buffers.
+class BufferDataAttribute : public InlineAttribute<BufferDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE BufferDataAttribute(const QString& name = QString());
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+};
+
+/// Renders metavoxels as points.
+class DefaultMetavoxelRendererImplementation : public MetavoxelRendererImplementation {
+    Q_OBJECT
+
+public:
+    
+    static void init();
+
+    static ProgramObject& getHeightfieldProgram() { return _heightfieldProgram; }
+    static int getHeightScaleLocation() { return _heightScaleLocation; }
+
+    Q_INVOKABLE DefaultMetavoxelRendererImplementation();
+    
+    virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
+    virtual void simulate(MetavoxelData& data, float deltaTime, MetavoxelInfo& info, const MetavoxelLOD& lod);
+    virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
+
+private:
+
+    static ProgramObject _pointProgram;
+    static int _pointScaleLocation;
+    
+    static ProgramObject _heightfieldProgram;
+    static int _heightScaleLocation;
 };
 
 /// Base class for spanner renderers; provides clipping.

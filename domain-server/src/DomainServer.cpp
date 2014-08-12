@@ -42,12 +42,17 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _hostname(),
     _networkReplyUUIDMap(),
     _sessionAuthenticationHash(),
+    _webAuthenticationStateSet(),
+    _cookieSessionHash(),
     _settingsManager()
 {
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
+    
+    qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
+    qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
 
     _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
 
@@ -57,6 +62,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
         qDebug() << "Setting up LimitedNodeList and assignments.";
         setupNodeListAndAssignments();
+        
+        loadExistingSessionsFromSettings();
     }
 }
 
@@ -426,11 +433,14 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         }
 
     }
+    
+    QString connectedUsername;
 
     if (!isAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
         // this is an Agent, and we require authentication so we can compare the user's roles to our list of allowed ones
         if (_sessionAuthenticationHash.contains(packetUUID)) {
-            if (!_sessionAuthenticationHash.value(packetUUID)) {
+            connectedUsername = _sessionAuthenticationHash.take(packetUUID);
+            if (connectedUsername.isEmpty()) {
                 // we've decided this is a user that isn't allowed in, return out
                 // TODO: provide information to the user so they know why they can't connect
                 return;
@@ -473,6 +483,9 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
             // now that we've pulled the wallet UUID and added the node to our list, delete the pending assignee data
             delete pendingAssigneeData;
         }
+        
+        // if we have a username from an OAuth connect request, set it on the DomainServerNodeData
+        nodeData->setUsername(connectedUsername);
 
         nodeData->setSendingSockAddr(senderSockAddr);
 
@@ -848,7 +861,7 @@ QJsonObject DomainServer::jsonForSocket(const HifiSockAddr& socket) {
     QJsonObject socketJSON;
 
     socketJSON["ip"] = socket.getAddress().toString();
-    socketJSON["port"] = ntohs(socket.getPort());
+    socketJSON["port"] = socket.getPort();
 
     return socketJSON;
 }
@@ -860,6 +873,7 @@ const char JSON_KEY_LOCAL_SOCKET[] = "local";
 const char JSON_KEY_POOL[] = "pool";
 const char JSON_KEY_PENDING_CREDITS[] = "pending_credits";
 const char JSON_KEY_WAKE_TIMESTAMP[] = "wake_timestamp";
+const char JSON_KEY_USERNAME[] = "username";
 
 QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     QJsonObject nodeJson;
@@ -884,6 +898,10 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
 
     // if the node has pool information, add it
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    
+    // add the node username, if it exists
+    nodeJson[JSON_KEY_USERNAME] = nodeData->getUsername();
+    
     SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
     if (matchingAssignment) {
         nodeJson[JSON_KEY_POOL] = matchingAssignment->getPool();
@@ -921,7 +939,52 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_NODES = "/nodes";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
-
+    
+    // allow sub-handlers to handle requests that do not require authentication
+    if (_settingsManager.handlePublicHTTPRequest(connection, url)) {
+        return true;
+    }
+    
+    // check if this is a request for a scripted assignment (with a temp unique UUID)
+    const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
+    QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
+    
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation
+        && assignmentRegex.indexIn(url.path()) != -1) {
+        QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
+        
+        SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
+        if (!matchingAssignment) {
+            // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
+            PendingAssignedNodeData* pendingData = _pendingAssignedNodes.value(matchingUUID);
+            if (pendingData) {
+                matchingAssignment = _allAssignments.value(pendingData->getAssignmentUUID());
+                
+                if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
+                    // we have a matching assignment and it is for the right type, have the HTTP manager handle it
+                    // via correct URL for the script so the client can download
+                    
+                    QUrl scriptURL = url;
+                    scriptURL.setPath(URI_ASSIGNMENT + "/"
+                                      + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
+                    
+                    // have the HTTPManager serve the appropriate script file
+                    return _httpManager.handleHTTPRequest(connection, scriptURL);
+                }
+            }
+        }
+        
+        // request not handled
+        return false;
+    }
+    
+    // all requests below require a cookie to prove authentication so check that first
+    if (!isAuthenticatedRequest(connection, url)) {
+        // this is not an authenticated request
+        // return true from the handler since it was handled with a 401 or re-direct to auth
+        return true;
+    }
+    
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (url.path() == "/assignments.json") {
             // user is asking for json list of assignments
@@ -1038,38 +1101,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
                 return false;
             }
-
-            // check if this is a request for a scripted assignment (with a temp unique UUID)
-            const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
-            QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
-
-            if (assignmentRegex.indexIn(url.path()) != -1) {
-                QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
-
-                SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
-                if (!matchingAssignment) {
-                    // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
-                    PendingAssignedNodeData* pendingData = _pendingAssignedNodes.value(matchingUUID);
-                    if (pendingData) {
-                        matchingAssignment = _allAssignments.value(pendingData->getAssignmentUUID());
-
-                        if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
-                            // we have a matching assignment and it is for the right type, have the HTTP manager handle it
-                            // via correct URL for the script so the client can download
-
-                            QUrl scriptURL = url;
-                            scriptURL.setPath(URI_ASSIGNMENT + "/"
-                                              + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
-
-                            // have the HTTPManager serve the appropriate script file
-                            return _httpManager.handleHTTPRequest(connection, scriptURL);
-                        }
-                    }
-                }
-
-                // request not handled
-                return false;
-            }
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {
         if (url.path() == URI_ASSIGNMENT) {
@@ -1162,8 +1193,10 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     }
 
     // didn't process the request, let our DomainServerSettingsManager or HTTPManager handle
-    return _settingsManager.handleHTTPRequest(connection, url);
+    return _settingsManager.handleAuthenticatedHTTPRequest(connection, url);
 }
+
+const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
 
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url) {
     const QString URI_OAUTH = "/oauth";
@@ -1177,7 +1210,6 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
 
         const QString STATE_QUERY_KEY = "state";
         QUuid stateUUID = QUuid(codeURLQuery.queryItemValue(STATE_QUERY_KEY));
-
 
         if (!authorizationCode.isEmpty() && !stateUUID.isNull()) {
             // fire off a request with this code and state to get an access token for the user
@@ -1193,15 +1225,45 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
 
             QNetworkRequest tokenRequest(tokenRequestUrl);
             tokenRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-
+            
             QNetworkReply* tokenReply = NetworkAccessManager::getInstance().post(tokenRequest, tokenPostBody.toLocal8Bit());
-
-            qDebug() << "Requesting a token for user with session UUID" << uuidStringWithoutCurlyBraces(stateUUID);
-
-            // insert this to our pending token replies so we can associate the returned access token with the right UUID
-            _networkReplyUUIDMap.insert(tokenReply, stateUUID);
-
-            connect(tokenReply, &QNetworkReply::finished, this, &DomainServer::handleTokenRequestFinished);
+            
+            if (_webAuthenticationStateSet.remove(stateUUID)) {
+                // this is a web user who wants to auth to access web interface
+                // we hold the response back to them until we get their profile information
+                // and can decide if they are let in or not
+                
+                QEventLoop loop;
+                connect(tokenReply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+                
+                // start the loop for the token request
+                loop.exec();
+                
+                QNetworkReply* profileReply = profileRequestGivenTokenReply(tokenReply);
+                
+                // stop the loop once the profileReply is complete
+                connect(profileReply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+                
+                // restart the loop for the profile request
+                loop.exec();
+                
+                // call helper method to get cookieHeaders
+                Headers cookieHeaders = setupCookieHeadersFromProfileReply(profileReply);
+                
+                connection->respond(HTTPConnection::StatusCode302, QByteArray(),
+                                    HTTPConnection::DefaultContentType, cookieHeaders);
+                
+                // we've redirected the user back to our homepage
+                return true;
+                
+            } else {
+                qDebug() << "Requesting a token for user with session UUID" << uuidStringWithoutCurlyBraces(stateUUID);
+                
+                // insert this to our pending token replies so we can associate the returned access token with the right UUID
+                _networkReplyUUIDMap.insert(tokenReply, stateUUID);
+                
+                connect(tokenReply, &QNetworkReply::finished, this, &DomainServer::handleTokenRequestFinished);
+            }
         }
 
         // respond with a 200 code indicating that login is complete
@@ -1213,6 +1275,137 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
     }
 }
 
+bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl& url) {
+    
+    const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
+    const QString ADMIN_USERS_CONFIG_KEY = "admin-users";
+    const QString ADMIN_ROLES_CONFIG_KEY = "admin-roles";
+    const QString BASIC_AUTH_CONFIG_KEY = "basic-auth";
+    
+    const QByteArray UNAUTHENTICATED_BODY = "You do not have permission to access this domain-server.";
+    
+    if (!_oauthProviderURL.isEmpty()
+        && (_argumentVariantMap.contains(ADMIN_USERS_CONFIG_KEY) || _argumentVariantMap.contains(ADMIN_ROLES_CONFIG_KEY))) {
+        QString cookieString = connection->requestHeaders().value(HTTP_COOKIE_HEADER_KEY);
+        
+        const QString COOKIE_UUID_REGEX_STRING = HIFI_SESSION_COOKIE_KEY + "=([\\d\\w-]+)($|;)";
+        QRegExp cookieUUIDRegex(COOKIE_UUID_REGEX_STRING);
+        
+        QUuid cookieUUID;
+        if (cookieString.indexOf(cookieUUIDRegex) != -1) {
+            cookieUUID = cookieUUIDRegex.cap(1);
+        }
+        
+        if (_argumentVariantMap.contains(BASIC_AUTH_CONFIG_KEY)) {
+            qDebug() << "Config file contains web admin settings for OAuth and basic HTTP authentication."
+                << "These cannot be combined - using OAuth for authentication.";
+        }
+        
+        if (!cookieUUID.isNull() && _cookieSessionHash.contains(cookieUUID)) {
+            // pull the QJSONObject for the user with this cookie UUID
+            DomainServerWebSessionData sessionData = _cookieSessionHash.value(cookieUUID);
+            QString profileUsername = sessionData.getUsername();
+            
+            if (_argumentVariantMap.value(ADMIN_USERS_CONFIG_KEY).toJsonValue().toArray().contains(profileUsername)) {
+                // this is an authenticated user
+                return true;
+            }
+            
+            // loop the roles of this user and see if they are in the admin-roles array
+            QJsonArray adminRolesArray = _argumentVariantMap.value(ADMIN_ROLES_CONFIG_KEY).toJsonValue().toArray();
+            
+            if (!adminRolesArray.isEmpty()) {
+                foreach(const QString& userRole, sessionData.getRoles()) {
+                    if (adminRolesArray.contains(userRole)) {
+                        // this user has a role that allows them to administer the domain-server
+                        return true;
+                    }
+                }
+            }
+            
+            connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
+            
+            // the user does not have allowed username or role, return 401
+            return false;
+        } else {
+            // re-direct this user to OAuth page
+            
+            // generate a random state UUID to use
+            QUuid stateUUID = QUuid::createUuid();
+            
+            // add it to the set so we can handle the callback from the OAuth provider
+            _webAuthenticationStateSet.insert(stateUUID);
+            
+            QUrl oauthRedirectURL = oauthAuthorizationURL(stateUUID);
+            
+            Headers redirectHeaders;
+            redirectHeaders.insert("Location", oauthRedirectURL.toEncoded());
+            
+            connection->respond(HTTPConnection::StatusCode302,
+                                QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
+            
+            // we don't know about this user yet, so they are not yet authenticated
+            return false;
+        }
+    } else if (_argumentVariantMap.contains(BASIC_AUTH_CONFIG_KEY)) {
+        // config file contains username and password combinations for basic auth
+        const QByteArray BASIC_AUTH_HEADER_KEY = "Authorization";
+        
+        // check if a username and password have been provided with the request
+        QString basicAuthString = connection->requestHeaders().value(BASIC_AUTH_HEADER_KEY);
+        
+        if (!basicAuthString.isEmpty()) {
+            QStringList splitAuthString = basicAuthString.split(' ');
+            QString base64String = splitAuthString.size() == 2 ? splitAuthString[1] : "";
+            QString credentialString = QByteArray::fromBase64(base64String.toLocal8Bit());
+            
+            if (!credentialString.isEmpty()) {
+                QStringList credentialList = credentialString.split(':');
+                if (credentialList.size() == 2) {
+                    QString username = credentialList[0];
+                    QString password = credentialList[1];
+                    
+                    // we've pulled a username and password - now check if there is a match in our basic auth hash
+                    QJsonObject basicAuthObject = _argumentVariantMap.value(BASIC_AUTH_CONFIG_KEY).toJsonValue().toObject();
+                    
+                    if (basicAuthObject.contains(username)) {
+                        const QString BASIC_AUTH_USER_PASSWORD_KEY = "password";
+                        QJsonObject userObject = basicAuthObject.value(username).toObject();
+                        
+                        if (userObject.contains(BASIC_AUTH_USER_PASSWORD_KEY)
+                            && userObject.value(BASIC_AUTH_USER_PASSWORD_KEY).toString() == password) {
+                            // this is username / password match - let this user in
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // basic HTTP auth being used but no username and password are present
+        // or the username and password are not correct
+        // send back a 401 and ask for basic auth
+        
+        const QByteArray HTTP_AUTH_REQUEST_HEADER_KEY = "WWW-Authenticate";
+        static QString HTTP_AUTH_REALM_STRING = QString("Basic realm='%1 %2'")
+            .arg(_hostname.isEmpty() ? "localhost" : _hostname)
+            .arg("domain-server");
+        
+        Headers basicAuthHeader;
+        basicAuthHeader.insert(HTTP_AUTH_REQUEST_HEADER_KEY, HTTP_AUTH_REALM_STRING.toUtf8());
+        
+        connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY,
+                            HTTPConnection::DefaultContentType, basicAuthHeader);
+        
+        // not authenticated, bubble up false
+        return false;
+        
+    } else {
+        // we don't have an OAuth URL + admin roles/usernames, so all users are authenticated
+        return true;
+    }
+}
+
 const QString OAUTH_JSON_ACCESS_TOKEN_KEY = "access_token";
 
 void DomainServer::handleTokenRequestFinished() {
@@ -1220,25 +1413,29 @@ void DomainServer::handleTokenRequestFinished() {
     QUuid matchingSessionUUID = _networkReplyUUIDMap.take(networkReply);
 
     if (!matchingSessionUUID.isNull() && networkReply->error() == QNetworkReply::NoError) {
-        // pull the access token from the returned JSON and store it with the matching session UUID
-        QJsonDocument returnedJSON = QJsonDocument::fromJson(networkReply->readAll());
-        QString accessToken = returnedJSON.object()[OAUTH_JSON_ACCESS_TOKEN_KEY].toString();
-
-        qDebug() << "Received access token for user with UUID" << uuidStringWithoutCurlyBraces(matchingSessionUUID);
-
-        // fire off a request to get this user's identity so we can see if we will let them in
-        QUrl profileURL = _oauthProviderURL;
-        profileURL.setPath("/api/v1/users/profile");
-        profileURL.setQuery(QString("%1=%2").arg(OAUTH_JSON_ACCESS_TOKEN_KEY, accessToken));
-
-        QNetworkReply* profileReply = NetworkAccessManager::getInstance().get(QNetworkRequest(profileURL));
-
-        qDebug() << "Requesting access token for user with session UUID" << uuidStringWithoutCurlyBraces(matchingSessionUUID);
+        
+        qDebug() << "Received access token for user with UUID" << uuidStringWithoutCurlyBraces(matchingSessionUUID)
+            << "-" << "requesting profile.";
+        
+        QNetworkReply* profileReply = profileRequestGivenTokenReply(networkReply);
 
         connect(profileReply, &QNetworkReply::finished, this, &DomainServer::handleProfileRequestFinished);
 
         _networkReplyUUIDMap.insert(profileReply, matchingSessionUUID);
     }
+}
+
+QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenReply) {
+    // pull the access token from the returned JSON and store it with the matching session UUID
+    QJsonDocument returnedJSON = QJsonDocument::fromJson(tokenReply->readAll());
+    QString accessToken = returnedJSON.object()[OAUTH_JSON_ACCESS_TOKEN_KEY].toString();
+    
+    // fire off a request to get this user's identity so we can see if we will let them in
+    QUrl profileURL = _oauthProviderURL;
+    profileURL.setPath("/api/v1/users/profile");
+    profileURL.setQuery(QString("%1=%2").arg(OAUTH_JSON_ACCESS_TOKEN_KEY, accessToken));
+    
+    return NetworkAccessManager::getInstance().get(QNetworkRequest(profileURL));
 }
 
 void DomainServer::handleProfileRequestFinished() {
@@ -1254,23 +1451,80 @@ void DomainServer::handleProfileRequestFinished() {
 
             QJsonArray allowedRolesArray = _argumentVariantMap.value(ALLOWED_ROLES_CONFIG_KEY).toJsonValue().toArray();
 
-            bool shouldAllowUserToConnect = false;
+            QString connectableUsername;
+            QString profileUsername = profileJSON.object()["data"].toObject()["user"].toObject()["username"].toString();
 
             foreach(const QJsonValue& roleValue, userRolesArray) {
                 if (allowedRolesArray.contains(roleValue)) {
                     // the user has a role that lets them in
                     // set the bool to true and break
-                    shouldAllowUserToConnect = true;
+                    connectableUsername = profileUsername;
                     break;
                 }
             }
-
-            qDebug() << "Confirmed authentication state for user" << uuidStringWithoutCurlyBraces(matchingSessionUUID)
-                << "-" << shouldAllowUserToConnect;
+            
+            if (connectableUsername.isEmpty()) {
+                qDebug() << "User" << profileUsername << "with session UUID"
+                    << uuidStringWithoutCurlyBraces(matchingSessionUUID)
+                    << "does not have an allowable role. Refusing connection.";
+            } else {
+                qDebug() << "User" << profileUsername << "with session UUID"
+                    << uuidStringWithoutCurlyBraces(matchingSessionUUID)
+                    << "has an allowable role. Can connect.";
+            }
 
             // insert this UUID and a flag that indicates if they are allowed to connect
-            _sessionAuthenticationHash.insert(matchingSessionUUID, shouldAllowUserToConnect);
+            _sessionAuthenticationHash.insert(matchingSessionUUID, connectableUsername);
         }
+    }
+}
+
+
+const QString DS_SETTINGS_SESSIONS_GROUP = "web-sessions";
+
+Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileReply) {
+    Headers cookieHeaders;
+    
+    // create a UUID for this cookie
+    QUuid cookieUUID = QUuid::createUuid();
+    
+    QJsonDocument profileDocument = QJsonDocument::fromJson(profileReply->readAll());
+    QJsonObject userObject = profileDocument.object()["data"].toObject()["user"].toObject();
+    
+    // add the profile to our in-memory data structure so we know who the user is when they send us their cookie
+    DomainServerWebSessionData sessionData(userObject);
+    _cookieSessionHash.insert(cookieUUID, sessionData);
+    
+    // persist the cookie to settings file so we can get it back on DS relaunch
+    QSettings localSettings;
+    localSettings.beginGroup(DS_SETTINGS_SESSIONS_GROUP);
+    QVariant sessionVariant = QVariant::fromValue(sessionData);
+    localSettings.setValue(cookieUUID.toString(), QVariant::fromValue(sessionData));
+    
+    // setup expiry for cookie to 1 month from today
+    QDateTime cookieExpiry = QDateTime::currentDateTimeUtc().addMonths(1);
+    
+    QString cookieString = HIFI_SESSION_COOKIE_KEY + "=" + uuidStringWithoutCurlyBraces(cookieUUID.toString());
+    cookieString += "; expires=" + cookieExpiry.toString("ddd, dd MMM yyyy HH:mm:ss") + " GMT";
+    cookieString += "; domain=" + _hostname + "; path=/";
+    
+    cookieHeaders.insert("Set-Cookie", cookieString.toUtf8());
+    
+    // redirect the user back to the homepage so they can present their cookie and be authenticated
+    QString redirectString = "http://" + _hostname + ":" + QString::number(_httpManager.serverPort());
+    cookieHeaders.insert("Location", redirectString.toUtf8());
+    
+    return cookieHeaders;
+}
+
+void DomainServer::loadExistingSessionsFromSettings() {
+    // read data for existing web sessions into memory so existing sessions can be leveraged
+    QSettings domainServerSettings;
+    domainServerSettings.beginGroup(DS_SETTINGS_SESSIONS_GROUP);
+    
+    foreach(const QString& uuidKey, domainServerSettings.childKeys()) {
+        _cookieSessionHash.insert(QUuid(uuidKey), domainServerSettings.value(uuidKey).value<DomainServerWebSessionData>());
+        qDebug() << "Pulled web session from settings - cookie UUID is" << uuidKey;
     }
 }
 

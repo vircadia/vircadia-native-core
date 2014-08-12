@@ -1,31 +1,8 @@
-cmake_minimum_required(VERSION 2.8)
-
-if (WIN32)
-  cmake_policy (SET CMP0020 NEW)
-endif (WIN32)
-
 set(TARGET_NAME bitstream2json)
+setup_hifi_project(Widgets Script)
 
-set(ROOT_DIR ../..)
-set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
+include_glm()
 
-# setup for find modules
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/modules/")
+link_hifi_libraries(metavoxels)
 
-find_package(Qt5 COMPONENTS Network Script Widgets)
-
-include(${MACRO_DIR}/SetupHifiProject.cmake)
-setup_hifi_project(${TARGET_NAME} TRUE)
-
-link_hifi_library(metavoxels ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
-
-include(${MACRO_DIR}/IncludeGLM.cmake)
-include_glm(${TARGET_NAME} "${ROOT_DIR}")
-
-IF (WIN32)
-    target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
-ENDIF(WIN32)
-
-target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script)
+link_shared_dependencies()

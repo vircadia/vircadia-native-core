@@ -15,6 +15,8 @@
 #include <Octree.h>
 #include "ModelTreeElement.h"
 
+class Model;
+
 class NewlyCreatedModelHook {
 public:
     virtual void modelCreated(const ModelItem& newModel, const SharedNodePointer& senderNode) = 0;
@@ -23,6 +25,7 @@ public:
 class ModelItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) = 0;
+    virtual const Model* getModelForModelItem(const ModelItem& modelItem) = 0;
 };
 
 class ModelTree : public Octree {
@@ -35,7 +38,6 @@ public:
 
     /// Type safe version of getRoot()
     ModelTreeElement* getRoot() { return static_cast<ModelTreeElement*>(_rootElement); }
-
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
@@ -62,12 +64,13 @@ public:
     /// \param foundModels[out] vector of const ModelItem*
     /// \remark Side effect: any initial contents in foundModels will be lost
     void findModels(const glm::vec3& center, float radius, QVector<const ModelItem*>& foundModels);
+    void findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels);
 
     /// finds all models that touch a cube
     /// \param cube the query cube
     /// \param foundModels[out] vector of non-const ModelItem*
     /// \remark Side effect: any initial contents in models will be lost
-    void findModelsForUpdate(const AACube& cube, QVector<ModelItem*> foundModels);
+    void findModelsForUpdate(const AACube& cube, QVector<ModelItem*>& foundModels);
 
     void addNewlyCreatedHook(NewlyCreatedModelHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedModelHook* hook);
@@ -80,14 +83,19 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     void handleAddModelResponse(const QByteArray& packet);
     
+    ModelItemFBXService* getFBXService() const { return _fbxService; }
     void setFBXService(ModelItemFBXService* service) { _fbxService = service; }
     const FBXGeometry* getGeometryForModel(const ModelItem& modelItem) {
         return _fbxService ? _fbxService->getGeometryForModel(modelItem) : NULL;
+
     }
+    void sendModels(ModelEditPacketSender* packetSender, float x, float y, float z);
 
 private:
 
+    static bool sendModelsOperation(OctreeElement* element, void* extraData);
     static bool updateOperation(OctreeElement* element, void* extraData);
+    static bool findInCubeOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateWithIDandPropertiesOperation(OctreeElement* element, void* extraData);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);

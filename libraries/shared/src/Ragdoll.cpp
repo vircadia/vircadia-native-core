@@ -9,113 +9,107 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/norm.hpp>
+
 #include "Ragdoll.h"
 
-#include "CapsuleShape.h"
-#include "CollisionInfo.h"
-#include "SharedUtil.h"
-#include "SphereShape.h"
+#include "Constraint.h"
+#include "DistanceConstraint.h"
+#include "FixedConstraint.h"
+#include "PhysicsSimulation.h"
+#include "SharedUtil.h" // for EPSILON
 
-// ----------------------------------------------------------------------------
-// VerletPoint
-// ----------------------------------------------------------------------------
-void VerletPoint::accumulateDelta(const glm::vec3& delta) {
-    _accumulatedDelta += delta;
-    ++_numDeltas;
-}
-
-void VerletPoint::applyAccumulatedDelta() {
-    if (_numDeltas > 0) { 
-        _position += _accumulatedDelta / (float)_numDeltas;
-        _accumulatedDelta = glm::vec3(0.0f);
-        _numDeltas = 0;
-    }
-}
-
-// ----------------------------------------------------------------------------
-// FixedConstraint
-// ----------------------------------------------------------------------------
-FixedConstraint::FixedConstraint(VerletPoint* point, const glm::vec3& anchor) : _point(point), _anchor(anchor) {
-}
-
-float FixedConstraint::enforce() {
-    assert(_point != NULL);
-    // TODO: use fast approximate sqrt here
-    float distance = glm::distance(_anchor, _point->_position);
-    _point->_position = _anchor;
-    return distance;
-}
-
-void FixedConstraint::setPoint(VerletPoint* point) {
-    assert(point);
-    _point = point;
-    _point->_mass = MAX_SHAPE_MASS;
-}
-
-void FixedConstraint::setAnchor(const glm::vec3& anchor) {
-    _anchor = anchor;
-}
-
-// ----------------------------------------------------------------------------
-// DistanceConstraint
-// ----------------------------------------------------------------------------
-DistanceConstraint::DistanceConstraint(VerletPoint* startPoint, VerletPoint* endPoint) : _distance(-1.0f) {
-    _points[0] = startPoint;
-    _points[1] = endPoint;
-    _distance = glm::distance(_points[0]->_position, _points[1]->_position);
-}
-
-DistanceConstraint::DistanceConstraint(const DistanceConstraint& other) {
-    _distance = other._distance;
-    _points[0] = other._points[0];
-    _points[1] = other._points[1];
-}
-
-void DistanceConstraint::setDistance(float distance) {
-    _distance = fabsf(distance);
-}
-
-float DistanceConstraint::enforce() {
-    // TODO: use a fast distance approximation
-    float newDistance = glm::distance(_points[0]->_position, _points[1]->_position);
-    glm::vec3 direction(0.0f, 1.0f, 0.0f);
-    if (newDistance > EPSILON) {
-        direction = (_points[0]->_position - _points[1]->_position) / newDistance;
-    }
-    glm::vec3 center = 0.5f * (_points[0]->_position + _points[1]->_position);
-    _points[0]->_position = center + (0.5f * _distance) * direction;
-    _points[1]->_position = center - (0.5f * _distance) * direction;
-    return glm::abs(newDistance - _distance);
-}
-
-// ----------------------------------------------------------------------------
-// Ragdoll
-// ----------------------------------------------------------------------------
-
-Ragdoll::Ragdoll() {
+Ragdoll::Ragdoll() : _massScale(1.0f), _ragdollTranslation(0.0f), _translationInSimulationFrame(0.0f), _ragdollSimulation(NULL) {
 }
 
 Ragdoll::~Ragdoll() {
     clearRagdollConstraintsAndPoints();
 }
+
+void Ragdoll::stepRagdollForward(float deltaTime) {
+    if (_ragdollSimulation) {
+        updateSimulationTransforms(_ragdollTranslation - _ragdollSimulation->getTranslation(), _ragdollRotation);
+    }
+    int numPoints = _ragdollPoints.size();
+    for (int i = 0; i < numPoints; ++i) {
+        _ragdollPoints[i].integrateForward();
+    }
+}
     
 void Ragdoll::clearRagdollConstraintsAndPoints() {
-    int numConstraints = _ragdollConstraints.size();
+    int numConstraints = _boneConstraints.size();
     for (int i = 0; i < numConstraints; ++i) {
-        delete _ragdollConstraints[i];
+        delete _boneConstraints[i];
     }
-    _ragdollConstraints.clear();
+    _boneConstraints.clear();
+    numConstraints = _fixedConstraints.size();
+    for (int i = 0; i < numConstraints; ++i) {
+        delete _fixedConstraints[i];
+    }
+    _fixedConstraints.clear();
     _ragdollPoints.clear();
 }
 
 float Ragdoll::enforceRagdollConstraints() {
     float maxDistance = 0.0f;
-    const int numConstraints = _ragdollConstraints.size();
+    // enforce the bone constraints first
+    int numConstraints = _boneConstraints.size();
     for (int i = 0; i < numConstraints; ++i) {
-        DistanceConstraint* c = static_cast<DistanceConstraint*>(_ragdollConstraints[i]);
-        //maxDistance = glm::max(maxDistance, _ragdollConstraints[i]->enforce());
-        maxDistance = glm::max(maxDistance, c->enforce());
+        maxDistance = glm::max(maxDistance, _boneConstraints[i]->enforce());
+    }
+    // enforce FixedConstraints second
+    numConstraints = _fixedConstraints.size();
+    for (int i = 0; i < _fixedConstraints.size(); ++i) {
+        maxDistance = glm::max(maxDistance, _fixedConstraints[i]->enforce());
     }
     return maxDistance;
 }
 
+void Ragdoll::initRagdollTransform() {
+    _ragdollTranslation = glm::vec3(0.0f);
+    _ragdollRotation = glm::quat();
+    _translationInSimulationFrame = glm::vec3(0.0f);
+    _rotationInSimulationFrame = glm::quat();
+}
+
+void Ragdoll::setRagdollTransform(const glm::vec3& translation, const glm::quat& rotation) {
+    _ragdollTranslation = translation;
+    _ragdollRotation = rotation;
+}
+
+void Ragdoll::updateSimulationTransforms(const glm::vec3& translation, const glm::quat& rotation) {
+    const float EPSILON2 = EPSILON * EPSILON;
+    if (glm::distance2(translation, _translationInSimulationFrame) < EPSILON2 && 
+            glm::abs(1.0f - glm::abs(glm::dot(rotation, _rotationInSimulationFrame))) < EPSILON2) {
+        // nothing to do
+        return;
+    }
+
+    // compute linear and angular deltas
+    glm::vec3 deltaPosition = translation - _translationInSimulationFrame;
+    glm::quat deltaRotation = rotation * glm::inverse(_rotationInSimulationFrame);
+
+    // apply the deltas to all ragdollPoints
+    int numPoints = _ragdollPoints.size();
+    for (int i = 0; i < numPoints; ++i) {
+        _ragdollPoints[i].move(deltaPosition, deltaRotation, _translationInSimulationFrame);
+    }
+
+    // remember the current transform
+    _translationInSimulationFrame = translation;
+    _rotationInSimulationFrame = rotation;
+}
+
+void Ragdoll::setMassScale(float scale) {
+    const float MIN_SCALE = 1.0e-2f;
+    const float MAX_SCALE = 1.0e6f;
+    scale = glm::clamp(glm::abs(scale), MIN_SCALE, MAX_SCALE);
+    if (scale != _massScale) {
+        float rescale = scale / _massScale;
+        int numPoints = _ragdollPoints.size();
+        for (int i = 0; i < numPoints; ++i) {
+            _ragdollPoints[i].setMass(rescale * _ragdollPoints[i].getMass());
+        }
+        _massScale = scale;
+    }
+}

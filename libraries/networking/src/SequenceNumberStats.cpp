@@ -13,19 +13,24 @@
 
 #include <limits>
 
-SequenceNumberStats::SequenceNumberStats(int statsHistoryLength)
-    : _lastReceived(std::numeric_limits<quint16>::max()),
+SequenceNumberStats::SequenceNumberStats(int statsHistoryLength, bool canDetectOutOfSync)
+    : _lastReceivedSequence(0),
     _missingSet(),
     _stats(),
     _lastSenderUUID(),
-    _statsHistory(statsHistoryLength)
+    _statsHistory(statsHistoryLength),
+    _lastUnreasonableSequence(0),
+    _consecutiveUnreasonableOnTime(0)
 {
 }
 
 void SequenceNumberStats::reset() {
     _missingSet.clear();
     _stats = PacketStreamStats();
+    _lastSenderUUID = QUuid();
     _statsHistory.clear();
+    _lastUnreasonableSequence = 0;
+    _consecutiveUnreasonableOnTime = 0;
 }
 
 static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
@@ -36,20 +41,23 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
 
     // if the sender node has changed, reset all stats
     if (senderUUID != _lastSenderUUID) {
-        qDebug() << "sequence number stats was reset due to new sender node";
-        qDebug() << "previous:" << _lastSenderUUID << "current:" << senderUUID;
-        reset();
+        if (_stats._received > 0) {
+            qDebug() << "sequence number stats was reset due to new sender node";
+            qDebug() << "previous:" << _lastSenderUUID << "current:" << senderUUID;
+            reset();
+        }
         _lastSenderUUID = senderUUID;
     }
 
     // determine our expected sequence number... handle rollover appropriately
-    quint16 expected = _stats._numReceived > 0 ? _lastReceived + (quint16)1 : incoming;
+    quint16 expected = _stats._received > 0 ? _lastReceivedSequence + (quint16)1 : incoming;
 
-    _stats._numReceived++;
+    _stats._received++;
 
     if (incoming == expected) { // on time
         arrivalInfo._status = OnTime;
-        _lastReceived = incoming;
+        _lastReceivedSequence = incoming;
+        _stats._expectedReceived++;
     } else { // out of order
 
         if (wantExtraDebugging) {
@@ -72,13 +80,14 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
         } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
             arrivalInfo._status = Unreasonable;
 
-            // ignore packet if gap is unreasonable
-            qDebug() << "ignoring unreasonable sequence number:" << incoming
-                << "previous:" << _lastReceived;
-            _stats._numUnreasonable++;
+            qDebug() << "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence;
 
+            _stats._unreasonable++;
+            
+            receivedUnreasonable(incoming);
             return arrivalInfo;
         }
+
 
         // now that rollover has been corrected for (if it occurred), incomingInt and expectedInt can be
         // compared to each other directly, though one of them might be negative
@@ -92,16 +101,17 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
                 qDebug() << "this packet is earlier than expected...";
                 qDebug() << ">>>>>>>> missing gap=" << (incomingInt - expectedInt);
             }
-            
-            _stats._numEarly++;
-            _stats._numLost += (incomingInt - expectedInt);
-            _lastReceived = incoming;
+            int skipped = incomingInt - expectedInt;
+            _stats._early++;
+            _stats._lost += skipped;
+            _stats._expectedReceived += (skipped + 1);
+            _lastReceivedSequence = incoming;
 
             // add all sequence numbers that were skipped to the missing sequence numbers list
             for (int missingInt = expectedInt; missingInt < incomingInt; missingInt++) {
                 _missingSet.insert((quint16)(missingInt < 0 ? missingInt + UINT16_RANGE : missingInt));
             }
-            
+
             // prune missing sequence list if it gets too big; sequence numbers that are older than MAX_REASONABLE_SEQUENCE_GAP
             // will be removed.
             if (_missingSet.size() > MAX_REASONABLE_SEQUENCE_GAP) {
@@ -112,30 +122,74 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
                 qDebug() << "this packet is later than expected...";
             }
 
-            _stats._numLate++;
+            _stats._late++;
 
             // do not update _lastReceived; it shouldn't become smaller
 
             // remove this from missing sequence number if it's in there
             if (_missingSet.remove(incoming)) {
-                arrivalInfo._status = Late;
+                arrivalInfo._status = Recovered;
 
                 if (wantExtraDebugging) {
                     qDebug() << "found it in _missingSet";
                 }
-                _stats._numLost--;
-                _stats._numRecovered++;
+                _stats._lost--;
+                _stats._recovered++;
             } else {
-                arrivalInfo._status = Duplicate;
+                // this late seq num is not in our missing set.  it is possibly a duplicate, or possibly a late
+                // packet that should have arrived before our first received packet.  we'll count these
+                // as unreasonable.
 
-                if (wantExtraDebugging) {
-                    qDebug() << "sequence:" << incoming << "was NOT found in _missingSet and is probably a duplicate";
-                }
-                _stats._numDuplicate++;
+                arrivalInfo._status = Unreasonable;
+
+                qDebug() << "unreasonable sequence number:" << incoming << "(possible duplicate)";
+
+                _stats._unreasonable++;
+
+                receivedUnreasonable(incoming);
+                return arrivalInfo;
             }
         }
     }
+
+    // if we've made it here, we received a reasonable seq number.
+    _consecutiveUnreasonableOnTime = 0;
+
     return arrivalInfo;
+}
+
+void SequenceNumberStats::receivedUnreasonable(quint16 incoming) {
+
+    const int CONSECUTIVE_UNREASONABLE_ON_TIME_THRESHOLD = 8;
+
+    quint16 expected = _consecutiveUnreasonableOnTime > 0 ? _lastUnreasonableSequence + (quint16)1 : incoming;
+    if (incoming == expected) {
+        _consecutiveUnreasonableOnTime++;
+        _lastUnreasonableSequence = incoming;
+
+        if (_consecutiveUnreasonableOnTime >= CONSECUTIVE_UNREASONABLE_ON_TIME_THRESHOLD) {
+            // we've received many unreasonable seq numbers in a row, all in order. we're probably out of sync with
+            // the seq num sender.  update our state to get back in sync with the sender.
+
+            _lastReceivedSequence = incoming;
+            _missingSet.clear();
+
+            _stats._received = CONSECUTIVE_UNREASONABLE_ON_TIME_THRESHOLD;
+            _stats._unreasonable = 0;
+            _stats._early = 0;
+            _stats._late = 0;
+            _stats._lost = 0;
+            _stats._recovered = 0;
+            _stats._expectedReceived = CONSECUTIVE_UNREASONABLE_ON_TIME_THRESHOLD;
+
+            _statsHistory.clear();
+            _consecutiveUnreasonableOnTime = 0;
+
+            qDebug() << "re-synced with sequence number sender";
+        }
+    } else {
+        _consecutiveUnreasonableOnTime = 0;
+    }
 }
 
 void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {
@@ -146,7 +200,7 @@ void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {
     // some older sequence numbers may be from before a rollover point; this must be handled.
     // some sequence numbers in this list may be larger than _incomingLastSequence, indicating that they were received
     // before the most recent rollover.
-    int cutoff = (int)_lastReceived - MAX_REASONABLE_SEQUENCE_GAP;
+    int cutoff = (int)_lastReceivedSequence - MAX_REASONABLE_SEQUENCE_GAP;
     if (cutoff >= 0) {
         quint16 nonRolloverCutoff = (quint16)cutoff;
         QSet<quint16>::iterator i = _missingSet.begin();
@@ -157,7 +211,7 @@ void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {
                 qDebug() << "old age cutoff:" << nonRolloverCutoff;
             }
 
-            if (missing > _lastReceived || missing < nonRolloverCutoff) {
+            if (missing > _lastReceivedSequence || missing < nonRolloverCutoff) {
                 i = _missingSet.erase(i);
                 if (wantExtraDebugging) {
                     qDebug() << "pruning really old missing sequence:" << missing;
@@ -176,7 +230,7 @@ void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {
                 qDebug() << "old age cutoff:" << rolloverCutoff;
             }
 
-            if (missing > _lastReceived && missing < rolloverCutoff) {
+            if (missing > _lastReceivedSequence && missing < rolloverCutoff) {
                 i = _missingSet.erase(i);
                 if (wantExtraDebugging) {
                     qDebug() << "pruning really old missing sequence:" << missing;
@@ -192,7 +246,7 @@ PacketStreamStats SequenceNumberStats::getStatsForHistoryWindow() const {
 
     const PacketStreamStats* newestStats = _statsHistory.getNewestEntry();
     const PacketStreamStats* oldestStats = _statsHistory.get(_statsHistory.getNumEntries() - 1);
-    
+
     // this catches cases where history is length 1 or 0 (both are NULL in case of 0)
     if (newestStats == oldestStats) {
         return PacketStreamStats();
@@ -200,13 +254,13 @@ PacketStreamStats SequenceNumberStats::getStatsForHistoryWindow() const {
 
     // calculate difference between newest stats and oldest stats to get window stats
     PacketStreamStats windowStats;
-    windowStats._numReceived = newestStats->_numReceived - oldestStats->_numReceived;
-    windowStats._numUnreasonable = newestStats->_numUnreasonable - oldestStats->_numUnreasonable;
-    windowStats._numEarly = newestStats->_numEarly - oldestStats->_numEarly;
-    windowStats._numLate = newestStats->_numLate - oldestStats->_numLate;
-    windowStats._numLost = newestStats->_numLost - oldestStats->_numLost;
-    windowStats._numRecovered = newestStats->_numRecovered - oldestStats->_numRecovered;
-    windowStats._numDuplicate = newestStats->_numDuplicate - oldestStats->_numDuplicate;
+    windowStats._received = newestStats->_received - oldestStats->_received;
+    windowStats._unreasonable = newestStats->_unreasonable - oldestStats->_unreasonable;
+    windowStats._early = newestStats->_early - oldestStats->_early;
+    windowStats._late = newestStats->_late - oldestStats->_late;
+    windowStats._lost = newestStats->_lost - oldestStats->_lost;
+    windowStats._recovered = newestStats->_recovered - oldestStats->_recovered;
+    windowStats._expectedReceived = newestStats->_expectedReceived - oldestStats->_expectedReceived;
 
     return windowStats;
 }
