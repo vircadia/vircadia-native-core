@@ -163,9 +163,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     }
     _eyePosition = calculateAverageEyePosition();
 
-    float velocityFilter = glm::clamp(1.0f - glm::length(_filteredEyePosition - _eyePosition), 0.0f, 1.0f);
-    _filteredEyePosition = velocityFilter * _filteredEyePosition + (1.0f - velocityFilter) * _eyePosition;
-
 }
 
 void Head::relaxLean(float deltaTime) {
