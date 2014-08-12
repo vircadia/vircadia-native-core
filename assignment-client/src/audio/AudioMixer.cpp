@@ -71,6 +71,8 @@ bool AudioMixer::_useDynamicJitterBuffers = false;
 int AudioMixer::_staticDesiredJitterBufferFrames = 0;
 int AudioMixer::_maxFramesOverDesired = 0;
 
+bool AudioMixer::_printStreamStats = false;
+
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
@@ -448,7 +450,11 @@ void AudioMixer::run() {
         }
         qDebug() << "Max frames over desired:" << _maxFramesOverDesired;
 
-
+        const QString PRINT_STREAM_STATS_JSON_KEY = "H-print-stream-stats";
+        _printStreamStats = audioGroupObject[PRINT_STREAM_STATS_JSON_KEY].toBool();
+        if (_printStreamStats) {
+            qDebug() << "Stream stats will be printed to stdout";
+        }
 
         const QString UNATTENUATED_ZONE_KEY = "D-unattenuated-zone";
 
@@ -581,6 +587,9 @@ void AudioMixer::run() {
                     // send an audio stream stats packet if it's time
                     if (sendAudioStreamStats) {
                         nodeData->sendAudioStreamStatsPackets(node);
+
+                        printf("\nStats for agent %s\n:", node->getUUID().toString().toLatin1().data());
+                        nodeData->printUpstreamDownstreamStats();
                     }
 
                     ++_sumListeners;
