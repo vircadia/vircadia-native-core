@@ -428,6 +428,8 @@ typedef QExplicitlySharedDataPointer<HeightfieldData> HeightfieldDataPointer;
 class HeightfieldData : public QSharedData {
 public:
 
+    static const int COLOR_BYTES = 3;
+    
     HeightfieldData(const QByteArray& contents);
     HeightfieldData(Bitstream& in, int bytes, bool color);
     HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& reference, bool color);

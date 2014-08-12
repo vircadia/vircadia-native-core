@@ -131,16 +131,20 @@ private:
 class HeightfieldBuffer : public BufferData {
 public:
     
-    /// Creates a new heightfield buffer.
-    /// \param clearAfterLoading if true, clear the data arrays after we load them into textures in order to reclaim the space
-    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color,
-        bool clearAfterLoading = true);
+    static const int HEIGHT_BORDER = 1;
+    static const int SHARED_EDGE = 1;
+    static const int HEIGHT_EXTENSION = 2 * HEIGHT_BORDER + SHARED_EDGE;
+    
+    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color);
     ~HeightfieldBuffer();
     
     const glm::vec3& getTranslation() const { return _translation; }
     
     const QByteArray& getHeight() const { return _height; }
     const QByteArray& getColor() const { return _color; }
+    
+    QByteArray getUnextendedHeight() const;
+    QByteArray getUnextendedColor() const;
     
     virtual void render(bool cursor = false);
 
@@ -150,7 +154,6 @@ private:
     float _scale;
     QByteArray _height;
     QByteArray _color;
-    bool _clearAfterLoading;
     GLuint _heightTextureID;
     GLuint _colorTextureID;
     int _heightSize;

@@ -333,12 +333,11 @@ void PointBuffer::render(bool cursor) {
 }
 
 HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
-        const QByteArray& height, const QByteArray& color, bool clearAfterLoading) :
+        const QByteArray& height, const QByteArray& color) :
     _translation(translation),
     _scale(scale),
     _height(height),
     _color(color),
-    _clearAfterLoading(clearAfterLoading),
     _heightTextureID(0),
     _colorTextureID(0),
     _heightSize(glm::sqrt(height.size())) {
@@ -353,6 +352,32 @@ HeightfieldBuffer::~HeightfieldBuffer() {
         glDeleteTextures(1, &_heightTextureID);
         glDeleteTextures(1, &_colorTextureID);
     }
+}
+
+QByteArray HeightfieldBuffer::getUnextendedHeight() const {
+    int srcSize = glm::sqrt(_height.size());
+    int destSize = srcSize - 3;
+    QByteArray unextended(destSize * destSize, 0);
+    const char* src = _height.constData() + srcSize + 1;
+    char* dest = unextended.data();
+    for (int z = 0; z < destSize; z++, src += srcSize, dest += destSize) {
+        memcpy(dest, src, destSize);
+    }
+    return unextended;
+}
+
+QByteArray HeightfieldBuffer::getUnextendedColor() const {
+    int srcSize = glm::sqrt(_color.size() / HeightfieldData::COLOR_BYTES);
+    int destSize = srcSize - 1;
+    QByteArray unextended(destSize * destSize * HeightfieldData::COLOR_BYTES, 0);
+    const char* src = _color.constData();
+    int srcStride = srcSize * HeightfieldData::COLOR_BYTES;
+    char* dest = unextended.data();
+    int destStride = destSize * HeightfieldData::COLOR_BYTES;
+    for (int z = 0; z < destSize; z++, src += srcStride, dest += destStride) {
+        memcpy(dest, src, destStride);
+    }
+    return unextended;
 }
 
 class HeightfieldPoint {
@@ -372,9 +397,6 @@ void HeightfieldBuffer::render(bool cursor) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _heightSize, _heightSize, 0,
             GL_LUMINANCE, GL_UNSIGNED_BYTE, _height.constData());
-        if (_clearAfterLoading) {
-            _height.clear();
-        }
         
         glGenTextures(1, &_colorTextureID);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
@@ -386,15 +408,12 @@ void HeightfieldBuffer::render(bool cursor) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
                
         } else {
-            int colorSize = glm::sqrt(_color.size() / 3);    
+            int colorSize = glm::sqrt(_color.size() / HeightfieldData::COLOR_BYTES);    
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, colorSize, colorSize, 0, GL_RGB, GL_UNSIGNED_BYTE, _color.constData());
-            if (_clearAfterLoading) {
-                _color.clear();
-            }
         }
     }
     // create the buffer objects lazily
-    int innerSize = _heightSize - 2;
+    int innerSize = _heightSize - 2 * HeightfieldBuffer::HEIGHT_BORDER;
     int vertexCount = _heightSize * _heightSize;
     int rows = _heightSize - 1;
     int indexCount = rows * rows * 4;
@@ -682,9 +701,9 @@ int HeightfieldAugmentVisitor::visit(MetavoxelInfo& info) {
         if (height) {
             const QByteArray& heightContents = height->getContents();
             int size = glm::sqrt(heightContents.size());
-            int extendedSize = size + 3;
+            int extendedSize = size + HeightfieldBuffer::HEIGHT_EXTENSION;
             QByteArray extendedHeightContents(extendedSize * extendedSize, 0);
-            char* dest = extendedHeightContents.data() + extendedSize + 1;
+            char* dest = extendedHeightContents.data() + (extendedSize + 1) * HeightfieldBuffer::HEIGHT_BORDER;
             const char* src = heightContents.constData();
             for (int z = 0; z < size; z++, src += size, dest += extendedSize) {
                 memcpy(dest, src, size);
@@ -693,14 +712,13 @@ int HeightfieldAugmentVisitor::visit(MetavoxelInfo& info) {
             HeightfieldDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldDataPointer>();
             if (color) {
                 const QByteArray& colorContents = color->getContents();
-                const int BYTES_PER_PIXEL = 3;
-                int colorSize = glm::sqrt(colorContents.size() / BYTES_PER_PIXEL);
-                int extendedColorSize = colorSize + 1;
-                extendedColorContents = QByteArray(extendedColorSize * extendedColorSize * BYTES_PER_PIXEL, 0);
+                int colorSize = glm::sqrt(colorContents.size() / HeightfieldData::COLOR_BYTES);
+                int extendedColorSize = colorSize + HeightfieldBuffer::SHARED_EDGE;
+                extendedColorContents = QByteArray(extendedColorSize * extendedColorSize * HeightfieldData::COLOR_BYTES, 0);
                 char* dest = extendedColorContents.data();
                 const char* src = colorContents.constData();
-                int srcStride = colorSize * BYTES_PER_PIXEL;
-                int destStride = extendedColorSize * BYTES_PER_PIXEL;
+                int srcStride = colorSize * HeightfieldData::COLOR_BYTES;
+                int destStride = extendedColorSize * HeightfieldData::COLOR_BYTES;
                 for (int z = 0; z < colorSize; z++, src += srcStride, dest += destStride) {
                     memcpy(dest, src, srcStride);
                 }

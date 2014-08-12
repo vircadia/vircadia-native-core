@@ -489,9 +489,6 @@ HeightfieldData::HeightfieldData(const QByteArray& contents) :
     _contents(contents) {
 }
 
-const int BYTES_PER_PIXEL = 3;
-const int ZERO_OFFSET = 128;
-
 HeightfieldData::HeightfieldData(Bitstream& in, int bytes, bool color) {
     read(in, bytes, color);
 }
@@ -515,10 +512,10 @@ HeightfieldData::HeightfieldData(Bitstream& in, int bytes, const HeightfieldData
     int minX = offset.x() - 1;
     int minY = offset.y() - 1;
     if (color) {
-        int size = glm::sqrt(_contents.size() / (float)BYTES_PER_PIXEL);
-        char* dest = _contents.data() + (minY * size + minX) * BYTES_PER_PIXEL;
-        int destStride = size * BYTES_PER_PIXEL;
-        int srcStride = image.width() * BYTES_PER_PIXEL;
+        int size = glm::sqrt(_contents.size() / (float)COLOR_BYTES);
+        char* dest = _contents.data() + (minY * size + minX) * COLOR_BYTES;
+        int destStride = size * COLOR_BYTES;
+        int srcStride = image.width() * COLOR_BYTES;
         for (int y = 0; y < image.height(); y++) {
             memcpy(dest, image.constScanLine(y), srcStride);
             dest += destStride;
@@ -528,7 +525,7 @@ HeightfieldData::HeightfieldData(Bitstream& in, int bytes, const HeightfieldData
         char* lineDest = _contents.data() + minY * size + minX;
         for (int y = 0; y < image.height(); y++) {
             const uchar* src = image.constScanLine(y);
-            for (char* dest = lineDest, *end = dest + image.width(); dest != end; dest++, src += BYTES_PER_PIXEL) {
+            for (char* dest = lineDest, *end = dest + image.width(); dest != end; dest++, src += COLOR_BYTES) {
                 *dest = *src;
             }
             lineDest += size;
@@ -541,7 +538,7 @@ void HeightfieldData::write(Bitstream& out, bool color) {
     if (_encoded.isEmpty()) {
         QImage image;        
         if (color) {    
-            int size = glm::sqrt(_contents.size() / (float)BYTES_PER_PIXEL);
+            int size = glm::sqrt(_contents.size() / (float)COLOR_BYTES);
             image = QImage((uchar*)_contents.data(), size, size, QImage::Format_RGB888);
         } else {
             int size = glm::sqrt((float)_contents.size());
@@ -571,7 +568,7 @@ void HeightfieldData::writeDelta(Bitstream& out, const HeightfieldDataPointer& r
         QImage image;
         int minX, minY;
         if (color) {
-            int size = glm::sqrt(_contents.size() / (float)BYTES_PER_PIXEL);
+            int size = glm::sqrt(_contents.size() / (float)COLOR_BYTES);
             minX = size;
             minY = size;
             int maxX = -1, maxY = -1;
@@ -579,7 +576,7 @@ void HeightfieldData::writeDelta(Bitstream& out, const HeightfieldDataPointer& r
             const char* ref = reference->_contents.constData();
             for (int y = 0; y < size; y++) {
                 bool difference = false;
-                for (int x = 0; x < size; x++, src += BYTES_PER_PIXEL, ref += BYTES_PER_PIXEL) {
+                for (int x = 0; x < size; x++, src += COLOR_BYTES, ref += COLOR_BYTES) {
                     if (src[0] != ref[0] || src[1] != ref[1] || src[2] != ref[2]) {
                         minX = qMin(minX, x);
                         maxX = qMax(maxX, x);
@@ -594,9 +591,9 @@ void HeightfieldData::writeDelta(Bitstream& out, const HeightfieldDataPointer& r
             int width = qMax(maxX - minX + 1, 0);
             int height = qMax(maxY - minY + 1, 0);
             image = QImage(width, height, QImage::Format_RGB888);
-            src = _contents.constData() + (minY * size + minX) * BYTES_PER_PIXEL;
-            int srcStride = size * BYTES_PER_PIXEL;
-            int destStride = width * BYTES_PER_PIXEL;
+            src = _contents.constData() + (minY * size + minX) * COLOR_BYTES;
+            int srcStride = size * COLOR_BYTES;
+            int destStride = width * COLOR_BYTES;
             for (int y = 0; y < height; y++) {
                 memcpy(image.scanLine(y), src, destStride);
                 src += srcStride;
@@ -652,14 +649,14 @@ void HeightfieldData::read(Bitstream& in, int bytes, bool color) {
 
 void HeightfieldData::set(const QImage& image, bool color) {
     if (color) {
-        _contents.resize(image.width() * image.height() * BYTES_PER_PIXEL);
+        _contents.resize(image.width() * image.height() * COLOR_BYTES);
         memcpy(_contents.data(), image.constBits(), _contents.size());
         
     } else {
         _contents.resize(image.width() * image.height());
         char* dest = _contents.data();
-        for (const uchar* src = image.constBits(), *end = src + _contents.size() * BYTES_PER_PIXEL;
-                src != end; src += BYTES_PER_PIXEL) {
+        for (const uchar* src = image.constBits(), *end = src + _contents.size() * COLOR_BYTES;
+                src != end; src += COLOR_BYTES) {
             *dest++ = *src;
         }
     }
@@ -856,8 +853,8 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
         *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer();
         return true;
     }
-    int size = glm::sqrt(maxSize / (float)BYTES_PER_PIXEL);
-    QByteArray contents(size * size * BYTES_PER_PIXEL, 0);
+    int size = glm::sqrt(maxSize / (float)HeightfieldData::COLOR_BYTES);
+    QByteArray contents(size * size * HeightfieldData::COLOR_BYTES, 0);
     int halfSize = size / 2;
     for (int i = 0; i < MERGE_COUNT; i++) {
         HeightfieldDataPointer child = decodeInline<HeightfieldDataPointer>(children[i]);
@@ -865,7 +862,7 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
             continue;
         }
         const QByteArray& childContents = child->getContents();
-        int childSize = glm::sqrt(childContents.size() / (float)BYTES_PER_PIXEL);
+        int childSize = glm::sqrt(childContents.size() / (float)HeightfieldData::COLOR_BYTES);
         const int INDEX_MASK = 1;
         int xIndex = i & INDEX_MASK;
         const int Y_SHIFT = 1;
@@ -875,24 +872,25 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
         }
         int Z_SHIFT = 2;
         int zIndex = (i >> Z_SHIFT) & INDEX_MASK;
-        char* dest = contents.data() + ((zIndex * halfSize * size) + (xIndex * halfSize)) * BYTES_PER_PIXEL;
+        char* dest = contents.data() + ((zIndex * halfSize * size) + (xIndex * halfSize)) * HeightfieldData::COLOR_BYTES;
         uchar* src = (uchar*)childContents.data();
-        int childStride = childSize * BYTES_PER_PIXEL;
-        int stride = size * BYTES_PER_PIXEL;
+        int childStride = childSize * HeightfieldData::COLOR_BYTES;
+        int stride = size * HeightfieldData::COLOR_BYTES;
         int halfStride = stride / 2;
-        int childStep = 2 * BYTES_PER_PIXEL;
-        int redOffset3 = childStride + BYTES_PER_PIXEL;
-        int greenOffset1 = BYTES_PER_PIXEL + 1;
+        int childStep = 2 * HeightfieldData::COLOR_BYTES;
+        int redOffset3 = childStride + HeightfieldData::COLOR_BYTES;
+        int greenOffset1 = HeightfieldData::COLOR_BYTES + 1;
         int greenOffset2 = childStride + 1;
-        int greenOffset3 = childStride + BYTES_PER_PIXEL + 1;
-        int blueOffset1 = BYTES_PER_PIXEL + 2;
+        int greenOffset3 = childStride + HeightfieldData::COLOR_BYTES + 1;
+        int blueOffset1 = HeightfieldData::COLOR_BYTES + 2;
         int blueOffset2 = childStride + 2;
-        int blueOffset3 = childStride + BYTES_PER_PIXEL + 2;
+        int blueOffset3 = childStride + HeightfieldData::COLOR_BYTES + 2;
         if (childSize == size) {
             // simple case: one destination value for four child values
             for (int z = 0; z < halfSize; z++) {
-                for (char* end = dest + halfSize * BYTES_PER_PIXEL; dest != end; src += childStep) {
-                    *dest++ = ((int)src[0] + (int)src[BYTES_PER_PIXEL] + (int)src[childStride] + (int)src[redOffset3]) >> 2;
+                for (char* end = dest + halfSize * HeightfieldData::COLOR_BYTES; dest != end; src += childStep) {
+                    *dest++ = ((int)src[0] + (int)src[HeightfieldData::COLOR_BYTES] +
+                        (int)src[childStride] + (int)src[redOffset3]) >> 2;
                     *dest++ = ((int)src[1] + (int)src[greenOffset1] + (int)src[greenOffset2] + (int)src[greenOffset3]) >> 2;
                     *dest++ = ((int)src[2] + (int)src[blueOffset1] + (int)src[blueOffset2] + (int)src[blueOffset3]) >> 2;
                 }
@@ -904,13 +902,14 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
             int halfChildSize = childSize / 2;
             int destPerSrc = size / childSize;
             for (int z = 0; z < halfChildSize; z++) {
-                for (uchar* end = src + childSize * BYTES_PER_PIXEL; src != end; src += childStep) {
-                    *dest++ = ((int)src[0] + (int)src[BYTES_PER_PIXEL] + (int)src[childStride] + (int)src[redOffset3]) >> 2;
+                for (uchar* end = src + childSize * HeightfieldData::COLOR_BYTES; src != end; src += childStep) {
+                    *dest++ = ((int)src[0] + (int)src[HeightfieldData::COLOR_BYTES] +
+                        (int)src[childStride] + (int)src[redOffset3]) >> 2;
                     *dest++ = ((int)src[1] + (int)src[greenOffset1] + (int)src[greenOffset2] + (int)src[greenOffset3]) >> 2;
                     *dest++ = ((int)src[2] + (int)src[blueOffset1] + (int)src[blueOffset2] + (int)src[blueOffset3]) >> 2;
                     for (int j = 1; j < destPerSrc; j++) {
-                        memcpy(dest, dest - BYTES_PER_PIXEL, BYTES_PER_PIXEL);
-                        dest += BYTES_PER_PIXEL;
+                        memcpy(dest, dest - HeightfieldData::COLOR_BYTES, HeightfieldData::COLOR_BYTES);
+                        dest += HeightfieldData::COLOR_BYTES;
                     }
                 }
                 dest += halfStride;

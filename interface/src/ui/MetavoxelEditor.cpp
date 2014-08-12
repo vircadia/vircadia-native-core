@@ -956,11 +956,11 @@ void ImportHeightfieldTool::apply() {
         HeightfieldBuffer* buffer = static_cast<HeightfieldBuffer*>(bufferData.data());
         MetavoxelData data;
         data.setSize(scale);
-        HeightfieldDataPointer heightPointer(new HeightfieldData(buffer->getHeight()));
+        HeightfieldDataPointer heightPointer(new HeightfieldData(buffer->getUnextendedHeight()));
         data.setRoot(AttributeRegistry::getInstance()->getHeightfieldAttribute(), new MetavoxelNode(AttributeValue(
             AttributeRegistry::getInstance()->getHeightfieldAttribute(), encodeInline(heightPointer))));
         if (!buffer->getColor().isEmpty()) {
-            HeightfieldDataPointer colorPointer(new HeightfieldData(buffer->getColor()));
+            HeightfieldDataPointer colorPointer(new HeightfieldData(buffer->getUnextendedColor()));
             data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
                 AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
         }
@@ -1003,38 +1003,38 @@ void ImportHeightfieldTool::updatePreview() {
     if (_heightImage.width() > 0 && _heightImage.height() > 0) {
         float z = 0.0f;
         int blockSize = pow(2.0, _blockSize->value());
-        int heightSize = blockSize + 3;
-        int colorSize = blockSize + 1;
+        int heightSize = blockSize + HeightfieldBuffer::HEIGHT_EXTENSION;
+        int colorSize = blockSize + HeightfieldBuffer::SHARED_EDGE;
         for (int i = 0; i < _heightImage.height(); i += blockSize, z++) {
             float x = 0.0f;
             for (int j = 0; j < _heightImage.width(); j += blockSize, x++) {
                 QByteArray height(heightSize * heightSize, 0);
-                int extendedI = qMax(i - 1, 0);
-                int extendedJ = qMax(j - 1, 0);
-                int offsetY = extendedI - i + 1;
-                int offsetX = extendedJ - j + 1;
+                int extendedI = qMax(i - HeightfieldBuffer::HEIGHT_BORDER, 0);
+                int extendedJ = qMax(j - HeightfieldBuffer::HEIGHT_BORDER, 0);
+                int offsetY = extendedI - i + HeightfieldBuffer::HEIGHT_BORDER;
+                int offsetX = extendedJ - j + HeightfieldBuffer::HEIGHT_BORDER;
                 int rows = qMin(heightSize - offsetY, _heightImage.height() - extendedI);
                 int columns = qMin(heightSize - offsetX, _heightImage.width() - extendedJ);
-                const int BYTES_PER_COLOR = 3;
                 for (int y = 0; y < rows; y++) {
-                    uchar* src = _heightImage.scanLine(extendedI + y) + extendedJ * BYTES_PER_COLOR;
+                    uchar* src = _heightImage.scanLine(extendedI + y) + extendedJ * HeightfieldData::COLOR_BYTES;
                     char* dest = height.data() + (y + offsetY) * heightSize + offsetX;
                     for (int x = 0; x < columns; x++) {
                         *dest++ = *src;
-                        src += BYTES_PER_COLOR;
+                        src += HeightfieldData::COLOR_BYTES;
                     }
                 }
                 QByteArray color;
                 if (!_colorImage.isNull()) {
-                    color = QByteArray(colorSize * colorSize * BYTES_PER_COLOR, 0);
+                    color = QByteArray(colorSize * colorSize * HeightfieldData::COLOR_BYTES, 0);
                     rows = qMax(0, qMin(colorSize, _colorImage.height() - i));
                     columns = qMax(0, qMin(colorSize, _colorImage.width() - j));
                     for (int y = 0; y < rows; y++) {
-                        memcpy(color.data() + y * colorSize * BYTES_PER_COLOR,
-                            _colorImage.scanLine(i + y) + j * BYTES_PER_COLOR, columns * BYTES_PER_COLOR);
+                        memcpy(color.data() + y * colorSize * HeightfieldData::COLOR_BYTES,
+                            _colorImage.scanLine(i + y) + j * HeightfieldData::COLOR_BYTES,
+                            columns * HeightfieldData::COLOR_BYTES);
                     }
                 }
-                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color, false)));
+                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color)));
             }
         }
     }
