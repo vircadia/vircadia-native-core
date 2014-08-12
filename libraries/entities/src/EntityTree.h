@@ -115,8 +115,6 @@ public:
     void debugDumpMap();
     void dumpTree();
 
-    void rememberDirtyCube(const AACube& cube);
-    void rememberEntityToMove(const EntityItem* entity);
     void sendEntities(EntityEditPacketSender* packetSender, float x, float y, float z);
 
     void changeEntityState(EntityItem* const entity, EntityItem::SimuationState oldState, EntityItem::SimuationState newState);

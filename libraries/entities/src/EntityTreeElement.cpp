@@ -598,8 +598,10 @@ bool EntityTreeElement::removeEntityItem(const EntityItem* entity) {
 //
 // 1) correctly update the properties of the entity
 // 2) add any new entities that didn't previously exist
-// 3) mark our tree as dirty down to the path of the previous location of the entity
-// 4) mark our tree as dirty down to the path of the new location of the entity
+//
+// TODO: Do we also need to do this?
+//    3) mark our tree as dirty down to the path of the previous location of the entity
+//    4) mark our tree as dirty down to the path of the new location of the entity
 //
 // Since we're potentially reading several entities, we'd prefer to do all the moving around
 // and dirty path marking in one pass.
@@ -635,57 +637,31 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 bool newEntity = false;
                 
                 // If the item already exists in our tree, we want do the following...
-                // 1) remember the old cube for the entity so we can mark it as dirty
-                // 2) allow the existing item to read from the databuffer
-                // 3) check to see if after reading the item, the 
+                // 1) allow the existing item to read from the databuffer
+                // 2) check to see if after reading the item, the containing element is still correct, fix it if needed
+                //
+                // TODO: Do we need to also do this?
+                //    3) remember the old cube for the entity so we can mark it as dirty
                 if (entityItem) {
-                    AACube existingEntityCube = entityItem->getAACube();
-                    _myTree->rememberDirtyCube(existingEntityCube);
-                    
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
-                    //if (!bestFitBefore) {
-                    //    qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  reading from element that is not Best fit before";
-                    //}
-
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
-                    //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  currentContainingElement=" << currentContainingElement;
-                    //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  this (reading element)  =" << this;
-                    //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!  EntityTreeElement::readElementDataFromBuffer() BEFORE entityItem->readEntityDataFromBuffer(); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
-
-                    // This is the case where the entity existed, and is in some element in our tree...                    
-                    //if (currentContainingElement != this) {
-                    //    qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!! CONTAINING ELEMENT MISMATCH!!";
-                    //}
-
                     EntityItem::SimuationState oldState = entityItem->getSimulationState();
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
                     EntityItem::SimuationState newState = entityItem->getSimulationState();
                     _myTree->changeEntityState(entityItem, oldState, newState);
-
                     bool bestFitAfter = bestFitEntityBounds(entityItem);
 
-                    //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   EntityTreeElement::readElementDataFromBuffer() AFTER entityItem->readEntityDataFromBuffer(); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
-
                     if (bestFitBefore != bestFitAfter) {
-                        //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   BEST FIT CHANGED!!! bestFitBefore" << bestFitBefore << "bestFitAfter=" << bestFitAfter;
-                        
                         // This is the case where the entity existed, and is in some element in our tree...                    
                         if (!bestFitBefore && bestFitAfter) {
-                            //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   BEST FIT CHANGED!!! bestFitBefore" << bestFitBefore << "bestFitAfter=" << bestFitAfter;
-
                             // This is the case where the entity existed, and is in some element in our tree...                    
                             if (currentContainingElement != this) {
-                                //qDebug() << "EXISTING ENTITY CASE!!!!!!!!!!!!!!   BEST FIT CHANGED!!! moving the entity!!!!";
                                 currentContainingElement->removeEntityItem(entityItem);
                                 this->addEntityItem(entityItem);
                                 _myTree->setContainingElement(entityItemID, this);
                             }
-
                         }
-                        
                     }
-
-
                 } else {
                     entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
                     
@@ -696,23 +672,6 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         newEntity = true;
                     }
                 }
-
-                if (entityItem) {
-                    if (newEntity) {
-                        AACube newEntityCube = entityItem->getAACube();
-                        _myTree->rememberDirtyCube(newEntityCube);
-                    }
-                
-                    // XXXBHG???? DO WE NEED THIS???
-                    if (!bestFitEntityBounds(entityItem)) {
-                        _myTree->rememberEntityToMove(entityItem);
-                        if (!newEntity) {
-                            AACube newEntityCube = entityItem->getAACube();
-                            _myTree->rememberDirtyCube(newEntityCube);
-                        }
-                    }
-                }
-                
                 // Move the buffer forward to read more entities
                 dataAt += bytesForThisEntity;
                 bytesLeftToRead -= bytesForThisEntity;
@@ -720,7 +679,6 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
             }
         }
     }
-
     return bytesRead;
 }
 

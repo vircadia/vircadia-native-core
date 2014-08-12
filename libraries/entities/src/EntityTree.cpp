@@ -1604,17 +1604,6 @@ void EntityTree::dumpTree() {
     recurseTreeWithOperator(&theOperator);
 }
 
-
-void EntityTree::rememberDirtyCube(const AACube& cube) {
-    // TODO: do something here
-    qDebug() << "void EntityTree::rememberDirtyCube(const AACube& cube) CALLED BUT NOT IMPLEMENTED!";
-}
-
-void EntityTree::rememberEntityToMove(const EntityItem* entity) {
-    // TODO: do something here
-    qDebug() << "void EntityTree::rememberEntityToMove() CALLED BUT NOT IMPLEMENTED!";
-}
-
 void EntityTree::sendEntities(EntityEditPacketSender* packetSender, float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.packetSender = packetSender;
