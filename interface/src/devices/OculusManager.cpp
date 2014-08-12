@@ -135,6 +135,10 @@ void OculusManager::connect() {
 
     } else {
         _isConnected = false;
+        
+        // we're definitely not in "VR mode" so tell the menu that
+        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(false);
+        
         ovrHmd_Destroy(_ovrHmd);
         ovr_Shutdown();
     }
