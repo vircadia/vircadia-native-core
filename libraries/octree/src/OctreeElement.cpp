@@ -1489,14 +1489,18 @@ int OctreeElement::getMyChildContaining(const AACube& cube) const {
     float cubeScale = cube.getScale();
 
     // TODO: consider changing this to assert()
-    if(cubeScale > ourScale) {
-        qDebug("UNEXPECTED -- OctreeElement::getMyChildContaining() "
-                    "cubeScale=[%f] > ourScale=[%f] ", cubeScale, ourScale);
+    if (cubeScale > ourScale) {
+        qDebug() << "UNEXPECTED -- OctreeElement::getMyChildContaining() -- (cubeScale > ourScale)";
+        qDebug() << "    cube=" << cube;
+        qDebug() << "    elements AACube=" << getAACube();
+        qDebug() << "    cubeScale=" << cubeScale;
+        qDebug() << "    ourScale=" << ourScale;
+        assert(false);
     }
 
     // Determine which of our children the minimum and maximum corners of the cube live in...
-    glm::vec3 cubeCornerMinimum = cube.getCorner();
-    glm::vec3 cubeCornerMaximum = cube.calcTopFarLeft();
+    glm::vec3 cubeCornerMinimum = glm::clamp(cube.getCorner(), 0.0f, 1.0f);
+    glm::vec3 cubeCornerMaximum = glm::clamp(cube.calcTopFarLeft(), 0.0f, 1.0f);
 
     int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);
     int childIndexCubeMaximum = getMyChildContainingPoint(cubeCornerMaximum);

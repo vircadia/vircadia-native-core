@@ -155,10 +155,14 @@ OctreeElement* AddEntityOperator::PossiblyCreateChildAt(OctreeElement* element, 
     // We only care if this happens while still searching for the new entity location.
     // Check to see if 
     if (!_foundNew) {
-        int indexOfChildContainingNewEntity = element->getMyChildContaining(_newEntityBox);
+        float childElementScale = element->getAACube().getScale() / 2.0f; // all of our children will be half our scale
+        // if the scale of our desired cube is smaller than our children, then consider making a child
+        if (_newEntityBox.getLargestDimension() <= childElementScale) {
+            int indexOfChildContainingNewEntity = element->getMyChildContaining(_newEntityBox);
         
-        if (childIndex == indexOfChildContainingNewEntity) {
-            return element->addChildAtIndex(childIndex);
+            if (childIndex == indexOfChildContainingNewEntity) {
+                return element->addChildAtIndex(childIndex);
+            }
         }
     }
     return NULL; 
@@ -488,10 +492,16 @@ OctreeElement* UpdateEntityOperator::PossiblyCreateChildAt(OctreeElement* elemen
     // We only care if this happens while still searching for the new entity location.
     // Check to see if 
     if (!_foundNew) {
-        int indexOfChildContainingNewEntity = element->getMyChildContaining(_newEntityCube);
+    
+        float childElementScale = element->getAACube().getScale() / 2.0f; // all of our children will be half our scale
+        // if the scale of our desired cube is smaller than our children, then consider making a child
+        if (_newEntityCube.getScale() <= childElementScale) {
+            //qDebug() << "UpdateEntityOperator::PossiblyCreateChildAt().... calling element->getMyChildContaining(_newEntityCube);";
+            int indexOfChildContainingNewEntity = element->getMyChildContaining(_newEntityCube);
         
-        if (childIndex == indexOfChildContainingNewEntity) {
-            return element->addChildAtIndex(childIndex);
+            if (childIndex == indexOfChildContainingNewEntity) {
+                return element->addChildAtIndex(childIndex);
+            }
         }
     }
     return NULL; 

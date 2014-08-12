@@ -127,21 +127,45 @@ bool MovingEntitiesOperator::PostRecursion(OctreeElement* element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-OctreeElement* MovingEntitiesOperator::PossiblyCreateChildAt(OctreeElement* element, int childIndex) { 
+OctreeElement* MovingEntitiesOperator::PossiblyCreateChildAt(OctreeElement* element, int childIndex) {
+    bool wantDebug = false;
+
+    if (wantDebug) { 
+        qDebug() << "MovingEntitiesOperator::PossiblyCreateChildAt().... ";
+        qDebug() << "    _foundNewCount=" << _foundNewCount;
+        qDebug() << "    _lookingCount=" << _lookingCount;
+    }
+    
     // If we're getting called, it's because there was no child element at this index while recursing.
     // We only care if this happens while still searching for the new entity locations.
     if (_foundNewCount < _lookingCount) {
+
+        float childElementScale = element->getAACube().getScale() / 2.0f; // all of our children will be half our scale
     
         // check against each of our entities
         foreach(const EntityToMoveDetails& details, _entitiesToMove) {
-            int indexOfChildContainingNewEntity = element->getMyChildContaining(details.newCube);
+            EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
             
-            // If the childIndex we were asked if we wanted to create contains this newCube,
-            // then we will create this branch and continue. We can exit this loop immediately
-            // because if we need this branch for any one entity then it doesn't matter if it's
-            // needed for more entities.
-            if (childIndex == indexOfChildContainingNewEntity) {
-                return element->addChildAtIndex(childIndex);
+            bool thisElementIsBestFit = entityTreeElement->bestFitBounds(details.newCube);
+            if (wantDebug) { 
+                qDebug() << "    thisElementIsBestFit=" << thisElementIsBestFit;
+                qDebug() << "    details.newCube=" << details.newCube;
+                qDebug() << "    element->getAACube()=" << element->getAACube();
+            }
+            
+            // if the scale of our desired cube is smaller than our children, then consider making a child
+            if (details.newCube.getScale() <= childElementScale) {
+                //qDebug() << "          calling element->getMyChildContaining(details.newCube); ---------";
+                int indexOfChildContainingNewEntity = element->getMyChildContaining(details.newCube);
+                //qDebug() << "          called element->getMyChildContaining(details.newCube); ---------";
+            
+                // If the childIndex we were asked if we wanted to create contains this newCube,
+                // then we will create this branch and continue. We can exit this loop immediately
+                // because if we need this branch for any one entity then it doesn't matter if it's
+                // needed for more entities.
+                if (childIndex == indexOfChildContainingNewEntity) {
+                    return element->addChildAtIndex(childIndex);
+                }
             }
         }
     }
