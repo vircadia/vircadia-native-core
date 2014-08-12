@@ -366,6 +366,7 @@ void HeightfieldBuffer::render(bool cursor) {
     if (_heightTextureID == 0) {
         glGenTextures(1, &_heightTextureID);
         glBindTexture(GL_TEXTURE_2D, _heightTextureID);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -385,7 +386,7 @@ void HeightfieldBuffer::render(bool cursor) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
                
         } else {
-            int colorSize = glm::sqrt(_color.size() / 3);
+            int colorSize = glm::sqrt(_color.size() / 3);    
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, colorSize, colorSize, 0, GL_RGB, GL_UNSIGNED_BYTE, _color.constData());
             if (_clearAfterLoading) {
                 _color.clear();
@@ -393,24 +394,27 @@ void HeightfieldBuffer::render(bool cursor) {
         }
     }
     // create the buffer objects lazily
-    int sizeWithSkirt = _heightSize + 2;
-    int vertexCount = sizeWithSkirt * sizeWithSkirt;
-    int rows = sizeWithSkirt - 1;
+    int innerSize = _heightSize - 2;
+    int vertexCount = _heightSize * _heightSize;
+    int rows = _heightSize - 1;
     int indexCount = rows * rows * 4;
     BufferPair& bufferPair = _bufferPairs[_heightSize];
     if (!bufferPair.first.isCreated()) {
         QVector<HeightfieldPoint> vertices(vertexCount);
         HeightfieldPoint* point = vertices.data();
         
-        float step = 1.0f / (_heightSize - 1);
-        float z = -step;
-        for (int i = 0; i < sizeWithSkirt; i++, z += step) {
-            float x = -step;
+        float vertexStep = 1.0f / (innerSize - 1);
+        float z = -vertexStep;
+        float textureStep = 1.0f / _heightSize;
+        float t = textureStep / 2.0f;
+        for (int i = 0; i < _heightSize; i++, z += vertexStep, t += textureStep) {
+            float x = -vertexStep;
+            float s = textureStep / 2.0f;
             const float SKIRT_LENGTH = 0.25f;
-            float baseY = (i == 0 || i == sizeWithSkirt - 1) ? -SKIRT_LENGTH : 0.0f;
-            for (int j = 0; j < sizeWithSkirt; j++, point++, x += step) {
-                point->vertex = glm::vec3(x, (j == 0 || j == sizeWithSkirt - 1) ? -SKIRT_LENGTH : baseY, z);
-                point->textureCoord = glm::vec2(x, z);
+            float baseY = (i == 0 || i == _heightSize - 1) ? -SKIRT_LENGTH : 0.0f;
+            for (int j = 0; j < _heightSize; j++, point++, x += vertexStep, s += textureStep) {
+                point->vertex = glm::vec3(x, (j == 0 || j == _heightSize - 1) ? -SKIRT_LENGTH : baseY, z);
+                point->textureCoord = glm::vec2(s, t);
             }
         }
         
@@ -422,8 +426,8 @@ void HeightfieldBuffer::render(bool cursor) {
         QVector<int> indices(indexCount);
         int* index = indices.data();
         for (int i = 0; i < rows; i++) {
-            int lineIndex = i * sizeWithSkirt;
-            int nextLineIndex = (i + 1) * sizeWithSkirt;
+            int lineIndex = i * _heightSize;
+            int nextLineIndex = (i + 1) * _heightSize;
             for (int j = 0; j < rows; j++) {
                 *index++ = lineIndex + j;
                 *index++ = nextLineIndex + j;
@@ -452,17 +456,15 @@ void HeightfieldBuffer::render(bool cursor) {
     
     glBindTexture(GL_TEXTURE_2D, _heightTextureID);
     
-    int heightScaleLocation;
-    if (cursor) {
-        heightScaleLocation = DefaultMetavoxelRendererImplementation::getCursorHeightScaleLocation();
-    } else {
-        heightScaleLocation = DefaultMetavoxelRendererImplementation::getHeightScaleLocation();
+    if (!cursor) {
+        DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(
+            DefaultMetavoxelRendererImplementation::getHeightScaleLocation(), 1.0f / _heightSize);
+        DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(
+            DefaultMetavoxelRendererImplementation::getColorScaleLocation(), (float)_heightSize / innerSize);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
     }
     
-    DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(heightScaleLocation, 1.0f / _heightSize);
-        
     glDrawRangeElements(GL_QUADS, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
     
     if (!cursor) {
@@ -548,6 +550,7 @@ void DefaultMetavoxelRendererImplementation::init() {
         _heightfieldProgram.setUniformValue("heightMap", 0);
         _heightfieldProgram.setUniformValue("diffuseMap", 1);
         _heightScaleLocation = _heightfieldProgram.uniformLocation("heightScale");
+        _colorScaleLocation = _heightfieldProgram.uniformLocation("colorScale");
         _heightfieldProgram.release();
         
         _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
@@ -558,7 +561,6 @@ void DefaultMetavoxelRendererImplementation::init() {
         
         _heightfieldCursorProgram.bind();
         _heightfieldCursorProgram.setUniformValue("heightMap", 0);
-        _cursorHeightScaleLocation = _heightfieldCursorProgram.uniformLocation("heightScale");
         _heightfieldCursorProgram.release();
     }
 }
@@ -648,14 +650,62 @@ HeightfieldAugmentVisitor::HeightfieldAugmentVisitor(const MetavoxelLOD& lod) :
             Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), lod) {
 }
 
+class BorderFetchVisitor : public MetavoxelVisitor {
+public:
+    
+    BorderFetchVisitor(const MetavoxelLOD& lod, QByteArray& height);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    QByteArray& _height;
+};
+
+BorderFetchVisitor::BorderFetchVisitor(const MetavoxelLOD& lod, QByteArray& height) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute(),
+        QVector<AttributePointer>(), lod),
+    _height(height) {
+}
+
+int BorderFetchVisitor::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    return STOP_RECURSION;
+}
+
 int HeightfieldAugmentVisitor::visit(MetavoxelInfo& info) {
     if (info.isLeaf) {
         HeightfieldBuffer* buffer = NULL;
         HeightfieldDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
         if (height) {
+            const QByteArray& heightContents = height->getContents();
+            int size = glm::sqrt(heightContents.size());
+            int extendedSize = size + 3;
+            QByteArray extendedHeightContents(extendedSize * extendedSize, 0);
+            char* dest = extendedHeightContents.data() + extendedSize + 1;
+            const char* src = heightContents.constData();
+            for (int z = 0; z < size; z++, src += size, dest += extendedSize) {
+                memcpy(dest, src, size);
+            }
+            QByteArray extendedColorContents;
             HeightfieldDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldDataPointer>();
-            buffer = new HeightfieldBuffer(info.minimum, info.size, height->getContents(),
-                color ? color->getContents() : QByteArray());
+            if (color) {
+                const QByteArray& colorContents = color->getContents();
+                const int BYTES_PER_PIXEL = 3;
+                int colorSize = glm::sqrt(colorContents.size() / BYTES_PER_PIXEL);
+                int extendedColorSize = colorSize + 1;
+                extendedColorContents = QByteArray(extendedColorSize * extendedColorSize * BYTES_PER_PIXEL, 0);
+                char* dest = extendedColorContents.data();
+                const char* src = colorContents.constData();
+                int srcStride = colorSize * BYTES_PER_PIXEL;
+                int destStride = extendedColorSize * BYTES_PER_PIXEL;
+                for (int z = 0; z < colorSize; z++, src += srcStride, dest += destStride) {
+                    memcpy(dest, src, srcStride);
+                }
+            }
+            buffer = new HeightfieldBuffer(info.minimum, info.size, extendedHeightContents, extendedColorContents);
         }
         info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
         return STOP_RECURSION;
@@ -856,8 +906,8 @@ ProgramObject DefaultMetavoxelRendererImplementation::_pointProgram;
 int DefaultMetavoxelRendererImplementation::_pointScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldProgram;
 int DefaultMetavoxelRendererImplementation::_heightScaleLocation;
+int DefaultMetavoxelRendererImplementation::_colorScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldCursorProgram;
-int DefaultMetavoxelRendererImplementation::_cursorHeightScaleLocation;
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
     GLdouble coefficients[] = { x, y, z, w };

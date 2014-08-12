@@ -194,9 +194,9 @@ public:
 
     static ProgramObject& getHeightfieldProgram() { return _heightfieldProgram; }
     static int getHeightScaleLocation() { return _heightScaleLocation; }
-
+    static int getColorScaleLocation() { return _colorScaleLocation; }
+    
     static ProgramObject& getHeightfieldCursorProgram() { return _heightfieldCursorProgram; }
-    static int getCursorHeightScaleLocation() { return _cursorHeightScaleLocation; }
     
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
@@ -211,9 +211,9 @@ private:
     
     static ProgramObject _heightfieldProgram;
     static int _heightScaleLocation;
+    static int _colorScaleLocation;
     
     static ProgramObject _heightfieldCursorProgram;
-    static int _cursorHeightScaleLocation;
 };
 
 /// Base class for spanner renderers; provides clipping.

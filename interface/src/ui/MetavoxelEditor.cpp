@@ -1003,30 +1003,34 @@ void ImportHeightfieldTool::updatePreview() {
     if (_heightImage.width() > 0 && _heightImage.height() > 0) {
         float z = 0.0f;
         int blockSize = pow(2.0, _blockSize->value());
-        int blockAdvancement = blockSize - 1;
-        for (int i = 0; i < _heightImage.height(); i += blockAdvancement, z++) {
+        int heightSize = blockSize + 3;
+        int colorSize = blockSize + 1;
+        for (int i = 0; i < _heightImage.height(); i += blockSize, z++) {
             float x = 0.0f;
-            for (int j = 0; j < _heightImage.width(); j += blockAdvancement, x++) {
-                QByteArray height(blockSize * blockSize, 0);
-                int rows = qMin(blockSize, _heightImage.height() - i);
-                int columns = qMin(blockSize, _heightImage.width() - j);
+            for (int j = 0; j < _heightImage.width(); j += blockSize, x++) {
+                QByteArray height(heightSize * heightSize, 0);
+                int extendedI = qMax(i - 1, 0);
+                int extendedJ = qMax(j - 1, 0);
+                int offsetY = extendedI - i + 1;
+                int offsetX = extendedJ - j + 1;
+                int rows = qMin(heightSize - offsetY, _heightImage.height() - extendedI);
+                int columns = qMin(heightSize - offsetX, _heightImage.width() - extendedJ);
                 const int BYTES_PER_COLOR = 3;
                 for (int y = 0; y < rows; y++) {
-                    uchar* src = _heightImage.scanLine(i + y) + j * BYTES_PER_COLOR;
-                    char* dest = height.data() + y * blockSize;
+                    uchar* src = _heightImage.scanLine(extendedI + y) + extendedJ * BYTES_PER_COLOR;
+                    char* dest = height.data() + (y + offsetY) * heightSize + offsetX;
                     for (int x = 0; x < columns; x++) {
                         *dest++ = *src;
                         src += BYTES_PER_COLOR;
                     }
                 }
-                
                 QByteArray color;
                 if (!_colorImage.isNull()) {
-                    color = QByteArray(blockSize * blockSize * BYTES_PER_COLOR, 0);
-                    rows = qMax(0, qMin(blockSize, _colorImage.height() - i));
-                    columns = qMax(0, qMin(blockSize, _colorImage.width() - j));
+                    color = QByteArray(colorSize * colorSize * BYTES_PER_COLOR, 0);
+                    rows = qMax(0, qMin(colorSize, _colorImage.height() - i));
+                    columns = qMax(0, qMin(colorSize, _colorImage.width() - j));
                     for (int y = 0; y < rows; y++) {
-                        memcpy(color.data() + y * blockSize * BYTES_PER_COLOR,
+                        memcpy(color.data() + y * colorSize * BYTES_PER_COLOR,
                             _colorImage.scanLine(i + y) + j * BYTES_PER_COLOR, columns * BYTES_PER_COLOR);
                     }
                 }
