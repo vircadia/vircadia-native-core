@@ -244,7 +244,7 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
                 PacketStreamStats packetStatsLast30s = seqStats.getStatsForHistoryWindow();
                 PacketStreamStats packetStatsLastReportInterval = seqStats.getStatsForLastHistoryInterval();
 
-                std::cout << "RECEIVE Packet Stats "
+                std::cout << "RECEIVE Packet Stats\n"
                           << "Overall:\n"
                           << "lost: " << seqStats.getLost() << ", "
                           << "lost %: " << seqStats.getStats().getLostRate() * 100.0f << "%\n"
