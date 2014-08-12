@@ -672,8 +672,6 @@ void Audio::handleAudioInput() {
             glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientationInWorldFrame();
             quint8 isStereo = _isStereoInput ? 1 : 0;
 
-            int numPacketBytes = 0;
-
             PacketType packetType;
             if (_lastInputLoudness == 0) {
                 packetType = PacketTypeSilentAudioFrame;
@@ -773,7 +771,7 @@ void Audio::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
     do {
         int samplesToWriteThisIteration = std::min(samplesRemaining, (int)NETWORK_SAMPLES_PER_FRAME);
        float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
-        printf("%f ", fade, samplesToWriteThisIteration);
+        printf("%f ", fade);
         addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 0, STEREO_FACTOR, fade);
         _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 1, STEREO_FACTOR, fade);
 
