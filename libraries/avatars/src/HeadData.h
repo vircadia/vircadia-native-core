@@ -56,6 +56,7 @@ public:
 
     void setBlendshape(QString name, float val);
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
     
     float getPupilDilation() const { return _pupilDilation; }
     void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
