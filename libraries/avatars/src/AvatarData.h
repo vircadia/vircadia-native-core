@@ -49,6 +49,7 @@ typedef unsigned long long quint64;
 
 #include <Node.h>
 
+#include "Referential.h"
 #include "HeadData.h"
 #include "HandData.h"
 
@@ -80,7 +81,8 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
-const int IS_CHAT_CIRCLING_ENABLED = 5;
+const int IS_CHAT_CIRCLING_ENABLED = 5; // 6th bit
+const int HAS_REFERENTIAL = 6; // 7th bit
 
 static const float MAX_AVATAR_SCALE = 1000.f;
 static const float MIN_AVATAR_SCALE = .005f;
@@ -141,8 +143,8 @@ public:
 
     const QUuid& getSessionUUID() { return _sessionUUID; }
 
-    const glm::vec3& getPosition() const { return _position; }
-    void setPosition(const glm::vec3 position) { _position = position; }
+    const glm::vec3& getPosition();
+    void setPosition(const glm::vec3 position, bool overideReferential = false);
 
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
@@ -165,8 +167,8 @@ public:
     float getBodyRoll() const { return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
-    glm::quat getOrientation() const { return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll))); }
-    void setOrientation(const glm::quat& orientation);
+    glm::quat getOrientation() const;
+    void setOrientation(const glm::quat& orientation, bool overideReferential = false);
 
     glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
     void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
@@ -188,9 +190,9 @@ public:
     void setAudioAverageLoudness(float value) { _headData->setAudioAverageLoudness(value); }
 
     //  Scale
-    float getTargetScale() const { return _targetScale; }
-    void setTargetScale(float targetScale) { _targetScale = targetScale; }
-    void setClampedTargetScale(float targetScale);
+    float getTargetScale() const;
+    void setTargetScale(float targetScale, bool overideReferential = false);
+    void setClampedTargetScale(float targetScale, bool overideReferential = false);
 
     //  Hand State
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
@@ -280,17 +282,23 @@ public:
     QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
      
     virtual float getBoundingRadius() const { return 1.f; }
+    
+    const Referential* getReferential() const { return _referential; }
 
 public slots:
     void sendIdentityPacket();
     void sendBillboardPacket();
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
-    void setSessionUUID(const QUuid& id) { _sessionUUID = id; }
+    void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }
+    bool hasReferential();
+    
 protected:
     QUuid _sessionUUID;
     glm::vec3 _position;
     glm::vec3 _handPosition;
+    
+    Referential* _referential;
 
     //  Body rotation
     float _bodyYaw;     // degrees
@@ -340,6 +348,7 @@ protected:
     
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
+    void changeReferential(Referential* ref);
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

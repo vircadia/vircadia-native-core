@@ -9,19 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <NodeList.h>
 #include <PacketHeaders.h>
 
 #include "AvatarHashMap.h"
 
 AvatarHashMap::AvatarHashMap() :
-    _avatarHash()
+    _avatarHash(),
+    _lastOwnerSessionUUID()
 {
-    
+    connect(NodeList::getInstance(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
 
-void AvatarHashMap::insert(const QUuid& id, AvatarSharedPointer avatar) {
-    _avatarHash.insert(id, avatar);
-    avatar->setSessionUUID(id);
+void AvatarHashMap::insert(const QUuid& sessionUUID, AvatarSharedPointer avatar) {
+    _avatarHash.insert(sessionUUID, avatar);
+    avatar->setSessionUUID(sessionUUID);
 }
 
 AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) {
@@ -110,10 +112,16 @@ void AvatarHashMap::processAvatarDataPacket(const QByteArray &datagram, const QW
         QUuid sessionUUID = QUuid::fromRfc4122(datagram.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
         bytesRead += NUM_BYTES_RFC4122_UUID;
         
-        AvatarSharedPointer matchingAvatarData = matchingOrNewAvatar(sessionUUID, mixerWeakPointer);
-        
-        // have the matching (or new) avatar parse the data from the packet
-        bytesRead += matchingAvatarData->parseDataAtOffset(datagram, bytesRead);
+        if (sessionUUID != _lastOwnerSessionUUID) {
+            AvatarSharedPointer matchingAvatarData = matchingOrNewAvatar(sessionUUID, mixerWeakPointer);
+            
+            // have the matching (or new) avatar parse the data from the packet
+            bytesRead += matchingAvatarData->parseDataAtOffset(datagram, bytesRead);
+        } else {
+            // create a dummy AvatarData class to throw this data on the ground
+            AvatarData dummyData;
+            bytesRead += dummyData.parseDataAtOffset(datagram, bytesRead);
+        }
     }
 }
 
@@ -176,4 +184,8 @@ void AvatarHashMap::processKillAvatar(const QByteArray& datagram) {
     if (matchedAvatar != _avatarHash.end()) {
         erase(matchedAvatar);
     }
+}
+
+void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID) {
+    _lastOwnerSessionUUID = oldUUID;
 }

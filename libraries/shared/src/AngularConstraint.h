@@ -14,7 +14,6 @@
 
 #include <glm/glm.hpp>
 
-
 class AngularConstraint {
 public:
     /// \param minAngles minumum euler angles for the constraint

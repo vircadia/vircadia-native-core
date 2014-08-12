@@ -32,6 +32,6 @@ public:
 
     // My server type is the model server
     virtual char getMyNodeType() const { return NodeType::ModelServer; }
-    virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
+    virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
 };
 #endif // hifi_ModelEditPacketSender_h

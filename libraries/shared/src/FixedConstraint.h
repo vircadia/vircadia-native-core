@@ -18,15 +18,19 @@
 
 class VerletPoint;
 
+// FixedConstraint takes pointers to a glm::vec3 and a VerletPoint.  
+// The enforcement will copy the value of the vec3 into the VerletPoint.
+
 class FixedConstraint : public Constraint {
 public:
-    FixedConstraint(VerletPoint* point, const glm::vec3& anchor);
+    FixedConstraint(glm::vec3* anchor, VerletPoint* point);
+    ~FixedConstraint() {}
     float enforce();
+    void setAnchor(glm::vec3* anchor);
     void setPoint(VerletPoint* point);
-    void setAnchor(const glm::vec3& anchor);
 private:
+    glm::vec3* _anchor;
     VerletPoint* _point;
-    glm::vec3 _anchor;
 };
 
 #endif // hifi_FixedConstraint_h

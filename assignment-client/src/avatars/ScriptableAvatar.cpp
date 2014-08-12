@@ -11,6 +11,8 @@
 
 #include <QThread>
 
+#include <GLMHelpers.h>
+
 #include "ScriptableAvatar.h"
 
 ScriptableAvatar::ScriptableAvatar(ScriptEngine* scriptEngine) : _scriptEngine(scriptEngine), _animation(NULL) {
