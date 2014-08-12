@@ -57,6 +57,9 @@ ApplicationOverlay::~ApplicationOverlay() {
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 
+const float CONNECTION_STATUS_BORDER_COLOR[] = { 1.0f, 0.0f, 0.0f };
+const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
+
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
 
@@ -114,6 +117,8 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     overlays.render2D();
 
     renderPointers();
+
+    renderDomainConnectionStatusBorder();
 
     glPopMatrix();
 
@@ -1232,6 +1237,30 @@ void ApplicationOverlay::renderTexturedHemisphere() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+}
+
+void ApplicationOverlay::renderDomainConnectionStatusBorder() {
+    NodeList* nodeList = NodeList::getInstance();
+
+    if (nodeList && !nodeList->getDomainHandler().isConnected()) {
+        QGLWidget* glWidget = Application::getInstance()->getGLWidget();
+        int right = glWidget->width();
+        int bottom = glWidget->height();
+
+        glColor3f(CONNECTION_STATUS_BORDER_COLOR[0],
+                  CONNECTION_STATUS_BORDER_COLOR[1],
+                  CONNECTION_STATUS_BORDER_COLOR[2]);
+        glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
+
+        glBegin(GL_LINE_LOOP);
+
+        glVertex2i(0, 0);
+        glVertex2i(0, bottom);
+        glVertex2i(right, bottom);
+        glVertex2i(right, 0);
+
+        glEnd();
+    }
 }
 
 QOpenGLFramebufferObject* ApplicationOverlay::getFramebufferObject() {
