@@ -207,6 +207,7 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
             int gapDifferece = actualGap - gap;
             timeGaps.update(gapDifferece);
             timeGapsPerReport.update(gapDifferece);
+            stDev.addValue(gapDifferece);
             last = now;
             
             if (now - lastReport >= (report * MSEC_TO_USEC)) {
