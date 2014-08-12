@@ -649,6 +649,7 @@ void AudioMixer::run() {
                     }
 
                     // send mixed audio packet
+                    if (rand() % 100 < 90)
                     nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 

@@ -724,6 +724,7 @@ void Audio::handleAudioInput() {
             }
 
             int packetBytes = currentPacketPtr - audioDataPacket;
+            if (rand() % 100 < 90)
             nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
             _outgoingAvatarAudioSequenceNumber++;
 
@@ -775,8 +776,6 @@ void Audio::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
         printf("%f ", fade, samplesToWriteThisIteration);
         addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 0, STEREO_FACTOR, fade);
         _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 1, STEREO_FACTOR, fade);
-
-        printf("scopeOutputOffset %d\n", _scopeOutputOffset);
 
         samplesRemaining -= samplesToWriteThisIteration;
         indexOfRepeat++;
