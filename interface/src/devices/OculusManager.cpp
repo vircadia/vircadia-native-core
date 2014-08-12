@@ -66,7 +66,7 @@ void OculusManager::connect() {
             UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
         }
         _isConnected = true;
-#ifdef _WIN32
+#if defined(__APPLE__) || defined(_WIN32)
         _eyeFov[0] = _ovrHmd->DefaultEyeFov[0];
         _eyeFov[1] = _ovrHmd->DefaultEyeFov[1];
 #else
@@ -88,13 +88,13 @@ void OculusManager::connect() {
         _eyeRenderDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
         _eyeRenderDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
 
-#ifdef _WIN32
+#if defined(__APPLE__) || defined(_WIN32)
         ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence);
 #else
         ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence | ovrHmdCap_LatencyTest);
 #endif
 
-#ifdef _WIN32
+#if defined(__APPLE__) || defined(_WIN32)
         ovrHmd_ConfigureTracking(_ovrHmd, ovrTrackingCap_Orientation | ovrTrackingCap_Position |
                                  ovrTrackingCap_MagYawCorrection,
                                  ovrTrackingCap_Orientation);
@@ -195,7 +195,7 @@ void OculusManager::generateDistortionMesh() {
         DistortionVertex* v = pVBVerts;
         ovrDistortionVertex* ov = meshData.pVertexData;
         for (unsigned int vertNum = 0; vertNum < meshData.VertexCount; vertNum++) {
-#ifdef _WIN32
+#if defined(__APPLE__) || defined(_WIN32)
             v->pos.x = ov->ScreenPosNDC.x;
             v->pos.y = ov->ScreenPosNDC.y;
             v->texR.x = ov->TanEyeAnglesR.x;
@@ -317,7 +317,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
   
     //Render each eye into an fbo
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++) {
-#ifdef _WIN32
+#if defined(__APPLE__) || defined(_WIN32)
         ovrEyeType eye = _ovrHmd->EyeRenderOrder[eyeIndex];
 #else
         ovrEyeType eye = _ovrHmdDesc.EyeRenderOrder[eyeIndex];
@@ -458,18 +458,18 @@ void OculusManager::reset() {
 //Gets the current predicted angles from the oculus sensors
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #ifdef HAVE_LIBOVR
-#ifdef _WIN32
+#if defined(__APPLE__) || defined(_WIN32)
     ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
 #else
     ovrSensorState ss = ovrHmd_GetSensorState(_ovrHmd, _hmdFrameTiming.ScanoutMidpointSeconds);
 #endif
-#ifdef _WIN32
+#if defined(__APPLE__) || defined(_WIN32)
     if (ts.StatusFlags & (ovrStatus_OrientationTracked | ovrStatus_PositionTracked)) {
 #else
     if (ss.StatusFlags & (ovrStatus_OrientationTracked | ovrStatus_PositionTracked)) {
 #endif
         
-#ifdef _WIN32
+#if defined(__APPLE__) || defined(_WIN32)
         ovrPosef pose = ts.CameraPose;
 #else
         ovrPosef pose = ss.Predicted.Pose;
