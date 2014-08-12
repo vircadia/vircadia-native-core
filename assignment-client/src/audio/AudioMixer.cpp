@@ -649,7 +649,6 @@ void AudioMixer::run() {
                     }
 
                     // send mixed audio packet
-                    if (nodeData->getOutgoingSequenceNumber() % 100 < 50)
                     nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 

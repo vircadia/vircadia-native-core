@@ -20,23 +20,25 @@ MixedProcessedAudioStream::MixedProcessedAudioStream(int numFrameSamples, int nu
 
 void MixedProcessedAudioStream::outputFormatChanged(int outputFormatChannelCountTimesSampleRate) {
     _outputFormatChannelsTimesSampleRate = outputFormatChannelCountTimesSampleRate;
-    int deviceOutputFrameSize = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormatChannelsTimesSampleRate / SAMPLE_RATE;
+    int deviceOutputFrameSize = networkToDeviceSamples(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
     _ringBuffer.resizeForFrameSize(deviceOutputFrameSize);
 }
 
 int MixedProcessedAudioStream::writeDroppableSilentSamples(int silentSamples) {
+    
     int deviceSilentSamplesWritten = InboundAudioStream::writeDroppableSilentSamples(networkToDeviceSamples(silentSamples));
-
+    
     emit addedSilence(deviceToNetworkSamples(deviceSilentSamplesWritten) / STEREO_FACTOR);
 
     return deviceSilentSamplesWritten;
 }
 
 int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int samples) {
+
     int deviceSamplesWritten = InboundAudioStream::writeLastFrameRepeatedWithFade(networkToDeviceSamples(samples));
 
     emit addedLastFrameRepeatedWithFade(deviceToNetworkSamples(deviceSamplesWritten) / STEREO_FACTOR);
-
+    
     return deviceSamplesWritten;
 }
 
@@ -48,14 +50,14 @@ int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray&
     emit processSamples(packetAfterStreamProperties, outputBuffer);
 
     _ringBuffer.writeData(outputBuffer.data(), outputBuffer.size());
-
+    
     return packetAfterStreamProperties.size();
 }
 
 int MixedProcessedAudioStream::networkToDeviceSamples(int networkSamples) {
-    return networkSamples * _outputFormatChannelsTimesSampleRate / (STEREO_FACTOR * SAMPLE_RATE);
+    return (quint64)networkSamples * (quint64)_outputFormatChannelsTimesSampleRate / (quint64)(STEREO_FACTOR * SAMPLE_RATE);
 }
 
 int MixedProcessedAudioStream::deviceToNetworkSamples(int deviceSamples) {
-    return deviceSamples * (STEREO_FACTOR * SAMPLE_RATE) / _outputFormatChannelsTimesSampleRate;
+    return (quint64)deviceSamples * (quint64)(STEREO_FACTOR * SAMPLE_RATE) / (quint64)_outputFormatChannelsTimesSampleRate;
 }

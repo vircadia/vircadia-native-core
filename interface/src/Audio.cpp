@@ -740,8 +740,11 @@ void Audio::addStereoSilenceToScope(int silentSamplesPerChannel) {
     if (!_scopeEnabled || _scopeEnabledPause) {
         return;
     }
+    printf("\t Audio::addStereoSilenceToScope  %d per channel\n", silentSamplesPerChannel);
     addSilenceToScope(_scopeOutputLeft, _scopeOutputOffset, silentSamplesPerChannel);
     _scopeOutputOffset = addSilenceToScope(_scopeOutputRight, _scopeOutputOffset, silentSamplesPerChannel);
+
+    printf("\t end\n");
 }
 
 void Audio::addStereoSamplesToScope(const QByteArray& samples) {
@@ -750,29 +753,35 @@ void Audio::addStereoSamplesToScope(const QByteArray& samples) {
     }
     const int16_t* samplesData = reinterpret_cast<const int16_t*>(samples.data());
     int samplesPerChannel = samples.size() / sizeof(int16_t) / STEREO_FACTOR;
+    printf("\t Audio::addStereoSamplesToScope %d samples per channel\n", samplesPerChannel);
 
     addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, samplesData, samplesPerChannel, 0, STEREO_FACTOR);
     _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, samplesData, samplesPerChannel, 1, STEREO_FACTOR);
 
     _scopeLastFrame = samples.right(NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+
+    printf("\t end\n");
 }
 
 void Audio::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
-    printf("addLastFrameRepeatedWithFadeToScope");
+    printf("addLastFrameRepeatedWithFadeToScope %d per channel\n", samplesPerChannel);
     const int16_t* lastFrameData = reinterpret_cast<const int16_t*>(_scopeLastFrame.data());
 
     int samplesRemaining = samplesPerChannel;
     int indexOfRepeat = 0;
     do {
         int samplesToWriteThisIteration = std::min(samplesRemaining, (int)NETWORK_SAMPLES_PER_FRAME);
-        float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
-        printf("%f ", fade);
+       float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
+        printf("%f ", fade, samplesToWriteThisIteration);
         addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 0, STEREO_FACTOR, fade);
         _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 1, STEREO_FACTOR, fade);
 
+        printf("scopeOutputOffset %d\n", _scopeOutputOffset);
+
         samplesRemaining -= samplesToWriteThisIteration;
+        indexOfRepeat++;
     } while (samplesRemaining > 0);
-    printf("\n");
+    printf("\t end\n");
 }
 
 void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
@@ -1755,7 +1764,7 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
             _audioOutput->setBufferSize(AUDIO_OUTPUT_BUFFER_SIZE_FRAMES * _outputFrameSize * sizeof(int16_t));
-            qDebug() << "Ring Buffer capacity in frames: " << _audioOutput->bufferSize() / sizeof(int16_t) / (float)_outputFrameSize;
+            qDebug() << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / sizeof(int16_t) / (float)_outputFrameSize;
             
             _audioOutputIODevice.start();
             _audioOutput->start(&_audioOutputIODevice);

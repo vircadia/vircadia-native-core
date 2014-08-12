@@ -176,7 +176,6 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
 }
 
 int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
-
     // calculate how many silent frames we should drop.
     int samplesPerFrame = _ringBuffer.getNumFrameSamples();
     int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
@@ -198,7 +197,9 @@ int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
         _framesAvailableStat.reset();
     }
 
-    return _ringBuffer.addSilentSamples(silentSamples - numSilentFramesToDrop * samplesPerFrame);
+    int ret = _ringBuffer.addSilentSamples(silentSamples - numSilentFramesToDrop * samplesPerFrame);
+    
+    return ret;
 }
 
 int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped) {
