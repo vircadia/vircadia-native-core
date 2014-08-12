@@ -63,6 +63,8 @@ if (APPLE)
 elseif (UNIX) 
   list(APPEND LIBOVR_LIBRARIES "${UDEV_LIBRARY}" "${XINERAMA_LIBRARY}")
   list(APPEND LIBOVR_ARGS_LIST UDEV_LIBRARY XINERAMA_LIBRARY)
+elseif (WIN32)
+  list(APPEND LIBOVR_LIBRARIES ws2_32.lib)
 endif ()
 
 include(FindPackageHandleStandardArgs)
