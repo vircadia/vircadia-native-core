@@ -24,6 +24,8 @@
 #include <QVBoxLayout>
 #include <QtDebug>
 
+#include <GLMHelpers.h>
+
 #include "MetavoxelUtil.h"
 #include "ScriptCache.h"
 #include "StreamUtils.h"
@@ -315,6 +317,136 @@ QDebug& operator<<(QDebug& dbg, const Box& box) {
     return dbg.nospace() << "{type='Box', minimum=" << box.minimum << ", maximum=" << box.maximum << "}";
 }
 
+AxisExtents::AxisExtents(const glm::vec3& first0, const glm::vec3& first1, const glm::vec3& first2, const glm::vec3& second) :
+    axis(glm::cross(first2 - first1, first0 - first1)),
+    minimum(glm::dot(first1, axis)),
+    maximum(glm::dot(second, axis)) {
+}
+
+AxisExtents::AxisExtents(const glm::vec3& axis, float minimum, float maximum) :
+    axis(axis),
+    minimum(minimum),
+    maximum(maximum) {
+}
+
+void Frustum::set(const glm::vec3& farTopLeft, const glm::vec3& farTopRight, const glm::vec3& farBottomLeft,
+        const glm::vec3& farBottomRight, const glm::vec3& nearTopLeft, const glm::vec3& nearTopRight,
+        const glm::vec3& nearBottomLeft, const glm::vec3& nearBottomRight) {
+
+    _vertices[0] = farBottomLeft;
+    _vertices[1] = farBottomRight;
+    _vertices[2] = farTopLeft;
+    _vertices[3] = farTopRight;
+    _vertices[4] = nearBottomLeft;
+    _vertices[5] = nearBottomRight;
+    _vertices[6] = nearTopLeft;
+    _vertices[7] = nearTopRight;
+    
+    // compute the bounds
+    _bounds.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    _bounds.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    for (int i = 0; i < VERTEX_COUNT; i++) {
+        _bounds.minimum = glm::min(_bounds.minimum, _vertices[i]);
+        _bounds.maximum = glm::max(_bounds.maximum, _vertices[i]);
+    }
+    
+    // compute the extents for each side
+    _sideExtents[0] = AxisExtents(nearBottomLeft, nearTopLeft, nearTopRight, farBottomLeft);
+    _sideExtents[1] = AxisExtents(nearBottomLeft, farBottomLeft, farTopLeft, farBottomRight);
+    _sideExtents[2] = AxisExtents(nearBottomRight, nearTopRight, farTopRight, farBottomLeft);
+    _sideExtents[3] = AxisExtents(nearBottomLeft, nearBottomRight, farBottomRight, farTopLeft);
+    _sideExtents[4] = AxisExtents(nearTopLeft, farTopLeft, farTopRight, farBottomRight);
+    
+    // the other set of extents are derived from the cross products of the frustum and box edges
+    glm::vec3 edges[] = { nearBottomRight - nearBottomLeft, nearTopLeft - nearBottomLeft, farBottomLeft - nearBottomLeft,
+        farBottomRight - nearBottomRight,  farTopLeft - nearTopLeft, farTopRight - nearTopRight };
+    const int AXIS_COUNT = 3;
+    for (uint i = 0, extentIndex = 0; i < sizeof(edges) / sizeof(edges[0]); i++) {
+        for (int j = 0; j < AXIS_COUNT; j++) {
+            glm::vec3 axis;
+            axis[j] = 1.0f;
+            glm::vec3 crossProduct = glm::cross(edges[i], axis);
+            float minimum = FLT_MAX, maximum = -FLT_MAX;
+            for (int k = 0; k < VERTEX_COUNT; k++) {
+                float projection = glm::dot(crossProduct, _vertices[k]);
+                minimum = glm::min(minimum, projection);
+                maximum = glm::max(maximum, projection);
+            }
+            _crossProductExtents[extentIndex++] = AxisExtents(crossProduct, minimum, maximum);
+        }
+    }
+}
+
+Frustum::IntersectionType Frustum::getIntersectionType(const Box& box) const {
+    // first check the bounds (equivalent to checking frustum vertices against box extents)
+    if (!_bounds.intersects(box)) {
+        return NO_INTERSECTION;
+    }
+    
+    // check box vertices against side extents
+    bool allInside = true;
+    for (int i = 0; i < SIDE_EXTENT_COUNT; i++) {
+        const AxisExtents& extents = _sideExtents[i];
+        float firstProjection = glm::dot(box.getVertex(0), extents.axis);
+        if (firstProjection < extents.minimum) {
+            allInside = false;
+            for (int j = 1; j < Box::VERTEX_COUNT; j++) {
+                if (glm::dot(box.getVertex(j), extents.axis) >= extents.minimum) {
+                    goto sideContinue;
+                }
+            }
+            return NO_INTERSECTION;
+            
+        } else if (firstProjection > extents.maximum) {
+            allInside = false;
+            for (int j = 1; j < Box::VERTEX_COUNT; j++) {
+                if (glm::dot(box.getVertex(j), extents.axis) <= extents.maximum) {
+                    goto sideContinue;
+                }
+            }
+            return NO_INTERSECTION;
+        
+        } else if (allInside) {
+            for (int j = 1; j < Box::VERTEX_COUNT; j++) {
+                float projection = glm::dot(box.getVertex(j), extents.axis);
+                if (projection < extents.minimum || projection > extents.maximum) {
+                    allInside = false;
+                    goto sideContinue;
+                }
+            }
+        }
+        sideContinue: ;
+    }
+    if (allInside) {
+        return CONTAINS_INTERSECTION;
+    }
+    
+    // check box vertices against cross product extents
+    for (int i = 0; i < CROSS_PRODUCT_EXTENT_COUNT; i++) {
+        const AxisExtents& extents = _crossProductExtents[i];
+        float firstProjection = glm::dot(box.getVertex(0), extents.axis);
+        if (firstProjection < extents.minimum) {
+            for (int j = 1; j < Box::VERTEX_COUNT; j++) {
+                if (glm::dot(box.getVertex(j), extents.axis) >= extents.minimum) {
+                    goto crossProductContinue;
+                }
+            }
+            return NO_INTERSECTION;
+            
+        } else if (firstProjection > extents.maximum) {
+            for (int j = 1; j < Box::VERTEX_COUNT; j++) {
+                if (glm::dot(box.getVertex(j), extents.axis) <= extents.maximum) {
+                    goto crossProductContinue;
+                }
+            }
+            return NO_INTERSECTION;
+        }
+        crossProductContinue: ;
+    }
+    
+    return PARTIAL_INTERSECTION;
+}
+
 QMetaObjectEditor::QMetaObjectEditor(QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setContentsMargins(QMargins());
@@ -405,6 +537,10 @@ void BaseVec3Editor::setSingleStep(double singleStep) {
     _x->setSingleStep(singleStep);
     _y->setSingleStep(singleStep);
     _z->setSingleStep(singleStep);
+}
+
+double BaseVec3Editor::getSingleStep() const {
+    return _x->singleStep();
 }
 
 QDoubleSpinBox* BaseVec3Editor::createComponentBox() {

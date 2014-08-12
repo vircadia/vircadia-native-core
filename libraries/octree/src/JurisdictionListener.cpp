@@ -35,7 +35,7 @@ void JurisdictionListener::nodeKilled(SharedNodePointer node) {
 bool JurisdictionListener::queueJurisdictionRequest() {
     static unsigned char buffer[MAX_PACKET_SIZE];
     unsigned char* bufferOut = &buffer[0];
-    ssize_t sizeOut = populatePacketHeader(reinterpret_cast<char*>(bufferOut), PacketTypeJurisdictionRequest);
+    int sizeOut = populatePacketHeader(reinterpret_cast<char*>(bufferOut), PacketTypeJurisdictionRequest);
     int nodeCount = 0;
 
     NodeList* nodeList = NodeList::getInstance();

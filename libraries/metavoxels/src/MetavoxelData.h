@@ -197,6 +197,8 @@ public:
 
     static const int CHILD_COUNT = 8;
 
+    static int getOppositeChildIndex(int index);
+
     MetavoxelNode(const AttributeValue& attributeValue, const MetavoxelNode* copyChildren = NULL);
     MetavoxelNode(const AttributePointer& attribute, const MetavoxelNode* copy);
     

@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hi_fi_CaraFaceTracker_h
-#define hi_fi_CaraFaceTracker_h
+#ifndef hifi_CaraFaceTracker_h
+#define hifi_CaraFaceTracker_h
 
 #include <QUdpSocket>
 
+#include <SimpleMovingAverage.h>
 #include "FaceTracker.h"
 
 /*!
@@ -90,10 +91,10 @@ private:
     //head tracking
     glm::vec3 _headAngularVelocity;
 
-    //pose history
-    float _previousPitch;
-    float _previousYaw;
-    float _previousRoll;
+    //pose average
+    SimpleMovingAverage _pitchAverage;
+    SimpleMovingAverage _yawAverage;
+    SimpleMovingAverage _rollAverage;
 
     // eye gaze degrees
     float _eyeGazeLeftPitch;
@@ -120,4 +121,4 @@ private:
     int _jawOpenIndex;
 };
 
-#endif //endif hi_fi_CaraFaceTracker_h
+#endif //endif hifi_CaraFaceTracker_h

@@ -20,9 +20,6 @@ public:
     /// Enforce contraint by moving relevant points.
     /// \return max distance of point movement
     virtual float enforce() = 0;
-
-protected:
-    int _type;
 };
 
 #endif // hifi_Constraint_h

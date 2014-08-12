@@ -63,8 +63,8 @@ public:
 
     virtual int parseData(const QByteArray& packet);
 
-
-    bool popFrames(int numFrames, bool starveOnFail = true);
+    int popFrames(int maxFrames, bool allOrNothing, bool starveIfNoFramesPopped = true);
+    int popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped = true);
 
     bool lastPopSucceeded() const { return _lastPopSucceeded; };
     const AudioRingBuffer::ConstIterator& getLastPopOutput() const { return _lastPopOutput; }
@@ -108,16 +108,15 @@ public:
     int getSilentFramesDropped() const { return _silentFramesDropped; }
     int getOverflowCount() const { return _ringBuffer.getOverflowCount(); }
 
-    int getPacketReceived() const { return _incomingSequenceNumberStats.getNumReceived(); }
+    int getPacketsReceived() const { return _incomingSequenceNumberStats.getReceived(); }
 
 private:
-    void starved();
-
-    SequenceNumberStats::ArrivalInfo frameReceivedUpdateNetworkStats(quint16 sequenceNumber, const QUuid& senderUUID);
+    void frameReceivedUpdateTimingStats();
     int clampDesiredJitterBufferFramesValue(int desired) const;
 
     int writeSamplesForDroppedPackets(int numSamples);
 
+    void popSamplesNoCheck(int samples);
     void framesAvailableChanged();
 
 protected:
@@ -126,11 +125,12 @@ protected:
     InboundAudioStream& operator= (const InboundAudioStream&);
 
     /// parses the info between the seq num and the audio data in the network packet and calculates
-    /// how many audio samples this packet contains
+    /// how many audio samples this packet contains (used when filling in samples for dropped packets).
     virtual int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) = 0;
 
-    /// parses the audio data in the network packet
-    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) = 0;
+    /// parses the audio data in the network packet.
+    /// default implementation assumes packet contains raw audio samples after stream properties
+    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
 
     int writeDroppableSilentSamples(int numSilentSamples);
     

@@ -11,9 +11,11 @@
 
 #include "VerletPoint.h"
 
+const float INTEGRATION_FRICTION_FACTOR = 0.6f;
+
 void VerletPoint::integrateForward() {
     glm::vec3 oldPosition = _position;
-    _position += 0.6f * (_position - _lastPosition);
+    _position += INTEGRATION_FRICTION_FACTOR * (_position - _lastPosition);
     _lastPosition = oldPosition;
 }
 
@@ -28,4 +30,20 @@ void VerletPoint::applyAccumulatedDelta() {
         _accumulatedDelta = glm::vec3(0.0f);
         _numDeltas = 0;
     }
+}
+
+void VerletPoint::move(const glm::vec3& deltaPosition, const glm::quat& deltaRotation, const glm::vec3& oldPivot) {
+    glm::vec3 arm = _position - oldPivot;
+    _position += deltaPosition + (deltaRotation * arm - arm);
+    arm = _lastPosition - oldPivot;
+    _lastPosition += deltaPosition + (deltaRotation * arm - arm);
+}
+
+void VerletPoint::setMass(float mass) {
+    const float MIN_MASS = 1.0e-6f;
+    const float MAX_MASS = 1.0e18f;
+    if (glm::isnan(mass)) {
+        mass = MIN_MASS;
+    }
+    _mass = glm::clamp(glm::abs(mass), MIN_MASS, MAX_MASS);
 }

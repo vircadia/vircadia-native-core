@@ -41,7 +41,7 @@ void AvatarManager::init() {
 }
 
 void AvatarManager::updateOtherAvatars(float deltaTime) {
-    if (_avatarHash.size() < 2) {
+    if (_avatarHash.size() < 2 && _avatarFades.isEmpty()) {
         return;
     }
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);

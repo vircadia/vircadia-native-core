@@ -486,6 +486,48 @@ Menu::Menu() :
                                            true,
                                            appInstance->getAudio(),
                                            SLOT(toggleAudioNoiseReduction()));
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioFilter,
+                                           0,
+                                           false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleAudioFilter()));
+
+    QMenu* audioFilterMenu = audioDebugMenu->addMenu("Audio Filter Options");
+    addDisabledActionAndSeparator(audioFilterMenu, "Filter Response");
+    {
+        QAction *flat = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterFlat,
+                                                                        0,
+                                                                        true,
+                                                                        appInstance->getAudio(),
+                                                                        SLOT(selectAudioFilterFlat()));
+
+        QAction *trebleCut = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterTrebleCut,
+                                                                        0,
+                                                                        false,
+                                                                        appInstance->getAudio(),
+                                                                        SLOT(selectAudioFilterTrebleCut()));
+
+        QAction *bassCut = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterBassCut,
+                                                                        0,
+                                                                        false,
+                                                                        appInstance->getAudio(),
+                                                                        SLOT(selectAudioFilterBassCut()));
+
+        QAction *smiley = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterSmiley,
+                                                                        0,
+                                                                        false,
+                                                                        appInstance->getAudio(),
+                                                                        SLOT(selectAudioFilterSmiley()));
+
+
+        QActionGroup* audioFilterGroup = new QActionGroup(audioFilterMenu);
+        audioFilterGroup->addAction(flat);
+        audioFilterGroup->addAction(trebleCut);
+        audioFilterGroup->addAction(bassCut);
+        audioFilterGroup->addAction(smiley);
+    }
+
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::StereoAudio, 0, false,
@@ -605,8 +647,6 @@ Menu::Menu() :
                                             false,
                                             appInstance->getAudio(),
                                             SLOT(toggleStatsShowInjectedStreams()));
-
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::DisableQAudioOutputOverflowCheck, 0, false);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,

@@ -12,9 +12,12 @@
 #ifndef hifi_PhysicsSimulation
 #define hifi_PhysicsSimulation
 
+#include <QtGlobal>
+#include <QMap>
 #include <QVector>
 
 #include "CollisionInfo.h"
+#include "ContactPoint.h"
 
 class PhysicsEntity;
 class Ragdoll;
@@ -25,10 +28,17 @@ public:
     PhysicsSimulation();
     ~PhysicsSimulation();
 
+    void setTranslation(const glm::vec3& translation) { _translation = translation; }
+    const glm::vec3& getTranslation() const { return _translation; }
+
+    void setRagdoll(Ragdoll* ragdoll);
+    void setEntity(PhysicsEntity* entity);
+
     /// \return true if entity was added to or is already in the list
     bool addEntity(PhysicsEntity* entity);
 
     void removeEntity(PhysicsEntity* entity);
+    void removeShapes(const PhysicsEntity* entity);
 
     /// \return true if doll was added to or is already in the list
     bool addRagdoll(Ragdoll* doll);
@@ -41,20 +51,28 @@ public:
     /// \return distance of largest movement
     void stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec);
 
+protected:
     void moveRagdolls(float deltaTime);
     void computeCollisions();
-    void processCollisions();
+    void resolveCollisions();
+
+    void buildContactConstraints();
+    void enforceContactConstraints();
+    void updateContacts();
+    void pruneContacts();
 
 private:
-    CollisionList _collisionList;
-    QVector<PhysicsEntity*> _entities;
-    QVector<Ragdoll*> _dolls;
+    glm::vec3 _translation; // origin of simulation in world-frame
 
-    // some stats
-    int _numIterations;
-    int _numCollisions;
-    float _constraintError;
-    quint64 _stepTime;
+    quint32 _frameCount;
+
+    PhysicsEntity* _entity;
+    Ragdoll* _ragdoll;
+
+    QVector<Ragdoll*> _otherRagdolls;
+    QVector<PhysicsEntity*> _otherEntities;
+    CollisionList _collisions;
+    QMap<quint64, ContactPoint> _contacts;
 };
 
 #endif // hifi_PhysicsSimulation

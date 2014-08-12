@@ -945,6 +945,39 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         return true;
     }
     
+    // check if this is a request for a scripted assignment (with a temp unique UUID)
+    const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
+    QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
+    
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation
+        && assignmentRegex.indexIn(url.path()) != -1) {
+        QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
+        
+        SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
+        if (!matchingAssignment) {
+            // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
+            PendingAssignedNodeData* pendingData = _pendingAssignedNodes.value(matchingUUID);
+            if (pendingData) {
+                matchingAssignment = _allAssignments.value(pendingData->getAssignmentUUID());
+                
+                if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
+                    // we have a matching assignment and it is for the right type, have the HTTP manager handle it
+                    // via correct URL for the script so the client can download
+                    
+                    QUrl scriptURL = url;
+                    scriptURL.setPath(URI_ASSIGNMENT + "/"
+                                      + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
+                    
+                    // have the HTTPManager serve the appropriate script file
+                    return _httpManager.handleHTTPRequest(connection, scriptURL);
+                }
+            }
+        }
+        
+        // request not handled
+        return false;
+    }
+    
     // all requests below require a cookie to prove authentication so check that first
     if (!isAuthenticatedRequest(connection, url)) {
         // this is not an authenticated request
@@ -1066,38 +1099,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     return true;
                 }
 
-                return false;
-            }
-
-            // check if this is a request for a scripted assignment (with a temp unique UUID)
-            const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
-            QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
-
-            if (assignmentRegex.indexIn(url.path()) != -1) {
-                QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
-
-                SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
-                if (!matchingAssignment) {
-                    // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
-                    PendingAssignedNodeData* pendingData = _pendingAssignedNodes.value(matchingUUID);
-                    if (pendingData) {
-                        matchingAssignment = _allAssignments.value(pendingData->getAssignmentUUID());
-
-                        if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
-                            // we have a matching assignment and it is for the right type, have the HTTP manager handle it
-                            // via correct URL for the script so the client can download
-
-                            QUrl scriptURL = url;
-                            scriptURL.setPath(URI_ASSIGNMENT + "/"
-                                              + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
-
-                            // have the HTTPManager serve the appropriate script file
-                            return _httpManager.handleHTTPRequest(connection, scriptURL);
-                        }
-                    }
-                }
-
-                // request not handled
                 return false;
             }
         }
@@ -1279,6 +1280,9 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
     const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
     const QString ADMIN_USERS_CONFIG_KEY = "admin-users";
     const QString ADMIN_ROLES_CONFIG_KEY = "admin-roles";
+    const QString BASIC_AUTH_CONFIG_KEY = "basic-auth";
+    
+    const QByteArray UNAUTHENTICATED_BODY = "You do not have permission to access this domain-server.";
     
     if (!_oauthProviderURL.isEmpty()
         && (_argumentVariantMap.contains(ADMIN_USERS_CONFIG_KEY) || _argumentVariantMap.contains(ADMIN_ROLES_CONFIG_KEY))) {
@@ -1290,6 +1294,11 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
         QUuid cookieUUID;
         if (cookieString.indexOf(cookieUUIDRegex) != -1) {
             cookieUUID = cookieUUIDRegex.cap(1);
+        }
+        
+        if (_argumentVariantMap.contains(BASIC_AUTH_CONFIG_KEY)) {
+            qDebug() << "Config file contains web admin settings for OAuth and basic HTTP authentication."
+                << "These cannot be combined - using OAuth for authentication.";
         }
         
         if (!cookieUUID.isNull() && _cookieSessionHash.contains(cookieUUID)) {
@@ -1314,8 +1323,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                 }
             }
             
-            QString unauthenticatedRequest = "You do not have permission to access this domain-server.";
-            connection->respond(HTTPConnection::StatusCode401, unauthenticatedRequest.toUtf8());
+            connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
             
             // the user does not have allowed username or role, return 401
             return false;
@@ -1339,6 +1347,59 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             // we don't know about this user yet, so they are not yet authenticated
             return false;
         }
+    } else if (_argumentVariantMap.contains(BASIC_AUTH_CONFIG_KEY)) {
+        // config file contains username and password combinations for basic auth
+        const QByteArray BASIC_AUTH_HEADER_KEY = "Authorization";
+        
+        // check if a username and password have been provided with the request
+        QString basicAuthString = connection->requestHeaders().value(BASIC_AUTH_HEADER_KEY);
+        
+        if (!basicAuthString.isEmpty()) {
+            QStringList splitAuthString = basicAuthString.split(' ');
+            QString base64String = splitAuthString.size() == 2 ? splitAuthString[1] : "";
+            QString credentialString = QByteArray::fromBase64(base64String.toLocal8Bit());
+            
+            if (!credentialString.isEmpty()) {
+                QStringList credentialList = credentialString.split(':');
+                if (credentialList.size() == 2) {
+                    QString username = credentialList[0];
+                    QString password = credentialList[1];
+                    
+                    // we've pulled a username and password - now check if there is a match in our basic auth hash
+                    QJsonObject basicAuthObject = _argumentVariantMap.value(BASIC_AUTH_CONFIG_KEY).toJsonValue().toObject();
+                    
+                    if (basicAuthObject.contains(username)) {
+                        const QString BASIC_AUTH_USER_PASSWORD_KEY = "password";
+                        QJsonObject userObject = basicAuthObject.value(username).toObject();
+                        
+                        if (userObject.contains(BASIC_AUTH_USER_PASSWORD_KEY)
+                            && userObject.value(BASIC_AUTH_USER_PASSWORD_KEY).toString() == password) {
+                            // this is username / password match - let this user in
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // basic HTTP auth being used but no username and password are present
+        // or the username and password are not correct
+        // send back a 401 and ask for basic auth
+        
+        const QByteArray HTTP_AUTH_REQUEST_HEADER_KEY = "WWW-Authenticate";
+        static QString HTTP_AUTH_REALM_STRING = QString("Basic realm='%1 %2'")
+            .arg(_hostname.isEmpty() ? "localhost" : _hostname)
+            .arg("domain-server");
+        
+        Headers basicAuthHeader;
+        basicAuthHeader.insert(HTTP_AUTH_REQUEST_HEADER_KEY, HTTP_AUTH_REALM_STRING.toUtf8());
+        
+        connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY,
+                            HTTPConnection::DefaultContentType, basicAuthHeader);
+        
+        // not authenticated, bubble up false
+        return false;
+        
     } else {
         // we don't have an OAuth URL + admin roles/usernames, so all users are authenticated
         return true;

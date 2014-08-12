@@ -156,7 +156,7 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
         } else {
             NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
             QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
-            qDebug() << "Downloading included script at" << url;
+            qDebug() << "Downloading script at" << url;
             QEventLoop loop;
             QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
             loop.exec();
@@ -681,12 +681,12 @@ void ScriptEngine::include(const QString& includeFile) {
 #endif
         QFile scriptFile(fileName);
         if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
-            qDebug() << "Loading file:" << fileName;
+            qDebug() << "Including file:" << fileName;
             QTextStream in(&scriptFile);
             includeContents = in.readAll();
         } else {
-            qDebug() << "ERROR Loading file:" << fileName;
-            emit errorMessage("ERROR Loading file:" + fileName);
+            qDebug() << "ERROR Including file:" << fileName;
+            emit errorMessage("ERROR Including file:" + fileName);
         }
     }
 
@@ -697,6 +697,11 @@ void ScriptEngine::include(const QString& includeFile) {
         emit errorMessage("Uncaught exception at (" + includeFile + ") line" + QString::number(line) + ":" + result.toString());
         clearExceptions();
     }
+}
+
+void ScriptEngine::load(const QString& loadFile) {
+    QUrl url = resolveInclude(loadFile);
+    emit loadScript(url.toString());
 }
 
 void ScriptEngine::nodeKilled(SharedNodePointer node) {
