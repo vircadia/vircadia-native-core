@@ -218,7 +218,7 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
 
                 seqStats.pushStatsToHistory();
 
-                std::cout << "RECEIVE gap Difference From Expected "
+                std::cout << "RECEIVE gap Difference From Expected\n"
                           << "Overall:\n"
                           << "min: " << timeGaps.getMin() << " usecs, "
                           << "max: " << timeGaps.getMax() << " usecs, "
