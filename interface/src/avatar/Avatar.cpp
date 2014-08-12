@@ -29,6 +29,7 @@
 #include "Menu.h"
 #include "ModelReferential.h"
 #include "Physics.h"
+#include "Recorder.h"
 #include "world.h"
 #include "devices/OculusManager.h"
 #include "renderer/TextureCache.h"
@@ -63,6 +64,7 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
+    _player(NULL),
     _initialized(false),
     _shouldRenderBillboard(true)
 {
@@ -723,6 +725,17 @@ bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& 
     //collided = headModel.findCollisions(shapes, collisions) || collided;
     bool collided = headModel.findCollisions(shapes, collisions);
     return collided;
+}
+
+QVector<glm::quat> Avatar::getJointRotations() const {
+    if (QThread::currentThread() != thread()) {
+        return AvatarData::getJointRotations();
+    }
+    QVector<glm::quat> jointRotations(_skeletonModel.getJointStateCount());
+    for (int i = 0; i < _skeletonModel.getJointStateCount(); ++i) {
+        _skeletonModel.getJointState(i, jointRotations[i]);
+    }
+    return jointRotations;
 }
 
 glm::quat Avatar::getJointRotation(int index) const {

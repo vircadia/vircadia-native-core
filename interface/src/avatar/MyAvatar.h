@@ -155,6 +155,15 @@ public slots:
     bool setModelReferential(int id);
     bool setJointReferential(int id, int jointIndex);
     
+    bool isRecording() const;
+    RecorderPointer startRecording();
+    void stopRecording();
+    
+    bool isPlaying() const;
+    PlayerPointer startPlaying();
+    void stopPlaying();
+    
+    
 signals:
     void transformChanged();
 

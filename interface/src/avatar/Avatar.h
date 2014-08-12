@@ -23,6 +23,7 @@
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
+#include "Recorder.h"
 #include "SkeletonModel.h"
 #include "world.h"
 
@@ -121,6 +122,7 @@ public:
 
     virtual bool isMyAvatar() { return false; }
     
+    virtual QVector<glm::quat> getJointRotations() const;
     virtual glm::quat getJointRotation(int index) const;
     virtual int getJointIndex(const QString& name) const;
     virtual QStringList getJointNames() const;
@@ -186,6 +188,9 @@ protected:
     bool _moving; ///< set when position is changing
     
     quint32 _collisionGroups;
+    
+    RecorderPointer _recorder;
+    PlayerPointer _player;
  
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
@@ -220,8 +225,6 @@ private:
     void renderBillboard();
     
     float getBillboardSize() const;
-    
-    
 };
 
 #endif // hifi_Avatar_h
