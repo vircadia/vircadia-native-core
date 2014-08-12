@@ -19,10 +19,10 @@
 # 
 
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-hifi_library_search_hints("oculus")
+hifi_library_search_hints("libovr")
 
-find_path(LIBOVR_INCLUDE_DIRS OVR.h PATH_SUFFIXES Include HINTS ${OCULUS_SEARCH_DIRS})
-find_path(LIBOVR_SRC_DIR Util_Render_Stereo.h PATH_SUFFIXES Src/Util HINTS ${OCULUS_SEARCH_DIRS})
+find_path(LIBOVR_INCLUDE_DIRS OVR.h PATH_SUFFIXES Include HINTS ${LIBOVR_SEARCH_DIRS})
+find_path(LIBOVR_SRC_DIR Util_Render_Stereo.h PATH_SUFFIXES Src/Util HINTS ${LIBOVR_SEARCH_DIRS})
 
 include(SelectLibraryConfigurations)
 
@@ -41,15 +41,15 @@ elseif (UNIX)
     set(LINUX_ARCH_DIR "x86_64")
   endif()
   
-  find_library(LIBOVR_LIBRARY_DEBUG NAMES ovr PATH_SUFFIXES Lib/Linux/Debug/${LINUX_ARCH_DIR} HINTS ${OCULUS_SEARCH_DIRS})
-  find_library(LIBOVR_LIBRARY_RELEASE NAMES ovr PATH_SUFFIXES Lib/Linux/Release/${LINUX_ARCH_DIR} HINTS ${OCULUS_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_DEBUG NAMES ovr PATH_SUFFIXES Lib/Linux/Debug/${LINUX_ARCH_DIR} HINTS ${LIBOVR_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_RELEASE NAMES ovr PATH_SUFFIXES Lib/Linux/Release/${LINUX_ARCH_DIR} HINTS ${LIBOVR_SEARCH_DIRS})
   
   select_library_configurations(UDEV)
   select_library_configurations(XINERAMA)
   
 elseif (WIN32)   
-  find_library(LIBOVR_LIBRARY_DEBUG NAMES libovrd PATH_SUFFIXES Lib/Win32/VS2010 HINTS ${OCULUS_SEARCH_DIRS})
-  find_library(LIBOVR_LIBRARY_RELEASE NAMES libovr PATH_SUFFIXES Lib/Win32/VS2010 HINTS ${OCULUS_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_DEBUG NAMES libovrd PATH_SUFFIXES Lib/Win32/VS2010 HINTS ${LIBOVR_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_RELEASE NAMES libovr PATH_SUFFIXES Lib/Win32/VS2010 HINTS ${LIBOVR_SEARCH_DIRS})
 endif ()
 
 select_library_configurations(LIBOVR)
@@ -63,11 +63,11 @@ endif ()
 
 include(FindPackageHandleStandardArgs)
 if (APPLE)
-  find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES IOKit ApplicationServices)
+  find_package_handle_standard_args(LibOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES IOKit ApplicationServices)
 elseif (UNIX)
-  find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES UDEV_LIBRARY XINERAMA_LIBRARY)
+  find_package_handle_standard_args(LibOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES UDEV_LIBRARY XINERAMA_LIBRARY)
 else ()
-  find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES)
+  find_package_handle_standard_args(LibOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARIES)
 endif ()
 
 mark_as_advanced(LIBOVR_INCLUDE_DIRS LIBOVR_LIBRARIES OCULUS_SEARCH_DIRS)
