@@ -361,7 +361,7 @@ int PaintHeightfieldHeightEditVisitor::visit(MetavoxelInfo& info) {
     QByteArray contents(pointer->getContents());
     int size = glm::sqrt((float)contents.size());
     int highest = size - 1;
-    float heightScale = highest / info.size;
+    float heightScale = size / info.size;
     
     glm::vec3 center = (_edit.position - info.minimum) * heightScale;
     float scaledRadius = _edit.radius * heightScale;
@@ -450,7 +450,7 @@ int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
     const int BYTES_PER_PIXEL = 3;
     int size = glm::sqrt((float)contents.size() / BYTES_PER_PIXEL);
     int highest = size - 1;
-    float heightScale = highest / info.size;
+    float heightScale = size / info.size;
     
     glm::vec3 center = (_edit.position - info.minimum) * heightScale;
     float scaledRadius = _edit.radius * heightScale;
