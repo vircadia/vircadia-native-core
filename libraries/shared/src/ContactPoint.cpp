@@ -13,6 +13,8 @@
 #include "Shape.h"
 #include "SharedUtil.h"
 
+const float CONTACT_PENETRATION_ALLOWANCE = 0.005f;
+
 ContactPoint::ContactPoint() : 
         _lastFrame(0), _shapeA(NULL), _shapeB(NULL), 
         _offsetA(0.0f), _offsetB(0.0f), 
@@ -42,6 +44,10 @@ ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) :
         pointB = collision._contactPoint;
     }
 
+    // bring the contact points inside the shapes to help maintain collision updates
+    pointA -= CONTACT_PENETRATION_ALLOWANCE * _normal;
+    pointB += CONTACT_PENETRATION_ALLOWANCE * _normal;
+
     _offsetA = pointA - _shapeA->getTranslation();
     _offsetB = pointB - _shapeB->getTranslation();
 
@@ -68,13 +74,13 @@ ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) :
 
     // compute offsets for shapeA
     for (int i = 0; i < _numPointsA; ++i) {
-        glm::vec3 offset = _points[i]->_position - collision._contactPoint;
+        glm::vec3 offset = _points[i]->_position - pointA;
         _offsets.push_back(offset);
         _distances.push_back(glm::length(offset));
     }
     // compute offsets for shapeB
     for (int i = _numPointsA; i < _numPoints; ++i) {
-        glm::vec3 offset = _points[i]->_position - collision._contactPoint + collision._penetration;
+        glm::vec3 offset = _points[i]->_position - pointB;
         _offsets.push_back(offset);
         _distances.push_back(glm::length(offset));
     }
@@ -101,9 +107,9 @@ float ContactPoint::enforce() {
 void ContactPoint::buildConstraints() {
     glm::vec3 pointA = _shapeA->getTranslation() + _offsetA;
     glm::vec3 pointB = _shapeB->getTranslation() + _offsetB;
-    glm::vec3 penetration = pointB - pointA;
+    glm::vec3 penetration = pointA - pointB;
    float pDotN = glm::dot(penetration, _normal);
-    bool constraintViolation = (pDotN < 0.0f);
+    bool constraintViolation = (pDotN > CONTACT_PENETRATION_ALLOWANCE);
 
     // the contact point will be the average of the two points on the shapes
     _contactPoint = 0.5f * (pointA + pointB);
@@ -164,6 +170,10 @@ void ContactPoint::updateContact(const CollisionInfo& collision, quint32 frame) 
         pointA = pointB;
         pointB = collision._contactPoint;
     }
+    
+    // bring the contact points inside the shapes to help maintain collision updates
+    pointA -= CONTACT_PENETRATION_ALLOWANCE * _normal;
+    pointB += CONTACT_PENETRATION_ALLOWANCE * _normal;
 
     // compute relative offsets to per-shape contact points
     _offsetA = pointA - collision._shapeA->getTranslation();
