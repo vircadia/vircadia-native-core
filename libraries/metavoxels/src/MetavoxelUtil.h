@@ -50,6 +50,10 @@ public:
     
     bool intersects(const Box& other) const;
     
+    Box getIntersection(const Box& other) const;
+    
+    bool isEmpty() const;
+    
     float getLongestSide() const { return qMax(qMax(maximum.x - minimum.x, maximum.y - minimum.y), maximum.z - minimum.z); }
     
     glm::vec3 getVertex(int index) const;

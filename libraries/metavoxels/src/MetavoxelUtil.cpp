@@ -182,6 +182,14 @@ bool Box::intersects(const Box& other) const {
         other.maximum.z >= minimum.z && other.minimum.z <= maximum.z;
 }
 
+Box Box::getIntersection(const Box& other) const {
+    return Box(glm::max(minimum, other.minimum), glm::min(maximum, other.maximum));
+}
+
+bool Box::isEmpty() const {
+    return minimum.x >= maximum.x || minimum.y >= maximum.y || minimum.z >= maximum.z;
+}
+
 const int X_MAXIMUM_FLAG = 1;
 const int Y_MAXIMUM_FLAG = 2;
 const int Z_MAXIMUM_FLAG = 4;

@@ -672,25 +672,149 @@ HeightfieldAugmentVisitor::HeightfieldAugmentVisitor(const MetavoxelLOD& lod) :
 class BorderFetchVisitor : public MetavoxelVisitor {
 public:
     
-    BorderFetchVisitor(const MetavoxelLOD& lod, QByteArray& height);
+    BorderFetchVisitor(const MetavoxelLOD& lod, HeightfieldBuffer* buffer);
     
     virtual int visit(MetavoxelInfo& info);
 
 private:
     
-    QByteArray& _height;
+    HeightfieldBuffer* _buffer;
+    Box _expandedBounds;
+    int _heightSize;
+    float _heightExtension;
+    int _colorSize;
+    float _colorExtension;
+    Box _colorBounds;
 };
 
-BorderFetchVisitor::BorderFetchVisitor(const MetavoxelLOD& lod, QByteArray& height) :
-    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute(),
-        QVector<AttributePointer>(), lod),
-    _height(height) {
+BorderFetchVisitor::BorderFetchVisitor(const MetavoxelLOD& lod, HeightfieldBuffer* buffer) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), QVector<AttributePointer>(), lod),
+    _buffer(buffer),
+    _expandedBounds(_buffer->getTranslation(), _buffer->getTranslation() + 
+        glm::vec3(_buffer->getScale(), _buffer->getScale(), _buffer->getScale())),
+    _heightSize(glm::sqrt(buffer->getHeight().size())),
+    _heightExtension(_buffer->getScale() / (_heightSize - HeightfieldBuffer::HEIGHT_EXTENSION)),
+    _colorSize(glm::sqrt(buffer->getColor().size() / HeightfieldData::COLOR_BYTES)),
+    _colorBounds(_expandedBounds) {
+   
+    _expandedBounds.minimum.x -= _heightExtension * HeightfieldBuffer::HEIGHT_BORDER;
+    _expandedBounds.minimum.z -= _heightExtension * HeightfieldBuffer::HEIGHT_BORDER;
+    _expandedBounds.maximum.x += _heightExtension * (HeightfieldBuffer::HEIGHT_BORDER + HeightfieldBuffer::SHARED_EDGE);
+    _expandedBounds.maximum.z += _heightExtension * (HeightfieldBuffer::HEIGHT_BORDER + HeightfieldBuffer::SHARED_EDGE);
+    
+    if (_colorSize > 0) {
+        _colorExtension = buffer->getScale() / (_colorSize - HeightfieldBuffer::SHARED_EDGE);
+        _colorBounds.maximum.x += _colorExtension * HeightfieldBuffer::SHARED_EDGE;
+        _colorBounds.maximum.z += _colorExtension * HeightfieldBuffer::SHARED_EDGE;
+    }
 }
 
 int BorderFetchVisitor::visit(MetavoxelInfo& info) {
-    if (!info.isLeaf) {
+    Box bounds = info.getBounds();
+    if (!bounds.intersects(_expandedBounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf && info.size > _buffer->getScale()) {
         return DEFAULT_ORDER;
     }
+    if (_expandedBounds.contains(bounds)) {
+        return STOP_RECURSION; // this is the principal, which we've already filled in
+    }
+    HeightfieldDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
+    if (!height) {
+        return STOP_RECURSION;
+    }
+    Box intersection = bounds.getIntersection(_expandedBounds);
+    int destX = glm::round((intersection.minimum.x - _expandedBounds.minimum.x) / _heightExtension);
+    int destY = glm::round((intersection.minimum.z - _expandedBounds.minimum.z) / _heightExtension);
+    int destWidth = glm::round((intersection.maximum.x - intersection.minimum.x) / _heightExtension);
+    int destHeight = glm::round((intersection.maximum.z - intersection.minimum.z) / _heightExtension);
+    char* dest = _buffer->getHeight().data() + destY * _heightSize + destX;
+    
+    const QByteArray& srcHeight = height->getContents();
+    int srcSize = glm::sqrt(srcHeight.size());
+    float srcExtension = info.size / srcSize;
+    
+    if (info.size == _buffer->getScale() && srcSize == (_heightSize - HeightfieldBuffer::HEIGHT_EXTENSION)) {
+        // easy case: same resolution
+        int srcX = glm::round((intersection.minimum.x - info.minimum.x) / srcExtension);
+        int srcY = glm::round((intersection.minimum.z - info.minimum.z) / srcExtension);
+        
+        const char* src = srcHeight.constData() + srcY * srcSize + srcX;
+        for (int y = 0; y < destHeight; y++, src += srcSize, dest += _heightSize) {
+            memcpy(dest, src, destWidth);
+        }
+    } else {
+        // more difficult: different resolutions
+        float srcX = (intersection.minimum.x - info.minimum.x) / srcExtension;
+        float srcY = (intersection.minimum.z - info.minimum.z) / srcExtension;
+        float srcIncrement = _heightExtension / srcExtension;
+        int shift = 0;
+        float size = _buffer->getScale();
+        while (size < info.size) {
+            shift++;
+            size *= 2.0f;
+        }
+        const int EIGHT_BIT_MAXIMUM = 255;
+        int subtract = (_buffer->getTranslation().y - info.minimum.y) * EIGHT_BIT_MAXIMUM / _buffer->getScale();
+        for (int y = 0; y < destHeight; y++, dest += _heightSize, srcY += srcIncrement) {
+            const uchar* src = (const uchar*)srcHeight.constData() + (int)srcY * srcSize;
+            float lineSrcX = srcX;
+            for (char* lineDest = dest, *end = dest + destWidth; lineDest != end; lineDest++, lineSrcX += srcIncrement) {
+                *lineDest = qMin(qMax(0, (src[(int)lineSrcX] << shift) - subtract), EIGHT_BIT_MAXIMUM);
+            }
+        }
+    }
+    
+    if (_colorSize == 0) {
+        return STOP_RECURSION;
+    }
+    HeightfieldDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldDataPointer>();
+    if (!color) {
+        return STOP_RECURSION;
+    }
+    intersection = bounds.getIntersection(_colorBounds);
+    destX = glm::round((intersection.minimum.x - _colorBounds.minimum.x) / _colorExtension);
+    destY = glm::round((intersection.minimum.z - _colorBounds.minimum.z) / _colorExtension);
+    destWidth = glm::round((intersection.maximum.x - intersection.minimum.x) / _colorExtension);
+    destHeight = glm::round((intersection.maximum.z - intersection.minimum.z) / _colorExtension);
+    dest = _buffer->getColor().data() + (destY * _colorSize + destX) * HeightfieldData::COLOR_BYTES;
+    int destStride = _colorSize * HeightfieldData::COLOR_BYTES;
+    int destBytes = destWidth * HeightfieldData::COLOR_BYTES;
+    
+    const QByteArray& srcColor = color->getContents();
+    srcSize = glm::sqrt(srcColor.size() / HeightfieldData::COLOR_BYTES);
+    int srcStride = srcSize * HeightfieldData::COLOR_BYTES;
+    srcExtension = info.size / srcSize;
+    
+    if (srcExtension == _colorExtension) {
+        // easy case: same resolution
+        int srcX = glm::round((intersection.minimum.x - info.minimum.x) / srcExtension);
+        int srcY = glm::round((intersection.minimum.z - info.minimum.z) / srcExtension);
+        
+        const char* src = srcColor.constData() + (srcY * srcSize + srcX) * HeightfieldData::COLOR_BYTES;    
+        for (int y = 0; y < destHeight; y++, src += srcStride, dest += destStride) {
+            memcpy(dest, src, destBytes);
+        }
+    } else {
+        // more difficult: different resolutions
+        float srcX = (intersection.minimum.x - info.minimum.x) / srcExtension;
+        float srcY = (intersection.minimum.z - info.minimum.z) / srcExtension;
+        float srcIncrement = _colorExtension / srcExtension;
+        for (int y = 0; y < destHeight; y++, dest += destStride, srcY += srcIncrement) {
+            const char* src = srcColor.constData() + (int)srcY * srcStride;
+            float lineSrcX = srcX;
+            for (char* lineDest = dest, *end = dest + destBytes; lineDest != end; lineDest += HeightfieldData::COLOR_BYTES,
+                    lineSrcX += srcIncrement) {
+                const char* lineSrc = src + (int)lineSrcX * HeightfieldData::COLOR_BYTES;
+                lineDest[0] = lineSrc[0];
+                lineDest[1] = lineSrc[1];
+                lineDest[2] = lineSrc[2];
+            }
+        }
+    }
+    
     return STOP_RECURSION;
 }
 
@@ -724,6 +848,8 @@ int HeightfieldAugmentVisitor::visit(MetavoxelInfo& info) {
                 }
             }
             buffer = new HeightfieldBuffer(info.minimum, info.size, extendedHeightContents, extendedColorContents);
+            BorderFetchVisitor visitor(_lod, buffer);
+            _data->guide(visitor);
         }
         info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
         return STOP_RECURSION;

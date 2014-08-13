@@ -139,9 +139,10 @@ public:
     ~HeightfieldBuffer();
     
     const glm::vec3& getTranslation() const { return _translation; }
+    float getScale() const { return _scale; }
     
-    const QByteArray& getHeight() const { return _height; }
-    const QByteArray& getColor() const { return _color; }
+    QByteArray& getHeight() { return _height; }
+    QByteArray& getColor() { return _color; }
     
     QByteArray getUnextendedHeight() const;
     QByteArray getUnextendedColor() const;
