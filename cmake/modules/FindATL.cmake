@@ -16,8 +16,8 @@
 # 
 
 if (WIN32)
-	find_library(ATL_LIBRARY_RELEASE atl PATH_SUFFIXES "7600.16385.1/lib/ATL/i386" HINTS "C:\\WinDDK")
-  find_library(ATL_LIBRARY_DEBUG atld PATH_SUFFIXES "7600.16385.1/lib/ATL/i386" HINTS "C:\\WinDDK")
+	find_library(ATL_LIBRARY_RELEASE atls PATH_SUFFIXES "7600.16385.1/lib/ATL/i386" HINTS "C:\\WinDDK")
+  find_library(ATL_LIBRARY_DEBUG atlsd PATH_SUFFIXES "7600.16385.1/lib/ATL/i386" HINTS "C:\\WinDDK")
   
   include(SelectLibraryConfigurations)
   select_library_configurations(ATL)
