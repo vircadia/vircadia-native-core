@@ -133,8 +133,8 @@ void ContactPoint::buildConstraints() {
             glm::vec3 perpDelta = delta - paraDelta;
             
             // use the relative sizes of the components to decide how much perpenducular delta to use
-            // perpendicular < parallel ==> static friciton ==> perpFactor = 1.0
-            // perpendicular > parallel ==> dynamic friciton ==> cap to length of paraDelta ==> perpFactor < 1.0
+            // perpendicular < parallel ==> static friction ==> perpFactor = 1.0
+            // perpendicular > parallel ==> dynamic friction ==> cap to length of paraDelta ==> perpFactor < 1.0
             float paraLength = glm::length(paraDelta);
             float perpLength = glm::length(perpDelta);
             float perpFactor = (perpLength > paraLength && perpLength > EPSILON) ? (paraLength / perpLength) : 1.0f;
@@ -145,6 +145,10 @@ void ContactPoint::buildConstraints() {
             glm::vec3 targetPosition = point->_position + delta;
             _distances[i] = glm::distance(_contactPoint, targetPosition);
             point->_position += HACK_STRENGTH * delta;
+        }
+    } else {
+        for (int i = 0; i < _numPoints; ++i) {
+            _distances[i] = glm::length(glm::length(_offsets[i]));
         }
     }
 }
@@ -178,9 +182,6 @@ void ContactPoint::updateContact(const CollisionInfo& collision, quint32 frame) 
     // compute relative offsets to per-shape contact points
     _offsetA = pointA - collision._shapeA->getTranslation();
     _offsetB = pointB - collision._shapeB->getTranslation();
-
-    // _contactPoint will be the weighted average of the two
-    _contactPoint = _relativeMassA * pointA + _relativeMassB * pointB;
 
     // compute offsets for shapeA
     assert(_offsets.size() == _numPoints);
