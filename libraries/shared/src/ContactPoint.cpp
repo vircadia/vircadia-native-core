@@ -13,32 +13,36 @@
 #include "Shape.h"
 #include "SharedUtil.h"
 
-ContactPoint::ContactPoint() : _lastFrame(0), _shapeA(NULL), _shapeB(NULL), 
-        _offsetA(0.0f), _offsetB(0.0f), _normal(0.0f) {
+ContactPoint::ContactPoint() : 
+        _lastFrame(0), _shapeA(NULL), _shapeB(NULL), 
+        _offsetA(0.0f), _offsetB(0.0f), 
+        _numPointsA(0), _numPoints(0), _normal(0.0f) {
 }
 
-ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) : _lastFrame(frame),
-        _shapeA(collision.getShapeA()), _shapeB(collision.getShapeB()), _offsetA(0.0f), _offsetB(0.0f), 
+ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) : 
+        _lastFrame(frame), _shapeA(collision.getShapeA()), _shapeB(collision.getShapeB()), 
+        _offsetA(0.0f), _offsetB(0.0f), 
         _numPointsA(0), _numPoints(0), _normal(0.0f) {
 
-    _contactPoint = collision._contactPoint - 0.5f * collision._penetration;
-    _offsetA = collision._contactPoint - _shapeA->getTranslation();
-    _offsetB = collision._contactPoint - collision._penetration - _shapeB->getTranslation();
+    glm::vec3 pointA = collision._contactPoint;
+    glm::vec3 pointB = collision._contactPoint - collision._penetration;
+
     float pLength = glm::length(collision._penetration);
     if (pLength > EPSILON) {
         _normal = collision._penetration / pLength;
     }
-
     if (_shapeA->getID() > _shapeB->getID()) {
         // swap so that _shapeA always has lower ID
         _shapeA = collision.getShapeB();
         _shapeB = collision.getShapeA();
-
-        glm::vec3 temp = _offsetA;
-        _offsetA = _offsetB;
-        _offsetB = temp;
         _normal = - _normal;
+        pointA = pointB;
+        pointB = collision._contactPoint;
     }
+
+    _offsetA = pointA - _shapeA->getTranslation();
+    _offsetB = pointB - _shapeB->getTranslation();
+    _contactPoint = 0.5f * (pointA + pointB);
 
     _shapeA->getVerletPoints(_points);
     _numPointsA = _points.size();
@@ -61,8 +65,7 @@ ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) : _las
 
 // virtual 
 float ContactPoint::enforce() {
-    int numPoints = _points.size();
-    for (int i = 0; i < numPoints; ++i) {
+    for (int i = 0; i < _numPoints; ++i) {
         glm::vec3& position = _points[i]->_position;
         // TODO: use a fast distance approximation
         float newDistance = glm::distance(_contactPoint, position);
@@ -81,9 +84,9 @@ float ContactPoint::enforce() {
 void ContactPoint::buildConstraints() {
     glm::vec3 pointA = _shapeA->getTranslation() + _offsetA;
     glm::vec3 pointB = _shapeB->getTranslation() + _offsetB;
-    glm::vec3 penetration = pointA - pointB;
-    float pDotN = glm::dot(penetration, _normal);
-    bool actuallyMovePoints = (pDotN > EPSILON);
+    glm::vec3 penetration = pointB - pointA;
+   float pDotN = glm::dot(penetration, _normal);
+    bool constraintViolation = (pDotN < 0.0f);
 
     // the contact point will be the average of the two points on the shapes
     _contactPoint = 0.5f * (pointA + pointB);
@@ -96,29 +99,28 @@ void ContactPoint::buildConstraints() {
     // that this makes it easier for limbs to tunnel through during collisions.
     const float HACK_STRENGTH = 0.5f;
 
-    int numPoints = _points.size();
-    for (int i = 0; i < numPoints; ++i) {
-        VerletPoint* point = _points[i];
-        glm::vec3 offset = _offsets[i];
-
-        // split delta into parallel and perpendicular components
-        glm::vec3 delta = _contactPoint + offset - point->_position;
-        glm::vec3 paraDelta = glm::dot(delta, _normal) * _normal;
-        glm::vec3 perpDelta = delta - paraDelta;
-        
-        // use the relative sizes of the components to decide how much perpenducular delta to use
-        // perpendicular < parallel ==> static friciton ==> perpFactor = 1.0
-        // perpendicular > parallel ==> dynamic friciton ==> cap to length of paraDelta ==> perpFactor < 1.0
-        float paraLength = glm::length(paraDelta);
-        float perpLength = glm::length(perpDelta);
-        float perpFactor = (perpLength > paraLength && perpLength > EPSILON) ? (paraLength / perpLength) : 1.0f;
-
-        // recombine the two components to get the final delta
-        delta = paraDelta + perpFactor * perpDelta;
+    if (constraintViolation) {
+        for (int i = 0; i < _numPoints; ++i) {
+            VerletPoint* point = _points[i];
+            glm::vec3 offset = _offsets[i];
     
-        glm::vec3 targetPosition = point->_position + delta;
-        _distances[i] = glm::distance(_contactPoint, targetPosition);
-        if (actuallyMovePoints) {
+            // split delta into parallel and perpendicular components
+            glm::vec3 delta = _contactPoint + offset - point->_position;
+            glm::vec3 paraDelta = glm::dot(delta, _normal) * _normal;
+            glm::vec3 perpDelta = delta - paraDelta;
+            
+            // use the relative sizes of the components to decide how much perpenducular delta to use
+            // perpendicular < parallel ==> static friciton ==> perpFactor = 1.0
+            // perpendicular > parallel ==> dynamic friciton ==> cap to length of paraDelta ==> perpFactor < 1.0
+            float paraLength = glm::length(paraDelta);
+            float perpLength = glm::length(perpDelta);
+            float perpFactor = (perpLength > paraLength && perpLength > EPSILON) ? (paraLength / perpLength) : 1.0f;
+    
+            // recombine the two components to get the final delta
+            delta = paraDelta + perpFactor * perpDelta;
+        
+            glm::vec3 targetPosition = point->_position + delta;
+            _distances[i] = glm::distance(_contactPoint, targetPosition);
             point->_position += HACK_STRENGTH * delta;
         }
     }
