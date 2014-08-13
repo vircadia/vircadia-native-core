@@ -12,6 +12,7 @@
 #ifndef hifi_MovingMinMaxAvg_h
 #define hifi_MovingMinMaxAvg_h
 
+#include <cassert>
 #include <limits>
 
 #include "RingBufferHistory.h"

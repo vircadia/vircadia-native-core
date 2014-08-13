@@ -270,7 +270,7 @@ public:
     static bool encodeModelEditMessageDetails(PacketType command, ModelItemID id, const ModelItemProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
-    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
+    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
     
     void update(const quint64& now);
 

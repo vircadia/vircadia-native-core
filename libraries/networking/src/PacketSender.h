@@ -39,10 +39,6 @@ public:
     ~PacketSender();
 
     /// Add packet to outbound queue.
-    /// \param HifiSockAddr& address the destination address
-    /// \param packetData pointer to data
-    /// \param ssize_t packetLength size of data
-    /// \thread any thread, typically the application thread
     void queuePacketForSending(const SharedNodePointer& destinationNode, const QByteArray& packet);
 
     void setPacketsPerSecond(int packetsPerSecond);

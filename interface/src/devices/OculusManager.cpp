@@ -44,7 +44,7 @@ ovrFovPort OculusManager::_eyeFov[ovrEye_Count];
 ovrEyeRenderDesc OculusManager::_eyeRenderDesc[ovrEye_Count];
 ovrSizei OculusManager::_renderTargetSize;
 ovrVector2f OculusManager::_UVScaleOffset[ovrEye_Count][2];
-GLuint  OculusManager::_vertices[ovrEye_Count] = { 0, 0 };
+GLuint OculusManager::_vertices[ovrEye_Count] = { 0, 0 };
 GLuint OculusManager::_indices[ovrEye_Count] = { 0, 0 };
 GLsizei OculusManager::_meshSize[ovrEye_Count] = { 0, 0 };
 ovrFrameTiming OculusManager::_hmdFrameTiming;
@@ -66,12 +66,14 @@ void OculusManager::connect() {
             UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
         }
         _isConnected = true;
-      
+#if defined(__APPLE__) || defined(_WIN32)
+        _eyeFov[0] = _ovrHmd->DefaultEyeFov[0];
+        _eyeFov[1] = _ovrHmd->DefaultEyeFov[1];
+#else
         ovrHmd_GetDesc(_ovrHmd, &_ovrHmdDesc);
-
         _eyeFov[0] = _ovrHmdDesc.DefaultEyeFov[0];
         _eyeFov[1] = _ovrHmdDesc.DefaultEyeFov[1];
-
+#endif
         //Get texture size
         ovrSizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left,
                                                                 _eyeFov[0], 1.0f);
@@ -86,11 +88,21 @@ void OculusManager::connect() {
         _eyeRenderDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
         _eyeRenderDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
 
+#if defined(__APPLE__) || defined(_WIN32)
+        ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence);
+#else
         ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence | ovrHmdCap_LatencyTest);
+#endif
 
+#if defined(__APPLE__) || defined(_WIN32)
+        ovrHmd_ConfigureTracking(_ovrHmd, ovrTrackingCap_Orientation | ovrTrackingCap_Position |
+                                 ovrTrackingCap_MagYawCorrection,
+                                 ovrTrackingCap_Orientation);
+#else
         ovrHmd_StartSensor(_ovrHmd, ovrSensorCap_Orientation | ovrSensorCap_YawCorrection |
                            ovrSensorCap_Position,
                            ovrSensorCap_Orientation);
+#endif
 
         if (!_camera) {
             _camera = new Camera;
@@ -123,6 +135,10 @@ void OculusManager::connect() {
 
     } else {
         _isConnected = false;
+        
+        // we're definitely not in "VR mode" so tell the menu that
+        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(false);
+        
         ovrHmd_Destroy(_ovrHmd);
         ovr_Shutdown();
     }
@@ -183,6 +199,16 @@ void OculusManager::generateDistortionMesh() {
         DistortionVertex* v = pVBVerts;
         ovrDistortionVertex* ov = meshData.pVertexData;
         for (unsigned int vertNum = 0; vertNum < meshData.VertexCount; vertNum++) {
+#if defined(__APPLE__) || defined(_WIN32)
+            v->pos.x = ov->ScreenPosNDC.x;
+            v->pos.y = ov->ScreenPosNDC.y;
+            v->texR.x = ov->TanEyeAnglesR.x;
+            v->texR.y = ov->TanEyeAnglesR.y;
+            v->texG.x = ov->TanEyeAnglesG.x;
+            v->texG.y = ov->TanEyeAnglesG.y;
+            v->texB.x = ov->TanEyeAnglesB.x;
+            v->texB.y = ov->TanEyeAnglesB.y;
+#else
             v->pos.x = ov->Pos.x;
             v->pos.y = ov->Pos.y;
             v->texR.x = ov->TexR.x;
@@ -191,6 +217,7 @@ void OculusManager::generateDistortionMesh() {
             v->texG.y = ov->TexG.y;
             v->texB.x = ov->TexB.x;
             v->texB.y = ov->TexB.y;
+#endif
             v->color.r = v->color.g = v->color.b = (GLubyte)(ov->VignetteFactor * 255.99f);
             v->color.a = (GLubyte)(ov->TimeWarpFactor * 255.99f);
             v++; 
@@ -291,12 +318,23 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     glPushMatrix();
   
     glm::quat orientation;
-  
+    glm::vec3 trackerPosition;
+    
+#if defined(__APPLE__) || defined(_WIN32)
+    ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
+    ovrVector3f ovrHeadPosition = ts.HeadPose.ThePose.Position;
+    
+    trackerPosition = glm::vec3(ovrHeadPosition.x, ovrHeadPosition.y, ovrHeadPosition.z);
+    trackerPosition = bodyOrientation * trackerPosition;
+#endif
+    
     //Render each eye into an fbo
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++) {
-
+#if defined(__APPLE__) || defined(_WIN32)
+        ovrEyeType eye = _ovrHmd->EyeRenderOrder[eyeIndex];
+#else
         ovrEyeType eye = _ovrHmdDesc.EyeRenderOrder[eyeIndex];
-
+#endif
         //Set the camera rotation for this eye
         eyeRenderPose[eye] = ovrHmd_GetEyePose(_ovrHmd, eye);
         orientation.x = eyeRenderPose[eye].Orientation.x;
@@ -305,7 +343,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         orientation.w = eyeRenderPose[eye].Orientation.w;
         
         _camera->setTargetRotation(bodyOrientation * orientation);
-        _camera->setTargetPosition(position);
+        _camera->setTargetPosition(position + trackerPosition);
+        
         _camera->update(1.0f / Application::getInstance()->getFps());
 
         Matrix4f proj = ovrMatrix4f_Projection(_eyeRenderDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);
@@ -425,19 +464,32 @@ void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 //Tries to reconnect to the sensors
 void OculusManager::reset() {
 #ifdef HAVE_LIBOVR
-    disconnect();
-    connect();
+    if (_isConnected) {
+        ovrHmd_RecenterPose(_ovrHmd);
+    }
 #endif
 }
 
 //Gets the current predicted angles from the oculus sensors
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #ifdef HAVE_LIBOVR
+#if defined(__APPLE__) || defined(_WIN32)
+    ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
+#else
     ovrSensorState ss = ovrHmd_GetSensorState(_ovrHmd, _hmdFrameTiming.ScanoutMidpointSeconds);
-
+#endif
+#if defined(__APPLE__) || defined(_WIN32) 
+    if (ts.StatusFlags & (ovrStatus_OrientationTracked | ovrStatus_PositionTracked)) {
+#else
     if (ss.StatusFlags & (ovrStatus_OrientationTracked | ovrStatus_PositionTracked)) {
-        ovrPosef pose = ss.Predicted.Pose;
-        Quatf orientation = Quatf(pose.Orientation);
+#endif
+        
+#if defined(__APPLE__) || defined(_WIN32)
+        ovrPosef headPose = ts.HeadPose.ThePose;
+#else
+        ovrPosef headPose = ss.Predicted.Pose;
+#endif
+        Quatf orientation = Quatf(headPose.Orientation);
         orientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
     } else {
         yaw = 0.0f;
@@ -448,6 +500,18 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
     yaw = 0.0f;
     pitch = 0.0f;
     roll = 0.0f;
+#endif
+}
+    
+glm::vec3 OculusManager::getRelativePosition() {
+#if defined(__APPLE__) || defined(_WIN32)
+    ovrTrackingState trackingState = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
+    ovrVector3f headPosition = trackingState.HeadPose.ThePose.Position;
+    
+    return glm::vec3(headPosition.x, headPosition.y, headPosition.z);
+#else
+    // no positional tracking in Linux yet
+    return glm::vec3(0.0f, 0.0f, 0.0f);
 #endif
 }
 
