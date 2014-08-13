@@ -263,7 +263,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
     if (isPlaying()) {
-        //estimatedPosition = _player->getHeadTranslation();
         estimatedRotation = glm::degrees(safeEulerAngles(_player->getHeadRotation()));
     } else if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
         estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
@@ -311,14 +310,18 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
     head->setDeltaRoll(estimatedRotation.z);
 
+    if (isPlaying()) {
+        head->setLeanSideways(_player->getLeanSideways());
+        head->setLeanForward(_player->getLeanForward());
+        return;
+    }
     // the priovr can give us exact lean
-    if (Application::getInstance()->getPrioVR()->isActive() && !isPlaying()) {
+    if (Application::getInstance()->getPrioVR()->isActive()) {
         glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
         head->setLeanSideways(eulers.z);
         head->setLeanForward(eulers.x);
         return;
     }
-
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
@@ -909,6 +912,14 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
 }
 
 const float JOINT_PRIORITY = 2.0f;
+
+void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
+    for (int i = 0; i < jointRotations.size(); ++i) {
+        if (i < _jointData.size()) {
+            _skeletonModel.setJointState(i, true, jointRotations[i]);
+        }
+    }
+}
 
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
     Avatar::setJointData(index, rotation);

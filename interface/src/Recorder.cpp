@@ -45,14 +45,6 @@ void RecordingFrame::setLeanForward(float leanForward) {
     _leanForward = leanForward;
 }
 
-void RecordingFrame::setEstimatedEyePitch(float estimatedEyePitch) {
-    _estimatedEyePitch = estimatedEyePitch;
-}
-
-void RecordingFrame::setEstimatedEyeYaw(float estimatedEyeYaw) {
-    _estimatedEyeYaw = estimatedEyeYaw;
-}
-
 void Recording::addFrame(int timestamp, RecordingFrame &frame) {
     _timestamps << timestamp;
     _frames << frame;
@@ -93,15 +85,13 @@ void Recorder::startRecording() {
     frame.setRotation(_avatar->getOrientation());
     frame.setScale(_avatar->getTargetScale());
     
-    // TODO
     const HeadData* head = _avatar->getHeadData();
     glm::quat rotation = glm::quat(glm::radians(glm::vec3(head->getFinalPitch(),
                                                           head->getFinalYaw(),
                                                           head->getFinalRoll())));
     frame.setHeadRotation(rotation);
-    // TODO
-    //frame.setEstimatedEyePitch();
-    //frame.setEstimatedEyeYaw();
+    frame.setLeanForward(_avatar->getHeadData()->getLeanForward());
+    frame.setLeanSideways(_avatar->getHeadData()->getLeanSideways());
     
     _recording->addFrame(0, frame);
 }
@@ -130,16 +120,16 @@ void Recorder::record() {
         frame.setTranslation(_avatar->getPosition() - referenceFrame.getTranslation());
         frame.setRotation(glm::inverse(referenceFrame.getRotation()) * _avatar->getOrientation());
         frame.setScale(_avatar->getTargetScale() / referenceFrame.getScale());
-        // TODO
-        //frame.setHeadTranslation();
+        
+        
         const HeadData* head = _avatar->getHeadData();
         glm::quat rotation = glm::quat(glm::radians(glm::vec3(head->getFinalPitch(),
                                                               head->getFinalYaw(),
                                                               head->getFinalRoll())));
-        frame.setHeadRotation(glm::inverse(referenceFrame.getHeadRotation()) * rotation);
-        // TODO
-        //frame.setEstimatedEyePitch();
-        //frame.setEstimatedEyeYaw();
+        frame.setHeadRotation(rotation);
+        frame.setLeanForward(_avatar->getHeadData()->getLeanForward());
+        frame.setLeanSideways(_avatar->getHeadData()->getLeanSideways());
+        
         _recording->addFrame(_timer.elapsed(), frame);
     }
 }
@@ -164,22 +154,82 @@ qint64 Player::elapsed() const {
 
 QVector<float> Player::getBlendshapeCoefficients() {
     computeCurrentFrame();
-    return _recording->getFrame(_currentFrame).getBlendshapeCoefficients();
+    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
+        if (_currentFrame == _recording->getFrameNumber()) {
+            return _recording->getFrame(_currentFrame - 1).getBlendshapeCoefficients();
+        }
+        
+        return _recording->getFrame(_currentFrame).getBlendshapeCoefficients();
+    }
+    qWarning() << "Incorrect use of Player::getBlendshapeCoefficients()";
+    return QVector<float>();
 }
 
 QVector<glm::quat> Player::getJointRotations() {
     computeCurrentFrame();
-    return _recording->getFrame(_currentFrame).getJointRotations();
+    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
+        if (_currentFrame == _recording->getFrameNumber()) {
+            return _recording->getFrame(_currentFrame - 1).getJointRotations();
+        }
+        
+        return _recording->getFrame(_currentFrame).getJointRotations();
+    }
+    qWarning() << "Incorrect use of Player::getJointRotations()";
+    return QVector<glm::quat>();
+}
+
+glm::vec3 Player::getPosition() {
+    computeCurrentFrame();
+    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
+        if (_currentFrame == _recording->getFrameNumber()) {
+            return _recording->getFrame(0).getTranslation() +
+                   _recording->getFrame(_currentFrame - 1).getTranslation();
+        }
+        if (_currentFrame == 0) {
+            return _recording->getFrame(_currentFrame).getTranslation();
+        }
+        
+        return _recording->getFrame(0).getTranslation() +
+               _recording->getFrame(_currentFrame).getTranslation();
+    }
+    qWarning() << "Incorrect use of Player::getTranslation()";
+    return glm::vec3();
 }
 
 glm::quat Player::getRotation() {
     computeCurrentFrame();
-    return _recording->getFrame(_currentFrame).getRotation();
+    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
+        if (_currentFrame == _recording->getFrameNumber()) {
+            return _recording->getFrame(0).getRotation() *
+                   _recording->getFrame(_currentFrame - 1).getRotation();
+        }
+        if (_currentFrame == 0) {
+            return _recording->getFrame(_currentFrame).getRotation();
+        }
+        
+        return _recording->getFrame(0).getRotation() *
+               _recording->getFrame(_currentFrame).getRotation();
+    }
+    qWarning() << "Incorrect use of Player::getRotation()";
+    return glm::quat();
 }
 
 float Player::getScale() {
     computeCurrentFrame();
-    return _recording->getFrame(_currentFrame).getScale();
+    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
+        if (_currentFrame == _recording->getFrameNumber()) {
+            return _recording->getFrame(0).getScale() *
+                   _recording->getFrame(_currentFrame - 1).getScale();
+        }
+        if (_currentFrame == 0) {
+            return _recording->getFrame(_currentFrame).getScale();
+        }
+        
+        return _recording->getFrame(0).getScale() *
+               _recording->getFrame(_currentFrame).getScale();
+    }
+    qWarning() << "Incorrect use of Player::getScale()";
+    return 1.0f;
 }
 
 glm::quat Player::getHeadRotation() {
@@ -200,14 +250,30 @@ glm::quat Player::getHeadRotation() {
     return glm::quat();
 }
 
-float Player::getEstimatedEyePitch() {
+float Player::getLeanSideways() {
     computeCurrentFrame();
-    return _recording->getFrame(_currentFrame).getEstimatedEyePitch();
+    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
+        if (_currentFrame == _recording->getFrameNumber()) {
+            return _recording->getFrame(_currentFrame - 1).getLeanSideways();
+        }
+        
+        return _recording->getFrame(_currentFrame).getLeanSideways();
+    }
+    qWarning() << "Incorrect use of Player::getLeanSideways()";
+    return 0.0f;
 }
 
-float Player::getEstimatedEyeYaw() {
+float Player::getLeanForward() {
     computeCurrentFrame();
-    return _recording->getFrame(_currentFrame).getEstimatedEyeYaw();
+    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
+        if (_currentFrame == _recording->getFrameNumber()) {
+            return _recording->getFrame(_currentFrame - 1).getLeanForward();
+        }
+        
+        return _recording->getFrame(_currentFrame).getLeanForward();
+    }
+    qWarning() << "Incorrect use of Player::getLeanForward()";
+    return 0.0f;
 }
 
 
@@ -249,10 +315,10 @@ void Player::play() {
         _avatar->setPosition(_recording->getFrame(_currentFrame).getTranslation());
         _avatar->setOrientation(_recording->getFrame(_currentFrame).getRotation());
         _avatar->setTargetScale(_recording->getFrame(_currentFrame).getScale());
+        _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
         HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
         head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
         // TODO
-        // HEAD: Coeff, Translation, estimated eye rotations
         // BODY: Joint Rotations
     } else {
         _avatar->setPosition(_recording->getFrame(0).getTranslation() +
@@ -261,10 +327,10 @@ void Player::play() {
                                 _recording->getFrame(_currentFrame).getRotation());
         _avatar->setTargetScale(_recording->getFrame(0).getScale() *
                                 _recording->getFrame(_currentFrame).getScale());
+        _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
         HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
         head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
         // TODO
-        // HEAD: Coeff, Translation, estimated eye rotations
         // BODY: Joint Rotations
     }
 }
@@ -282,7 +348,6 @@ void Player::computeCurrentFrame() {
     
     while (_currentFrame < _recording->getFrameNumber() &&
            _recording->getFrameTimestamp(_currentFrame) < _timer.elapsed()) {
-        qDebug() << "Loop";
         ++_currentFrame;
     }
 }

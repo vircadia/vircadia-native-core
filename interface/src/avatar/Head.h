@@ -48,15 +48,12 @@ public:
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
-    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
-    void setLeanForward(float leanForward) { _leanForward = leanForward; }
 
     /// \return orientationBase+Delta
     glm::quat getFinalOrientationInLocalFrame() const;
     
     /// \return orientationBody * (orientationBase+Delta)
     glm::quat getFinalOrientationInWorldFrame() const;
-
 
     /// \return orientationBody * orientationBasePitch
     glm::quat getCameraOrientation () const;
@@ -71,8 +68,6 @@ public:
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
-    float getLeanSideways() const { return _leanSideways; }
-    float getLeanForward() const { return _leanForward; }
     float getFinalLeanSideways() const { return _leanSideways + _deltaLeanSideways; }
     float getFinalLeanForward() const { return _leanForward + _deltaLeanForward; }
     

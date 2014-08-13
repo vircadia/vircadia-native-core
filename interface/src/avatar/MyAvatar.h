@@ -112,6 +112,7 @@ public:
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
     
+    virtual void setJointRotations(QVector<glm::quat> jointRotations);
     virtual void setJointData(int index, const glm::quat& rotation);
     virtual void clearJointData(int index);
     virtual void setFaceModelURL(const QUrl& faceModelURL);
@@ -155,10 +156,12 @@ public slots:
     bool setModelReferential(int id);
     bool setJointReferential(int id, int jointIndex);
     
+    const RecorderPointer getRecorder() const { return _recorder; }
     bool isRecording() const;
     RecorderPointer startRecording();
     void stopRecording();
     
+    const PlayerPointer getPlayer() const { return _player; }
     bool isPlaying() const;
     PlayerPointer startPlaying();
     void stopPlaying();

@@ -735,6 +735,7 @@ QVector<glm::quat> Avatar::getJointRotations() const {
     for (int i = 0; i < _skeletonModel.getJointStateCount(); ++i) {
         _skeletonModel.getJointState(i, jointRotations[i]);
     }
+    qDebug() << "Get Joints";
     return jointRotations;
 }
 

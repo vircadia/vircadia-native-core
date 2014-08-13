@@ -1048,9 +1048,18 @@ void Application::keyPressEvent(QKeyEvent* event) {
                  break;
             case Qt::Key_R:
                 if (isShifted)  {
-                    Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
+                    if (_myAvatar->isRecording()) {
+                        _myAvatar->stopRecording();
+                    } else {
+                        _myAvatar->startRecording();
+                    }
+                } else {
+                    if (_myAvatar->isPlaying()) {
+                        _myAvatar->stopPlaying();
+                    } else {
+                        _myAvatar->startPlaying();
+                    }
                 }
-                break;
                 break;
             case Qt::Key_Percent:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);

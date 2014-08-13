@@ -46,8 +46,6 @@ public:
     glm::quat getHeadRotation() const { return _headRotation; }
     float getLeanSideways() const { return _leanSideways; }
     float getLeanForward() const { return _leanForward; }
-    float getEstimatedEyePitch() const { return _estimatedEyePitch; }
-    float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
     
 protected:
     void setBlendshapeCoefficients(QVector<float> blendshapeCoefficients);
@@ -58,8 +56,6 @@ protected:
     void setHeadRotation(glm::quat headRotation);
     void setLeanSideways(float leanSideways);
     void setLeanForward(float leanForward);
-    void setEstimatedEyePitch(float estimatedEyePitch);
-    void setEstimatedEyeYaw(float estimatedEyeYaw);
     
 private:
     QVector<float> _blendshapeCoefficients;
@@ -70,8 +66,6 @@ private:
     glm::quat _headRotation;
     float _leanSideways;
     float _leanForward;
-    float _estimatedEyePitch;
-    float _estimatedEyeYaw;
     
     friend class Recorder;
     friend void writeRecordingToFile(Recording& recording, QString file);
@@ -137,12 +131,12 @@ public:
     // Those should only be called if isPlaying() returns true
     QVector<float> getBlendshapeCoefficients();
     QVector<glm::quat> getJointRotations();
+    glm::vec3 getPosition();
     glm::quat getRotation();
     float getScale();
-    glm::vec3 getHeadTranslation();
     glm::quat getHeadRotation();
-    float getEstimatedEyePitch();
-    float getEstimatedEyeYaw();
+    float getLeanSideways();
+    float getLeanForward();
     
 public slots:
     void startPlaying();

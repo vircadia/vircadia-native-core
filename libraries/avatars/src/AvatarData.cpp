@@ -698,6 +698,20 @@ QVector<glm::quat> AvatarData::getJointRotations() const {
     return jointRotations;
 }
 
+void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
+    if (QThread::currentThread() != thread()) {
+        QVector<glm::quat> result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
+                                  "setJointRotation", Qt::BlockingQueuedConnection,
+                                  Q_ARG(QVector<glm::quat>, jointRotations));
+    }
+    for (int i = 0; i < jointRotations.size(); ++i) {
+        if (i < _jointData.size()) {
+            setJointData(i, jointRotations[i]);
+        }
+    }
+}
+
 bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
