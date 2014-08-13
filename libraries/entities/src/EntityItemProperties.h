@@ -63,8 +63,8 @@ enum EntityPropertyList {
     PROP_ANIMATION_FPS,
     PROP_ANIMATION_FRAME_INDEX,
     PROP_ANIMATION_PLAYING,
-    PROP_SHOULD_BE_DELETED,
-    PROP_LAST_ITEM = PROP_SHOULD_BE_DELETED
+
+    PROP_LAST_ITEM = PROP_ANIMATION_PLAYING
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -122,14 +122,12 @@ public:
     float getMaxDimension() const { return _radius * 2.0f; }
     glm::vec3 getDimensions() const { return glm::vec3(_radius, _radius, _radius) * 2.0f; }
     const glm::quat& getRotation() const { return _rotation; }
-    bool getShouldBeDeleted() const { return _shouldBeDeleted; }
 
     void setType(EntityTypes::EntityType type) { _type = type; }
     /// set position in meter units
     void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
     void setRadius(float value) { _radius = value; _radiusChanged = true; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; _rotationChanged = true; }
-    void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; _shouldBeDeletedChanged = true;  }
 
     float getMass() const { return _mass; }
     void setMass(float value) { _mass = value; _massChanged = true; }
@@ -175,6 +173,10 @@ public:
     static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
+    static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, 
+                                            unsigned char* outputBuffer, size_t maxLength, size_t& outputLength);
+
+
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                         EntityItemID& entityID, EntityItemProperties& properties);
 
@@ -189,7 +191,6 @@ private:
     glm::vec3 _position;
     float _radius;
     glm::quat _rotation;
-    bool _shouldBeDeleted;
     float _mass;
     glm::vec3 _velocity;
     glm::vec3 _gravity;
@@ -200,7 +201,6 @@ private:
     bool _positionChanged;
     bool _radiusChanged;
     bool _rotationChanged;
-    bool _shouldBeDeletedChanged;
     bool _massChanged;
     bool _velocityChanged;
     bool _gravityChanged;

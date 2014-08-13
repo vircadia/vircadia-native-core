@@ -111,9 +111,6 @@ public:
     const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
-    bool getShouldBeDeleted() const { return _shouldBeDeleted; }
-    void setShouldBeDeleted(bool shouldBeDeleted) { _shouldBeDeleted = shouldBeDeleted; }
-
     static const float DEFAULT_GLOW_LEVEL;
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
@@ -182,7 +179,6 @@ protected:
     glm::vec3 _position;
     float _radius;
     glm::quat _rotation;
-    bool _shouldBeDeleted;
     float _glowLevel;
     float _mass;
     glm::vec3 _velocity;

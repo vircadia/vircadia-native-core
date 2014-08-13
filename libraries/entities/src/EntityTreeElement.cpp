@@ -280,51 +280,6 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     return false;
 }
 
-
-void EntityTreeElement::update(EntityTreeUpdateArgs& args) {
-    args._totalElements++;
-    // update our contained entities
-    QList<EntityItem*>::iterator entityItr = _entityItems->begin();
-    while(entityItr != _entityItems->end()) {
-        EntityItem* entity = (*entityItr);
-        args._totalItems++;
-        
-        // TODO: this _lastChanged isn't actually changing because we're not marking this element as changed.
-        // how do we want to handle this??? We really only want to consider an element changed when it is
-        // edited... not just animated...
-        entity->update(_lastChanged);
-        
-        
-        // If the entity wants to die, or if it's left our bounding box, then move it
-        // into the arguments moving entities. These will be added back or deleted completely
-        if (entity->getShouldBeDeleted() || !bestFitEntityBounds(entity)) {
-            qDebug() << "EntityTreeElement::update()... OLD DELETE LOGIC CALLED BUT NOT IMPLEMENTED...";
-
-        /***        
-        // TODO: What to do about this???
-
-            args._movingEntities.push_back(entity);
-
-            // erase this entity
-            entityItr = _entityItems->erase(entityItr);
-
-            args._movingItems++;
-            
-            // this element has changed so mark it...
-            markWithChangedTime();
-
-            // TODO: is this a good place to change the containing element map???
-            qDebug() << "EntityTreeElement::update()... calling _myTree->setContainingElement(entity.getEntityItemID(), NULL); ********";
-            _myTree->setContainingElement(entity->getEntityItemID(), NULL);
-        **/
-
-
-        } else {
-            ++entityItr;
-        }
-    }
-}
-
 bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject) {

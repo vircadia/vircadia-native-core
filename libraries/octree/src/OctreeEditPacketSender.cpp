@@ -251,8 +251,10 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
         if (node->getActiveSocket() && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();
             bool isMyJurisdiction = true;
-
-            if (_serverJurisdictions) {
+            
+            if (type == PacketTypeEntityErase) {
+                isMyJurisdiction = true; // send erase messages to all servers
+            } else if (_serverJurisdictions) {
                 // we need to get the jurisdiction for this
                 // here we need to get the "pending packet" for this server
                 _serverJurisdictions->lockForRead();
@@ -265,6 +267,9 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
                 _serverJurisdictions->unlock();
             }
             if (isMyJurisdiction) {
+            
+qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... isMyJurisidiction....";
+
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeUUID];
                 packetBuffer._nodeUUID = nodeUUID;
 
@@ -272,11 +277,17 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
                 if ((type != packetBuffer._currentType && packetBuffer._currentSize > 0) ||
                     (packetBuffer._currentSize + length >= _maxPacketSize)) {
                     releaseQueuedPacket(packetBuffer);
+
+qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... SWITCHING TYPE...initializePacket()....";
+
                     initializePacket(packetBuffer, type);
                 }
 
                 // If the buffer is empty and not correctly initialized for our type...
                 if (type != packetBuffer._currentType && packetBuffer._currentSize == 0) {
+
+qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... SWITCHING TYPE...initializePacket()....";
+
                     initializePacket(packetBuffer, type);
                 }
 
@@ -285,12 +296,19 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
                 // We call this virtual function that allows our specific type of EditPacketSender to
                 // fixup the buffer for any clock skew
                 if (node->getClockSkewUsec() != 0) {
+qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... adjustEditPacketForClockSkew()....";
                     adjustEditPacketForClockSkew(editPacketBuffer, length, node->getClockSkewUsec());
                 }
+
+qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... memcpy(&packetBuffer...)....";
+qDebug() << "    BEFORE packetBuffer._currentSize=" << packetBuffer._currentSize;
 
                 memcpy(&packetBuffer._currentBuffer[packetBuffer._currentSize], editPacketBuffer, length);
                 packetBuffer._currentSize += length;
                 packetBuffer._satoshiCost += satoshiCost;
+
+qDebug() << "    AFTER packetBuffer._currentSize=" << packetBuffer._currentSize;
+
             }
         }
     }

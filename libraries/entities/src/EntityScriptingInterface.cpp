@@ -123,10 +123,6 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
 // message which takes a list of model id's to delete.
 void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
 
-    // setup properties to kill the model
-    EntityItemProperties properties;
-    properties.setShouldBeDeleted(true);
-
     EntityItemID actualID = entityID;
     
     // if the model is unknown, attempt to look it up
@@ -138,8 +134,13 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     if (actualID.id != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID.id;
         entityID.isKnownID = true;
-        //qDebug() << "EntityScriptingInterface::deleteEntity()... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
-        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
+
+        qDebug() << "EntityScriptingInterface::deleteEntity()... " 
+                    << "isKnownID=" << entityID.isKnownID 
+                    << "id=" << entityID.id 
+                    << "creatorTokenID=" << entityID.creatorTokenID;
+
+        getEntityPacketSender()->queueEraseEntityMessage(entityID);
     }
 
     // If we have a local model tree set, then also update it.

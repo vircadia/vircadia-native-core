@@ -54,7 +54,6 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _position = glm::vec3(0,0,0);
     _radius = 0;
     _rotation = ENTITY_DEFAULT_ROTATION;
-    _shouldBeDeleted = false;
 
     _glowLevel = DEFAULT_GLOW_LEVEL;
     _mass = DEFAULT_MASS;
@@ -218,26 +217,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         } else {
             //qDebug() << "PROP_ROTATION NOT requested...";
             propertiesDidntFit -= PROP_ROTATION;
-        }
-
-        // PROP_SHOULD_BE_DELETED
-        if (requestedProperties.getHasProperty(PROP_SHOULD_BE_DELETED)) {
-            //qDebug() << "PROP_SHOULD_BE_DELETED requested...";
-            LevelDetails propertyLevel = packetData->startLevel();
-            successPropertyFits = packetData->appendValue(getShouldBeDeleted());
-            if (successPropertyFits) {
-                propertyFlags |= PROP_SHOULD_BE_DELETED;
-                propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
-                propertyCount++;
-                packetData->endLevel(propertyLevel);
-            } else {
-                //qDebug() << "PROP_SHOULD_BE_DELETED didn't fit...";
-                packetData->discardLevel(propertyLevel);
-                appendState = OctreeElement::PARTIAL;
-            }
-        } else {
-            //qDebug() << "PROP_SHOULD_BE_DELETED NOT requested...";
-            propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
         }
 
         // PROP_MASS,
@@ -545,17 +524,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
         }
 
-        // PROP_SHOULD_BE_DELETED
-        if (propertyFlags.getHasProperty(PROP_SHOULD_BE_DELETED)) {
-            bool shouldBeDeleted;
-            memcpy(&shouldBeDeleted, dataAt, sizeof(shouldBeDeleted));
-            dataAt += sizeof(shouldBeDeleted);
-            bytesRead += sizeof(shouldBeDeleted);
-            if (overwriteLocalData) {
-                _shouldBeDeleted = shouldBeDeleted;
-            }
-        }
-
         // PROP_MASS,
         if (propertyFlags.getHasProperty(PROP_MASS)) {
             float value;
@@ -641,7 +609,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 void EntityItem::debugDump() const {
     qDebug() << "EntityItem id:" << getEntityItemID();
     qDebug(" edited ago:%f", getEditedAgo());
-    qDebug(" should die:%s", debug::valueOf(getShouldBeDeleted()));
     qDebug(" position:%f,%f,%f", _position.x, _position.y, _position.z);
     qDebug(" radius:%f", getRadius());
 }
@@ -802,7 +769,6 @@ EntityItemProperties EntityItem::getProperties() const {
     properties._position = getPosition() * (float) TREE_SCALE;
     properties._radius = getRadius() * (float) TREE_SCALE;
     properties._rotation = getRotation();
-    properties._shouldBeDeleted = getShouldBeDeleted();
 
     properties._mass = getMass();
     properties._velocity = getVelocity() * (float) TREE_SCALE;
@@ -814,7 +780,6 @@ EntityItemProperties EntityItem::getProperties() const {
     properties._positionChanged = false;
     properties._radiusChanged = false;
     properties._rotationChanged = false;
-    properties._shouldBeDeletedChanged = false;
     properties._massChanged = false;
     properties._velocityChanged = false;
     properties._gravityChanged = false;
@@ -845,11 +810,6 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
 
     if (properties._rotationChanged || forceCopy) {
         setRotation(properties._rotation);
-        somethingChanged = true;
-    }
-
-    if (properties._shouldBeDeletedChanged || forceCopy) {
-        setShouldBeDeleted(properties._shouldBeDeleted);
         somethingChanged = true;
     }
 

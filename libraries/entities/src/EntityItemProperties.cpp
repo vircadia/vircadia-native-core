@@ -28,7 +28,6 @@ EntityItemProperties::EntityItemProperties() :
     _position(0),
     _radius(ENTITY_DEFAULT_RADIUS),
     _rotation(ENTITY_DEFAULT_ROTATION),
-    _shouldBeDeleted(false),
     _mass(EntityItem::DEFAULT_MASS),
     _velocity(EntityItem::DEFAULT_VELOCITY),
     _gravity(EntityItem::DEFAULT_GRAVITY),
@@ -39,7 +38,6 @@ EntityItemProperties::EntityItemProperties() :
     _positionChanged(false),
     _radiusChanged(false),
     _rotationChanged(false),
-    _shouldBeDeletedChanged(false),
     _massChanged(false),
     _velocityChanged(false),
     _gravityChanged(false),
@@ -88,11 +86,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     if (_rotationChanged) {
         changedProperties += PROP_ROTATION;
     }
-
-    if (_shouldBeDeletedChanged) {
-        changedProperties += PROP_SHOULD_BE_DELETED;
-    }
-
 
     if (_massChanged) {
         changedProperties += PROP_MASS;
@@ -161,7 +154,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     properties.setProperty("radius", _radius);
     QScriptValue rotation = quatToScriptValue(engine, _rotation);
     properties.setProperty("rotation", rotation);
-    properties.setProperty("shouldBeDeleted", _shouldBeDeleted);
     properties.setProperty("mass", _mass);
     QScriptValue velocity = vec3toScriptValue(engine, _velocity);
     properties.setProperty("velocity", velocity);
@@ -251,16 +243,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
         }
     }
 
-    QScriptValue shouldBeDeleted = object.property("shouldBeDeleted");
-    if (shouldBeDeleted.isValid()) {
-        bool newShouldBeDeleted;
-        newShouldBeDeleted = shouldBeDeleted.toVariant().toBool();
-        if (_defaultSettings || newShouldBeDeleted != _shouldBeDeleted) {
-            _shouldBeDeleted = newShouldBeDeleted;
-            _shouldBeDeletedChanged = true;
-        }
-    }
-    
     QScriptValue mass = object.property("mass");
     if (mass.isValid()) {
         float newValue;
@@ -600,26 +582,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 propertiesDidntFit -= PROP_ROTATION;
             }
 
-            // PROP_SHOULD_BE_DELETED
-            if (requestedProperties.getHasProperty(PROP_SHOULD_BE_DELETED)) {
-                //qDebug() << "PROP_SHOULD_BE_DELETED requested...";
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getShouldBeDeleted());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_SHOULD_BE_DELETED;
-                    propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    //qDebug() << "PROP_SHOULD_BE_DELETED didn't fit...";
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                //qDebug() << "PROP_SHOULD_BE_DELETED NOT requested...";
-                propertiesDidntFit -= PROP_SHOULD_BE_DELETED;
-            }
-            
             // PROP_MASS,
             if (requestedProperties.getHasProperty(PROP_MASS)) {
                 LevelDetails propertyLevel = packetData.startLevel();
@@ -913,7 +875,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
                         EntityItemID& entityID, EntityItemProperties& properties) {
     bool valid = false;
 
-    bool wantDebug = false;
+    bool wantDebug = true;
     if (wantDebug) {
         qDebug() << "EntityItemProperties::decodeEntityEditPacket() bytesToRead=" << bytesToRead;
     }
@@ -1043,15 +1005,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         dataAt += bytes;
         processedBytes += bytes;
         properties.setRotation(rotation);
-    }
-
-    // PROP_SHOULD_BE_DELETED
-    if (propertyFlags.getHasProperty(PROP_SHOULD_BE_DELETED)) {
-        bool shouldBeDeleted;
-        memcpy(&shouldBeDeleted, dataAt, sizeof(shouldBeDeleted));
-        dataAt += sizeof(shouldBeDeleted);
-        processedBytes += sizeof(shouldBeDeleted);
-        properties.setShouldBeDeleted(shouldBeDeleted);
     }
 
     // PROP_MASS,
@@ -1186,4 +1139,35 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
     
     return valid;
+}
+
+
+// NOTE: This version will only encode the portion of the edit message immediately following the
+// header it does not include the send times and sequence number because that is handled by the 
+// edit packet sender...
+bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityItemID, 
+                                            unsigned char* outputBuffer, size_t maxLength, size_t& outputLength) {
+
+    qDebug() << "EntityItemProperties::encodeEraseEntityMessage()";
+
+    unsigned char* copyAt = outputBuffer;
+
+    uint16_t numberOfIds = 1; // only one entity ID in this message
+    memcpy(copyAt, &numberOfIds, sizeof(numberOfIds));
+    copyAt += sizeof(numberOfIds);
+    outputLength += sizeof(numberOfIds);
+
+    qDebug() << "   numberOfIds=" << numberOfIds;
+    
+    QUuid entityID = entityItemID.id;                
+    QByteArray encodedEntityID = entityID.toRfc4122();
+    memcpy(copyAt, encodedEntityID.constData(), NUM_BYTES_RFC4122_UUID);
+    copyAt += NUM_BYTES_RFC4122_UUID;
+    outputLength += NUM_BYTES_RFC4122_UUID;
+
+    qDebug() << "   entityID=" << entityID;
+
+    qDebug() << "   outputLength=" << outputLength;
+
+    return true;
 }

@@ -101,6 +101,7 @@ public:
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
+    void processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     void handleAddEntityResponse(const QByteArray& packet);
     
     EntityItemFBXService* getFBXService() const { return _fbxService; }
@@ -119,9 +120,10 @@ public:
 
     void changeEntityState(EntityItem* const entity, EntityItem::SimuationState oldState, EntityItem::SimuationState newState);
 
+    void trackDeletedEntity(const EntityItemID& entityID);
+
 private:
 
-    static bool updateOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateWithIDandPropertiesOperation(OctreeElement* element, void* extraData);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
@@ -137,8 +139,9 @@ private:
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
+
     QReadWriteLock _recentlyDeletedEntitiesLock;
-    QMultiMap<quint64, uint32_t> _recentlyDeletedEntityItemIDs;
+    QMultiMap<quint64, QUuid> _recentlyDeletedEntityItemIDs;
     EntityItemFBXService* _fbxService;
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;

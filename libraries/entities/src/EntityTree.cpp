@@ -302,9 +302,9 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
 // does this entity tree element contain the old entity
 bool UpdateEntityOperator::subTreeContainsOldEntity(OctreeElement* element) {
     bool elementContainsOldBox = element->getAACube().contains(_oldEntityBox);
-    bool elementContainsOldCube = element->getAACube().contains(_oldEntityCube);
 
     /*
+    bool elementContainsOldCube = element->getAACube().contains(_oldEntityCube);
     qDebug() << "UpdateEntityOperator::subTreeContainsOldEntity()....";
     qDebug() << "    element->getAACube()=" << element->getAACube();
     qDebug() << "    _oldEntityCube=" << _oldEntityCube;
@@ -318,9 +318,9 @@ bool UpdateEntityOperator::subTreeContainsOldEntity(OctreeElement* element) {
 
 bool UpdateEntityOperator::subTreeContainsNewEntity(OctreeElement* element) {
     bool elementContainsNewBox = element->getAACube().contains(_newEntityBox);
-    bool elementContainsNewCube = element->getAACube().contains(_newEntityCube);
 
     /*
+    bool elementContainsNewCube = element->getAACube().contains(_newEntityCube);
     qDebug() << "UpdateEntityOperator::subTreeContainsNewEntity()....";
     qDebug() << "    element->getAACube()=" << element->getAACube();
     qDebug() << "    _newEntityCube=" << _newEntityCube;
@@ -511,7 +511,10 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
-        assert(containingElement); // don't call updateEntity() on entity items that don't exist
+        //assert(containingElement); // don't call updateEntity() on entity items that don't exist
+        
+        qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
+
         return false;
     }
 
@@ -633,7 +636,20 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
             details.cube = details.containingElement->getAACube();
             _entitiesToDelete << details;
             _lookingCount++;
+            
+            _tree->trackDeletedEntity(searchEntityID);
         }
+    }
+}
+
+void EntityTree::trackDeletedEntity(const EntityItemID& entityID) {
+    // this is only needed on the server to send delete messages for recently deleted entities to the viewers
+    if (getIsServer()) {
+        // set up the deleted entities ID
+        quint64 deletedAt = usecTimestampNow();
+        _recentlyDeletedEntitiesLock.lockForWrite();
+        _recentlyDeletedEntityItemIDs.insert(deletedAt, entityID.id);
+        _recentlyDeletedEntitiesLock.unlock();
     }
 }
 
@@ -1046,8 +1062,15 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
     int processedBytes = 0;
     // we handle these types of "edit" packets
     switch (packetType) {
+        case PacketTypeEntityErase: {
+            qDebug() << "EntityTree::processEditPacketData().... PacketTypeEntityErase ****** packetLength=" << packetLength;
+            QByteArray dataByteArray((const char*)packetData, packetLength);
+            processEraseMessageDetails(dataByteArray, senderNode);
+            break;
+        }
+        
         case PacketTypeEntityAddOrEdit: {
-            //qDebug() << "EntityTree::processEditPacketData()....";
+            qDebug() << "EntityTree::processEditPacketData()....";
 
             EntityItemID entityItemID;
             EntityItemProperties properties;
@@ -1071,21 +1094,10 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                         qDebug() << "User attempted to edit an unknown entity.";
                     }
                 } else {
-
-
-//
-// NOTE: We need to fix this... we can't have the creator tokens in the server side map... because if we do that
-// then we will have multiple creator tokens with the same id from different editors... since assignEntityID() 
-// checks for the ID already existing in the map, this will assert/abort.
-//
-// But we do want the creator tokens in the client side version of the map... 
-// so maybe the fix is just to ....
-
-
                     // this is a new entity... assign a new entityID
-qDebug() << "EntityTree::processEditPacketData() ... BEFORE assignEntityID()... entityItemID=" << entityItemID;
+                    qDebug() << "EntityTree::processEditPacketData() ... BEFORE assignEntityID()... entityItemID=" << entityItemID;
                     entityItemID = assignEntityID(entityItemID);
-qDebug() << "EntityTree::processEditPacketData() ... AFTER assignEntityID()... entityItemID=" << entityItemID;
+                    qDebug() << "EntityTree::processEditPacketData() ... AFTER assignEntityID()... entityItemID=" << entityItemID;
                     
                     EntityItem* newEntity = addEntity(entityItemID, properties);
                     if (newEntity) {
@@ -1129,13 +1141,6 @@ void EntityTree::removeNewlyCreatedHook(NewlyCreatedEntityHook* hook) {
     _newlyCreatedHooksLock.unlock();
 }
 
-
-bool EntityTree::updateOperation(OctreeElement* element, void* extraData) {
-    EntityTreeUpdateArgs* args = static_cast<EntityTreeUpdateArgs*>(extraData);
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-    entityTreeElement->update(*args);
-    return true;
-}
 
 void EntityTree::changeEntityState(EntityItem* const entity, EntityItem::SimuationState oldState, EntityItem::SimuationState newState) {
 
@@ -1302,7 +1307,7 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
     bool hasSomethingNewer = false;
 
     _recentlyDeletedEntitiesLock.lockForRead();
-    QMultiMap<quint64, uint32_t>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
+    QMultiMap<quint64, QUuid>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
     while (iterator != _recentlyDeletedEntityItemIDs.constEnd()) {
         //qDebug() << "considering... time/key:" << iterator.key();
         if (iterator.key() > sinceTime) {
@@ -1357,28 +1362,30 @@ qDebug() << "EntityTree::encodeEntitiesDeletedSince()";
     // we keep a multi map of entity IDs to timestamps, we only want to include the entity IDs that have been
     // deleted since we last sent to this node
     _recentlyDeletedEntitiesLock.lockForRead();
-    QMultiMap<quint64, uint32_t>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
+    QMultiMap<quint64, QUuid>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
     while (iterator != _recentlyDeletedEntityItemIDs.constEnd()) {
-        QList<uint32_t> values = _recentlyDeletedEntityItemIDs.values(iterator.key());
+        QList<QUuid> values = _recentlyDeletedEntityItemIDs.values(iterator.key());
         for (int valueItem = 0; valueItem < values.size(); ++valueItem) {
 
             // if the timestamp is more recent then out last sent time, include it
             if (iterator.key() > sinceTime) {
-                uint32_t entityID = values.at(valueItem);
-                memcpy(copyAt, &entityID, sizeof(entityID));
-                copyAt += sizeof(entityID);
-                outputLength += sizeof(entityID);
+                QUuid entityID = values.at(valueItem);
+                
+                QByteArray encodedEntityID = entityID.toRfc4122();
+                memcpy(copyAt, encodedEntityID.constData(), NUM_BYTES_RFC4122_UUID);
+                copyAt += NUM_BYTES_RFC4122_UUID;
+                outputLength += NUM_BYTES_RFC4122_UUID;
                 numberOfIds++;
 
                 // check to make sure we have room for one more id...
-                if (outputLength + sizeof(uint32_t) > maxLength) {
+                if (outputLength + NUM_BYTES_RFC4122_UUID > maxLength) {
                     break;
                 }
             }
         }
 
         // check to make sure we have room for one more id...
-        if (outputLength + sizeof(uint32_t) > maxLength) {
+        if (outputLength + NUM_BYTES_RFC4122_UUID > maxLength) {
 
             // let our caller know how far we got
             sinceTime = iterator.key();
@@ -1398,14 +1405,14 @@ qDebug() << "EntityTree::encodeEntitiesDeletedSince()";
     return hasMoreToSend;
 }
 
-// called by the server when it knows all nodes have been sent deleted packets
 
+// called by the server when it knows all nodes have been sent deleted packets
 void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
     //qDebug() << "forgetEntitiesDeletedBefore()";
     QSet<quint64> keysToRemove;
 
     _recentlyDeletedEntitiesLock.lockForWrite();
-    QMultiMap<quint64, uint32_t>::iterator iterator = _recentlyDeletedEntityItemIDs.begin();
+    QMultiMap<quint64, QUuid>::iterator iterator = _recentlyDeletedEntityItemIDs.begin();
 
     // First find all the keys in the map that are older and need to be deleted
     while (iterator != _recentlyDeletedEntityItemIDs.end()) {
@@ -1426,10 +1433,6 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
 
 void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-    
-#if 0 ///////////////
-
-
     qDebug() << "EntityTree::processEraseMessage()...";
 
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
@@ -1449,18 +1452,25 @@ void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Shar
     dataAt += sizeof(numberOfIds);
     processedBytes += sizeof(numberOfIds);
 
+    qDebug() << "EntityTree::processEraseMessage().... numberOfIds=" << numberOfIds;
+    qDebug() << "EntityTree::processEraseMessage().... processedBytes=" << processedBytes;
+    qDebug() << "EntityTree::processEraseMessage().... packetLength=" << packetLength;
+
     if (numberOfIds > 0) {
         QSet<EntityItemID> entityItemIDsToDelete;
 
         for (size_t i = 0; i < numberOfIds; i++) {
-            if (processedBytes + sizeof(uint32_t) > packetLength) {
+
+
+            if (processedBytes + NUM_BYTES_RFC4122_UUID > packetLength) {
+                qDebug() << "EntityTree::processEraseMessage().... bailing because not enough bytes in buffer";
                 break; // bail to prevent buffer overflow
             }
 
-            uint32_t entityID = 0; // placeholder for now
-            memcpy(&entityID, dataAt, sizeof(entityID));
-            dataAt += sizeof(entityID);
-            processedBytes += sizeof(entityID);
+            QByteArray encodedID = dataByteArray.mid(processedBytes, NUM_BYTES_RFC4122_UUID);
+            QUuid entityID = QUuid::fromRfc4122(encodedID);
+            dataAt += encodedID.size();
+            processedBytes += encodedID.size();
             
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
@@ -1469,9 +1479,49 @@ void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Shar
         qDebug() << "EntityTree::processEraseMessage()... deleteEntities(entityItemIDsToDelete)";
         deleteEntities(entityItemIDsToDelete);
     }
-    
-#endif // 0 ///////////////
-    
+}
+
+// This version skips over the header
+void EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+    qDebug() << "EntityTree::processEraseMessageDetails()...";
+
+    const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
+    const unsigned char* dataAt = packetData;
+    size_t packetLength = dataByteArray.size();
+    size_t processedBytes = 0;
+
+    uint16_t numberOfIds = 0; // placeholder for now
+    memcpy(&numberOfIds, dataAt, sizeof(numberOfIds));
+    dataAt += sizeof(numberOfIds);
+    processedBytes += sizeof(numberOfIds);
+
+    qDebug() << "EntityTree::processEraseMessageDetails().... numberOfIds=" << numberOfIds;
+    qDebug() << "EntityTree::processEraseMessageDetails().... processedBytes=" << processedBytes;
+    qDebug() << "EntityTree::processEraseMessageDetails().... packetLength=" << packetLength;
+
+    if (numberOfIds > 0) {
+        QSet<EntityItemID> entityItemIDsToDelete;
+
+        for (size_t i = 0; i < numberOfIds; i++) {
+
+
+            if (processedBytes + NUM_BYTES_RFC4122_UUID > packetLength) {
+                qDebug() << "EntityTree::processEraseMessageDetails().... bailing because not enough bytes in buffer";
+                break; // bail to prevent buffer overflow
+            }
+
+            QByteArray encodedID = dataByteArray.mid(processedBytes, NUM_BYTES_RFC4122_UUID);
+            QUuid entityID = QUuid::fromRfc4122(encodedID);
+            dataAt += encodedID.size();
+            processedBytes += encodedID.size();
+            
+            EntityItemID entityItemID(entityID);
+            entityItemIDsToDelete << entityItemID;
+            qDebug() << "EntityTree::processEraseMessageDetails()... entityItemIDsToDelete << entityItemID=" << entityItemID;
+        }
+        qDebug() << "EntityTree::processEraseMessageDetails()... deleteEntities(entityItemIDsToDelete)";
+        deleteEntities(entityItemIDsToDelete);
+    }
 }
 
 

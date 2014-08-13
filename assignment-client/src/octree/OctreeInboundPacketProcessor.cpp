@@ -78,7 +78,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
         return;
     }
 
-    bool debugProcessPacket = _myServer->wantsVerboseDebug();
+    bool debugProcessPacket = true;// _myServer->wantsVerboseDebug();
 
     if (debugProcessPacket) {
         qDebug("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%d", &packet, packet.size());
@@ -103,7 +103,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
         quint64 processTime = 0;
         quint64 lockWaitTime = 0;
 
-        if (_myServer->wantsDebugReceiving()) {
+        if (debugProcessPacket || _myServer->wantsDebugReceiving()) {
             qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount
                     << " command from client receivedBytes=" << packet.size()
                     << " sequence=" << sequence << " transitTime=" << transitTime << " usecs";
@@ -126,6 +126,12 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                                                                                   reinterpret_cast<const unsigned char*>(packet.data()),
                                                                                   packet.size(),
                                                                                   editData, maxSize, sendingNode);
+
+            if (debugProcessPacket) {
+                qDebug() << "OctreeInboundPacketProcessor::processPacket() after processEditPacketData()..."
+                                << "editDataBytesRead=" << editDataBytesRead;
+            }
+
             _myServer->getOctree()->unlock();
             quint64 endProcess = usecTimestampNow();
 

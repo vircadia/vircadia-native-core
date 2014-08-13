@@ -255,10 +255,16 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
         dataAt += sizeof(_color);
         bytesRead += sizeof(_color);
 
+        // TODO: how to handle this? Presumable, this would only ever be true if the model file was saved with
+        // a model being in a shouldBeDeleted state. Which seems unlikely. But if it happens, maybe we should delete the entity after loading?
         // shouldBeDeleted
-        memcpy(&_shouldBeDeleted, dataAt, sizeof(_shouldBeDeleted));
-        dataAt += sizeof(_shouldBeDeleted);
-        bytesRead += sizeof(_shouldBeDeleted);
+        bool shouldBeDeleted = false;
+        memcpy(&shouldBeDeleted, dataAt, sizeof(shouldBeDeleted));
+        dataAt += sizeof(shouldBeDeleted);
+        bytesRead += sizeof(shouldBeDeleted);
+        if (shouldBeDeleted) {
+            qDebug() << "UNEXPECTED - read shouldBeDeleted=TRUE from an old format file";
+        }
 
         // modelURL
         uint16_t modelURLLength;

@@ -114,7 +114,6 @@ public:
     QList<EntityItem*>& getEntities() { return *_entityItems; }
     bool hasEntities() const { return _entityItems ? _entityItems->size() > 0 : false; }
 
-    void update(EntityTreeUpdateArgs& args);
     void setTree(EntityTree* tree) { _myTree = tree; }
 
     bool updateEntity(const EntityItem& entity);

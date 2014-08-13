@@ -77,7 +77,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeEntityData:
             return VERSION_ENTITIES_SUPPORT_SPLIT_MTU;
         case PacketTypeEntityErase:
-            return 1;
+            return 2;
         case PacketTypeAudioStreamStats:
             return 1;
         default:
