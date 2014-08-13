@@ -13,6 +13,8 @@
 #include "Shape.h"
 #include "SharedUtil.h"
 
+// This parameter helps keep the actual point of contact slightly inside each shape 
+// which allows the collisions to happen almost every frame for more frequent updates.
 const float CONTACT_PENETRATION_ALLOWANCE = 0.005f;
 
 ContactPoint::ContactPoint() : 
