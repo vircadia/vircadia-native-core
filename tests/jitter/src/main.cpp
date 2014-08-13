@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #endif
+#include <cerrno>
 #include <stdio.h>
 
 #include <MovingMinMaxAvg.h> // for MovingMinMaxAvg
@@ -103,7 +104,10 @@ void runSend(const char* addressOption, int port, int gap, int size, int report)
             // pack seq num
             memcpy(outputBuffer, &outgoingSequenceNumber, sizeof(quint16));
 
-            sendto(sockfd, outputBuffer, size, 0, (struct sockaddr *)&servaddr, sizeof(servaddr));
+            int n = sendto(sockfd, outputBuffer, size, 0, (struct sockaddr *)&servaddr, sizeof(servaddr));
+            if (n < 0) {
+                std::cout << "Send error: " << strerror(errno) << "\n";
+            }
             outgoingSequenceNumber++;
             
             int gapDifferece = actualGap - gap;
@@ -144,6 +148,7 @@ void runSend(const char* addressOption, int port, int gap, int size, int report)
             }
         }
     }
+    delete[] outputBuffer;
 }
 
 void runReceive(const char* addressOption, int port, int gap, int size, int report) {
@@ -195,6 +200,9 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
     
     while (true) {
         n = recvfrom(sockfd, inputBuffer, size, 0, NULL, NULL); // we don't care about where it came from
+        if (n < 0) {
+            std::cout << "Receive error: " << strerror(errno) << "\n";
+        }
 
         // parse seq num
         quint16 incomingSequenceNumber = *(reinterpret_cast<quint16*>(inputBuffer));
@@ -260,5 +268,6 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
             }
         }
     }
+    delete[] inputBuffer;
 }
 

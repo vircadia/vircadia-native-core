@@ -64,6 +64,7 @@ public:
     T getMax() const { return _max; }
     double getAverage() const { return _average; }
     int getSamples() const { return _samples; }
+    double getSum() const { return _samples * _average; }
 
 private:
     T _min;
@@ -152,14 +153,29 @@ public:
     T getMin() const { return _overallStats.getMin(); }
     T getMax() const { return _overallStats.getMax(); }
     double getAverage() const { return _overallStats.getAverage(); }
+    int getSamples() const { return _overallStats.getSamples(); }
+    double getSum() const { return _overallStats.getSum(); }
+
     T getWindowMin() const { return _windowStats.getMin(); }
     T getWindowMax() const { return _windowStats.getMax(); }
     double getWindowAverage() const { return _windowStats.getAverage(); }
+    int getWindowSamples() const { return _windowStats.getSamples(); }
+    double getWindowSum() const { return _windowStats.getSum(); }
 
-    int getCurrentIntervalSamples() const { return _windowStats._samples; }
-
+    T getCurrentIntervalMin() const { return _currentIntervalStats.getMin(); }
+    T getCurrentIntervalMax() const { return _currentIntervalStats.getMax(); }
+    double getCurrentIntervalAverage() const { return _currentIntervalStats.getAverage(); }
+    int getCurrentIntervalSamples() const { return _currentIntervalStats.getSamples(); }
+    double getCurrentIntervalSum() const { return _currentIntervalStats.getSum(); }
+    
     const MinMaxAvg<T>& getOverallStats() const{ return _overallStats; }
     const MinMaxAvg<T>& getWindowStats() const{ return _windowStats; }
+    const MinMaxAvg<T>& getCurrentIntervalStats() const { return _currentIntervalStats; }
+    
+    MinMaxAvg<T> getLastCompleteIntervalStats() const {
+        const MinMaxAvg<T>* stats = _intervalStats.getNewestEntry();
+        return stats == NULL ? MinMaxAvg<T>() : *stats;
+    }
 
     bool isWindowFilled() const { return _intervalStats.isFilled(); }
 

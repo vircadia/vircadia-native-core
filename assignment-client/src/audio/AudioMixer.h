@@ -54,6 +54,7 @@ private:
 
     void perSecondActions();
 
+    QString getReadPendingDatagramsStatsString() const;
     
     float _trailingSleepRatio;
     float _minAudibilityThreshold;
