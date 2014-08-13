@@ -57,7 +57,12 @@ EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {
 // contents across multiple packets.
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData, 
                                                                     EncodeBitstreamParams& params) const {
-
+                     
+bool wantDebug = false;
+if (wantDebug) {                                               
+    qDebug() << "EntityTreeElement::appendElementData()";
+    qDebug() << "    getAACube()=" << getAACube();
+}
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
     
     // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
@@ -105,8 +110,18 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     bool successAppendEntityCount = packetData->appendValue(numberOfEntities);
 
     if (successAppendEntityCount) {
+    
+if (wantDebug) {                                               
+    qDebug() << "EntityTreeElement::appendElementData() numberOfEntities=" << numberOfEntities;
+}
+    
         foreach (uint16_t i, indexesOfEntitiesToInclude) {
             EntityItem* entity = (*_entityItems)[i];
+
+if (wantDebug) {                                               
+    qDebug() << "EntityTreeElement::appendElementData() entity[" << i <<"].entityItemID=" << entity->getEntityItemID();
+}
+
             
             LevelDetails entityLevel = packetData->startLevel();
     
@@ -608,6 +623,13 @@ bool EntityTreeElement::removeEntityItem(const EntityItem* entity) {
 int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
 
+bool wantDebug = false;
+if (wantDebug) {
+    qDebug() << "EntityTreeElement::readElementDataFromBuffer()";
+    qDebug() << "    getAACube()=" << getAACube();
+    qDebug() << "    bytesLeftToRead=" << bytesLeftToRead;
+}
+
     // If we're the root, but this bitstream doesn't support root elements with data, then
     // return without reading any bytes
     if (this == _myTree->getRoot() && args.bitstreamVersion < VERSION_ROOT_ELEMENT_HAS_DATA) {
@@ -628,11 +650,29 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
         dataAt += sizeof(numberOfEntities);
         bytesLeftToRead -= (int)sizeof(numberOfEntities);
         bytesRead += sizeof(numberOfEntities);
+
+if (wantDebug) {
+    qDebug() << "    --- after numberOfEntities ---";
+    qDebug() << "    numberOfEntities=" << numberOfEntities;
+    qDebug() << "    expectedBytesPerEntity=" << expectedBytesPerEntity;
+    qDebug() << "    numberOfEntities * expectedBytesPerEntity=" << numberOfEntities * expectedBytesPerEntity;
+    qDebug() << "    bytesLeftToRead=" << bytesLeftToRead;
+
+    if (numberOfEntities > 0) {
+        qDebug() << "    WE HAVE ENTITIES!!!";
+    }
+}
         
         if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
             for (uint16_t i = 0; i < numberOfEntities; i++) {
                 int bytesForThisEntity = 0;
                 EntityItemID entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
+
+if (wantDebug) {
+    qDebug() << "        --- entities loop entity["<< i <<"] ---";
+    qDebug() << "        bytesLeftToRead=" << bytesLeftToRead;
+    qDebug() << "        entityItemID=" << entityItemID;
+}
                 EntityItem* entityItem = _myTree->findEntityByEntityItemID(entityItemID);
                 bool newEntity = false;
                 
@@ -679,6 +719,11 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
             }
         }
     }
+    
+if (wantDebug) {
+    qDebug() << "EntityTreeElement::readElementDataFromBuffer() bytesRead=" << bytesRead;
+}
+    
     return bytesRead;
 }
 
@@ -707,8 +752,11 @@ bool EntityTreeElement::pruneChildren() {
         
         // if my child is a leaf, but has no entities, then it's safe to delete my child
         if (child && child->isLeaf() && !child->hasEntities()) {
-            qDebug() << "EntityTreeElement::pruneChildren()... WANT TO PRUNE!!!! childIndex=" << childIndex;
-            //deleteChildAtIndex(childIndex);
+            bool wantDebug = false;
+            if (wantDebug) {
+                qDebug() << "EntityTreeElement::pruneChildren()... WANT TO PRUNE!!!! childIndex=" << childIndex;
+            }
+            deleteChildAtIndex(childIndex);
             somethingPruned = true;
         }
     }

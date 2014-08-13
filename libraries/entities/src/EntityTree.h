@@ -126,7 +126,6 @@ private:
     static bool findAndUpdateWithIDandPropertiesOperation(OctreeElement* element, void* extraData);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
-    static bool pruneOperation(OctreeElement* element, void* extraData);
     static bool findByIDOperation(OctreeElement* element, void* extraData);
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateEntityItemIDOperation(OctreeElement* element, void* extraData);

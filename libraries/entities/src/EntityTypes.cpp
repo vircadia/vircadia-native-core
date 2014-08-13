@@ -95,11 +95,16 @@ EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const Entity
 
 EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
             ReadBitstreamToTreeParams& args) {
+
+    bool wantDebug = false;
+
     //qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead)";
     //qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... CALLED BUT NOT IMPLEMENTED!!!";
     
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
-        qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... OLD BITSTREAM!!!";
+        if (wantDebug) {
+            qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... OLD BITSTREAM!!!";
+        }
 
         EntityItemID tempEntityID;
         EntityItemProperties tempProperties;
@@ -113,7 +118,7 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
     //    ByteCountCoded(last_edited to last_updated delta) [~1-8 bytes]
     //    PropertyFlags<>( everything ) [1-2 bytes]
     // ~27-35 bytes...
-    const int MINIMUM_HEADER_BYTES = 27; // TODO: this is not correct, we don't yet have 16 byte IDs
+    const int MINIMUM_HEADER_BYTES = 27;
 
     int bytesRead = 0;
     if (bytesToRead >= MINIMUM_HEADER_BYTES) {
@@ -124,7 +129,9 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
         QUuid actualID = QUuid::fromRfc4122(encodedID);
         bytesRead += encodedID.size();
-        qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID=" << actualID;
+        if (wantDebug) {
+            qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID=" << actualID;
+        }
 
         // type
         QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
@@ -137,13 +144,14 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         EntityItemID tempEntityID(actualID);
         EntityItemProperties tempProperties;
 
-        qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
+        if (wantDebug) {
+            qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
+        }
         
         return constructEntityItem(entityType, tempEntityID, tempProperties);
     }
     
-
-    return NULL; // TODO Implement this for real!
+    return NULL;
 }
 
 bool EntityTypes::registerEntityTypeRenderer(EntityType entityType, EntityTypeRenderer renderMethod) {

@@ -29,12 +29,6 @@ Model properties:
     void setAnimationFPS(float value)
     void setSittingPoints(QVector<SittingPoint> sittingPoints) ??? - should this just be a string property??? 
 
-
-
-
-
-
-
 // Things to do with entities...
 //
 // REQUIRED TO DO:
@@ -72,32 +66,6 @@ Model properties:
    
     S) What happens if the edit properties don't fit in a single message MTU???
     T) animations not always working?????
-    U) ---- WHAT'S THIS -------
-        UNEXPECTED -- OctreeElement::getMyChildContaining() cubeScale=[0.000012] > ourScale=[0.000004] 
-    
-    V) crash/assert when you move an entity out of domain bounds???
-            also seems to cause duplicate items in elements...
-    
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityItemProperties::decodeEntityEditPacket() PROP_VELOCITY value= {type='glm::vec3', x=0, y=-0.00194919, z=0}
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] ******************************* EntityItemProperties::decodeEntityEditPacket() PROP_DAMPING value= 0.99 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityItem EntityItem::decodeEntityEditPacket() model URL= "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx" 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] getAACubeTreeUnits() 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]    corner in meters= 33.735 , -0.189079 , 13.3167 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]    dimension in meters= 0.2 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]    corner in tree units= 0.00205902 , -1.15405e-05 , 0.000812788 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]    dimension in tree units= 1.2207e-05 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityTree::changeEntityState().... 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      oldState: 2 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      newState: 2 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityTree::changeEntityState() BEFORE.... 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      _changingEntities: () 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      _movingEntities: (0x7ff58b4964e0) 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] EntityTree::changeEntityState() AFTER.... 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      _changingEntities: () 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server]      _movingEntities: (0x7ff58b4964e0) 
-        [DEBUG] [2014-08-11 15:44:46 -0700] [50756:65082] [entity-server] after updateEntity() we no longer have a containing element??? 
-        Assertion failed: (containingElement), function updateEntity, file /Users/zappoman/Development/HiFi/hifi/libraries/entities/src/EntityTree.cpp, line 404.
-    
 
     W) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
     
@@ -111,12 +79,12 @@ Model properties:
     P) unit tests?
     Pa) OctreeTests::modelItemTests()...????
 
-//   G) why does is the Box entity not drawn in it's bounds
-//   H) make the rotated model bounds work for other entity types?
-//   I) maybe make "hasGeometry" be a property of EntityItem base class??
+    G) why does is the Box entity not drawn in it's bounds
+    H) make the rotated model bounds work for other entity types?
+    I) maybe make "hasGeometry" be a property of EntityItem base class??
 
 
-//   J) handle subclass properties?
+    J) handle subclass properties?
         
         We use properties for addEntity(id, props) -
             the result should be that the properties are not really understood by the tree, or element, but should be
@@ -144,69 +112,78 @@ Model properties:
             setFloatProperty('name', float value);
             float getFloatProperty('name');
             
-            
-            
-    what about editing/edit messages...
-    
-    EntityItem::encodeEntityEditMessageDetails() -- this could be a member of EntityItemProperties, or EntityTypes?...
-    EntityTypes::decodeEntityEditPacket() -- this could be a member of EntityItemProperties...??
+    1) consider moving type to front of buffers to make construction easier
+    3) The moving/pruning logic...
+           The old code used the update loop to handle pruning entities from the
+           incorrect tree element when they no longer were the best fit
+
+    4) can render happen while update is occurring? will this result in flicker??
+
+    6) are we actually deleting the entities after deleteEntity???
+       Looks like the server is not actually deleting the items, and so they get resent into the scene.
+
+    10) What's wrong with this picture... we have 3 entities in our map but all have been deleted!!!
+            [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] EntityTree::debugDumpMap() -------------------------- 
+            [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 1 , creatorTokenID: 2 , isKnownID: true ] :  0x7fd71be05970 
+            [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 2 , creatorTokenID: 3 , isKnownID: true ] :  0x7fd71be05970 
+            [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 0 , creatorTokenID: 1 , isKnownID: true ] :  0x7fd71be05970 
+            [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] ----------------------------------------------------- 
+
+    11) assert in qBitArray
+
+         [DEBUG] [2014-07-28 21:49:15 -0700] [41950:24258] [entity-server] EntityTree::processEditPacketData().... 
+         [FATAL] [2014-07-28 21:49:15 -0700] [41950:24258] [entity-server] ASSERT: "uint(i) < uint(size())" in file /usr/local/Cellar/qt5/5.2.0/lib/QtCore.framework/Headers/qbitarray.h, line 122
+         Abort trap: 6
+
+    13b) add user properties
+    14) implement "Light" entity, "Fire" entity?
 
 
-
-//
-//   1) consider moving type to front of buffers to make construction easier
-//   3) The moving/pruning logic...
-//          The old code used the update loop to handle pruning entities from the
-//          incorrect tree element when they no longer were the best fit
-//
-//   4) can render happen while update is occurring? will this result in flicker??
-
-//   6) are we actually deleting the entities after deleteEntity???
-        Looks like the server is not actually deleting the items, and so they get resent into the scene.
-
-//   10) What's wrong with this picture... we have 3 entities in our map but all have been deleted!!!
-// [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] EntityTree::debugDumpMap() -------------------------- 
-// [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 1 , creatorTokenID: 2 , isKnownID: true ] :  0x7fd71be05970 
-// [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 2 , creatorTokenID: 3 , isKnownID: true ] :  0x7fd71be05970 
-// [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 0 , creatorTokenID: 1 , isKnownID: true ] :  0x7fd71be05970 
-// [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] ----------------------------------------------------- 
-
-//   11) assert in qBitArray
-
-// [DEBUG] [2014-07-28 21:49:15 -0700] [41950:24258] [entity-server] EntityTree::processEditPacketData().... 
-// [FATAL] [2014-07-28 21:49:15 -0700] [41950:24258] [entity-server] ASSERT: "uint(i) < uint(size())" in file /usr/local/Cellar/qt5/5.2.0/lib/QtCore.framework/Headers/qbitarray.h, line 122
-// Abort trap: 6
-
-
-
-//   13b) add user properties
-//   14) implement "Light" entity, "Fire" entity?
-
-
-
-
-//   19) what about??? rememberDirtyCube()...
-
-//   21) LOD - we've never supported LOD in model server other than not recursing into nodes that can't be seen.
-//   21a) LOD - at higher level nodes with entities that are small, handle don't include small entities for LOD setting would not have sent them.
-//   21b) LOD - generalized "re-averaging"?
-//         how can we allow an entity to present itself to a higher level as an average?
-//              for models - we've talked about storing them as voxels...
-//              for models - if we had access to mesh, we could use numerous mesh LOD algorithms out there
+    21) LOD - we've never supported LOD in model server other than not recursing into nodes that can't be seen.
+    21a) LOD - at higher level nodes with entities that are small, handle don't include small entities for LOD setting would not have sent them.
+    21b) LOD - generalized "re-averaging"?
+          how can we allow an entity to present itself to a higher level as an average?
+               for models - we've talked about storing them as voxels...
+               for models - if we had access to mesh, we could use numerous mesh LOD algorithms out there
 
         
        
 
 
-//   23) xColor vs rbgColor????
-//   24) get rid of EntityItem::expectedBytes()...
+    23) xColor vs rbgColor????
+    24) get rid of EntityItem::expectedBytes()...
 
 
-//   25) consider moving the EntityTypes static Maps to be inside a singleton instance of EntityTypes to ensure initialization order
-//   26) Why can't we call REGISTER_ENTITY_TYPE() in BoxEntityType.cpp or the CPP of the implementation?
-//   27) Consider making properties of the entities be registered... and handle their streaming in a more automatice fashion
+    25) consider moving the EntityTypes static Maps to be inside a singleton instance of EntityTypes to ensure initialization order
+    26) Why can't we call REGISTER_ENTITY_TYPE() in BoxEntityType.cpp or the CPP of the implementation?
+    27) Consider making properties of the entities be registered... and handle their streaming in a more automatice fashion
 
 
+    28) crash on startup of client sometimes...
+
+    Thread 46 Crashed:: QThread
+    0   QtCore                        	0x000000010d189e47 QHashData::nextNode(QHashData::Node*) + 7
+    1   io.highfidelity.Interface     	0x000000010bce2189 QHash<QUuid, EditPacketBuffer>::iterator::operator++(int) + 41 (qhash.h:378)
+    2   io.highfidelity.Interface     	0x000000010bce109a OctreeEditPacketSender::releaseQueuedMessages() + 154 (OctreeEditPacketSender.cpp:306)
+    3   io.highfidelity.Interface     	0x000000010bf17bb3 ScriptEngine::run() + 2099 (ScriptEngine.cpp:433)
+    4   io.highfidelity.Interface     	0x000000010b97444e void QtPrivate::FunctionPointer<void (ScriptEngine::*)()>::call<void, void>(void (ScriptEngine::*)(), ScriptEngine*, void**) + 142 (qobjectdefs_impl.h:142)
+    5   io.highfidelity.Interface     	0x000000010b97432a QtPrivate::QSlotObject<void (ScriptEngine::*)(), void, void>::impl(int, QtPrivate::QSlotObjectBase*, QObject*, void**, bool*) + 202 (qobject_impl.h:150)
+    6   QtCore                        	0x000000010d34383b QMetaObject::activate(QObject*, int, int, void**) + 2139
+    7   QtCore                        	0x000000010d12aba5 QThreadPrivate::start(void*) + 309
+    8   libsystem_pthread.dylib       	0x00007fff8bb96899 _pthread_body + 138
+    9   libsystem_pthread.dylib       	0x00007fff8bb9672a _pthread_start + 137
+    10  libsystem_pthread.dylib       	0x00007fff8bb9afc9 thread_start + 13
+
+    X) multiple copies of entities in saved file??? --- may be fixed after implementing prune correctly
+        repro: launch an entity....
+        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID= QUuid("{00400000-4040-0000-0088-000000008007}") 
+        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType= 0 
+        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID= QUuid("{00400000-4040-0000-0088-000000008007}") 
+        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType= 0 
+        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID= QUuid("{00000f00-0000-065f-f827-000000000000}") 
+        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType= 0 
+        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID= QUuid("{00000f00-0000-065f-f827-000000000000}") 
+    
 
 
 ===============
@@ -243,4 +220,10 @@ Model properties:
 // SOLVED - A) add velocity, gravity, damping to entity base class
 // SOLVED - 2) EntityTree::update()/EntityTreeElement::update()... velocity changes...
 // SOLVED - C) verify "update" works
+// SOLVED - V) crash/assert when you move an entity out of domain bounds???
+// SOLVED - U) UNEXPECTED -- OctreeElement::getMyChildContaining() cubeScale=[0.000012] > ourScale=[0.000004] 
+// SOLVED - 19) what about??? rememberDirtyCube()... -- removed it... not needed
+// SOLVED - zz) what about editing/edit messages... moved to EntityItemProperties...
+//     EntityItem::encodeEntityEditMessageDetails() -- this could be a member of EntityItemProperties
+//     EntityTypes::decodeEntityEditPacket() -- this could be a member of EntityItemProperties
 

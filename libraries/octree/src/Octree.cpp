@@ -235,6 +235,14 @@ OctreeElement* Octree::createMissingElement(OctreeElement* lastParentElement, co
 
 int Octree::readElementData(OctreeElement* destinationElement, const unsigned char* nodeData, int bytesLeftToRead,
                             ReadBitstreamToTreeParams& args) {
+
+bool wantDebug = false;
+if (wantDebug) {
+    qDebug() << "Octree::readElementData()";
+    qDebug() << "    destinationElement->getAACube()=" << destinationElement->getAACube();
+    qDebug() << "    bytesLeftToRead=" << bytesLeftToRead;
+}
+
     // give this destination element the child mask from the packet
     const unsigned char ALL_CHILDREN_ASSUMED_TO_EXIST = 0xFF;
     unsigned char colorInPacketMask = *nodeData;
@@ -316,14 +324,29 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
     // if this is the root, and there is more data to read, allow it to read it's element data...
     if (destinationElement == _rootElement  && rootElementHasData() && (bytesLeftToRead - bytesRead) > 0) {
         // tell the element to read the subsequent data
+if (wantDebug) {
+    qDebug() << "Octree::readElementData().... reading element data for root element.....";
+}
         bytesRead += _rootElement->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead - bytesRead, args);
     }
+
+if (wantDebug) {
+    qDebug() << "Octree::readElementData()";
+    qDebug() << "    bytesRead=" << bytesLeftToRead;
+}
     
     return bytesRead;
 }
 
 void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long int bufferSizeBytes,
                                     ReadBitstreamToTreeParams& args) {
+
+bool wantDebug = false;
+if (wantDebug) {
+    qDebug() << "Octree::readBitstreamToTree()";
+    qDebug() << "    bufferSizeBytes=" << bufferSizeBytes;
+}
+
     int bytesRead = 0;
     const unsigned char* bitstreamAt = bitstream;
 
@@ -351,13 +374,31 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
         }
 
         int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);
+
+if (wantDebug) {
+    qDebug() << "Octree::readBitstreamToTree()";
+    qDebug() << "    octalCodeBytes=" << octalCodeBytes;
+}
+
         int theseBytesRead = 0;
         theseBytesRead += octalCodeBytes;
+if (wantDebug) {
+    qDebug() << "    --- calling readElementData() bytes available=" <<  (bufferSizeBytes - (bytesRead + octalCodeBytes)) << "---";
+}
         theseBytesRead += readElementData(bitstreamRootElement, bitstreamAt + octalCodeBytes,
                                        bufferSizeBytes - (bytesRead + octalCodeBytes), args);
+if (wantDebug) {
+    qDebug() << "    --- AFTER calling readElementData() ---";
+    qDebug() << "    theseBytesRead=" << theseBytesRead;
+}
+
         // skip bitstream to new startPoint
         bitstreamAt += theseBytesRead;
         bytesRead +=  theseBytesRead;
+
+if (wantDebug) {
+    qDebug() << "    bytesRead=" << bytesRead;
+}
 
         if (args.wantImportProgress) {
             emit importProgress((100 * (bitstreamAt - bitstream)) / bufferSizeBytes);
@@ -1628,6 +1669,12 @@ bool Octree::readFromSVOFile(const char* fileName) {
         // get file length....
         unsigned long fileLength = file.tellg();
         file.seekg( 0, std::ios::beg );
+        
+bool wantDebug = false;
+if (wantDebug) {
+    qDebug() << "Octree::readFromSVOFile()";
+    qDebug() << "    fileLength=" << fileLength;
+}
 
         // read the entire file into a buffer, WHAT!? Why not.
         unsigned char* entireFile = new unsigned char[fileLength];
@@ -1668,6 +1715,12 @@ bool Octree::readFromSVOFile(const char* fileName) {
         if (fileOk) {
             ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
                                                 SharedNodePointer(), wantImportProgress, gotVersion);
+
+if (wantDebug) {
+    qDebug() << "    --- after type and version ---";
+    qDebug() << "    dataLength=" << dataLength;
+    qDebug() << "    --- calling readBitstreamToTree() ---";
+}
             readBitstreamToTree(dataAt, dataLength, args);
         }
         delete[] entireFile;

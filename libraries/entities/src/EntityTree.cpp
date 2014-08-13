@@ -476,13 +476,12 @@ bool UpdateEntityOperator::PostRecursion(OctreeElement* element) {
         element->markWithChangedTime();
     }
 
-    /*
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     bool somethingPruned = entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
-    if (somethingPruned) {
+    bool wantDebug = false;
+    if (somethingPruned && wantDebug) {
         qDebug() << "UpdateEntityOperator::PostRecursion() something pruned!!!";
     }
-    */
     
     return keepSearching; // if we haven't yet found it, keep looking
 }
@@ -715,13 +714,12 @@ bool DeleteEntityOperator::PostRecursion(OctreeElement* element) {
         element->markWithChangedTime();
     }
 
-/*
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     bool somethingPruned = entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
-    if (somethingPruned) {
+    bool wantDebug = false;
+    if (somethingPruned && wantDebug) {
         qDebug() << "DeleteEntityOperator::PostRecursion() something pruned!!!";
     }
- */
     
     return keepSearching; // if we haven't yet found it, keep looking
 }
@@ -1139,28 +1137,6 @@ bool EntityTree::updateOperation(OctreeElement* element, void* extraData) {
     return true;
 }
 
-bool EntityTree::pruneOperation(OctreeElement* element, void* extraData) {
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        EntityTreeElement* childAt = entityTreeElement->getChildAtIndex(i);
-
-/*
-if (childAt) {
-    qDebug() << "consider pruning child" << i 
-             << "childAt=" << childAt
-             << "isLeaf=" << (childAt ? childAt->isLeaf() : false)
-             << "hasEntities=" << (childAt ? childAt->hasEntities() : false);
-}
-*/
-
-        if (childAt && childAt->isLeaf() && !childAt->hasEntities()) {
-//qDebug() << "pruning child" << i;        
-            entityTreeElement->deleteChildAtIndex(i);
-        }
-    }
-    return true;
-}
-
 void EntityTree::changeEntityState(EntityItem* const entity, EntityItem::SimuationState oldState, EntityItem::SimuationState newState) {
 
     bool wantDebug = false;
@@ -1318,13 +1294,6 @@ void EntityTree::update() {
 //    #endif // 0 //////////////////////////////////////////////////////
 //
 //
-//    // prune the tree...
-//    /*
-//    lockForWrite();
-//qDebug() << "pruning tree";
-//    recurseTreeWithOperation(pruneOperation, NULL);
-//    unlock();
-//    */
 }
 
 
