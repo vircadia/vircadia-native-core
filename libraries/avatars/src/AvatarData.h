@@ -290,7 +290,7 @@ public slots:
     void sendBillboardPacket();
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
-    void setSessionUUID(const QUuid& id) { _sessionUUID = id; }
+    void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }
     bool hasReferential();
     
 protected:

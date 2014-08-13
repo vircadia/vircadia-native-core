@@ -138,6 +138,8 @@ public:
     
     QColorEditor(QWidget* parent);
 
+    const QColor& getColor() const { return _color; }
+
 signals:
 
     void colorChanged(const QColor& color);

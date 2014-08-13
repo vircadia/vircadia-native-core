@@ -120,7 +120,7 @@ void Agent::readPendingDatagrams() {
                 sourceNode->setLastHeardMicrostamp(usecTimestampNow());
 
                 QByteArray mutablePacket = receivedPacket;
-                ssize_t messageLength = mutablePacket.size();
+                int messageLength = mutablePacket.size();
 
                 if (datagramPacketType == PacketTypeOctreeStats) {
 

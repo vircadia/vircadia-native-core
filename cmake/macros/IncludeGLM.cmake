@@ -7,7 +7,7 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-macro(INCLUDE_GLM TARGET ROOT_DIR)
+macro(INCLUDE_GLM)
 
 	find_package(GLM REQUIRED)
 	include_directories("${GLM_INCLUDE_DIRS}")
@@ -16,4 +16,4 @@ macro(INCLUDE_GLM TARGET ROOT_DIR)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${GLM_INCLUDE_DIRS}")
   endif ()
 
-endmacro(INCLUDE_GLM _target _root_dir)
+endmacro(INCLUDE_GLM)

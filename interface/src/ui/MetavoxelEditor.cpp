@@ -118,6 +118,8 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new SetSpannerTool(this));
     addTool(new ImportHeightfieldTool(this));
     addTool(new EraseHeightfieldTool(this));
+    addTool(new HeightfieldHeightBrushTool(this));
+    addTool(new HeightfieldColorBrushTool(this));
     
     updateAttributes();
     
@@ -1079,4 +1081,73 @@ void EraseHeightfieldTool::apply() {
     edit.value = OwnedAttributeValue(AttributeRegistry::getInstance()->getHeightfieldColorAttribute());
     message.edit = QVariant::fromValue(edit);
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QString& name) :
+    MetavoxelTool(editor, name, false) {
+    
+    QWidget* widget = new QWidget();
+    widget->setLayout(_form = new QFormLayout());
+    layout()->addWidget(widget);
+    
+    _form->addRow("Radius:", _radius = new QDoubleSpinBox());
+    _radius->setSingleStep(0.01);
+    _radius->setMaximum(FLT_MAX);
+    _radius->setValue(1.0);
+}
+
+void HeightfieldBrushTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
+    
+    // find the intersection with the heightfield
+    glm::vec3 origin = Application::getInstance()->getMouseRayOrigin();
+    glm::vec3 direction = Application::getInstance()->getMouseRayDirection();
+    
+    float distance;
+    if (!Application::getInstance()->getMetavoxels()->findFirstRayHeightfieldIntersection(origin, direction, distance)) {
+        return;
+    }
+    Application::getInstance()->getMetavoxels()->renderHeightfieldCursor(
+        _position = origin + distance * direction, _radius->value());
+}
+
+bool HeightfieldBrushTool::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::Wheel) {
+        float angle = static_cast<QWheelEvent*>(event)->angleDelta().y();
+        const float ANGLE_SCALE = 1.0f / 1000.0f;
+        _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
+        return true;
+    
+    } else if (event->type() == QEvent::MouseButtonPress) {
+        MetavoxelEditMessage message = { createEdit(static_cast<QMouseEvent*>(event)->button() == Qt::RightButton) };
+        Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+        return true;
+    }
+    return false;
+}
+
+HeightfieldHeightBrushTool::HeightfieldHeightBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Height Brush") {
+    
+    _form->addRow("Height:", _height = new QDoubleSpinBox());
+    _height->setMinimum(-FLT_MAX);
+    _height->setMaximum(FLT_MAX);
+    _height->setValue(1.0);
+}
+
+QVariant HeightfieldHeightBrushTool::createEdit(bool alternate) {
+    return QVariant::fromValue(PaintHeightfieldHeightEdit(_position, _radius->value(),
+        alternate ? -_height->value() : _height->value()));
+}
+
+HeightfieldColorBrushTool::HeightfieldColorBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Color Brush") {
+    
+    _form->addRow("Color:", _color = new QColorEditor(this));
+}
+
+QVariant HeightfieldColorBrushTool::createEdit(bool alternate) {
+    return QVariant::fromValue(PaintHeightfieldColorEdit(_position, _radius->value(), _color->getColor()));
 }

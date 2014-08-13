@@ -15,9 +15,9 @@
 
 #include <QtCore/QDebug>
 
-#include "PacketHeaders.h"
-#include "AudioRingBuffer.h"
+#include <PacketHeaders.h>
 
+#include "AudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode, int numFramesCapacity) :
 _frameCapacity(numFramesCapacity),

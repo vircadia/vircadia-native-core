@@ -56,7 +56,6 @@ static const int MUTE_ICON_SIZE = 24;
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
-
 Audio::Audio(QObject* parent) :
     AbstractAudioInterface(parent),
     _audioInput(NULL),
@@ -83,6 +82,7 @@ Audio::Audio(QObject* parent) :
     _noiseGateSampleCounter(0),
     _noiseGateOpen(false),
     _noiseGateEnabled(true),
+    _peqEnabled(false),
     _toneInjectionEnabled(false),
     _noiseGateFramesToClose(0),
     _totalInputAudioSamples(0),
@@ -136,6 +136,7 @@ void Audio::init(QGLWidget *parent) {
 void Audio::reset() {
     _receivedAudioStream.reset();
     resetStats();
+    _peq.reset();
 }
 
 void Audio::resetStats() {
@@ -422,9 +423,15 @@ void Audio::start() {
     if (!outputFormatSupported) {
         qDebug() << "Unable to set up audio output because of a problem with output format.";
     }
+
+    _peq.initialize( _inputFormat.sampleRate(), _audioInput->bufferSize() );
+
 }
 
 void Audio::stop() {
+
+    _peq.finalize();
+
     // "switch" to invalid devices in order to shut down the state
     switchInputToAudioDevice(QAudioDeviceInfo());
     switchOutputToAudioDevice(QAudioDeviceInfo());
@@ -469,7 +476,15 @@ void Audio::handleAudioInput() {
     int inputSamplesRequired = (int)((float)NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
 
     QByteArray inputByteArray = _inputDevice->readAll();
-    
+
+    if (_peqEnabled && !_muted) {
+        // we wish to pre-filter our captured input, prior to loopback
+
+        int16_t* ioBuffer = (int16_t*)inputByteArray.data();
+
+       _peq.render( ioBuffer, ioBuffer, inputByteArray.size() / sizeof(int16_t) );
+    }
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput) {
         // if this person wants local loopback add that to the locally injected audio
 
@@ -1191,6 +1206,31 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     glEnd();
 
     glDisable(GL_TEXTURE_2D);
+}
+
+void Audio::toggleAudioFilter() {
+    _peqEnabled = !_peqEnabled;
+}
+
+void Audio::selectAudioFilterFlat() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterFlat)) {
+        _peq.loadProfile(0);
+    }
+}
+void Audio::selectAudioFilterTrebleCut() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterTrebleCut)) {
+        _peq.loadProfile(1);
+    }
+}
+void Audio::selectAudioFilterBassCut() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterBassCut)) {
+        _peq.loadProfile(2);
+    }
+}
+void Audio::selectAudioFilterSmiley() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterSmiley)) {
+        _peq.loadProfile(3);
+    }
 }
 
 void Audio::toggleScope() {

@@ -62,6 +62,8 @@ private:
 
     static InboundAudioStream::Settings _streamSettings;
 
+    static bool _printStreamStats;
+
     quint64 _lastSendAudioStreamStatsTime;
 };
 
