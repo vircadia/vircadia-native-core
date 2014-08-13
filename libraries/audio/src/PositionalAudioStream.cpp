@@ -30,27 +30,37 @@ PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, b
     _shouldLoopbackForNode(false),
     _isStereo(isStereo),
     _lastPopOutputTrailingLoudness(0.0f),
+    _lastPopOutputLoudness(0.0f),
     _listenerUnattenuatedZone(NULL)
 {
 }
 
+void PositionalAudioStream::resetStats() {
+    _lastPopOutputTrailingLoudness = 0.0f;
+    _lastPopOutputLoudness = 0.0f;
+}
+
 void PositionalAudioStream::updateLastPopOutputTrailingLoudness() {
-    float lastPopLoudness = _ringBuffer.getFrameLoudness(_lastPopOutput);
+    _lastPopOutputLoudness = _ringBuffer.getFrameLoudness(_lastPopOutput);
 
     const int TRAILING_AVERAGE_FRAMES = 100;
     const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
     const float LOUDNESS_EPSILON = 0.000001f;
 
-    if (lastPopLoudness >= _lastPopOutputTrailingLoudness) {
-        _lastPopOutputTrailingLoudness = lastPopLoudness;
+    if (_lastPopOutputLoudness >= _lastPopOutputTrailingLoudness) {
+        _lastPopOutputTrailingLoudness = _lastPopOutputLoudness;
     } else {
-        _lastPopOutputTrailingLoudness = (_lastPopOutputTrailingLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * lastPopLoudness);
+        _lastPopOutputTrailingLoudness = (_lastPopOutputTrailingLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * _lastPopOutputLoudness);
 
         if (_lastPopOutputTrailingLoudness < LOUDNESS_EPSILON) {
             _lastPopOutputTrailingLoudness = 0;
         }
     }
+}
+
+void PositionalAudioStream::updateLastPopOutputLoudness() {
+    _lastPopOutputLoudness = _ringBuffer.getFrameLoudness(_lastPopOutput);
 }
 
 int PositionalAudioStream::parsePositionalData(const QByteArray& positionalByteArray) {

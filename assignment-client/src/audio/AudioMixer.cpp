@@ -119,7 +119,9 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
 
     // at this point, we know streamToAdd's last pop output is valid
 
-    if (streamToAdd->getLastPopOutputFrameLoudness() == 0.0f) {
+    // if the frame we're about to mix is silent, bail
+    if (streamToAdd->getLastPopOutputLoudness() == 0.0f) {
+        printf("about to mix silent frame\n");
         return 0;
     }
 

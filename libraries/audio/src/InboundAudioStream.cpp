@@ -442,10 +442,6 @@ int InboundAudioStream::writeLastFrameRepeatedWithFade(int samples) {
     return samples;
 }
 
-float InboundAudioStream::getLastPopOutputFrameLoudness() const {
-    return _ringBuffer.getFrameLoudness(_lastPopOutput);
-}
-
 AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
     AudioStreamStats streamStats;
 

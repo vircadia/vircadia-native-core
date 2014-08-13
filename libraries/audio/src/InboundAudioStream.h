@@ -99,7 +99,7 @@ public:
     InboundAudioStream(int numFrameSamples, int numFramesCapacity, const Settings& settings);
 
     void reset();
-    void resetStats();
+    virtual void resetStats();
     void clearBuffer();
 
     virtual int parseData(const QByteArray& packet);
@@ -137,8 +137,6 @@ public:
 
     /// returns the desired number of jitter buffer frames using Freddy's method
     int getCalculatedJitterBufferFramesUsingMaxGap() const { return _calculatedJitterBufferFramesUsingMaxGap; }
-    
-    float getLastPopOutputFrameLoudness() const;
 
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
     int getMaxFramesOverDesired() const { return _maxFramesOverDesired; }
