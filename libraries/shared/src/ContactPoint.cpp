@@ -16,12 +16,14 @@
 ContactPoint::ContactPoint() : 
         _lastFrame(0), _shapeA(NULL), _shapeB(NULL), 
         _offsetA(0.0f), _offsetB(0.0f), 
+        _relativeMassA(0.5f), _relativeMassB(0.5f),
         _numPointsA(0), _numPoints(0), _normal(0.0f) {
 }
 
 ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) : 
         _lastFrame(frame), _shapeA(collision.getShapeA()), _shapeB(collision.getShapeB()), 
         _offsetA(0.0f), _offsetB(0.0f), 
+        _relativeMassA(0.5f), _relativeMassB(0.5f), 
         _numPointsA(0), _numPoints(0), _normal(0.0f) {
 
     glm::vec3 pointA = collision._contactPoint;
@@ -42,12 +44,27 @@ ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) :
 
     _offsetA = pointA - _shapeA->getTranslation();
     _offsetB = pointB - _shapeB->getTranslation();
-    _contactPoint = 0.5f * (pointA + pointB);
 
     _shapeA->getVerletPoints(_points);
     _numPointsA = _points.size();
     _shapeB->getVerletPoints(_points);
     _numPoints = _points.size();
+
+    // compute and cache relative masses
+    float massA = EPSILON;
+    for (int i = 0; i < _numPointsA; ++i) {
+        massA += _points[i]->getMass();
+    }
+    float massB = EPSILON;
+    for (int i = _numPointsA; i < _numPoints; ++i) {
+        massB += _points[i]->getMass();
+    }
+    float invTotalMass = 1.0f / (massA + massB);
+    _relativeMassA = massA * invTotalMass;
+    _relativeMassB = massB * invTotalMass;
+
+    // _contactPoint will be the weighted average of the two
+    _contactPoint = _relativeMassA * pointA + _relativeMassB * pointB;
 
     // compute offsets for shapeA
     for (int i = 0; i < _numPointsA; ++i) {
@@ -128,9 +145,12 @@ void ContactPoint::buildConstraints() {
 
 void ContactPoint::updateContact(const CollisionInfo& collision, quint32 frame) {
     _lastFrame = frame;
-    _contactPoint = collision._contactPoint - 0.5f * collision._penetration;
-    _offsetA = collision._contactPoint - collision._shapeA->getTranslation();
-    _offsetB = collision._contactPoint - collision._penetration - collision._shapeB->getTranslation();
+
+    // compute contact points on surface of each shape
+    glm::vec3 pointA = collision._contactPoint;
+    glm::vec3 pointB = pointA - collision._penetration;
+
+    // compute the normal (which points from A into B)
     float pLength = glm::length(collision._penetration);
     if (pLength > EPSILON) {
         _normal = collision._penetration / pLength;
@@ -140,19 +160,25 @@ void ContactPoint::updateContact(const CollisionInfo& collision, quint32 frame) 
 
     if (collision._shapeA->getID() > collision._shapeB->getID()) {
         // our _shapeA always has lower ID
-        glm::vec3 temp = _offsetA;
-        _offsetA = _offsetB;
-        _offsetB = temp;
         _normal = - _normal;
+        pointA = pointB;
+        pointB = collision._contactPoint;
     }
+
+    // compute relative offsets to per-shape contact points
+    _offsetA = pointA - collision._shapeA->getTranslation();
+    _offsetB = pointB - collision._shapeB->getTranslation();
+
+    // _contactPoint will be the weighted average of the two
+    _contactPoint = _relativeMassA * pointA + _relativeMassB * pointB;
 
     // compute offsets for shapeA
     assert(_offsets.size() == _numPoints);
     for (int i = 0; i < _numPointsA; ++i) {
-        _offsets[i] = (_points[i]->_position - collision._contactPoint);
+        _offsets[i] = _points[i]->_position - pointA;
     }
     // compute offsets for shapeB
     for (int i = _numPointsA; i < _numPoints; ++i) {
-        _offsets[i] = (_points[i]->_position - collision._contactPoint + collision._penetration);
+        _offsets[i] = _points[i]->_position - pointB;
     }
 }
