@@ -8,7 +8,6 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
     string(TOLOWER ${EXTERNAL} ${EXTERNAL}_LOWERCASE)
     set(${${EXTERNAL}_UPPERCASE}_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/${${EXTERNAL}_LOWERCASE}")
-    message("Dir for ${EXTERNAL} is ${${${EXTERNAL}_UPPERCASE}_ROOT_DIR}")
   endif ()
 endforeach()
 

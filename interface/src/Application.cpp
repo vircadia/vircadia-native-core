@@ -1440,6 +1440,15 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+    if (enableVRMode) {
+        if (!OculusManager::isConnected()) {
+            // attempt to reconnect the Oculus manager - it's possible this was a workaround
+            // for the sixense crash
+            OculusManager::disconnect();
+            OculusManager::connect();
+        }
+    }
+    
     resizeGL(_glWidget->width(), _glWidget->height());
 }
 
