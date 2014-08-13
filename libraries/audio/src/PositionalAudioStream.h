@@ -33,10 +33,8 @@ public:
 
     virtual AudioStreamStats getAudioStreamStats() const;
 
-    void updateLastPopOutputTrailingLoudness();
+    void updateLastPopOutputLoudnessAndTrailingLoudness();
     float getLastPopOutputTrailingLoudness() const { return _lastPopOutputTrailingLoudness; }
-
-    void updateLastPopOutputLoudness();
     float getLastPopOutputLoudness() const { return _lastPopOutputLoudness; }
 
     bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }

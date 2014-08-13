@@ -103,7 +103,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(AABox* checkSourceZone, A
         PositionalAudioStream* stream = i.value();
         
         if (stream->popFrames(1, true) > 0) {
-            stream->updateLastPopOutputLoudness();
+            stream->updateLastPopOutputLoudnessAndTrailingLoudness();
         }
         
         if (checkSourceZone && checkSourceZone->contains(stream->getPosition())) {

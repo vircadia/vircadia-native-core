@@ -40,7 +40,7 @@ void PositionalAudioStream::resetStats() {
     _lastPopOutputLoudness = 0.0f;
 }
 
-void PositionalAudioStream::updateLastPopOutputTrailingLoudness() {
+void PositionalAudioStream::updateLastPopOutputLoudnessAndTrailingLoudness() {
     _lastPopOutputLoudness = _ringBuffer.getFrameLoudness(_lastPopOutput);
 
     const int TRAILING_AVERAGE_FRAMES = 100;
@@ -57,10 +57,6 @@ void PositionalAudioStream::updateLastPopOutputTrailingLoudness() {
             _lastPopOutputTrailingLoudness = 0;
         }
     }
-}
-
-void PositionalAudioStream::updateLastPopOutputLoudness() {
-    _lastPopOutputLoudness = _ringBuffer.getFrameLoudness(_lastPopOutput);
 }
 
 int PositionalAudioStream::parsePositionalData(const QByteArray& positionalByteArray) {
