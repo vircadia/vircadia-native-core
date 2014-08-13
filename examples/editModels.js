@@ -175,6 +175,140 @@ if (typeof DataView.prototype.string !== "function") {
     };
 }
 
+var progressDialog = (function () {
+    var that = {},
+        progressBackground,
+        progressMessage,
+        cancelButton,
+        displayed = false,
+        backgroundWidth = 300,
+        backgroundHeight = 100,
+        messageHeight = 32,
+        cancelWidth = 70,
+        cancelHeight = 32,
+        textColor = { red: 255, green: 255, blue: 255 },
+        textBackground = { red: 52, green: 52, blue: 52 },
+        backgroundUrl = "http://ctrlaltstudio.com/hifi/progress-background.svg",  // DJRTODO: Update with HiFi location.
+        //backgroundUrl = "http://public.highfidelity.io/images/tools/progress-background.svg",
+        windowDimensions;
+
+    progressBackground = Overlays.addOverlay("image", {
+        width: backgroundWidth,
+        height: backgroundHeight,
+        imageURL: backgroundUrl,
+        alpha: 0.9,
+        visible: false
+    });
+
+    progressMessage = Overlays.addOverlay("text", {
+        width: backgroundWidth - 40,
+        height: messageHeight,
+        text: "",
+        textColor: textColor,
+        backgroundColor: textBackground,
+        alpha: 0.9,
+        visible: false
+    });
+
+    cancelButton = Overlays.addOverlay("text", {
+        width: cancelWidth,
+        height: cancelHeight,
+        text: "Cancel",
+        textColor: textColor,
+        backgroundColor: textBackground,
+        alpha: 0.9,
+        visible: false
+    });
+
+    function move() {
+        var progressX,
+            progressY;
+
+        if (displayed) {
+
+            if (windowDimensions.x === Window.innerWidth && windowDimensions.y === Window.innerHeight) {
+                return;
+            }
+            windowDimensions.x = Window.innerWidth;
+            windowDimensions.y = Window.innerHeight;
+
+            progressX = (windowDimensions.x - backgroundWidth) / 2;  // Center.
+            progressY = windowDimensions.y / 2 - backgroundHeight;  // A little up from center.
+
+            Overlays.editOverlay(progressBackground, { x: progressX, y: progressY });
+            Overlays.editOverlay(progressMessage, { x: progressX + 20, y: progressY + 15 });
+            Overlays.editOverlay(cancelButton, {
+                x: progressX + backgroundWidth - cancelWidth - 20,
+                y: progressY + backgroundHeight - cancelHeight - 15
+            });
+        }
+    }
+    that.move = move;
+
+    that.onCancel = undefined;
+
+    function open(message) {
+        if (!displayed) {
+            windowDimensions = { x: 0, y : 0 };
+            displayed = true;
+            move();
+            Overlays.editOverlay(progressBackground, { visible: true });
+            Overlays.editOverlay(progressMessage, { visible: true, text: message });
+            Overlays.editOverlay(cancelButton, { visible: true });
+        } else {
+            throw new Error("open() called on progressDialog when already open");
+        }
+    }
+    that.open = open;
+
+    function isOpen() {
+        return displayed;
+    }
+    that.isOpen = isOpen;
+
+    function update(message) {
+        if (displayed) {
+            Overlays.editOverlay(progressMessage, { text: message });
+        } else {
+            throw new Error("update() called on progressDialog when not open");
+        }
+    }
+    that.update = update;
+
+    function close() {
+        if (displayed) {
+            Overlays.editOverlay(cancelButton, { visible: false });
+            Overlays.editOverlay(progressMessage, { visible: false });
+            Overlays.editOverlay(progressBackground, { visible: false });
+            displayed = false;
+        } else {
+            throw new Error("close() called on progressDialog when not open");
+        }
+    }
+    that.close = close;
+
+    function mousePressEvent(event) {
+        if (Overlays.getOverlayAtPoint({ x: event.x, y: event.y }) === cancelButton) {
+            if (typeof this.onCancel === "function") {
+                close();
+                this.onCancel();
+            }
+            return true;
+        }
+        return false;
+    }
+    that.mousePressEvent = mousePressEvent;
+
+    function cleanup() {
+        Overlays.deleteOverlay(cancelButton);
+        Overlays.deleteOverlay(progressMessage);
+        Overlays.deleteOverlay(progressBackground);
+    }
+    that.cleanup = cleanup;
+
+    return that;
+}());
+
 var httpMultiPart = (function () {
     var that = {},
         parts,
@@ -287,6 +421,10 @@ var httpMultiPart = (function () {
 var modelUploader = (function () {
     var that = {},
         modelFile,
+        modelName,
+        modelURL,
+        modelCallback,
+        isProcessing,
         fstBuffer,
         fbxBuffer,
         //svoBuffer,
@@ -300,7 +438,19 @@ var modelUploader = (function () {
         TEXDIR_FIELD = "texdir",
         MAX_TEXTURE_SIZE = 1024;
 
+    function info(message) {
+        if (progressDialog.isOpen()) {
+            progressDialog.update(message);
+        } else {
+            progressDialog.open(message);
+        }
+        print(message);
+    }
+
     function error(message) {
+        if (progressDialog.isOpen()) {
+            progressDialog.close();
+        }
         print(message);
         Window.alert(message);
     }
@@ -523,7 +673,8 @@ var modelUploader = (function () {
             //svoFilename,
             fileType;
 
-        print("Reading model file: " + modelFile);
+        info("Reading model file");
+        print("Model file: " + modelFile);
 
         if (modelFile.toLowerCase().fileType() === "fst") {
             fstBuffer = readFile(modelFile);
@@ -565,11 +716,15 @@ var modelUploader = (function () {
             }
         }
 
+        if (!isProcessing) { return false; }
+
         if (fbxFilename) {
             fbxBuffer = readFile(fbxFilename);
             if (fbxBuffer === null) {
                 return false;
             }
+
+            if (!isProcessing) { return false; }
 
             readGeometry(fbxBuffer);
         }
@@ -601,6 +756,7 @@ var modelUploader = (function () {
             displayAs,
             validateAs;
 
+        progressDialog.close();
         print("Setting model properties");
 
         form.push({ label: "Name:", value: mapping[NAME_FIELD] });
@@ -636,8 +792,9 @@ var modelUploader = (function () {
         return true;
     }
 
-    function createHttpMessage() {
-        var lodCount,
+    function createHttpMessage(callback) {
+        var multiparts = [],
+            lodCount,
             lodFile,
             lodBuffer,
             textureBuffer,
@@ -645,25 +802,23 @@ var modelUploader = (function () {
             textureTargetFormat,
             i;
 
-        print("Preparing to send model");
-
-        httpMultiPart.clear();
+        info("Preparing to send model");
 
         // Model name
         if (mapping.hasOwnProperty(NAME_FIELD)) {
-            httpMultiPart.add({
+            multiparts.push({
                 name : "model_name",
                 string : mapping[NAME_FIELD]
             });
         } else {
             error("Model name is missing");
             httpMultiPart.clear();
-            return false;
+            return;
         }
 
         // FST file
         if (fstBuffer) {
-            httpMultiPart.add({
+            multiparts.push({
                 name : "fst",
                 buffer: fstBuffer
             });
@@ -671,7 +826,7 @@ var modelUploader = (function () {
 
         // FBX file
         if (fbxBuffer) {
-            httpMultiPart.add({
+            multiparts.push({
                 name : "fbx",
                 buffer: fbxBuffer
             });
@@ -679,7 +834,7 @@ var modelUploader = (function () {
 
         // SVO file
         //if (svoBuffer) {
-        //    httpMultiPart.add({
+        //    multiparts.push({
         //        name : "svo",
         //        buffer: svoBuffer
         //    });
@@ -691,14 +846,15 @@ var modelUploader = (function () {
             if (mapping.lod.hasOwnProperty(lodFile)) {
                 lodBuffer = readFile(modelFile.path() + "\/" + lodFile);
                 if (lodBuffer === null) {
-                    return false;
+                    return;
                 }
-                httpMultiPart.add({
+                multiparts.push({
                     name: "lod" + lodCount,
                     buffer: lodBuffer
                 });
                 lodCount += 1;
             }
+            if (!isProcessing) { return; }
         }
 
         // Textures
@@ -707,7 +863,7 @@ var modelUploader = (function () {
                 + (mapping[TEXDIR_FIELD] !== "." ? mapping[TEXDIR_FIELD] + "\/" : "")
                 + geometry.textures[i]);
             if (textureBuffer === null) {
-                return false;
+                return;
             }
 
             textureSourceFormat = geometry.textures[i].fileType().toLowerCase();
@@ -715,25 +871,37 @@ var modelUploader = (function () {
             textureBuffer.buffer = textureBuffer.buffer.recodeImage(textureSourceFormat, textureTargetFormat, MAX_TEXTURE_SIZE);
             textureBuffer.filename = textureBuffer.filename.slice(0, -textureSourceFormat.length) + textureTargetFormat;
 
-            httpMultiPart.add({
+            multiparts.push({
                 name: "texture" + i,
                 buffer: textureBuffer
             });
+            if (!isProcessing) { return; }
         }
 
         // Model category
-        httpMultiPart.add({
+        multiparts.push({
             name : "model_category",
             string : "content"
         });
 
-        return true;
+        // Create HTTP message
+        httpMultiPart.clear();
+        Script.setTimeout(function addMultipart() {
+            var multipart = multiparts.shift();
+            httpMultiPart.add(multipart);
+
+            if (!isProcessing) { return; }
+
+            if (multiparts.length > 0) {
+                Script.setTimeout(addMultipart, 25);
+            } else {
+                callback();
+            }
+        }, 25);
     }
 
-    function sendToHighFidelity(addModelCallback) {
+    function sendToHighFidelity() {
         var req,
-            modelName,
-            modelURL,
             uploadedChecks,
             HTTP_GET_TIMEOUT = 60,  // 1 minute
             HTTP_SEND_TIMEOUT = 900,  // 15 minutes
@@ -759,7 +927,9 @@ var modelUploader = (function () {
         //}
 
         function checkUploaded() {
-            print("Checking uploaded model");
+            if (!isProcessing) { return; }
+
+            info("Checking uploaded model");
 
             req = new XMLHttpRequest();
             req.open("HEAD", modelURL, true);
@@ -775,8 +945,9 @@ var modelUploader = (function () {
                 if (req.status === 200) {
                     // Note: Unlike avatar models, for content models we don't need to refresh texture cache.
                     print("Model uploaded: " + modelURL);
+                    progressDialog.close();
                     if (Window.confirm("Your model has been uploaded as: " + modelURL + "\nDo you want to rez it?")) {
-                        addModelCallback(modelURL);
+                        modelCallback(modelURL);
                     }
                 } else if (req.status === 404) {
                     if (uploadedChecks > 0) {
@@ -796,6 +967,8 @@ var modelUploader = (function () {
 
         function uploadModel(method) {
             var url;
+
+            if (!isProcessing) { return; }
 
             req = new XMLHttpRequest();
             if (method === "PUT") {
@@ -827,6 +1000,8 @@ var modelUploader = (function () {
 
         function requestUpload() {
             var url;
+
+            if (!isProcessing) { return; }
 
             url = API_URL + "\/" + modelName;  // XMLHttpRequest automatically handles authorization of API requests.
             req = new XMLHttpRequest();
@@ -864,40 +1039,33 @@ var modelUploader = (function () {
             }
         };
 
-        print("Sending model to High Fidelity");
-
-        modelName = mapping[NAME_FIELD];
-        modelURL = MODEL_URL + "\/" + mapping[NAME_FIELD] + ".fst";  // All models are uploaded as an FST
+        info("Sending model to High Fidelity");
 
         requestUpload();
     }
 
-    that.upload = function (file, addModelCallback) {
+    that.upload = function (file, callback) {
 
         modelFile = file;
+        modelCallback = callback;
+
+        isProcessing = true;
+
+        progressDialog.onCancel = function () {
+            print("User cancelled uploading model");
+            isProcessing = false;
+        };
 
         resetDataObjects();
 
-        // Read model content ...
-        if (!readModel()) {
-            resetDataObjects();
-            return;
-        }
+        if (readModel()) {
+            if (setProperties()) {
+                modelName = mapping[NAME_FIELD];
+                modelURL = MODEL_URL + "\/" + mapping[NAME_FIELD] + ".fst";  // All models are uploaded as an FST
 
-        // Set model properties ...
-        if (!setProperties()) {
-            resetDataObjects();
-            return;
+                createHttpMessage(sendToHighFidelity);
+            }
         }
-
-        // Put model in HTTP message ...
-        if (!createHttpMessage()) {
-            resetDataObjects();
-            return;
-        }
-
-        // Send model to High Fidelity ...
-        sendToHighFidelity(addModelCallback);
 
         resetDataObjects();
     };
@@ -2107,6 +2275,7 @@ function checkController(deltaTime) {
     }
 
     toolBar.move();
+    progressDialog.move();
 }
 
 var modelSelected = false;
@@ -2190,7 +2359,7 @@ function mousePressEvent(event) {
     modelSelected = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
-    if (toolBar.mousePressEvent(event)) {
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         // Event handled; do nothing.
         return;
     } else {
@@ -2484,6 +2653,7 @@ function cleanupModelMenus() {
 function scriptEnding() {
     leftController.cleanup();
     rightController.cleanup();
+    progressDialog.cleanup();
     toolBar.cleanup();
     cleanupModelMenus();
     tooltip.cleanup();
