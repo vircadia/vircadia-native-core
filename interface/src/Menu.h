@@ -22,7 +22,10 @@
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
+
+#ifdef Q_OS_MAC
 #include "SpeechRecognizer.h"
+#endif
 
 #include "location/LocationManager.h"
 #include "ui/PreferencesDialog.h"

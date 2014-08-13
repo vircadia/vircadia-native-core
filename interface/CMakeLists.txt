@@ -46,12 +46,19 @@ configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceCon
 configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
 
 # grab the implementation and header files from src dirs
-file(GLOB INTERFACE_OBJCPP_SRCS src/*.mm)
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
 foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels particles models)
   file(GLOB_RECURSE SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)
+
+# grab .mm files for OSX
+if (APPLE) 
+    file(GLOB INTERFACE_OBJCPP_SRCS src/SpeechRecognizer.mm)
+    set(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_OBJCPP_SRCS})
+else ()
+    list(REMOVE_ITEM "src/SpeechRecognizer.h")
+endif ()
 
 find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
 
@@ -96,7 +103,7 @@ if (APPLE)
 endif()
 
 # create the executable, make it a bundle on OS X
-add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${INTERFACE_OBJCPP_SRCS}  ${QM})
+add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link in the hifi shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
