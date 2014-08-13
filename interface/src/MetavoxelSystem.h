@@ -45,6 +45,10 @@ public:
 
     void renderHeightfieldCursor(const glm::vec3& position, float radius);
 
+    bool findFirstRayHeightfieldIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
+
+    Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
+
     Q_INVOKABLE void deleteTextures(int heightID, int colorID);
 
 protected:
@@ -142,7 +146,10 @@ public:
     float getScale() const { return _scale; }
     
     QByteArray& getHeight() { return _height; }
+    const QByteArray& getHeight() const { return _height; }
+    
     QByteArray& getColor() { return _color; }
+    const QByteArray& getColor() const { return _color; }
     
     QByteArray getUnextendedHeight() const;
     QByteArray getUnextendedColor() const;
