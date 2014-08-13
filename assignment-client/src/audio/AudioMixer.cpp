@@ -105,7 +105,9 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     float repeatedFrameFadeFactor = 1.0f;
 
     if (!streamToAdd->lastPopSucceeded()) {
-        if (_streamSettings._repetitionWithFade) {
+        if (_streamSettings._repetitionWithFade && !streamToAdd->getLastPopOutput().isNull()) {
+            // reptition with fade is enabled, and we do have a valid previous frame to repeat.
+            // calculate its fade factor, which depends on how many times it's already been repeated.
             repeatedFrameFadeFactor = calculateRepeatedFrameFadeFactor(streamToAdd->getConsecutiveNotMixedCount() - 1);
             if (repeatedFrameFadeFactor == 0.0f) {
                 return 0;

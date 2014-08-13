@@ -108,6 +108,8 @@ public:
             _bufferLast(bufferFirst + capacity - 1),
             _at(at) {}
 
+        bool isNull() const { return _at == NULL; }
+
         bool operator==(const ConstIterator& rhs) { return _at == rhs._at; }
         bool operator!=(const ConstIterator& rhs) { return _at != rhs._at; }
         const int16_t& operator*() { return *_at; }
