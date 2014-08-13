@@ -34,6 +34,6 @@ select_library_configurations(QXMPP)
 set(QXMPP_LIBRARIES "${QXMPP_LIBRARY}" Qt5::Xml)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(QXmpp DEFAULT_MSG QXMPP_INCLUDE_DIRS QXMPP_LIBRARIES)
+find_package_handle_standard_args(QXmpp DEFAULT_MSG QXMPP_INCLUDE_DIRS QXMPP_LIBRARIES QXMPP_LIBRARY)
 
 mark_as_advanced(QXMPP_INCLUDE_DIRS QXMPP_LIBRARIES QXMPP_SEARCH_DIRS)
