@@ -156,6 +156,8 @@ public:
     T getWindowMax() const { return _windowStats.getMax(); }
     double getWindowAverage() const { return _windowStats.getAverage(); }
 
+    int getCurrentIntervalSamples() const { return _windowStats._samples; }
+
     const MinMaxAvg<T>& getOverallStats() const{ return _overallStats; }
     const MinMaxAvg<T>& getWindowStats() const{ return _windowStats; }
 

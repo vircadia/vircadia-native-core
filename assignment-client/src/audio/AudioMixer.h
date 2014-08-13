@@ -21,7 +21,8 @@ class AvatarAudioStream;
 
 const int SAMPLE_PHASE_DELAY_AT_90 = 20;
 
-const quint64 TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS = 1 * USECS_PER_SECOND;
+const int READ_DATAGRAMS_STATS_WINDOW_SECONDS = 30;
+
 
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
 class AudioMixer : public ThreadedAssignment {
@@ -50,6 +51,9 @@ private:
     // client samples capacity is larger than what will be sent to optimize mixing
     // we are MMX adding 4 samples at a time so we need client samples to have an extra 4
     int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
+
+    void perSecondActions();
+
     
     float _trailingSleepRatio;
     float _minAudibilityThreshold;
@@ -64,7 +68,16 @@ private:
 
     static bool _printStreamStats;
 
-    quint64 _lastSendAudioStreamStatsTime;
+    quint64 _lastPerSecondCallbackTime;
+
+    bool _sendAudioStreamStats;
+
+    // stats
+    MovingMinMaxAvg<int> _datagramsReadPerCallStats;     // update with # of datagrams read for each readPendingDatagrams call
+    MovingMinMaxAvg<quint64> _timeSpentPerCallStats;     // update with usecs spent inside each readPendingDatagrams call
+    MovingMinMaxAvg<quint64> _timeSpentPerHashMatchCallStats; // update with usecs spent inside each packetVersionAndHashMatch call
+
+    MovingMinMaxAvg<int> _readPendingCallsPerSecondStats;     // update with # of readPendingDatagrams calls in the last second
 };
 
 #endif // hifi_AudioMixer_h

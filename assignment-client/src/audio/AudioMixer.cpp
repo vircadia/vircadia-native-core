@@ -81,7 +81,12 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _sumMixes(0),
     _sourceUnattenuatedZone(NULL),
     _listenerUnattenuatedZone(NULL),
-    _lastSendAudioStreamStatsTime(usecTimestampNow())
+    _lastPerSecondCallbackTime(usecTimestampNow()),
+    _sendAudioStreamStats(false),
+    _datagramsReadPerCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
+    _timeSpentPerCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
+    _timeSpentPerHashMatchCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
+    _readPendingCallsPerSecondStats(1, READ_DATAGRAMS_STATS_WINDOW_SECONDS)
 {
     
 }
@@ -328,12 +333,18 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
 }
 
 void AudioMixer::readPendingDatagrams() {
+    quint64 readPendingDatagramsStart = usecTimestampNow();
+
     QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
     NodeList* nodeList = NodeList::getInstance();
     
+    int datagramsRead = 0;
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+        quint64 packetVersionAndHashMatchStart = usecTimestampNow();
+        bool match = nodeList->packetVersionAndHashMatch(receivedPacket);
+        _timeSpentPerHashMatchCallStats.update(usecTimestampNow() - packetVersionAndHashMatchStart);
+        if (match) {
             // pull any new audio data from nodes off of the network stack
             PacketType mixerPacketType = packetTypeForPacket(receivedPacket);
             if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
@@ -352,13 +363,16 @@ void AudioMixer::readPendingDatagrams() {
                         nodeList->writeDatagram(packet, packet.size(), node);
                     }
                 }
-
             } else {
                 // let processNodeData handle it.
                 nodeList->processNodeData(senderSockAddr, receivedPacket);
             }
         }
+        datagramsRead++;
     }
+
+    _timeSpentPerCallStats.update(usecTimestampNow() - readPendingDatagramsStart);
+    _datagramsReadPerCallStats.update(datagramsRead);
 }
 
 void AudioMixer::sendStatsPacket() {
@@ -609,12 +623,11 @@ void AudioMixer::run() {
         if (!hasRatioChanged) {
             ++framesSinceCutoffEvent;
         }
-        
-        bool sendAudioStreamStats = false;
+
         quint64 now = usecTimestampNow();
-        if (now - _lastSendAudioStreamStatsTime > TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS) {
-            _lastSendAudioStreamStatsTime = now;
-            sendAudioStreamStats = true;
+        if (now - _lastPerSecondCallbackTime > USECS_PER_SECOND) {
+            perSecondActions();
+            _lastPerSecondCallbackTime = now;
         }
 
         bool streamStatsPrinted = false;
@@ -667,14 +680,14 @@ void AudioMixer::run() {
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
                     // send an audio stream stats packet if it's time
-                    if (sendAudioStreamStats) {
+                    if (_sendAudioStreamStats) {
                         nodeData->sendAudioStreamStatsPackets(node);
-                        
                         if (_printStreamStats) {
                             printf("\nStats for agent %s:\n", node->getUUID().toString().toLatin1().data());
                             nodeData->printUpstreamDownstreamStats();
                             streamStatsPrinted = true;
                         }
+                        _sendAudioStreamStats = false;
                     }
 
                     ++_sumListeners;
@@ -699,4 +712,15 @@ void AudioMixer::run() {
             usleep(usecToSleep);
         }
     }
+}
+
+void AudioMixer::perSecondActions() {
+    _sendAudioStreamStats = true;
+
+    int callsLastSecond = _datagramsReadPerCallStats.getCurrentIntervalSamples();
+    _readPendingCallsPerSecondStats.update(callsLastSecond);
+
+    _datagramsReadPerCallStats.currentIntervalComplete();
+    _timeSpentPerCallStats.currentIntervalComplete();
+    _timeSpentPerHashMatchCallStats.currentIntervalComplete();
 }
