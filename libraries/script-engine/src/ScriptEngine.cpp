@@ -519,7 +519,6 @@ void ScriptEngine::run() {
                         memcpy(audioPacket.data() + numPreSequenceNumberBytes, &sequence, sizeof(quint16));
 
                         // send audio packet
-                        if (rand() % 100 < 90)
                         nodeList->writeDatagram(audioPacket, node);
                     }
                 }
