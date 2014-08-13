@@ -135,9 +135,9 @@ private:
 class HeightfieldBuffer : public BufferData {
 public:
     
-    static const int HEIGHT_BORDER = 1;
-    static const int SHARED_EDGE = 1;
-    static const int HEIGHT_EXTENSION = 2 * HEIGHT_BORDER + SHARED_EDGE;
+    static const int HEIGHT_BORDER;
+    static const int SHARED_EDGE;
+    static const int HEIGHT_EXTENSION;
     
     HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color);
     ~HeightfieldBuffer();

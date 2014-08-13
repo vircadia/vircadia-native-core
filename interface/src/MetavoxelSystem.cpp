@@ -136,7 +136,6 @@ RayHeightfieldIntersectionVisitor::RayHeightfieldIntersectionVisitor(const glm::
 }
 
 static const float EIGHT_BIT_MAXIMUM_RECIPROCAL = 1.0f / 255.0f;
-static const int HEIGHT_BORDER = 1;
 
 int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
     if (!info.isLeaf) {
@@ -151,12 +150,13 @@ int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance
     const uchar* src = (const uchar*)contents.constData();
     int size = glm::sqrt((float)contents.size());
     int unextendedSize = size - HeightfieldBuffer::HEIGHT_EXTENSION;
-    int highest = HEIGHT_BORDER + unextendedSize;
+    int highest = HeightfieldBuffer::HEIGHT_BORDER + unextendedSize;
     float heightScale = unextendedSize * EIGHT_BIT_MAXIMUM_RECIPROCAL;
     
     // find the initial location in heightfield coordinates
-    glm::vec3 entry = (_origin + distance * _direction - info.minimum + glm::vec3(HEIGHT_BORDER, 0.0f, HEIGHT_BORDER)) *
-        (float)unextendedSize / info.size;
+    glm::vec3 entry = (_origin + distance * _direction - info.minimum) * (float)unextendedSize / info.size;
+    entry.x += HeightfieldBuffer::HEIGHT_BORDER;
+    entry.z += HeightfieldBuffer::HEIGHT_BORDER;
     glm::vec3 floors = glm::floor(entry);
     glm::vec3 ceils = glm::ceil(entry);
     if (floors.x == ceils.x) {
@@ -178,10 +178,10 @@ int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance
     float accumulatedDistance = 0.0f;
     while (withinBounds) {
         // find the heights at the corners of the current cell
-        int floorX = qMin(qMax((int)floors.x, HEIGHT_BORDER), highest);
-        int floorZ = qMin(qMax((int)floors.z, HEIGHT_BORDER), highest);
-        int ceilX = qMin(qMax((int)ceils.x, HEIGHT_BORDER), highest);
-        int ceilZ = qMin(qMax((int)ceils.z, HEIGHT_BORDER), highest);
+        int floorX = qMin(qMax((int)floors.x, HeightfieldBuffer::HEIGHT_BORDER), highest);
+        int floorZ = qMin(qMax((int)floors.z, HeightfieldBuffer::HEIGHT_BORDER), highest);
+        int ceilX = qMin(qMax((int)ceils.x, HeightfieldBuffer::HEIGHT_BORDER), highest);
+        int ceilZ = qMin(qMax((int)ceils.z, HeightfieldBuffer::HEIGHT_BORDER), highest);
         float upperLeft = src[floorZ * size + floorX] * heightScale;
         float upperRight = src[floorZ * size + ceilX] * heightScale;
         float lowerLeft = src[ceilZ * size + floorX] * heightScale;
@@ -215,13 +215,13 @@ int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance
         } else {
             // find the exit point and the next cell, and determine whether it's still within the bounds
             exit = entry + exitDistance * _direction;
-            withinBounds = (exit.y >= HEIGHT_BORDER && exit.y <= highest);
+            withinBounds = (exit.y >= HeightfieldBuffer::HEIGHT_BORDER && exit.y <= highest);
             if (exitDistance == xDistance) {
                 if (_direction.x > 0.0f) {
                     nextFloors.x += 1.0f;
                     withinBounds &= (nextCeils.x += 1.0f) <= highest;
                 } else {
-                    withinBounds &= (nextFloors.x -= 1.0f) >= HEIGHT_BORDER;
+                    withinBounds &= (nextFloors.x -= 1.0f) >= HeightfieldBuffer::HEIGHT_BORDER;
                     nextCeils.x -= 1.0f;
                 }
             }
@@ -230,7 +230,7 @@ int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance
                     nextFloors.z += 1.0f;
                     withinBounds &= (nextCeils.z += 1.0f) <= highest;
                 } else {
-                    withinBounds &= (nextFloors.z -= 1.0f) >= HEIGHT_BORDER;
+                    withinBounds &= (nextFloors.z -= 1.0f) >= HeightfieldBuffer::HEIGHT_BORDER;
                     nextCeils.z -= 1.0f;
                 }
             }
@@ -337,19 +337,19 @@ int HeightfieldHeightVisitor::visit(MetavoxelInfo& info) {
     const uchar* src = (const uchar*)contents.constData();
     int size = glm::sqrt((float)contents.size());
     int unextendedSize = size - HeightfieldBuffer::HEIGHT_EXTENSION;
-    int highest = HEIGHT_BORDER + unextendedSize;
+    int highest = HeightfieldBuffer::HEIGHT_BORDER + unextendedSize;
     relative *= unextendedSize / info.size;
-    relative.x += HEIGHT_BORDER;
-    relative.z += HEIGHT_BORDER;
+    relative.x += HeightfieldBuffer::HEIGHT_BORDER;
+    relative.z += HeightfieldBuffer::HEIGHT_BORDER;
     
     // find the bounds of the cell containing the point and the shared vertex heights
     glm::vec3 floors = glm::floor(relative);
     glm::vec3 ceils = glm::ceil(relative);
     glm::vec3 fracts = glm::fract(relative);
-    int floorX = qMin(qMax((int)floors.x, HEIGHT_BORDER), highest);
-    int floorZ = qMin(qMax((int)floors.z, HEIGHT_BORDER), highest);
-    int ceilX = qMin(qMax((int)ceils.x, HEIGHT_BORDER), highest);
-    int ceilZ = qMin(qMax((int)ceils.z, HEIGHT_BORDER), highest);
+    int floorX = qMin(qMax((int)floors.x, HeightfieldBuffer::HEIGHT_BORDER), highest);
+    int floorZ = qMin(qMax((int)floors.z, HeightfieldBuffer::HEIGHT_BORDER), highest);
+    int ceilX = qMin(qMax((int)ceils.x, HeightfieldBuffer::HEIGHT_BORDER), highest);
+    int ceilZ = qMin(qMax((int)ceils.z, HeightfieldBuffer::HEIGHT_BORDER), highest);
     float upperLeft = src[floorZ * size + floorX];
     float lowerRight = src[ceilZ * size + ceilX];
     float interpolatedHeight = glm::mix(upperLeft, lowerRight, fracts.z);
@@ -592,6 +592,10 @@ void PointBuffer::render(bool cursor) {
     
     _buffer.release();
 }
+
+const int HeightfieldBuffer::HEIGHT_BORDER = 1;
+const int HeightfieldBuffer::SHARED_EDGE = 1;
+const int HeightfieldBuffer::HEIGHT_EXTENSION = 2 * HeightfieldBuffer::HEIGHT_BORDER + HeightfieldBuffer::SHARED_EDGE;
 
 HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
         const QByteArray& height, const QByteArray& color) :

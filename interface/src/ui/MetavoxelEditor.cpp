@@ -1101,7 +1101,7 @@ HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QStrin
 }
 
 void HeightfieldBrushTool::render() {
-    if (Application::getInstance()->isMouseHidden() && false) {
+    if (Application::getInstance()->isMouseHidden()) {
         return;
     }
     
@@ -1115,15 +1115,6 @@ void HeightfieldBrushTool::render() {
     }
     Application::getInstance()->getMetavoxels()->renderHeightfieldCursor(
         _position = origin + distance * direction, _radius->value());
-        
-    glPushMatrix();
-    glTranslatef(_position.x, _position.y, _position.z);
-    
-    glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
-    
-    glutSolidSphere(1.0f, 10, 10);
-    
-    glPopMatrix();
 }
 
 bool HeightfieldBrushTool::eventFilter(QObject* watched, QEvent* event) {
