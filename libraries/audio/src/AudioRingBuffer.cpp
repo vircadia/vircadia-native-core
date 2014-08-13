@@ -218,6 +218,9 @@ float AudioRingBuffer::getFrameLoudness(const int16_t* frameStart) const {
 }
 
 float AudioRingBuffer::getFrameLoudness(ConstIterator frameStart) const {
+    if (frameStart.isNull()) {
+        return 0.0f;
+    }
     return getFrameLoudness(&(*frameStart));
 }
 

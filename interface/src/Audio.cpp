@@ -722,7 +722,6 @@ void Audio::handleAudioInput() {
             }
 
             int packetBytes = currentPacketPtr - audioDataPacket;
-            if (rand() % 100 < 90)
             nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
             _outgoingAvatarAudioSequenceNumber++;
 
@@ -739,11 +738,8 @@ void Audio::addStereoSilenceToScope(int silentSamplesPerChannel) {
     if (!_scopeEnabled || _scopeEnabledPause) {
         return;
     }
-    printf("\t Audio::addStereoSilenceToScope  %d per channel\n", silentSamplesPerChannel);
     addSilenceToScope(_scopeOutputLeft, _scopeOutputOffset, silentSamplesPerChannel);
     _scopeOutputOffset = addSilenceToScope(_scopeOutputRight, _scopeOutputOffset, silentSamplesPerChannel);
-
-    printf("\t end\n");
 }
 
 void Audio::addStereoSamplesToScope(const QByteArray& samples) {
@@ -752,18 +748,14 @@ void Audio::addStereoSamplesToScope(const QByteArray& samples) {
     }
     const int16_t* samplesData = reinterpret_cast<const int16_t*>(samples.data());
     int samplesPerChannel = samples.size() / sizeof(int16_t) / STEREO_FACTOR;
-    printf("\t Audio::addStereoSamplesToScope %d samples per channel\n", samplesPerChannel);
 
     addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, samplesData, samplesPerChannel, 0, STEREO_FACTOR);
     _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, samplesData, samplesPerChannel, 1, STEREO_FACTOR);
 
     _scopeLastFrame = samples.right(NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-
-    printf("\t end\n");
 }
 
 void Audio::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
-    printf("addLastFrameRepeatedWithFadeToScope %d per channel\n", samplesPerChannel);
     const int16_t* lastFrameData = reinterpret_cast<const int16_t*>(_scopeLastFrame.data());
 
     int samplesRemaining = samplesPerChannel;
@@ -771,14 +763,12 @@ void Audio::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
     do {
         int samplesToWriteThisIteration = std::min(samplesRemaining, (int)NETWORK_SAMPLES_PER_FRAME);
        float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
-        printf("%f ", fade);
         addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 0, STEREO_FACTOR, fade);
         _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 1, STEREO_FACTOR, fade);
 
         samplesRemaining -= samplesToWriteThisIteration;
         indexOfRepeat++;
     } while (samplesRemaining > 0);
-    printf("\t end\n");
 }
 
 void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
@@ -828,34 +818,6 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
         _desiredOutputFormat, _outputFormat);
 }
 
-/*void Audio::updateScopeBuffers() {
-    if (_scopeEnabled && !_scopeEnabledPause) {
-        unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
-        const int16_t* samples = _receivedAudioStream.getNetworkSamples();
-        int numNetworkOutputSamples = _receivedAudioStream.getNetworkSamplesWritten();
-        for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
-
-            unsigned int audioChannel = 0;
-            addBufferToScope(
-                _scopeOutputLeft,
-                _scopeOutputOffset,
-                samples, audioChannel, numAudioChannels);
-
-            audioChannel = 1;
-            _scopeOutputOffset = addBufferToScope(
-                _scopeOutputRight,
-                _scopeOutputOffset,
-                samples, audioChannel, numAudioChannels);
-
-            _scopeOutputOffset += NETWORK_SAMPLES_PER_FRAME;
-            _scopeOutputOffset %= _samplesPerScope;
-            samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
-        }
-    }
-
-    _receivedAudioStream.clearNetworkSamples();
-}*/
-
 void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
 
     if (_audioOutput) {
@@ -865,9 +827,6 @@ void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
 
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
 }
-
-
-
 
 void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
 

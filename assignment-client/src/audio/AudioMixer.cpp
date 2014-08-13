@@ -117,6 +117,12 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         }
     }
 
+    // at this point, we know streamToAdd's last pop output is valid
+
+    if (streamToAdd->getLastPopOutputFrameLoudness() == 0.0f) {
+        return 0;
+    }
+
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
     int numSamplesDelay = 0;
@@ -309,10 +315,7 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
             for (i = otherNodeAudioStreams.constBegin(); i != otherNodeAudioStreams.constEnd(); i++) {
                 PositionalAudioStream* otherNodeStream = i.value();
                 
-                if ((*otherNode != *node || otherNodeStream->shouldLoopbackForNode())
-                    && otherNodeStream->getLastPopOutputFrameLoudness() > 0.0f) {
-                    //&& otherNodeStream->getLastPopOutputTrailingLoudness() > 0.0f) {
-
+                if (*otherNode != *node || otherNodeStream->shouldLoopbackForNode()) {
                     streamsMixed += addStreamToMixForListeningNodeWithStream(otherNodeStream, nodeAudioStream);
                 }
             }
@@ -651,7 +654,6 @@ void AudioMixer::run() {
                     }
 
                     // send mixed audio packet
-                    if (rand() % 100 < 90)
                     nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
