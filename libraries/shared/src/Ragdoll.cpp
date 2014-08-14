@@ -24,6 +24,9 @@ Ragdoll::Ragdoll() : _massScale(1.0f), _ragdollTranslation(0.0f), _translationIn
 
 Ragdoll::~Ragdoll() {
     clearRagdollConstraintsAndPoints();
+    if (_ragdollSimulation) {
+        _ragdollSimulation->removeRagdoll(this);
+    }
 }
 
 void Ragdoll::stepRagdollForward(float deltaTime) {
