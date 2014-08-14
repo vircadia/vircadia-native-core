@@ -83,10 +83,11 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-    _skeletonModel.setEnableShapes(true);
-    // The skeleton is both a PhysicsEntity and Ragdoll, so we add it to the simulation once for each type.
     _physicsSimulation.setEntity(&_skeletonModel);
-    _physicsSimulation.setRagdoll(&_skeletonModel);
+
+    _skeletonModel.setEnableShapes(true);
+    Ragdoll* ragdoll = _skeletonModel.buildRagdoll();
+    _physicsSimulation.setRagdoll(ragdoll);
 }
 
 MyAvatar::~MyAvatar() {
@@ -1604,10 +1605,10 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 if (simulation != &(_physicsSimulation)) {
                     skeleton->setEnableShapes(true);
                     _physicsSimulation.addEntity(skeleton);
-                    _physicsSimulation.addRagdoll(skeleton);
+                    _physicsSimulation.addRagdoll(skeleton->getRagdoll());
                 }
             } else if (simulation == &(_physicsSimulation)) {
-                _physicsSimulation.removeRagdoll(skeleton);
+                _physicsSimulation.removeRagdoll(skeleton->getRagdoll());
                 _physicsSimulation.removeEntity(skeleton);
                 skeleton->setEnableShapes(false);
             }

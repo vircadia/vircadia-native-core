@@ -52,11 +52,11 @@ public:
     void setMassScale(float scale);
     float getMassScale() const { return _massScale; }
 
-protected:
     void clearRagdollConstraintsAndPoints();
     virtual void initRagdollPoints() = 0;
     virtual void buildRagdollConstraints() = 0;
 
+protected:
     float _massScale;
     glm::vec3 _ragdollTranslation;  // world-frame
     glm::quat _ragdollRotation; // world-frame
