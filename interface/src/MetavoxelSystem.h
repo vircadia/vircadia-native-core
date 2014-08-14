@@ -43,6 +43,8 @@ public:
     void simulate(float deltaTime);
     void render();
 
+    void renderHeightfieldCursor(const glm::vec3& position, float radius);
+
     Q_INVOKABLE void deleteTextures(int heightID, int colorID);
 
 protected:
@@ -105,7 +107,7 @@ public:
     
     virtual ~BufferData();
 
-    virtual void render() = 0;
+    virtual void render(bool cursor = false) = 0;
 };
 
 typedef QExplicitlySharedDataPointer<BufferData> BufferDataPointer;
@@ -116,7 +118,7 @@ public:
 
     PointBuffer(const BufferPointVector& points);
 
-    virtual void render();
+    virtual void render(bool cursor = false);
 
 private:
     
@@ -140,7 +142,7 @@ public:
     const QByteArray& getHeight() const { return _height; }
     const QByteArray& getColor() const { return _color; }
     
-    virtual void render();
+    virtual void render(bool cursor = false);
 
 private:
     
@@ -193,6 +195,9 @@ public:
     static ProgramObject& getHeightfieldProgram() { return _heightfieldProgram; }
     static int getHeightScaleLocation() { return _heightScaleLocation; }
 
+    static ProgramObject& getHeightfieldCursorProgram() { return _heightfieldCursorProgram; }
+    static int getCursorHeightScaleLocation() { return _cursorHeightScaleLocation; }
+    
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
@@ -206,6 +211,9 @@ private:
     
     static ProgramObject _heightfieldProgram;
     static int _heightScaleLocation;
+    
+    static ProgramObject _heightfieldCursorProgram;
+    static int _cursorHeightScaleLocation;
 };
 
 /// Base class for spanner renderers; provides clipping.

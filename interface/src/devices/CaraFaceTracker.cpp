@@ -10,7 +10,7 @@
 //
 
 #include "CaraFaceTracker.h"
-#include <SharedUtil.h>
+#include <GLMHelpers.h>
 
 //qt
 #include <QJsonDocument>

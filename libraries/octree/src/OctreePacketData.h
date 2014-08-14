@@ -22,7 +22,6 @@
 #ifndef hifi_OctreePacketData_h
 #define hifi_OctreePacketData_h
 
-#include <SharedUtil.h>
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
 

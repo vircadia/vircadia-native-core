@@ -21,6 +21,12 @@
         "placeholder": "10",
         "default": "10"
       },
+	  "H-print-stream-stats": {
+		"type": "checkbox",
+        "label": "Print Stream Stats:",
+        "help": "If enabled, audio upstream and downstream stats of each agent will be printed each second to stdout",
+        "default": false
+	  },
 	  "D-unattenuated-zone": {
         "label": "Unattenuated Zone",
         "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",

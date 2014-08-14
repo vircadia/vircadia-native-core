@@ -19,6 +19,7 @@
 #include "UserActivityLogger.h"
 
 #ifdef HAVE_SIXENSE
+
 const int CALIBRATION_STATE_IDLE = 0;
 const int CALIBRATION_STATE_X = 1;
 const int CALIBRATION_STATE_Y = 2;
@@ -41,8 +42,9 @@ SixenseManager::SixenseManager() {
     // By default we assume the _neckBase (in orb frame) is as high above the orb 
     // as the "torso" is below it.
     _neckBase = glm::vec3(NECK_X, -NECK_Y, NECK_Z);
-
+    
     sixenseInit();
+    
 #endif
     _hydrasConnected = false;
     _triggerPressed[0] = false;

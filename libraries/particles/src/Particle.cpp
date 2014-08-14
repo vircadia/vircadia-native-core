@@ -13,7 +13,7 @@
 
 #include <Octree.h>
 #include <RegisteredMetaTypes.h>
-#include <SharedUtil.h> // usecTimestampNow()
+#include <GLMHelpers.h>
 #include <VoxelsScriptingInterface.h>
 #include <VoxelDetail.h>
 
@@ -22,7 +22,7 @@
 // I'm open to other potential solutions. Could we change cmake to allow libraries to reference each others
 // headers, but not link to each other, this is essentially what this construct is doing, but would be
 // better to add includes to the include path, but not link
-#include "../../script-engine/src/ScriptEngine.h"
+#include <ScriptEngine.h>
 
 #include "ParticlesScriptingInterface.h"
 #include "Particle.h"
@@ -856,7 +856,7 @@ bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID i
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
+void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew) {
     unsigned char* dataAt = codeColorBuffer;
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
