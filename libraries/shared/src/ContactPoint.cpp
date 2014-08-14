@@ -98,14 +98,6 @@ float ContactPoint::enforce() {
     // the contact point will be the average of the two points on the shapes
     _contactPoint = 0.5f * (pointA + pointB);
 
-    // TODO: Andrew to compute more correct lagrangian weights that provide a more realistic response.
-    //
-    // HACK: since the weights are naively equal for all points (which is what the above TODO is about) we 
-    // don't want to use the full-strength delta because otherwise there can be annoying oscillations.  We 
-    // reduce this problem by in the short-term by attenuating the delta that is applied, the tradeoff is
-    // that this makes it easier for limbs to tunnel through during collisions.
-    const float HACK_STRENGTH = 0.5f;
-
     if (constraintViolation) {
         for (int i = 0; i < _numPoints; ++i) {
             VerletPoint* point = _points[i];
@@ -128,7 +120,7 @@ float ContactPoint::enforce() {
         
             glm::vec3 targetPosition = point->_position + delta;
             _distances[i] = glm::distance(_contactPoint, targetPosition);
-            point->_position += HACK_STRENGTH * delta;
+            point->_position += delta;
         }
     } else {
         for (int i = 0; i < _numPoints; ++i) {
@@ -140,7 +132,7 @@ float ContactPoint::enforce() {
 
 // virtual 
 void ContactPoint::applyFriction() {
-    // TODO: Andrew to re-implement this
+    // TODO: Andrew to re-implement this in a different way
     /*
     for (int i = 0; i < _numPoints; ++i) {
         glm::vec3& position = _points[i]->_position;
