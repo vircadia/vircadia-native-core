@@ -33,7 +33,8 @@ public slots:
     /// threaded run of assignment
     void run();
     
-    void readPendingDatagrams();
+    void readPendingDatagrams() { }; // this will not be called since our datagram processing thread will handle
+    void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
     void sendStatsPacket();
 

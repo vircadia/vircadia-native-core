@@ -160,11 +160,7 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
             qDebug() << "Did not change socket" << bufferTypeString << "buffer size from" << oldBufferSize
                 << "since it is larger than desired size of" << numBytes;
         }
-        
-        
     }
-    
-    
 }
 
 bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
