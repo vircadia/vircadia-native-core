@@ -404,12 +404,30 @@ void AudioMixer::sendStatsPacket() {
     int sizeOfStats = 0;
     int TOO_BIG_FOR_MTU = 1200; // some extra space for JSONification
     
-    QString property = "readPendingDatagramsStats";
-    QString value = getReadPendingDatagramsStatsString();
+    QString property = "readPendingDatagram_calls_stats";
+    QString value = getReadPendingDatagramsCallsPerSecondsStatsString();
     statsObject2[qPrintable(property)] = value;
     somethingToSend = true;
     sizeOfStats += property.size() + value.size();
 
+    property = "readPendingDatagram_packets_per_call_stats";
+    value = getReadPendingDatagramsPacketsPerCallStatsString();
+    statsObject2[qPrintable(property)] = value;
+    somethingToSend = true;
+    sizeOfStats += property.size() + value.size();
+
+    property = "readPendingDatagram_packets_time_per_call_stats";
+    value = getReadPendingDatagramsTimeStatsString();
+    statsObject2[qPrintable(property)] = value;
+    somethingToSend = true;
+    sizeOfStats += property.size() + value.size();
+
+    property = "readPendingDatagram_hashmatch_time_per_call_stats";
+    value = getReadPendingDatagramsHashMatchTimeStatsString();
+    statsObject2[qPrintable(property)] = value;
+    somethingToSend = true;
+    sizeOfStats += property.size() + value.size();
+    
     NodeList* nodeList = NodeList::getInstance();
     int clientNumber = 0;
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
@@ -770,19 +788,30 @@ void AudioMixer::perSecondActions() {
     _timeSpentPerHashMatchCallStats.currentIntervalComplete();
 }
 
-QString AudioMixer::getReadPendingDatagramsStatsString() const {
-    QString result
-        = "calls_per_sec_avg_30s: " + QString::number(_readPendingCallsPerSecondStats.getWindowAverage(), 'f', 2)
-        + "  calls_last_sec: " + QString::number(_readPendingCallsPerSecondStats.getLastCompleteIntervalStats().getSum() + 0.5, 'f', 0)
-        + "  pkts_per_call_avg_30s: " + QString::number(_datagramsReadPerCallStats.getWindowAverage(), 'f', 2)
-        + "  pkts_per_call_avg_1s: " + QString::number(_datagramsReadPerCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
-        + "  usecs_per_call_avg_30s: " + QString::number(_timeSpentPerCallStats.getWindowAverage(), 'f', 2)
-        + "  usecs_per_call_avg_1s: " + QString::number(_timeSpentPerCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
-        + "  usecs_per_hashmatch_avg_30s: " + QString::number(_timeSpentPerHashMatchCallStats.getWindowAverage(), 'f', 2)
-        + "  usecs_per_hashmatch_avg_1s: " + QString::number(_timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
-        + "  prct_time_in_call_30s: " + QString::number(_timeSpentPerCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0, 'f', 6) + "%"
-        + "  prct_time_in_call_1s: " + QString::number(_timeSpentPerCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0, 'f', 6) + "%"
-        + "  prct_time_in_hashmatch_30s: " + QString::number(_timeSpentPerHashMatchCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0, 'f', 6) + "%"
-        + "  prct_time_in_hashmatch_1s: " + QString::number(_timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0, 'f', 6) + "%";
+QString AudioMixer::getReadPendingDatagramsCallsPerSecondsStatsString() const {
+    QString result = "calls_per_sec_avg_30s: " + QString::number(_readPendingCallsPerSecondStats.getWindowAverage(), 'f', 2)
+        + " calls_last_sec: " + QString::number(_readPendingCallsPerSecondStats.getLastCompleteIntervalStats().getSum() + 0.5, 'f', 0);
+    return result;
+}
+
+QString AudioMixer::getReadPendingDatagramsPacketsPerCallStatsString() const {
+    QString result = "pkts_per_call_avg_30s: " + QString::number(_datagramsReadPerCallStats.getWindowAverage(), 'f', 2)
+        + " pkts_per_call_avg_1s: " + QString::number(_datagramsReadPerCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2);
+    return result;
+}
+
+QString AudioMixer::getReadPendingDatagramsTimeStatsString() const {
+    QString result = "usecs_per_call_avg_30s: " + QString::number(_timeSpentPerCallStats.getWindowAverage(), 'f', 2)
+        + " usecs_per_call_avg_1s: " + QString::number(_timeSpentPerCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
+        + " prct_time_in_call_30s: " + QString::number(_timeSpentPerCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0, 'f', 6) + "%"
+        + " prct_time_in_call_1s: " + QString::number(_timeSpentPerCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0, 'f', 6) + "%";
+    return result;
+}
+
+QString AudioMixer::getReadPendingDatagramsHashMatchTimeStatsString() const {
+    QString result = "usecs_per_hashmatch_avg_30s: " + QString::number(_timeSpentPerHashMatchCallStats.getWindowAverage(), 'f', 2)
+        + " usecs_per_hashmatch_avg_1s: " + QString::number(_timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
+        + " prct_time_in_hashmatch_30s: " + QString::number(_timeSpentPerHashMatchCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0, 'f', 6) + "%"
+        + " prct_time_in_hashmatch_1s: " + QString::number(_timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0, 'f', 6) + "%";
     return result;
 }

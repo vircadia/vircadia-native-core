@@ -54,7 +54,10 @@ private:
 
     void perSecondActions();
 
-    QString getReadPendingDatagramsStatsString() const;
+    QString getReadPendingDatagramsCallsPerSecondsStatsString() const;
+    QString getReadPendingDatagramsPacketsPerCallStatsString() const;
+    QString getReadPendingDatagramsTimeStatsString() const;
+    QString getReadPendingDatagramsHashMatchTimeStatsString() const;
     
     float _trailingSleepRatio;
     float _minAudibilityThreshold;
