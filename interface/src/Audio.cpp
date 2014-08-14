@@ -1236,8 +1236,6 @@ void Audio::selectAudioFilterSmiley() {
 void Audio::toggleScope() {
     _scopeEnabled = !_scopeEnabled;
     if (_scopeEnabled) {
-        _scopeInputOffset = 0;
-        _scopeOutputOffset = 0;
         allocateScope();
     } else {
         freeScope();
@@ -1275,6 +1273,8 @@ void Audio::selectAudioScopeFiftyFrames() {
 }
 
 void Audio::allocateScope() {
+    _scopeInputOffset = 0;
+    _scopeOutputOffset = 0;
     int num = _samplesPerScope * sizeof(int16_t);
     _scopeInput = new QByteArray(num, 0);
     _scopeOutputLeft = new QByteArray(num, 0);
