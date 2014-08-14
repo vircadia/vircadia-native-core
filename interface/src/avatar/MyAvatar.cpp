@@ -916,7 +916,8 @@ const float JOINT_PRIORITY = 2.0f;
 void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
     for (int i = 0; i < jointRotations.size(); ++i) {
         if (i < _jointData.size()) {
-            _skeletonModel.setJointState(i, true, jointRotations[i]);
+            // TODO change animation priority to proper value
+            _skeletonModel.setJointState(i, true, jointRotations[i], 100.0f);
         }
     }
 }
