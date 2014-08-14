@@ -1155,12 +1155,19 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     uint16_t numberOfIds = 1; // only one entity ID in this message
     memcpy(copyAt, &numberOfIds, sizeof(numberOfIds));
     copyAt += sizeof(numberOfIds);
-    outputLength += sizeof(numberOfIds);
+    outputLength = sizeof(numberOfIds);
 
     qDebug() << "   numberOfIds=" << numberOfIds;
     
     QUuid entityID = entityItemID.id;                
     QByteArray encodedEntityID = entityID.toRfc4122();
+
+    {
+        QDebug debugA = qDebug();
+        debugA << "       encodedEntityID contents:";
+        outputBufferBits((unsigned char*)encodedEntityID.constData(), encodedEntityID.size(), &debugA);
+    }
+
     memcpy(copyAt, encodedEntityID.constData(), NUM_BYTES_RFC4122_UUID);
     copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
@@ -1168,6 +1175,14 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     qDebug() << "   entityID=" << entityID;
 
     qDebug() << "   outputLength=" << outputLength;
+    qDebug() << "   NUM_BYTES_RFC4122_UUID=" << NUM_BYTES_RFC4122_UUID;
+    qDebug() << "   encodedEntityID.size()=" << encodedEntityID.size();
+
+    {
+        QDebug debug = qDebug();
+        debug << "       edit data contents:";
+        outputBufferBits(outputBuffer, outputLength, &debug);
+    }
 
     return true;
 }

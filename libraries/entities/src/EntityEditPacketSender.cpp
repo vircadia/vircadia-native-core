@@ -17,8 +17,12 @@
 #include "EntityItem.h"
 
 
-void EntityEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
-    EntityItem::adjustEditPacketForClockSkew(codeColorBuffer, length, clockSkew);
+void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, 
+                                        unsigned char* editBuffer, ssize_t length, int clockSkew) {
+                                        
+    if (type == PacketTypeEntityAddOrEdit) {
+        EntityItem::adjustEditPacketForClockSkew(editBuffer, length, clockSkew);
+    }
 }
 
 void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemID modelID, 
@@ -51,7 +55,12 @@ qDebug() << "    _maxPacketSize=" << _maxPacketSize;
 
     if (EntityItemProperties::encodeEraseEntityMessage(entityItemID, &bufferOut[0], _maxPacketSize, sizeOut)) {
 
-qDebug() << "   encodeEraseEntityMessage()... sizeOut=" << sizeOut;
+        qDebug() << "   encodeEraseEntityMessage()... sizeOut=" << sizeOut;
+        {
+            QDebug debug = qDebug();
+            debug << "       edit data contents:";
+            outputBufferBits(&bufferOut[0], sizeOut, &debug);
+        }
 
         queueOctreeEditMessage(PacketTypeEntityErase, bufferOut, sizeOut);
     }

@@ -100,8 +100,8 @@ public:
                                     unsigned char* packetData, size_t maxLength, size_t& outputLength);
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
-    void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
-    void processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
+    int processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
+    int processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     void handleAddEntityResponse(const QByteArray& packet);
     
     EntityItemFBXService* getFBXService() const { return _fbxService; }

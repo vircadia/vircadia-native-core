@@ -297,7 +297,21 @@ qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... SWITCHING TYPE.
                 // fixup the buffer for any clock skew
                 if (node->getClockSkewUsec() != 0) {
 qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... adjustEditPacketForClockSkew()....";
-                    adjustEditPacketForClockSkew(editPacketBuffer, length, node->getClockSkewUsec());
+qDebug() << "       length=" << length;
+{
+    qDebug() << "       BEFORE adjust edit data contents:";
+    QDebug debug = qDebug();
+    outputBufferBits(editPacketBuffer, length, &debug);
+}
+
+                    adjustEditPacketForClockSkew(type, editPacketBuffer, length, node->getClockSkewUsec());
+
+{
+    qDebug() << "       AFTER adjust edit data contents:";
+    QDebug debugA = qDebug();
+    outputBufferBits(editPacketBuffer, length, &debugA);
+}
+
                 }
 
 qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... memcpy(&packetBuffer...)....";

@@ -742,9 +742,9 @@ bool DeleteEntityOperator::PostRecursion(OctreeElement* element) {
 
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
     // NOTE: callers must lock the tree before using this method
-    //EntityTreeElement* containingElement = getContainingElement(entityID);
-    //qDebug() << "EntityTree::deleteEntity().... BEFORE DELETE... containingElement=" << containingElement;
-    //debugDumpMap();
+    EntityTreeElement* containingElement = getContainingElement(entityID);
+    qDebug() << "EntityTree::deleteEntity().... BEFORE DELETE... containingElement=" << containingElement;
+    debugDumpMap();
 
     // First, look for the existing entity in the tree..
     DeleteEntityOperator theOperator(this, entityID);
@@ -761,6 +761,10 @@ void EntityTree::deleteEntity(const EntityItemID& entityID) {
 
 void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     // NOTE: callers must lock the tree before using this method
+    qDebug() << "EntityTree::EntityTree::deleteEntities().... ";
+    qDebug() << "    entityIDs=" << entityIDs;
+    qDebug() << "    BEFORE map...";
+    debugDumpMap();
 
     DeleteEntityOperator theOperator(this);
     foreach(const EntityItemID& entityID, entityIDs) {
@@ -778,6 +782,9 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
             qDebug() << "EntityTree::deleteEntities().... after delete... entityID=" << entityID 
                         << "containingElement=" << containingElement;
         }
+
+        qDebug() << "    AFTER map...";
+        debugDumpMap();
     }
 }
 
@@ -1063,9 +1070,19 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
     // we handle these types of "edit" packets
     switch (packetType) {
         case PacketTypeEntityErase: {
-            qDebug() << "EntityTree::processEditPacketData().... PacketTypeEntityErase ****** packetLength=" << packetLength;
-            QByteArray dataByteArray((const char*)packetData, packetLength);
-            processEraseMessageDetails(dataByteArray, senderNode);
+            qDebug() << "EntityTree::processEditPacketData().... ";
+            qDebug() << "    PacketTypeEntityErase ******";
+            qDebug() << "    packetLength=" << packetLength;
+            qDebug() << "    maxLength=" << maxLength;
+
+            QDebug debug = qDebug();
+            debug << "       edit data contents:";
+            outputBufferBits(editData, maxLength, &debug);
+
+            QByteArray dataByteArray((const char*)editData, maxLength);
+            
+            
+            processedBytes = processEraseMessageDetails(dataByteArray, senderNode);
             break;
         }
         
@@ -1077,6 +1094,12 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
             
             bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength,
                                                     processedBytes, entityItemID, properties);
+
+            qDebug() << "EntityTree::processEditPacketData().... ";
+            qDebug() << "    validEditPacket=" << validEditPacket;
+            qDebug() << "    entityItemID=" << entityItemID;
+            qDebug() << "    BEFORE map...";
+            debugDumpMap();
             
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
@@ -1432,7 +1455,7 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 }
 
 
-void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
     qDebug() << "EntityTree::processEraseMessage()...";
 
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
@@ -1479,10 +1502,11 @@ void EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Shar
         qDebug() << "EntityTree::processEraseMessage()... deleteEntities(entityItemIDsToDelete)";
         deleteEntities(entityItemIDsToDelete);
     }
+    return processedBytes;
 }
 
 // This version skips over the header
-void EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
     qDebug() << "EntityTree::processEraseMessageDetails()...";
 
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
@@ -1522,6 +1546,8 @@ void EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, con
         qDebug() << "EntityTree::processEraseMessageDetails()... deleteEntities(entityItemIDsToDelete)";
         deleteEntities(entityItemIDsToDelete);
     }
+    
+    return processedBytes;
 }
 
 
