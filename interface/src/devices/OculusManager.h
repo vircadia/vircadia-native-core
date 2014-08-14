@@ -40,6 +40,7 @@ public:
     /// param \pitch[out] pitch in radians
     /// param \roll[out] roll in radians
     static void getEulerAngles(float& yaw, float& pitch, float& roll);
+    static glm::vec3 getRelativePosition();
     static QSize getRenderTargetSize();
     
 private:

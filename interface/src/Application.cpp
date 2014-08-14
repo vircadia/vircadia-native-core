@@ -599,7 +599,7 @@ void Application::paintGL() {
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar->getHead()->getFilteredEyePosition());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -621,7 +621,7 @@ void Application::paintGL() {
             _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition() + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0));
         } else {
             _myCamera.setTightness(0.0f);
-            glm::vec3 eyePosition = _myAvatar->getHead()->getFilteredEyePosition();
+            glm::vec3 eyePosition = _myAvatar->getHead()->getEyePosition();
             float headHeight = eyePosition.y - _myAvatar->getPosition().y;
             _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
@@ -1449,6 +1449,15 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+    if (enableVRMode) {
+        if (!OculusManager::isConnected()) {
+            // attempt to reconnect the Oculus manager - it's possible this was a workaround
+            // for the sixense crash
+            OculusManager::disconnect();
+            OculusManager::connect();
+        }
+    }
+    
     resizeGL(_glWidget->width(), _glWidget->height());
 }
 

@@ -71,7 +71,7 @@ private:
     glm::vec3 _reachUp;
     glm::vec3 _reachForward;
     float _lastDistance;
-
+    
 #endif
     bool _hydrasConnected;
     quint64 _lastMovement;

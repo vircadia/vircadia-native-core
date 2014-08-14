@@ -20,6 +20,7 @@
 #include "Recorder.h"
 #include "RingBufferHistory.h"
 #include "MovingMinMaxAvg.h"
+#include "AudioFilter.h"
 
 #include <QAudio>
 #include <QAudioInput>
@@ -129,7 +130,12 @@ public slots:
     void selectAudioScopeFiveFrames();
     void selectAudioScopeTwentyFrames();
     void selectAudioScopeFiftyFrames();
-    
+    void toggleAudioFilter();
+    void selectAudioFilterFlat();
+    void selectAudioFilterTrebleCut();
+    void selectAudioFilterBassCut();
+    void selectAudioFilterSmiley();
+
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
     void sendDownstreamAudioStatsPacket();
@@ -256,12 +262,12 @@ private:
     // Audio scope methods for rendering
     void renderBackground(const float* color, int x, int y, int width, int height);
     void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
-    void renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray);
+    void renderLineStrip(const float* color, int x, int  y, int n, int offset, const QByteArray* byteArray);
 
     // audio stats methods for rendering
     void renderAudioStreamStats(const AudioStreamStats& streamStats, int horizontalOffset, int& verticalOffset,
         float scale, float rotation, int font, const float* color, bool isDownstreamStats = false);
-
+    
     // Audio scope data
     static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
     static const unsigned int DEFAULT_FRAMES_PER_SCOPE = 5;
@@ -274,6 +280,11 @@ private:
     int _scopeOutputOffset;
     int _framesPerScope;
     int _samplesPerScope;
+
+    // Multi-band parametric EQ
+    bool            _peqEnabled;
+    AudioFilterPEQ3 _peq;
+
     QMutex _guard;
     QByteArray* _scopeInput;
     QByteArray* _scopeOutputLeft;

@@ -2,11 +2,12 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "faceplus" "faceshift" "oculus" "priovr" "sixense" "visage" "leapmotion" "rtmidi" "qxmpp")
+set(OPTIONAL_EXTERNALS "Faceplus" "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
-  string(TOUPPER ${EXTERNAL} UPPER_EXTERNAL)
-  if (NOT ${UPPER_EXTERNAL}_ROOT_DIR)
-    set(${UPPER_EXTERNAL}_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/${EXTERNAL}")
+  string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
+  if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
+    string(TOLOWER ${EXTERNAL} ${EXTERNAL}_LOWERCASE)
+    set(${${EXTERNAL}_UPPERCASE}_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/${${EXTERNAL}_LOWERCASE}")
   endif ()
 endforeach()
 
@@ -94,43 +95,32 @@ add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 link_hifi_libraries(shared octree voxels fbx metavoxels networking particles models avatars audio animation script-engine)
 
 # find any optional and required libraries
-find_package(Faceplus)
-find_package(Faceshift)
-find_package(LibOVR)
-find_package(PrioVR)
-find_package(SDL)
-find_package(Sixense)
-find_package(Visage)
-find_package(LeapMotion)
-find_package(Qxmpp)
-find_package(RtMidi)
-
 find_package(ZLIB REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
-  string(TOUPPER ${EXTERNAL} UPPER_EXTERNAL)
   
-  if (${UPPER_EXTERNAL} MATCHES "OCULUS")
-    # the oculus directory is named OCULUS and not LIBOVR so hack to fix that here
-    set(UPPER_EXTERNAL "LIBOVR")
+  if (${${EXTERNAL}_UPPERCASE}_REQUIRED)
+    find_package(${EXTERNAL} REQUIRED)
+  else ()
+    find_package(${EXTERNAL})
   endif ()
   
-  if (${UPPER_EXTERNAL}_FOUND AND NOT DISABLE_${UPPER_EXTERNAL})
-    add_definitions(-DHAVE_${UPPER_EXTERNAL})
+  if (${${EXTERNAL}_UPPERCASE}_FOUND AND NOT DISABLE_${${EXTERNAL}_UPPERCASE})
+    add_definitions(-DHAVE_${${EXTERNAL}_UPPERCASE})
     
     # include the library directories (ignoring warnings)
-    include_directories(SYSTEM ${${UPPER_EXTERNAL}_INCLUDE_DIRS})
+    include_directories(SYSTEM ${${${EXTERNAL}_UPPERCASE}_INCLUDE_DIRS})
     
     # perform the system include hack for OS X to ignore warnings
     if (APPLE)
-      foreach(EXTERNAL_INCLUDE_DIR  ${${UPPER_EXTERNAL}_INCLUDE_DIRS})
+      foreach(EXTERNAL_INCLUDE_DIR  ${${${EXTERNAL}_UPPERCASE}_INCLUDE_DIRS})
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${EXTERNAL_INCLUDE_DIR}")
       endforeach()
     endif ()
     
-    target_link_libraries(${TARGET_NAME} ${${UPPER_EXTERNAL}_LIBRARIES})
+    target_link_libraries(${TARGET_NAME} ${${${EXTERNAL}_UPPERCASE}_LIBRARIES})
     
   endif ()
 endforeach()

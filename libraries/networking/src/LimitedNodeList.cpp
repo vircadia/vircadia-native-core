@@ -82,8 +82,8 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
         qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
-    const int LARGER_SNDBUF_SIZE = 1048576;
-    changeSendSocketBufferSize(LARGER_SNDBUF_SIZE);
+    const int LARGER_BUFFER_SIZE = 1048576;
+    changeSocketBufferSizes(LARGER_BUFFER_SIZE);
     
     _packetStatTimer.start();
 }
@@ -129,7 +129,7 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
     return *_dtlsSocket;
 }
 
-void LimitedNodeList::changeSendSocketBufferSize(int numSendBytes) {
+void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
     // change the socket send buffer size to be 1MB
     int oldBufferSize = 0;
     
@@ -139,15 +139,23 @@ void LimitedNodeList::changeSendSocketBufferSize(int numSendBytes) {
     unsigned int sizeOfInt = sizeof(oldBufferSize);
 #endif
     
-    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&oldBufferSize), &sizeOfInt);
+    for (int i = 0; i < 2; i++) {
+        int bufferOpt = (i == 0) ? SO_SNDBUF : SO_RCVBUF;
+        
+        getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<char*>(&oldBufferSize), &sizeOfInt);
+        
+        setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<const char*>(&numBytes),
+                   sizeof(numBytes));
+        
+        int newBufferSize = 0;
+        getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<char*>(&newBufferSize), &sizeOfInt);
+
+        QString bufferTypeString = (i == 0) ? "send" : "receive";
+        
+        qDebug() << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to" << newBufferSize << "bytes";
+    }
     
-    setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<const char*>(&numSendBytes),
-               sizeof(numSendBytes));
     
-    int newBufferSize = 0;
-    getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&newBufferSize), &sizeOfInt);
-    
-    qDebug() << "Changed socket send buffer size from" << oldBufferSize << "to" << newBufferSize << "bytes";
 }
 
 bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {

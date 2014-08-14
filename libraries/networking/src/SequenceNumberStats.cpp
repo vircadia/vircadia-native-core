@@ -253,14 +253,19 @@ PacketStreamStats SequenceNumberStats::getStatsForHistoryWindow() const {
     }
 
     // calculate difference between newest stats and oldest stats to get window stats
-    PacketStreamStats windowStats;
-    windowStats._received = newestStats->_received - oldestStats->_received;
-    windowStats._unreasonable = newestStats->_unreasonable - oldestStats->_unreasonable;
-    windowStats._early = newestStats->_early - oldestStats->_early;
-    windowStats._late = newestStats->_late - oldestStats->_late;
-    windowStats._lost = newestStats->_lost - oldestStats->_lost;
-    windowStats._recovered = newestStats->_recovered - oldestStats->_recovered;
-    windowStats._expectedReceived = newestStats->_expectedReceived - oldestStats->_expectedReceived;
-
-    return windowStats;
+    return *newestStats - *oldestStats;
 }
+
+PacketStreamStats SequenceNumberStats::getStatsForLastHistoryInterval() const {
+
+    const PacketStreamStats* newestStats = _statsHistory.getNewestEntry();
+    const PacketStreamStats* secondNewestStats = _statsHistory.get(1);
+
+    // this catches cases where history is length 1 or 0 (both are NULL in case of 0)
+    if (newestStats == NULL || secondNewestStats == NULL) {
+        return PacketStreamStats();
+    }
+
+    return *newestStats - *secondNewestStats;
+}
+

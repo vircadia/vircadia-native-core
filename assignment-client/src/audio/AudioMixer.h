@@ -66,6 +66,8 @@ private:
     static int _staticDesiredJitterBufferFrames;
     static int _maxFramesOverDesired;
 
+    static bool _printStreamStats;
+
     quint64 _lastSendAudioStreamStatsTime;
 };
 
