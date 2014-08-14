@@ -206,9 +206,9 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("ragdoll");
         if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-            const float minError = 0.01f;
-            const float maxIterations = 10;
-            const quint64 maxUsec = 2000;
+            const float minError = 0.00001f;
+            const float maxIterations = 3;
+            const quint64 maxUsec = 4000;
             _physicsSimulation.setTranslation(_position);
             _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
         } else {
