@@ -17,6 +17,7 @@
 
 #include "InterfaceConfig.h"
 #include "AudioStreamStats.h"
+#include "Recorder.h"
 #include "RingBufferHistory.h"
 #include "MovingMinMaxAvg.h"
 
@@ -101,6 +102,9 @@ public:
 
     float getAudioOutputMsecsUnplayed() const;
     float getAudioOutputAverageMsecsUnplayed() const { return (float)_audioOutputMsecsUnplayedStats.getWindowAverage(); }
+    
+    void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
+    void setPlayer(PlayerPointer player) { _player = player; }
 
 public slots:
     void start();
@@ -297,6 +301,9 @@ private:
     MovingMinMaxAvg<quint64> _packetSentTimeGaps;
 
     AudioOutputIODevice _audioOutputIODevice;
+    
+    WeakRecorderPointer _recorder;
+    WeakPlayerPointer _player;
 };
 
 
