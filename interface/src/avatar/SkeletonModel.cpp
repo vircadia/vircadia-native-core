@@ -438,7 +438,8 @@ bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {
 }
 
 bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+    if (_owningAvatar->isMyAvatar() &&
+            Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
         return isActive() && getVisibleJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
     }
     return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
