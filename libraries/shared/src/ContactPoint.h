@@ -26,8 +26,8 @@ public:
     ContactPoint(const CollisionInfo& collision, quint32 frame);
 
     virtual float enforce();
-   
-    void buildConstraints();
+
+    void applyFriction();
     void updateContact(const CollisionInfo& collision, quint32 frame);
     quint32 getLastFrame() const { return _lastFrame; }
 

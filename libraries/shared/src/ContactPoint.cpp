@@ -88,25 +88,7 @@ ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) :
     }
 }
 
-// virtual 
 float ContactPoint::enforce() {
-    for (int i = 0; i < _numPoints; ++i) {
-        glm::vec3& position = _points[i]->_position;
-        // TODO: use a fast distance approximation
-        float newDistance = glm::distance(_contactPoint, position);
-        float constrainedDistance = _distances[i];
-        // NOTE: these "distance" constraints only push OUT, don't pull IN.
-        if (newDistance > EPSILON && newDistance < constrainedDistance) {
-            glm::vec3 direction = (_contactPoint - position) / newDistance;
-            glm::vec3 center = 0.5f * (_contactPoint + position);
-            _contactPoint = center + (0.5f * constrainedDistance) * direction;
-            position = center - (0.5f * constrainedDistance) * direction;
-        }
-    }
-    return 0.0f;
-}
-
-void ContactPoint::buildConstraints() {
     glm::vec3 pointA = _shapeA->getTranslation() + _offsetA;
     glm::vec3 pointB = _shapeB->getTranslation() + _offsetB;
     glm::vec3 penetration = pointA - pointB;
@@ -153,6 +135,27 @@ void ContactPoint::buildConstraints() {
             _distances[i] = glm::length(glm::length(_offsets[i]));
         }
     }
+    return 0.0f;
+}
+
+// virtual 
+void ContactPoint::applyFriction() {
+    // TODO: Andrew to re-implement this
+    /*
+    for (int i = 0; i < _numPoints; ++i) {
+        glm::vec3& position = _points[i]->_position;
+        // TODO: use a fast distance approximation
+        float newDistance = glm::distance(_contactPoint, position);
+        float constrainedDistance = _distances[i];
+        // NOTE: these "distance" constraints only push OUT, don't pull IN.
+        if (newDistance > EPSILON && newDistance < constrainedDistance) {
+            glm::vec3 direction = (_contactPoint - position) / newDistance;
+            glm::vec3 center = 0.5f * (_contactPoint + position);
+            _contactPoint = center + (0.5f * constrainedDistance) * direction;
+            position = center - (0.5f * constrainedDistance) * direction;
+        }
+    }
+    */
 }
 
 void ContactPoint::updateContact(const CollisionInfo& collision, quint32 frame) {

@@ -195,7 +195,7 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
     quint64 expiry = startTime + maxUsec;
 
     moveRagdolls(deltaTime);
-    buildContactConstraints();
+    enforceContacts();
     int numDolls = _otherRagdolls.size();
     {
         PerformanceTimer perfTimer("enforce");
@@ -219,7 +219,7 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
                 error = glm::max(error, _otherRagdolls[i]->enforceConstraints());
             }
         }
-        enforceContactConstraints();
+        applyContactFriction();
         ++iterations;
 
         now = usecTimestampNow();
@@ -288,20 +288,20 @@ void PhysicsSimulation::resolveCollisions() {
     }
 }
 
-void PhysicsSimulation::buildContactConstraints() {
-    PerformanceTimer perfTimer("contacts");
-    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
-    while (itr != _contacts.end()) {
-        itr.value().buildConstraints();
-        ++itr;
-    }
-}
-
-void PhysicsSimulation::enforceContactConstraints() {
+void PhysicsSimulation::enforceContacts() {
     PerformanceTimer perfTimer("contacts");
     QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
     while (itr != _contacts.end()) {
         itr.value().enforce();
+        ++itr;
+    }
+}
+
+void PhysicsSimulation::applyContactFriction() {
+    PerformanceTimer perfTimer("contacts");
+    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
+    while (itr != _contacts.end()) {
+        itr.value().applyFriction();
         ++itr;
     }
 }
