@@ -28,10 +28,10 @@ public:
     virtual ~SkeletonRagdoll();
 
     void slamPointPositions();
-    virtual void stepRagdollForward(float deltaTime);
+    virtual void stepForward(float deltaTime);
 
-    virtual void initRagdollPoints();
-    virtual void buildRagdollConstraints();
+    virtual void initPoints();
+    virtual void buildConstraints();
 
     void updateMuscles();
 private:

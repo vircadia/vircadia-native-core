@@ -24,9 +24,9 @@ SkeletonRagdoll::~SkeletonRagdoll() {
 }
 
 // virtual 
-void SkeletonRagdoll::stepRagdollForward(float deltaTime) {
-    setRagdollTransform(_model->getTranslation(), _model->getRotation());
-    Ragdoll::stepRagdollForward(deltaTime);
+void SkeletonRagdoll::stepForward(float deltaTime) {
+    setTransform(_model->getTranslation(), _model->getRotation());
+    Ragdoll::stepForward(deltaTime);
     updateMuscles();
     int numConstraints = _muscleConstraints.size();
     for (int i = 0; i < numConstraints; ++i) {
@@ -38,30 +38,30 @@ void SkeletonRagdoll::slamPointPositions() {
     QVector<JointState>& jointStates = _model->getJointStates();
     int numStates = jointStates.size();
     for (int i = 0; i < numStates; ++i) {
-        _ragdollPoints[i].initPosition(jointStates.at(i).getPosition());
+        _points[i].initPosition(jointStates.at(i).getPosition());
     }
 }
 
 // virtual
-void SkeletonRagdoll::initRagdollPoints() {
-    clearRagdollConstraintsAndPoints();
+void SkeletonRagdoll::initPoints() {
+    clearConstraintsAndPoints();
     _muscleConstraints.clear();
 
-    initRagdollTransform();
+    initTransform();
     // one point for each joint
     QVector<JointState>& jointStates = _model->getJointStates();
     int numStates = jointStates.size();
-    _ragdollPoints.fill(VerletPoint(), numStates);
+    _points.fill(VerletPoint(), numStates);
     slamPointPositions();
 }
 
 // virtual
-void SkeletonRagdoll::buildRagdollConstraints() {
+void SkeletonRagdoll::buildConstraints() {
     QVector<JointState>& jointStates = _model->getJointStates();
 
     // NOTE: the length of DistanceConstraints is computed and locked in at this time
     // so make sure the ragdoll positions are in a normal configuration before here.
-    const int numPoints = _ragdollPoints.size();
+    const int numPoints = _points.size();
     assert(numPoints == jointStates.size());
 
     float minBone = FLT_MAX;
@@ -71,10 +71,10 @@ void SkeletonRagdoll::buildRagdollConstraints() {
         const JointState& state = jointStates.at(i);
         int parentIndex = state.getParentIndex();
         if (parentIndex == -1) {
-            FixedConstraint* anchor = new FixedConstraint(&_translationInSimulationFrame, &(_ragdollPoints[i]));
+            FixedConstraint* anchor = new FixedConstraint(&_translationInSimulationFrame, &(_points[i]));
             _fixedConstraints.push_back(anchor);
         } else { 
-            DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[i]), &(_ragdollPoints[parentIndex]));
+            DistanceConstraint* bone = new DistanceConstraint(&(_points[i]), &(_points[parentIndex]));
             bone->setDistance(state.getDistanceToParent());
             _boneConstraints.push_back(bone);
             families.insert(parentIndex, i);
@@ -94,11 +94,11 @@ void SkeletonRagdoll::buildRagdollConstraints() {
         int numChildren = children.size();
         if (numChildren > 1) {
             for (int i = 1; i < numChildren; ++i) {
-                DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[children[i-1]]), &(_ragdollPoints[children[i]]));
+                DistanceConstraint* bone = new DistanceConstraint(&(_points[children[i-1]]), &(_points[children[i]]));
                 _boneConstraints.push_back(bone);
             }
             if (numChildren > 2) {
-                DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[children[numChildren-1]]), &(_ragdollPoints[children[0]]));
+                DistanceConstraint* bone = new DistanceConstraint(&(_points[children[numChildren-1]]), &(_points[children[0]]));
                 _boneConstraints.push_back(bone);
             }
         }
@@ -114,7 +114,7 @@ void SkeletonRagdoll::buildRagdollConstraints() {
         if (p == -1) {
             continue;
         }
-        MuscleConstraint* constraint = new MuscleConstraint(&(_ragdollPoints[p]), &(_ragdollPoints[i]));
+        MuscleConstraint* constraint = new MuscleConstraint(&(_points[p]), &(_points[i]));
         _muscleConstraints.push_back(constraint);
 
         // Short joints are more susceptible to wiggle so we modulate the strength based on the joint's length: 

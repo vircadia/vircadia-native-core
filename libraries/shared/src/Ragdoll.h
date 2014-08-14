@@ -33,44 +33,44 @@ public:
     Ragdoll();
     virtual ~Ragdoll();
 
-    virtual void stepRagdollForward(float deltaTime);
+    virtual void stepForward(float deltaTime);
 
     /// \return max distance of point movement
-    float enforceRagdollConstraints();
+    float enforceConstraints();
 
     // both const and non-const getPoints()
-    const QVector<VerletPoint>& getRagdollPoints() const { return _ragdollPoints; }
-    QVector<VerletPoint>& getRagdollPoints() { return _ragdollPoints; }
+    const QVector<VerletPoint>& getPoints() const { return _points; }
+    QVector<VerletPoint>& getPoints() { return _points; }
 
-    void initRagdollTransform();
+    void initTransform();
 
     /// set the translation and rotation of the Ragdoll and adjust all VerletPoints.
-    void setRagdollTransform(const glm::vec3& translation, const glm::quat& rotation);
+    void setTransform(const glm::vec3& translation, const glm::quat& rotation);
 
     const glm::vec3& getTranslationInSimulationFrame() const { return _translationInSimulationFrame; }
 
     void setMassScale(float scale);
     float getMassScale() const { return _massScale; }
 
-    void clearRagdollConstraintsAndPoints();
-    virtual void initRagdollPoints() = 0;
-    virtual void buildRagdollConstraints() = 0;
+    void clearConstraintsAndPoints();
+    virtual void initPoints() = 0;
+    virtual void buildConstraints() = 0;
 
 protected:
     float _massScale;
-    glm::vec3 _ragdollTranslation;  // world-frame
-    glm::quat _ragdollRotation; // world-frame
+    glm::vec3 _translation;  // world-frame
+    glm::quat _rotation; // world-frame
     glm::vec3 _translationInSimulationFrame;
     glm::quat _rotationInSimulationFrame;
 
-    QVector<VerletPoint> _ragdollPoints;
+    QVector<VerletPoint> _points;
     QVector<DistanceConstraint*> _boneConstraints;
     QVector<FixedConstraint*> _fixedConstraints;
 private:
     void updateSimulationTransforms(const glm::vec3& translation, const glm::quat& rotation);
 
     friend class PhysicsSimulation;
-    PhysicsSimulation* _ragdollSimulation;
+    PhysicsSimulation* _simulation;
 };
 
 #endif // hifi_Ragdoll_h

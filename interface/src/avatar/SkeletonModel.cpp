@@ -497,7 +497,7 @@ void SkeletonModel::renderRagdoll() {
     if (!_ragdoll) {
         return;
     }
-    const QVector<VerletPoint>& points = _ragdoll->getRagdollPoints();
+    const QVector<VerletPoint>& points = _ragdoll->getPoints();
     const int BALL_SUBDIVISIONS = 6;
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
@@ -531,7 +531,7 @@ void SkeletonModel::updateVisibleJointStates() {
         // no need to update visible transforms
         return;
     }
-    const QVector<VerletPoint>& ragdollPoints = _ragdoll->getRagdollPoints();
+    const QVector<VerletPoint>& ragdollPoints = _ragdoll->getPoints();
     QVector<glm::vec3> points;
     points.reserve(_jointStates.size());
     glm::quat invRotation = glm::inverse(_rotation);
@@ -599,8 +599,8 @@ void SkeletonModel::buildShapes() {
     if (!_ragdoll) {
         _ragdoll = new SkeletonRagdoll(this);
     }
-    _ragdoll->initRagdollPoints();
-    QVector<VerletPoint>& points = _ragdoll->getRagdollPoints();
+    _ragdoll->initPoints();
+    QVector<VerletPoint>& points = _ragdoll->getPoints();
 
     float massScale = _ragdoll->getMassScale();
 
@@ -651,11 +651,11 @@ void SkeletonModel::buildShapes() {
     // joints that are currently colliding.
     disableCurrentSelfCollisions();
 
-    _ragdoll->buildRagdollConstraints();
+    _ragdoll->buildConstraints();
 
     // ... then move shapes back to current joint positions
     _ragdoll->slamPointPositions();
-    _ragdoll->enforceRagdollConstraints();
+    _ragdoll->enforceConstraints();
 }
 
 void SkeletonModel::moveShapesTowardJoints(float deltaTime) {
@@ -663,7 +663,7 @@ void SkeletonModel::moveShapesTowardJoints(float deltaTime) {
     // unravel a skelton that has become tangled in its constraints.  So let's keep this
     // around for a while just in case.
     const int numStates = _jointStates.size();
-    QVector<VerletPoint>& ragdollPoints = _ragdoll->getRagdollPoints();
+    QVector<VerletPoint>& ragdollPoints = _ragdoll->getPoints();
     assert(_jointStates.size() == ragdollPoints.size());
     if (ragdollPoints.size() != numStates) {
         return;
@@ -688,7 +688,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     QVector<glm::mat4> transforms;
     transforms.fill(glm::mat4(), numStates);
 
-    QVector<VerletPoint>& ragdollPoints = _ragdoll->getRagdollPoints();
+    QVector<VerletPoint>& ragdollPoints = _ragdoll->getPoints();
 
     // compute the default transforms and slam the ragdoll positions accordingly
     // (which puts the shapes where we want them)

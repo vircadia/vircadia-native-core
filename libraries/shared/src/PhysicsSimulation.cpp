@@ -47,12 +47,12 @@ PhysicsSimulation::~PhysicsSimulation() {
 void PhysicsSimulation::setRagdoll(Ragdoll* ragdoll) { 
     if (_ragdoll != ragdoll) {
         if (_ragdoll) {
-            _ragdoll->_ragdollSimulation = NULL;
+            _ragdoll->_simulation = NULL;
         }
         _ragdoll = ragdoll;
         if (_ragdoll) {
-            assert(!(_ragdoll->_ragdollSimulation));
-            _ragdoll->_ragdollSimulation = this;
+            assert(!(_ragdoll->_simulation));
+            _ragdoll->_simulation = this;
         }
     }
 }
@@ -144,7 +144,7 @@ bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
         // list is full
         return false;
     }
-    if (doll->_ragdollSimulation == this) {
+    if (doll->_simulation == this) {
         for (int i = 0; i < numDolls; ++i) {
             if (doll == _otherRagdolls[i]) {
                 // already in list
@@ -153,8 +153,8 @@ bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
         }
     }
     // add to list
-    assert(!(doll->_ragdollSimulation));
-    doll->_ragdollSimulation = this;
+    assert(!(doll->_simulation));
+    doll->_simulation = this;
     _otherRagdolls.push_back(doll);
 
     // set the massScale of otherRagdolls artificially high
@@ -164,7 +164,7 @@ bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
 
 void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
     int numDolls = _otherRagdolls.size();
-    if (doll->_ragdollSimulation != this) {
+    if (doll->_simulation != this) {
         return;
     }
     for (int i = 0; i < numDolls; ++i) {
@@ -178,7 +178,7 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
                 _otherRagdolls.pop_back();
                 _otherRagdolls[i] = lastDoll;
             }
-            doll->_ragdollSimulation = NULL;
+            doll->_simulation = NULL;
             doll->setMassScale(1.0f);
             break;
         }
@@ -199,9 +199,9 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
     int numDolls = _otherRagdolls.size();
     {
         PerformanceTimer perfTimer("enforce");
-        _ragdoll->enforceRagdollConstraints();
+        _ragdoll->enforceConstraints();
         for (int i = 0; i < numDolls; ++i) {
-            _otherRagdolls[i]->enforceRagdollConstraints();
+            _otherRagdolls[i]->enforceConstraints();
         }
     }
 
@@ -214,9 +214,9 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
 
         { // enforce constraints
             PerformanceTimer perfTimer("enforce");
-            error = _ragdoll->enforceRagdollConstraints();
+            error = _ragdoll->enforceConstraints();
             for (int i = 0; i < numDolls; ++i) {
-                error = glm::max(error, _otherRagdolls[i]->enforceRagdollConstraints());
+                error = glm::max(error, _otherRagdolls[i]->enforceConstraints());
             }
         }
         enforceContactConstraints();
@@ -230,10 +230,10 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
 
 void PhysicsSimulation::moveRagdolls(float deltaTime) {
     PerformanceTimer perfTimer("integrate");
-    _ragdoll->stepRagdollForward(deltaTime);
+    _ragdoll->stepForward(deltaTime);
     int numDolls = _otherRagdolls.size();
     for (int i = 0; i < numDolls; ++i) {
-        _otherRagdolls[i]->stepRagdollForward(deltaTime);
+        _otherRagdolls[i]->stepForward(deltaTime);
     }
 }
 
