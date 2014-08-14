@@ -436,8 +436,6 @@ void ScriptEngine::run() {
             if (!_entityScriptingInterface.getEntityPacketSender()->isThreaded()) {
                 _entityScriptingInterface.getEntityPacketSender()->process();
             }
-        } else {
-            qDebug() << "Script engine wanted to release packets but no server existed!!!! **************";
         }
 
         if (_isAvatar && _avatarData) {
