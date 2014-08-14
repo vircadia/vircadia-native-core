@@ -37,6 +37,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
+#include <QtCore/QThread>
 #include <QtCore/QTimer>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
@@ -52,6 +53,7 @@
 
 #include "AudioRingBuffer.h"
 #include "AudioMixerClientData.h"
+#include "AudioMixerDatagramProcessor.h"
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
 
@@ -297,37 +299,31 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
     }
 }
 
-void AudioMixer::readPendingDatagrams() {
-    QByteArray receivedPacket;
-    HifiSockAddr senderSockAddr;
+void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
     NodeList* nodeList = NodeList::getInstance();
     
-    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            // pull any new audio data from nodes off of the network stack
-            PacketType mixerPacketType = packetTypeForPacket(receivedPacket);
-            if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
-                || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
-                || mixerPacketType == PacketTypeInjectAudio
-                || mixerPacketType == PacketTypeSilentAudioFrame
-                || mixerPacketType == PacketTypeAudioStreamStats) {
-                
-                nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
-            } else if (mixerPacketType == PacketTypeMuteEnvironment) {
-                QByteArray packet = receivedPacket;
-                populatePacketHeader(packet, PacketTypeMuteEnvironment);
-                
-                foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-                    if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData() && node != nodeList->sendingNodeForPacket(receivedPacket)) {
-                        nodeList->writeDatagram(packet, packet.size(), node);
-                    }
-                }
-
-            } else {
-                // let processNodeData handle it.
-                nodeList->processNodeData(senderSockAddr, receivedPacket);
+    // pull any new audio data from nodes off of the network stack
+    PacketType mixerPacketType = packetTypeForPacket(receivedPacket);
+    if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
+        || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
+        || mixerPacketType == PacketTypeInjectAudio
+        || mixerPacketType == PacketTypeSilentAudioFrame
+        || mixerPacketType == PacketTypeAudioStreamStats) {
+        
+        nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
+    } else if (mixerPacketType == PacketTypeMuteEnvironment) {
+        QByteArray packet = receivedPacket;
+        populatePacketHeader(packet, PacketTypeMuteEnvironment);
+        
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+            if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData() && node != nodeList->sendingNodeForPacket(receivedPacket)) {
+                nodeList->writeDatagram(packet, packet.size(), node);
             }
         }
+        
+    } else {
+        // let processNodeData handle it.
+        nodeList->processNodeData(senderSockAddr, receivedPacket);
     }
 }
 
@@ -392,7 +388,35 @@ void AudioMixer::run() {
     ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 
     NodeList* nodeList = NodeList::getInstance();
-
+    
+    // we do not want this event loop to be the handler for UDP datagrams, so disconnect
+    disconnect(&nodeList->getNodeSocket(), 0, this, 0);
+    
+    // setup a QThread with us as parent that will house the AudioMixerDatagramProcessor
+    _datagramProcessingThread = new QThread(this);
+    
+    // create an AudioMixerDatagramProcessor and move it to that thread
+    AudioMixerDatagramProcessor* datagramProcessor = new AudioMixerDatagramProcessor(nodeList->getNodeSocket(), thread());
+    datagramProcessor->moveToThread(_datagramProcessingThread);
+    
+    // remove the NodeList as the parent of the node socket
+    nodeList->getNodeSocket().setParent(NULL);
+    nodeList->getNodeSocket().moveToThread(_datagramProcessingThread);
+    
+    // let the datagram processor handle readyRead from node socket
+    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead,
+            datagramProcessor, &AudioMixerDatagramProcessor::readPendingDatagrams);
+    
+    // connect to the datagram processing thread signal that tells us we have to handle a packet
+    connect(datagramProcessor, &AudioMixerDatagramProcessor::packetRequiresProcessing, this, &AudioMixer::readPendingDatagram);
+    
+    // delete the datagram processor and the associated thread when the QThread quits
+    connect(_datagramProcessingThread, &QThread::finished, datagramProcessor, &QObject::deleteLater);
+    connect(datagramProcessor, &QObject::destroyed, _datagramProcessingThread, &QThread::deleteLater);
+    
+    // start the datagram processing thread
+    _datagramProcessingThread->start();
+    
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = attachNewNodeDataToNode;

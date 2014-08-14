@@ -147,15 +147,20 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
         setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<const char*>(&numBytes),
                    sizeof(numBytes));
         
-        int newBufferSize = 0;
-        getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<char*>(&newBufferSize), &sizeOfInt);
-
         QString bufferTypeString = (i == 0) ? "send" : "receive";
         
-        qDebug() << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to" << newBufferSize << "bytes";
+        if (oldBufferSize < numBytes) {
+            int newBufferSize = 0;
+            getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<char*>(&newBufferSize), &sizeOfInt);
+            
+            qDebug() << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
+                << newBufferSize << "bytes";
+        } else {
+            // don't make the buffer smaller
+            qDebug() << "Did not change socket" << bufferTypeString << "buffer size from" << oldBufferSize
+                << "since it is larger than desired size of" << numBytes;
+        }
     }
-    
-    
 }
 
 bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
