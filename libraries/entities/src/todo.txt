@@ -33,7 +33,7 @@ Model properties:
 //
 // REQUIRED TO DO:
 
-   12) clean up delete behavior...
+   
    12a) make sure server is deleting items??
    12b) Use the delete message instead of shouldDelete property
 
@@ -226,4 +226,4 @@ Model properties:
 // SOLVED - zz) what about editing/edit messages... moved to EntityItemProperties...
 //     EntityItem::encodeEntityEditMessageDetails() -- this could be a member of EntityItemProperties
 //     EntityTypes::decodeEntityEditPacket() -- this could be a member of EntityItemProperties
-
+// SOLVED - 12) change delete to use delete messages instead of shouldBeDeleted property

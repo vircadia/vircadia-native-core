@@ -108,10 +108,27 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                     << " command from client receivedBytes=" << packet.size()
                     << " sequence=" << sequence << " transitTime=" << transitTime << " usecs";
         }
+        
+        qDebug() << "    numBytesPacketHeader=" << numBytesPacketHeader;
+        qDebug() << "    sizeof(sequence)=" << sizeof(sequence);
+        qDebug() << "    sizeof(sentAt)=" << sizeof(sentAt);
+        
         int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
+
+        qDebug() << "    atByte=" << atByte;
+        qDebug() << "    packet.size()=" << packet.size();
+        
+        if (atByte >= packet.size()) {
+            qDebug() << "    ----- UNEXPECTED ---- got a packet without any edit details!!!! ------- HAVEN'T STARTED LOOP --------";
+        }
+
         unsigned char* editData = (unsigned char*)&packetData[atByte];
         while (atByte < packet.size()) {
+        
+            qDebug() << " --- inside while loop ---";
+        
             int maxSize = packet.size() - atByte;
+            qDebug() << "    maxSize=" << maxSize;
 
             if (debugProcessPacket) {
                 qDebug("OctreeInboundPacketProcessor::processPacket() %c "
@@ -127,7 +144,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                                                                                   packet.size(),
                                                                                   editData, maxSize, sendingNode);
 
-            if (debugProcessPacket) {
+            if (true || debugProcessPacket) {
                 qDebug() << "OctreeInboundPacketProcessor::processPacket() after processEditPacketData()..."
                                 << "editDataBytesRead=" << editDataBytesRead;
             }
@@ -141,9 +158,15 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
             processTime += thisProcessTime;
             lockWaitTime += thisLockWaitTime;
 
+            qDebug() << "    editDataBytesRead=" << editDataBytesRead;
+
             // skip to next voxel edit record in the packet
             editData += editDataBytesRead;
             atByte += editDataBytesRead;
+
+            qDebug() << "    AFTER processEditPacketData atByte=" << atByte;
+            qDebug() << "    AFTER processEditPacketData packet.size()=" << packet.size();
+
         }
 
         if (debugProcessPacket) {

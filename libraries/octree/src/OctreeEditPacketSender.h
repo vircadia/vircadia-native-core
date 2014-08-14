@@ -113,6 +113,7 @@ protected:
     int _maxPendingMessages;
     bool _releaseQueuedMessagesPending;
     QMutex _pendingPacketsLock;
+    QMutex _packetsQueueLock; // don't let different threads release the queue while another thread is writing to it
     QVector<EditPacketBuffer*> _preServerPackets; // these will get packed into other larger packets
     QVector<EditPacketBuffer*> _preServerSingleMessagePackets; // these will go out as is
 
