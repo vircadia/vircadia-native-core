@@ -78,7 +78,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
         return;
     }
 
-    bool debugProcessPacket = true;// _myServer->wantsVerboseDebug();
+    bool debugProcessPacket = _myServer->wantsVerboseDebug();
 
     if (debugProcessPacket) {
         qDebug("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%d", &packet, packet.size());
@@ -109,28 +109,31 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                     << " sequence=" << sequence << " transitTime=" << transitTime << " usecs";
         }
         
-        qDebug() << "    numBytesPacketHeader=" << numBytesPacketHeader;
-        qDebug() << "    sizeof(sequence)=" << sizeof(sequence);
-        qDebug() << "    sizeof(sentAt)=" << sizeof(sentAt);
+        if (debugProcessPacket) {
+            qDebug() << "    numBytesPacketHeader=" << numBytesPacketHeader;
+            qDebug() << "    sizeof(sequence)=" << sizeof(sequence);
+            qDebug() << "    sizeof(sentAt)=" << sizeof(sentAt);
+        }
         
         int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
 
-        qDebug() << "    atByte=" << atByte;
-        qDebug() << "    packet.size()=" << packet.size();
-        
-        if (atByte >= packet.size()) {
-            qDebug() << "    ----- UNEXPECTED ---- got a packet without any edit details!!!! ------- HAVEN'T STARTED LOOP --------";
+        if (debugProcessPacket) {
+            qDebug() << "    atByte=" << atByte;
+            qDebug() << "    packet.size()=" << packet.size();
+            if (atByte >= packet.size()) {
+                qDebug() << "    ----- UNEXPECTED ---- got a packet without any edit details!!!! --------";
+            }
         }
+        
 
         unsigned char* editData = (unsigned char*)&packetData[atByte];
         while (atByte < packet.size()) {
         
-            qDebug() << " --- inside while loop ---";
-        
             int maxSize = packet.size() - atByte;
-            qDebug() << "    maxSize=" << maxSize;
 
             if (debugProcessPacket) {
+                qDebug() << " --- inside while loop ---";
+                qDebug() << "    maxSize=" << maxSize;
                 qDebug("OctreeInboundPacketProcessor::processPacket() %c "
                        "packetData=%p packetLength=%d voxelData=%p atByte=%d maxSize=%d",
                         packetType, packetData, packet.size(), editData, atByte, maxSize);
@@ -144,7 +147,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                                                                                   packet.size(),
                                                                                   editData, maxSize, sendingNode);
 
-            if (true || debugProcessPacket) {
+            if (debugProcessPacket) {
                 qDebug() << "OctreeInboundPacketProcessor::processPacket() after processEditPacketData()..."
                                 << "editDataBytesRead=" << editDataBytesRead;
             }
@@ -158,14 +161,15 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
             processTime += thisProcessTime;
             lockWaitTime += thisLockWaitTime;
 
-            qDebug() << "    editDataBytesRead=" << editDataBytesRead;
-
             // skip to next voxel edit record in the packet
             editData += editDataBytesRead;
             atByte += editDataBytesRead;
 
-            qDebug() << "    AFTER processEditPacketData atByte=" << atByte;
-            qDebug() << "    AFTER processEditPacketData packet.size()=" << packet.size();
+            if (debugProcessPacket) {
+                qDebug() << "    editDataBytesRead=" << editDataBytesRead;
+                qDebug() << "    AFTER processEditPacketData atByte=" << atByte;
+                qDebug() << "    AFTER processEditPacketData packet.size()=" << packet.size();
+            }
 
         }
 
