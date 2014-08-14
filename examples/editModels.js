@@ -474,6 +474,7 @@ var modelUploader = (function () {
         mapping = {};
         geometry = {};
         geometry.textures = [];
+        geometry.embedded = [];
     }
 
     function readFile(filename) {
@@ -575,7 +576,8 @@ var modelUploader = (function () {
         var textures,
             view,
             index,
-            EOF;
+            EOF,
+            previousNodeFilename;
 
         // Reference:
         // http://code.blender.org/index.php/2013/08/fbx-binary-file-format-specification/
@@ -609,12 +611,19 @@ var modelUploader = (function () {
             name = view.string(index, nameLength).toLowerCase();
             index += nameLength;
 
+            if (name === "content" && previousNodeFilename !== "") {
+                geometry.embedded.push(previousNodeFilename);
+            }
+
             if (name === "relativefilename") {
                 filename = view.string(index + 5, view.getUint32(index + 1, true)).fileName();
                 if (!textures.hasOwnProperty(filename)) {
                     textures[filename] = "";
                     geometry.textures.push(filename);
                 }
+                previousNodeFilename = filename;
+            } else {
+                previousNodeFilename = "";
             }
 
             index += (propertyListLength);
@@ -630,31 +639,49 @@ var modelUploader = (function () {
                 viewLength,
                 charCode,
                 charCodes,
-                filename;
+                numCharCodes,
+                filename,
+                relativeFilename = "",
+                MAX_CHAR_CODES = 250;
 
             view = new Uint8Array(fbxBuffer.buffer);
             viewLength = view.byteLength;
             charCodes = [];
+            numCharCodes = 0;
 
             for (index = 0; index < viewLength; index += 1) {
                 charCode = view[index];
-                if (charCode === 10) {  // Can ignore EOF
-                    line = String.fromCharCode.apply(String, charCodes).trim();
-                    if (line.slice(0, 17).toLowerCase() === "relativefilename:") {
-                        filename = line.slice(line.indexOf("\""), line.lastIndexOf("\"") - line.length).fileName();
-                        if (!textures.hasOwnProperty(filename)) {
-                            textures[filename] = "";
-                            geometry.textures.push(filename);
+                if (charCode !== 9 && charCode !== 32) {
+                    if (charCode === 10) {  // EOL. Can ignore EOF.
+                        line = String.fromCharCode.apply(String, charCodes).toLowerCase();
+                        // For embedded textures, "Content:" line immediately follows "RelativeFilename:" line.
+                        if (line.slice(0, 8) === "content:" && relativeFilename !== "") {
+                            geometry.embedded.push(relativeFilename);
+                        }
+                        if (line.slice(0, 17) === "relativefilename:") {
+                            filename = line.slice(line.indexOf("\""), line.lastIndexOf("\"") - line.length).fileName();
+                            if (!textures.hasOwnProperty(filename)) {
+                                textures[filename] = "";
+                                geometry.textures.push(filename);
+                            }
+                            relativeFilename = filename;
+                        } else {
+                            relativeFilename = "";
+                        }
+                        charCodes = [];
+                        numCharCodes = 0;
+                    } else {
+                        if (numCharCodes < MAX_CHAR_CODES) {  // Only interested in start of line
+                            charCodes.push(charCode);
+                            numCharCodes += 1;
                         }
                     }
-                    charCodes = [];
-                } else {
-                    charCodes.push(charCode);
                 }
             }
         }
 
         if (view.string(0, 18) === "Kaydara FBX Binary") {
+            previousNodeFilename = "";
 
             index = 27;
             while (index < view.byteLength - 39 && !EOF) {
@@ -800,6 +827,7 @@ var modelUploader = (function () {
             textureBuffer,
             textureSourceFormat,
             textureTargetFormat,
+            embeddedTextures,
             i;
 
         info("Preparing to send model");
@@ -858,23 +886,28 @@ var modelUploader = (function () {
         }
 
         // Textures
+        embeddedTextures = "|" + geometry.embedded.join("|") + "|";
         for (i = 0; i < geometry.textures.length; i += 1) {
-            textureBuffer = readFile(modelFile.path() + "\/"
-                + (mapping[TEXDIR_FIELD] !== "." ? mapping[TEXDIR_FIELD] + "\/" : "")
-                + geometry.textures[i]);
-            if (textureBuffer === null) {
-                return;
+            if (embeddedTextures.indexOf("|" + geometry.textures[i].fileName() + "|") === -1) {
+                textureBuffer = readFile(modelFile.path() + "\/"
+                    + (mapping[TEXDIR_FIELD] !== "." ? mapping[TEXDIR_FIELD] + "\/" : "")
+                    + geometry.textures[i]);
+                if (textureBuffer === null) {
+                    return;
+                }
+
+                textureSourceFormat = geometry.textures[i].fileType().toLowerCase();
+                textureTargetFormat = (textureSourceFormat === "jpg" ? "jpg" : "png");
+                textureBuffer.buffer =
+                    textureBuffer.buffer.recodeImage(textureSourceFormat, textureTargetFormat, MAX_TEXTURE_SIZE);
+                textureBuffer.filename = textureBuffer.filename.slice(0, -textureSourceFormat.length) + textureTargetFormat;
+
+                multiparts.push({
+                    name: "texture" + i,
+                    buffer: textureBuffer
+                });
             }
 
-            textureSourceFormat = geometry.textures[i].fileType().toLowerCase();
-            textureTargetFormat = (textureSourceFormat === "jpg" ? "jpg" : "png");
-            textureBuffer.buffer = textureBuffer.buffer.recodeImage(textureSourceFormat, textureTargetFormat, MAX_TEXTURE_SIZE);
-            textureBuffer.filename = textureBuffer.filename.slice(0, -textureSourceFormat.length) + textureTargetFormat;
-
-            multiparts.push({
-                name: "texture" + i,
-                buffer: textureBuffer
-            });
             if (!isProcessing) { return; }
         }
 
