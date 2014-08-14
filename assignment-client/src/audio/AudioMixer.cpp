@@ -636,8 +636,7 @@ void AudioMixer::run() {
             perSecondActions();
             _lastPerSecondCallbackTime = now;
         }
-
-        bool streamStatsPrinted = false;
+        
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
