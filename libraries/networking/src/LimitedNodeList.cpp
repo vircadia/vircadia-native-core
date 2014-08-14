@@ -82,7 +82,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
         qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
-    const int LARGER_BUFFER_SIZE = 2097152;
+    const int LARGER_BUFFER_SIZE = 1048576;
     changeSocketBufferSizes(LARGER_BUFFER_SIZE);
     
     _packetStatTimer.start();
