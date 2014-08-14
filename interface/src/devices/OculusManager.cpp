@@ -504,7 +504,7 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 }
     
 glm::vec3 OculusManager::getRelativePosition() {
-#if defined(__APPLE__) || defined(_WIN32)
+#if (defined(__APPLE__) || defined(_WIN32)) && HAVE_LIBOVR
     ovrTrackingState trackingState = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
     ovrVector3f headPosition = trackingState.HeadPose.ThePose.Position;
     
