@@ -141,6 +141,9 @@ function update(dt) {
     velocity.z = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, velocity.z));
     var v = Quat.rotate(MyAvatar.headOrientation, velocity);
 
+    if (velocityVertical == 0) {
+        targetVelocityVertical -= (velocityVertical * DRAG_COEFFICIENT * dt);
+    }
     velocityVertical += targetVelocityVertical;
     velocityVertical = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, velocityVertical));
     v.y += velocityVertical;
