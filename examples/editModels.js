@@ -188,8 +188,7 @@ var progressDialog = (function () {
         cancelHeight = 32,
         textColor = { red: 255, green: 255, blue: 255 },
         textBackground = { red: 52, green: 52, blue: 52 },
-        backgroundUrl = "http://ctrlaltstudio.com/hifi/progress-background.svg",  // DJRTODO: Update with HiFi location.
-        //backgroundUrl = "http://public.highfidelity.io/images/tools/progress-background.svg",
+        backgroundUrl = toolIconUrl + "progress-background.svg",
         windowDimensions;
 
     progressBackground = Overlays.addOverlay("image", {
