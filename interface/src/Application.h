@@ -297,6 +297,8 @@ public:
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
 
+    void setCursorVisible(bool visible);
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.

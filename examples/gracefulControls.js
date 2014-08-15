@@ -157,6 +157,7 @@ function enable() {
     for (var i = 0; i < CAPTURED_KEYS.length; i++) {
         Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
     }
+    Window.setCursorVisible(false);
 }
 
 function disable() {
@@ -164,9 +165,8 @@ function disable() {
     for (var i = 0; i < CAPTURED_KEYS.length; i++) {
         Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
     }
+    Window.setCursorVisible(true);
 }
-
-enable();
 
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);

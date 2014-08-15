@@ -34,6 +34,10 @@ QScriptValue WindowScriptingInterface::hasFocus() {
     return Application::getInstance()->getGLWidget()->hasFocus();
 }
 
+void WindowScriptingInterface::setCursorVisible(bool visible) {
+    Application::getInstance()->setCursorVisible(visible);
+}
+
 void WindowScriptingInterface::setCursorPosition(int x, int y) {
     QCursor::setPos(x, y);
 }
