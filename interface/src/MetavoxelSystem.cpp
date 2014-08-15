@@ -37,6 +37,9 @@ void MetavoxelSystem::init() {
     _pointBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(new BufferDataAttribute("pointBuffer"));
     _heightfieldBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(
         new BufferDataAttribute("heightfieldBuffer"));
+    
+    _heightfieldBufferAttribute->setLODThresholdMultiplier(
+        AttributeRegistry::getInstance()->getHeightfieldAttribute()->getLODThresholdMultiplier());
 }
 
 MetavoxelLOD MetavoxelSystem::getLOD() {
@@ -118,10 +121,271 @@ void MetavoxelSystem::render() {
     guideToAugmented(renderVisitor);
 }
 
+class RayHeightfieldIntersectionVisitor : public RayIntersectionVisitor {
+public:
+    
+    float intersectionDistance;
+    
+    RayHeightfieldIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction, const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info, float distance);
+};
+
+RayHeightfieldIntersectionVisitor::RayHeightfieldIntersectionVisitor(const glm::vec3& origin,
+        const glm::vec3& direction, const MetavoxelLOD& lod) :
+    RayIntersectionVisitor(origin, direction, QVector<AttributePointer>() <<
+        Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), QVector<AttributePointer>(), lod),
+    intersectionDistance(FLT_MAX) {
+}
+
+static const float EIGHT_BIT_MAXIMUM_RECIPROCAL = 1.0f / 255.0f;
+
+int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
+    if (!info.isLeaf) {
+        return _order;
+    }
+    const HeightfieldBuffer* buffer = static_cast<HeightfieldBuffer*>(
+        info.inputValues.at(0).getInlineValue<BufferDataPointer>().data());
+    if (!buffer) {
+        return STOP_RECURSION;
+    }
+    const QByteArray& contents = buffer->getHeight();
+    const uchar* src = (const uchar*)contents.constData();
+    int size = glm::sqrt((float)contents.size());
+    int unextendedSize = size - HeightfieldBuffer::HEIGHT_EXTENSION;
+    int highest = HeightfieldBuffer::HEIGHT_BORDER + unextendedSize;
+    float heightScale = unextendedSize * EIGHT_BIT_MAXIMUM_RECIPROCAL;
+    
+    // find the initial location in heightfield coordinates
+    glm::vec3 entry = (_origin + distance * _direction - info.minimum) * (float)unextendedSize / info.size;
+    entry.x += HeightfieldBuffer::HEIGHT_BORDER;
+    entry.z += HeightfieldBuffer::HEIGHT_BORDER;
+    glm::vec3 floors = glm::floor(entry);
+    glm::vec3 ceils = glm::ceil(entry);
+    if (floors.x == ceils.x) {
+        if (_direction.x > 0.0f) {
+            ceils.x += 1.0f;
+        } else {
+            floors.x -= 1.0f;
+        } 
+    }
+    if (floors.z == ceils.z) {
+        if (_direction.z > 0.0f) {
+            ceils.z += 1.0f;
+        } else {
+            floors.z -= 1.0f;
+        }
+    }
+    
+    bool withinBounds = true;
+    float accumulatedDistance = 0.0f;
+    while (withinBounds) {
+        // find the heights at the corners of the current cell
+        int floorX = qMin(qMax((int)floors.x, HeightfieldBuffer::HEIGHT_BORDER), highest);
+        int floorZ = qMin(qMax((int)floors.z, HeightfieldBuffer::HEIGHT_BORDER), highest);
+        int ceilX = qMin(qMax((int)ceils.x, HeightfieldBuffer::HEIGHT_BORDER), highest);
+        int ceilZ = qMin(qMax((int)ceils.z, HeightfieldBuffer::HEIGHT_BORDER), highest);
+        float upperLeft = src[floorZ * size + floorX] * heightScale;
+        float upperRight = src[floorZ * size + ceilX] * heightScale;
+        float lowerLeft = src[ceilZ * size + floorX] * heightScale;
+        float lowerRight = src[ceilZ * size + ceilX] * heightScale;
+        
+        // find the distance to the next x coordinate
+        float xDistance = FLT_MAX;
+        if (_direction.x > 0.0f) {
+            xDistance = (ceils.x - entry.x) / _direction.x;
+        } else if (_direction.x < 0.0f) {
+            xDistance = (floors.x - entry.x) / _direction.x;
+        }
+        
+        // and the distance to the next z coordinate
+        float zDistance = FLT_MAX;
+        if (_direction.z > 0.0f) {
+            zDistance = (ceils.z - entry.z) / _direction.z;
+        } else if (_direction.z < 0.0f) {
+            zDistance = (floors.z - entry.z) / _direction.z;
+        }
+        
+        // the exit distance is the lower of those two
+        float exitDistance = qMin(xDistance, zDistance);
+        glm::vec3 exit, nextFloors = floors, nextCeils = ceils;
+        if (exitDistance == FLT_MAX) {
+            if (_direction.y > 0.0f) {
+                return SHORT_CIRCUIT; // line points upwards; no collisions possible
+            }    
+            withinBounds = false; // line points downwards; check this cell only
+            
+        } else {
+            // find the exit point and the next cell, and determine whether it's still within the bounds
+            exit = entry + exitDistance * _direction;
+            withinBounds = (exit.y >= HeightfieldBuffer::HEIGHT_BORDER && exit.y <= highest);
+            if (exitDistance == xDistance) {
+                if (_direction.x > 0.0f) {
+                    nextFloors.x += 1.0f;
+                    withinBounds &= (nextCeils.x += 1.0f) <= highest;
+                } else {
+                    withinBounds &= (nextFloors.x -= 1.0f) >= HeightfieldBuffer::HEIGHT_BORDER;
+                    nextCeils.x -= 1.0f;
+                }
+            }
+            if (exitDistance == zDistance) {
+                if (_direction.z > 0.0f) {
+                    nextFloors.z += 1.0f;
+                    withinBounds &= (nextCeils.z += 1.0f) <= highest;
+                } else {
+                    withinBounds &= (nextFloors.z -= 1.0f) >= HeightfieldBuffer::HEIGHT_BORDER;
+                    nextCeils.z -= 1.0f;
+                }
+            }
+            // check the vertical range of the ray against the ranges of the cell heights
+            if (qMin(entry.y, exit.y) > qMax(qMax(upperLeft, upperRight), qMax(lowerLeft, lowerRight)) ||
+                    qMax(entry.y, exit.y) < qMin(qMin(upperLeft, upperRight), qMin(lowerLeft, lowerRight))) {
+                entry = exit;
+                floors = nextFloors;
+                ceils = nextCeils;
+                accumulatedDistance += exitDistance;
+                continue;
+            } 
+        }
+        // having passed the bounds check, we must check against the planes
+        glm::vec3 relativeEntry = entry - glm::vec3(floors.x, upperLeft, floors.z);
+        
+        // first check the triangle including the Z+ segment
+        glm::vec3 lowerNormal(lowerLeft - lowerRight, 1.0f, upperLeft - lowerLeft);
+        float lowerProduct = glm::dot(lowerNormal, _direction);
+        if (lowerProduct < 0.0f) {
+            float planeDistance = -glm::dot(lowerNormal, relativeEntry) / lowerProduct;
+            glm::vec3 intersection = relativeEntry + planeDistance * _direction;
+            if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
+                    intersection.z >= intersection.x) {
+                intersectionDistance = qMin(intersectionDistance, distance +
+                    (accumulatedDistance + planeDistance) * (info.size / unextendedSize));
+                return SHORT_CIRCUIT;
+            }
+        }
+        
+        // then the one with the X+ segment
+        glm::vec3 upperNormal(upperLeft - upperRight, 1.0f, upperRight - lowerRight);
+        float upperProduct = glm::dot(upperNormal, _direction);
+        if (upperProduct < 0.0f) {
+            float planeDistance = -glm::dot(upperNormal, relativeEntry) / upperProduct;
+            glm::vec3 intersection = relativeEntry + planeDistance * _direction;
+            if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
+                    intersection.x >= intersection.z) {
+                intersectionDistance = qMin(intersectionDistance, distance +
+                    (accumulatedDistance + planeDistance) * (info.size / unextendedSize));
+                return SHORT_CIRCUIT;
+            }
+        }
+        
+        // no joy; continue on our way
+        entry = exit;
+        floors = nextFloors;
+        ceils = nextCeils;
+        accumulatedDistance += exitDistance;
+    }
+    
+    return STOP_RECURSION;
+}
+
+bool MetavoxelSystem::findFirstRayHeightfieldIntersection(const glm::vec3& origin,
+        const glm::vec3& direction, float& distance) {
+    RayHeightfieldIntersectionVisitor visitor(origin, direction, getLOD());
+    guideToAugmented(visitor);
+    if (visitor.intersectionDistance == FLT_MAX) {
+        return false;
+    }
+    distance = visitor.intersectionDistance;
+    return true;
+}
+
+class HeightfieldHeightVisitor : public MetavoxelVisitor {
+public:
+    
+    float height;
+    
+    HeightfieldHeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    glm::vec3 _location;
+};
+
+HeightfieldHeightVisitor::HeightfieldHeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location) :
+    MetavoxelVisitor(QVector<AttributePointer>() <<
+        Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), QVector<AttributePointer>(), lod),
+    height(-FLT_MAX),
+    _location(location) {
+}
+
+static const int REVERSE_ORDER = MetavoxelVisitor::encodeOrder(7, 6, 5, 4, 3, 2, 1, 0);
+
+int HeightfieldHeightVisitor::visit(MetavoxelInfo& info) {
+    glm::vec3 relative = _location - info.minimum;
+    if (relative.x < 0.0f || relative.z < 0.0f || relative.x > info.size || relative.z > info.size ||
+            height >= info.minimum.y + info.size) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return REVERSE_ORDER;
+    }
+    const HeightfieldBuffer* buffer = static_cast<HeightfieldBuffer*>(
+        info.inputValues.at(0).getInlineValue<BufferDataPointer>().data());
+    if (!buffer) {
+        return STOP_RECURSION;
+    }
+    const QByteArray& contents = buffer->getHeight();
+    const uchar* src = (const uchar*)contents.constData();
+    int size = glm::sqrt((float)contents.size());
+    int unextendedSize = size - HeightfieldBuffer::HEIGHT_EXTENSION;
+    int highest = HeightfieldBuffer::HEIGHT_BORDER + unextendedSize;
+    relative *= unextendedSize / info.size;
+    relative.x += HeightfieldBuffer::HEIGHT_BORDER;
+    relative.z += HeightfieldBuffer::HEIGHT_BORDER;
+    
+    // find the bounds of the cell containing the point and the shared vertex heights
+    glm::vec3 floors = glm::floor(relative);
+    glm::vec3 ceils = glm::ceil(relative);
+    glm::vec3 fracts = glm::fract(relative);
+    int floorX = qMin(qMax((int)floors.x, HeightfieldBuffer::HEIGHT_BORDER), highest);
+    int floorZ = qMin(qMax((int)floors.z, HeightfieldBuffer::HEIGHT_BORDER), highest);
+    int ceilX = qMin(qMax((int)ceils.x, HeightfieldBuffer::HEIGHT_BORDER), highest);
+    int ceilZ = qMin(qMax((int)ceils.z, HeightfieldBuffer::HEIGHT_BORDER), highest);
+    float upperLeft = src[floorZ * size + floorX];
+    float lowerRight = src[ceilZ * size + ceilX];
+    float interpolatedHeight = glm::mix(upperLeft, lowerRight, fracts.z);
+    
+    // the final vertex (and thus which triangle we check) depends on which half we're on
+    if (fracts.x >= fracts.z) {
+        float upperRight = src[floorZ * size + ceilX];
+        interpolatedHeight = glm::mix(interpolatedHeight, glm::mix(upperRight, lowerRight, fracts.z),
+            (fracts.x - fracts.z) / (1.0f - fracts.z));
+        
+    } else {
+        float lowerLeft = src[ceilZ * size + floorX];
+        interpolatedHeight = glm::mix(glm::mix(upperLeft, lowerLeft, fracts.z), interpolatedHeight, fracts.x / fracts.z);
+    }
+    if (interpolatedHeight == 0.0f) {
+        return STOP_RECURSION; // ignore zero values
+    }
+    
+    // convert the interpolated height into world space
+    height = qMax(height, info.minimum.y + interpolatedHeight * info.size * EIGHT_BIT_MAXIMUM_RECIPROCAL);
+    return SHORT_CIRCUIT;
+}
+
+float MetavoxelSystem::getHeightfieldHeight(const glm::vec3& location) {
+    HeightfieldHeightVisitor visitor(getLOD(), location);
+    guideToAugmented(visitor);
+    return visitor.height;
+}
+
 class HeightfieldCursorRenderVisitor : public MetavoxelVisitor {
 public:
     
-    HeightfieldCursorRenderVisitor(const MetavoxelLOD& lod, const Box& bounds);
+    HeightfieldCursorRenderVisitor(const Box& bounds);
     
     virtual int visit(MetavoxelInfo& info);
 
@@ -130,9 +394,9 @@ private:
     Box _bounds;
 };
 
-HeightfieldCursorRenderVisitor::HeightfieldCursorRenderVisitor(const MetavoxelLOD& lod, const Box& bounds) :
+HeightfieldCursorRenderVisitor::HeightfieldCursorRenderVisitor(const Box& bounds) :
     MetavoxelVisitor(QVector<AttributePointer>() <<
-        Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), QVector<AttributePointer>(), lod),
+        Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute()),
     _bounds(bounds) {
 }
 
@@ -172,7 +436,7 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
     glActiveTexture(GL_TEXTURE0);
     
     glm::vec3 extents(radius, radius, radius);
-    HeightfieldCursorRenderVisitor visitor(getLOD(), Box(position - extents, position + extents));
+    HeightfieldCursorRenderVisitor visitor(Box(position - extents, position + extents));
     guideToAugmented(visitor);
     
     DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().release();
@@ -332,16 +596,32 @@ void PointBuffer::render(bool cursor) {
     _buffer.release();
 }
 
+const int HeightfieldBuffer::HEIGHT_BORDER = 1;
+const int HeightfieldBuffer::SHARED_EDGE = 1;
+const int HeightfieldBuffer::HEIGHT_EXTENSION = 2 * HeightfieldBuffer::HEIGHT_BORDER + HeightfieldBuffer::SHARED_EDGE;
+
 HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
-        const QByteArray& height, const QByteArray& color, bool clearAfterLoading) :
+        const QByteArray& height, const QByteArray& color) :
     _translation(translation),
     _scale(scale),
+    _heightBounds(translation, translation + glm::vec3(scale, scale, scale)),
+    _colorBounds(_heightBounds),
     _height(height),
     _color(color),
-    _clearAfterLoading(clearAfterLoading),
     _heightTextureID(0),
     _colorTextureID(0),
-    _heightSize(glm::sqrt(height.size())) {
+    _heightSize(glm::sqrt(height.size())),
+    _heightIncrement(scale / (_heightSize - HEIGHT_EXTENSION)),
+    _colorSize(glm::sqrt(color.size() / HeightfieldData::COLOR_BYTES)),
+    _colorIncrement(scale / (_colorSize - SHARED_EDGE)) {
+    
+    _heightBounds.minimum.x -= _heightIncrement * HEIGHT_BORDER;
+    _heightBounds.minimum.z -= _heightIncrement * HEIGHT_BORDER;
+    _heightBounds.maximum.x += _heightIncrement * (SHARED_EDGE + HEIGHT_BORDER);
+    _heightBounds.maximum.z += _heightIncrement * (SHARED_EDGE + HEIGHT_BORDER);
+    
+    _colorBounds.maximum.x += _colorIncrement * SHARED_EDGE;
+    _colorBounds.maximum.z += _colorIncrement * SHARED_EDGE;
 }
 
 HeightfieldBuffer::~HeightfieldBuffer() {
@@ -355,6 +635,32 @@ HeightfieldBuffer::~HeightfieldBuffer() {
     }
 }
 
+QByteArray HeightfieldBuffer::getUnextendedHeight() const {
+    int srcSize = glm::sqrt(_height.size());
+    int destSize = srcSize - 3;
+    QByteArray unextended(destSize * destSize, 0);
+    const char* src = _height.constData() + srcSize + 1;
+    char* dest = unextended.data();
+    for (int z = 0; z < destSize; z++, src += srcSize, dest += destSize) {
+        memcpy(dest, src, destSize);
+    }
+    return unextended;
+}
+
+QByteArray HeightfieldBuffer::getUnextendedColor() const {
+    int srcSize = glm::sqrt(_color.size() / HeightfieldData::COLOR_BYTES);
+    int destSize = srcSize - 1;
+    QByteArray unextended(destSize * destSize * HeightfieldData::COLOR_BYTES, 0);
+    const char* src = _color.constData();
+    int srcStride = srcSize * HeightfieldData::COLOR_BYTES;
+    char* dest = unextended.data();
+    int destStride = destSize * HeightfieldData::COLOR_BYTES;
+    for (int z = 0; z < destSize; z++, src += srcStride, dest += destStride) {
+        memcpy(dest, src, destStride);
+    }
+    return unextended;
+}
+
 class HeightfieldPoint {
 public:
     glm::vec2 textureCoord;
@@ -366,14 +672,12 @@ void HeightfieldBuffer::render(bool cursor) {
     if (_heightTextureID == 0) {
         glGenTextures(1, &_heightTextureID);
         glBindTexture(GL_TEXTURE_2D, _heightTextureID);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _heightSize, _heightSize, 0,
             GL_LUMINANCE, GL_UNSIGNED_BYTE, _height.constData());
-        if (_clearAfterLoading) {
-            _height.clear();
-        }
         
         glGenTextures(1, &_colorTextureID);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
@@ -385,32 +689,32 @@ void HeightfieldBuffer::render(bool cursor) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
                
         } else {
-            int colorSize = glm::sqrt(_color.size() / 3);
+            int colorSize = glm::sqrt(_color.size() / HeightfieldData::COLOR_BYTES);    
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, colorSize, colorSize, 0, GL_RGB, GL_UNSIGNED_BYTE, _color.constData());
-            if (_clearAfterLoading) {
-                _color.clear();
-            }
         }
     }
     // create the buffer objects lazily
-    int sizeWithSkirt = _heightSize + 2;
-    int vertexCount = sizeWithSkirt * sizeWithSkirt;
-    int rows = sizeWithSkirt - 1;
-    int indexCount = rows * rows * 4;
+    int innerSize = _heightSize - 2 * HeightfieldBuffer::HEIGHT_BORDER;
+    int vertexCount = _heightSize * _heightSize;
+    int rows = _heightSize - 1;
+    int indexCount = rows * rows * 3 * 2;
     BufferPair& bufferPair = _bufferPairs[_heightSize];
     if (!bufferPair.first.isCreated()) {
         QVector<HeightfieldPoint> vertices(vertexCount);
         HeightfieldPoint* point = vertices.data();
         
-        float step = 1.0f / (_heightSize - 1);
-        float z = -step;
-        for (int i = 0; i < sizeWithSkirt; i++, z += step) {
-            float x = -step;
+        float vertexStep = 1.0f / (innerSize - 1);
+        float z = -vertexStep;
+        float textureStep = 1.0f / _heightSize;
+        float t = textureStep / 2.0f;
+        for (int i = 0; i < _heightSize; i++, z += vertexStep, t += textureStep) {
+            float x = -vertexStep;
+            float s = textureStep / 2.0f;
             const float SKIRT_LENGTH = 0.25f;
-            float baseY = (i == 0 || i == sizeWithSkirt - 1) ? -SKIRT_LENGTH : 0.0f;
-            for (int j = 0; j < sizeWithSkirt; j++, point++, x += step) {
-                point->vertex = glm::vec3(x, (j == 0 || j == sizeWithSkirt - 1) ? -SKIRT_LENGTH : baseY, z);
-                point->textureCoord = glm::vec2(x, z);
+            float baseY = (i == 0 || i == _heightSize - 1) ? -SKIRT_LENGTH : 0.0f;
+            for (int j = 0; j < _heightSize; j++, point++, x += vertexStep, s += textureStep) {
+                point->vertex = glm::vec3(x, (j == 0 || j == _heightSize - 1) ? -SKIRT_LENGTH : baseY, z);
+                point->textureCoord = glm::vec2(s, t);
             }
         }
         
@@ -422,13 +726,16 @@ void HeightfieldBuffer::render(bool cursor) {
         QVector<int> indices(indexCount);
         int* index = indices.data();
         for (int i = 0; i < rows; i++) {
-            int lineIndex = i * sizeWithSkirt;
-            int nextLineIndex = (i + 1) * sizeWithSkirt;
+            int lineIndex = i * _heightSize;
+            int nextLineIndex = (i + 1) * _heightSize;
             for (int j = 0; j < rows; j++) {
                 *index++ = lineIndex + j;
                 *index++ = nextLineIndex + j;
                 *index++ = nextLineIndex + j + 1;
+                
+                *index++ = nextLineIndex + j + 1;
                 *index++ = lineIndex + j + 1;
+                *index++ = lineIndex + j;
             }
         }
         
@@ -452,18 +759,16 @@ void HeightfieldBuffer::render(bool cursor) {
     
     glBindTexture(GL_TEXTURE_2D, _heightTextureID);
     
-    int heightScaleLocation;
-    if (cursor) {
-        heightScaleLocation = DefaultMetavoxelRendererImplementation::getCursorHeightScaleLocation();
-    } else {
-        heightScaleLocation = DefaultMetavoxelRendererImplementation::getHeightScaleLocation();
+    if (!cursor) {
+        DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(
+            DefaultMetavoxelRendererImplementation::getHeightScaleLocation(), 1.0f / _heightSize);
+        DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(
+            DefaultMetavoxelRendererImplementation::getColorScaleLocation(), (float)_heightSize / innerSize);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
     }
     
-    DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(heightScaleLocation, 1.0f / _heightSize);
-        
-    glDrawRangeElements(GL_QUADS, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+    glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
     
     if (!cursor) {
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -518,15 +823,17 @@ BufferDataAttribute::BufferDataAttribute(const QString& name) :
 }
 
 bool BufferDataAttribute::merge(void*& parent, void* children[], bool postRead) const {
-    BufferDataPointer firstChild = decodeInline<BufferDataPointer>(children[0]);
-    for (int i = 1; i < MERGE_COUNT; i++) {
-        if (firstChild != decodeInline<BufferDataPointer>(children[i])) {
-            *(BufferDataPointer*)&parent = _defaultValue;
+    *(BufferDataPointer*)&parent = _defaultValue;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        if (decodeInline<BufferDataPointer>(children[i])) {
             return false;
         }
     }
-    *(BufferDataPointer*)&parent = firstChild;
     return true;
+}
+
+AttributeValue BufferDataAttribute::inherit(const AttributeValue& parentValue) const {
+    return AttributeValue(parentValue.getAttribute());
 }
 
 void DefaultMetavoxelRendererImplementation::init() {
@@ -548,6 +855,7 @@ void DefaultMetavoxelRendererImplementation::init() {
         _heightfieldProgram.setUniformValue("heightMap", 0);
         _heightfieldProgram.setUniformValue("diffuseMap", 1);
         _heightScaleLocation = _heightfieldProgram.uniformLocation("heightScale");
+        _colorScaleLocation = _heightfieldProgram.uniformLocation("colorScale");
         _heightfieldProgram.release();
         
         _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
@@ -558,7 +866,6 @@ void DefaultMetavoxelRendererImplementation::init() {
         
         _heightfieldCursorProgram.bind();
         _heightfieldCursorProgram.setUniformValue("heightMap", 0);
-        _cursorHeightScaleLocation = _heightfieldCursorProgram.uniformLocation("heightScale");
         _heightfieldCursorProgram.release();
     }
 }
@@ -634,33 +941,279 @@ bool PointAugmentVisitor::postVisit(MetavoxelInfo& info) {
     return true;
 }
 
-class HeightfieldAugmentVisitor : public MetavoxelVisitor {
+class HeightfieldFetchVisitor : public MetavoxelVisitor {
 public:
-
-    HeightfieldAugmentVisitor(const MetavoxelLOD& lod);
+    
+    HeightfieldFetchVisitor(const MetavoxelLOD& lod, const QVector<Box>& intersections);
+    
+    void init(HeightfieldBuffer* buffer) { _buffer = buffer; }
     
     virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    const QVector<Box>& _intersections;
+    HeightfieldBuffer* _buffer;
 };
 
-HeightfieldAugmentVisitor::HeightfieldAugmentVisitor(const MetavoxelLOD& lod) :
+HeightfieldFetchVisitor::HeightfieldFetchVisitor(const MetavoxelLOD& lod, const QVector<Box>& intersections) :
     MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
-        AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), QVector<AttributePointer>() <<
-            Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), lod) {
+        AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), QVector<AttributePointer>(), lod),
+    _intersections(intersections) {
 }
 
-int HeightfieldAugmentVisitor::visit(MetavoxelInfo& info) {
-    if (info.isLeaf) {
-        HeightfieldBuffer* buffer = NULL;
-        HeightfieldDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
-        if (height) {
-            HeightfieldDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldDataPointer>();
-            buffer = new HeightfieldBuffer(info.minimum, info.size, height->getContents(),
-                color ? color->getContents() : QByteArray());
-        }
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
+int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
+    Box bounds = info.getBounds();
+    const Box& heightBounds = _buffer->getHeightBounds();
+    if (!bounds.intersects(heightBounds)) {
         return STOP_RECURSION;
     }
-    return DEFAULT_ORDER;
+    if (!info.isLeaf && info.size > _buffer->getScale()) {
+        return DEFAULT_ORDER;
+    }
+    HeightfieldDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
+    if (!height) {
+        return STOP_RECURSION;
+    }
+    foreach (const Box& intersection, _intersections) {
+        Box overlap = intersection.getIntersection(bounds);
+        if (overlap.isEmpty()) {
+            continue;
+        }
+        float heightIncrement = _buffer->getHeightIncrement();
+        int destX = (overlap.minimum.x - heightBounds.minimum.x) / heightIncrement;
+        int destY = (overlap.minimum.z - heightBounds.minimum.z) / heightIncrement;
+        int destWidth = glm::ceil((overlap.maximum.x - overlap.minimum.x) / heightIncrement);
+        int destHeight = glm::ceil((overlap.maximum.z - overlap.minimum.z) / heightIncrement);
+        int heightSize = _buffer->getHeightSize();
+        char* dest = _buffer->getHeight().data() + destY * heightSize + destX;
+        
+        const QByteArray& srcHeight = height->getContents();
+        int srcSize = glm::sqrt(srcHeight.size());
+        float srcIncrement = info.size / srcSize;
+        
+        if (info.size == _buffer->getScale() && srcSize == (heightSize - HeightfieldBuffer::HEIGHT_EXTENSION)) {
+            // easy case: same resolution
+            int srcX = (overlap.minimum.x - info.minimum.x) / srcIncrement;
+            int srcY = (overlap.minimum.z - info.minimum.z) / srcIncrement;
+            
+            const char* src = srcHeight.constData() + srcY * srcSize + srcX;
+            for (int y = 0; y < destHeight; y++, src += srcSize, dest += heightSize) {
+                memcpy(dest, src, destWidth);
+            }
+        } else {
+            // more difficult: different resolutions
+            float srcX = (overlap.minimum.x - info.minimum.x) / srcIncrement;
+            float srcY = (overlap.minimum.z - info.minimum.z) / srcIncrement;
+            float srcAdvance = heightIncrement / srcIncrement;
+            int shift = 0;
+            float size = _buffer->getScale();
+            while (size < info.size) {
+                shift++;
+                size *= 2.0f;
+            }
+            const int EIGHT_BIT_MAXIMUM = 255;
+            int subtract = (_buffer->getTranslation().y - info.minimum.y) * EIGHT_BIT_MAXIMUM / _buffer->getScale();
+            for (int y = 0; y < destHeight; y++, dest += heightSize, srcY += srcAdvance) {
+                const uchar* src = (const uchar*)srcHeight.constData() + (int)srcY * srcSize;
+                float lineSrcX = srcX;
+                for (char* lineDest = dest, *end = dest + destWidth; lineDest != end; lineDest++, lineSrcX += srcAdvance) {
+                    *lineDest = qMin(qMax(0, (src[(int)lineSrcX] << shift) - subtract), EIGHT_BIT_MAXIMUM);
+                }
+            }
+        }
+        
+        int colorSize = _buffer->getColorSize();
+        if (colorSize == 0) {
+            return STOP_RECURSION;
+        }
+        HeightfieldDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldDataPointer>();
+        if (!color) {
+            return STOP_RECURSION;
+        }
+        const Box& colorBounds = _buffer->getColorBounds();
+        overlap = colorBounds.getIntersection(overlap);
+        float colorIncrement = _buffer->getColorIncrement();
+        destX = (overlap.minimum.x - colorBounds.minimum.x) / colorIncrement;
+        destY = (overlap.minimum.z - colorBounds.minimum.z) / colorIncrement;
+        destWidth = glm::ceil((overlap.maximum.x - overlap.minimum.x) / colorIncrement);
+        destHeight = glm::ceil((overlap.maximum.z - overlap.minimum.z) / colorIncrement);
+        dest = _buffer->getColor().data() + (destY * colorSize + destX) * HeightfieldData::COLOR_BYTES;
+        int destStride = colorSize * HeightfieldData::COLOR_BYTES;
+        int destBytes = destWidth * HeightfieldData::COLOR_BYTES;
+        
+        const QByteArray& srcColor = color->getContents();
+        srcSize = glm::sqrt(srcColor.size() / HeightfieldData::COLOR_BYTES);
+        int srcStride = srcSize * HeightfieldData::COLOR_BYTES;
+        srcIncrement = info.size / srcSize;
+        
+        if (srcIncrement == colorIncrement) {
+            // easy case: same resolution
+            int srcX = (overlap.minimum.x - info.minimum.x) / srcIncrement;
+            int srcY = (overlap.minimum.z - info.minimum.z) / srcIncrement;
+            
+            const char* src = srcColor.constData() + (srcY * srcSize + srcX) * HeightfieldData::COLOR_BYTES;    
+            for (int y = 0; y < destHeight; y++, src += srcStride, dest += destStride) {
+                memcpy(dest, src, destBytes);
+            }
+        } else {
+            // more difficult: different resolutions
+            float srcX = (overlap.minimum.x - info.minimum.x) / srcIncrement;
+            float srcY = (overlap.minimum.z - info.minimum.z) / srcIncrement;
+            float srcAdvance = colorIncrement / srcIncrement;
+            for (int y = 0; y < destHeight; y++, dest += destStride, srcY += srcAdvance) {
+                const char* src = srcColor.constData() + (int)srcY * srcStride;
+                float lineSrcX = srcX;
+                for (char* lineDest = dest, *end = dest + destBytes; lineDest != end; lineDest += HeightfieldData::COLOR_BYTES,
+                        lineSrcX += srcAdvance) {
+                    const char* lineSrc = src + (int)lineSrcX * HeightfieldData::COLOR_BYTES;
+                    lineDest[0] = lineSrc[0];
+                    lineDest[1] = lineSrc[1];
+                    lineDest[2] = lineSrc[2];
+                }
+            }
+        }
+    }
+    return STOP_RECURSION;
+}
+
+class HeightfieldRegionVisitor : public MetavoxelVisitor {
+public:
+    
+    QVector<Box> regions;
+    Box regionBounds;
+
+    HeightfieldRegionVisitor(const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    void addRegion(const Box& unextended, const Box& extended);
+    
+    QVector<Box> _intersections;
+    HeightfieldFetchVisitor _fetchVisitor;
+};
+
+HeightfieldRegionVisitor::HeightfieldRegionVisitor(const MetavoxelLOD& lod) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
+        Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), QVector<AttributePointer>() <<
+            Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), lod),
+    regionBounds(glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX), glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
+    _fetchVisitor(lod, _intersections) {
+}
+
+int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    HeightfieldBuffer* buffer = NULL;
+    HeightfieldDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
+    if (height) {
+        const QByteArray& heightContents = height->getContents();
+        int size = glm::sqrt(heightContents.size());
+        int extendedSize = size + HeightfieldBuffer::HEIGHT_EXTENSION;
+        int heightContentsSize = extendedSize * extendedSize;
+        
+        HeightfieldDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldDataPointer>();
+        int colorContentsSize = 0;
+        if (color) {
+            const QByteArray& colorContents = color->getContents();
+            int colorSize = glm::sqrt(colorContents.size() / HeightfieldData::COLOR_BYTES);
+            int extendedColorSize = colorSize + HeightfieldBuffer::SHARED_EDGE;
+            colorContentsSize = extendedColorSize * extendedColorSize * HeightfieldData::COLOR_BYTES;
+        }
+        
+        const HeightfieldBuffer* existingBuffer = static_cast<const HeightfieldBuffer*>(
+            info.inputValues.at(2).getInlineValue<BufferDataPointer>().data());
+        Box bounds = info.getBounds();
+        if (existingBuffer && existingBuffer->getHeight().size() == heightContentsSize &&
+                existingBuffer->getColor().size() == colorContentsSize) {
+            // we already have a buffer of the correct resolution    
+            addRegion(bounds, existingBuffer->getHeightBounds());
+            return STOP_RECURSION;
+        }
+        // we must create a new buffer and update its borders
+        buffer = new HeightfieldBuffer(info.minimum, info.size, QByteArray(heightContentsSize, 0),
+            QByteArray(colorContentsSize, 0));
+        const Box& heightBounds = buffer->getHeightBounds();
+        addRegion(bounds, heightBounds);
+        
+        _intersections.clear();
+        _intersections.append(Box(heightBounds.minimum,
+            glm::vec3(bounds.maximum.x, heightBounds.maximum.y, bounds.minimum.z)));
+        _intersections.append(Box(glm::vec3(bounds.maximum.x, heightBounds.minimum.y, heightBounds.minimum.z),
+            glm::vec3(heightBounds.maximum.x, heightBounds.maximum.y, bounds.maximum.z)));
+        _intersections.append(Box(glm::vec3(bounds.minimum.x, heightBounds.minimum.y, bounds.maximum.z),
+            heightBounds.maximum));
+        _intersections.append(Box(glm::vec3(heightBounds.minimum.x, heightBounds.minimum.y, bounds.minimum.z),
+            glm::vec3(bounds.minimum.x, heightBounds.maximum.y, heightBounds.maximum.z)));
+        
+        _fetchVisitor.init(buffer);
+        _data->guide(_fetchVisitor);
+    }
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
+    return STOP_RECURSION;
+}
+
+void HeightfieldRegionVisitor::addRegion(const Box& unextended, const Box& extended) {
+    regions.append(unextended);
+    regionBounds.add(extended);
+}
+
+class HeightfieldUpdateVisitor : public MetavoxelVisitor {
+public:
+    
+    HeightfieldUpdateVisitor(const MetavoxelLOD& lod, const QVector<Box>& regions, const Box& regionBounds);
+
+    virtual int visit(MetavoxelInfo& info);
+    
+private:
+    
+    const QVector<Box>& _regions;    
+    const Box& _regionBounds;
+    QVector<Box> _intersections;
+    HeightfieldFetchVisitor _fetchVisitor;
+};
+
+HeightfieldUpdateVisitor::HeightfieldUpdateVisitor(const MetavoxelLOD& lod, const QVector<Box>& regions,
+        const Box& regionBounds) :
+    MetavoxelVisitor(QVector<AttributePointer>() <<
+        Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), QVector<AttributePointer>() <<
+            Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), lod),
+    _regions(regions),
+    _regionBounds(regionBounds),
+    _fetchVisitor(lod, _intersections) {
+}
+
+int HeightfieldUpdateVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_regionBounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    const HeightfieldBuffer* buffer = static_cast<const HeightfieldBuffer*>(
+        info.inputValues.at(0).getInlineValue<BufferDataPointer>().data());
+    if (!buffer) {
+        return STOP_RECURSION;
+    }
+    _intersections.clear();
+    foreach (const Box& region, _regions) {
+        if (region.intersects(buffer->getHeightBounds())) {
+            _intersections.append(region.getIntersection(buffer->getHeightBounds()));
+        }
+    }
+    if (_intersections.isEmpty()) {
+        return STOP_RECURSION;
+    }
+    HeightfieldBuffer* newBuffer = new HeightfieldBuffer(info.minimum, info.size,
+        buffer->getHeight(), buffer->getColor());
+    _fetchVisitor.init(newBuffer);
+    _data->guide(_fetchVisitor);
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(newBuffer)));
+    return STOP_RECURSION;
 }
 
 void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
@@ -687,8 +1240,12 @@ void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const 
     PointAugmentVisitor pointAugmentVisitor(lod);
     data.guideToDifferent(expandedPrevious, pointAugmentVisitor);
     
-    HeightfieldAugmentVisitor heightfieldAugmentVisitor(lod);
-    data.guideToDifferent(expandedPrevious, heightfieldAugmentVisitor);
+    HeightfieldRegionVisitor heightfieldRegionVisitor(lod);
+    data.guideToDifferent(expandedPrevious, heightfieldRegionVisitor);
+    
+    HeightfieldUpdateVisitor heightfieldUpdateVisitor(lod, heightfieldRegionVisitor.regions,
+        heightfieldRegionVisitor.regionBounds);
+    data.guide(heightfieldUpdateVisitor);
 }
 
 class SpannerSimulateVisitor : public SpannerVisitor {
@@ -760,7 +1317,7 @@ bool SpannerRenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum,
 class BufferRenderVisitor : public MetavoxelVisitor {
 public:
     
-    BufferRenderVisitor(const AttributePointer& attribute, const MetavoxelLOD& lod);
+    BufferRenderVisitor(const AttributePointer& attribute);
     
     virtual int visit(MetavoxelInfo& info);
 
@@ -770,8 +1327,8 @@ private:
     int _containmentDepth;
 };
 
-BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute, const MetavoxelLOD& lod) :
-    MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>(), lod),
+BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute) :
+    MetavoxelVisitor(QVector<AttributePointer>() << attribute),
     _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
     _containmentDepth(INT_MAX) {
 }
@@ -785,11 +1342,14 @@ int BufferRenderVisitor::visit(MetavoxelInfo& info) {
         }
         _containmentDepth = (intersection == Frustum::CONTAINS_INTERSECTION) ? _depth : INT_MAX;
     }
+    if (!info.isLeaf) {
+        return _order;
+    }
     BufferDataPointer buffer = info.inputValues.at(0).getInlineValue<BufferDataPointer>();
     if (buffer) {
         buffer->render();
     }
-    return info.isLeaf ? STOP_RECURSION : _order;
+    return STOP_RECURSION;
 }
 
 void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod) {
@@ -818,7 +1378,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
 
     glDisable(GL_BLEND);
     
-    BufferRenderVisitor pointRenderVisitor(Application::getInstance()->getMetavoxels()->getPointBufferAttribute(), lod);
+    BufferRenderVisitor pointRenderVisitor(Application::getInstance()->getMetavoxels()->getPointBufferAttribute());
     data.guide(pointRenderVisitor);
     
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
@@ -838,8 +1398,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
-    BufferRenderVisitor heightfieldRenderVisitor(Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(),
-        lod);
+    BufferRenderVisitor heightfieldRenderVisitor(Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute());
     data.guide(heightfieldRenderVisitor);
     
     _heightfieldProgram.release();
@@ -856,8 +1415,8 @@ ProgramObject DefaultMetavoxelRendererImplementation::_pointProgram;
 int DefaultMetavoxelRendererImplementation::_pointScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldProgram;
 int DefaultMetavoxelRendererImplementation::_heightScaleLocation;
+int DefaultMetavoxelRendererImplementation::_colorScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldCursorProgram;
-int DefaultMetavoxelRendererImplementation::_cursorHeightScaleLocation;
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
     GLdouble coefficients[] = { x, y, z, w };
