@@ -13,17 +13,18 @@ var MOUSE_SENSITIVITY = 1.0;
 var W = 0.9;
 
 // Movement keys
-var KEY_FORWARD = "g";
-var KEY_BACKWARD = "b";
-var KEY_LEFT = "v";
-var KEY_RIGHT = "n";
-var KEY_UP = "y";
-var KEY_DOWN = "h";
+var KEY_FORWARD = "w";
+var KEY_BACKWARD = "s";
+var KEY_LEFT = "a";
+var KEY_RIGHT = "d";
+var KEY_UP = "e";
+var KEY_DOWN = "c";
 var CAPTURED_KEYS = [KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN];
 
 // Global Variables
 var keys = {};
 var velocity = { x: 0, y: 0, z: 0 };
+var velocityVertical = 0;
 var enabled = true;
 
 var lastX = 0;
@@ -72,7 +73,8 @@ function update(dt) {
     var maxMove = 3.0 * dt;
     // print("Pos: " + yawFromMouse + ", " + pitchFromMouse);
     var targetVelocity = { x: 0, y: 0, z: 0 };
-    var accelY = 0;
+    var targetVelocityVertical = 0;
+
     if (keys[KEY_FORWARD]) {
         targetVelocity.z -= ACCELERATION * dt;
     }
@@ -86,10 +88,10 @@ function update(dt) {
         targetVelocity.x += ACCELERATION * dt;
     }
     if (keys[KEY_UP]) {
-        accelY += ACCELERATION * dt;
+        targetVelocityVertical += ACCELERATION * dt;
     }
     if (keys[KEY_DOWN]) {
-        accelY -= ACCELERATION * dt;
+        targetVelocityVertical -= ACCELERATION * dt;
     }
 
     if (enabled && Window.hasFocus()) {
@@ -138,7 +140,11 @@ function update(dt) {
     velocity.x = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, velocity.x));
     velocity.z = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, velocity.z));
     var v = Quat.rotate(MyAvatar.headOrientation, velocity);
-    v.y += accelY * dt;
+
+    velocityVertical += targetVelocityVertical;
+    velocityVertical = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, velocityVertical));
+    v.y += velocityVertical;
+
     MyAvatar.setVelocity(v);
 }
 
@@ -158,6 +164,9 @@ function enable() {
         Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
     }
     Window.setCursorVisible(false);
+
+    Controller.keyPressEvent.connect(keyPressEvent);
+    Controller.keyReleaseEvent.connect(keyReleaseEvent);
 }
 
 function disable() {
@@ -166,10 +175,10 @@ function disable() {
         Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
     }
     Window.setCursorVisible(true);
-}
 
-Controller.keyPressEvent.connect(keyPressEvent);
-Controller.keyReleaseEvent.connect(keyReleaseEvent);
+    Controller.keyPressEvent.disconnect(keyPressEvent);
+    Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
+}
 
 Script.scriptEnding.connect(scriptEnding);
 
