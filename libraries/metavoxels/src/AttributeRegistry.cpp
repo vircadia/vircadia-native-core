@@ -55,7 +55,7 @@ AttributeRegistry::AttributeRegistry() :
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
     _spannersAttribute->setLODThresholdMultiplier(SPANNER_LOD_THRESHOLD_MULTIPLIER);
     
-    const float HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER = 40.0f;
+    const float HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER = 32.0f;
     _heightfieldAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     _heightfieldColorAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
 }
@@ -493,6 +493,49 @@ HeightfieldData::HeightfieldData(Bitstream& in, int bytes, bool color) {
     read(in, bytes, color);
 }
 
+enum HeightfieldImage { NULL_HEIGHTFIELD_IMAGE, NORMAL_HEIGHTFIELD_IMAGE, DEFLATED_HEIGHTFIELD_IMAGE };
+
+static QByteArray encodeHeightfieldImage(const QImage& image) {
+    if (image.isNull()) {
+        return QByteArray(1, NULL_HEIGHTFIELD_IMAGE);
+    }
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly);
+    const int JPEG_ENCODE_THRESHOLD = 16;
+    if (image.width() >= JPEG_ENCODE_THRESHOLD && image.height() >= JPEG_ENCODE_THRESHOLD) {
+        qint32 offsetX = image.offset().x(), offsetY = image.offset().y();
+        buffer.write((char*)&offsetX, sizeof(qint32));
+        buffer.write((char*)&offsetY, sizeof(qint32));
+        image.save(&buffer, "JPG");
+        return QByteArray(1, DEFLATED_HEIGHTFIELD_IMAGE) + qCompress(buffer.data());
+        
+    } else {
+        buffer.putChar(NORMAL_HEIGHTFIELD_IMAGE);
+        image.save(&buffer, "PNG");
+        return buffer.data();
+    }
+}
+
+const QImage decodeHeightfieldImage(const QByteArray& data) {
+    switch (data.at(0)) {
+        case NULL_HEIGHTFIELD_IMAGE:
+        default:
+            return QImage();
+         
+        case NORMAL_HEIGHTFIELD_IMAGE:
+            return QImage::fromData(QByteArray::fromRawData(data.constData() + 1, data.size() - 1));
+        
+        case DEFLATED_HEIGHTFIELD_IMAGE: {
+            QByteArray inflated = qUncompress((const uchar*)data.constData() + 1, data.size() - 1);
+            const int OFFSET_SIZE = sizeof(qint32) * 2;
+            QImage image = QImage::fromData((const uchar*)inflated.constData() + OFFSET_SIZE, inflated.size() - OFFSET_SIZE);
+            const qint32* offsets = (const qint32*)inflated.constData();
+            image.setOffset(QPoint(offsets[0], offsets[1]));
+            return image;
+        }
+    }
+}
+
 HeightfieldData::HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& reference, bool color) {
     if (!reference) {
         read(in, bytes, color);
@@ -502,7 +545,10 @@ HeightfieldData::HeightfieldData(Bitstream& in, int bytes, const HeightfieldData
     reference->_encodedDelta = in.readAligned(bytes);
     reference->_deltaData = this;
     _contents = reference->_contents;
-    QImage image = QImage::fromData(reference->_encodedDelta);
+    QImage image = decodeHeightfieldImage(reference->_encodedDelta);
+    if (image.isNull()) {
+        return;
+    }
     QPoint offset = image.offset();
     image = image.convertToFormat(QImage::Format_RGB888);
     if (offset.x() == 0) {
@@ -550,9 +596,7 @@ void HeightfieldData::write(Bitstream& out, bool color) {
                 *dest++ = *src;
             }
         }
-        QBuffer buffer(&_encoded);
-        buffer.open(QIODevice::WriteOnly);
-        image.save(&buffer, "PNG");
+        _encoded = encodeHeightfieldImage(image);
     }
     out << _encoded.size();
     out.writeAligned(_encoded);
@@ -588,15 +632,17 @@ void HeightfieldData::writeDelta(Bitstream& out, const HeightfieldDataPointer& r
                     maxY = qMax(maxY, y);
                 }
             }
-            int width = qMax(maxX - minX + 1, 0);
-            int height = qMax(maxY - minY + 1, 0);
-            image = QImage(width, height, QImage::Format_RGB888);
-            src = _contents.constData() + (minY * size + minX) * COLOR_BYTES;
-            int srcStride = size * COLOR_BYTES;
-            int destStride = width * COLOR_BYTES;
-            for (int y = 0; y < height; y++) {
-                memcpy(image.scanLine(y), src, destStride);
-                src += srcStride;
+            if (maxX >= minX) {
+                int width = maxX - minX + 1;
+                int height = maxY - minY + 1;
+                image = QImage(width, height, QImage::Format_RGB888);
+                src = _contents.constData() + (minY * size + minX) * COLOR_BYTES;
+                int srcStride = size * COLOR_BYTES;
+                int destStride = width * COLOR_BYTES;
+                for (int y = 0; y < height; y++) {
+                    memcpy(image.scanLine(y), src, destStride);
+                    src += srcStride;
+                }
             }
         } else {
             int size = glm::sqrt((float)_contents.size());
@@ -619,24 +665,24 @@ void HeightfieldData::writeDelta(Bitstream& out, const HeightfieldDataPointer& r
                     maxY = qMax(maxY, y);
                 }
             }
-            int width = qMax(maxX - minX + 1, 0);
-            int height = qMax(maxY - minY + 1, 0);
-            image = QImage(width, height, QImage::Format_RGB888);
-            const uchar* lineSrc = (const uchar*)_contents.constData() + minY * size + minX;
-            for (int y = 0; y < height; y++) {
-                uchar* dest = image.scanLine(y);
-                for (const uchar* src = lineSrc, *end = src + width; src != end; src++) {
-                    *dest++ = *src;
-                    *dest++ = *src;
-                    *dest++ = *src;
+            if (maxX >= minX) {
+                int width = qMax(maxX - minX + 1, 0);
+                int height = qMax(maxY - minY + 1, 0);
+                image = QImage(width, height, QImage::Format_RGB888);
+                const uchar* lineSrc = (const uchar*)_contents.constData() + minY * size + minX;
+                for (int y = 0; y < height; y++) {
+                    uchar* dest = image.scanLine(y);
+                    for (const uchar* src = lineSrc, *end = src + width; src != end; src++) {
+                        *dest++ = *src;
+                        *dest++ = *src;
+                        *dest++ = *src;
+                    }
+                    lineSrc += size;
                 }
-                lineSrc += size;
             }
         }
-        QBuffer buffer(&reference->_encodedDelta);
-        buffer.open(QIODevice::WriteOnly);
         image.setOffset(QPoint(minX + 1, minY + 1));
-        image.save(&buffer, "PNG");
+        reference->_encodedDelta = encodeHeightfieldImage(image);
         reference->_deltaData = this;
     }
     out << reference->_encodedDelta.size();
@@ -644,7 +690,7 @@ void HeightfieldData::writeDelta(Bitstream& out, const HeightfieldDataPointer& r
 }
 
 void HeightfieldData::read(Bitstream& in, int bytes, bool color) {
-    set(QImage::fromData(_encoded = in.readAligned(bytes)).convertToFormat(QImage::Format_RGB888), color);
+    set(decodeHeightfieldImage(_encoded = in.readAligned(bytes)).convertToFormat(QImage::Format_RGB888), color);
 }
 
 void HeightfieldData::set(const QImage& image, bool color) {
