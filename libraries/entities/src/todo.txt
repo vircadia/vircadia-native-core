@@ -33,12 +33,23 @@ Model properties:
 //
 // REQUIRED TO DO:
 
-   
-   12a) make sure server is deleting items??
-   12b) Use the delete message instead of shouldDelete property
+    1) verify lots of models in single element works
+        -- repro case - run editModelsExample.js -- create 10 models in the same octree element
+         -- problem 1:
+                it appears as if on a second pass on the element a DONT_FIT case occurs and this confuses things...
 
-    E) memory leaks???
-   22) Import/Export Models - verify it works. /copy/paste??
+
+         -- problem 2:
+                sometimes it appears as if the element entities mostly fit, but then the extra data (bit masks) fails
+                to fit and in this case the "extra data" gets confused...
+                    maybe remember the extra state before removing it and if it fails, always re-add it
+                    maybe add support for "reserving" bytes in the packet
+
+                
+   
+
+    2) memory leaks???
+    3) Import/Export Models - verify it works. /copy/paste??
         22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
         22b) Local Entities Overlay - from Local Models Overlay
         22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
@@ -46,8 +57,8 @@ Model properties:
         DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
         DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
 
-   13) support sitpoints and referentials....
-    Q) Referentials????
+    4) support sitpoints and referentials....
+    5) Referentials????
    
             For sitting points and referentials you can kill two birds with one stone.
             Put this model in world: http://highfidelity-public.s3-us-west-1.amazonaws.com/ozan/theater.fst
@@ -57,17 +68,17 @@ Model properties:
             Move model with another avatar.
             Observe first avatar moving.   
    
-    K) verify shadows work
+    6) verify shadows work
     
-    N) Handle the ID -> UUID swap in old files to new files
+    7) Handle the ID -> UUID swap in old files to new files
     
-    O) Test models -> attachments logic
+    8) Test models -> attachments logic
     
    
-    S) What happens if the edit properties don't fit in a single message MTU???
-    T) animations not always working?????
+    9) What happens if the edit properties don't fit in a single message MTU???
+   10) animations not always working?????
+   11) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
 
-    W) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
     
 // NICE TO DO:
 
@@ -227,3 +238,5 @@ Model properties:
 //     EntityItem::encodeEntityEditMessageDetails() -- this could be a member of EntityItemProperties
 //     EntityTypes::decodeEntityEditPacket() -- this could be a member of EntityItemProperties
 // SOLVED - 12) change delete to use delete messages instead of shouldBeDeleted property
+// SOLVED - 12a) make sure server is deleting items??
+// SOLVED - 12b) Use the delete message instead of shouldDelete property

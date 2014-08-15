@@ -74,6 +74,25 @@ bool OctreePacketData::append(unsigned char byte) {
     return success;
 }
 
+bool OctreePacketData::reserveBitMask() {
+    return reserveBytes(sizeof(unsigned char));
+}
+
+bool OctreePacketData::reserveBytes(int numberOfBytes) {
+    bool success = false;
+    return success;
+}
+
+bool OctreePacketData::releaseReservedBitMask() {
+    return reserveBytes(sizeof(unsigned char));
+}
+
+bool OctreePacketData::releaseReservedBytes(int numberOfBytes) {
+    bool success = false;
+    return success;
+}
+
+
 bool OctreePacketData::updatePriorBitMask(int offset, unsigned char bitmask) {
     bool success = false;
     if (offset >= 0 && offset < _bytesInUse) {

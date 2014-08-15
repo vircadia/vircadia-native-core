@@ -120,6 +120,8 @@ quint64 OctreeSendThread::_totalPackets = 0;
 
 int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
 
+//qDebug() << "OctreeSendThread::handlePacketSend()....";
+
     OctreeServer::didHandlePacketSend(this);
                  
     // if we're shutting down, then exit early       
@@ -138,6 +140,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     // this rate control savings.
     if (nodeData->shouldSuppressDuplicatePacket()) {
         nodeData->resetOctreePacket(); // we still need to reset it though!
+//qDebug() << "OctreeSendThread::handlePacketSend().... SUPPRESS DUPLICATE!!!";
         return packetsSent; // without sending...
     }
 
@@ -180,11 +183,13 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
             // actually send it
             OctreeServer::didCallWriteDatagram(this);
+qDebug() << "OctreeSendThread::handlePacketSend().... writeDatagram() with stats... statsMessageLength=" << statsMessageLength;
             NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
             OctreeServer::didCallWriteDatagram(this);
+qDebug() << "OctreeSendThread::handlePacketSend().... writeDatagram() stats... statsMessageLength=" << statsMessageLength;
             NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
@@ -214,6 +219,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             packetsSent++;
 
             OctreeServer::didCallWriteDatagram(this);
+qDebug() << "OctreeSendThread::handlePacketSend().... writeDatagram() without stats... nodeData->getPacketLength()=" << nodeData->getPacketLength();
             NodeList::getInstance()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;
 
@@ -243,6 +249,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the voxel packet
             OctreeServer::didCallWriteDatagram(this);
+qDebug() << "OctreeSendThread::handlePacketSend().... writeDatagram() without stats... nodeData->getPacketLength()=" << nodeData->getPacketLength();
             NodeList::getInstance()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;
 
@@ -454,6 +461,11 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
                 quint64 encodeStart = usecTimestampNow();
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
+                
+qDebug() << "OctreeSendThread::packetDistributor()...";
+qDebug() << "    called _myServer->getOctree()->encodeTreeBitstream()...";
+qDebug() << "    bytesWritten=" << bytesWritten;
+
                 quint64 encodeEnd = usecTimestampNow();
                 encodeElapsedUsec = (float)(encodeEnd - encodeStart);
                 
@@ -467,6 +479,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     if (_packetData.hasContent() && bytesWritten == 0 &&
                             params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
                         lastNodeDidntFit = true;
+qDebug() << "OctreeSendThread::packetDistributor()... line:" << __LINE__;
+qDebug() << "    lastNodeDidntFit=true";
                     }
                 } else {
                     // in compressed mode and we are trying to pack more... and we don't care if the _packetData has
@@ -475,6 +489,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     extraPackingAttempts++;
                     if (bytesWritten == 0 && params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
                         lastNodeDidntFit = true;
+qDebug() << "OctreeSendThread::packetDistributor()... line:" << __LINE__;
+qDebug() << "    lastNodeDidntFit=true";
                     }
                 }
 
@@ -494,7 +510,14 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             // if bytesWritten == 0 it means either the subTree couldn't fit or we had an empty bag... Both cases
             // mean we should send the previous packet contents and reset it.
             if (completedScene || lastNodeDidntFit) {
+
+qDebug() << "OctreeSendThread::packetDistributor()... line:" << __LINE__;
+qDebug() << "    completedScene=" << completedScene;
+qDebug() << "    lastNodeDidntFit=" << lastNodeDidntFit;
+
                 if (_packetData.hasContent()) {
+
+qDebug() << "    _packetData.hasContent()=" << _packetData.hasContent();
                 
                     quint64 compressAndWriteStart = usecTimestampNow();
                     
@@ -504,10 +527,20 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     unsigned int writtenSize = _packetData.getFinalizedSize()
                             + (nodeData->getCurrentPacketIsCompressed() ? sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) : 0);
 
+qDebug() << "    _packetData.getUncompressedSize()=" << _packetData.getUncompressedSize();
+qDebug() << "    _packetData.getFinalizedSize()=" << _packetData.getFinalizedSize();
+qDebug() << "    writtenSize=" << writtenSize;
+qDebug() << "    nodeData->getAvailable()=" << nodeData->getAvailable();
 
                     if (writtenSize > nodeData->getAvailable()) {
+qDebug() << "OctreeSendThread::packetDistributor()... line:" << __LINE__;
+qDebug() << "   calling handlePacketSend()...";
                         packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
                     }
+
+qDebug() << "OctreeSendThread::packetDistributor()... line:" << __LINE__;
+qDebug() << "    _packetData.getFinalizedSize()=" << _packetData.getFinalizedSize();
+qDebug() << "    called nodeData->writeToPacket(...  _packetData.getFinalizedSize()... )";
 
                     nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
                     extraPackingAttempts = 0;

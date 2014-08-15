@@ -155,8 +155,13 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         QString modelURLString((const char*)dataAt);
         dataAt += modelURLLength;
         bytesRead += modelURLLength;
+
+qDebug() << "readEntitySubclassDataFromBuffer() included PROP_MODEL_URL url=" << modelURLString;
+
         if (overwriteLocalData) {
             setModelURL(modelURLString);
+
+qDebug() << "   called setModelURL() url=" << getModelURL();
         }
     }
     
@@ -367,8 +372,9 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
             propertiesDidntFit -= PROP_MODEL_URL;
             propertyCount++;
             packetData->endLevel(propertyLevel);
+qDebug() << "PROP_MODEL_URL DID fit... url=" << getModelURL();
         } else {
-            //qDebug() << "PROP_MODEL_URL didn't fit...";
+qDebug() << "PROP_MODEL_URL DID NOT fit... url=" << getModelURL();
             packetData->discardLevel(propertyLevel);
             appendState = OctreeElement::PARTIAL;
         }

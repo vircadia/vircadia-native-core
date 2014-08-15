@@ -122,6 +122,10 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     // then our modelTreeElementExtraEncodeData should include data about which properties we need to append.
     if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getEntityItemID())) {
         requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
+        
+        qDebug() << "EntityItem::appendEntityData() we have some previous encode data...";        
+        //qDebug() << "    requestedProperties...";
+        //requestedProperties.debugDumpBits();
     }
 
     //qDebug() << "requestedProperties=";
@@ -372,6 +376,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     if (appendState != OctreeElement::COMPLETED) {
         // add this item into our list for the next appendElementData() pass
         modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
+
+        qDebug() << "EntityItem::appendEntityData() not complete...  (appendState != OctreeElement::COMPLETED)";        
+        //qDebug() << "    propertiesDidntFit...";
+        //propertiesDidntFit.debugDumpBits();
+
     }
 
     return appendState;
@@ -490,6 +499,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         EntityPropertyFlags propertyFlags = encodedPropertyFlags;
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
+
+
+/*
+        qDebug() << "EntityItem::readEntityDataFromBuffer() just read properties from buffer....";
+        qDebug() << "    propertyFlags...";
+        propertyFlags.debugDumpBits();
+*/
+
 
         // PROP_POSITION
         if (propertyFlags.getHasProperty(PROP_POSITION)) {

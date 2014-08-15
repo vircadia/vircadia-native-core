@@ -108,6 +108,19 @@ public:
     /// bitmask would cause packet to be less compressed, or if offset was out of range.
     bool updatePriorBitMask(int offset, unsigned char bitmask); 
 
+    /// reserves space in the stream for a future bitmask, may fail if new data stream is too long to fit in packet
+    bool reserveBitMask();
+
+    /// reserves space in the stream for a future number of bytes, may fail if new data stream is too long to fit in packet.
+    /// The caller must call releaseReservedBytes() before attempting to fill the bytes.
+    bool reserveBytes(int numberOfBytes);
+
+    /// releases previously reserved space in the stream.
+    bool releaseReserveBitMask();
+
+    /// releases previously reserved space in the stream.
+    bool releaseReservedBytes(int numberOfBytes);
+
     /// updates the uncompressed content of the stream starting at byte offset with replacementBytes for length.
     /// Might fail if the new bytes would cause packet to be less compressed, or if offset and length was out of range.
     bool updatePriorBytes(int offset, const unsigned char* replacementBytes, int length);
