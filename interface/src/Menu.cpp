@@ -1153,8 +1153,8 @@ void Menu::goTo() {
 }
 
 bool Menu::goToURL(QString location) {
-    if (location.startsWith(CUSTOM_URL_SCHEME + "//")) {
-        QStringList urlParts = location.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
+    if (location.startsWith(CUSTOM_URL_SCHEME + "/")) {
+        QStringList urlParts = location.remove(0, CUSTOM_URL_SCHEME.length()).split('/', QString::SkipEmptyParts);
 
         if (urlParts.count() > 1) {
             // if url has 2 or more parts, the first one is domain name

@@ -814,9 +814,8 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME);
         if (isHifiSchemeURL) {
-            Menu::getInstance()->goTo(fileEvent->url().toString());
+            Menu::getInstance()->goToURL(fileEvent->url().toLocalFile());
         }
-
         return false;
     }
     return QApplication::event(event);

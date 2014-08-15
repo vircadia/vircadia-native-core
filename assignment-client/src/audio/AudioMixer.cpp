@@ -302,29 +302,31 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
 void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
     NodeList* nodeList = NodeList::getInstance();
     
-    // pull any new audio data from nodes off of the network stack
-    PacketType mixerPacketType = packetTypeForPacket(receivedPacket);
-    if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
-        || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
-        || mixerPacketType == PacketTypeInjectAudio
-        || mixerPacketType == PacketTypeSilentAudioFrame
-        || mixerPacketType == PacketTypeAudioStreamStats) {
-        
-        nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
-    } else if (mixerPacketType == PacketTypeMuteEnvironment) {
-        QByteArray packet = receivedPacket;
-        populatePacketHeader(packet, PacketTypeMuteEnvironment);
-        
-        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData() && node != nodeList->sendingNodeForPacket(receivedPacket)) {
-                nodeList->writeDatagram(packet, packet.size(), node);
+    if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+        // pull any new audio data from nodes off of the network stack
+        PacketType mixerPacketType = packetTypeForPacket(receivedPacket);
+        if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
+            || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
+            || mixerPacketType == PacketTypeInjectAudio
+            || mixerPacketType == PacketTypeSilentAudioFrame
+            || mixerPacketType == PacketTypeAudioStreamStats) {
+            
+            nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
+        } else if (mixerPacketType == PacketTypeMuteEnvironment) {
+            QByteArray packet = receivedPacket;
+            populatePacketHeader(packet, PacketTypeMuteEnvironment);
+            
+            foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+                if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData() && node != nodeList->sendingNodeForPacket(receivedPacket)) {
+                    nodeList->writeDatagram(packet, packet.size(), node);
+                }
             }
+            
+        } else {
+            // let processNodeData handle it.
+            nodeList->processNodeData(senderSockAddr, receivedPacket);
         }
-        
-    } else {
-        // let processNodeData handle it.
-        nodeList->processNodeData(senderSockAddr, receivedPacket);
-    }
+    }    
 }
 
 void AudioMixer::sendStatsPacket() {

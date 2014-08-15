@@ -33,8 +33,6 @@ void AudioMixerDatagramProcessor::readPendingDatagrams() {
     HifiSockAddr senderSockAddr;
     static QByteArray incomingPacket;
     
-    NodeList* nodeList = NodeList::getInstance();
-    
     // read everything that is available
     while (_nodeSocket.hasPendingDatagrams()) {
         incomingPacket.resize(_nodeSocket.pendingDatagramSize());
@@ -43,9 +41,7 @@ void AudioMixerDatagramProcessor::readPendingDatagrams() {
         _nodeSocket.readDatagram(incomingPacket.data(), incomingPacket.size(),
                                   senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
-        if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
-            // emit the signal to tell AudioMixer it needs to process a packet
-            emit packetRequiresProcessing(incomingPacket, senderSockAddr);
-        }
+        // emit the signal to tell AudioMixer it needs to process a packet
+        emit packetRequiresProcessing(incomingPacket, senderSockAddr);
     }
 }
