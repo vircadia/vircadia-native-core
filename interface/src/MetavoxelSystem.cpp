@@ -760,10 +760,21 @@ void HeightfieldBuffer::render(bool cursor) {
     glBindTexture(GL_TEXTURE_2D, _heightTextureID);
     
     if (!cursor) {
-        DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(
-            DefaultMetavoxelRendererImplementation::getHeightScaleLocation(), 1.0f / _heightSize);
-        DefaultMetavoxelRendererImplementation::getHeightfieldProgram().setUniformValue(
-            DefaultMetavoxelRendererImplementation::getColorScaleLocation(), (float)_heightSize / innerSize);
+        int heightScaleLocation = DefaultMetavoxelRendererImplementation::getHeightScaleLocation();
+        int colorScaleLocation = DefaultMetavoxelRendererImplementation::getColorScaleLocation();
+        ProgramObject* program = &DefaultMetavoxelRendererImplementation::getHeightfieldProgram();
+        if (Menu::getInstance()->isOptionChecked(MenuOption::SimpleShadows)) {
+            heightScaleLocation = DefaultMetavoxelRendererImplementation::getShadowMapHeightScaleLocation();
+            colorScaleLocation = DefaultMetavoxelRendererImplementation::getShadowMapColorScaleLocation();
+            program = &DefaultMetavoxelRendererImplementation::getShadowMapHeightfieldProgram();
+            
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+            heightScaleLocation = DefaultMetavoxelRendererImplementation::getCascadedShadowMapHeightScaleLocation();
+            colorScaleLocation = DefaultMetavoxelRendererImplementation::getCascadedShadowMapColorScaleLocation();
+            program = &DefaultMetavoxelRendererImplementation::getCascadedShadowMapHeightfieldProgram();
+        }
+        program->setUniformValue(heightScaleLocation, 1.0f / _heightSize);
+        program->setUniformValue(colorScaleLocation, (float)_heightSize / innerSize);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
     }
@@ -857,6 +868,35 @@ void DefaultMetavoxelRendererImplementation::init() {
         _heightScaleLocation = _heightfieldProgram.uniformLocation("heightScale");
         _colorScaleLocation = _heightfieldProgram.uniformLocation("colorScale");
         _heightfieldProgram.release();
+        
+        _shadowMapHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield.vert");
+        _shadowMapHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_shadow_map.frag");
+        _shadowMapHeightfieldProgram.link();
+        
+        _shadowMapHeightfieldProgram.bind();
+        _shadowMapHeightfieldProgram.setUniformValue("heightMap", 0);
+        _shadowMapHeightfieldProgram.setUniformValue("diffuseMap", 1);
+        _shadowMapHeightfieldProgram.setUniformValue("shadowMap", 2);
+        _shadowMapHeightScaleLocation = _shadowMapHeightfieldProgram.uniformLocation("heightScale");
+        _shadowMapColorScaleLocation = _shadowMapHeightfieldProgram.uniformLocation("colorScale");
+        _shadowMapHeightfieldProgram.release();
+        
+        _cascadedShadowMapHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield.vert");
+        _cascadedShadowMapHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_cascaded_shadow_map.frag");
+        _cascadedShadowMapHeightfieldProgram.link();
+        
+        _cascadedShadowMapHeightfieldProgram.bind();
+        _cascadedShadowMapHeightfieldProgram.setUniformValue("heightMap", 0);
+        _cascadedShadowMapHeightfieldProgram.setUniformValue("diffuseMap", 1);
+        _cascadedShadowMapHeightfieldProgram.setUniformValue("shadowMap", 2);
+        _cascadedShadowMapHeightScaleLocation = _cascadedShadowMapHeightfieldProgram.uniformLocation("heightScale");
+        _cascadedShadowMapColorScaleLocation = _cascadedShadowMapHeightfieldProgram.uniformLocation("colorScale");
+        _shadowDistancesLocation = _cascadedShadowMapHeightfieldProgram.uniformLocation("shadowDistances");
+        _cascadedShadowMapHeightfieldProgram.release();
         
         _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
             "shaders/metavoxel_heightfield_cursor.vert");
@@ -1394,15 +1434,34 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     
-    _heightfieldProgram.bind();
+    ProgramObject* program = &_heightfieldProgram;
+    if (Menu::getInstance()->getShadowsEnabled()) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+            program = &_cascadedShadowMapHeightfieldProgram;
+            program->bind();
+            program->setUniform(_shadowDistancesLocation, Application::getInstance()->getShadowDistances());
+            
+        } else {
+            program = &_shadowMapHeightfieldProgram;
+        }
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
+        glActiveTexture(GL_TEXTURE0);
+    }
+    
+    program->bind();
     
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
     BufferRenderVisitor heightfieldRenderVisitor(Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute());
     data.guide(heightfieldRenderVisitor);
     
-    _heightfieldProgram.release();
+    program->release();
     
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE0);
+        
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     
@@ -1416,6 +1475,13 @@ int DefaultMetavoxelRendererImplementation::_pointScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldProgram;
 int DefaultMetavoxelRendererImplementation::_heightScaleLocation;
 int DefaultMetavoxelRendererImplementation::_colorScaleLocation;
+ProgramObject DefaultMetavoxelRendererImplementation::_shadowMapHeightfieldProgram;
+int DefaultMetavoxelRendererImplementation::_shadowMapHeightScaleLocation;
+int DefaultMetavoxelRendererImplementation::_shadowMapColorScaleLocation;
+ProgramObject DefaultMetavoxelRendererImplementation::_cascadedShadowMapHeightfieldProgram;
+int DefaultMetavoxelRendererImplementation::_cascadedShadowMapHeightScaleLocation;
+int DefaultMetavoxelRendererImplementation::_cascadedShadowMapColorScaleLocation;
+int DefaultMetavoxelRendererImplementation::_shadowDistancesLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldCursorProgram;
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {

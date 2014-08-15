@@ -223,6 +223,14 @@ public:
     static int getHeightScaleLocation() { return _heightScaleLocation; }
     static int getColorScaleLocation() { return _colorScaleLocation; }
     
+    static ProgramObject& getShadowMapHeightfieldProgram() { return _shadowMapHeightfieldProgram; }
+    static int getShadowMapHeightScaleLocation() { return _shadowMapHeightScaleLocation; }
+    static int getShadowMapColorScaleLocation() { return _shadowMapColorScaleLocation; }
+    
+    static ProgramObject& getCascadedShadowMapHeightfieldProgram() { return _cascadedShadowMapHeightfieldProgram; }
+    static int getCascadedShadowMapHeightScaleLocation() { return _cascadedShadowMapHeightScaleLocation; }
+    static int getCascadedShadowMapColorScaleLocation() { return _cascadedShadowMapColorScaleLocation; }
+    
     static ProgramObject& getHeightfieldCursorProgram() { return _heightfieldCursorProgram; }
     
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
@@ -239,6 +247,15 @@ private:
     static ProgramObject _heightfieldProgram;
     static int _heightScaleLocation;
     static int _colorScaleLocation;
+    
+    static ProgramObject _shadowMapHeightfieldProgram;
+    static int _shadowMapHeightScaleLocation;
+    static int _shadowMapColorScaleLocation;
+    
+    static ProgramObject _cascadedShadowMapHeightfieldProgram;
+    static int _cascadedShadowMapHeightScaleLocation;
+    static int _cascadedShadowMapColorScaleLocation;
+    static int _shadowDistancesLocation;
     
     static ProgramObject _heightfieldCursorProgram;
 };
