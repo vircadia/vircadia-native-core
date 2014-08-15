@@ -1,9 +1,9 @@
 // Coefficient to use for linear drag.  Higher numbers will cause motion to
 // slow down more quickly.
-var DRAG_COEFFICIENT = 1.0;
-var MAX_SPEED = 1000.0;
+var DRAG_COEFFICIENT = 0.3;
+var MAX_SPEED = 50.0;
 var MAX_LOOK_SPEED = Math.PI * 2;
-var ACCELERATION = 200;
+var ACCELERATION = 20;
 
 var MOUSE_YAW_SCALE = -0.125;
 var MOUSE_PITCH_SCALE = -0.125;
@@ -27,8 +27,8 @@ var velocity = { x: 0, y: 0, z: 0 };
 var velocityVertical = 0;
 var enabled = true;
 
-var lastX = 0;
-var lastY = 0;
+var lastX = Window.getCursorPositionX();
+var lastY = Window.getCursorPositionY();
 var yawFromMouse = 0;
 var pitchFromMouse = 0;
 var maxAccel = Math.PI / 1;
@@ -50,24 +50,6 @@ function keyPressEvent(event) {
 function keyReleaseEvent(event) {
     delete keys[event.text];
 }
-
-function mouseMoveEvent(event) {
-    if (enabled) {
-        var MOUSE_YAW_SCALE = -0.25;
-        var MOUSE_PITCH_SCALE = -12.5;
-        var FIXED_MOUSE_TIMESTEP = 0.016;
-        yawFromMouse += ((event.x - lastX) * MOUSE_YAW_SCALE * FIXED_MOUSE_TIMESTEP);
-        pitchFromMouse += ((event.y - lastY) * MOUSE_PITCH_SCALE * FIXED_MOUSE_TIMESTEP);
-        lastX = event.x;
-        lastY = event.y;
-        Window.setCursorPosition(Window.innerWidth / 2, Window.innerHeight / 2);
-    }
-
-}
-
-var maxPerSec = 3;
-var lastX = Window.getCursorPositionX();
-var lastY = Window.getCursorPositionY();
 
 function update(dt) {
     var maxMove = 3.0 * dt;
@@ -180,6 +162,6 @@ function disable() {
 }
 
 Controller.keyPressEvent.connect(keyPressEvent);
-Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
+Controller.keyReleaseEvent.connect(keyReleaseEvent);
 
 Script.scriptEnding.connect(scriptEnding);
