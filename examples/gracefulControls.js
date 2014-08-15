@@ -164,9 +164,7 @@ function enable() {
         Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
     }
     Window.setCursorVisible(false);
-
-    Controller.keyPressEvent.connect(keyPressEvent);
-    Controller.keyReleaseEvent.connect(keyReleaseEvent);
+    Script.update.connect(update);
 }
 
 function disable() {
@@ -175,11 +173,10 @@ function disable() {
         Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
     }
     Window.setCursorVisible(true);
-
-    Controller.keyPressEvent.disconnect(keyPressEvent);
-    Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
+    Script.update.disconnect(update);
 }
 
-Script.scriptEnding.connect(scriptEnding);
+Controller.keyPressEvent.connect(keyPressEvent);
+Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
 
-Script.update.connect(update);
+Script.scriptEnding.connect(scriptEnding);
