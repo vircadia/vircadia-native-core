@@ -55,7 +55,7 @@ AttributeRegistry::AttributeRegistry() :
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
     _spannersAttribute->setLODThresholdMultiplier(SPANNER_LOD_THRESHOLD_MULTIPLIER);
     
-    const float HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER = 32.0f;
+    const float HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER = 40.0f;
     _heightfieldAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     _heightfieldColorAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
 }

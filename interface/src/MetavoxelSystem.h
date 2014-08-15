@@ -145,6 +145,9 @@ public:
     const glm::vec3& getTranslation() const { return _translation; }
     float getScale() const { return _scale; }
     
+    const Box& getHeightBounds() const { return _heightBounds; }
+    const Box& getColorBounds() const { return _colorBounds; }
+    
     QByteArray& getHeight() { return _height; }
     const QByteArray& getHeight() const { return _height; }
     
@@ -154,17 +157,28 @@ public:
     QByteArray getUnextendedHeight() const;
     QByteArray getUnextendedColor() const;
     
+    int getHeightSize() const { return _heightSize; }
+    float getHeightIncrement() const { return _heightIncrement; }
+    
+    int getColorSize() const { return _colorSize; }
+    float getColorIncrement() const { return _colorIncrement; }
+    
     virtual void render(bool cursor = false);
 
 private:
     
     glm::vec3 _translation;
     float _scale;
+    Box _heightBounds;
+    Box _colorBounds;
     QByteArray _height;
     QByteArray _color;
     GLuint _heightTextureID;
     GLuint _colorTextureID;
     int _heightSize;
+    float _heightIncrement;
+    int _colorSize;
+    float _colorIncrement;
 
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
     static QHash<int, BufferPair> _bufferPairs;
@@ -193,6 +207,8 @@ public:
     Q_INVOKABLE BufferDataAttribute(const QString& name = QString());
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 /// Renders metavoxels as points.

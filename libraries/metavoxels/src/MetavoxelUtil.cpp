@@ -164,6 +164,11 @@ Box::Box(const glm::vec3& minimum, const glm::vec3& maximum) :
     minimum(minimum), maximum(maximum) {
 }
 
+void Box::add(const Box& other) {
+    minimum = glm::min(minimum, other.minimum);
+    maximum = glm::max(maximum, other.maximum);
+}
+
 bool Box::contains(const glm::vec3& point) const {
     return point.x >= minimum.x && point.x <= maximum.x &&
         point.y >= minimum.y && point.y <= maximum.y &&

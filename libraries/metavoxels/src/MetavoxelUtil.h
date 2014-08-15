@@ -44,6 +44,8 @@ public:
     
     explicit Box(const glm::vec3& minimum = glm::vec3(), const glm::vec3& maximum = glm::vec3());
     
+    void add(const Box& other);
+    
     bool contains(const glm::vec3& point) const;
     
     bool contains(const Box& other) const;
