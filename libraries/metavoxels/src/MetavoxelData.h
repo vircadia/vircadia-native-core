@@ -225,6 +225,9 @@ public:
     MetavoxelNode* readSubdivision(MetavoxelStreamState& state);
     void writeSubdivision(MetavoxelStreamState& state) const;
 
+    void readSubdivided(MetavoxelStreamState& state);
+    void writeSubdivided(MetavoxelStreamState& state) const;
+    
     void writeSpanners(MetavoxelStreamState& state) const;
     void writeSpannerDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const;
     void writeSpannerSubdivision(MetavoxelStreamState& state) const;

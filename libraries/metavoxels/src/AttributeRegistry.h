@@ -221,6 +221,10 @@ public:
     virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const { write(out, value, isLeaf); }
 
+    virtual void readSubdivision(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
+    virtual void writeSubdivision(Bitstream& out, void* value, void* reference, bool isLeaf) const {
+        write(out, value, isLeaf); }
+    
     virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
 
     virtual void readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state);
