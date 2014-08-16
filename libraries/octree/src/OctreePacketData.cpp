@@ -35,6 +35,7 @@ void OctreePacketData::changeSettings(bool enableCompression, unsigned int targe
 void OctreePacketData::reset() {
     _bytesInUse = 0;
     _bytesAvailable = _targetSize;
+    _bytesReserved = 0;
     _subTreeAt = 0;
     _compressedBytes = 0;
     _bytesInUseLastCheck = 0;
@@ -80,6 +81,13 @@ bool OctreePacketData::reserveBitMask() {
 
 bool OctreePacketData::reserveBytes(int numberOfBytes) {
     bool success = false;
+    
+    if (_bytesAvailable >= numberOfBytes) {
+        _bytesReserved += numberOfBytes;
+        _bytesAvailable -= numberOfBytes;
+        success = true;
+    }
+    
     return success;
 }
 
@@ -89,6 +97,13 @@ bool OctreePacketData::releaseReservedBitMask() {
 
 bool OctreePacketData::releaseReservedBytes(int numberOfBytes) {
     bool success = false;
+
+    if (_bytesReserved >= numberOfBytes) {
+        _bytesReserved -= numberOfBytes;
+        _bytesAvailable += numberOfBytes;
+        success = true;
+    }
+
     return success;
 }
 
@@ -129,6 +144,7 @@ bool OctreePacketData::startSubTree(const unsigned char* octcode) {
     }
     if (success) {
         _subTreeAt = possibleStartAt;
+        _subTreeBytesReserved = _bytesReserved;
     }
     if (success) {
         _bytesOfOctalCodes += length;
@@ -182,10 +198,13 @@ void OctreePacketData::discardSubTree() {
     int reduceBytesOfOctalCodes = _bytesOfOctalCodes - _bytesOfOctalCodesCurrentSubTree;
     _bytesOfOctalCodes = _bytesOfOctalCodesCurrentSubTree;
     _totalBytesOfOctalCodes -= reduceBytesOfOctalCodes;
+    
+    // if we discard the subtree then reset reserved bytes to the value when we started the subtree
+    _bytesReserved = _subTreeBytesReserved;
 }
 
 LevelDetails OctreePacketData::startLevel() {
-    LevelDetails key(_bytesInUse, _bytesOfOctalCodes, _bytesOfBitMasks, _bytesOfColor);
+    LevelDetails key(_bytesInUse, _bytesOfOctalCodes, _bytesOfBitMasks, _bytesOfColor, _bytesReserved);
     return key;
 }
 
@@ -213,6 +232,9 @@ void OctreePacketData::discardLevel(LevelDetails key) {
     _bytesInUse -= bytesInLevel;
     _bytesAvailable += bytesInLevel; 
     _dirty = true;
+    
+    // reserved bytes are reset to the value when the level started
+    _bytesReserved = key._bytesReservedAtStart;
 
     if (_debug) {
         qDebug("discardLevel() AFTER _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d",
@@ -222,6 +244,14 @@ void OctreePacketData::discardLevel(LevelDetails key) {
 
 bool OctreePacketData::endLevel(LevelDetails key) {
     bool success = true;
+
+    // reserved bytes should be the same value as when the level started
+    if (_bytesReserved != key._bytesReservedAtStart) {
+        qDebug() << "WARNING: endLevel() called but some reserved bytes not used.";
+        qDebug() << "       current bytesReserved:" << _bytesReserved;
+        qDebug() << "   start level bytesReserved:" << key._bytesReservedAtStart;
+    }
+
     return success;
 }
 

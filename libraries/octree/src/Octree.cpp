@@ -1015,6 +1015,8 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
     if (params.includeColor && childBytesWritten == 2) {
         childBytesWritten = 0;
         //params.stopReason = EncodeBitstreamParams::UNKNOWN; // possibly should be DIDNT_FIT...
+
+qDebug() << "STOP REASON.... if (params.includeColor && childBytesWritten == 2)....";
     }
 
     // if we wrote child bytes, then return our result of all bytes written
@@ -1024,6 +1026,7 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
         // otherwise... if we didn't write any child bytes, then pretend like we also didn't write our octal code
         bytesWritten = 0;
         //params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+qDebug() << "STOP REASON.... childBytesWritten == 0??????";
     }
 
     if (bytesWritten == 0) {
@@ -1203,7 +1206,17 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
     // Make our local buffer large enough to handle writing at this level in case we need to.
     LevelDetails thisLevelKey = packetData->startLevel();
+    bool continueThisLevel = packetData->reserveBytes(sizeof(childrenDataBits) 
+                                                + sizeof(childrenExistInPacketBits)
+                                                + sizeof(childrenExistInTreeBits));
 
+    // If we can't reserve our minimum bytes then we can discard this level and return as if none of this level fits
+    if (!continueThisLevel) {
+        packetData->discardLevel(thisLevelKey);
+        params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+        return bytesAtThisLevel;
+    }
+    
     int inViewCount = 0;
     int inViewNotLeafCount = 0;
     int inViewWithColorCount = 0;
@@ -1386,7 +1399,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     // NOTE: the childrenDataBits is really more generically the childDataBits and it indicates
     // that there is an array of child element data included in this packet. We wil write this bit mask
     // but we may come back later and update the bits that are actually included
-    bool continueThisLevel = true;
+    packetData->releaseReservedBytes(sizeof(childrenDataBits));
     continueThisLevel = packetData->appendBitMask(childrenDataBits);
 
     // we know the last thing we wrote to the packet was our childrenDataBits. Let's remember where that was!
@@ -1501,6 +1514,7 @@ qDebug() << "    packetData->getUncompressedSize()=" << packetData->getUncompres
     // if the caller wants to include childExistsBits, then include them even if not in view, put them before the
     // childrenExistInPacketBits, so that the lower code can properly repair the packet exists bits
     if (continueThisLevel && params.includeExistsBits) {
+        packetData->releaseReservedBytes(sizeof(childrenExistInTreeBits));
         continueThisLevel = packetData->appendBitMask(childrenExistInTreeBits);
 qDebug() << " packetData->appendBitMask() line:" << __LINE__;
 qDebug() << "    continueThisLevel=" << continueThisLevel;
@@ -1514,6 +1528,7 @@ qDebug() << "    continueThisLevel=" << continueThisLevel;
 
     // write the child exist bits
     if (continueThisLevel) {
+        packetData->releaseReservedBytes(sizeof(childrenExistInPacketBits));
         continueThisLevel = packetData->appendBitMask(childrenExistInPacketBits);
 qDebug() << " packetData->appendBitMask() line:" << __LINE__;
 qDebug() << "    continueThisLevel=" << continueThisLevel;

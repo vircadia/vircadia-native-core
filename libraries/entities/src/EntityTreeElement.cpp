@@ -215,6 +215,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         qDebug() << "    something went wrong...  discardLevel().... appendElementState = OctreeElement::NONE;";
         qDebug() << "        successUpdateEntityCount=" << successUpdateEntityCount;
         qDebug() << "        noEntitiesFit=" << noEntitiesFit;
+        if (extraEncodeData) {
+            qDebug() << "        do we still have extra data?? " << extraEncodeData->contains(this);
+        } else {
+            qDebug() << "        what happened to extraEncodeData??";
+        }
+        
         
     } else {
         packetData->endLevel(elementLevel);

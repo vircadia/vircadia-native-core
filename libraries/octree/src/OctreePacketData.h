@@ -53,11 +53,12 @@ const int PACKET_IS_COMPRESSED_BIT = 1;
 
 /// An opaque key used when starting, ending, and discarding encoding/packing levels of OctreePacketData
 class LevelDetails {
-    LevelDetails(int startIndex, int bytesOfOctalCodes, int bytesOfBitmasks, int bytesOfColor) :
+    LevelDetails(int startIndex, int bytesOfOctalCodes, int bytesOfBitmasks, int bytesOfColor, int bytesReservedAtStart) :
         _startIndex(startIndex),
         _bytesOfOctalCodes(bytesOfOctalCodes),
         _bytesOfBitmasks(bytesOfBitmasks),
-        _bytesOfColor(bytesOfColor) {
+        _bytesOfColor(bytesOfColor),
+        _bytesReservedAtStart(bytesReservedAtStart) {
     }
     
     friend class OctreePacketData;
@@ -67,6 +68,7 @@ private:
     int _bytesOfOctalCodes;
     int _bytesOfBitmasks;
     int _bytesOfColor;
+    int _bytesReservedAtStart;
 };
 
 /// Handles packing of the data portion of PacketType_OCTREE_DATA messages. 
@@ -116,7 +118,7 @@ public:
     bool reserveBytes(int numberOfBytes);
 
     /// releases previously reserved space in the stream.
-    bool releaseReserveBitMask();
+    bool releaseReservedBitMask();
 
     /// releases previously reserved space in the stream.
     bool releaseReservedBytes(int numberOfBytes);
@@ -226,6 +228,8 @@ private:
     int _bytesInUse;
     int _bytesAvailable;
     int _subTreeAt;
+    int _bytesReserved;
+    int _subTreeBytesReserved; // the number of reserved bytes at start of a subtree
 
     bool compressContent();
     
