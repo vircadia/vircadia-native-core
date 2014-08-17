@@ -14,9 +14,6 @@
 // the height texture
 uniform sampler2D heightMap;
 
-// the distance between height points in texture space
-uniform float heightScale;
-
 void main(void) {
     // compute the view space coordinates
     float height = texture2D(heightMap, gl_MultiTexCoord0.st).r;

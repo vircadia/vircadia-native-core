@@ -164,6 +164,11 @@ Box::Box(const glm::vec3& minimum, const glm::vec3& maximum) :
     minimum(minimum), maximum(maximum) {
 }
 
+void Box::add(const Box& other) {
+    minimum = glm::min(minimum, other.minimum);
+    maximum = glm::max(maximum, other.maximum);
+}
+
 bool Box::contains(const glm::vec3& point) const {
     return point.x >= minimum.x && point.x <= maximum.x &&
         point.y >= minimum.y && point.y <= maximum.y &&
@@ -180,6 +185,14 @@ bool Box::intersects(const Box& other) const {
     return other.maximum.x >= minimum.x && other.minimum.x <= maximum.x &&
         other.maximum.y >= minimum.y && other.minimum.y <= maximum.y &&
         other.maximum.z >= minimum.z && other.minimum.z <= maximum.z;
+}
+
+Box Box::getIntersection(const Box& other) const {
+    return Box(glm::max(minimum, other.minimum), glm::min(maximum, other.maximum));
+}
+
+bool Box::isEmpty() const {
+    return minimum.x >= maximum.x || minimum.y >= maximum.y || minimum.z >= maximum.z;
 }
 
 const int X_MAXIMUM_FLAG = 1;
