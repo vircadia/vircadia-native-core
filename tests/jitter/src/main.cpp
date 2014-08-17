@@ -267,8 +267,6 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
     quint64 last = 0; // first case
     quint64 lastReport = 0;
     
-    quint64 a,b;
-
     while (true) {
     
         quint64 networkStart = usecTimestampNow();
