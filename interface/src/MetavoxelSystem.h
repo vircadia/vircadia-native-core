@@ -45,6 +45,10 @@ public:
 
     void renderHeightfieldCursor(const glm::vec3& position, float radius);
 
+    bool findFirstRayHeightfieldIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
+
+    Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
+
     Q_INVOKABLE void deleteTextures(int heightID, int colorID);
 
 protected:
@@ -131,16 +135,33 @@ private:
 class HeightfieldBuffer : public BufferData {
 public:
     
-    /// Creates a new heightfield buffer.
-    /// \param clearAfterLoading if true, clear the data arrays after we load them into textures in order to reclaim the space
-    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color,
-        bool clearAfterLoading = true);
+    static const int HEIGHT_BORDER;
+    static const int SHARED_EDGE;
+    static const int HEIGHT_EXTENSION;
+    
+    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color);
     ~HeightfieldBuffer();
     
     const glm::vec3& getTranslation() const { return _translation; }
+    float getScale() const { return _scale; }
     
+    const Box& getHeightBounds() const { return _heightBounds; }
+    const Box& getColorBounds() const { return _colorBounds; }
+    
+    QByteArray& getHeight() { return _height; }
     const QByteArray& getHeight() const { return _height; }
+    
+    QByteArray& getColor() { return _color; }
     const QByteArray& getColor() const { return _color; }
+    
+    QByteArray getUnextendedHeight() const;
+    QByteArray getUnextendedColor() const;
+    
+    int getHeightSize() const { return _heightSize; }
+    float getHeightIncrement() const { return _heightIncrement; }
+    
+    int getColorSize() const { return _colorSize; }
+    float getColorIncrement() const { return _colorIncrement; }
     
     virtual void render(bool cursor = false);
 
@@ -148,12 +169,16 @@ private:
     
     glm::vec3 _translation;
     float _scale;
+    Box _heightBounds;
+    Box _colorBounds;
     QByteArray _height;
     QByteArray _color;
-    bool _clearAfterLoading;
     GLuint _heightTextureID;
     GLuint _colorTextureID;
     int _heightSize;
+    float _heightIncrement;
+    int _colorSize;
+    float _colorIncrement;
 
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
     static QHash<int, BufferPair> _bufferPairs;
@@ -182,6 +207,8 @@ public:
     Q_INVOKABLE BufferDataAttribute(const QString& name = QString());
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 /// Renders metavoxels as points.
@@ -194,9 +221,17 @@ public:
 
     static ProgramObject& getHeightfieldProgram() { return _heightfieldProgram; }
     static int getHeightScaleLocation() { return _heightScaleLocation; }
-
+    static int getColorScaleLocation() { return _colorScaleLocation; }
+    
+    static ProgramObject& getShadowMapHeightfieldProgram() { return _shadowMapHeightfieldProgram; }
+    static int getShadowMapHeightScaleLocation() { return _shadowMapHeightScaleLocation; }
+    static int getShadowMapColorScaleLocation() { return _shadowMapColorScaleLocation; }
+    
+    static ProgramObject& getCascadedShadowMapHeightfieldProgram() { return _cascadedShadowMapHeightfieldProgram; }
+    static int getCascadedShadowMapHeightScaleLocation() { return _cascadedShadowMapHeightScaleLocation; }
+    static int getCascadedShadowMapColorScaleLocation() { return _cascadedShadowMapColorScaleLocation; }
+    
     static ProgramObject& getHeightfieldCursorProgram() { return _heightfieldCursorProgram; }
-    static int getCursorHeightScaleLocation() { return _cursorHeightScaleLocation; }
     
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
@@ -211,9 +246,18 @@ private:
     
     static ProgramObject _heightfieldProgram;
     static int _heightScaleLocation;
+    static int _colorScaleLocation;
+    
+    static ProgramObject _shadowMapHeightfieldProgram;
+    static int _shadowMapHeightScaleLocation;
+    static int _shadowMapColorScaleLocation;
+    
+    static ProgramObject _cascadedShadowMapHeightfieldProgram;
+    static int _cascadedShadowMapHeightScaleLocation;
+    static int _cascadedShadowMapColorScaleLocation;
+    static int _shadowDistancesLocation;
     
     static ProgramObject _heightfieldCursorProgram;
-    static int _cursorHeightScaleLocation;
 };
 
 /// Base class for spanner renderers; provides clipping.

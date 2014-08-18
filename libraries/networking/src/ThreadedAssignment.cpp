@@ -11,6 +11,7 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QJsonObject>
+#include <QtCore/QThread>
 #include <QtCore/QTimer>
 
 #include "Logging.h"
@@ -18,7 +19,8 @@
 
 ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
     Assignment(packet),
-    _isFinished(false)
+    _isFinished(false),
+    _datagramProcessingThread(NULL)
 {
     
 }
@@ -28,10 +30,25 @@ void ThreadedAssignment::setFinished(bool isFinished) {
 
     if (_isFinished) {
         aboutToFinish();
-        emit finished();
+        
+        NodeList* nodeList = NodeList::getInstance();
+        
+        // if we have a datagram processing thread, quit it and wait on it to make sure that
+        // the node socket is back on the same thread as the NodeList
+        
+        if (_datagramProcessingThread) {
+            // tell the datagram processing thread to quit and wait until it is done, then return the node socket to the NodeList
+            _datagramProcessingThread->quit();
+            _datagramProcessingThread->wait();
+            
+            // set node socket parent back to NodeList
+            nodeList->getNodeSocket().setParent(nodeList);
+        }
         
         // move the NodeList back to the QCoreApplication instance's thread
-        NodeList::getInstance()->moveToThread(QCoreApplication::instance()->thread());
+        nodeList->moveToThread(QCoreApplication::instance()->thread());
+        
+        emit finished();
     }
 }
 

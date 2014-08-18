@@ -1449,9 +1449,11 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
         if (cascadedShadows) {
             activeProgram->setUniform(activeLocations->shadowDistances, Application::getInstance()->getShadowDistances());
         }
-        activeProgram->setUniformValueArray(activeLocations->localLightDirections,
-            (const GLfloat*)_localLightDirections, MAX_LOCAL_LIGHTS, 4);
-                
+        if (mode != SHADOW_RENDER_MODE) {
+            activeProgram->setUniformValueArray(activeLocations->localLightDirections,
+                (const GLfloat*)_localLightDirections, MAX_LOCAL_LIGHTS, 4);
+        }
+             
         if (mesh.blendshapes.isEmpty()) {
             if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
                 activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
