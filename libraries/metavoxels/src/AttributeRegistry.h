@@ -221,9 +221,10 @@ public:
     virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const { write(out, value, isLeaf); }
 
-    virtual void readSubdivision(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
-    virtual void writeSubdivision(Bitstream& out, void* value, void* reference, bool isLeaf) const {
-        write(out, value, isLeaf); }
+    virtual void readSubdivided(MetavoxelStreamState& state, void*& value,
+        const MetavoxelStreamState& ancestorState, void* ancestorValue, bool isLeaf) const;
+    virtual void writeSubdivided(MetavoxelStreamState& state, void* value,
+        const MetavoxelStreamState& ancestorState, void* ancestorValue, bool isLeaf) const;
     
     virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
 
@@ -437,11 +438,15 @@ public:
     HeightfieldData(const QByteArray& contents);
     HeightfieldData(Bitstream& in, int bytes, bool color);
     HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& reference, bool color);
+    HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& ancestor,
+        const glm::vec3& minimum, float size, bool color);
     
     const QByteArray& getContents() const { return _contents; }
 
     void write(Bitstream& out, bool color);
     void writeDelta(Bitstream& out, const HeightfieldDataPointer& reference, bool color);
+    void writeSubdivided(Bitstream& out, const HeightfieldDataPointer& ancestor,
+        const glm::vec3& minimum, float size, bool color);
 
 private:
     
@@ -455,6 +460,14 @@ private:
     HeightfieldDataPointer _deltaData;
     QByteArray _encodedDelta;
     QMutex _encodedDeltaMutex;
+
+    class EncodedSubdivision {
+    public:
+        HeightfieldDataPointer ancestor;
+        QByteArray data;
+    };
+    QVector<EncodedSubdivision> _encodedSubdivisions;
+    QMutex _encodedSubdivisionsMutex;
 };
 
 /// An attribute that stores heightfield data.

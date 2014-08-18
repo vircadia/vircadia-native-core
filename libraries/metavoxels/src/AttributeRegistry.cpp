@@ -204,6 +204,16 @@ Attribute::Attribute(const QString& name) :
 Attribute::~Attribute() {
 }
 
+void Attribute::readSubdivided(MetavoxelStreamState& state, void*& value,
+        const MetavoxelStreamState& ancestorState, void* ancestorValue, bool isLeaf) const {
+    read(state.base.stream, value, isLeaf);
+}
+
+void Attribute::writeSubdivided(MetavoxelStreamState& state, void* value,
+        const MetavoxelStreamState& ancestorState, void* ancestorValue, bool isLeaf) const {
+    write(state.base.stream, value, isLeaf);
+}
+
 MetavoxelNode* Attribute::createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const {
     return new MetavoxelNode(value);
 }
@@ -495,14 +505,14 @@ HeightfieldData::HeightfieldData(Bitstream& in, int bytes, bool color) {
 
 enum HeightfieldImage { NULL_HEIGHTFIELD_IMAGE, NORMAL_HEIGHTFIELD_IMAGE, DEFLATED_HEIGHTFIELD_IMAGE };
 
-static QByteArray encodeHeightfieldImage(const QImage& image) {
+static QByteArray encodeHeightfieldImage(const QImage& image, bool lossless = false) {
     if (image.isNull()) {
         return QByteArray(1, NULL_HEIGHTFIELD_IMAGE);
     }
     QBuffer buffer;
     buffer.open(QIODevice::WriteOnly);
     const int JPEG_ENCODE_THRESHOLD = 16;
-    if (image.width() >= JPEG_ENCODE_THRESHOLD && image.height() >= JPEG_ENCODE_THRESHOLD) {
+    if (image.width() >= JPEG_ENCODE_THRESHOLD && image.height() >= JPEG_ENCODE_THRESHOLD && !lossless) {
         qint32 offsetX = image.offset().x(), offsetY = image.offset().y();
         buffer.write((char*)&offsetX, sizeof(qint32));
         buffer.write((char*)&offsetY, sizeof(qint32));
@@ -575,6 +585,63 @@ HeightfieldData::HeightfieldData(Bitstream& in, int bytes, const HeightfieldData
                 *dest = *src;
             }
             lineDest += size;
+        }
+    }
+}
+
+HeightfieldData::HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& ancestor,
+        const glm::vec3& minimum, float size, bool color) {
+    QMutexLocker locker(&_encodedSubdivisionsMutex);
+    int index = (int)glm::round(glm::log(size) / glm::log(0.5f)) - 1;
+    if (_encodedSubdivisions.size() <= index) {
+        _encodedSubdivisions.resize(index + 1);
+    }
+    EncodedSubdivision& subdivision = _encodedSubdivisions[index];
+    subdivision.data = in.readAligned(bytes);
+    subdivision.ancestor = ancestor;
+    QImage image = decodeHeightfieldImage(subdivision.data);
+    if (image.isNull()) {
+        return;
+    }
+    image = image.convertToFormat(QImage::Format_RGB888);
+    int destSize = image.width();
+    const uchar* src = image.constBits();
+    const QByteArray& ancestorContents = ancestor->getContents();
+    if (color) {
+        int ancestorSize = glm::sqrt(ancestorContents.size() / (float)COLOR_BYTES);
+        float ancestorY = minimum.z * ancestorSize;
+        float ancestorIncrement = size * ancestorSize / destSize;
+        int ancestorStride = ancestorSize * COLOR_BYTES;
+        
+        _contents = QByteArray(destSize * destSize * COLOR_BYTES, 0);
+        char* dest = _contents.data();    
+        int stride = image.width() * COLOR_BYTES;
+        
+        for (int y = 0; y < destSize; y++, ancestorY += ancestorIncrement) {
+            const uchar* lineRef = (const uchar*)ancestorContents.constData() + (int)ancestorY * ancestorStride;
+            float ancestorX = minimum.x * ancestorSize;
+            for (char* end = dest + stride; dest != end; ancestorX += ancestorIncrement) {
+                const uchar* ref = lineRef + (int)ancestorX * COLOR_BYTES;
+                *dest++ = *ref++ + *src++;
+                *dest++ = *ref++ + *src++;
+                *dest++ = *ref++ + *src++;
+            }
+        }
+    } else {
+        int ancestorSize = glm::sqrt((float)ancestorContents.size());
+        float ancestorY = minimum.z * ancestorSize;
+        float ancestorIncrement = size * ancestorSize / destSize;
+        
+        _contents = QByteArray(destSize * destSize, 0);
+        char* dest = _contents.data();
+        
+        for (int y = 0; y < destSize; y++, ancestorY += ancestorIncrement) {
+            const uchar* lineRef = (const uchar*)ancestorContents.constData() + (int)ancestorY * ancestorSize;
+            float ancestorX = minimum.x * ancestorSize;
+            for (char* end = dest + destSize; dest != end; src += COLOR_BYTES, ancestorX += ancestorIncrement) {
+                const uchar* ref = lineRef + (int)ancestorX;
+                *dest++ = *ref++ + *src;
+            }
         }
     }
 }
@@ -687,6 +754,67 @@ void HeightfieldData::writeDelta(Bitstream& out, const HeightfieldDataPointer& r
     }
     out << reference->_encodedDelta.size();
     out.writeAligned(reference->_encodedDelta);
+}
+
+void HeightfieldData::writeSubdivided(Bitstream& out, const HeightfieldDataPointer& ancestor,
+        const glm::vec3& minimum, float size, bool color) {
+    QMutexLocker locker(&_encodedSubdivisionsMutex);
+    int index = (int)glm::round(glm::log(size) / glm::log(0.5f)) - 1;
+    if (_encodedSubdivisions.size() <= index) {
+        _encodedSubdivisions.resize(index + 1);
+    }
+    EncodedSubdivision& subdivision = _encodedSubdivisions[index];
+    if (subdivision.data.isEmpty() || subdivision.ancestor != ancestor) {
+        QImage image;
+        const QByteArray& ancestorContents = ancestor->getContents();
+        const uchar* src = (const uchar*)_contents.constData();
+        if (color) {
+            int destSize = glm::sqrt(_contents.size() / (float)COLOR_BYTES);
+            image = QImage(destSize, destSize, QImage::Format_RGB888);
+            uchar* dest = image.bits();
+            int stride = destSize * COLOR_BYTES;
+            
+            int ancestorSize = glm::sqrt(ancestorContents.size() / (float)COLOR_BYTES);
+            float ancestorY = minimum.z * ancestorSize;
+            float ancestorIncrement = size * ancestorSize / destSize;
+            int ancestorStride = ancestorSize * COLOR_BYTES;
+            
+            for (int y = 0; y < destSize; y++, ancestorY += ancestorIncrement) {
+                const uchar* lineRef = (const uchar*)ancestorContents.constData() + (int)ancestorY * ancestorStride;
+                float ancestorX = minimum.x * ancestorSize;
+                for (const uchar* end = src + stride; src != end; ancestorX += ancestorIncrement) {
+                    const uchar* ref = lineRef + (int)ancestorX * COLOR_BYTES;
+                    *dest++ = *src++ - *ref++;
+                    *dest++ = *src++ - *ref++;
+                    *dest++ = *src++ - *ref++;
+                }
+            }    
+        } else {
+            int destSize = glm::sqrt((float)_contents.size());
+            image = QImage(destSize, destSize, QImage::Format_RGB888);
+            uchar* dest = image.bits();
+            
+            int ancestorSize = glm::sqrt((float)ancestorContents.size());
+            float ancestorY = minimum.z * ancestorSize;
+            float ancestorIncrement = size * ancestorSize / destSize;
+            
+            for (int y = 0; y < destSize; y++, ancestorY += ancestorIncrement) {
+                const uchar* lineRef = (const uchar*)ancestorContents.constData() + (int)ancestorY * ancestorSize;
+                float ancestorX = minimum.x * ancestorSize;
+                for (const uchar* end = src + destSize; src != end; ancestorX += ancestorIncrement) {
+                    const uchar* ref = lineRef + (int)ancestorX;
+                    uchar difference = *src++ - *ref;
+                    *dest++ = difference;
+                    *dest++ = difference;
+                    *dest++ = difference;
+                }
+            }    
+        }
+        subdivision.data = encodeHeightfieldImage(image, true);
+        subdivision.ancestor = ancestor;
+    }
+    out << subdivision.data.size();
+    out.writeAligned(subdivision.data);
 }
 
 void HeightfieldData::read(Bitstream& in, int bytes, bool color) {
