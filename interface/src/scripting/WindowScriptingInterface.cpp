@@ -100,14 +100,52 @@ QScriptValue WindowScriptingInterface::showConfirm(const QString& message) {
     return QScriptValue(response == QMessageBox::Yes);
 }
 
+void WindowScriptingInterface::chooseDirectory() {
+    QPushButton* button = reinterpret_cast<QPushButton*>(sender());
+
+    QString title = button->property("title").toString();
+    QString path = button->property("path").toString();
+    QRegExp displayAs = button->property("displayAs").toRegExp();
+    QRegExp validateAs = button->property("validateAs").toRegExp();
+    QString errorMessage = button->property("errorMessage").toString();
+
+    QString directory = QFileDialog::getExistingDirectory(button, title, path);
+    if (directory.isEmpty()) {
+        return;
+    }
+
+    if (!validateAs.exactMatch(directory)) {
+        QMessageBox::warning(NULL, "Invalid Directory", errorMessage);
+        return;
+    }
+
+    button->setProperty("path", directory);
+
+    displayAs.indexIn(directory);
+    QString buttonText = displayAs.cap(1) != "" ? displayAs.cap(1) : ".";
+    button->setText(buttonText);
+}
+
+QString WindowScriptingInterface::jsRegExp2QtRegExp(QString string) {
+    // Converts string representation of RegExp from JavaScript format to Qt format.
+    return string.mid(1, string.length() - 2)  // No enclosing slashes.
+        .replace("\\/", "/");                  // No escaping of forward slash.
+}
+
 /// Display a form layout with an edit box
 /// \param const QString& title title to display
-/// \param const QScriptValue form to display (array containing labels and values)
-/// \return QScriptValue result form (unchanged is dialog canceled)
+/// \param const QScriptValue form to display as an array of objects:
+/// - label, value
+/// - label, directory, title, display regexp, validate regexp, error message
+/// - button ("Cancel")
+/// \return QScriptValue `true` if 'OK' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptValue form) {
+
     if (form.isArray() && form.property("length").toInt32() > 0) {
         QDialog* editDialog = new QDialog(Application::getInstance()->getWindow());
         editDialog->setWindowTitle(title);
+
+        bool cancelButton = false;
         
         QVBoxLayout* layout = new QVBoxLayout();
         editDialog->setLayout(layout);
@@ -127,44 +165,104 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
         area->setWidget(container);
         
         QVector<QLineEdit*> edits;
+        QVector<QPushButton*> directories;
         for (int i = 0; i < form.property("length").toInt32(); ++i) {
             QScriptValue item = form.property(i);
-            edits.push_back(new QLineEdit(item.property("value").toString()));
-            formLayout->addRow(item.property("label").toString(), edits.back());
+
+            if (item.property("button").toString() != "") {
+                cancelButton = cancelButton || item.property("button").toString().toLower() == "cancel";
+
+            } else if (item.property("directory").toString() != "") {
+                QString path = item.property("directory").toString();
+                QString title = item.property("title").toString();
+                if (title == "") {
+                    title = "Choose Directory";
+                }
+                QString displayAsString = item.property("displayAs").toString();
+                QRegExp displayAs = QRegExp(displayAsString != "" ? jsRegExp2QtRegExp(displayAsString) : "^(.*)$");
+                QString validateAsString = item.property("validateAs").toString();
+                QRegExp validateAs = QRegExp(validateAsString != "" ? jsRegExp2QtRegExp(validateAsString) : ".*"); 
+                QString errorMessage = item.property("errorMessage").toString();
+                if (errorMessage == "") {
+                    errorMessage = "Invalid directory";
+                }
+
+                QPushButton* directory = new QPushButton(displayAs.cap(1));
+                directory->setProperty("title", title);
+                directory->setProperty("path", path);
+                directory->setProperty("displayAs", displayAs);
+                directory->setProperty("validateAs", validateAs);
+                directory->setProperty("errorMessage", errorMessage);
+                displayAs.indexIn(path);
+                directory->setText(displayAs.cap(1) != "" ? displayAs.cap(1) : ".");
+
+                directory->setMinimumWidth(200);
+                directories.push_back(directory);
+
+                formLayout->addRow(new QLabel(item.property("label").toString()), directory);
+                connect(directory, SIGNAL(clicked(bool)), SLOT(chooseDirectory()));
+
+            } else {
+                QLineEdit* edit = new QLineEdit(item.property("value").toString());
+                edit->setMinimumWidth(200);
+                edits.push_back(edit);
+                formLayout->addRow(new QLabel(item.property("label").toString()), edit);
+            }
         }
-        QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok);
+
+        QDialogButtonBox* buttons = new QDialogButtonBox(
+            QDialogButtonBox::Ok 
+            | (cancelButton ? QDialogButtonBox::Cancel : QDialogButtonBox::NoButton)
+            );
         connect(buttons, SIGNAL(accepted()), editDialog, SLOT(accept()));
+        connect(buttons, SIGNAL(rejected()), editDialog, SLOT(reject()));
         layout->addWidget(buttons);
         
-        if (editDialog->exec() == QDialog::Accepted) {
+        int result = editDialog->exec();
+        if (result == QDialog::Accepted) {
+            int e = -1;
+            int d = -1;
             for (int i = 0; i < form.property("length").toInt32(); ++i) {
                 QScriptValue item = form.property(i);
                 QScriptValue value = item.property("value");
-                bool ok = true;
-                if (value.isNumber()) {
-                    value = edits.at(i)->text().toDouble(&ok);
-                } else if (value.isString()) {
-                    value = edits.at(i)->text();
-                } else if (value.isBool()) {
-                    if (edits.at(i)->text() == "true") {
-                        value = true;
-                    } else if (edits.at(i)->text() == "false") {
-                        value = false;
-                    } else {
-                        ok = false;
-                    }
-                }
-                if (ok) {
-                    item.setProperty("value", value);
+
+                if (item.property("button").toString() != "") {
+                    // Nothing to do
+                } else if (item.property("directory").toString() != "") {
+                    d += 1;
+                    value = directories.at(d)->property("path").toString();
+                    item.setProperty("directory", value);
                     form.setProperty(i, item);
+                } else {
+                    e += 1;
+                    bool ok = true;
+                    if (value.isNumber()) {
+                        value = edits.at(e)->text().toDouble(&ok);
+                    } else if (value.isString()) {
+                        value = edits.at(e)->text();
+                    } else if (value.isBool()) {
+                        if (edits.at(e)->text() == "true") {
+                            value = true;
+                        } else if (edits.at(e)->text() == "false") {
+                            value = false;
+                        } else {
+                            ok = false;
+                        }
+                    }
+                    if (ok) {
+                        item.setProperty("value", value);
+                        form.setProperty(i, item);
+                    }
                 }
             }
         }
         
         delete editDialog;
+
+        return (result == QDialog::Accepted);
     }
     
-    return form;
+    return false;
 }
 
 /// Display a prompt with a text box
