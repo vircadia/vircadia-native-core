@@ -83,10 +83,11 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-    _skeletonModel.setEnableShapes(true);
-    // The skeleton is both a PhysicsEntity and Ragdoll, so we add it to the simulation once for each type.
     _physicsSimulation.setEntity(&_skeletonModel);
-    _physicsSimulation.setRagdoll(&_skeletonModel);
+
+    _skeletonModel.setEnableShapes(true);
+    Ragdoll* ragdoll = _skeletonModel.buildRagdoll();
+    _physicsSimulation.setRagdoll(ragdoll);
 }
 
 MyAvatar::~MyAvatar() {
@@ -206,9 +207,9 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("ragdoll");
         if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-            const float minError = 0.01f;
-            const float maxIterations = 10;
-            const quint64 maxUsec = 2000;
+            const float minError = 0.00001f;
+            const float maxIterations = 3;
+            const quint64 maxUsec = 4000;
             _physicsSimulation.setTranslation(_position);
             _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
         } else {
@@ -255,6 +256,12 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         estimatedRotation.x *= -1.0f;
         estimatedRotation.z *= -1.0f;
 
+    } else if (OculusManager::isConnected()) {
+        estimatedPosition = OculusManager::getRelativePosition();
+        estimatedPosition.x *= -1.0f;
+        
+        const float OCULUS_LEAN_SCALE = 0.05f;
+        estimatedPosition /= OCULUS_LEAN_SCALE;
     } else {
         FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
         if (tracker) {
@@ -1598,10 +1605,10 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 if (simulation != &(_physicsSimulation)) {
                     skeleton->setEnableShapes(true);
                     _physicsSimulation.addEntity(skeleton);
-                    _physicsSimulation.addRagdoll(skeleton);
+                    _physicsSimulation.addRagdoll(skeleton->getRagdoll());
                 }
             } else if (simulation == &(_physicsSimulation)) {
-                _physicsSimulation.removeRagdoll(skeleton);
+                _physicsSimulation.removeRagdoll(skeleton->getRagdoll());
                 _physicsSimulation.removeEntity(skeleton);
                 skeleton->setEnableShapes(false);
             }

@@ -1,5 +1,5 @@
 //
-//  ImportDialog.cpp
+//  VoxelImportDialog.cpp
 //  interface/src/ui
 //
 //  Created by Clement Brisset on 8/12/13.
@@ -20,7 +20,11 @@
 
 #include "Application.h"
 
-#include "ImportDialog.h"
+#include "VoxelImportDialog.h"
+#include "voxels/VoxelImporter.h"
+
+const QString SETTINGS_GROUP_NAME = "VoxelImport";
+const QString IMPORT_DIALOG_SETTINGS_KEY = "VoxelImportDialogSettings";
 
 const QString WINDOW_NAME = QObject::tr("Import Voxels");
 const QString IMPORT_BUTTON_NAME = QObject::tr("Import Voxels");
@@ -97,12 +101,14 @@ QString HiFiIconProvider::type(const QFileInfo &info) const {
     return QFileIconProvider::type(info);
 }
 
-ImportDialog::ImportDialog(QWidget* parent) :
+VoxelImportDialog::VoxelImportDialog(QWidget* parent) :
     QFileDialog(parent, WINDOW_NAME, DOWNLOAD_LOCATION, NULL),
-    _progressBar(this),
-    _importButton(IMPORT_BUTTON_NAME, this),
     _cancelButton(CANCEL_BUTTON_NAME, this),
-    _mode(importMode) {
+    _importButton(IMPORT_BUTTON_NAME, this),
+    _importer(Application::getInstance()->getVoxelImporter()),
+    _mode(importMode),
+    _progressBar(this),
+    _didImport(false) {
 
     setOption(QFileDialog::DontUseNativeDialog, true);
     setFileMode(QFileDialog::ExistingFile);
@@ -113,41 +119,54 @@ ImportDialog::ImportDialog(QWidget* parent) :
 
     _progressBar.setRange(0, 100);
     
-    connect(&_importButton, SIGNAL(pressed()), SLOT(accept()));
-    connect(&_cancelButton, SIGNAL(pressed()), SIGNAL(canceled()));
+    connect(&_importButton, SIGNAL(pressed()), this, SLOT(accept()));
+    connect(&_cancelButton, SIGNAL(pressed()), this, SLOT(cancel()));
     connect(this, SIGNAL(currentChanged(QString)), SLOT(saveCurrentFile(QString)));
 }
 
-void ImportDialog::reset() {
-    setMode(importMode);
-    _progressBar.setValue(0);
+void VoxelImportDialog::cancel() {
+    switch (getMode()) {
+        case importMode:
+            _importer->cancel();
+            close();
+            break;
+        default:
+            _importer->reset();
+            setMode(importMode);
+            break;
+    }
+    emit canceled();
 }
 
-void ImportDialog::setMode(dialogMode mode) {
+void VoxelImportDialog::saveSettings(QSettings* settings) {
+    settings->beginGroup(SETTINGS_GROUP_NAME);
+    settings->setValue(IMPORT_DIALOG_SETTINGS_KEY, saveState());
+    settings->endGroup();
+}
+
+void VoxelImportDialog::loadSettings(QSettings* settings) {
+    settings->beginGroup(SETTINGS_GROUP_NAME);
+    restoreState(settings->value(IMPORT_DIALOG_SETTINGS_KEY).toByteArray());
+    settings->endGroup();
+}
+
+bool VoxelImportDialog::prompt() {
+    reset();
+    exec();
+    return _didImport;
+}
+
+void VoxelImportDialog::reset() {
+    setMode(importMode);
+    _didImport = false;
+}
+
+void VoxelImportDialog::setMode(dialogMode mode) {
+    dialogMode previousMode = _mode;
     _mode = mode;
     
     switch (_mode) {
-        case loadingMode:
-            _importButton.setEnabled(false);
-            _importButton.setText(LOADING_BUTTON_NAME);
-            findChild<QWidget*>("sidebar")->setEnabled(false);
-            findChild<QWidget*>("treeView")->setEnabled(false);
-            findChild<QWidget*>("backButton")->setEnabled(false);
-            findChild<QWidget*>("forwardButton")->setEnabled(false);
-            findChild<QWidget*>("toParentButton")->setEnabled(false);
-            break;
-        case placeMode:
-            _progressBar.setValue(100);
-            _importButton.setEnabled(true);
-            _importButton.setText(PLACE_BUTTON_NAME);
-            findChild<QWidget*>("sidebar")->setEnabled(false);
-            findChild<QWidget*>("treeView")->setEnabled(false);
-            findChild<QWidget*>("backButton")->setEnabled(false);
-            findChild<QWidget*>("forwardButton")->setEnabled(false);
-            findChild<QWidget*>("toParentButton")->setEnabled(false);
-            break;
         case importMode:
-        default:
             _progressBar.setValue(0);
             _importButton.setEnabled(true);
             _importButton.setText(IMPORT_BUTTON_NAME);
@@ -157,22 +176,60 @@ void ImportDialog::setMode(dialogMode mode) {
             findChild<QWidget*>("forwardButton")->setEnabled(true);
             findChild<QWidget*>("toParentButton")->setEnabled(true);
             break;
+        case loadingMode:
+            // Connect to VoxelImporter signals
+            connect(_importer, SIGNAL(importProgress(int)), this, SLOT(updateProgressBar(int)));
+            connect(_importer, SIGNAL(importDone()), this, SLOT(afterImport()));
+
+            _importButton.setEnabled(false);
+            _importButton.setText(LOADING_BUTTON_NAME);
+            findChild<QWidget*>("sidebar")->setEnabled(false);
+            findChild<QWidget*>("treeView")->setEnabled(false);
+            findChild<QWidget*>("backButton")->setEnabled(false);
+            findChild<QWidget*>("forwardButton")->setEnabled(false);
+            findChild<QWidget*>("toParentButton")->setEnabled(false);
+            break;
+        case finishedMode:
+            if (previousMode == loadingMode) {
+                // Disconnect from VoxelImporter signals
+                disconnect(_importer, SIGNAL(importProgress(int)), this, SLOT(setProgressBarValue(int)));
+                disconnect(_importer, SIGNAL(importDone()), this, SLOT(afterImport()));
+            }
+            setMode(importMode);
+            break;
     }
 }
 
-void ImportDialog::setProgressBarValue(int value) {
+void VoxelImportDialog::setProgressBarValue(int value) {
     _progressBar.setValue(value);
 }
 
-void ImportDialog::accept() {
-    emit accepted();
+void VoxelImportDialog::accept() {
+    if (getMode() == importMode) {
+        QString filename = getCurrentFile();
+
+        // If file is invalid we ignore the call
+        if (!_importer->validImportFile(filename)) {
+            return;
+        }
+        // Let's prepare the dialog window for import
+        setMode(loadingMode);
+
+        _importer->import(filename);
+    }
 }
 
-void ImportDialog::saveCurrentFile(QString filename) {
+void VoxelImportDialog::afterImport() {
+    setMode(finishedMode);
+    _didImport = true;
+    close();
+}
+
+void VoxelImportDialog::saveCurrentFile(QString filename) {
     _currentFile = QFileInfo(filename).isFile() ? filename : "";
 }
 
-void ImportDialog::setLayout() {
+void VoxelImportDialog::setLayout() {
     QGridLayout* gridLayout = (QGridLayout*) layout();
     gridLayout->addWidget(&_progressBar, 2, 0, 2, 1);
     gridLayout->addWidget(&_cancelButton, 2, 1, 2, 1);
@@ -258,7 +315,7 @@ void ImportDialog::setLayout() {
 
 }
 
-void ImportDialog::setImportTypes() {
+void VoxelImportDialog::setImportTypes() {
     QFile config(Application::resourcesPath() + "config/config.json");
     config.open(QFile::ReadOnly | QFile::Text);
     QJsonDocument document = QJsonDocument::fromJson(config.readAll());

@@ -22,7 +22,8 @@
 
 AudioMixerClientData::AudioMixerClientData() :
     _audioStreams(),
-    _outgoingMixedAudioSequenceNumber(0)
+    _outgoingMixedAudioSequenceNumber(0),
+    _downstreamAudioStreamStats()
 {
 }
 
@@ -262,4 +263,46 @@ QString AudioMixerClientData::getAudioStreamStatsString() const {
         }
     }
     return result;
+}
+
+void AudioMixerClientData::printUpstreamDownstreamStats() const {
+    // print the upstream (mic stream) stats if the mic stream exists
+    if (_audioStreams.contains(QUuid())) {
+        printf("Upstream:\n");
+        printAudioStreamStats(_audioStreams.value(QUuid())->getAudioStreamStats());
+    }
+    // print the downstream stats if they contain valid info
+    if (_downstreamAudioStreamStats._packetStreamStats._received > 0) {
+        printf("Downstream:\n");
+        printAudioStreamStats(_downstreamAudioStreamStats);
+    }
+}
+
+void AudioMixerClientData::printAudioStreamStats(const AudioStreamStats& streamStats) const {
+    printf("                      Packet loss | overall: %5.2f%% (%d lost), last_30s: %5.2f%% (%d lost)\n",
+        streamStats._packetStreamStats.getLostRate() * 100.0f,
+        streamStats._packetStreamStats._lost,
+        streamStats._packetStreamWindowStats.getLostRate() * 100.0f,
+        streamStats._packetStreamWindowStats._lost);
+
+    printf("                Ringbuffer frames | desired: %u, avg_available(10s): %u, available: %u\n",
+        streamStats._desiredJitterBufferFrames,
+        streamStats._framesAvailableAverage,
+        streamStats._framesAvailable);
+    
+    printf("                 Ringbuffer stats | starves: %u, prev_starve_lasted: %u, frames_dropped: %u, overflows: %u\n",
+        streamStats._starveCount,
+        streamStats._consecutiveNotMixedCount,
+        streamStats._framesDropped,
+        streamStats._overflowCount);
+
+    printf("  Inter-packet timegaps (overall) | min: %9s, max: %9s, avg: %9s\n",
+        formatUsecTime(streamStats._timeGapMin).toLatin1().data(),
+        formatUsecTime(streamStats._timeGapMax).toLatin1().data(),
+        formatUsecTime(streamStats._timeGapAverage).toLatin1().data());
+
+    printf(" Inter-packet timegaps (last 30s) | min: %9s, max: %9s, avg: %9s\n",
+        formatUsecTime(streamStats._timeGapWindowMin).toLatin1().data(),
+        formatUsecTime(streamStats._timeGapWindowMax).toLatin1().data(),
+        formatUsecTime(streamStats._timeGapWindowAverage).toLatin1().data());
 }

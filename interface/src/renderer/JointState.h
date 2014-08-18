@@ -16,6 +16,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include <GLMHelpers.h>
 #include <FBXReader.h>
 
 class AngularConstraint;

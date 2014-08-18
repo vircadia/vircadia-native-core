@@ -26,8 +26,8 @@ public:
     ContactPoint(const CollisionInfo& collision, quint32 frame);
 
     virtual float enforce();
-   
-    void buildConstraints();
+
+    void applyFriction();
     void updateContact(const CollisionInfo& collision, quint32 frame);
     quint32 getLastFrame() const { return _lastFrame; }
 
@@ -41,6 +41,8 @@ protected:
     glm::vec3 _offsetA; // contact point relative to A's center
     glm::vec3 _offsetB; // contact point relative to B's center
     glm::vec3 _contactPoint; // a "virtual" point that is added to the simulation
+    float _relativeMassA; // massA / totalMass
+    float _relativeMassB; // massB / totalMass
     int _numPointsA; // number of VerletPoints that belong to _shapeA
     int _numPoints; // total number of VerletPoints
     QVector<VerletPoint*> _points; // points that belong to colliding shapes

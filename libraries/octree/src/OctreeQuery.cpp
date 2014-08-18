@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PacketHeaders.h>
-#include <SharedUtil.h>
+//#include <PacketHeaders.h>
+//#include <SharedUtil.h>
+#include <GLMHelpers.h>
 
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"

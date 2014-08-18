@@ -44,6 +44,18 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
+set(HIFI_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libraries")
+
+# setup for find modules
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+
+set(MACRO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros")
+
+file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
+foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
+  include(${CUSTOM_MACRO})
+endforeach()
+
 # targets on all platforms
 add_subdirectory(assignment-client)
 add_subdirectory(domain-server)

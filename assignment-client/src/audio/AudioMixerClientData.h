@@ -38,6 +38,11 @@ public:
     void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
+    void printUpstreamDownstreamStats() const;
+
+private:
+    void printAudioStreamStats(const AudioStreamStats& streamStats) const;
+
 private:
     QHash<QUuid, PositionalAudioStream*> _audioStreams;     // mic stream stored under key of null UUID
 

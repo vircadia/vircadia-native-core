@@ -30,7 +30,7 @@ public:
     /// Queues a single edit message. Will potentially send a pending multi-command packet. Determines which server
     /// node or nodes the packet should be sent to. Can be called even before servers are known, in which case up to 
     /// MaxPendingMessages will be buffered and processed when servers are known.
-    void queueOctreeEditMessage(PacketType type, unsigned char* buffer, ssize_t length, qint64 satoshiCost = 0);
+    void queueOctreeEditMessage(PacketType type, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
 
     /// Releases all queued messages even if those messages haven't filled an MTU packet. This will move the packed message 
     /// packets onto the send queue. If running in threaded mode, the caller does not need to do any further processing to
@@ -82,7 +82,7 @@ public:
     // you must override these...
     virtual char getMyNodeType() const = 0;
     virtual void adjustEditPacketForClockSkew(PacketType type, 
-                        unsigned char* editPacketBuffer, ssize_t length, int clockSkew) { };
+                        unsigned char* editPacketBuffer, size_t length, int clockSkew) { };
     
     bool hasDestinationWalletUUID() const { return !_destinationWalletUUID.isNull(); }
     void setDestinationWalletUUID(const QUuid& destinationWalletUUID) { _destinationWalletUUID = destinationWalletUUID; }
@@ -98,9 +98,9 @@ signals:
     
 protected:
     bool _shouldSend;
-    void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, ssize_t length, qint64 satoshiCost = 0);
-    void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, ssize_t length, qint64 satoshiCost = 0);
-    void queuePacketToNodes(unsigned char* buffer, ssize_t length, qint64 satoshiCost = 0);
+    void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
+    void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
+    void queuePacketToNodes(unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
     void initializePacket(EditPacketBuffer& packetBuffer, PacketType type);
     void releaseQueuedPacket(EditPacketBuffer& packetBuffer); // releases specific queued packet
     

@@ -28,7 +28,7 @@ public:
     /// Queues a single voxel edit message. Will potentially send a pending multi-command packet. Determines which voxel-server
     /// node or nodes the packet should be sent to. Can be called even before voxel servers are known, in which case up to 
     /// MaxPendingMessages will be buffered and processed when voxel servers are known.
-    void queueVoxelEditMessage(PacketType type, unsigned char* codeColorBuffer, ssize_t length) {
+    void queueVoxelEditMessage(PacketType type, unsigned char* codeColorBuffer, size_t length) {
         queueOctreeEditMessage(type, codeColorBuffer, length);
     }
 

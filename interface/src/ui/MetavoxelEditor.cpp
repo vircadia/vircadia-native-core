@@ -118,6 +118,8 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new SetSpannerTool(this));
     addTool(new ImportHeightfieldTool(this));
     addTool(new EraseHeightfieldTool(this));
+    addTool(new HeightfieldHeightBrushTool(this));
+    addTool(new HeightfieldColorBrushTool(this));
     
     updateAttributes();
     
@@ -954,11 +956,11 @@ void ImportHeightfieldTool::apply() {
         HeightfieldBuffer* buffer = static_cast<HeightfieldBuffer*>(bufferData.data());
         MetavoxelData data;
         data.setSize(scale);
-        HeightfieldDataPointer heightPointer(new HeightfieldData(buffer->getHeight()));
+        HeightfieldDataPointer heightPointer(new HeightfieldData(buffer->getUnextendedHeight()));
         data.setRoot(AttributeRegistry::getInstance()->getHeightfieldAttribute(), new MetavoxelNode(AttributeValue(
             AttributeRegistry::getInstance()->getHeightfieldAttribute(), encodeInline(heightPointer))));
         if (!buffer->getColor().isEmpty()) {
-            HeightfieldDataPointer colorPointer(new HeightfieldData(buffer->getColor()));
+            HeightfieldDataPointer colorPointer(new HeightfieldData(buffer->getUnextendedColor()));
             data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
                 AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
         }
@@ -1001,34 +1003,38 @@ void ImportHeightfieldTool::updatePreview() {
     if (_heightImage.width() > 0 && _heightImage.height() > 0) {
         float z = 0.0f;
         int blockSize = pow(2.0, _blockSize->value());
-        int blockAdvancement = blockSize - 1;
-        for (int i = 0; i < _heightImage.height(); i += blockAdvancement, z++) {
+        int heightSize = blockSize + HeightfieldBuffer::HEIGHT_EXTENSION;
+        int colorSize = blockSize + HeightfieldBuffer::SHARED_EDGE;
+        for (int i = 0; i < _heightImage.height(); i += blockSize, z++) {
             float x = 0.0f;
-            for (int j = 0; j < _heightImage.width(); j += blockAdvancement, x++) {
-                QByteArray height(blockSize * blockSize, 0);
-                int rows = qMin(blockSize, _heightImage.height() - i);
-                int columns = qMin(blockSize, _heightImage.width() - j);
-                const int BYTES_PER_COLOR = 3;
+            for (int j = 0; j < _heightImage.width(); j += blockSize, x++) {
+                QByteArray height(heightSize * heightSize, 0);
+                int extendedI = qMax(i - HeightfieldBuffer::HEIGHT_BORDER, 0);
+                int extendedJ = qMax(j - HeightfieldBuffer::HEIGHT_BORDER, 0);
+                int offsetY = extendedI - i + HeightfieldBuffer::HEIGHT_BORDER;
+                int offsetX = extendedJ - j + HeightfieldBuffer::HEIGHT_BORDER;
+                int rows = qMin(heightSize - offsetY, _heightImage.height() - extendedI);
+                int columns = qMin(heightSize - offsetX, _heightImage.width() - extendedJ);
                 for (int y = 0; y < rows; y++) {
-                    uchar* src = _heightImage.scanLine(i + y) + j * BYTES_PER_COLOR;
-                    char* dest = height.data() + y * blockSize;
+                    uchar* src = _heightImage.scanLine(extendedI + y) + extendedJ * HeightfieldData::COLOR_BYTES;
+                    char* dest = height.data() + (y + offsetY) * heightSize + offsetX;
                     for (int x = 0; x < columns; x++) {
                         *dest++ = *src;
-                        src += BYTES_PER_COLOR;
+                        src += HeightfieldData::COLOR_BYTES;
                     }
                 }
-                
                 QByteArray color;
                 if (!_colorImage.isNull()) {
-                    color = QByteArray(blockSize * blockSize * BYTES_PER_COLOR, 0);
-                    rows = qMax(0, qMin(blockSize, _colorImage.height() - i));
-                    columns = qMax(0, qMin(blockSize, _colorImage.width() - j));
+                    color = QByteArray(colorSize * colorSize * HeightfieldData::COLOR_BYTES, 0);
+                    rows = qMax(0, qMin(colorSize, _colorImage.height() - i));
+                    columns = qMax(0, qMin(colorSize, _colorImage.width() - j));
                     for (int y = 0; y < rows; y++) {
-                        memcpy(color.data() + y * blockSize * BYTES_PER_COLOR,
-                            _colorImage.scanLine(i + y) + j * BYTES_PER_COLOR, columns * BYTES_PER_COLOR);
+                        memcpy(color.data() + y * colorSize * HeightfieldData::COLOR_BYTES,
+                            _colorImage.scanLine(i + y) + j * HeightfieldData::COLOR_BYTES,
+                            columns * HeightfieldData::COLOR_BYTES);
                     }
                 }
-                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color, false)));
+                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color)));
             }
         }
     }
@@ -1079,4 +1085,73 @@ void EraseHeightfieldTool::apply() {
     edit.value = OwnedAttributeValue(AttributeRegistry::getInstance()->getHeightfieldColorAttribute());
     message.edit = QVariant::fromValue(edit);
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QString& name) :
+    MetavoxelTool(editor, name, false) {
+    
+    QWidget* widget = new QWidget();
+    widget->setLayout(_form = new QFormLayout());
+    layout()->addWidget(widget);
+    
+    _form->addRow("Radius:", _radius = new QDoubleSpinBox());
+    _radius->setSingleStep(0.01);
+    _radius->setMaximum(FLT_MAX);
+    _radius->setValue(1.0);
+}
+
+void HeightfieldBrushTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
+    
+    // find the intersection with the heightfield
+    glm::vec3 origin = Application::getInstance()->getMouseRayOrigin();
+    glm::vec3 direction = Application::getInstance()->getMouseRayDirection();
+    
+    float distance;
+    if (!Application::getInstance()->getMetavoxels()->findFirstRayHeightfieldIntersection(origin, direction, distance)) {
+        return;
+    }
+    Application::getInstance()->getMetavoxels()->renderHeightfieldCursor(
+        _position = origin + distance * direction, _radius->value());
+}
+
+bool HeightfieldBrushTool::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::Wheel) {
+        float angle = static_cast<QWheelEvent*>(event)->angleDelta().y();
+        const float ANGLE_SCALE = 1.0f / 1000.0f;
+        _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
+        return true;
+    
+    } else if (event->type() == QEvent::MouseButtonPress) {
+        MetavoxelEditMessage message = { createEdit(static_cast<QMouseEvent*>(event)->button() == Qt::RightButton) };
+        Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+        return true;
+    }
+    return false;
+}
+
+HeightfieldHeightBrushTool::HeightfieldHeightBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Height Brush") {
+    
+    _form->addRow("Height:", _height = new QDoubleSpinBox());
+    _height->setMinimum(-FLT_MAX);
+    _height->setMaximum(FLT_MAX);
+    _height->setValue(1.0);
+}
+
+QVariant HeightfieldHeightBrushTool::createEdit(bool alternate) {
+    return QVariant::fromValue(PaintHeightfieldHeightEdit(_position, _radius->value(),
+        alternate ? -_height->value() : _height->value()));
+}
+
+HeightfieldColorBrushTool::HeightfieldColorBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Color Brush") {
+    
+    _form->addRow("Color:", _color = new QColorEditor(this));
+}
+
+QVariant HeightfieldColorBrushTool::createEdit(bool alternate) {
+    return QVariant::fromValue(PaintHeightfieldColorEdit(_position, _radius->value(), _color->getColor()));
 }

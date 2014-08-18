@@ -137,7 +137,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-        _voxelImporter(NULL),
+        _voxelImportDialog(NULL),
+        _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
         _entityClipboardRenderer(),
@@ -242,6 +243,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
+    connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     
     // hookup VoxelEditSender to PaymentManager so we can pay for octree edits
@@ -430,7 +433,7 @@ Application::~Application() {
     delete idleTimer;
     
     _sharedVoxelSystem.changeTree(new VoxelTree);
-    delete _voxelImporter;
+    delete _voxelImportDialog;
 
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
@@ -465,8 +468,8 @@ void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
 
-    if (_voxelImporter) {
-        _voxelImporter->saveSettings(_settings);
+    if (_voxelImportDialog) {
+        _voxelImportDialog->saveSettings(_settings);
     }
     _settings->sync();
     _numChangedSettings = 0;
@@ -599,7 +602,7 @@ void Application::paintGL() {
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar->getHead()->getFilteredEyePosition());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -621,7 +624,7 @@ void Application::paintGL() {
             _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition() + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0));
         } else {
             _myCamera.setTightness(0.0f);
-            glm::vec3 eyePosition = _myAvatar->getHead()->getFilteredEyePosition();
+            glm::vec3 eyePosition = _myAvatar->getHead()->getEyePosition();
             float headHeight = eyePosition.y - _myAvatar->getPosition().y;
             _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
@@ -814,9 +817,8 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME);
         if (isHifiSchemeURL) {
-            Menu::getInstance()->goTo(fileEvent->url().toString());
+            Menu::getInstance()->goToURL(fileEvent->url().toLocalFile());
         }
-
         return false;
     }
     return QApplication::event(event);
@@ -1440,6 +1442,15 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+    if (enableVRMode) {
+        if (!OculusManager::isConnected()) {
+            // attempt to reconnect the Oculus manager - it's possible this was a workaround
+            // for the sixense crash
+            OculusManager::disconnect();
+            OculusManager::connect();
+        }
+    }
+    
     resizeGL(_glWidget->width(), _glWidget->height());
 }
 
@@ -1599,17 +1610,17 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
 void Application::importVoxels() {
     _importSucceded = false;
 
-    if (!_voxelImporter) {
-        _voxelImporter = new VoxelImporter(_window);
-        _voxelImporter->loadSettings(_settings);
+    if (!_voxelImportDialog) {
+        _voxelImportDialog = new VoxelImportDialog(_window);
+        _voxelImportDialog->loadSettings(_settings);
     }
 
-    if (!_voxelImporter->exec()) {
+    if (!_voxelImportDialog->exec()) {
         qDebug() << "Import succeeded." << endl;
         _importSucceded = true;
     } else {
         qDebug() << "Import failed." << endl;
-        if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
+        if (_sharedVoxelSystem.getTree() == _voxelImporter.getVoxelTree()) {
             _sharedVoxelSystem.killLocalVoxels();
             _sharedVoxelSystem.changeTree(&_clipboard);
         }
@@ -1724,7 +1735,7 @@ void Application::init() {
     // Cleanup of the original shared tree
     _sharedVoxelSystem.init();
 
-    _voxelImporter = new VoxelImporter(_window);
+    _voxelImportDialog = new VoxelImportDialog(_window);
 
     _environment.init();
 
@@ -3322,9 +3333,10 @@ void Application::updateWindowTitle(){
     QString buildVersion = " (build " + applicationVersion() + ")";
     NodeList* nodeList = NodeList::getInstance();
 
+    QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + nodeList->getDomainHandler().getHostname() + buildVersion;
+        + nodeList->getDomainHandler().getHostname() + connectionStatus + buildVersion;
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (accountManager.getAccountInfo().hasBalance()) {

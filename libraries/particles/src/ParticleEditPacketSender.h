@@ -31,6 +31,6 @@ public:
 
     // My server type is the particle server
     virtual char getMyNodeType() const { return NodeType::ParticleServer; }
-    virtual void adjustEditPacketForClockSkew(PacketType type, unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
+    virtual void adjustEditPacketForClockSkew(PacketType type, unsigned char* codeColorBuffer, size_t length, int clockSkew);
 };
 #endif // hifi_ParticleEditPacketSender_h
