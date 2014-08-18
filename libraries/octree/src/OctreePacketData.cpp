@@ -59,6 +59,13 @@ bool OctreePacketData::append(const unsigned char* data, int length) {
         _bytesAvailable -= length;
         success = true;
         _dirty = true;
+    } else {
+        qDebug() << "OctreePacketData::append(const unsigned char* data, int length) FAILING....";
+        qDebug() << "    length=" << length;
+        qDebug() << "    _bytesAvailable=" << _bytesAvailable;
+        qDebug() << "    _bytesInUse=" << _bytesInUse;
+        qDebug() << "    _targetSize=" << _targetSize;
+        qDebug() << "    _bytesReserved=" << _bytesReserved;
     }
     return success;
 }
@@ -121,7 +128,14 @@ bool OctreePacketData::updatePriorBitMask(int offset, unsigned char bitmask) {
 bool OctreePacketData::updatePriorBytes(int offset, const unsigned char* replacementBytes, int length) {
     bool success = false;
     if (length >= 0 && offset >= 0 && ((offset + length) <= _bytesInUse)) {
-        memcpy(&_uncompressed[offset], replacementBytes, length); // copy new content
+    
+        // we probably need to use memmove!!!
+        if (replacementBytes >= &_uncompressed[offset] && replacementBytes <= &_uncompressed[offset + length]) {
+            qDebug() << "OctreePacketData::updatePriorBytes()... buffers overlap!!! use memmove()";
+            memmove(&_uncompressed[offset], replacementBytes, length); // copy new content with overlap safety
+        } else {
+            memcpy(&_uncompressed[offset], replacementBytes, length); // copy new content
+        }
         success = true;
         _dirty = true;
     }

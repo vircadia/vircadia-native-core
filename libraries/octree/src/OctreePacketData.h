@@ -205,6 +205,9 @@ public:
     /// returns the target uncompressed size
     unsigned int getTargetSize() const { return _targetSize; }
 
+    /// the number of bytes in the packet currently reserved
+    int getReservedBytes() { return _bytesReserved; }
+
     /// displays contents for debugging
     void debugContent();
     
