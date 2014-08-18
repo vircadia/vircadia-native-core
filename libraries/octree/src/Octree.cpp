@@ -1776,11 +1776,34 @@ qDebug() << " ---- ROOT ELEMENT HANDLING ---- line:" << __LINE__;
         int bytesBeforeChild = packetData->getUncompressedSize();
 qDebug() << "    bytesBeforeChild=" << bytesBeforeChild;
 
-        OctreeElement::AppendState appendState = element->appendElementData(packetData, params);
+        LevelDetails rootDataLevelKey = packetData->startLevel();
+        OctreeElement::AppendState rootAppendState = element->appendElementData(packetData, params);
+qDebug() << "    rootAppendState=" << rootAppendState;
+        bool partOfRootFit = (rootAppendState != OctreeElement::NONE);
+        bool allOfRootFit = (rootAppendState == OctreeElement::COMPLETED);
+qDebug() << "    partOfRootFit=" << partOfRootFit;
+qDebug() << "    allOfRootFit=" << allOfRootFit;
 
-qDebug() << "    appendState=" << appendState;
+        if (partOfRootFit) {
+            qDebug() << "    ----------- root DID (partially or fully) fit ------";
+            qDebug() << "    packetData->endLevel(rootDataLevelKey)...    line:" << __LINE__;
+            continueThisLevel = packetData->endLevel(rootDataLevelKey);
+        } else {
+            qDebug() << "    ----------- root didn't fit ------";
+            qDebug() << "    packetData->discardLevel(rootDataLevelKey)...    line:" << __LINE__;
+            packetData->discardLevel(rootDataLevelKey);
+        }
+        
+        if (!allOfRootFit) {
+            qDebug() << "    ----------- SINCE NOT ALL OF root fit ------";
+            qDebug() << "    elementAppendState = OctreeElement::PARTIAL...    line:" << __LINE__;
+            qDebug() << "    params.stopReason = EncodeBitstreamParams::DIDNT_FIT...    line:" << __LINE__;
+            elementAppendState = OctreeElement::PARTIAL;
+            params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+        }
 
-        continueThisLevel = (appendState == OctreeElement::COMPLETED);
+        // do we really ever NOT want to continue this level???
+        //continueThisLevel = (rootAppendState == OctreeElement::COMPLETED);
 
 qDebug() << "    continueThisLevel=" << continueThisLevel;
 
