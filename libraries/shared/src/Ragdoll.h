@@ -56,6 +56,10 @@ public:
     virtual void initPoints() = 0;
     virtual void buildConstraints() = 0;
 
+    void removeRootOffset(bool accumulateMovement);
+
+    glm::vec3 getAndClearAccumulatedMovement();
+
 protected:
     float _massScale;
     glm::vec3 _translation;  // world-frame
@@ -66,6 +70,12 @@ protected:
     QVector<VerletPoint> _points;
     QVector<DistanceConstraint*> _boneConstraints;
     QVector<FixedConstraint*> _fixedConstraints;
+
+    // The collisions are typically done in a simulation frame that is slaved to the center of one of the Ragdolls.
+    // To allow the Ragdoll to provide feedback of its own displacement we store it in _accumulatedMovement.
+    // The owner of the Ragdoll can harvest this displacement to update the rest of the object positions in the simulation.
+    glm::vec3 _accumulatedMovement;
+
 private:
     void updateSimulationTransforms(const glm::vec3& translation, const glm::quat& rotation);
 

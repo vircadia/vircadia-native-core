@@ -19,7 +19,8 @@
 #include "PhysicsSimulation.h"
 #include "SharedUtil.h" // for EPSILON
 
-Ragdoll::Ragdoll() : _massScale(1.0f), _translation(0.0f), _translationInSimulationFrame(0.0f), _simulation(NULL) {
+Ragdoll::Ragdoll() : _massScale(1.0f), _translation(0.0f), _translationInSimulationFrame(0.0f), 
+        _accumulatedMovement(0.0f), _simulation(NULL) {
 }
 
 Ragdoll::~Ragdoll() {
@@ -115,4 +116,28 @@ void Ragdoll::setMassScale(float scale) {
         }
         _massScale = scale;
     }
+}
+
+void Ragdoll::removeRootOffset(bool accumulateMovement) {
+    const int numPoints = _points.size();
+    if (numPoints > 0) {
+        // shift all points so that the root aligns with the the ragdoll's position in the simulation
+        glm::vec3 offset = _translationInSimulationFrame - _points[0]._position;
+        float offsetLength = glm::length(offset);
+        if (offsetLength > EPSILON) {
+            for (int i = 0; i < numPoints; ++i) {
+                _points[i].shift(offset);
+            }
+            const float MIN_ROOT_OFFSET = 0.02f;
+            if (accumulateMovement && offsetLength > MIN_ROOT_OFFSET) {
+                _accumulatedMovement -= (1.0f - MIN_ROOT_OFFSET / offsetLength) * offset;
+            }
+        }
+    }
+}
+
+glm::vec3 Ragdoll::getAndClearAccumulatedMovement() {
+    glm::vec3 movement = _accumulatedMovement;
+    _accumulatedMovement = glm::vec3(0.0f);
+    return movement;
 }
