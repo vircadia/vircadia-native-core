@@ -31,10 +31,8 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
 }
 
 SkeletonModel::~SkeletonModel() {
-    if (_ragdoll) {
-        delete _ragdoll;
-        _ragdoll = NULL;
-    }
+    delete _ragdoll;
+    _ragdoll = NULL;
 }
 
 void SkeletonModel::setJointStates(QVector<JointState> states) {
