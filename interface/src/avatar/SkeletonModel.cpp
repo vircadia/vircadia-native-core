@@ -14,14 +14,11 @@
 
 #include <VerletCapsuleShape.h>
 #include <VerletSphereShape.h>
-#include <DistanceConstraint.h>
-#include <FixedConstraint.h>
 
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Menu.h"
-#include "MuscleConstraint.h"
 #include "SkeletonModel.h"
 #include "SkeletonRagdoll.h"
 
@@ -610,6 +607,7 @@ void SkeletonModel::buildShapes() {
 
     float uniformScale = extractUniformScale(_scale);
     const int numStates = _jointStates.size();
+    float totalMass = 0.0f;
     for (int i = 0; i < numStates; i++) {
         JointState& state = _jointStates[i];
         const FBXJoint& joint = state.getFBXJoint();
@@ -628,24 +626,29 @@ void SkeletonModel::buildShapes() {
         if (type == Shape::SPHERE_SHAPE) {
             shape = new VerletSphereShape(radius, &(points[i]));
             shape->setEntity(this);
-            points[i].setMass(massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume()));
+            float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
+            points[i].setMass(mass);
+            totalMass += mass;
         } else if (type == Shape::CAPSULE_SHAPE) {
             assert(parentIndex != -1);
             shape = new VerletCapsuleShape(radius, &(points[parentIndex]), &(points[i]));
             shape->setEntity(this);
-            points[i].setMass(massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume()));
+            float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
+            points[i].setMass(mass);
+            totalMass += mass;
         } 
         if (parentIndex != -1) {
             // always disable collisions between joint and its parent
             if (shape) {
                 disableCollisions(i, parentIndex);
             }
-        } else {
-            // give the base joint a very large mass since it doesn't actually move
-            // in the local-frame simulation (it defines the origin)
-            points[i].setMass(VERY_BIG_MASS);
-        }
+        } 
         _shapes.push_back(shape);
+    }
+
+    // set the mass of the root
+    if (numStates > 0) {
+        points[0].setMass(totalMass);
     }
 
     // This method moves the shapes to their default positions in Model frame.

@@ -145,3 +145,98 @@ test("Test timeout", function() {
     this.assertEquals(0, req.status, "status should be `0`");
     this.assertEquals(4, req.errorCode, "4 is the timeout error code for QNetworkReply::NetworkError");
 });
+
+
+var localFile = Window.browse("Find defaultScripts.js file ...", "", "defaultScripts.js (defaultScripts.js)");
+
+if (localFile !== null) {
+
+    localFile = "file:///" + localFile;
+    
+    test("Test GET local file synchronously", function () {
+        var req = new XMLHttpRequest();
+
+        var statesVisited = [true, false, false, false, false]
+        req.onreadystatechange = function () {
+            statesVisited[req.readyState] = true;
+        };
+
+        req.open("GET", localFile, false);
+        req.send();
+
+        this.assertEquals(req.DONE, req.readyState, "readyState should be DONE");
+        this.assertEquals(200, req.status, "status should be `200`");
+        this.assertEquals("OK", req.statusText, "statusText should be `OK`");
+        this.assertEquals(0, req.errorCode);
+        this.assertNotEquals("", req.getAllResponseHeaders(), "headers should not be null");
+        this.assertContains("High Fidelity", req.response.substring(0, 100), "expected text not found in response")
+
+        for (var i = 0; i <= req.DONE; i++) {
+            this.assertEquals(true, statesVisited[i], i + " should be set");
+        }
+    });
+
+    test("Test GET nonexistent local file", function () {
+        var nonexistentFile = localFile.replace(".js", "NoExist.js");
+
+        var req = new XMLHttpRequest();
+        req.open("GET", nonexistentFile, false);
+        req.send();
+
+        this.assertEquals(req.DONE, req.readyState, "readyState should be DONE");
+        this.assertEquals(404, req.status, "status should be `404`");
+        this.assertEquals("Not Found", req.statusText, "statusText should be `Not Found`");
+        this.assertNotEquals(0, req.errorCode);
+    });
+
+    test("Test GET local file already open", function () {
+        // Can't open file exclusively in order to test.
+    });
+
+    test("Test GET local file with data not implemented", function () {
+        var req = new XMLHttpRequest();
+        req.open("GET", localFile, true);
+        req.send("data");
+
+        this.assertEquals(req.DONE, req.readyState, "readyState should be DONE");
+        this.assertEquals(501, req.status, "status should be `501`");
+        this.assertEquals("Not Implemented", req.statusText, "statusText should be `Not Implemented`");
+        this.assertNotEquals(0, req.errorCode);
+    });
+
+    test("Test GET local file asynchronously not implemented", function () {
+        var req = new XMLHttpRequest();
+        req.open("GET", localFile, true);
+        req.send();
+
+        this.assertEquals(req.DONE, req.readyState, "readyState should be DONE");
+        this.assertEquals(501, req.status, "status should be `501`");
+        this.assertEquals("Not Implemented", req.statusText, "statusText should be `Not Implemented`");
+        this.assertNotEquals(0, req.errorCode);
+    });
+
+    test("Test POST local file not implemented", function () {
+        var req = new XMLHttpRequest();
+        req.open("POST", localFile, false);
+        req.send();
+
+        this.assertEquals(req.DONE, req.readyState, "readyState should be DONE");
+        this.assertEquals(501, req.status, "status should be `501`");
+        this.assertEquals("Not Implemented", req.statusText, "statusText should be `Not Implemented`");
+        this.assertNotEquals(0, req.errorCode);
+    });
+
+    test("Test local file username and password not implemented", function () {
+        var req = new XMLHttpRequest();
+        req.open("GET", localFile, false, "username", "password");
+        req.send();
+
+        this.assertEquals(req.DONE, req.readyState, "readyState should be DONE");
+        this.assertEquals(501, req.status, "status should be `501`");
+        this.assertEquals("Not Implemented", req.statusText, "statusText should be `Not Implemented`");
+        this.assertNotEquals(0, req.errorCode);
+    });
+
+} else {
+    print("Local file operation not tested");
+}

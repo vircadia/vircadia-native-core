@@ -213,12 +213,21 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("ragdoll");
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        Ragdoll* ragdoll = _skeletonModel.getRagdoll();
+        if (ragdoll && Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
             const float minError = 0.00001f;
             const float maxIterations = 3;
             const quint64 maxUsec = 4000;
             _physicsSimulation.setTranslation(_position);
             _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
+
+            // harvest any displacement of the Ragdoll that is a result of collisions
+            glm::vec3 ragdollDisplacement = ragdoll->getAndClearAccumulatedMovement();
+            const float MAX_RAGDOLL_DISPLACEMENT_2 = 1.0f;
+            float length2 = glm::length2(ragdollDisplacement);
+            if (length2 > EPSILON && length2 < MAX_RAGDOLL_DISPLACEMENT_2) {
+                setPosition(getPosition() + ragdollDisplacement);
+            }
         } else {
             _skeletonModel.moveShapesTowardJoints(1.0f);
         }
