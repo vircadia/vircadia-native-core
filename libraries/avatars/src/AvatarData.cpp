@@ -712,6 +712,12 @@ void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
     }
 }
 
+void AvatarData::clearJointsData() {
+    for (int i = 0; i < _jointData.size(); ++i) {
+        clearJointData(i);
+    }
+}
+
 bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));

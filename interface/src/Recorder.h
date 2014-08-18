@@ -70,8 +70,8 @@ private:
     float _leanForward;
     
     friend class Recorder;
-    friend void writeRecordingToFile(Recording& recording, QString file);
-    friend RecordingPointer readRecordingFromFile(QString file);
+    friend void writeRecordingToFile(RecordingPointer recording, QString file);
+    friend RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file);
 };
 
 /// Stores a recording
@@ -101,8 +101,8 @@ private:
     
     friend class Recorder;
     friend class Player;
-    friend void writeRecordingToFile(Recording& recording, QString file);
-    friend RecordingPointer readRecordingFromFile(QString file);
+    friend void writeRecordingToFile(RecordingPointer recording, QString file);
+    friend RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file);
 };
 
 /// Records a recording
@@ -154,7 +154,6 @@ public slots:
     void loadFromFile(QString file);
     void loadRecording(RecordingPointer recording);
     void play();
-    void playAudio();
     
 private:
     void computeCurrentFrame();
@@ -170,7 +169,7 @@ private:
     QThread* _audioThread;
 };
 
-void writeRecordingToFile(Recording& recording, QString file);
-Recording& readRecordingFromFile(Recording& recording, QString file);
+void writeRecordingToFile(RecordingPointer recording, QString file);
+RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file);
 
 #endif // hifi_Recorder_h

@@ -692,6 +692,14 @@ bool Model::getVisibleJointState(int index, glm::quat& rotation) const {
     return !state.rotationIsDefault(rotation);
 }
 
+void Model::clearJointState(int index) {
+    if (index != -1 && index < _jointStates.size()) {
+        JointState& state = _jointStates[index];
+        state.setRotationInConstrainedFrame(glm::quat());
+        state._animationPriority = 0.0f;
+    }
+}
+
 void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];

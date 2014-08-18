@@ -1047,6 +1047,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                  break;
             case Qt::Key_R:
                 if (isShifted)  {
+                    Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
+                } else if (isMeta) {
                     if (_myAvatar->isRecording()) {
                         _myAvatar->stopRecording();
                     } else {

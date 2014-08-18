@@ -213,7 +213,9 @@ public:
     
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
     Q_INVOKABLE virtual void setJointRotations(QVector<glm::quat> jointRotations);
-
+    
+    Q_INVOKABLE virtual void clearJointsData();
+    
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; } 
 

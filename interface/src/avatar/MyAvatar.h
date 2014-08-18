@@ -115,6 +115,7 @@ public:
     virtual void setJointRotations(QVector<glm::quat> jointRotations);
     virtual void setJointData(int index, const glm::quat& rotation);
     virtual void clearJointData(int index);
+    virtual void clearJointsData();
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);

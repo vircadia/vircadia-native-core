@@ -922,8 +922,7 @@ const float JOINT_PRIORITY = 2.0f;
 void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
     for (int i = 0; i < jointRotations.size(); ++i) {
         if (i < _jointData.size()) {
-            // TODO change animation priority to proper value
-            _skeletonModel.setJointState(i, true, jointRotations[i], 100.0f);
+            _skeletonModel.setJointState(i, true, jointRotations[i], JOINT_PRIORITY + 1.0f);
         }
     }
 }
@@ -939,6 +938,15 @@ void MyAvatar::clearJointData(int index) {
     Avatar::clearJointData(index);
     if (QThread::currentThread() == thread()) {
         _skeletonModel.setJointState(index, false, glm::quat(), JOINT_PRIORITY);
+    }
+}
+
+void MyAvatar::clearJointsData() {
+    for (int i = 0; i < _jointData.size(); ++i) {
+        Avatar::clearJointData(i);
+        if (QThread::currentThread() == thread()) {
+            _skeletonModel.clearJointState(i);
+        }
     }
 }
 

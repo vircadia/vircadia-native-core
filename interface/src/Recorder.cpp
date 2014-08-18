@@ -75,6 +75,7 @@ Recorder::Recorder(AvatarData* avatar) :
     _recording(new Recording()),
     _avatar(avatar)
 {
+    _timer.invalidate();
 }
 
 bool Recorder::isRecording() const {
@@ -124,7 +125,7 @@ void Recorder::saveToFile(QString file) {
         qDebug() << "Cannot save recording to file, recording is empty.";
     }
     
-    writeRecordingToFile(*_recording, file);
+    writeRecordingToFile(_recording, file);
 }
 
 void Recorder::record() {
@@ -161,6 +162,7 @@ Player::Player(AvatarData* avatar) :
     _avatar(avatar),
     _audioThread(NULL)
 {
+    _timer.invalidate();
     _options.setLoop(false);
     _options.setVolume(1.0f);
 }
@@ -318,8 +320,16 @@ void Player::startPlaying() {
 }
 
 void Player::stopPlaying() {
+    if (!isPlaying()) {
+        return;
+    }
+    
     qDebug() << "Recorder::stopPlaying()";
     _timer.invalidate();
+    
+    _avatar->clearJointsData();
+    
+    // Cleanup audio thread
     _injector->stop();
     _injector.clear();
     _audioThread->exit();
@@ -332,7 +342,7 @@ void Player::loadFromFile(QString file) {
     } else {
         _recording = RecordingPointer(new Recording());
     }
-    readRecordingFromFile(*_recording, file);
+    readRecordingFromFile(_recording, file);
 }
 
 void Player::loadRecording(RecordingPointer recording) {
@@ -368,17 +378,6 @@ void Player::play() {
     }
 }
 
-void Player::playAudio() {
-    _options.setPosition(_avatar->getPosition());
-    _options.setOrientation(_avatar->getOrientation());
-
-    qDebug() << "Play";
-    if (_injector) {
-        _injector->injectAudio();
-    }
-    qDebug() << "Played";
-}
-
 void Player::computeCurrentFrame() {
     if (!isPlaying()) {
         qDebug() << "Not Playing";
@@ -396,12 +395,12 @@ void Player::computeCurrentFrame() {
     }
 }
 
-void writeRecordingToFile(Recording& recording, QString file) {
+void writeRecordingToFile(RecordingPointer recording, QString file) {
     // TODO
     qDebug() << "Writing recording to " << file;
 }
 
-Recording& readRecordingFromFile(Recording& recording, QString file) {
+RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file) {
     // TODO
     qDebug() << "Reading recording from " << file;
     return recording;
