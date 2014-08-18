@@ -37,8 +37,8 @@ public:
     float getVolume() const { return _volume; }
     void setVolume(float volume) { _volume = volume; }
     
-    float getLoop() const { return _loop; }
-    void setLoop(float loop) { _loop = loop; }
+    bool getLoop() const { return _loop; }
+    void setLoop(bool loop) { _loop = loop; }
 
     const glm::quat& getOrientation() const { return _orientation; }
     void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
