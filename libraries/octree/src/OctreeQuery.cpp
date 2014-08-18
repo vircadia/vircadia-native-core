@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-//#include <PacketHeaders.h>
+#include <PacketHeaders.h>
 //#include <SharedUtil.h>
 #include <GLMHelpers.h>
 

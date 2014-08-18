@@ -12,6 +12,7 @@
 #include <QtCore/QObject>
 
 #include <ByteCountCoding.h>
+#include <GLMHelpers.h>
 #include <Octree.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
@@ -23,7 +24,7 @@
 // I'm open to other potential solutions. Could we change cmake to allow libraries to reference each others
 // headers, but not link to each other, this is essentially what this construct is doing, but would be
 // better to add includes to the include path, but not link
-#include "../../script-engine/src/ScriptEngine.h"
+//#include "../../script-engine/src/ScriptEngine.h"
 
 #include "EntityScriptingInterface.h"
 #include "EntityItem.h"
@@ -649,7 +650,7 @@ void EntityItem::debugDump() const {
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, ssize_t length, int clockSkew) {
+void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, size_t length, int clockSkew) {
     unsigned char* dataAt = editPacketBuffer;
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);

@@ -13,6 +13,7 @@
 #include <QObject>
 
 #include <ByteCountCoding.h>
+#include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 
 #include "EntityItem.h"

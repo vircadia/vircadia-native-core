@@ -10,6 +10,7 @@
 //
 
 #include <ByteCountCoding.h>
+#include <GLMHelpers.h>
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"

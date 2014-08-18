@@ -18,7 +18,7 @@
 
 
 void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, 
-                                        unsigned char* editBuffer, ssize_t length, int clockSkew) {
+                                        unsigned char* editBuffer, size_t length, int clockSkew) {
                                         
     if (type == PacketTypeEntityAddOrEdit) {
         EntityItem::adjustEditPacketForClockSkew(editBuffer, length, clockSkew);

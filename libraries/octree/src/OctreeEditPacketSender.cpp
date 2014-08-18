@@ -225,7 +225,7 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, size_t le
 
 // NOTE: editPacketBuffer - is JUST the octcode/color and does not contain the packet header!
 void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned char* editPacketBuffer,
-                                                    ssize_t length, qint64 satoshiCost) {
+                                                    size_t length, qint64 satoshiCost) {
                                                     
     bool wantDebug = false;                                                    
     if (wantDebug) {

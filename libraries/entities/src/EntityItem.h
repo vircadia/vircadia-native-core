@@ -85,7 +85,7 @@ public:
     static bool encodeEntityEditMessageDetails(PacketType command, EntityItemID id, const EntityItemProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
-    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
+    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
     virtual void update(const quint64& now);
     
     typedef enum SimuationState_t {
