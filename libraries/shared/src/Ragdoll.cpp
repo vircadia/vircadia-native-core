@@ -19,27 +19,27 @@
 #include "PhysicsSimulation.h"
 #include "SharedUtil.h" // for EPSILON
 
-Ragdoll::Ragdoll() : _massScale(1.0f), _ragdollTranslation(0.0f), _translationInSimulationFrame(0.0f), _ragdollSimulation(NULL) {
+Ragdoll::Ragdoll() : _massScale(1.0f), _translation(0.0f), _translationInSimulationFrame(0.0f), _simulation(NULL) {
 }
 
 Ragdoll::~Ragdoll() {
-    clearRagdollConstraintsAndPoints();
-    if (_ragdollSimulation) {
-        _ragdollSimulation->removeRagdoll(this);
+    clearConstraintsAndPoints();
+    if (_simulation) {
+        _simulation->removeRagdoll(this);
     }
 }
 
-void Ragdoll::stepRagdollForward(float deltaTime) {
-    if (_ragdollSimulation) {
-        updateSimulationTransforms(_ragdollTranslation - _ragdollSimulation->getTranslation(), _ragdollRotation);
+void Ragdoll::stepForward(float deltaTime) {
+    if (_simulation) {
+        updateSimulationTransforms(_translation - _simulation->getTranslation(), _rotation);
     }
-    int numPoints = _ragdollPoints.size();
+    int numPoints = _points.size();
     for (int i = 0; i < numPoints; ++i) {
-        _ragdollPoints[i].integrateForward();
+        _points[i].integrateForward();
     }
 }
     
-void Ragdoll::clearRagdollConstraintsAndPoints() {
+void Ragdoll::clearConstraintsAndPoints() {
     int numConstraints = _boneConstraints.size();
     for (int i = 0; i < numConstraints; ++i) {
         delete _boneConstraints[i];
@@ -50,10 +50,10 @@ void Ragdoll::clearRagdollConstraintsAndPoints() {
         delete _fixedConstraints[i];
     }
     _fixedConstraints.clear();
-    _ragdollPoints.clear();
+    _points.clear();
 }
 
-float Ragdoll::enforceRagdollConstraints() {
+float Ragdoll::enforceConstraints() {
     float maxDistance = 0.0f;
     // enforce the bone constraints first
     int numConstraints = _boneConstraints.size();
@@ -68,16 +68,16 @@ float Ragdoll::enforceRagdollConstraints() {
     return maxDistance;
 }
 
-void Ragdoll::initRagdollTransform() {
-    _ragdollTranslation = glm::vec3(0.0f);
-    _ragdollRotation = glm::quat();
+void Ragdoll::initTransform() {
+    _translation = glm::vec3(0.0f);
+    _rotation = glm::quat();
     _translationInSimulationFrame = glm::vec3(0.0f);
     _rotationInSimulationFrame = glm::quat();
 }
 
-void Ragdoll::setRagdollTransform(const glm::vec3& translation, const glm::quat& rotation) {
-    _ragdollTranslation = translation;
-    _ragdollRotation = rotation;
+void Ragdoll::setTransform(const glm::vec3& translation, const glm::quat& rotation) {
+    _translation = translation;
+    _rotation = rotation;
 }
 
 void Ragdoll::updateSimulationTransforms(const glm::vec3& translation, const glm::quat& rotation) {
@@ -93,9 +93,9 @@ void Ragdoll::updateSimulationTransforms(const glm::vec3& translation, const glm
     glm::quat deltaRotation = rotation * glm::inverse(_rotationInSimulationFrame);
 
     // apply the deltas to all ragdollPoints
-    int numPoints = _ragdollPoints.size();
+    int numPoints = _points.size();
     for (int i = 0; i < numPoints; ++i) {
-        _ragdollPoints[i].move(deltaPosition, deltaRotation, _translationInSimulationFrame);
+        _points[i].move(deltaPosition, deltaRotation, _translationInSimulationFrame);
     }
 
     // remember the current transform
@@ -109,9 +109,9 @@ void Ragdoll::setMassScale(float scale) {
     scale = glm::clamp(glm::abs(scale), MIN_SCALE, MAX_SCALE);
     if (scale != _massScale) {
         float rescale = scale / _massScale;
-        int numPoints = _ragdollPoints.size();
+        int numPoints = _points.size();
         for (int i = 0; i < numPoints; ++i) {
-            _ragdollPoints[i].setMass(rescale * _ragdollPoints[i].getMass());
+            _points[i].setMass(rescale * _points[i].getMass());
         }
         _massScale = scale;
     }

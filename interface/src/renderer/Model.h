@@ -167,6 +167,9 @@ public:
     const QVector<LocalLight>& getLocalLights() const { return _localLights; }
 
     void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
+
+    QVector<JointState>& getJointStates() { return _jointStates; }
+    const QVector<JointState>& getJointStates() const { return _jointStates; }
  
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
