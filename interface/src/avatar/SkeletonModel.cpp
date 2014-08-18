@@ -62,8 +62,14 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     
     Model::simulate(deltaTime, fullUpdate);
     
-    if (!(isActive() && _owningAvatar->isMyAvatar())) {
+    if (!isActive() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar
+    }
+    
+    MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+    if (myAvatar->isPlaying()) {
+        // Don't take inputs if playing back a recording.
+        return;
     }
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
