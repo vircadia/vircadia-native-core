@@ -39,6 +39,11 @@ void VerletPoint::move(const glm::vec3& deltaPosition, const glm::quat& deltaRot
     _lastPosition += deltaPosition + (deltaRotation * arm - arm);
 }
 
+void VerletPoint::shift(const glm::vec3& deltaPosition) {
+    _position += deltaPosition;
+    _lastPosition += deltaPosition;
+}
+
 void VerletPoint::setMass(float mass) {
     const float MIN_MASS = 1.0e-6f;
     const float MAX_MASS = 1.0e18f;
