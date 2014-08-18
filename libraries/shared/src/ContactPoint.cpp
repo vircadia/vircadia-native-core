@@ -96,10 +96,10 @@ float ContactPoint::enforce() {
     bool constraintViolation = (pDotN > CONTACT_PENETRATION_ALLOWANCE);
 
     // the contact point will be the average of the two points on the shapes
-    _contactPoint = 0.5f * (pointA + pointB);
+    _contactPoint = _relativeMassA * pointA + _relativeMassB * pointB;
 
     if (constraintViolation) {
-        for (int i = 0; i < _numPoints; ++i) {
+        for (int i = 0; i < _numPointsA; ++i) {
             VerletPoint* point = _points[i];
             glm::vec3 offset = _offsets[i];
     
@@ -111,8 +111,31 @@ float ContactPoint::enforce() {
             // use the relative sizes of the components to decide how much perpenducular delta to use
             // perpendicular < parallel ==> static friction ==> perpFactor = 1.0
             // perpendicular > parallel ==> dynamic friction ==> cap to length of paraDelta ==> perpFactor < 1.0
-            float paraLength = glm::length(paraDelta);
-            float perpLength = glm::length(perpDelta);
+            float paraLength = _relativeMassB * glm::length(paraDelta);
+            float perpLength = _relativeMassA * glm::length(perpDelta);
+            float perpFactor = (perpLength > paraLength && perpLength > EPSILON) ? (paraLength / perpLength) : 1.0f;
+    
+            // recombine the two components to get the final delta
+            delta = paraDelta + perpFactor * perpDelta;
+        
+            glm::vec3 targetPosition = point->_position + delta;
+            _distances[i] = glm::distance(_contactPoint, targetPosition);
+            point->_position += delta;
+        }
+        for (int i = _numPointsA; i < _numPoints; ++i) {
+            VerletPoint* point = _points[i];
+            glm::vec3 offset = _offsets[i];
+    
+            // split delta into parallel and perpendicular components
+            glm::vec3 delta = _contactPoint + offset - point->_position;
+            glm::vec3 paraDelta = glm::dot(delta, _normal) * _normal;
+            glm::vec3 perpDelta = delta - paraDelta;
+            
+            // use the relative sizes of the components to decide how much perpenducular delta to use
+            // perpendicular < parallel ==> static friction ==> perpFactor = 1.0
+            // perpendicular > parallel ==> dynamic friction ==> cap to length of paraDelta ==> perpFactor < 1.0
+            float paraLength = _relativeMassA * glm::length(paraDelta);
+            float perpLength = _relativeMassB * glm::length(perpDelta);
             float perpFactor = (perpLength > paraLength && perpLength > EPSILON) ? (paraLength / perpLength) : 1.0f;
     
             // recombine the two components to get the final delta
