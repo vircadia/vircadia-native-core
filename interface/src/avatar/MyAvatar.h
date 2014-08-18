@@ -205,6 +205,9 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
     PhysicsSimulation _physicsSimulation;
 
+    RecorderPointer _recorder;
+    PlayerPointer _player;
+    
 	// private methods
     float computeDistanceToFloor(const glm::vec3& startPoint);
     void updateOrientation(float deltaTime);

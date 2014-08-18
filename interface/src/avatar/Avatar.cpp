@@ -64,7 +64,6 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
-    _player(NULL),
     _initialized(false),
     _shouldRenderBillboard(true)
 {

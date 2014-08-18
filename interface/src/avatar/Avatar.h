@@ -188,9 +188,6 @@ protected:
     bool _moving; ///< set when position is changing
     
     quint32 _collisionGroups;
-    
-    RecorderPointer _recorder;
-    PlayerPointer _player;
  
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
