@@ -138,11 +138,6 @@ public:
     qint64 elapsed() const;
     
     // Those should only be called if isPlaying() returns true
-    QVector<float> getBlendshapeCoefficients();
-    QVector<glm::quat> getJointRotations();
-    glm::vec3 getPosition();
-    glm::quat getRotation();
-    float getScale();
     glm::quat getHeadRotation();
     float getLeanSideways();
     float getLeanForward();
@@ -156,7 +151,7 @@ public slots:
     void play();
     
 private:
-    void computeCurrentFrame();
+    bool computeCurrentFrame();
     
     QElapsedTimer _timer;
     RecordingPointer _recording;

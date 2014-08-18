@@ -11,6 +11,8 @@
 
 #include <GLMHelpers.h>
 
+#include <QMetaObject>
+
 #include "Recorder.h"
 
 void RecordingFrame::setBlendshapeCoefficients(QVector<float> blendshapeCoefficients) {
@@ -179,131 +181,37 @@ qint64 Player::elapsed() const {
     }
 }
 
-QVector<float> Player::getBlendshapeCoefficients() {
-    computeCurrentFrame();
-    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
-        if (_currentFrame == _recording->getFrameNumber()) {
-            return _recording->getFrame(_currentFrame - 1).getBlendshapeCoefficients();
-        }
-        
-        return _recording->getFrame(_currentFrame).getBlendshapeCoefficients();
-    }
-    qWarning() << "Incorrect use of Player::getBlendshapeCoefficients()";
-    return QVector<float>();
-}
-
-QVector<glm::quat> Player::getJointRotations() {
-    computeCurrentFrame();
-    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
-        if (_currentFrame == _recording->getFrameNumber()) {
-            return _recording->getFrame(_currentFrame - 1).getJointRotations();
-        }
-        
-        return _recording->getFrame(_currentFrame).getJointRotations();
-    }
-    qWarning() << "Incorrect use of Player::getJointRotations()";
-    return QVector<glm::quat>();
-}
-
-glm::vec3 Player::getPosition() {
-    computeCurrentFrame();
-    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
-        if (_currentFrame == _recording->getFrameNumber()) {
-            return _recording->getFrame(0).getTranslation() +
-                   _recording->getFrame(_currentFrame - 1).getTranslation();
-        }
-        if (_currentFrame == 0) {
-            return _recording->getFrame(_currentFrame).getTranslation();
-        }
-        
-        return _recording->getFrame(0).getTranslation() +
-               _recording->getFrame(_currentFrame).getTranslation();
-    }
-    qWarning() << "Incorrect use of Player::getTranslation()";
-    return glm::vec3();
-}
-
-glm::quat Player::getRotation() {
-    computeCurrentFrame();
-    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
-        if (_currentFrame == _recording->getFrameNumber()) {
-            return _recording->getFrame(0).getRotation() *
-                   _recording->getFrame(_currentFrame - 1).getRotation();
-        }
-        if (_currentFrame == 0) {
-            return _recording->getFrame(_currentFrame).getRotation();
-        }
-        
-        return _recording->getFrame(0).getRotation() *
-               _recording->getFrame(_currentFrame).getRotation();
-    }
-    qWarning() << "Incorrect use of Player::getRotation()";
-    return glm::quat();
-}
-
-float Player::getScale() {
-    computeCurrentFrame();
-    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
-        if (_currentFrame == _recording->getFrameNumber()) {
-            return _recording->getFrame(0).getScale() *
-                   _recording->getFrame(_currentFrame - 1).getScale();
-        }
-        if (_currentFrame == 0) {
-            return _recording->getFrame(_currentFrame).getScale();
-        }
-        
-        return _recording->getFrame(0).getScale() *
-               _recording->getFrame(_currentFrame).getScale();
-    }
-    qWarning() << "Incorrect use of Player::getScale()";
-    return 1.0f;
-}
-
 glm::quat Player::getHeadRotation() {
-    computeCurrentFrame();
-    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
-        if (_currentFrame == _recording->getFrameNumber()) {
-            return _recording->getFrame(0).getHeadRotation() *
-                   _recording->getFrame(_currentFrame - 1).getHeadRotation();
-        }
-        if (_currentFrame == 0) {
-            return _recording->getFrame(_currentFrame).getHeadRotation();
-        }
-        
-        return _recording->getFrame(0).getHeadRotation() *
-               _recording->getFrame(_currentFrame).getHeadRotation();
+    if (computeCurrentFrame()) {
+        qWarning() << "Incorrect use of Player::getHeadRotation()";
+        return glm::quat();
     }
-    qWarning() << "Incorrect use of Player::getHeadRotation()";
-    return glm::quat();
+    
+    if (_currentFrame == 0) {
+        return _recording->getFrame(_currentFrame).getHeadRotation();
+    }
+    return _recording->getFrame(0).getHeadRotation() *
+           _recording->getFrame(_currentFrame).getHeadRotation();
 }
 
 float Player::getLeanSideways() {
-    computeCurrentFrame();
-    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
-        if (_currentFrame == _recording->getFrameNumber()) {
-            return _recording->getFrame(_currentFrame - 1).getLeanSideways();
-        }
-        
-        return _recording->getFrame(_currentFrame).getLeanSideways();
+    if (computeCurrentFrame()) {
+        qWarning() << "Incorrect use of Player::getLeanSideways()";
+        return 0.0f;
     }
-    qWarning() << "Incorrect use of Player::getLeanSideways()";
-    return 0.0f;
+    
+    return _recording->getFrame(_currentFrame).getLeanSideways();
 }
 
 float Player::getLeanForward() {
-    computeCurrentFrame();
-    if (_currentFrame >= 0 && _currentFrame <= _recording->getFrameNumber()) {
-        if (_currentFrame == _recording->getFrameNumber()) {
-            return _recording->getFrame(_currentFrame - 1).getLeanForward();
-        }
-        
-        return _recording->getFrame(_currentFrame).getLeanForward();
+    if (computeCurrentFrame()) {
+        qWarning() << "Incorrect use of Player::getLeanForward()";
+        return 0.0f;
     }
-    qWarning() << "Incorrect use of Player::getLeanForward()";
-    return 0.0f;
+    
+    return _recording->getFrame(_currentFrame).getLeanForward();
 }
 
-#include <QMetaObject>
 void Player::startPlaying() {
     if (_recording && _recording->getFrameNumber() > 0) {
         qDebug() << "Recorder::startPlaying()";
@@ -350,7 +258,6 @@ void Player::loadRecording(RecordingPointer recording) {
 }
 
 void Player::play() {
-    qDebug() << "Playing " << _timer.elapsed() / 1000.0f;
     computeCurrentFrame();
     if (_currentFrame < 0 || _currentFrame >= _recording->getFrameNumber()) {
         // If it's the end of the recording, stop playing
@@ -378,14 +285,12 @@ void Player::play() {
     }
 }
 
-void Player::computeCurrentFrame() {
+bool Player::computeCurrentFrame() {
     if (!isPlaying()) {
-        qDebug() << "Not Playing";
         _currentFrame = -1;
-        return;
+        return false;
     }
     if (_currentFrame < 0) {
-        qDebug() << "Reset to 0";
         _currentFrame = 0;
     }
     
@@ -393,6 +298,8 @@ void Player::computeCurrentFrame() {
            _recording->getFrameTimestamp(_currentFrame) < _timer.elapsed()) {
         ++_currentFrame;
     }
+    
+    return true;
 }
 
 void writeRecordingToFile(RecordingPointer recording, QString file) {
