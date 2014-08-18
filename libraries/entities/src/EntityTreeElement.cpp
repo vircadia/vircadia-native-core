@@ -117,6 +117,8 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     qDebug() << "    numberOfEntities=" << numberOfEntities;
     qDebug() << "    successAppendEntityCount=" << successAppendEntityCount;
     qDebug() << "--- before child loop ---";
+    qDebug() << "    packetData->getUncompressedSize()=" << packetData->getUncompressedSize() << "line:" << __LINE__;
+    qDebug() << "    packetData->getReservedBytes()=" << packetData->getReservedBytes();
 
     if (successAppendEntityCount) {
     
@@ -134,9 +136,15 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
             
             LevelDetails entityLevel = packetData->startLevel();
 
-            qDebug() << "BEFORE entity packetData->uncompressed size:" << packetData->getUncompressedSize();
+            qDebug() << "--- BEFORE entity ---";
+            qDebug() << "    packetData->getUncompressedSize()=" << packetData->getUncompressedSize() << "line:" << __LINE__;
+            qDebug() << "    packetData->getReservedBytes()=" << packetData->getReservedBytes();
+
             OctreeElement::AppendState appendEntityState = entity->appendEntityData(packetData, params, entityTreeElementExtraEncodeData);
-            qDebug() << "AFTER entity packetData->uncompressed size:" << packetData->getUncompressedSize();
+
+            qDebug() << "--- AFTER entity ---";
+            qDebug() << "    packetData->getUncompressedSize()=" << packetData->getUncompressedSize() << "line:" << __LINE__;
+            qDebug() << "    packetData->getReservedBytes()=" << packetData->getReservedBytes();
 
             // If none of this entity data was able to be appended, then discard it
             // and don't include it in our entity count

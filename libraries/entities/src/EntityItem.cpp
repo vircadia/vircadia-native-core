@@ -133,20 +133,37 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     
     LevelDetails modelLevel = packetData->startLevel();
 
-    bool successIDFits = packetData->appendValue(encodedID);
-    bool successTypeFits = packetData->appendValue(encodedType);
-    
     quint64 lastEdited = getLastEdited();
     //qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
     
-    bool successLastEditedFits = packetData->appendValue(lastEdited);
-    bool successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
-    
-    int propertyFlagsOffset = packetData->getUncompressedByteOffset();
-    QByteArray encodedPropertyFlags = propertyFlags;
-    int oldPropertyFlagsLength = encodedPropertyFlags.length();
-    bool successPropertyFlagsFits = packetData->appendValue(encodedPropertyFlags);
+    bool successIDFits = false;
+    bool successTypeFits = false;
+    bool successLastEditedFits = false;
+    bool successLastUpdatedFits = false;
+    bool successPropertyFlagsFits = false;
+    int propertyFlagsOffset = 0;
+    int oldPropertyFlagsLength = 0;
+    QByteArray encodedPropertyFlags;
     int propertyCount = 0;
+
+    successIDFits = packetData->appendValue(encodedID);
+    if (successIDFits) {
+        successTypeFits = packetData->appendValue(encodedType);
+    }
+    
+    if (successTypeFits) {
+        successLastEditedFits = packetData->appendValue(lastEdited);
+    }
+    if (successLastEditedFits) {
+        successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
+    }
+    
+    if (successLastUpdatedFits) {
+        propertyFlagsOffset = packetData->getUncompressedByteOffset();
+        encodedPropertyFlags = propertyFlags;
+        oldPropertyFlagsLength = encodedPropertyFlags.length();
+        successPropertyFlagsFits = packetData->appendValue(encodedPropertyFlags);
+    }
 
     bool headerFits = successIDFits && successTypeFits && successLastEditedFits 
                               && successLastUpdatedFits && successPropertyFlagsFits;
@@ -354,6 +371,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
             packetData->updatePriorBytes(newEntityItemDataStart, modelItemData, modelItemDataLength);
 
             int newSize = oldSize - (oldPropertyFlagsLength - newPropertyFlagsLength);
+qDebug() << "EntityItem::appendEntityData()... SHRINKING CASE??? DID WE TEST THIS!!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
             packetData->setUncompressedSize(newSize);
 
         } else {
