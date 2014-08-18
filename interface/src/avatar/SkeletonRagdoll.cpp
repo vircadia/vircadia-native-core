@@ -70,10 +70,7 @@ void SkeletonRagdoll::buildConstraints() {
     for (int i = 0; i < numPoints; ++i) {
         const JointState& state = jointStates.at(i);
         int parentIndex = state.getParentIndex();
-        if (parentIndex == -1) {
-            FixedConstraint* anchor = new FixedConstraint(&_translationInSimulationFrame, &(_points[i]));
-            _fixedConstraints.push_back(anchor);
-        } else { 
+        if (parentIndex != -1) {
             DistanceConstraint* bone = new DistanceConstraint(&(_points[i]), &(_points[parentIndex]));
             bone->setDistance(state.getDistanceToParent());
             _boneConstraints.push_back(bone);

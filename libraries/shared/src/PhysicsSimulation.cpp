@@ -163,10 +163,10 @@ bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
 }
 
 void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
-    int numDolls = _otherRagdolls.size();
-    if (doll->_simulation != this) {
+    if (!doll || doll->_simulation != this) {
         return;
     }
+    int numDolls = _otherRagdolls.size();
     for (int i = 0; i < numDolls; ++i) {
         if (doll == _otherRagdolls[i]) {
             if (i == numDolls - 1) {
@@ -205,10 +205,11 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
         }
     }
 
+    bool collidedWithOtherRagdoll = false;
     int iterations = 0;
     float error = 0.0f;
     do {
-        computeCollisions();
+        collidedWithOtherRagdoll = computeCollisions() || collidedWithOtherRagdoll;
         updateContacts();
         resolveCollisions();
 
@@ -225,6 +226,14 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
         now = usecTimestampNow();
     } while (_collisions.size() != 0 && (iterations < maxIterations) && (error > minError) && (now < expiry));
 
+    // the collisions may have moved the main ragdoll from the simulation center
+    // so we remove this offset (potentially storing it as movement of the Ragdoll owner)
+    _ragdoll->removeRootOffset(collidedWithOtherRagdoll);
+
+    // also remove any offsets from the other ragdolls
+    for (int i = 0; i < numDolls; ++i) {
+        _otherRagdolls[i]->removeRootOffset(false);
+    }
     pruneContacts();
 }
 
@@ -237,7 +246,7 @@ void PhysicsSimulation::moveRagdolls(float deltaTime) {
     }
 }
 
-void PhysicsSimulation::computeCollisions() {
+bool PhysicsSimulation::computeCollisions() {
     PerformanceTimer perfTimer("collide");
     _collisions.clear();
 
@@ -258,11 +267,13 @@ void PhysicsSimulation::computeCollisions() {
     }
 
     // collide main ragdoll with others
+    bool otherCollisions = false;
     int numEntities = _otherEntities.size();
     for (int i = 0; i < numEntities; ++i) {
         const QVector<Shape*> otherShapes = _otherEntities.at(i)->getShapes();
-        ShapeCollider::collideShapesWithShapes(shapes, otherShapes, _collisions);
+        otherCollisions = ShapeCollider::collideShapesWithShapes(shapes, otherShapes, _collisions) || otherCollisions;
     }
+    return otherCollisions;
 }
 
 void PhysicsSimulation::resolveCollisions() {
