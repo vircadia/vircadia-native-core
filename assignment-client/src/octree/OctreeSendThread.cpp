@@ -489,12 +489,18 @@ qDebug() << "OctreeSendThread::packetDistributor()... line:" << __LINE__;
 qDebug() << "    _packetData.getTargetSize()=" << _packetData.getTargetSize();
 qDebug() << "    MAX_OCTREE_PACKET_DATA_SIZE=" << MAX_OCTREE_PACKET_DATA_SIZE;
 qDebug() << "    _packetData.hasContent()=" << _packetData.hasContent();
+qDebug() << "    _packetData.getUncompressedSize()=" << _packetData.getUncompressedSize();
+qDebug() << "    _packetData.getFinalizedSize()=" << _packetData.getFinalizedSize();
+qDebug() << "    _packetData.isCompressed()=" << _packetData.isCompressed();
 qDebug() << "    bytesWritten=" << bytesWritten;
+qDebug() << "    extraPackingAttempts=" << extraPackingAttempts;
+qDebug() << "    REASONABLE_NUMBER_OF_PACKING_ATTEMPTS=" << REASONABLE_NUMBER_OF_PACKING_ATTEMPTS;
+                
+                
 if (params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
     qDebug() << "    params.stopReason == EncodeBitstreamParams::DIDNT_FIT";
 } else {
-    qDebug() << "    params.stopReason == ???";
-    params.displayStopReason();
+    qDebug() << "    params.stopReason=" << params.getStopReason();
 }
 
                 // if we're trying to fill a full size packet, then we use this logic to determine if we have a DIDNT_FIT case.

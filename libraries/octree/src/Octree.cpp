@@ -1472,6 +1472,8 @@ qDebug() << "    childAppendState=" << childAppendState;
                     if (childAppendState == OctreeElement::PARTIAL) {
                         elementAppendState = OctreeElement::PARTIAL;
 qDebug() << "    childAppendState == OctreeElement::PARTIAL ... so elementAppendState = OctreeElement::PARTIAL";
+qDebug() << "    also set params.stopReason = EncodeBitstreamParams::DIDNT_FIT";
+                        params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
                     }
                     
                     int bytesAfterChild = packetData->getUncompressedSize();
@@ -1753,7 +1755,9 @@ qDebug() << "    line:" << __LINE__ << "elementAppendState == OctreeElement::PAR
         }
     }
 
-qDebug() << " LEAVING... line:" << __LINE__ << "bytesAtThisLevel=" << bytesAtThisLevel;
+qDebug() << "LEAVING... line:" << __LINE__;
+qDebug() << "    bytesAtThisLevel=" << bytesAtThisLevel;
+qDebug() << "    params.stopReason=" << params.getStopReason();
     return bytesAtThisLevel;
 }
 

@@ -156,6 +156,23 @@ public:
             case OCCLUDED: qDebug("OCCLUDED"); break;
         }
     }
+
+    QString getStopReason() {
+        switch (stopReason) {
+            default:
+            case UNKNOWN: return QString("UNKNOWN"); break;
+
+            case DIDNT_FIT: return QString("DIDNT_FIT"); break;
+            case NULL_NODE: return QString("NULL_NODE"); break;
+            case TOO_DEEP: return QString("TOO_DEEP"); break;
+            case OUT_OF_JURISDICTION: return QString("OUT_OF_JURISDICTION"); break;
+            case LOD_SKIP: return QString("LOD_SKIP"); break;
+            case OUT_OF_VIEW: return QString("OUT_OF_VIEW"); break;
+            case WAS_IN_VIEW: return QString("WAS_IN_VIEW"); break;
+            case NO_CHANGE: return QString("NO_CHANGE"); break;
+            case OCCLUDED: return QString("OCCLUDED"); break;
+        }
+    }
 };
 
 class ReadElementBufferToTreeArgs {
