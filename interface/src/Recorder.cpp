@@ -45,14 +45,30 @@ void RecordingFrame::setLeanForward(float leanForward) {
     _leanForward = leanForward;
 }
 
+Recording::Recording() : _audio(NULL) {
+}
+
+Recording::~Recording() {
+    delete _audio;
+}
+
 void Recording::addFrame(int timestamp, RecordingFrame &frame) {
     _timestamps << timestamp;
     _frames << frame;
 }
 
+void Recording::addAudioPacket(QByteArray byteArray) {
+    if (!_audio) {
+        _audio = new Sound(byteArray);
+    }
+    _audio->append(byteArray);
+}
+
 void Recording::clear() {
     _timestamps.clear();
     _frames.clear();
+    delete _audio;
+    _audio = NULL;
 }
 
 Recorder::Recorder(AvatarData* avatar) :
@@ -134,10 +150,19 @@ void Recorder::record() {
     }
 }
 
+void Recorder::record(char* samples, int size) {
+    QByteArray byteArray(samples, size);
+    _recording->addAudioPacket(byteArray);
+}
+
+
 Player::Player(AvatarData* avatar) :
     _recording(new Recording()),
-    _avatar(avatar)
+    _avatar(avatar),
+    _audioThread(NULL)
 {
+    _options.setLoop(false);
+    _options.setVolume(1.0f);
 }
 
 bool Player::isPlaying() const {
@@ -276,18 +301,29 @@ float Player::getLeanForward() {
     return 0.0f;
 }
 
-
+#include <QMetaObject>
 void Player::startPlaying() {
     if (_recording && _recording->getFrameNumber() > 0) {
         qDebug() << "Recorder::startPlaying()";
-        _timer.start();
         _currentFrame = 0;
+        _options.setPosition(_avatar->getPosition());
+        _options.setOrientation(_avatar->getOrientation());
+        _injector.reset(new AudioInjector(_recording->getAudio(), _options));
+        _audioThread = new QThread();
+        _injector->moveToThread(_audioThread);
+        _audioThread->start();
+        QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
+        _timer.start();
     }
 }
 
 void Player::stopPlaying() {
     qDebug() << "Recorder::stopPlaying()";
     _timer.invalidate();
+    _injector->stop();
+    _injector.clear();
+    _audioThread->exit();
+    _audioThread->deleteLater();
 }
 
 void Player::loadFromFile(QString file) {
@@ -311,6 +347,7 @@ void Player::play() {
         stopPlaying();
         return;
     }
+    
     if (_currentFrame == 0) {
         _avatar->setPosition(_recording->getFrame(_currentFrame).getTranslation());
         _avatar->setOrientation(_recording->getFrame(_currentFrame).getRotation());
@@ -318,8 +355,6 @@ void Player::play() {
         _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
         HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
         head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
-        // TODO
-        // BODY: Joint Rotations
     } else {
         _avatar->setPosition(_recording->getFrame(0).getTranslation() +
                              _recording->getFrame(_currentFrame).getTranslation());
@@ -330,9 +365,18 @@ void Player::play() {
         _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
         HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
         head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
-        // TODO
-        // BODY: Joint Rotations
     }
+}
+
+void Player::playAudio() {
+    _options.setPosition(_avatar->getPosition());
+    _options.setOrientation(_avatar->getOrientation());
+
+    qDebug() << "Play";
+    if (_injector) {
+        _injector->injectAudio();
+    }
+    qDebug() << "Played";
 }
 
 void Player::computeCurrentFrame() {

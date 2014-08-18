@@ -22,8 +22,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <AudioInjector.h>
 #include <AvatarData.h>
 #include <SharedUtil.h>
+#include <Sound.h>
 
 class Recorder;
 class Recording;
@@ -75,27 +77,33 @@ private:
 /// Stores a recording
 class Recording {
 public:
+    Recording();
+    ~Recording();
+    
     bool isEmpty() const { return _timestamps.isEmpty(); }
     int getLength() const { return _timestamps.last(); } // in ms
+
     int getFrameNumber() const { return _frames.size(); }
-    
     qint32 getFrameTimestamp(int i) const { return _timestamps[i]; }
     const RecordingFrame& getFrame(int i) const { return _frames[i]; }
+    Sound* getAudio() const { return _audio; }
     
 protected:
     void addFrame(int timestamp, RecordingFrame& frame);
+    void addAudioPacket(QByteArray byteArray);
     void clear();
     
 private:
     QVector<qint32> _timestamps;
     QVector<RecordingFrame> _frames;
     
+    Sound* _audio;
+    
     friend class Recorder;
     friend class Player;
     friend void writeRecordingToFile(Recording& recording, QString file);
     friend RecordingPointer readRecordingFromFile(QString file);
 };
-
 
 /// Records a recording
 class Recorder {
@@ -112,6 +120,7 @@ public slots:
     void stopRecording();
     void saveToFile(QString file);
     void record();
+    void record(char* samples, int size);
     
 private:
     QElapsedTimer _timer;
@@ -138,12 +147,14 @@ public:
     float getLeanSideways();
     float getLeanForward();
     
+    
 public slots:
     void startPlaying();
     void stopPlaying();
     void loadFromFile(QString file);
     void loadRecording(RecordingPointer recording);
     void play();
+    void playAudio();
     
 private:
     void computeCurrentFrame();
@@ -152,7 +163,11 @@ private:
     RecordingPointer _recording;
     int _currentFrame;
     
+    QSharedPointer<AudioInjector> _injector;
+    AudioInjectorOptions _options;
+    
     AvatarData* _avatar;
+    QThread* _audioThread;
 };
 
 void writeRecordingToFile(Recording& recording, QString file);

@@ -1051,12 +1051,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
                         _myAvatar->stopRecording();
                     } else {
                         _myAvatar->startRecording();
+                        _audio.setRecorder(_myAvatar->getRecorder());
                     }
                 } else {
                     if (_myAvatar->isPlaying()) {
                         _myAvatar->stopPlaying();
                     } else {
                         _myAvatar->startPlaying();
+                        _audio.setPlayer(_myAvatar->getPlayer());
                     }
                 }
                 break;
