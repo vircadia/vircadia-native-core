@@ -88,25 +88,7 @@ ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) :
     }
 }
 
-// virtual 
 float ContactPoint::enforce() {
-    for (int i = 0; i < _numPoints; ++i) {
-        glm::vec3& position = _points[i]->_position;
-        // TODO: use a fast distance approximation
-        float newDistance = glm::distance(_contactPoint, position);
-        float constrainedDistance = _distances[i];
-        // NOTE: these "distance" constraints only push OUT, don't pull IN.
-        if (newDistance > EPSILON && newDistance < constrainedDistance) {
-            glm::vec3 direction = (_contactPoint - position) / newDistance;
-            glm::vec3 center = 0.5f * (_contactPoint + position);
-            _contactPoint = center + (0.5f * constrainedDistance) * direction;
-            position = center - (0.5f * constrainedDistance) * direction;
-        }
-    }
-    return 0.0f;
-}
-
-void ContactPoint::buildConstraints() {
     glm::vec3 pointA = _shapeA->getTranslation() + _offsetA;
     glm::vec3 pointB = _shapeB->getTranslation() + _offsetB;
     glm::vec3 penetration = pointA - pointB;
@@ -115,14 +97,6 @@ void ContactPoint::buildConstraints() {
 
     // the contact point will be the average of the two points on the shapes
     _contactPoint = 0.5f * (pointA + pointB);
-
-    // TODO: Andrew to compute more correct lagrangian weights that provide a more realistic response.
-    //
-    // HACK: since the weights are naively equal for all points (which is what the above TODO is about) we 
-    // don't want to use the full-strength delta because otherwise there can be annoying oscillations.  We 
-    // reduce this problem by in the short-term by attenuating the delta that is applied, the tradeoff is
-    // that this makes it easier for limbs to tunnel through during collisions.
-    const float HACK_STRENGTH = 0.5f;
 
     if (constraintViolation) {
         for (int i = 0; i < _numPoints; ++i) {
@@ -146,13 +120,34 @@ void ContactPoint::buildConstraints() {
         
             glm::vec3 targetPosition = point->_position + delta;
             _distances[i] = glm::distance(_contactPoint, targetPosition);
-            point->_position += HACK_STRENGTH * delta;
+            point->_position += delta;
         }
     } else {
         for (int i = 0; i < _numPoints; ++i) {
             _distances[i] = glm::length(glm::length(_offsets[i]));
         }
     }
+    return 0.0f;
+}
+
+// virtual 
+void ContactPoint::applyFriction() {
+    // TODO: Andrew to re-implement this in a different way
+    /*
+    for (int i = 0; i < _numPoints; ++i) {
+        glm::vec3& position = _points[i]->_position;
+        // TODO: use a fast distance approximation
+        float newDistance = glm::distance(_contactPoint, position);
+        float constrainedDistance = _distances[i];
+        // NOTE: these "distance" constraints only push OUT, don't pull IN.
+        if (newDistance > EPSILON && newDistance < constrainedDistance) {
+            glm::vec3 direction = (_contactPoint - position) / newDistance;
+            glm::vec3 center = 0.5f * (_contactPoint + position);
+            _contactPoint = center + (0.5f * constrainedDistance) * direction;
+            position = center - (0.5f * constrainedDistance) * direction;
+        }
+    }
+    */
 }
 
 void ContactPoint::updateContact(const CollisionInfo& collision, quint32 frame) {
