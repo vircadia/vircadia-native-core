@@ -127,18 +127,22 @@ public:
     /// (majority of pixels neither fully opaque or fully transparent).
     bool isTranslucent() const { return _translucent; }
 
+    /// Returns the lazily-computed average texture color.
+    const QColor& getAverageColor() const { return _averageColor; }
+
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
-    Q_INVOKABLE void setImage(const QImage& image, bool translucent);
+    Q_INVOKABLE void setImage(const QImage& image, bool translucent, const QColor& averageColor);
 
     virtual void imageLoaded(const QImage& image);
 
 private:
 
     bool _translucent;
+    QColor _averageColor;
 };
 
 /// Caches derived, dilated textures.

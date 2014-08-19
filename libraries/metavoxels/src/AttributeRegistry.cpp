@@ -25,6 +25,7 @@ REGISTER_META_OBJECT(SpannerQRgbAttribute)
 REGISTER_META_OBJECT(SpannerPackedNormalAttribute)
 REGISTER_META_OBJECT(HeightfieldAttribute)
 REGISTER_META_OBJECT(HeightfieldColorAttribute)
+REGISTER_META_OBJECT(HeightfieldTextureAttribute)
 REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
 REGISTER_META_OBJECT(SpannerSetAttribute)
@@ -49,7 +50,8 @@ AttributeRegistry::AttributeRegistry() :
     _spannerNormalAttribute(registerAttribute(new SpannerPackedNormalAttribute("spannerNormal"))),
     _spannerMaskAttribute(registerAttribute(new FloatAttribute("spannerMask"))),
     _heightfieldAttribute(registerAttribute(new HeightfieldAttribute("heightfield"))),
-    _heightfieldColorAttribute(registerAttribute(new HeightfieldColorAttribute("heightfieldColor"))) {
+    _heightfieldColorAttribute(registerAttribute(new HeightfieldColorAttribute("heightfieldColor"))),
+    _heightfieldTextureAttribute(registerAttribute(new HeightfieldTextureAttribute("heightfieldTexture"))) {
     
     // our baseline LOD threshold is for voxels; spanners and heightfields are a different story
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
@@ -58,6 +60,7 @@ AttributeRegistry::AttributeRegistry() :
     const float HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER = 32.0f;
     _heightfieldAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     _heightfieldColorAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
+    _heightfieldTextureAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
 }
 
 static QScriptValue qDebugFunction(QScriptContext* context, QScriptEngine* engine) {
@@ -1096,6 +1099,41 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
         }
     }
     *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer(new HeightfieldData(contents));
+    return false;
+}
+
+HeightfieldTextureAttribute::HeightfieldTextureAttribute(const QString& name) :
+    InlineAttribute<HeightfieldDataPointer>(name) {
+}
+
+void HeightfieldTextureAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    
+}
+
+void HeightfieldTextureAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    
+}
+
+void HeightfieldTextureAttribute::readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const {
+    
+}
+
+void HeightfieldTextureAttribute::writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const {
+    
+}
+
+bool HeightfieldTextureAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    int maxSize = 0;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        HeightfieldDataPointer pointer = decodeInline<HeightfieldDataPointer>(children[i]);
+        if (pointer) {
+            maxSize = qMax(maxSize, pointer->getContents().size());
+        }
+    }
+    if (maxSize == 0) {
+        *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer();
+        return true;
+    }
     return false;
 }
 

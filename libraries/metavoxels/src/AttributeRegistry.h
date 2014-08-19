@@ -96,11 +96,14 @@ public:
     /// Returns a reference to the standard "spannerMask" attribute.
     const AttributePointer& getSpannerMaskAttribute() const { return _spannerMaskAttribute; }
     
-    /// Returns a reference to the standard HeightfieldPointer "heightfield" attribute.
+    /// Returns a reference to the standard HeightfieldDataPointer "heightfield" attribute.
     const AttributePointer& getHeightfieldAttribute() const { return _heightfieldAttribute; }
     
-    /// Returns a reference to the standard HeightfieldColorPointer "heightfieldColor" attribute.
+    /// Returns a reference to the standard HeightfieldDataPointer "heightfieldColor" attribute.
     const AttributePointer& getHeightfieldColorAttribute() const { return _heightfieldColorAttribute; }
+    
+    /// Returns a reference to the standard HeightfieldDataPointer "heightfieldTexture" attribute.
+    const AttributePointer& getHeightfieldTextureAttribute() const { return _heightfieldTextureAttribute; } 
     
 private:
 
@@ -119,6 +122,7 @@ private:
     AttributePointer _spannerMaskAttribute;
     AttributePointer _heightfieldAttribute;
     AttributePointer _heightfieldColorAttribute;
+    AttributePointer _heightfieldTextureAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -494,6 +498,23 @@ class HeightfieldColorAttribute : public InlineAttribute<HeightfieldDataPointer>
 public:
     
     Q_INVOKABLE HeightfieldColorAttribute(const QString& name = QString());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+};
+
+/// An attribute that stores heightfield textures.
+class HeightfieldTextureAttribute : public InlineAttribute<HeightfieldDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE HeightfieldTextureAttribute(const QString& name = QString());
     
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;

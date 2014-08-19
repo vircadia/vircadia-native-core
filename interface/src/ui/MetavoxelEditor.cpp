@@ -120,6 +120,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new EraseHeightfieldTool(this));
     addTool(new HeightfieldHeightBrushTool(this));
     addTool(new HeightfieldColorBrushTool(this));
+    addTool(new HeightfieldTextureBrushTool(this));
     
     updateAttributes();
     
@@ -1153,5 +1154,27 @@ HeightfieldColorBrushTool::HeightfieldColorBrushTool(MetavoxelEditor* editor) :
 }
 
 QVariant HeightfieldColorBrushTool::createEdit(bool alternate) {
-    return QVariant::fromValue(PaintHeightfieldColorEdit(_position, _radius->value(), _color->getColor()));
+    return QVariant::fromValue(PaintHeightfieldColorEdit(_position, _radius->value(),
+        alternate ? QColor() : _color->getColor()));
+}
+
+HeightfieldTextureBrushTool::HeightfieldTextureBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Texture Brush") {
+    
+    _form->addRow("URL:", _url = new QUrlEditor(this));
+    _url->setURL(QUrl());
+    connect(_url, &QUrlEditor::urlChanged, this, &HeightfieldTextureBrushTool::updateTexture);
+}
+
+QVariant HeightfieldTextureBrushTool::createEdit(bool alternate) {
+    if (alternate) {
+        return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), QUrl(), QColor()));
+    } else {
+        return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), _url->getURL(),
+            _texture ? _texture->getAverageColor() : QColor()));
+    }   
+}
+
+void HeightfieldTextureBrushTool::updateTexture() {
+    _texture = Application::getInstance()->getTextureCache()->getTexture(_url->getURL());
 }

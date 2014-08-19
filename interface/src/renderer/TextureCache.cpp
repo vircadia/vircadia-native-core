@@ -382,12 +382,24 @@ void ImageReader::run() {
         qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height();
         image = image.scaled(MAXIMUM_SIZE, MAXIMUM_SIZE, Qt::KeepAspectRatio);
     }
+    int imageArea = image.width() * image.height();
     
+    const int EIGHT_BIT_MAXIMUM = 255;
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
         }
-        QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false));
+        int redTotal = 0, greenTotal = 0, blueTotal = 0;
+        for (int y = 0; y < image.height(); y++) {
+            for (int x = 0; x < image.width(); x++) {
+                QRgb rgb = image.pixel(x, y);
+                redTotal += qRed(rgb);
+                greenTotal += qGreen(rgb);
+                blueTotal += qBlue(rgb);
+            }
+        }
+        QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
+            Q_ARG(const QColor&, QColor(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea)));
         return;
     }
     if (image.format() != QImage::Format_ARGB32) {
@@ -397,11 +409,15 @@ void ImageReader::run() {
     // check for translucency/false transparency
     int opaquePixels = 0;
     int translucentPixels = 0;
-    const int EIGHT_BIT_MAXIMUM = 255;
-    const int RGB_BITS = 24;
+    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
     for (int y = 0; y < image.height(); y++) {
         for (int x = 0; x < image.width(); x++) {
-            int alpha = image.pixel(x, y) >> RGB_BITS;
+            QRgb rgb = image.pixel(x, y);
+            redTotal += qRed(rgb);
+            greenTotal += qGreen(rgb);
+            blueTotal += qBlue(rgb);
+            int alpha = qAlpha(rgb);
+            alphaTotal += alpha;
             if (alpha == EIGHT_BIT_MAXIMUM) {
                 opaquePixels++;
             } else if (alpha != 0) {
@@ -409,13 +425,13 @@ void ImageReader::run() {
             }
         }
     }
-    int imageArea = image.width() * image.height();
     if (opaquePixels == imageArea) {
         qDebug() << "Image with alpha channel is completely opaque:" << _url;
         image = image.convertToFormat(QImage::Format_RGB888);
     }
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
-        Q_ARG(bool, translucentPixels >= imageArea / 2));
+        Q_ARG(bool, translucentPixels >= imageArea / 2), Q_ARG(const QColor&, QColor(redTotal / imageArea,
+            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea)));
 }
 
 void NetworkTexture::downloadFinished(QNetworkReply* reply) {
@@ -427,8 +443,9 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, NULL, _url, content));
 }
 
-void NetworkTexture::setImage(const QImage& image, bool translucent) {
+void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor) {
     _translucent = translucent;
+    _averageColor = averageColor;
     
     finishedLoading(true);
     imageLoaded(image);
