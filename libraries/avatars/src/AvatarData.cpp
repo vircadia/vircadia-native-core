@@ -687,7 +687,7 @@ QVector<glm::quat> AvatarData::getJointRotations() const {
     if (QThread::currentThread() != thread()) {
         QVector<glm::quat> result;
         QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-                                  "getJointRotation", Qt::BlockingQueuedConnection,
+                                  "getJointRotations", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(QVector<glm::quat>, result));
         return result;
     }
@@ -702,7 +702,7 @@ void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
     if (QThread::currentThread() != thread()) {
         QVector<glm::quat> result;
         QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-                                  "setJointRotation", Qt::BlockingQueuedConnection,
+                                  "setJointRotations", Qt::BlockingQueuedConnection,
                                   Q_ARG(QVector<glm::quat>, jointRotations));
     }
     for (int i = 0; i < jointRotations.size(); ++i) {

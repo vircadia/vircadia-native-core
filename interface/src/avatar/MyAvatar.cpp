@@ -507,17 +507,16 @@ bool MyAvatar::setJointReferential(int id, int jointIndex) {
         return false;
     }
 }
-
+QString recordingFile = "recording.rec";
 bool MyAvatar::isRecording() const {
     return _recorder && _recorder->isRecording();
 }
 
-RecorderPointer MyAvatar::startRecording() {
+void MyAvatar::startRecording() {
     if (!_recorder) {
         _recorder = RecorderPointer(new Recorder(this));
     }
     _recorder->startRecording();
-    return _recorder;
 }
 
 void MyAvatar::stopRecording() {
@@ -526,19 +525,41 @@ void MyAvatar::stopRecording() {
     }
 }
 
+void MyAvatar::saveRecording(QString filename) {
+    if (_recorder) {
+        _recorder->saveToFile(filename);
+    }
+}
+
 bool MyAvatar::isPlaying() const {
     return _player && _player->isPlaying();
 }
 
-PlayerPointer MyAvatar::startPlaying() {
+void MyAvatar::loadRecording(QString filename) {
     if (!_player) {
         _player = PlayerPointer(new Player(this));
     }
-    if (_recorder) {
-        _player->loadRecording(_recorder->getRecording());
-        _player->startPlaying();
+    
+    _player->loadFromFile(filename);
+}
+
+void MyAvatar::loadLastRecording() {
+    if (!_recorder) {
+        return;
     }
-    return _player;
+    if (!_player) {
+        _player = PlayerPointer(new Player(this));
+    }
+    
+    _player->loadRecording(_recorder->getRecording());
+}
+
+void MyAvatar::startPlaying() {
+    if (!_player) {
+        _player = PlayerPointer(new Player(this));
+    }
+    
+    _player->startPlaying();
 }
 
 void MyAvatar::stopPlaying() {
@@ -955,7 +976,7 @@ void MyAvatar::clearJointsData() {
     for (int i = 0; i < _jointData.size(); ++i) {
         Avatar::clearJointData(i);
         if (QThread::currentThread() == thread()) {
-            _skeletonModel.clearJointState(i);
+            _skeletonModel.clearJointAnimationPriority(i);
         }
     }
 }

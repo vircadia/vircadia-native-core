@@ -1051,20 +1051,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_R:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
-                } else if (isMeta) {
-                    if (_myAvatar->isRecording()) {
-                        _myAvatar->stopRecording();
-                    } else {
-                        _myAvatar->startRecording();
-                        _audio.setRecorder(_myAvatar->getRecorder());
-                    }
-                } else {
-                    if (_myAvatar->isPlaying()) {
-                        _myAvatar->stopPlaying();
-                    } else {
-                        _myAvatar->startPlaying();
-                        _audio.setPlayer(_myAvatar->getPlayer());
-                    }
                 }
                 break;
             case Qt::Key_Percent:
