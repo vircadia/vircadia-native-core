@@ -16,11 +16,12 @@
 
 #include <HTTPManager.h>
 
-class DomainServerSettingsManager : public QObject, HTTPRequestHandler {
+class DomainServerSettingsManager : public QObject {
     Q_OBJECT
 public:
     DomainServerSettingsManager();
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
+    bool handlePublicHTTPRequest(HTTPConnection* connection, const QUrl& url);
+    bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
     
     QByteArray getJSONSettingsMap() const;
 private:

@@ -15,6 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QtGlobal>
 #include <QVector>
 
 class Shape;
@@ -46,6 +47,9 @@ public:
 
     Shape* getShapeA() const { return const_cast<Shape*>(_shapeA); }
     Shape* getShapeB() const { return const_cast<Shape*>(_shapeB); }
+
+    /// \return unique key for shape pair
+    quint64 getShapePairKey() const;
 
     const Shape* _shapeA;  // pointer to shapeA in this collision
     const Shape* _shapeB;  // pointer to shapeB in this collision

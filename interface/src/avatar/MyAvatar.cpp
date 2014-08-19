@@ -32,8 +32,10 @@
 #include "Audio.h"
 #include "Environment.h"
 #include "Menu.h"
+#include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
+#include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
@@ -82,15 +84,16 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
+    _physicsSimulation.setEntity(&_skeletonModel);
+
     _skeletonModel.setEnableShapes(true);
-    // The skeleton is both a PhysicsEntity and Ragdoll, so we add it to the simulation once for each type.
-    _physicsSimulation.addEntity(&_skeletonModel);
-    _physicsSimulation.addRagdoll(&_skeletonModel);
+    Ragdoll* ragdoll = _skeletonModel.buildRagdoll();
+    _physicsSimulation.setRagdoll(ragdoll);
 }
 
 MyAvatar::~MyAvatar() {
-    _physicsSimulation.removeEntity(&_skeletonModel);
-    _physicsSimulation.removeRagdoll(&_skeletonModel);
+    _physicsSimulation.setRagdoll(NULL);
+    _physicsSimulation.setEntity(NULL);
     _lookAtTargetAvatar.clear();
 }
 
@@ -108,6 +111,10 @@ void MyAvatar::reset() {
 }
 
 void MyAvatar::update(float deltaTime) {
+    if (_referential) {
+        _referential->update();
+    }
+    
     Head* head = getHead();
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
@@ -130,6 +137,12 @@ void MyAvatar::update(float deltaTime) {
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
+    
+    // Play back recording
+    if (_player && _player->isPlaying()) {
+        _player->play();
+    }
+    
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
@@ -142,7 +155,7 @@ void MyAvatar::simulate(float deltaTime) {
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
     }
-
+    
     {
         PerformanceTimer perfTimer("hand");
         // update avatar skeleton and simulate hand and head
@@ -200,11 +213,21 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("ragdoll");
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-            const int minError = 0.01f;
-            const float maxIterations = 10;
-            const quint64 maxUsec = 2000;
+        Ragdoll* ragdoll = _skeletonModel.getRagdoll();
+        if (ragdoll && Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+            const float minError = 0.00001f;
+            const float maxIterations = 3;
+            const quint64 maxUsec = 4000;
+            _physicsSimulation.setTranslation(_position);
             _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
+
+            // harvest any displacement of the Ragdoll that is a result of collisions
+            glm::vec3 ragdollDisplacement = ragdoll->getAndClearAccumulatedMovement();
+            const float MAX_RAGDOLL_DISPLACEMENT_2 = 1.0f;
+            float length2 = glm::length2(ragdollDisplacement);
+            if (length2 > EPSILON && length2 < MAX_RAGDOLL_DISPLACEMENT_2) {
+                setPosition(getPosition() + ragdollDisplacement);
+            }
         } else {
             _skeletonModel.moveShapesTowardJoints(1.0f);
         }
@@ -230,14 +253,17 @@ void MyAvatar::simulate(float deltaTime) {
         } else {
             _trapDuration = 0.0f;
         }
-    /* TODO: Andrew to make this work
         if (_collisionGroups & COLLISION_GROUP_AVATARS) {
             PerformanceTimer perfTimer("avatars");
             updateCollisionWithAvatars(deltaTime);
         }
-    */
     }
 
+    // Record avatars movements.
+    if (_recorder && _recorder->isRecording()) {
+        _recorder->record();
+    }
+    
     // consider updating our billboard
     maybeUpdateBillboard();
 }
@@ -246,11 +272,19 @@ void MyAvatar::simulate(float deltaTime) {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
+    if (isPlaying()) {
+        estimatedRotation = glm::degrees(safeEulerAngles(_player->getHeadRotation()));
+    } else if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
         estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
         estimatedRotation.x *= -1.0f;
         estimatedRotation.z *= -1.0f;
 
+    } else if (OculusManager::isConnected()) {
+        estimatedPosition = OculusManager::getRelativePosition();
+        estimatedPosition.x *= -1.0f;
+        
+        const float OCULUS_LEAN_SCALE = 0.05f;
+        estimatedPosition /= OCULUS_LEAN_SCALE;
     } else {
         FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
         if (tracker) {
@@ -282,7 +316,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
     Head* head = getHead();
-    if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected() || isPlaying()) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
     } else {
@@ -292,6 +326,11 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
     head->setDeltaRoll(estimatedRotation.z);
 
+    if (isPlaying()) {
+        head->setLeanSideways(_player->getLeanSideways());
+        head->setLeanForward(_player->getLeanForward());
+        return;
+    }
     // the priovr can give us exact lean
     if (Application::getInstance()->getPrioVR()->isActive()) {
         glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
@@ -299,7 +338,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setLeanForward(eulers.x);
         return;
     }
-
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
@@ -442,6 +480,71 @@ glm::vec3 MyAvatar::getRightPalmPosition() {
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
     rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
     return rightHandPosition;
+}
+
+void MyAvatar::clearReferential() {
+    changeReferential(NULL);
+}
+
+bool MyAvatar::setModelReferential(int id) {
+    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+    changeReferential(new ModelReferential(id, tree, this));
+    if (_referential->isValid()) {
+        return true;
+    } else {
+        changeReferential(NULL);
+        return false;
+    }
+}
+
+bool MyAvatar::setJointReferential(int id, int jointIndex) {
+    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+    changeReferential(new JointReferential(jointIndex, id, tree, this));
+    if (!_referential->isValid()) {
+        return true;
+    } else {
+        changeReferential(NULL);
+        return false;
+    }
+}
+
+bool MyAvatar::isRecording() const {
+    return _recorder && _recorder->isRecording();
+}
+
+RecorderPointer MyAvatar::startRecording() {
+    if (!_recorder) {
+        _recorder = RecorderPointer(new Recorder(this));
+    }
+    _recorder->startRecording();
+    return _recorder;
+}
+
+void MyAvatar::stopRecording() {
+    if (_recorder) {
+        _recorder->stopRecording();
+    }
+}
+
+bool MyAvatar::isPlaying() const {
+    return _player && _player->isPlaying();
+}
+
+PlayerPointer MyAvatar::startPlaying() {
+    if (!_player) {
+        _player = PlayerPointer(new Player(this));
+    }
+    if (_recorder) {
+        _player->loadRecording(_recorder->getRecording());
+        _player->startPlaying();
+    }
+    return _player;
+}
+
+void MyAvatar::stopPlaying() {
+    if (_player) {
+        _player->stopPlaying();
+    }
 }
 
 void MyAvatar::setLocalGravity(glm::vec3 gravity) {
@@ -826,6 +929,14 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
 
 const float JOINT_PRIORITY = 2.0f;
 
+void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
+    for (int i = 0; i < jointRotations.size(); ++i) {
+        if (i < _jointData.size()) {
+            _skeletonModel.setJointState(i, true, jointRotations[i], JOINT_PRIORITY + 1.0f);
+        }
+    }
+}
+
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
     Avatar::setJointData(index, rotation);
     if (QThread::currentThread() == thread()) {
@@ -837,6 +948,15 @@ void MyAvatar::clearJointData(int index) {
     Avatar::clearJointData(index);
     if (QThread::currentThread() == thread()) {
         _skeletonModel.setJointState(index, false, glm::quat(), JOINT_PRIORITY);
+    }
+}
+
+void MyAvatar::clearJointsData() {
+    for (int i = 0; i < _jointData.size(); ++i) {
+        Avatar::clearJointData(i);
+        if (QThread::currentThread() == thread()) {
+            _skeletonModel.clearJointState(i);
+        }
     }
 }
 
@@ -1520,8 +1640,6 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     return false;
 }
 
-const float BODY_COLLISION_RESOLUTION_TIMESCALE = 0.5f; // seconds
-
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
@@ -1532,41 +1650,51 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     }
     float myBoundingRadius = getBoundingRadius();
 
-    const float BODY_COLLISION_RESOLUTION_FACTOR = glm::max(1.0f, deltaTime / BODY_COLLISION_RESOLUTION_TIMESCALE);
-
+    // find nearest avatar
+    float nearestDistance2 = std::numeric_limits<float>::max();
+    Avatar* nearestAvatar = NULL;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         if (static_cast<Avatar*>(this) == avatar) {
             // don't collide with ourselves
             continue;
         }
-        float distance = glm::length(_position - avatar->getPosition());        
-        if (_distanceToNearestAvatar > distance) {
-            _distanceToNearestAvatar = distance;
+        float distance2 = glm::distance2(_position, avatar->getPosition());        
+        if (nearestDistance2 > distance2) {
+            nearestDistance2 = distance2;
+            nearestAvatar = avatar;
         }
-        float theirBoundingRadius = avatar->getBoundingRadius();
-        if (distance < myBoundingRadius + theirBoundingRadius) {
-            // collide our body against theirs
-            QVector<const Shape*> myShapes;
-            _skeletonModel.getBodyShapes(myShapes);
-            QVector<const Shape*> theirShapes;
-            avatar->getSkeletonModel().getBodyShapes(theirShapes);
+    }
+    _distanceToNearestAvatar = glm::sqrt(nearestDistance2);
 
-            CollisionInfo collision;
-            if (ShapeCollider::collideShapesCoarse(myShapes, theirShapes, collision)) {
-                float penetrationDepth = glm::length(collision._penetration);
-                if (penetrationDepth > myBoundingRadius) {
-                    qDebug() << "WARNING: ignoring avatar-avatar penetration depth " << penetrationDepth;
-                }
-                else if (penetrationDepth > EPSILON) {
-                    setPosition(getPosition() - BODY_COLLISION_RESOLUTION_FACTOR * collision._penetration);
-                    _lastBodyPenetration += collision._penetration;
-                    emit collisionWithAvatar(getSessionUUID(), avatar->getSessionUUID(), collision);
-                }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        if (nearestAvatar != NULL) {
+            if (_distanceToNearestAvatar > myBoundingRadius + nearestAvatar->getBoundingRadius()) {
+                // they aren't close enough to put into the _physicsSimulation
+                // so we clear the pointer
+                nearestAvatar = NULL;
             }
-
-            // collide their hands against us
-            avatar->getHand()->collideAgainstAvatar(this, false);
+        }
+    
+        foreach (const AvatarSharedPointer& avatarPointer, avatars) {
+            Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+            if (static_cast<Avatar*>(this) == avatar) {
+                // don't collide with ourselves
+                continue;
+            }
+            SkeletonModel* skeleton = &(avatar->getSkeletonModel());
+            PhysicsSimulation* simulation = skeleton->getSimulation();
+            if (avatar == nearestAvatar) {
+                if (simulation != &(_physicsSimulation)) {
+                    skeleton->setEnableShapes(true);
+                    _physicsSimulation.addEntity(skeleton);
+                    _physicsSimulation.addRagdoll(skeleton->getRagdoll());
+                }
+            } else if (simulation == &(_physicsSimulation)) {
+                _physicsSimulation.removeRagdoll(skeleton->getRagdoll());
+                _physicsSimulation.removeEntity(skeleton);
+                skeleton->setEnableShapes(false);
+            }
         }
     }
 }

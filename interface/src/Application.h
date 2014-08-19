@@ -64,6 +64,7 @@
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
 #include "devices/CaraFaceTracker.h"
+#include "devices/DdeFaceTracker.h"
 #include "models/ModelTreeRenderer.h"
 #include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
@@ -86,6 +87,7 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
+#include "ui/VoxelImportDialog.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
 #include "voxels/VoxelImporter.h"
@@ -192,6 +194,7 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
+    VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelSystem* getVoxels() { return &_voxels; }
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
@@ -201,6 +204,8 @@ public:
     bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
+    ModelTree* getModelClipboard() { return &_modelClipboard; }
+    ModelTreeRenderer* getModelClipboardRenderer() { return &_modelClipboardRenderer; }
     Environment* getEnvironment() { return &_environment; }
     bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return _mouseHidden; }
@@ -212,6 +217,7 @@ public:
     Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
+    DdeFaceTracker* getDDE() { return &_dde; }
     CaraFaceTracker* getCara() { return &_cara; }
     FaceTracker* getActiveFaceTracker();
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
@@ -227,6 +233,7 @@ public:
     float getPacketsPerSecond() const { return _packetsPerSecond; }
     float getBytesPerSecond() const { return _bytesPerSecond; }
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
+    void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
@@ -314,6 +321,10 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
 
+    void pasteModels(float x, float y, float z);
+    bool exportModels(const QString& filename, float x, float y, float z, float scale);
+    bool importModels(const QString& filename);
+
     void importVoxels(); // doesn't include source voxel because it goes to clipboard
     void cutVoxels(const VoxelDetail& sourceVoxel);
     void copyVoxels(const VoxelDetail& sourceVoxel);
@@ -342,6 +353,8 @@ public slots:
     void uploadAttachment();
 
     void bumpSettings() { ++_numChangedSettings; }
+    
+    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
 private slots:
     void timer();
@@ -384,6 +397,7 @@ private:
     void updateFaceplus();
     void updateFaceshift();
     void updateVisage();
+    void updateDDE();
     void updateCara();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
@@ -451,7 +465,8 @@ private:
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
-    VoxelImporter* _voxelImporter;
+    VoxelImportDialog* _voxelImportDialog;
+    VoxelImporter _voxelImporter;
     bool _importSucceded;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
@@ -460,6 +475,8 @@ private:
     ParticleCollisionSystem _particleCollisionSystem;
 
     ModelTreeRenderer _models;
+    ModelTreeRenderer _modelClipboardRenderer;
+    ModelTree _modelClipboard;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
@@ -482,6 +499,7 @@ private:
     Faceshift _faceshift;
     Visage _visage;
     CaraFaceTracker _cara;
+    DdeFaceTracker _dde;
 
     SixenseManager _sixenseManager;
     PrioVR _prioVR;

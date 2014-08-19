@@ -56,6 +56,7 @@ public:
 
     void setBlendshape(QString name, float val);
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
     
     float getPupilDilation() const { return _pupilDilation; }
     void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
@@ -67,6 +68,15 @@ public:
     
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
     void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
+    
+    
+    float getLeanSideways() const { return _leanSideways; }
+    float getLeanForward() const { return _leanForward; }
+    virtual float getFinalLeanSideways() const { return _leanSideways; }
+    virtual float getFinalLeanForward() const { return _leanForward; }
+    
+    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
+    void setLeanForward(float leanForward) { _leanForward = leanForward; }
     
     friend class AvatarData;
     

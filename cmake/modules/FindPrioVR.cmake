@@ -19,6 +19,6 @@ if (WIN32)
 endif (WIN32)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(PRIOVR DEFAULT_MSG PRIOVR_INCLUDE_DIRS PRIOVR_LIBRARIES)
+find_package_handle_standard_args(PrioVR DEFAULT_MSG PRIOVR_INCLUDE_DIRS PRIOVR_LIBRARIES)
 
 mark_as_advanced(PRIOVR_INCLUDE_DIRS PRIOVR_LIBRARIES)

@@ -322,6 +322,11 @@ namespace MenuOption {
     const QString Animations = "Animations...";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
+    const QString AudioFilter = "Audio Filter Bank";
+    const QString AudioFilterFlat = "Flat Response";
+    const QString AudioFilterTrebleCut= "Treble Cut";
+    const QString AudioFilterBassCut = "Bass Cut";
+    const QString AudioFilterSmiley = "Smiley Curve";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Audio Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
@@ -365,7 +370,6 @@ namespace MenuOption {
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableNackPackets = "Disable NACK Packets";
-    const QString DisableQAudioOutputOverflowCheck = "Disable Audio Output Device Overflow Check";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";

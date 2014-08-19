@@ -18,32 +18,40 @@
 
 const int MAX_REASONABLE_SEQUENCE_GAP = 1000;
 
+
 class PacketStreamStats {
 public:
     PacketStreamStats()
-        : _numReceived(0),
-        _numUnreasonable(0),
-        _numEarly(0),
-        _numLate(0),
-        _numLost(0),
-        _numRecovered(0),
-        _numDuplicate(0)
+        : _received(0),
+        _unreasonable(0),
+        _early(0),
+        _late(0),
+        _lost(0),
+        _recovered(0),
+        _expectedReceived(0)
     {}
 
-    float getUnreasonableRate() const { return (float)_numUnreasonable / _numReceived; }
-    float getNumEaryRate() const { return (float)_numEarly / _numReceived; }
-    float getLateRate() const { return (float)_numLate / _numReceived; }
-    float getLostRate() const { return (float)_numLost / _numReceived; }
-    float getRecoveredRate() const { return (float)_numRecovered / _numReceived; }
-    float getDuplicateRate() const { return (float)_numDuplicate / _numReceived; }
+    PacketStreamStats operator-(const PacketStreamStats& rhs) const {
+        PacketStreamStats diff;
+        diff._received = _received - rhs._received;
+        diff._unreasonable = _unreasonable - rhs._unreasonable;
+        diff._early = _early - rhs._early;
+        diff._late = _late - rhs._late;
+        diff._lost = _lost - rhs._lost;
+        diff._recovered = _recovered - rhs._recovered;
+        diff._expectedReceived = _expectedReceived - rhs._expectedReceived;
+        return diff;
+    }
 
-    quint32 _numReceived;
-    quint32 _numUnreasonable;
-    quint32 _numEarly;
-    quint32 _numLate;
-    quint32 _numLost;
-    quint32 _numRecovered;
-    quint32 _numDuplicate;
+    float getLostRate() const { return (float)_lost / _expectedReceived; }
+
+    quint32 _received;
+    quint32 _unreasonable;
+    quint32 _early;
+    quint32 _late;
+    quint32 _lost;
+    quint32 _recovered;
+    quint32 _expectedReceived;
 };
 
 class SequenceNumberStats {
@@ -52,8 +60,7 @@ public:
         OnTime,
         Unreasonable,
         Early,
-        Late,   // recovered
-        Duplicate
+        Recovered,
     };
 
     class ArrivalInfo {
@@ -63,27 +70,32 @@ public:
     };
 
 
-    SequenceNumberStats(int statsHistoryLength = 0);
+    SequenceNumberStats(int statsHistoryLength = 0, bool canDetectOutOfSync = true);
 
     void reset();
     ArrivalInfo sequenceNumberReceived(quint16 incoming, QUuid senderUUID = QUuid(), const bool wantExtraDebugging = false);
     void pruneMissingSet(const bool wantExtraDebugging = false);
     void pushStatsToHistory() { _statsHistory.insert(_stats); }
 
-    quint32 getNumReceived() const { return _stats._numReceived; }
-    quint32 getNumUnreasonable() const { return _stats._numUnreasonable; }
-    quint32 getNumOutOfOrder() const { return _stats._numEarly + _stats._numLate; }
-    quint32 getNumEarly() const { return _stats._numEarly; }
-    quint32 getNumLate() const { return _stats._numLate; }
-    quint32 getNumLost() const { return _stats._numLost; }
-    quint32 getNumRecovered() const { return _stats._numRecovered; }
-    quint32 getNumDuplicate() const { return _stats._numDuplicate; }
+    quint32 getReceived() const { return _stats._received; }
+    quint32 getExpectedReceived() const { return _stats._expectedReceived; }
+    quint32 getUnreasonable() const { return _stats._unreasonable; }
+    quint32 getOutOfOrder() const { return _stats._early + _stats._late; }
+    quint32 getEarly() const { return _stats._early; }
+    quint32 getLate() const { return _stats._late; }
+    quint32 getLost() const { return _stats._lost; }
+    quint32 getRecovered() const { return _stats._recovered; }
+
     const PacketStreamStats& getStats() const { return _stats; }
     PacketStreamStats getStatsForHistoryWindow() const;
+    PacketStreamStats getStatsForLastHistoryInterval() const;
     const QSet<quint16>& getMissingSet() const { return _missingSet; }
 
 private:
-    quint16 _lastReceived;
+    void receivedUnreasonable(quint16 incoming);
+
+private:
+    quint16 _lastReceivedSequence;
     QSet<quint16> _missingSet;
 
     PacketStreamStats _stats;
@@ -91,6 +103,9 @@ private:
     QUuid _lastSenderUUID;
 
     RingBufferHistory<PacketStreamStats> _statsHistory;
+
+    quint16 _lastUnreasonableSequence;
+    int _consecutiveUnreasonableOnTime;
 };
 
 #endif // hifi_SequenceNumberStats_h

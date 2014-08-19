@@ -55,6 +55,11 @@ public:
     
     /// Checks whether the node or any of the nodes underneath it have had subdivision enabled as compared to the reference.
     bool becameSubdivided(const glm::vec3& minimum, float size, const MetavoxelLOD& reference, float multiplier = 1.0f) const;
+    
+    /// Checks whether the node or any of the nodes underneath it have had subdivision
+    /// enabled or disabled as compared to the reference.
+    bool becameSubdividedOrCollapsed(const glm::vec3& minimum, float size,
+        const MetavoxelLOD& reference, float multiplier = 1.0f) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelLOD)
@@ -181,6 +186,7 @@ public:
     bool shouldSubdivide() const;
     bool shouldSubdivideReference() const;
     bool becameSubdivided() const;
+    bool becameSubdividedOrCollapsed() const;
     
     void setMinimum(const glm::vec3& lastMinimum, int index);
 };
@@ -190,6 +196,8 @@ class MetavoxelNode {
 public:
 
     static const int CHILD_COUNT = 8;
+
+    static int getOppositeChildIndex(int index);
 
     MetavoxelNode(const AttributeValue& attributeValue, const MetavoxelNode* copyChildren = NULL);
     MetavoxelNode(const AttributePointer& attribute, const MetavoxelNode* copy);
@@ -555,6 +563,7 @@ public:
     
     virtual void init(MetavoxelRenderer* renderer);
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
+    virtual void simulate(MetavoxelData& data, float deltaTime, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
 
 protected:
@@ -562,13 +571,13 @@ protected:
     MetavoxelRenderer* _renderer;
 };
 
-/// Renders metavoxels as points.
-class PointMetavoxelRenderer : public MetavoxelRenderer {
+/// The standard, usual renderer.
+class DefaultMetavoxelRenderer : public MetavoxelRenderer {
     Q_OBJECT
 
 public:
     
-    Q_INVOKABLE PointMetavoxelRenderer();
+    Q_INVOKABLE DefaultMetavoxelRenderer();
     
     virtual QByteArray getImplementationClassName() const;
 };

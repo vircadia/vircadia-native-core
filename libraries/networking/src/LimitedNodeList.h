@@ -107,7 +107,7 @@ public slots:
     
     void killNodeWithUUID(const QUuid& nodeUUID);
 signals:
-    void uuidChanged(const QUuid& ownerUUID);
+    void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
 protected:
@@ -123,7 +123,7 @@ protected:
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
 
     
-    void changeSendSocketBufferSize(int numSendBytes);
+    void changeSocketBufferSizes(int numBytes);
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;

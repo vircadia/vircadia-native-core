@@ -15,6 +15,7 @@
 #define hifi_VoxelEditPacketSender_h
 
 #include <OctreeEditPacketSender.h>
+
 #include "VoxelDetail.h"
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
@@ -27,7 +28,7 @@ public:
     /// Queues a single voxel edit message. Will potentially send a pending multi-command packet. Determines which voxel-server
     /// node or nodes the packet should be sent to. Can be called even before voxel servers are known, in which case up to 
     /// MaxPendingMessages will be buffered and processed when voxel servers are known.
-    void queueVoxelEditMessage(PacketType type, unsigned char* codeColorBuffer, ssize_t length) {
+    void queueVoxelEditMessage(PacketType type, unsigned char* codeColorBuffer, size_t length) {
         queueOctreeEditMessage(type, codeColorBuffer, length);
     }
 
@@ -49,5 +50,14 @@ public:
 
     // My server type is the voxel server
     virtual char getMyNodeType() const { return NodeType::VoxelServer; }
+    
+    void setSatoshisPerVoxel(qint64 satoshisPerVoxel) { _satoshisPerVoxel = satoshisPerVoxel; }
+    void setSatoshisPerMeterCubed(qint64 satoshisPerMeterCubed) { _satoshisPerMeterCubed = satoshisPerMeterCubed; }
+    
+    qint64 satoshiCostForMessage(const VoxelDetail& details);
+    
+private:
+    qint64 _satoshisPerVoxel;
+    qint64 _satoshisPerMeterCubed;
 };
 #endif // hifi_VoxelEditPacketSender_h

@@ -40,6 +40,6 @@ select_library_configurations(FACESHIFT)
 set(FACESHIFT_LIBRARIES ${FACESHIFT_LIBRARY})
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(FACESHIFT DEFAULT_MSG FACESHIFT_INCLUDE_DIRS FACESHIFT_LIBRARIES)
+find_package_handle_standard_args(Faceshift DEFAULT_MSG FACESHIFT_INCLUDE_DIRS FACESHIFT_LIBRARIES)
 
 mark_as_advanced(FACESHIFT_INCLUDE_DIRS FACESHIFT_LIBRARIES FACESHIFT_SEARCH_DIRS)

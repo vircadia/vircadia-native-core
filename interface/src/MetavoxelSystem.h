@@ -34,11 +34,22 @@ public:
     virtual void init();
 
     virtual MetavoxelLOD getLOD();
+
+    const Frustum& getFrustum() const { return _frustum; }
     
     const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
+    const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
     
     void simulate(float deltaTime);
     void render();
+
+    void renderHeightfieldCursor(const glm::vec3& position, float radius);
+
+    bool findFirstRayHeightfieldIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
+
+    Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
+
+    Q_INVOKABLE void deleteTextures(int heightID, int colorID);
 
 protected:
 
@@ -49,9 +60,11 @@ private:
     void guideToAugmented(MetavoxelVisitor& visitor);
     
     AttributePointer _pointBufferAttribute;
+    AttributePointer _heightfieldBufferAttribute;
     
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
+    Frustum _frustum;
 };
 
 /// Describes contents of a point in a point buffer.
@@ -92,13 +105,24 @@ private:
     QReadWriteLock _augmentedDataLock;
 };
 
+/// Base class for cached static buffers.
+class BufferData : public QSharedData {
+public:
+    
+    virtual ~BufferData();
+
+    virtual void render(bool cursor = false) = 0;
+};
+
+typedef QExplicitlySharedDataPointer<BufferData> BufferDataPointer;
+
 /// Contains the information necessary to render a group of points.
-class PointBuffer : public QSharedData {
+class PointBuffer : public BufferData {
 public:
 
     PointBuffer(const BufferPointVector& points);
 
-    void render();
+    virtual void render(bool cursor = false);
 
 private:
     
@@ -107,36 +131,133 @@ private:
     int _pointCount;
 };
 
-typedef QExplicitlySharedDataPointer<PointBuffer> PointBufferPointer;
+/// Contains the information necessary to render a heightfield block.
+class HeightfieldBuffer : public BufferData {
+public:
+    
+    static const int HEIGHT_BORDER;
+    static const int SHARED_EDGE;
+    static const int HEIGHT_EXTENSION;
+    
+    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color);
+    ~HeightfieldBuffer();
+    
+    const glm::vec3& getTranslation() const { return _translation; }
+    float getScale() const { return _scale; }
+    
+    const Box& getHeightBounds() const { return _heightBounds; }
+    const Box& getColorBounds() const { return _colorBounds; }
+    
+    QByteArray& getHeight() { return _height; }
+    const QByteArray& getHeight() const { return _height; }
+    
+    QByteArray& getColor() { return _color; }
+    const QByteArray& getColor() const { return _color; }
+    
+    QByteArray getUnextendedHeight() const;
+    QByteArray getUnextendedColor() const;
+    
+    int getHeightSize() const { return _heightSize; }
+    float getHeightIncrement() const { return _heightIncrement; }
+    
+    int getColorSize() const { return _colorSize; }
+    float getColorIncrement() const { return _colorIncrement; }
+    
+    virtual void render(bool cursor = false);
 
-/// A client-side attribute that stores point buffers.
-class PointBufferAttribute : public InlineAttribute<PointBufferPointer> {
+private:
+    
+    glm::vec3 _translation;
+    float _scale;
+    Box _heightBounds;
+    Box _colorBounds;
+    QByteArray _height;
+    QByteArray _color;
+    GLuint _heightTextureID;
+    GLuint _colorTextureID;
+    int _heightSize;
+    float _heightIncrement;
+    int _colorSize;
+    float _colorIncrement;
+
+    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
+    static QHash<int, BufferPair> _bufferPairs;
+};
+
+/// Convenience class for rendering a preview of a heightfield.
+class HeightfieldPreview {
+public:
+    
+    void setBuffers(const QVector<BufferDataPointer>& buffers) { _buffers = buffers; }
+    const QVector<BufferDataPointer>& getBuffers() const { return _buffers; }
+    
+    void render(const glm::vec3& translation, float scale) const;
+    
+private:
+    
+    QVector<BufferDataPointer> _buffers;
+};
+
+/// A client-side attribute that stores renderable buffers.
+class BufferDataAttribute : public InlineAttribute<BufferDataPointer> {
     Q_OBJECT
     
 public:
     
-    Q_INVOKABLE PointBufferAttribute();
+    Q_INVOKABLE BufferDataAttribute(const QString& name = QString());
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 /// Renders metavoxels as points.
-class PointMetavoxelRendererImplementation : public MetavoxelRendererImplementation {
+class DefaultMetavoxelRendererImplementation : public MetavoxelRendererImplementation {
     Q_OBJECT
 
 public:
     
     static void init();
+
+    static ProgramObject& getHeightfieldProgram() { return _heightfieldProgram; }
+    static int getHeightScaleLocation() { return _heightScaleLocation; }
+    static int getColorScaleLocation() { return _colorScaleLocation; }
     
-    Q_INVOKABLE PointMetavoxelRendererImplementation();
+    static ProgramObject& getShadowMapHeightfieldProgram() { return _shadowMapHeightfieldProgram; }
+    static int getShadowMapHeightScaleLocation() { return _shadowMapHeightScaleLocation; }
+    static int getShadowMapColorScaleLocation() { return _shadowMapColorScaleLocation; }
+    
+    static ProgramObject& getCascadedShadowMapHeightfieldProgram() { return _cascadedShadowMapHeightfieldProgram; }
+    static int getCascadedShadowMapHeightScaleLocation() { return _cascadedShadowMapHeightScaleLocation; }
+    static int getCascadedShadowMapColorScaleLocation() { return _cascadedShadowMapColorScaleLocation; }
+    
+    static ProgramObject& getHeightfieldCursorProgram() { return _heightfieldCursorProgram; }
+    
+    Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
+    virtual void simulate(MetavoxelData& data, float deltaTime, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
 
 private:
 
-    static ProgramObject _program;
-    static int _pointScaleLocation;    
+    static ProgramObject _pointProgram;
+    static int _pointScaleLocation;
+    
+    static ProgramObject _heightfieldProgram;
+    static int _heightScaleLocation;
+    static int _colorScaleLocation;
+    
+    static ProgramObject _shadowMapHeightfieldProgram;
+    static int _shadowMapHeightScaleLocation;
+    static int _shadowMapColorScaleLocation;
+    
+    static ProgramObject _cascadedShadowMapHeightfieldProgram;
+    static int _cascadedShadowMapHeightScaleLocation;
+    static int _cascadedShadowMapColorScaleLocation;
+    static int _shadowDistancesLocation;
+    
+    static ProgramObject _heightfieldCursorProgram;
 };
 
 /// Base class for spanner renderers; provides clipping.

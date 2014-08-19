@@ -1,5 +1,5 @@
 //
-//  ImportDialog.h
+//  VoxelImportDialog.h
 //  interface/src/ui
 //
 //  Created by Clement Brisset on 8/12/13.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ImportDialog_h
-#define hifi_ImportDialog_h
+#ifndef hifi_VoxelImportDialog_h
+#define hifi_VoxelImportDialog_h
 
 #include "InterfaceConfig.h"
 
@@ -22,6 +22,8 @@
 #include <QHash>
 
 #include <SharedUtil.h>
+
+#include "voxels/VoxelImporter.h"
 
 class HiFiIconProvider : public QFileIconProvider {
 public:
@@ -35,39 +37,45 @@ public:
 enum dialogMode {
     importMode,
     loadingMode,
-    placeMode
+    finishedMode
 };
 
-class ImportDialog : public QFileDialog {
+class VoxelImportDialog : public QFileDialog {
     Q_OBJECT
     
 public:
-    ImportDialog(QWidget* parent = NULL);
-    void reset();
+    VoxelImportDialog(QWidget* parent = NULL);
     
     QString getCurrentFile() const { return _currentFile; }
     dialogMode getMode() const { return _mode; }
+
     void setMode(dialogMode mode);
+    void reset();
+    bool prompt();
+    void loadSettings(QSettings* settings);
+    void saveSettings(QSettings* settings);
     
 signals:
     void canceled();
-    
-public slots:
-    void setProgressBarValue(int value);
 
 private slots:
+    void setProgressBarValue(int value);
     void accept();
+    void cancel();
     void saveCurrentFile(QString filename);
+    void afterImport();
 
 private:
-    QString _currentFile;
-    QProgressBar _progressBar;
-    QPushButton _importButton;
     QPushButton _cancelButton;
+    QString _currentFile;
+    QPushButton _importButton;
+    VoxelImporter* _importer;
     dialogMode _mode;
+    QProgressBar _progressBar;
+    bool _didImport;
         
     void setLayout();
     void setImportTypes();
 };
 
-#endif // hifi_ImportDialog_h
+#endif // hifi_VoxelImportDialog_h

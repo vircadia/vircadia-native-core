@@ -65,6 +65,9 @@ void PhysicsEntity::setEnableShapes(bool enable) {
 }   
 
 void PhysicsEntity::clearShapes() {
+    if (_simulation) {
+        _simulation->removeShapes(this);
+    }
     for (int i = 0; i < _shapes.size(); ++i) {
         delete _shapes[i];
     }

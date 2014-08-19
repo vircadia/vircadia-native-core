@@ -74,6 +74,7 @@ public:
 
     void copyToModelItem(ModelItem& modelItem) const;
     void copyFromModelItem(const ModelItem& modelItem);
+    void copyFromNewModelItem(const ModelItem& modelItem);
 
     const glm::vec3& getPosition() const { return _position; }
     xColor getColor() const { return _color; }
@@ -178,7 +179,6 @@ void ModelItemIDfromScriptValue(const QScriptValue &object, ModelItemID& propert
 
 /// ModelItem class - this is the actual model item class.
 class ModelItem  {
-
 public:
     ModelItem();
 
@@ -270,7 +270,7 @@ public:
     static bool encodeModelEditMessageDetails(PacketType command, ModelItemID id, const ModelItemProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
-    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
+    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
     
     void update(const quint64& now);
 

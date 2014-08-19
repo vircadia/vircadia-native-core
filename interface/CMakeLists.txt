@@ -1,18 +1,13 @@
-set(ROOT_DIR ..)
-set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
-
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
-# setup for find modules
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
-
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "faceplus" "faceshift" "oculus" "priovr" "sixense" "visage" "leapmotion" "rtmidi" "qxmpp")
+set(OPTIONAL_EXTERNALS "Faceplus" "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
-  string(TOUPPER ${EXTERNAL} UPPER_EXTERNAL)
-  if (NOT ${UPPER_EXTERNAL}_ROOT_DIR)
-    set(${UPPER_EXTERNAL}_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/${EXTERNAL}")
+  string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
+  if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
+    string(TOLOWER ${EXTERNAL} ${EXTERNAL}_LOWERCASE)
+    set(${${EXTERNAL}_UPPERCASE}_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/${${EXTERNAL}_LOWERCASE}")
   endif ()
 endforeach()
 
@@ -38,8 +33,7 @@ elseif (WIN32)
 endif ()
 
 # set up the external glm library
-include("${MACRO_DIR}/IncludeGLM.cmake")
-include_glm(${TARGET_NAME} "${ROOT_DIR}")
+include_glm()
 
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")
@@ -61,7 +55,7 @@ else ()
     list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_H})
 endif ()
 
-find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
+find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Script Svg WebKitWidgets)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -106,60 +100,36 @@ endif()
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
-# link in the hifi shared library
-include(${MACRO_DIR}/LinkHifiLibrary.cmake)
-
 # link required hifi libraries
-link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(fbx ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(metavoxels ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(networking ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(particles ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(models ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(avatars ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(audio ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(animation ${TARGET_NAME} "${ROOT_DIR}")
-link_hifi_library(script-engine ${TARGET_NAME} "${ROOT_DIR}")
+link_hifi_libraries(shared octree voxels fbx metavoxels networking particles models avatars audio animation script-engine)
 
 # find any optional and required libraries
-find_package(Faceplus)
-find_package(Faceshift)
-find_package(LibOVR)
-find_package(PrioVR)
-find_package(SDL)
-find_package(Sixense)
-find_package(Visage)
-find_package(LeapMotion)
-find_package(ZLIB)
-find_package(Qxmpp)
-find_package(RtMidi)
+find_package(ZLIB REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
-  string(TOUPPER ${EXTERNAL} UPPER_EXTERNAL)
   
-  if (${UPPER_EXTERNAL} MATCHES "OCULUS")
-    # the oculus directory is named OCULUS and not LIBOVR so hack to fix that here
-    set(UPPER_EXTERNAL "LIBOVR")
+  if (${${EXTERNAL}_UPPERCASE}_REQUIRED)
+    find_package(${EXTERNAL} REQUIRED)
+  else ()
+    find_package(${EXTERNAL})
   endif ()
   
-  if (${UPPER_EXTERNAL}_FOUND AND NOT DISABLE_${UPPER_EXTERNAL})
-    add_definitions(-DHAVE_${UPPER_EXTERNAL})
+  if (${${EXTERNAL}_UPPERCASE}_FOUND AND NOT DISABLE_${${EXTERNAL}_UPPERCASE})
+    add_definitions(-DHAVE_${${EXTERNAL}_UPPERCASE})
     
     # include the library directories (ignoring warnings)
-    include_directories(SYSTEM ${${UPPER_EXTERNAL}_INCLUDE_DIRS})
+    include_directories(SYSTEM ${${${EXTERNAL}_UPPERCASE}_INCLUDE_DIRS})
     
     # perform the system include hack for OS X to ignore warnings
     if (APPLE)
-      foreach(EXTERNAL_INCLUDE_DIR  ${${UPPER_EXTERNAL}_INCLUDE_DIRS})
+      foreach(EXTERNAL_INCLUDE_DIR  ${${${EXTERNAL}_UPPERCASE}_INCLUDE_DIRS})
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${EXTERNAL_INCLUDE_DIR}")
       endforeach()
     endif ()
     
-    target_link_libraries(${TARGET_NAME} ${${UPPER_EXTERNAL}_LIBRARIES})
+    target_link_libraries(${TARGET_NAME} ${${${EXTERNAL}_UPPERCASE}_LIBRARIES})
     
   endif ()
 endforeach()
@@ -188,17 +158,11 @@ endif ()
 
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
-
-# include external library headers
-# use system flag so warnings are supressed
-include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
+include_directories("${OPENSSL_INCLUDE_DIR}")
 
 target_link_libraries(
-  ${TARGET_NAME}
-  "${ZLIB_LIBRARIES}"
-  ${OPENSSL_LIBRARIES}
-  Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
-  Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
+  ${TARGET_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES}
+  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL Qt5::Script Qt5::Svg Qt5::WebKitWidgets
 )
 
 # assume we are using a Qt build without bearer management
@@ -206,30 +170,12 @@ add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
-    find_library(AppKit AppKit)
     find_library(CoreAudio CoreAudio)
-    find_library(CoreServices CoreServices)
-    find_library(Carbon Carbon)
-    find_library(Foundation Foundation)
+    find_library(CoreFoundation CoreFoundation)
     find_library(GLUT GLUT)
     find_library(OpenGL OpenGL)
-    find_library(IOKit IOKit)
-    find_library(QTKit QTKit)
-    find_library(QuartzCore QuartzCore)    
 
-    target_link_libraries(
-        ${TARGET_NAME}
-        ${AppKit}
-        ${CoreAudio}
-        ${CoreServices}
-        ${Carbon}
-        ${Foundation}
-        ${GLUT}
-        ${OpenGL}
-        ${IOKit}
-        ${QTKit}
-        ${QuartzCore}
-    )
+    target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${GLUT} ${OpenGL})
     
     # install command for OS X bundle
     INSTALL(TARGETS ${TARGET_NAME}
@@ -263,9 +209,9 @@ else (APPLE)
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
     
-    # add a definition for ssize_t so that windows doesn't bail
-    add_definitions(-Dssize_t=long)
-    
     target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
   endif()
 endif (APPLE)
+
+# link any dependencies bubbled up from our linked dependencies
+link_shared_dependencies()

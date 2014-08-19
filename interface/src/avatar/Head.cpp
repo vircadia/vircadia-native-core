@@ -64,10 +64,18 @@ void Head::reset() {
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     //  Update audio trailing average for rendering facial animations
     if (isMine) {
-		FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-        if ((_isFaceshiftConnected = faceTracker)) {
-            _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-            _isFaceshiftConnected = true;   
+        MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+        
+        // Only use face trackers when not playing back a recording.
+        if (!myAvatar->isPlaying()) {
+            FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
+            if ((_isFaceshiftConnected = faceTracker)) {
+                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+                _isFaceshiftConnected = true;
+            } else if (Application::getInstance()->getDDE()->isActive()) {
+                faceTracker = Application::getInstance()->getDDE();
+                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+            }            
         }
     }
     
@@ -159,9 +167,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
     }
     _eyePosition = calculateAverageEyePosition();
-
-    float velocityFilter = glm::clamp(1.0f - glm::length(_filteredEyePosition - _eyePosition), 0.0f, 1.0f);
-    _filteredEyePosition = velocityFilter * _filteredEyePosition + (1.0f - velocityFilter) * _eyePosition;
 
 }
 

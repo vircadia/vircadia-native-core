@@ -14,22 +14,25 @@
 
 #include <VerletCapsuleShape.h>
 #include <VerletSphereShape.h>
-#include <DistanceConstraint.h>
-#include <FixedConstraint.h>
 
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Menu.h"
-#include "MuscleConstraint.h"
 #include "SkeletonModel.h"
+#include "SkeletonRagdoll.h"
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) : 
     Model(parent),
-    Ragdoll(),
     _owningAvatar(owningAvatar),
     _boundingShape(),
-    _boundingShapeLocalOffset(0.0f) {
+    _boundingShapeLocalOffset(0.0f),
+    _ragdoll(NULL) {
+}
+
+SkeletonModel::~SkeletonModel() {
+    delete _ragdoll;
+    _ragdoll = NULL;
 }
 
 void SkeletonModel::setJointStates(QVector<JointState> states) {
@@ -59,8 +62,14 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     
     Model::simulate(deltaTime, fullUpdate);
     
-    if (!(isActive() && _owningAvatar->isMyAvatar())) {
+    if (!isActive() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar
+    }
+    
+    MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+    if (myAvatar->isPlaying()) {
+        // Don't take inputs if playing back a recording.
+        return;
     }
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -155,9 +164,6 @@ void SkeletonModel::getBodyShapes(QVector<const Shape*>& shapes) const {
 void SkeletonModel::renderIKConstraints() {
     renderJointConstraints(getRightHandJointIndex());
     renderJointConstraints(getLeftHandJointIndex());
-    //if (isActive() && _owningAvatar->isMyAvatar()) {
-    //    renderRagdoll();
-    //}
 }
 
 class IndexValue {
@@ -432,6 +438,10 @@ bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {
 }
 
 bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
+    if (_owningAvatar->isMyAvatar() &&
+            Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        return isActive() && getVisibleJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+    }
     return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
@@ -445,11 +455,16 @@ bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckP
     }
     int parentIndex = geometry.joints.at(geometry.neckJointIndex).parentIndex;
     glm::quat worldFrameRotation;
-    if (getJointRotationInWorldFrame(parentIndex, worldFrameRotation)) {
-        neckParentRotation = worldFrameRotation * _jointStates[parentIndex].getFBXJoint().inverseDefaultRotation;
-        return true;
+    bool success = false;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        success = getVisibleJointRotationInWorldFrame(parentIndex, worldFrameRotation);
+    } else {
+        success = getJointRotationInWorldFrame(parentIndex, worldFrameRotation);
     }
-    return false;
+    if (success) {
+        neckParentRotation = worldFrameRotation * _jointStates[parentIndex].getFBXJoint().inverseDefaultRotation;
+    }
+    return success;
 }
 
 bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
@@ -480,21 +495,27 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
 }
 
 void SkeletonModel::renderRagdoll() {
+    if (!_ragdoll) {
+        return;
+    }
+    const QVector<VerletPoint>& points = _ragdoll->getPoints();
     const int BALL_SUBDIVISIONS = 6;
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     glPushMatrix();
 
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
-    int numPoints = _ragdollPoints.size();
+    int numPoints = points.size();
     float alpha = 0.3f;
     float radius1 = 0.008f;
     float radius2 = 0.01f;
+    glm::vec3 simulationTranslation = _ragdoll->getTranslationInSimulationFrame();
     for (int i = 0; i < numPoints; ++i) {
         glPushMatrix();
-        // draw each point as a yellow hexagon with black border
-        glm::vec3 position = _rotation * _ragdollPoints[i]._position;
+        // NOTE: ragdollPoints are in simulation-frame but we want them to be model-relative
+        glm::vec3 position = points[i]._position - simulationTranslation;
         glTranslatef(position.x, position.y, position.z);
+        // draw each point as a yellow hexagon with black border
         glColor4f(0.0f, 0.0f, 0.0f, alpha);
         glutSolidSphere(radius2, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
         glColor4f(1.0f, 1.0f, 0.0f, alpha);
@@ -506,108 +527,18 @@ void SkeletonModel::renderRagdoll() {
     glEnable(GL_LIGHTING);
 }
 
-// virtual
-void SkeletonModel::initRagdollPoints() {
-    clearRagdollConstraintsAndPoints();
-    _muscleConstraints.clear();
-
-    // one point for each joint
-    int numJoints = _jointStates.size();
-    _ragdollPoints.fill(VerletPoint(), numJoints);
-    for (int i = 0; i < numJoints; ++i) {
-        const JointState& state = _jointStates.at(i);
-        glm::vec3 position = state.getPosition();
-        _ragdollPoints[i].initPosition(position);
-    }
-}
-
-void SkeletonModel::buildRagdollConstraints() {
-    // NOTE: the length of DistanceConstraints is computed and locked in at this time
-    // so make sure the ragdoll positions are in a normal configuration before here.
-    const int numPoints = _ragdollPoints.size();
-    assert(numPoints == _jointStates.size());
-
-    float minBone = FLT_MAX;
-    float maxBone = -FLT_MAX;
-    QMultiMap<int, int> families;
-    for (int i = 0; i < numPoints; ++i) {
-        const JointState& state = _jointStates.at(i);
-        int parentIndex = state.getParentIndex();
-        if (parentIndex == -1) {
-            FixedConstraint* anchor = new FixedConstraint(&(_ragdollPoints[i]), glm::vec3(0.0f));
-            _ragdollConstraints.push_back(anchor);
-        } else { 
-            DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[i]), &(_ragdollPoints[parentIndex]));
-            bone->setDistance(state.getDistanceToParent());
-            _ragdollConstraints.push_back(bone);
-            families.insert(parentIndex, i);
-        }
-        float boneLength = glm::length(state.getPositionInParentFrame());
-        if (boneLength > maxBone) {
-            maxBone = boneLength;
-        } else if (boneLength < minBone) {
-            minBone = boneLength;
-        }
-    }
-    // Joints that have multiple children effectively have rigid constraints between the children
-    // in the parent frame, so we add DistanceConstraints between children in the same family.
-    QMultiMap<int, int>::iterator itr = families.begin();
-    while (itr != families.end()) {
-        QList<int> children = families.values(itr.key());
-        int numChildren = children.size();
-        if (numChildren > 1) {
-            for (int i = 1; i < numChildren; ++i) {
-                DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[children[i-1]]), &(_ragdollPoints[children[i]]));
-                _ragdollConstraints.push_back(bone);
-            }
-            if (numChildren > 2) {
-                DistanceConstraint* bone = new DistanceConstraint(&(_ragdollPoints[children[numChildren-1]]), &(_ragdollPoints[children[0]]));
-                _ragdollConstraints.push_back(bone);
-            }
-        }
-        ++itr;
-    }
-
-    float MAX_STRENGTH = 0.3f;
-    float MIN_STRENGTH = 0.005f;
-    // each joint gets a MuscleConstraint to its parent
-    for (int i = 1; i < numPoints; ++i) {
-        const JointState& state = _jointStates.at(i);
-        int p = state.getParentIndex();
-        if (p == -1) {
-            continue;
-        }
-        MuscleConstraint* constraint = new MuscleConstraint(&(_ragdollPoints[p]), &(_ragdollPoints[i]));
-        _ragdollConstraints.push_back(constraint);
-        _muscleConstraints.push_back(constraint);
-
-        // Short joints are more susceptible to wiggle so we modulate the strength based on the joint's length: 
-        // long = weak and short = strong.
-        constraint->setIndices(p, i);
-        float boneLength = glm::length(state.getPositionInParentFrame());
-
-        float strength = MIN_STRENGTH + (MAX_STRENGTH - MIN_STRENGTH) * (maxBone - boneLength) / (maxBone - minBone);
-        if (!families.contains(i)) {
-            // Although muscles only pull on the children not parents, nevertheless those joints that have
-            // parents AND children are more stable than joints at the end such as fingers.  For such joints we
-            // bestow maximum strength which helps reduce wiggle.
-            strength = MAX_MUSCLE_STRENGTH;
-        }
-        constraint->setStrength(strength);
-    }
-    
-}
-
 void SkeletonModel::updateVisibleJointStates() {
-    if (_showTrueJointTransforms) {
+    if (_showTrueJointTransforms || !_ragdoll) {
         // no need to update visible transforms
         return;
     }
+    const QVector<VerletPoint>& ragdollPoints = _ragdoll->getPoints();
     QVector<glm::vec3> points;
     points.reserve(_jointStates.size());
+    glm::quat invRotation = glm::inverse(_rotation);
     for (int i = 0; i < _jointStates.size(); i++) {
         JointState& state = _jointStates[i];
-        points.push_back(_ragdollPoints[i]._position);
+        points.push_back(ragdollPoints[i]._position);
 
         // get the parent state (this is the state that we want to rotate)
         int parentIndex = state.getParentIndex();
@@ -629,8 +560,9 @@ void SkeletonModel::updateVisibleJointStates() {
 
         // we're looking for the rotation that moves visible bone parallel to ragdoll bone
         // rotationBetween(jointTip - jointPivot, shapeTip - shapePivot)
+        // NOTE: points are in simulation-frame so rotate line segment into model-frame
         glm::quat delta = rotationBetween(state.getVisiblePosition() - extractTranslation(parentTransform), 
-                points[i] - points[parentIndex]);
+                invRotation * (points[i] - points[parentIndex]));
 
         // apply
         parentState.mixVisibleRotationDelta(delta, 0.01f);
@@ -640,10 +572,14 @@ void SkeletonModel::updateVisibleJointStates() {
     }
 }
 
-// virtual 
-void SkeletonModel::stepRagdollForward(float deltaTime) {
-    Ragdoll::stepRagdollForward(deltaTime);
-    updateMuscles();
+SkeletonRagdoll* SkeletonModel::buildRagdoll() {
+    if (!_ragdoll) {
+        _ragdoll = new SkeletonRagdoll(this);
+        if (_enableShapes) {
+            buildShapes();
+        }
+    }
+    return _ragdoll;
 }
 
 float DENSITY_OF_WATER = 1000.0f; // kg/m^3
@@ -661,10 +597,17 @@ void SkeletonModel::buildShapes() {
         return;
     }
 
-    initRagdollPoints();
+    if (!_ragdoll) {
+        _ragdoll = new SkeletonRagdoll(this);
+    }
+    _ragdoll->initPoints();
+    QVector<VerletPoint>& points = _ragdoll->getPoints();
+
+    float massScale = _ragdoll->getMassScale();
 
     float uniformScale = extractUniformScale(_scale);
     const int numStates = _jointStates.size();
+    float totalMass = 0.0f;
     for (int i = 0; i < numStates; i++) {
         JointState& state = _jointStates[i];
         const FBXJoint& joint = state.getFBXJoint();
@@ -675,27 +618,37 @@ void SkeletonModel::buildShapes() {
             // this shape is forced to be a sphere
             type = Shape::SPHERE_SHAPE;
         }
+        if (radius < EPSILON) {
+            type = Shape::UNKNOWN_SHAPE;
+        }
         Shape* shape = NULL;
         int parentIndex = joint.parentIndex;
         if (type == Shape::SPHERE_SHAPE) {
-            shape = new VerletSphereShape(radius, &(_ragdollPoints[i]));
+            shape = new VerletSphereShape(radius, &(points[i]));
             shape->setEntity(this);
-            _ragdollPoints[i]._mass = glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
+            float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
+            points[i].setMass(mass);
+            totalMass += mass;
         } else if (type == Shape::CAPSULE_SHAPE) {
             assert(parentIndex != -1);
-            shape = new VerletCapsuleShape(radius, &(_ragdollPoints[parentIndex]), &(_ragdollPoints[i]));
+            shape = new VerletCapsuleShape(radius, &(points[parentIndex]), &(points[i]));
             shape->setEntity(this);
-            _ragdollPoints[i]._mass = glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
+            float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
+            points[i].setMass(mass);
+            totalMass += mass;
         } 
         if (parentIndex != -1) {
             // always disable collisions between joint and its parent
-            disableCollisions(i, parentIndex);
-        } else {
-            // give the base joint a very large mass since it doesn't actually move
-            // in the local-frame simulation (it defines the origin)
-            _ragdollPoints[i]._mass = VERY_BIG_MASS;
-        }
+            if (shape) {
+                disableCollisions(i, parentIndex);
+            }
+        } 
         _shapes.push_back(shape);
+    }
+
+    // set the mass of the root
+    if (numStates > 0) {
+        points[0].setMass(totalMass);
     }
 
     // This method moves the shapes to their default positions in Model frame.
@@ -705,16 +658,11 @@ void SkeletonModel::buildShapes() {
     // joints that are currently colliding.
     disableCurrentSelfCollisions();
 
-    buildRagdollConstraints();
+    _ragdoll->buildConstraints();
 
     // ... then move shapes back to current joint positions
-    if (_ragdollPoints.size() == numStates) {
-        int numJoints = _jointStates.size();
-        for (int i = 0; i < numJoints; ++i) {
-            _ragdollPoints[i].initPosition(_jointStates.at(i).getPosition());
-        }
-    }
-    enforceRagdollConstraints();
+    _ragdoll->slamPointPositions();
+    _ragdoll->enforceConstraints();
 }
 
 void SkeletonModel::moveShapesTowardJoints(float deltaTime) {
@@ -722,8 +670,9 @@ void SkeletonModel::moveShapesTowardJoints(float deltaTime) {
     // unravel a skelton that has become tangled in its constraints.  So let's keep this
     // around for a while just in case.
     const int numStates = _jointStates.size();
-    assert(_jointStates.size() == _ragdollPoints.size());
-    if (_ragdollPoints.size() != numStates) {
+    QVector<VerletPoint>& ragdollPoints = _ragdoll->getPoints();
+    assert(_jointStates.size() == ragdollPoints.size());
+    if (ragdollPoints.size() != numStates) {
         return;
     }
 
@@ -732,45 +681,31 @@ void SkeletonModel::moveShapesTowardJoints(float deltaTime) {
     float fraction = glm::clamp(deltaTime / RAGDOLL_FOLLOWS_JOINTS_TIMESCALE, 0.0f, 1.0f);
 
     float oneMinusFraction = 1.0f - fraction; 
+    glm::vec3 simulationTranslation = _ragdoll->getTranslationInSimulationFrame();
     for (int i = 0; i < numStates; ++i) {
-        _ragdollPoints[i].initPosition(oneMinusFraction * _ragdollPoints[i]._position + 
-                fraction * _jointStates.at(i).getPosition());
-    }
-}
-
-void SkeletonModel::updateMuscles() {
-    int numConstraints = _muscleConstraints.size();
-    for (int i = 0; i < numConstraints; ++i) {
-        MuscleConstraint* constraint = _muscleConstraints[i];
-        int j = constraint->getParentIndex();
-        if (j == -1) {
-            continue;
-        }
-        int k = constraint->getChildIndex();
-        if (k == -1) {
-            continue;
-        }
-        constraint->setChildOffset(_jointStates.at(k).getPosition() - _jointStates.at(j).getPosition());
+        // ragdollPoints are in simulation-frame but jointStates are in model-frame
+        ragdollPoints[i].initPosition(oneMinusFraction * ragdollPoints[i]._position + 
+                fraction * (simulationTranslation + _rotation * (_jointStates.at(i).getPosition())));
     }
 }
 
 void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     // compute default joint transforms
-    int numJoints = geometry.joints.size();
-    if (numJoints != _ragdollPoints.size()) {
-        return;
-    }
+    int numStates = _jointStates.size();
     QVector<glm::mat4> transforms;
-    transforms.fill(glm::mat4(), numJoints);
+    transforms.fill(glm::mat4(), numStates);
+
+    QVector<VerletPoint>& ragdollPoints = _ragdoll->getPoints();
 
     // compute the default transforms and slam the ragdoll positions accordingly
     // (which puts the shapes where we want them)
-    for (int i = 0; i < numJoints; i++) {
-        const FBXJoint& joint = geometry.joints.at(i);
+    for (int i = 0; i < numStates; i++) {
+        JointState& state = _jointStates[i];
+        const FBXJoint& joint = state.getFBXJoint();
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1) {
             transforms[i] = _jointStates[i].getTransform();
-            _ragdollPoints[i].initPosition(extractTranslation(transforms[i]));
+            ragdollPoints[i].initPosition(extractTranslation(transforms[i]));
             continue;
         }
         
@@ -778,7 +713,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
             * joint.preTransform * glm::mat4_cast(modifiedRotation) * joint.postTransform;
         // setting the ragdollPoints here slams the VerletShapes into their default positions
-        _ragdollPoints[i].initPosition(extractTranslation(transforms[i]));
+        ragdollPoints[i].initPosition(extractTranslation(transforms[i]));
     }
 
     // compute bounding box that encloses all shapes
@@ -838,7 +773,7 @@ void SkeletonModel::resetShapePositionsToDefaultPose() {
     }
     
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.joints.isEmpty() || _shapes.size() != geometry.joints.size()) {
+    if (geometry.joints.isEmpty()) {
         return;
     }
 
@@ -890,6 +825,60 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
     glColor4f(0.6f, 0.8f, 0.6f, alpha);
     Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius());
 
+    glPopMatrix();
+}
+
+const int BALL_SUBDIVISIONS = 10;
+
+// virtual
+void SkeletonModel::renderJointCollisionShapes(float alpha) { 
+    if (!_ragdoll) {
+        return;
+    }
+    glPushMatrix();
+    Application::getInstance()->loadTranslatedViewMatrix(_translation);
+    glm::vec3 simulationTranslation = _ragdoll->getTranslationInSimulationFrame();
+    for (int i = 0; i < _shapes.size(); i++) { 
+        Shape* shape = _shapes[i];
+        if (!shape) { 
+            continue;
+        } 
+
+        glPushMatrix();
+        // shapes are stored in simulation-frame but we want position to be model-relative
+        if (shape->getType() == Shape::SPHERE_SHAPE) { 
+            glm::vec3 position = shape->getTranslation() - simulationTranslation;
+            glTranslatef(position.x, position.y, position.z);
+            // draw a grey sphere at shape position
+            glColor4f(0.75f, 0.75f, 0.75f, alpha);
+            glutSolidSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+        } else if (shape->getType() == Shape::CAPSULE_SHAPE) {
+            CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
+
+            // draw a blue sphere at the capsule endpoint                                         
+            glm::vec3 endPoint;
+            capsule->getEndPoint(endPoint);
+            endPoint = endPoint - simulationTranslation;
+            glTranslatef(endPoint.x, endPoint.y, endPoint.z);                                     
+            glColor4f(0.6f, 0.6f, 0.8f, alpha);
+            glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);          
+
+            // draw a yellow sphere at the capsule startpoint
+            glm::vec3 startPoint;
+            capsule->getStartPoint(startPoint);
+            startPoint = startPoint - simulationTranslation;
+            glm::vec3 axis = endPoint - startPoint;
+            glTranslatef(-axis.x, -axis.y, -axis.z);
+            glColor4f(0.8f, 0.8f, 0.6f, alpha);
+            glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+
+            // draw a green cylinder between the two points
+            glm::vec3 origin(0.0f);
+            glColor4f(0.6f, 0.8f, 0.6f, alpha);
+            Avatar::renderJointConnectingCone( origin, axis, capsule->getRadius(), capsule->getRadius());
+        }
+        glPopMatrix();
+    }
     glPopMatrix();
 }
 

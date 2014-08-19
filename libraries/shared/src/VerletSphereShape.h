@@ -38,6 +38,8 @@ public:
     float computeEffectiveMass(const glm::vec3& penetration, const glm::vec3& contactPoint);
     void accumulateDelta(float relativeMassFactor, const glm::vec3& penetration);
     void applyAccumulatedDelta();
+    void getVerletPoints(QVector<VerletPoint*>& points);
+
 
 protected:
     // NOTE: VerletSphereShape does NOT own its _point

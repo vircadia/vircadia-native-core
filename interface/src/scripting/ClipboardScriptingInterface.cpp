@@ -87,6 +87,37 @@ bool ClipboardScriptingInterface::importVoxels() {
     return Application::getInstance()->getImportSucceded();
 }
 
+bool ClipboardScriptingInterface::importVoxels(const QString& filename) {
+    qDebug() << "Importing ... ";
+
+    VoxelImporter* importer = Application::getInstance()->getVoxelImporter();
+
+    if (!importer->validImportFile(filename)) {
+        return false;
+    }
+
+    QEventLoop loop;
+    connect(importer, SIGNAL(importDone()), &loop, SLOT(quit()));
+    importer->import(filename);
+    loop.exec();
+
+    return true;
+}
+
+bool ClipboardScriptingInterface::importVoxels(const QString& filename, float x, float y, float z, float s) {
+    bool success = importVoxels(filename);
+
+    if (success) {
+        pasteVoxel(x, y, z, s);
+    }
+
+    return success;
+}
+
+bool ClipboardScriptingInterface::importVoxels(const QString& filename, const VoxelDetail& destinationVoxel) {
+    return importVoxels(filename, destinationVoxel.x, destinationVoxel.y, destinationVoxel.z, destinationVoxel.s);
+}
+
 void ClipboardScriptingInterface::nudgeVoxel(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {
     nudgeVoxel(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s, nudgeVec);
 }
@@ -99,4 +130,17 @@ void ClipboardScriptingInterface::nudgeVoxel(float x, float y, float z, float s,
                                  s / (float)TREE_SCALE };
 
     Application::getInstance()->nudgeVoxelsByVector(sourceVoxel, nudgeVecInTreeSpace);
+}
+
+
+bool ClipboardScriptingInterface::exportModels(const QString& filename, float x, float y, float z, float s) {
+    return Application::getInstance()->exportModels(filename, x, y, z, s);
+}
+
+bool ClipboardScriptingInterface::importModels(const QString& filename) {
+    return Application::getInstance()->importModels(filename);
+}
+
+void ClipboardScriptingInterface::pasteModels(float x, float y, float z, float s) {
+    Application::getInstance()->pasteModels(x, y, z);
 }

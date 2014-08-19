@@ -13,6 +13,7 @@
 #define hifi_AttributeRegistry_h
 
 #include <QHash>
+#include <QMutex>
 #include <QObject>
 #include <QReadWriteLock>
 #include <QSharedPointer>
@@ -27,6 +28,7 @@ class QScriptEngine;
 class QScriptValue;
 
 class Attribute;
+class HeightfieldData;
 class MetavoxelData;
 class MetavoxelLOD;
 class MetavoxelNode;
@@ -94,6 +96,12 @@ public:
     /// Returns a reference to the standard "spannerMask" attribute.
     const AttributePointer& getSpannerMaskAttribute() const { return _spannerMaskAttribute; }
     
+    /// Returns a reference to the standard HeightfieldPointer "heightfield" attribute.
+    const AttributePointer& getHeightfieldAttribute() const { return _heightfieldAttribute; }
+    
+    /// Returns a reference to the standard HeightfieldColorPointer "heightfieldColor" attribute.
+    const AttributePointer& getHeightfieldColorAttribute() const { return _heightfieldColorAttribute; }
+    
 private:
 
     static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
@@ -109,6 +117,8 @@ private:
     AttributePointer _spannerColorAttribute;
     AttributePointer _spannerNormalAttribute;
     AttributePointer _spannerMaskAttribute;
+    AttributePointer _heightfieldAttribute;
+    AttributePointer _heightfieldColorAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -228,6 +238,10 @@ public:
 
     virtual bool metavoxelRootsEqual(const MetavoxelNode& firstRoot, const MetavoxelNode& secondRoot,
         const glm::vec3& minimum, float size, const MetavoxelLOD& lod);
+
+    /// Expands the specified root, doubling its size in each dimension.
+    /// \return a new node representing the result
+    virtual MetavoxelNode* expandMetavoxelRoot(const MetavoxelNode& root);
 
     /// Merges the value of a parent and its children.
     /// \param postRead whether or not the merge is happening after a read
@@ -408,6 +422,71 @@ public:
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
+typedef QExplicitlySharedDataPointer<HeightfieldData> HeightfieldDataPointer;
+
+/// Contains a block of heightfield data.
+class HeightfieldData : public QSharedData {
+public:
+
+    static const int COLOR_BYTES = 3;
+    
+    HeightfieldData(const QByteArray& contents);
+    HeightfieldData(Bitstream& in, int bytes, bool color);
+    HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& reference, bool color);
+    
+    const QByteArray& getContents() const { return _contents; }
+
+    void write(Bitstream& out, bool color);
+    void writeDelta(Bitstream& out, const HeightfieldDataPointer& reference, bool color);
+
+private:
+    
+    void read(Bitstream& in, int bytes, bool color);
+    void set(const QImage& image, bool color);
+    
+    QByteArray _contents;
+    QByteArray _encoded;
+    QMutex _encodedMutex;
+    
+    HeightfieldDataPointer _deltaData;
+    QByteArray _encodedDelta;
+    QMutex _encodedDeltaMutex;
+};
+
+/// An attribute that stores heightfield data.
+class HeightfieldAttribute : public InlineAttribute<HeightfieldDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE HeightfieldAttribute(const QString& name = QString());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+        
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
+
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+};
+
+/// An attribute that stores heightfield colors.
+class HeightfieldColorAttribute : public InlineAttribute<HeightfieldDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE HeightfieldColorAttribute(const QString& name = QString());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+};
+
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
 class SharedObjectAttribute : public InlineAttribute<SharedObjectPointer> {
     Q_OBJECT
@@ -453,6 +532,8 @@ public:
     virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
     
     virtual bool deepEqual(void* first, void* second) const;
+    
+    virtual MetavoxelNode* expandMetavoxelRoot(const MetavoxelNode& root);
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 

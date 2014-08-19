@@ -69,6 +69,7 @@
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
+#include "PaymentManager.h"
 #include "Util.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
@@ -136,9 +137,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-        _voxelImporter(NULL),
+        _voxelImportDialog(NULL),
+        _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
+        _modelClipboardRenderer(),
+        _modelClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
@@ -173,6 +177,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow())
 {
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -233,9 +238,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
 
     audioThread->start();
+    
+    const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
-    connect(&nodeList->getDomainHandler(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
-    connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
+    connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
+    
+    // hookup VoxelEditSender to PaymentManager so we can pay for octree edits
+    const PaymentManager& paymentManager = PaymentManager::getInstance();
+    connect(&_voxelEditSender, &VoxelEditPacketSender::octreePaymentRequired,
+            &paymentManager, &PaymentManager::sendSignedPayment);
 
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -249,8 +264,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
-    connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
-    connect(nodeList, SIGNAL(uuidChanged(const QUuid&)), _myAvatar, SLOT(setSessionUUID(const QUuid&)));
+    connect(nodeList, &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
 
     // connect to appropriate slots on AccountManager
@@ -419,7 +433,7 @@ Application::~Application() {
     delete idleTimer;
     
     _sharedVoxelSystem.changeTree(new VoxelTree);
-    delete _voxelImporter;
+    delete _voxelImportDialog;
 
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
@@ -454,8 +468,8 @@ void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
 
-    if (_voxelImporter) {
-        _voxelImporter->saveSettings(_settings);
+    if (_voxelImportDialog) {
+        _voxelImportDialog->saveSettings(_settings);
     }
     _settings->sync();
     _numChangedSettings = 0;
@@ -588,7 +602,7 @@ void Application::paintGL() {
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar->getHead()->getFilteredEyePosition());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -610,7 +624,7 @@ void Application::paintGL() {
             _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition() + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0));
         } else {
             _myCamera.setTightness(0.0f);
-            glm::vec3 eyePosition = _myAvatar->getHead()->getFilteredEyePosition();
+            glm::vec3 eyePosition = _myAvatar->getHead()->getEyePosition();
             float headHeight = eyePosition.y - _myAvatar->getPosition().y;
             _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
@@ -803,9 +817,8 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME);
         if (isHifiSchemeURL) {
-            Menu::getInstance()->goTo(fileEvent->url().toString());
+            Menu::getInstance()->goToURL(fileEvent->url().toLocalFile());
         }
-
         return false;
     }
     return QApplication::event(event);
@@ -1038,8 +1051,21 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_R:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
+                } else if (isMeta) {
+                    if (_myAvatar->isRecording()) {
+                        _myAvatar->stopRecording();
+                    } else {
+                        _myAvatar->startRecording();
+                        _audio.setRecorder(_myAvatar->getRecorder());
+                    }
+                } else {
+                    if (_myAvatar->isPlaying()) {
+                        _myAvatar->stopPlaying();
+                    } else {
+                        _myAvatar->startPlaying();
+                        _audio.setPlayer(_myAvatar->getPlayer());
+                    }
                 }
-                break;
                 break;
             case Qt::Key_Percent:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
@@ -1429,6 +1455,15 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+    if (enableVRMode) {
+        if (!OculusManager::isConnected()) {
+            // attempt to reconnect the Oculus manager - it's possible this was a workaround
+            // for the sixense crash
+            OculusManager::disconnect();
+            OculusManager::connect();
+        }
+    }
+    
     resizeGL(_glWidget->width(), _glWidget->height());
 }
 
@@ -1490,15 +1525,43 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    return _cara.isActive() ? static_cast<FaceTracker*>(&_cara) : 
-        (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
-        (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
-            (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
+    return (_dde.isActive() ? static_cast<FaceTracker*>(&_dde) :
+            (_cara.isActive() ? static_cast<FaceTracker*>(&_cara) :
+             (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
+              (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
+               (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)))));
 }
 
 struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
 };
+
+bool Application::exportModels(const QString& filename, float x, float y, float z, float scale) {
+    QVector<ModelItem*> models;
+    _models.getTree()->findModelsInCube(AACube(glm::vec3(x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), models);
+    if (models.size() > 0) {
+        glm::vec3 root(x, y, z);
+        ModelTree exportTree;
+
+        for (int i = 0; i < models.size(); i++) {
+            ModelItemProperties properties;
+            ModelItemID id = models.at(i)->getModelItemID();
+            id.isKnownID = false;
+            properties.copyFromNewModelItem(*models.at(i));
+            properties.setPosition(properties.getPosition() - root);
+            exportTree.addModel(id, properties);
+        }
+
+        exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
+    } else {
+        qDebug() << "No models were selected";
+        return false;
+    }
+
+    // restore the main window's active state
+    _window->activateWindow();
+    return true;
+}
 
 bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
@@ -1559,17 +1622,17 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
 void Application::importVoxels() {
     _importSucceded = false;
 
-    if (!_voxelImporter) {
-        _voxelImporter = new VoxelImporter(_window);
-        _voxelImporter->loadSettings(_settings);
+    if (!_voxelImportDialog) {
+        _voxelImportDialog = new VoxelImportDialog(_window);
+        _voxelImportDialog->loadSettings(_settings);
     }
 
-    if (!_voxelImporter->exec()) {
+    if (!_voxelImportDialog->exec()) {
         qDebug() << "Import succeeded." << endl;
         _importSucceded = true;
     } else {
         qDebug() << "Import failed." << endl;
-        if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
+        if (_sharedVoxelSystem.getTree() == _voxelImporter.getVoxelTree()) {
             _sharedVoxelSystem.killLocalVoxels();
             _sharedVoxelSystem.changeTree(&_clipboard);
         }
@@ -1579,6 +1642,19 @@ void Application::importVoxels() {
     _window->activateWindow();
 
     emit importDone();
+}
+
+bool Application::importModels(const QString& filename) {
+    _modelClipboard.eraseAllOctreeElements();
+    bool success = _modelClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
+    if (success) {
+        _modelClipboard.reaverageOctreeElements();
+    }
+    return success;
+}
+
+void Application::pasteModels(float x, float y, float z) {
+    _modelClipboard.sendModels(&_modelEditSender, x, y, z);
 }
 
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
@@ -1671,7 +1747,7 @@ void Application::init() {
     // Cleanup of the original shared tree
     _sharedVoxelSystem.init();
 
-    _voxelImporter = new VoxelImporter(_window);
+    _voxelImportDialog = new VoxelImportDialog(_window);
 
     _environment.init();
 
@@ -1743,6 +1819,10 @@ void Application::init() {
 
     _models.init();
     _models.setViewFrustum(getViewFrustum());
+
+    _modelClipboardRenderer.init();
+    _modelClipboardRenderer.setViewFrustum(getViewFrustum());
+    _modelClipboardRenderer.setTree(&_modelClipboard);
 
     _metavoxels.init();
 
@@ -1881,13 +1961,21 @@ void Application::updateVisage() {
     _visage.update();
 }
 
+void Application::updateDDE() {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateDDE()");
+    
+    //  Update Cara
+    _dde.update();
+}
+
 void Application::updateCara() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCara()");
-
+    
     //  Update Cara
     _cara.update();
-
+    
     //  Copy angular velocity if measured by cara, to the head
     if (_cara.isActive()) {
         _myAvatar->getHead()->setAngularVelocity(_cara.getHeadAngularVelocity());
@@ -2074,12 +2162,6 @@ void Application::update(float deltaTime) {
         _prioVR.update(deltaTime);
 
     }
-    {
-        PerformanceTimer perfTimer("myAvatar");
-        updateMyAvatarLookAtPosition();
-        updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
-    }
-    
 
     // Dispatch input events
     _controllerScriptingInterface.updateInputControllers();
@@ -2110,6 +2192,12 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
+    }
+    
+    {
+        PerformanceTimer perfTimer("myAvatar");
+        updateMyAvatarLookAtPosition();
+        updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     }
 
     {
@@ -3209,6 +3297,7 @@ void Application::resetSensors() {
     _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
+    _dde.reset();
 
     OculusManager::reset();
 
@@ -3255,9 +3344,10 @@ void Application::updateWindowTitle(){
     QString buildVersion = " (build " + applicationVersion() + ")";
     NodeList* nodeList = NodeList::getInstance();
 
+    QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + nodeList->getDomainHandler().getHostname() + buildVersion;
+        + nodeList->getDomainHandler().getHostname() + connectionStatus + buildVersion;
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (accountManager.getAccountInfo().hasBalance()) {
@@ -3669,6 +3759,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
     connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
 
+    connect(scriptEngine, SIGNAL(loadScript(const QString&)), this, SLOT(loadScript(const QString&)));
+
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
@@ -3793,6 +3885,38 @@ void Application::uploadSkeleton() {
 
 void Application::uploadAttachment() {
     uploadModel(ATTACHMENT_MODEL);
+}
+
+void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
+    
+    // from the domain-handler, figure out the satoshi cost per voxel and per meter cubed
+    const QString VOXEL_SETTINGS_KEY = "voxels";
+    const QString PER_VOXEL_COST_KEY = "per-voxel-credits";
+    const QString PER_METER_CUBED_COST_KEY = "per-meter-cubed-credits";
+    const QString VOXEL_WALLET_UUID = "voxel-wallet";
+    
+    const QJsonObject& voxelObject = domainSettingsObject[VOXEL_SETTINGS_KEY].toObject();
+    
+    qint64 satoshisPerVoxel = 0;
+    qint64 satoshisPerMeterCubed = 0;
+    QUuid voxelWalletUUID;
+    
+    if (!domainSettingsObject.isEmpty()) {
+        float perVoxelCredits = (float) voxelObject[PER_VOXEL_COST_KEY].toDouble();
+        float perMeterCubedCredits = (float) voxelObject[PER_METER_CUBED_COST_KEY].toDouble();
+        
+        satoshisPerVoxel = (qint64) floorf(perVoxelCredits * SATOSHIS_PER_CREDIT);
+        satoshisPerMeterCubed = (qint64) floorf(perMeterCubedCredits * SATOSHIS_PER_CREDIT);
+        
+        voxelWalletUUID = QUuid(voxelObject[VOXEL_WALLET_UUID].toString());
+    }
+    
+    qDebug() << "Voxel costs are" << satoshisPerVoxel << "per voxel and" << satoshisPerMeterCubed << "per meter cubed";
+    qDebug() << "Destination wallet UUID for voxel payments is" << voxelWalletUUID;
+    
+    _voxelEditSender.setSatoshisPerVoxel(satoshisPerVoxel);
+    _voxelEditSender.setSatoshisPerMeterCubed(satoshisPerMeterCubed);
+    _voxelEditSender.setDestinationWalletUUID(voxelWalletUUID);
 }
 
 QString Application::getPreviousScriptLocation() {
