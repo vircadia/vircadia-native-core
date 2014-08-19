@@ -244,11 +244,11 @@ function handleGrabBehavior(deltaTime) {
 }
 
 var HEAD_MOVE_DEAD_ZONE = 0.0;
-var HEAD_STRAFE_DEAD_ZONE = 0.025;
+var HEAD_STRAFE_DEAD_ZONE = 0.0;
 var HEAD_ROTATE_DEAD_ZONE = 0.0; 
 var HEAD_THRUST_MULTIPLIER = 10000.0;
 var HEAD_YAW_RATE = 2.0;
-var HEAD_PITCH_RATE = 2.0;
+var HEAD_PITCH_RATE = 1.0;
 
 function moveWithHead(deltaTime) {
     if (movingWithHead) {
@@ -261,9 +261,12 @@ function moveWithHead(deltaTime) {
         headDelta = Vec3.multiplyQbyV(Quat.inverse(Camera.getOrientation()), headDelta);
         headDelta.y = 0.0;   //  Don't respond to any of the vertical component of head motion
 
-        MyAvatar.addThrust(Vec3.multiply(Quat.getFront(Camera.getOrientation()), -headDelta.z * HEAD_THRUST_MULTIPLIER * deltaTime));
-        MyAvatar.addThrust(Vec3.multiply(Quat.getRight(Camera.getOrientation()), headDelta.x * HEAD_THRUST_MULTIPLIER * deltaTime));
-        
+        if (Math.abs(headDelta.z) > HEAD_MOVE_DEAD_ZONE) {
+            MyAvatar.addThrust(Vec3.multiply(Quat.getFront(Camera.getOrientation()), -headDelta.z * HEAD_THRUST_MULTIPLIER * deltaTime));
+        }
+        if (Math.abs(headDelta.x) > HEAD_STRAFE_DEAD_ZONE) {
+            MyAvatar.addThrust(Vec3.multiply(Quat.getRight(Camera.getOrientation()), headDelta.x * HEAD_THRUST_MULTIPLIER * deltaTime));
+        }
         if (Math.abs(deltaYaw) > HEAD_ROTATE_DEAD_ZONE) {
             var orientation = Quat.multiply(Quat.angleAxis(deltaYaw * HEAD_YAW_RATE * deltaTime, {x:0, y: 1, z:0}), MyAvatar.orientation);
             MyAvatar.orientation = orientation;
@@ -334,14 +337,11 @@ Controller.keyPressEvent.connect(function(event) {
         headStartPosition = Vec3.subtract(MyAvatar.getHeadPosition(), MyAvatar.position);
         headStartPitch = MyAvatar.getHeadDeltaPitch();
         headStartYaw = MyAvatar.getHeadFinalYaw(); 
-        Vec3.print("head start position = ", headStartPosition); 
-        print(" yaw = " + headStartYaw + " pitch = " + headStartPitch);
     }                        
 });
 Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "SPACE") {
         movingWithHead = false;
-        print("move ended");
     }                        
 });
 
