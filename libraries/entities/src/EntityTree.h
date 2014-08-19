@@ -60,6 +60,9 @@ public:
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);
 
     virtual bool rootElementHasData() const { return true; }
+    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const 
+                    { return thisVersion >= VERSION_ENTITIES_HAS_FILE_BREAKS; }
+                    
     virtual void update();
 
     // The newer API...

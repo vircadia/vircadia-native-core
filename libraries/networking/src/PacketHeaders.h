@@ -115,5 +115,6 @@ int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 const PacketVersion VERSION_ENTITIES_HAVE_ANIMATION = 1;
 const PacketVersion VERSION_ROOT_ELEMENT_HAS_DATA = 2;
 const PacketVersion VERSION_ENTITIES_SUPPORT_SPLIT_MTU = 3;
+const PacketVersion VERSION_ENTITIES_HAS_FILE_BREAKS = VERSION_ENTITIES_SUPPORT_SPLIT_MTU;
 
 #endif // hifi_PacketHeaders_h

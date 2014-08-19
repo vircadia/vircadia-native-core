@@ -233,7 +233,11 @@ public:
                     
     virtual bool recurseChildrenWithData() const { return true; }
     virtual bool rootElementHasData() const { return false; }
-
+    
+    /// some versions of the SVO file will include breaks with buffer lengths between each buffer chunk in the SVO
+    /// file. If the Octree subclass expects this for this particular version of the file, it should override this
+    /// method and return true.
+    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const { return false; }
 
     virtual void update() { }; // nothing to do by default
 

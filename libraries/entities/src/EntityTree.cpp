@@ -1148,6 +1148,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
     return processedBytes;
 }
 
+
 void EntityTree::notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
     _newlyCreatedHooksLock.lockForRead();
     for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
