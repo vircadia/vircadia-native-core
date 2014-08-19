@@ -1101,6 +1101,10 @@ HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QStrin
     _radius->setValue(1.0);
 }
 
+bool HeightfieldBrushTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("HeightfieldAttribute");
+}
+
 void HeightfieldBrushTool::render() {
     if (Application::getInstance()->isMouseHidden()) {
         return;

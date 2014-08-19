@@ -312,6 +312,8 @@ public:
     
     HeightfieldBrushTool(MetavoxelEditor* editor, const QString& name);
     
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+     
     virtual void render();
 
     virtual bool eventFilter(QObject* watched, QEvent* event);
