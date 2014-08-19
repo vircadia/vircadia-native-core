@@ -30,6 +30,7 @@ class AudioInjectorOptions : public QObject {
 public:
     AudioInjectorOptions(QObject* parent = 0);
     AudioInjectorOptions(const AudioInjectorOptions& other);
+    void operator=(const AudioInjectorOptions& other);
     
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3& position) { _position = position; }
