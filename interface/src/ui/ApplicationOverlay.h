@@ -56,6 +56,7 @@ private:
     void renderAudioMeter();
     void renderStatsAndLogs();
     void renderTexturedHemisphere();
+    void renderDomainConnectionStatusBorder();
 
     QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;

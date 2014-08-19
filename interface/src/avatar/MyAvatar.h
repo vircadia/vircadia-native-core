@@ -119,8 +119,10 @@ public:
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
     
+    virtual void setJointRotations(QVector<glm::quat> jointRotations);
     virtual void setJointData(int index, const glm::quat& rotation);
     virtual void clearJointData(int index);
+    virtual void clearJointsData();
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
@@ -162,6 +164,17 @@ public slots:
     bool setModelReferential(int id);
     bool setJointReferential(int id, int jointIndex);
     
+    const RecorderPointer getRecorder() const { return _recorder; }
+    bool isRecording() const;
+    RecorderPointer startRecording();
+    void stopRecording();
+    
+    const PlayerPointer getPlayer() const { return _player; }
+    bool isPlaying() const;
+    PlayerPointer startPlaying();
+    void stopPlaying();
+    
+    
 signals:
     void transformChanged();
 
@@ -199,6 +212,9 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
     PhysicsSimulation _physicsSimulation;
 
+    RecorderPointer _recorder;
+    PlayerPointer _player;
+    
 	// private methods
     float computeDistanceToFloor(const glm::vec3& startPoint);
     void updateOrientation(float deltaTime);

@@ -36,6 +36,7 @@ DomainHandler::DomainHandler(QObject* parent) :
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
     _isConnected = false;
+    emit disconnectedFromDomain();
     
     if (_handshakeTimer) {
         _handshakeTimer->stop();
@@ -129,6 +130,8 @@ void DomainHandler::setIsConnected(bool isConnected) {
             
             // we've connected to new domain - time to ask it for global settings
             requestDomainSettings();
+        } else {
+            emit disconnectedFromDomain();
         }
     }
 }

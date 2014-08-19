@@ -53,11 +53,13 @@ public:
 
 protected:
     void moveRagdolls(float deltaTime);
-    void computeCollisions();
-    void resolveCollisions();
 
-    void buildContactConstraints();
-    void enforceContactConstraints();
+    /// \return true if main ragdoll collides with other avatar
+    bool computeCollisions();
+
+    void resolveCollisions();
+    void enforceContacts();
+    void applyContactFriction();
     void updateContacts();
     void pruneContacts();
 

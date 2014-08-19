@@ -15,18 +15,20 @@
 #include "renderer/Model.h"
 
 #include <CapsuleShape.h>
-#include <Ragdoll.h>
+#include "SkeletonRagdoll.h"
 
 class Avatar;
 class MuscleConstraint;
+class SkeletonRagdoll;
 
 /// A skeleton loaded from a model.
-class SkeletonModel : public Model, public Ragdoll {
+class SkeletonModel : public Model {
     Q_OBJECT
     
 public:
 
     SkeletonModel(Avatar* owningAvatar, QObject* parent = NULL);
+    ~SkeletonModel();
    
     void setJointStates(QVector<JointState> states);
 
@@ -96,12 +98,11 @@ public:
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
     virtual void updateVisibleJointStates();
-    
-    // virtual overrride from Ragdoll
-    virtual void stepRagdollForward(float deltaTime);
 
+    SkeletonRagdoll* buildRagdoll();
+    SkeletonRagdoll* getRagdoll() { return _ragdoll; }
+    
     void moveShapesTowardJoints(float fraction);
-    void updateMuscles();
 
     void computeBoundingShape(const FBXGeometry& geometry);
     void renderBoundingCollisionShapes(float alpha);
@@ -114,10 +115,6 @@ public:
     void renderRagdoll();
     
 protected:
-
-    // virtual overrrides from Ragdoll
-    void initRagdollPoints();
-    void buildRagdollConstraints();
 
     void buildShapes();
 
@@ -147,7 +144,7 @@ private:
 
     CapsuleShape _boundingShape;
     glm::vec3 _boundingShapeLocalOffset;
-    QVector<MuscleConstraint*> _muscleConstraints;
+    SkeletonRagdoll* _ragdoll;
 };
 
 #endif // hifi_SkeletonModel_h

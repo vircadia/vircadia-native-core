@@ -14,8 +14,8 @@
 
 #include <QThread>
 #include <QRunnable>
+#include <QStringList>
 
-#include "ui/ImportDialog.h"
 #include "voxels/VoxelSystem.h"
 
 class ImportTask;
@@ -23,28 +23,29 @@ class ImportTask;
 class VoxelImporter : public QObject {
     Q_OBJECT
 public:
-    VoxelImporter(QWidget* parent = NULL);
+    VoxelImporter();
     ~VoxelImporter();
 
     void reset();
-    void loadSettings(QSettings* settings);
-    void saveSettings(QSettings* settings);
-
+    void cancel();
     VoxelTree* getVoxelTree() { return &_voxelTree; }
+    bool validImportFile(const QString& filename);
 
 public slots:
-    int exec();
-    void import();
-    void cancel();
+    void import(const QString& filename);
+
+signals:
+    void importDone();
+    void importProgress(int);
 
 private:
     VoxelTree _voxelTree;
-    ImportDialog _importDialog;
-
     ImportTask* _task;
-    bool _didImport;
     
     void cleanupTask();
+
+private slots:
+    void finishImport();
 };
 
 #endif // hifi_VoxelImporter_h

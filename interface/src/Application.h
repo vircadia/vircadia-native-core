@@ -87,6 +87,7 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
+#include "ui/VoxelImportDialog.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
 #include "voxels/VoxelImporter.h"
@@ -193,6 +194,7 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
+    VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelSystem* getVoxels() { return &_voxels; }
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
@@ -463,7 +465,8 @@ private:
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
-    VoxelImporter* _voxelImporter;
+    VoxelImportDialog* _voxelImportDialog;
+    VoxelImporter _voxelImporter;
     bool _importSucceded;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;

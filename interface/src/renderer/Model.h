@@ -118,6 +118,9 @@ public:
     /// \return whether or not the joint state is "valid" (that is, non-default)
     bool getVisibleJointState(int index, glm::quat& rotation) const;
     
+    /// Clear the joint states
+    void clearJointState(int index);
+    
     /// Sets the joint state at the specified index.
     void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat(), float priority = 1.0f);
     
@@ -164,6 +167,9 @@ public:
     const QVector<LocalLight>& getLocalLights() const { return _localLights; }
 
     void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
+
+    QVector<JointState>& getJointStates() { return _jointStates; }
+    const QVector<JointState>& getJointStates() const { return _jointStates; }
  
 protected:
     QSharedPointer<NetworkGeometry> _geometry;

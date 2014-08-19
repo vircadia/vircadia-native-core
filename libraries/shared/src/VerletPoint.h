@@ -25,6 +25,7 @@ public:
     void accumulateDelta(const glm::vec3& delta);
     void applyAccumulatedDelta();
     void move(const glm::vec3& deltaPosition, const glm::quat& deltaRotation, const glm::vec3& oldPivot);
+    void shift(const glm::vec3& deltaPosition);
 
     void setMass(float mass);
     float getMass() const { return _mass; }

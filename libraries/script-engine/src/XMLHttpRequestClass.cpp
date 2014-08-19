@@ -13,10 +13,15 @@
 //
 
 #include <QEventLoop>
+#include <QFile>
 
 #include <NetworkAccessManager.h>
 
+#include <AccountManager.h>
 #include "XMLHttpRequestClass.h"
+#include "ScriptEngine.h"
+
+Q_DECLARE_METATYPE(QByteArray*)
 
 XMLHttpRequestClass::XMLHttpRequestClass(QScriptEngine* engine) :
     _engine(engine),
@@ -33,6 +38,7 @@ XMLHttpRequestClass::XMLHttpRequestClass(QScriptEngine* engine) :
     _onReadyStateChange(QScriptValue::NullValue),
     _readyState(XMLHttpRequestClass::UNSENT),
     _errorCode(QNetworkReply::NoError),
+    _file(NULL),
     _timeout(0),
     _timer(this),
     _numRedirects(0) {
@@ -52,6 +58,20 @@ QScriptValue XMLHttpRequestClass::constructor(QScriptContext* context, QScriptEn
 QScriptValue XMLHttpRequestClass::getStatus() const {
     if (_reply) {
         return QScriptValue(_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt());
+    } 
+    if(_url.isLocalFile()) {
+        switch (_errorCode) {
+            case QNetworkReply::NoError:
+                return QScriptValue(200);
+            case QNetworkReply::ContentNotFoundError:
+                return QScriptValue(404);
+            case QNetworkReply::ContentAccessDenied:
+                return QScriptValue(409);
+            case QNetworkReply::TimeoutError:
+                return QScriptValue(408);
+            case QNetworkReply::ContentOperationNotPermittedError:
+                return QScriptValue(501);
+        }
     }
     return QScriptValue(0);
 }
@@ -59,6 +79,20 @@ QScriptValue XMLHttpRequestClass::getStatus() const {
 QString XMLHttpRequestClass::getStatusText() const {
     if (_reply) {
         return _reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+    }
+    if (_url.isLocalFile()) {
+        switch (_errorCode) {
+            case QNetworkReply::NoError:
+                return "OK";
+            case QNetworkReply::ContentNotFoundError:
+                return "Not Found";
+            case QNetworkReply::ContentAccessDenied:
+                return "Conflict";
+            case QNetworkReply::TimeoutError:
+                return "Timeout";
+            case QNetworkReply::ContentOperationNotPermittedError:
+                return "Not Implemented";
+        }
     }
     return "";
 }
@@ -104,12 +138,27 @@ QScriptValue XMLHttpRequestClass::getAllResponseHeaders() const {
         }
         return QString(headers.data());
     }
+    if (_url.isLocalFile()) {
+        QString headers = QString("Content-Type: application/octet-stream\n");
+        headers.append("Content-Length: ");
+        headers.append(QString("%1").arg(_rawResponseData.length()));
+        headers.append("\n");
+        return headers;
+    }
     return QScriptValue("");
 }
 
 QScriptValue XMLHttpRequestClass::getResponseHeader(const QString& name) const {
     if (_reply && _reply->hasRawHeader(name.toLatin1())) {
         return QScriptValue(QString(_reply->rawHeader(name.toLatin1())));
+    }
+    if (_url.isLocalFile()) {
+        if (name.toLower() == "content-type") {
+            return QString("application/octet-stream");
+        }
+        if (name.toLower() == "content-length") {
+            return QString("%1").arg(_rawResponseData.length());
+        }
     }
     return QScriptValue::NullValue;
 }
@@ -126,34 +175,72 @@ void XMLHttpRequestClass::setReadyState(ReadyState readyState) {
 void XMLHttpRequestClass::open(const QString& method, const QString& url, bool async, const QString& username,
                                const QString& password) {
     if (_readyState == UNSENT) {
-        _async = async;
-        _url.setUrl(url);
-        if (!username.isEmpty()) {
-            _url.setUserName(username);
-        }
-        if (!password.isEmpty()) {
-            _url.setPassword(password);
-        }
-        _request.setUrl(_url);
         _method = method;
-        setReadyState(OPENED);
+        _url.setUrl(url);
+        _async = async;
+
+        if (_url.isLocalFile()) {
+            if (_method.toUpper() == "GET" && !_async && username.isEmpty() && password.isEmpty()) {
+                _file = new QFile(_url.toLocalFile());
+                if (!_file->exists()) {
+                    qDebug() << "Can't find file " << _url.fileName();
+                    abortRequest();
+                    _errorCode = QNetworkReply::ContentNotFoundError;
+                    setReadyState(DONE);
+                    emit requestComplete();
+                } else if (!_file->open(QIODevice::ReadOnly)) {
+                    qDebug() << "Can't open file " << _url.fileName();
+                    abortRequest();
+                    //_errorCode = QNetworkReply::ContentConflictError;  // TODO: Use this status when update to Qt 5.3
+                    _errorCode = QNetworkReply::ContentAccessDenied;
+                    setReadyState(DONE);
+                    emit requestComplete();
+                } else {
+                    setReadyState(OPENED);
+                }
+            } else {
+                notImplemented();
+            }
+        } else {
+            if (url.toLower().left(33) == "https://data.highfidelity.io/api/") {
+                _url.setQuery("access_token=" + AccountManager::getInstance().getAccountInfo().getAccessToken().token);
+            }
+            if (!username.isEmpty()) {
+                _url.setUserName(username);
+            }
+            if (!password.isEmpty()) {
+                _url.setPassword(password);
+            }
+            _request.setUrl(_url);
+            setReadyState(OPENED);
+        }
     }
 }
 
 void XMLHttpRequestClass::send() {
-    send(QString::Null());
+    send(QScriptValue::NullValue);
 }
 
-void XMLHttpRequestClass::send(const QString& data) {
+void XMLHttpRequestClass::send(const QScriptValue& data) {
     if (_readyState == OPENED && !_reply) {
         if (!data.isNull()) {
-            _sendData = new QBuffer(this);
-            _sendData->setData(data.toUtf8());
+            if (_url.isLocalFile()) {
+                notImplemented();
+                return;
+            } else {
+                _sendData = new QBuffer(this);
+                if (data.isObject()) {
+                    QByteArray ba = qscriptvalue_cast<QByteArray>(data);
+                    _sendData->setData(ba);
+                } else {
+                    _sendData->setData(data.toString().toUtf8());
+                }
+            }
         }
 
         doSend();
 
-        if (!_async) {
+        if (!_async && !_url.isLocalFile()) {
             QEventLoop loop;
             connect(this, SIGNAL(requestComplete()), &loop, SLOT(quit()));
             loop.exec();
@@ -162,13 +249,23 @@ void XMLHttpRequestClass::send(const QString& data) {
 }
 
 void XMLHttpRequestClass::doSend() {
-    _reply = NetworkAccessManager::getInstance().sendCustomRequest(_request, _method.toLatin1(), _sendData);
-
-    connectToReply(_reply);
+    
+    if (!_url.isLocalFile()) {
+        _reply = NetworkAccessManager::getInstance().sendCustomRequest(_request, _method.toLatin1(), _sendData);
+        connectToReply(_reply);
+    }
 
     if (_timeout > 0) {
         _timer.start(_timeout);
         connect(&_timer, SIGNAL(timeout()), this, SLOT(requestTimeout()));
+    }
+
+    if (_url.isLocalFile()) {
+        setReadyState(HEADERS_RECEIVED);
+        setReadyState(LOADING);
+        _rawResponseData = _file->readAll();
+        _file->close();
+        requestFinished();
     }
 }
 
@@ -188,9 +285,16 @@ void XMLHttpRequestClass::requestError(QNetworkReply::NetworkError code) {
 void XMLHttpRequestClass::requestFinished() {
     disconnect(&_timer, SIGNAL(timeout()), this, SLOT(requestTimeout()));
 
-    _errorCode = _reply->error();
+    if (!_url.isLocalFile()) {
+        _errorCode = _reply->error();
+    } else {
+        _errorCode = QNetworkReply::NoError;
+    }
+
     if (_errorCode == QNetworkReply::NoError) {
-        _rawResponseData.append(_reply->readAll());
+        if (!_url.isLocalFile()) {
+            _rawResponseData.append(_reply->readAll());
+        }
 
         if (_responseType == "json") {
             _responseData = _engine->evaluate("(" + QString(_rawResponseData.data()) + ")");
@@ -199,11 +303,13 @@ void XMLHttpRequestClass::requestFinished() {
                 _responseData = QScriptValue::NullValue;
             }
         } else if (_responseType == "arraybuffer") {
-            _responseData = QScriptValue(_rawResponseData.data());
+            QScriptValue data = _engine->newVariant(QVariant::fromValue(_rawResponseData));
+            _responseData = _engine->newObject(reinterpret_cast<ScriptEngine*>(_engine)->getArrayBufferClass(), data);
         } else {
             _responseData = QScriptValue(QString(_rawResponseData.data()));
         }
     }
+
     setReadyState(DONE);
     emit requestComplete();
 }
@@ -217,6 +323,19 @@ void XMLHttpRequestClass::abortRequest() {
         delete _reply;
         _reply = NULL;
     }
+
+    if (_file != NULL) {
+        _file->close();
+        _file = NULL;
+    }
+}
+
+void XMLHttpRequestClass::notImplemented() {
+    abortRequest();
+    //_errorCode = QNetworkReply::OperationNotImplementedError;  TODO: Use this status code when update to Qt 5.3
+    _errorCode = QNetworkReply::ContentOperationNotPermittedError;
+    setReadyState(DONE);
+    emit requestComplete();
 }
 
 void XMLHttpRequestClass::connectToReply(QNetworkReply* reply) {
