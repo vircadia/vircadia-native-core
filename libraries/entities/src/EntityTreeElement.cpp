@@ -631,7 +631,7 @@ bool EntityTreeElement::removeEntityItem(const EntityItem* entity) {
 int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
 
-bool wantDebug = false;
+bool wantDebug = true;
 if (wantDebug) {
     qDebug() << "EntityTreeElement::readElementDataFromBuffer()";
     qDebug() << "    getAACube()=" << getAACube();
@@ -645,6 +645,11 @@ if (wantDebug) {
                     "bitstreamVersion=" << (int)args.bitstreamVersion << " bytesLeftToRead=" << bytesLeftToRead;
         return 0;
     }
+    
+    if (this == _myTree->getRoot() && args.bitstreamVersion >= VERSION_ROOT_ELEMENT_HAS_DATA) {
+        qDebug() << "ROOT ELEMENT: -------- NOW READING ROOT DATA ---------";
+    }
+    
 
     const unsigned char* dataAt = data;
     int bytesRead = 0;

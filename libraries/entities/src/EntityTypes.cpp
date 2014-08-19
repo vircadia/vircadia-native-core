@@ -75,7 +75,7 @@ bool EntityTypes::registerEntityType(EntityType entityType, const char* name, En
 }
 
 EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
-    bool wantDebug = false;
+    bool wantDebug = true;
     if (wantDebug) {
         qDebug() << "EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
         qDebug() << "   entityType=" << entityType;
@@ -96,7 +96,7 @@ EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const Entity
 EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
             ReadBitstreamToTreeParams& args) {
 
-    bool wantDebug = false;
+    bool wantDebug = true;
 
     //qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead)";
     //qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... CALLED BUT NOT IMPLEMENTED!!!";

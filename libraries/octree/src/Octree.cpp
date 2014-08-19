@@ -236,7 +236,7 @@ OctreeElement* Octree::createMissingElement(OctreeElement* lastParentElement, co
 int Octree::readElementData(OctreeElement* destinationElement, const unsigned char* nodeData, int bytesLeftToRead,
                             ReadBitstreamToTreeParams& args) {
 
-bool wantDebug = false;
+bool wantDebug = true;
 if (wantDebug) {
     qDebug() << "Octree::readElementData()";
     qDebug() << "    destinationElement->getAACube()=" << destinationElement->getAACube();
@@ -324,16 +324,20 @@ if (wantDebug) {
     // if this is the root, and there is more data to read, allow it to read it's element data...
     if (destinationElement == _rootElement  && rootElementHasData() && (bytesLeftToRead - bytesRead) > 0) {
         // tell the element to read the subsequent data
-if (wantDebug) {
-    qDebug() << "Octree::readElementData().... reading element data for root element.....";
-}
+        if (wantDebug) {
+            qDebug() << "Octree::readElementData().... reading element data for root element.....";
+            qDebug() << "    bytesRead=" << bytesRead;
+            qDebug() << "    bytesLeftToRead - bytesRead=" << bytesLeftToRead - bytesRead;
+            qDebug() << "   READING ROOT DATA....";
+        }
+
         bytesRead += _rootElement->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead - bytesRead, args);
     }
 
-if (wantDebug) {
-    qDebug() << "Octree::readElementData()";
-    qDebug() << "    bytesRead=" << bytesLeftToRead;
-}
+    if (wantDebug) {
+        qDebug() << "Octree::readElementData()";
+        qDebug() << "    bytesRead=" << bytesLeftToRead;
+    }
     
     return bytesRead;
 }
@@ -341,7 +345,7 @@ if (wantDebug) {
 void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long int bufferSizeBytes,
                                     ReadBitstreamToTreeParams& args) {
 
-bool wantDebug = false;
+bool wantDebug = true;
 if (wantDebug) {
     qDebug() << "Octree::readBitstreamToTree()";
     qDebug() << "    bufferSizeBytes=" << bufferSizeBytes;
@@ -1220,9 +1224,8 @@ qDebug() << "    packetData->getReservedBytes()=" << packetData->getReservedByte
 
     // Make our local buffer large enough to handle writing at this level in case we need to.
     LevelDetails thisLevelKey = packetData->startLevel();
-    bool continueThisLevel = packetData->reserveBytes(sizeof(childrenDataBits) 
-                                                + sizeof(childrenExistInPacketBits)
-                                                + sizeof(childrenExistInTreeBits));
+    int requiredBytes = sizeof(childrenDataBits) + sizeof(childrenExistInPacketBits) + sizeof(childrenExistInTreeBits);
+    bool continueThisLevel = packetData->reserveBytes(requiredBytes);
 
     // If we can't reserve our minimum bytes then we can discard this level and return as if none of this level fits
     if (!continueThisLevel) {
@@ -1772,6 +1775,7 @@ qDebug() << "    continueThisLevel=" << continueThisLevel;
     // If we made it this far, then we've written all of our child data... if this element is the root
     // element, then we also allow the root element to write out it's data...
     if (continueThisLevel && element == _rootElement && rootElementHasData()) {
+    
 qDebug() << " ---- ROOT ELEMENT HANDLING ---- line:" << __LINE__;
         int bytesBeforeChild = packetData->getUncompressedSize();
 qDebug() << "    bytesBeforeChild=" << bytesBeforeChild;
@@ -1788,6 +1792,9 @@ qDebug() << "    allOfRootFit=" << allOfRootFit;
             qDebug() << "    ----------- root DID (partially or fully) fit ------";
             qDebug() << "    packetData->endLevel(rootDataLevelKey)...    line:" << __LINE__;
             continueThisLevel = packetData->endLevel(rootDataLevelKey);
+            if (!continueThisLevel) {
+                qDebug() << " UNEXPECTED ROOT ELEMENT -- could not packetData->endLevel(rootDataLevelKey) -- line:" << __LINE__;
+            }
         } else {
             qDebug() << "    ----------- root didn't fit ------";
             qDebug() << "    packetData->discardLevel(rootDataLevelKey)...    line:" << __LINE__;
@@ -1879,7 +1886,7 @@ bool Octree::readFromSVOFile(const char* fileName) {
         unsigned long fileLength = file.tellg();
         file.seekg( 0, std::ios::beg );
         
-bool wantDebug = false;
+bool wantDebug = true;
 if (wantDebug) {
     qDebug() << "Octree::readFromSVOFile()";
     qDebug() << "    fileLength=" << fileLength;
