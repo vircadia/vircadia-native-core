@@ -254,28 +254,17 @@ function moveWithHead(deltaTime) {
     if (movingWithHead) {
         var deltaYaw = MyAvatar.getHeadFinalYaw() - headStartYaw;
         var deltaPitch = MyAvatar.getHeadDeltaPitch() - headStartPitch;
-        print("delta pitch = " + deltaPitch);
 
-        
         var bodyLocalCurrentHeadVector = Vec3.subtract(MyAvatar.getHeadPosition(), MyAvatar.position);
         bodyLocalCurrentHeadVector = Vec3.multiplyQbyV(Quat.angleAxis(-deltaYaw, {x:0, y: 1, z:0}), bodyLocalCurrentHeadVector);
         var headDelta = Vec3.subtract(bodyLocalCurrentHeadVector, headStartPosition);
         headDelta = Vec3.multiplyQbyV(Quat.inverse(Camera.getOrientation()), headDelta);
         headDelta.y = 0.0;   //  Don't respond to any of the vertical component of head motion
-        Vec3.print("head delta ", headDelta);
-        // Lateral thrust (strafe)
-        //if (Math.abs(headDelta.z) > HEAD_STRAFE_DEAD_ZONE) {
-        //    if (headDelta.z > 0) {
-                MyAvatar.addThrust(Vec3.multiply(Quat.getFront(Camera.getOrientation()), -headDelta.z * HEAD_THRUST_MULTIPLIER * deltaTime));
-                MyAvatar.addThrust(Vec3.multiply(Quat.getRight(Camera.getOrientation()), headDelta.x * HEAD_THRUST_MULTIPLIER * deltaTime));
-        //    }
-        //} 
-        //if (Vec3.length(headDelta) > HEAD_MOVE_DEAD_ZONE) {
-        //    MyAvatar.addThrust(Vec3.multiply(headDelta, HEAD_THRUST_MULTIPLIER * deltaTime));
-        //}
+
+        MyAvatar.addThrust(Vec3.multiply(Quat.getFront(Camera.getOrientation()), -headDelta.z * HEAD_THRUST_MULTIPLIER * deltaTime));
+        MyAvatar.addThrust(Vec3.multiply(Quat.getRight(Camera.getOrientation()), headDelta.x * HEAD_THRUST_MULTIPLIER * deltaTime));
         
         if (Math.abs(deltaYaw) > HEAD_ROTATE_DEAD_ZONE) {
-            //print("yaw = " + deltaYaw);
             var orientation = Quat.multiply(Quat.angleAxis(deltaYaw * HEAD_YAW_RATE * deltaTime, {x:0, y: 1, z:0}), MyAvatar.orientation);
             MyAvatar.orientation = orientation;
         }
@@ -340,7 +329,7 @@ function scriptEnding() {
 Script.scriptEnding.connect(scriptEnding);
 
 Controller.keyPressEvent.connect(function(event) {
-    if (event.text == "z" && !movingWithHead) {
+    if (event.text == "SPACE" && !movingWithHead) {
         movingWithHead = true;
         headStartPosition = Vec3.subtract(MyAvatar.getHeadPosition(), MyAvatar.position);
         headStartPitch = MyAvatar.getHeadDeltaPitch();
@@ -350,7 +339,7 @@ Controller.keyPressEvent.connect(function(event) {
     }                        
 });
 Controller.keyReleaseEvent.connect(function(event) {
-    if (event.text == "z") {
+    if (event.text == "SPACE") {
         movingWithHead = false;
         print("move ended");
     }                        
