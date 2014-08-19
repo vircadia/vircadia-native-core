@@ -182,7 +182,7 @@ qint64 Player::elapsed() const {
 }
 
 glm::quat Player::getHeadRotation() {
-    if (computeCurrentFrame()) {
+    if (!computeCurrentFrame()) {
         qWarning() << "Incorrect use of Player::getHeadRotation()";
         return glm::quat();
     }
@@ -195,7 +195,7 @@ glm::quat Player::getHeadRotation() {
 }
 
 float Player::getLeanSideways() {
-    if (computeCurrentFrame()) {
+    if (!computeCurrentFrame()) {
         qWarning() << "Incorrect use of Player::getLeanSideways()";
         return 0.0f;
     }
@@ -204,7 +204,7 @@ float Player::getLeanSideways() {
 }
 
 float Player::getLeanForward() {
-    if (computeCurrentFrame()) {
+    if (!computeCurrentFrame()) {
         qWarning() << "Incorrect use of Player::getLeanForward()";
         return 0.0f;
     }
@@ -216,13 +216,16 @@ void Player::startPlaying() {
     if (_recording && _recording->getFrameNumber() > 0) {
         qDebug() << "Recorder::startPlaying()";
         _currentFrame = 0;
+        
+        // Setup audio thread
+        _audioThread = new QThread();
         _options.setPosition(_avatar->getPosition());
         _options.setOrientation(_avatar->getOrientation());
-        _injector.reset(new AudioInjector(_recording->getAudio(), _options));
-        _audioThread = new QThread();
+        _injector.reset(new AudioInjector(_recording->getAudio(), _options), &QObject::deleteLater);
         _injector->moveToThread(_audioThread);
         _audioThread->start();
         QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
+        
         _timer.start();
     }
 }
@@ -232,7 +235,6 @@ void Player::stopPlaying() {
         return;
     }
     
-    qDebug() << "Recorder::stopPlaying()";
     _timer.invalidate();
     
     _avatar->clearJointsData();
@@ -242,6 +244,7 @@ void Player::stopPlaying() {
     _injector.clear();
     _audioThread->exit();
     _audioThread->deleteLater();
+    qDebug() << "Recorder::stopPlaying()";
 }
 
 void Player::loadFromFile(QString file) {
@@ -259,7 +262,7 @@ void Player::loadRecording(RecordingPointer recording) {
 
 void Player::play() {
     computeCurrentFrame();
-    if (_currentFrame < 0 || _currentFrame >= _recording->getFrameNumber()) {
+    if (_currentFrame < 0 || _currentFrame >= _recording->getFrameNumber() - 1) {
         // If it's the end of the recording, stop playing
         stopPlaying();
         return;
@@ -283,6 +286,10 @@ void Player::play() {
         HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
         head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
     }
+    
+    _options.setPosition(_avatar->getPosition());
+    _options.setOrientation(_avatar->getOrientation());
+    _injector->setOptions(_options);
 }
 
 bool Player::computeCurrentFrame() {
@@ -294,7 +301,7 @@ bool Player::computeCurrentFrame() {
         _currentFrame = 0;
     }
     
-    while (_currentFrame < _recording->getFrameNumber() &&
+    while (_currentFrame < _recording->getFrameNumber() - 1 &&
            _recording->getFrameTimestamp(_currentFrame) < _timer.elapsed()) {
         ++_currentFrame;
     }
