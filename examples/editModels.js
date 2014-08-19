@@ -611,7 +611,10 @@ var modelUploader = (function () {
             index += nameLength;
 
             if (name === "content" && previousNodeFilename !== "") {
-                geometry.embedded.push(previousNodeFilename);
+                // Blender 2.71 exporter "embeds" external textures as empty binary blobs so ignore these
+                if (propertyListLength > 5) {
+                    geometry.embedded.push(previousNodeFilename);
+                }
             }
 
             if (name === "relativefilename") {
