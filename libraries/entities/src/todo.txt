@@ -37,25 +37,6 @@ Model properties:
         -- repro case - run editModelsExample.js -- create 10 models in the same octree element
 
 
-**************************
-    2) ROOT ELEMENT and/or partial element data...
-       BREAKS File persistence...
-            * problem is that in reading back the file, we don't know the END of the PACKET...
-              the old code could read along and just know that the elements would always end on 
-              another element boundary
-              
-              this doesn't work with the current code because ?????
-              
-                is it the root element logic?? or something else?
-                
-                try disabling root element persistance and see if the files read.
-                
-                or consider storing buffer sizes in the persisted file format
-                   this would allow for us to do partial reads of the persited file which would be a nice bonus
-**************************
-                
-   
-
     2) memory leaks???
     3) Import/Export Models - verify it works. /copy/paste??
         22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
@@ -255,3 +236,4 @@ Model properties:
 //                 to fit and in this case the "extra data" gets confused...
 //                     maybe remember the extra state before removing it and if it fails, always re-add it
 //                     maybe add support for "reserving" bytes in the packet
+// SOLVED -- BROKEN File persistence... -- added chunking support in SVO file persistence.
