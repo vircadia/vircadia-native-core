@@ -219,23 +219,23 @@ void Faceshift::receive(const QByteArray& buffer) {
                     } else {
                         _headAngularVelocity = glm::vec3(0,0,0);
                     }
-                    _headRotation = newRotation;
+                    const float ANGULAR_VELOCITY_FILTER_STRENGTH = 0.3f;
+                    _headRotation = safeMix(_headRotation, newRotation, glm::clamp(glm::length(_headAngularVelocity) *
+                                                                                   ANGULAR_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f));
 
                     const float TRANSLATION_SCALE = 0.02f;
                     glm::vec3 newHeadTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
                                                             -data.m_headTranslation.z) * TRANSLATION_SCALE;
                     
-                    
                     _headLinearVelocity = (newHeadTranslation - _lastHeadTranslation) / _averageFrameTime;
                     
-                    //  Velocity filter the faceshift head translation because it's noisy
-                    float velocityFilter = glm::clamp(1.0f - glm::length(_headLinearVelocity), 0.0f, 1.0f);
+                    const float LINEAR_VELOCITY_FILTER_STRENGTH = 0.3f;
+                    float velocityFilter = glm::clamp(1.0f - glm::length(_headLinearVelocity) *
+                                                      LINEAR_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
                     _filteredHeadTranslation = velocityFilter * _filteredHeadTranslation + (1.0f - velocityFilter) * newHeadTranslation;
                     
                     _lastHeadTranslation = newHeadTranslation;
-                    
                     _headTranslation = _filteredHeadTranslation;
-                    //_headTranslation = newHeadTranslation;
                     
                     _eyeGazeLeftPitch = -data.m_eyeGazeLeftPitch;
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
