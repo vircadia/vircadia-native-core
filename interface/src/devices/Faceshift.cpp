@@ -26,11 +26,13 @@ using namespace fs;
 using namespace std;
 
 const quint16 FACESHIFT_PORT = 33433;
+float STARTING_FACESHIFT_FRAME_TIME = 0.033f;
 
 Faceshift::Faceshift() :
     _tcpEnabled(true),
     _tcpRetryCount(0),
     _lastTrackingStateReceived(0),
+    _averageFrameTime(STARTING_FACESHIFT_FRAME_TIME),
     _headAngularVelocity(0),
     _headLinearVelocity(0),
     _lastHeadTranslation(0),
@@ -199,7 +201,6 @@ void Faceshift::send(const std::string& message) {
 
 void Faceshift::receive(const QByteArray& buffer) {
 #ifdef HAVE_FACESHIFT
-    float AVERAGE_FACESHIFT_FRAME_TIME = 0.033f;
     _stream.received(buffer.size(), buffer.constData());
     fsMsgPtr msg;
     for (fsMsgPtr msg; (msg = _stream.get_message()); ) {
@@ -214,7 +215,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                     float theta = 2 * acos(r.w);
                     if (theta > EPSILON) {
                         float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
-                        _headAngularVelocity = theta / AVERAGE_FACESHIFT_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
+                        _headAngularVelocity = theta / _averageFrameTime * glm::vec3(r.x, r.y, r.z) / rMag;
                     } else {
                         _headAngularVelocity = glm::vec3(0,0,0);
                     }
@@ -225,8 +226,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                                                             -data.m_headTranslation.z) * TRANSLATION_SCALE;
                     
                     
-                    _headLinearVelocity = (newHeadTranslation - _lastHeadTranslation) / AVERAGE_FACESHIFT_FRAME_TIME;
-                    //qDebug() << "Head vel: " << glm::length(_headLinearVelocity);
+                    _headLinearVelocity = (newHeadTranslation - _lastHeadTranslation) / _averageFrameTime;
                     
                     //  Velocity filter the faceshift head translation because it's noisy
                     float velocityFilter = glm::clamp(1.0f - glm::length(_headLinearVelocity), 0.0f, 1.0f);
@@ -243,7 +243,13 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
                     _blendshapeCoefficients = QVector<float>::fromStdVector(data.m_coeffs);
 
-                    _lastTrackingStateReceived = usecTimestampNow();
+                    const float FRAME_AVERAGING_FACTOR = 0.99f;
+                    quint64 usecsNow = usecTimestampNow();
+                    if (_lastTrackingStateReceived != 0) {
+                        _averageFrameTime = FRAME_AVERAGING_FACTOR * _averageFrameTime +
+                        (1.0f - FRAME_AVERAGING_FACTOR) * (float)(usecsNow - _lastTrackingStateReceived) / 1000000.f;
+                    }
+                    _lastTrackingStateReceived = usecsNow;
                 }
                 break;
             }

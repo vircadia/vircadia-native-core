@@ -98,6 +98,7 @@ private:
     int _tcpRetryCount;
     bool _tracking;
     quint64 _lastTrackingStateReceived;
+    float _averageFrameTime;
     
     glm::vec3 _headAngularVelocity;
     glm::vec3 _headLinearVelocity;
