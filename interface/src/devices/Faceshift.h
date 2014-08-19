@@ -100,6 +100,9 @@ private:
     quint64 _lastTrackingStateReceived;
     
     glm::vec3 _headAngularVelocity;
+    glm::vec3 _headLinearVelocity;
+    glm::vec3 _lastHeadTranslation;
+    glm::vec3 _filteredHeadTranslation;
     
     // degrees
     float _eyeGazeLeftPitch;

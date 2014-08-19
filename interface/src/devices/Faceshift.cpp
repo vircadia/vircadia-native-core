@@ -31,6 +31,10 @@ Faceshift::Faceshift() :
     _tcpEnabled(true),
     _tcpRetryCount(0),
     _lastTrackingStateReceived(0),
+    _headAngularVelocity(0),
+    _headLinearVelocity(0),
+    _lastHeadTranslation(0),
+    _filteredHeadTranslation(0),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
@@ -195,6 +199,7 @@ void Faceshift::send(const std::string& message) {
 
 void Faceshift::receive(const QByteArray& buffer) {
 #ifdef HAVE_FACESHIFT
+    float AVERAGE_FACESHIFT_FRAME_TIME = 0.033f;
     _stream.received(buffer.size(), buffer.constData());
     fsMsgPtr msg;
     for (fsMsgPtr msg; (msg = _stream.get_message()); ) {
@@ -209,7 +214,6 @@ void Faceshift::receive(const QByteArray& buffer) {
                     float theta = 2 * acos(r.w);
                     if (theta > EPSILON) {
                         float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
-                        float AVERAGE_FACESHIFT_FRAME_TIME = 0.033f;
                         _headAngularVelocity = theta / AVERAGE_FACESHIFT_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
                     } else {
                         _headAngularVelocity = glm::vec3(0,0,0);
@@ -217,8 +221,22 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _headRotation = newRotation;
 
                     const float TRANSLATION_SCALE = 0.02f;
-                    _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
-                        -data.m_headTranslation.z) * TRANSLATION_SCALE;
+                    glm::vec3 newHeadTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
+                                                            -data.m_headTranslation.z) * TRANSLATION_SCALE;
+                    
+                    
+                    _headLinearVelocity = (newHeadTranslation - _lastHeadTranslation) / AVERAGE_FACESHIFT_FRAME_TIME;
+                    //qDebug() << "Head vel: " << glm::length(_headLinearVelocity);
+                    
+                    //  Velocity filter the faceshift head translation because it's noisy
+                    float velocityFilter = glm::clamp(1.0f - glm::length(_headLinearVelocity), 0.0f, 1.0f);
+                    _filteredHeadTranslation = velocityFilter * _filteredHeadTranslation + (1.0f - velocityFilter) * newHeadTranslation;
+                    
+                    _lastHeadTranslation = newHeadTranslation;
+                    
+                    _headTranslation = _filteredHeadTranslation;
+                    //_headTranslation = newHeadTranslation;
+                    
                     _eyeGazeLeftPitch = -data.m_eyeGazeLeftPitch;
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;

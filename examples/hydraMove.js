@@ -21,10 +21,10 @@ var position = { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.pos
 var joysticksCaptured = false;
 var THRUST_CONTROLLER = 0;
 var VIEW_CONTROLLER = 1;
-var INITIAL_THRUST_MULTPLIER = 1.0;
+var INITIAL_THRUST_MULTIPLIER = 1.0;
 var THRUST_INCREASE_RATE = 1.05;
 var MAX_THRUST_MULTIPLIER = 75.0;
-var thrustMultiplier = INITIAL_THRUST_MULTPLIER;
+var thrustMultiplier = INITIAL_THRUST_MULTIPLIER;
 var grabDelta = { x: 0, y: 0, z: 0};
 var grabStartPosition = { x: 0, y: 0, z: 0};
 var grabDeltaVelocity = { x: 0, y: 0, z: 0};
@@ -34,6 +34,8 @@ var grabbingWithRightHand = false;
 var wasGrabbingWithRightHand = false;
 var grabbingWithLeftHand = false;
 var wasGrabbingWithLeftHand = false;
+var movingWithHead = false; 
+var headStartPosition, headStartPitch, headStartYaw;
 var EPSILON = 0.000001;
 var velocity = { x: 0, y: 0, z: 0};
 var THRUST_MAG_UP = 100.0;
@@ -241,6 +243,46 @@ function handleGrabBehavior(deltaTime) {
     wasGrabbingWithLeftHand = grabbingWithLeftHand;
 }
 
+var HEAD_MOVE_DEAD_ZONE = 0.0;
+var HEAD_STRAFE_DEAD_ZONE = 0.025;
+var HEAD_ROTATE_DEAD_ZONE = 0.0; 
+var HEAD_THRUST_MULTIPLIER = 10000.0;
+var HEAD_YAW_RATE = 2.0;
+var HEAD_PITCH_RATE = 2.0;
+
+function moveWithHead(deltaTime) {
+    if (movingWithHead) {
+        var deltaYaw = MyAvatar.getHeadFinalYaw() - headStartYaw;
+        var deltaPitch = MyAvatar.getHeadDeltaPitch() - headStartPitch;
+        print("delta pitch = " + deltaPitch);
+
+        
+        var bodyLocalCurrentHeadVector = Vec3.subtract(MyAvatar.getHeadPosition(), MyAvatar.position);
+        bodyLocalCurrentHeadVector = Vec3.multiplyQbyV(Quat.angleAxis(-deltaYaw, {x:0, y: 1, z:0}), bodyLocalCurrentHeadVector);
+        var headDelta = Vec3.subtract(bodyLocalCurrentHeadVector, headStartPosition);
+        headDelta = Vec3.multiplyQbyV(Quat.inverse(Camera.getOrientation()), headDelta);
+        headDelta.y = 0.0;   //  Don't respond to any of the vertical component of head motion
+        Vec3.print("head delta ", headDelta);
+        // Lateral thrust (strafe)
+        //if (Math.abs(headDelta.z) > HEAD_STRAFE_DEAD_ZONE) {
+        //    if (headDelta.z > 0) {
+                MyAvatar.addThrust(Vec3.multiply(Quat.getFront(Camera.getOrientation()), -headDelta.z * HEAD_THRUST_MULTIPLIER * deltaTime));
+                MyAvatar.addThrust(Vec3.multiply(Quat.getRight(Camera.getOrientation()), headDelta.x * HEAD_THRUST_MULTIPLIER * deltaTime));
+        //    }
+        //} 
+        //if (Vec3.length(headDelta) > HEAD_MOVE_DEAD_ZONE) {
+        //    MyAvatar.addThrust(Vec3.multiply(headDelta, HEAD_THRUST_MULTIPLIER * deltaTime));
+        //}
+        
+        if (Math.abs(deltaYaw) > HEAD_ROTATE_DEAD_ZONE) {
+            //print("yaw = " + deltaYaw);
+            var orientation = Quat.multiply(Quat.angleAxis(deltaYaw * HEAD_YAW_RATE * deltaTime, {x:0, y: 1, z:0}), MyAvatar.orientation);
+            MyAvatar.orientation = orientation;
+        }
+        MyAvatar.headPitch += deltaPitch * HEAD_PITCH_RATE * deltaTime; 
+    }
+}
+
 // Update for joysticks and move button
 function flyWithHydra(deltaTime) {
     var thrustJoystickPosition = Controller.getJoystickPosition(THRUST_CONTROLLER);
@@ -262,7 +304,7 @@ function flyWithHydra(deltaTime) {
                                         thrustJoystickPosition.x * thrustMultiplier * deltaTime);
         MyAvatar.addThrust(thrustRight);
     } else {
-        thrustMultiplier = INITIAL_THRUST_MULTPLIER;
+        thrustMultiplier = INITIAL_THRUST_MULTIPLIER;
     }
 
     // View Controller
@@ -280,6 +322,7 @@ function flyWithHydra(deltaTime) {
         MyAvatar.headPitch = newPitch;
     }
     handleGrabBehavior(deltaTime);
+    moveWithHead(deltaTime);
     displayDebug();
 
 }
@@ -295,4 +338,21 @@ function scriptEnding() {
     Controller.releaseJoystick(VIEW_CONTROLLER);
 }
 Script.scriptEnding.connect(scriptEnding);
+
+Controller.keyPressEvent.connect(function(event) {
+    if (event.text == "z" && !movingWithHead) {
+        movingWithHead = true;
+        headStartPosition = Vec3.subtract(MyAvatar.getHeadPosition(), MyAvatar.position);
+        headStartPitch = MyAvatar.getHeadDeltaPitch();
+        headStartYaw = MyAvatar.getHeadFinalYaw(); 
+        Vec3.print("head start position = ", headStartPosition); 
+        print(" yaw = " + headStartYaw + " pitch = " + headStartPitch);
+    }                        
+});
+Controller.keyReleaseEvent.connect(function(event) {
+    if (event.text == "z") {
+        movingWithHead = false;
+        print("move ended");
+    }                        
+});
 

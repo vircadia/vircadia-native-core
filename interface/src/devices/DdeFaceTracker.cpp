@@ -242,13 +242,11 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         
         // Set blendshapes
         float EYE_MAGNIFIER = 4.0f;
-
-        float rightEye = (updateAndGetCoefficient(_rightEye, packet.expressions[0])) * EYE_MAGNIFIER;
+        float rightEye = glm::clamp((updateAndGetCoefficient(_rightEye, packet.expressions[0])) * EYE_MAGNIFIER, 0.0f, 1.0f);
         _blendshapeCoefficients[_rightBlinkIndex] = rightEye;
-        float leftEye = (updateAndGetCoefficient(_leftEye, packet.expressions[1])) * EYE_MAGNIFIER;
+        float leftEye = glm::clamp((updateAndGetCoefficient(_leftEye, packet.expressions[1])) * EYE_MAGNIFIER, 0.0f, 1.0f);
         _blendshapeCoefficients[_leftBlinkIndex] = leftEye;
 
-        //  Right eye = packet.expressions[0];
         
         float leftBrow = 1.0f - rescaleCoef(packet.expressions[14]);
         if (leftBrow < 0.5f) {
@@ -270,9 +268,9 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         float JAW_OPEN_MAGNIFIER = 1.4f;
         _blendshapeCoefficients[_jawOpenIndex] = rescaleCoef(packet.expressions[21]) * JAW_OPEN_MAGNIFIER;
         
-        
-        _blendshapeCoefficients[_mouthSmileLeftIndex] = rescaleCoef(packet.expressions[24]);
-        _blendshapeCoefficients[_mouthSmileRightIndex] = rescaleCoef(packet.expressions[23]);
+        float SMILE_MULTIPLIER = 2.0f;
+        _blendshapeCoefficients[_mouthSmileLeftIndex] = glm::clamp(packet.expressions[24] * SMILE_MULTIPLIER, 0.f, 1.f);
+        _blendshapeCoefficients[_mouthSmileRightIndex] = glm::clamp(packet.expressions[23] * SMILE_MULTIPLIER, 0.f, 1.f);
         
         
     } else {
