@@ -24,6 +24,7 @@ function setupMenus() {
     Menu.removeMenuItem("Edit", "Paste");
     Menu.removeMenuItem("Edit", "Delete");
     Menu.removeMenuItem("Edit", "Nudge");
+    Menu.removeMenuItem("Edit", "Replace from File");
     Menu.removeMenuItem("File", "Export Voxels");
     Menu.removeMenuItem("File", "Import Voxels");
 
@@ -32,6 +33,7 @@ function setupMenus() {
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Copy", shortcutKey: "CTRL+C", afterItem: "Cut" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste", shortcutKey: "CTRL+V", afterItem: "Copy" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Nudge", shortcutKey: "CTRL+N", afterItem: "Paste" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Replace from File", shortcutKey: "CTRL+R", afterItem: "Nudge" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Voxels", shortcutKey: "CTRL+E", afterItem: "Voxels" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Voxels", shortcutKey: "CTRL+I", afterItem: "Export Voxels" });
@@ -60,7 +62,6 @@ function menuItemEvent(menuItem) {
         print("deleting...");
         Clipboard.deleteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
     }
-    
     if (menuItem == "Export Voxels") {
         print("export");
         Clipboard.exportVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
@@ -72,6 +73,12 @@ function menuItemEvent(menuItem) {
     if (menuItem == "Nudge") {
         print("nudge");
         Clipboard.nudgeVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s, { x: -1, y: 0, z: 0 });
+    }
+    if (menuItem == "Replace from File") {
+        var filename = Window.browse("Select file to load replacement", "", "Voxel Files (*.png *.svo *.schematic)");
+        if (filename) {
+            Clipboard.importVoxel(filename, selectedVoxel);
+        }
     }
 }
 

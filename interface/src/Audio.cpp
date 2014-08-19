@@ -82,7 +82,6 @@ Audio::Audio(QObject* parent) :
     _noiseGateSampleCounter(0),
     _noiseGateOpen(false),
     _noiseGateEnabled(true),
-    _peqEnabled(false),
     _toneInjectionEnabled(false),
     _noiseGateFramesToClose(0),
     _totalInputAudioSamples(0),
@@ -102,6 +101,7 @@ Audio::Audio(QObject* parent) :
     _scopeOutputOffset(0),
     _framesPerScope(DEFAULT_FRAMES_PER_SCOPE),
     _samplesPerScope(NETWORK_SAMPLES_PER_FRAME * _framesPerScope),
+    _peqEnabled(false),
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
@@ -475,7 +475,7 @@ void Audio::handleAudioInput() {
 
         int16_t* ioBuffer = (int16_t*)inputByteArray.data();
 
-       _peq.render( ioBuffer, ioBuffer, inputByteArray.size() / sizeof(int16_t) );
+       _peq.render(ioBuffer, ioBuffer, inputByteArray.size() / sizeof(int16_t));
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput) {
@@ -675,6 +675,11 @@ void Audio::handleAudioInput() {
 
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+        
+        
+        if (_recorder && _recorder.data()->isRecording()) {
+            _recorder.data()->record(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
+        }
         
         if (audioMixer && audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();

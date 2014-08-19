@@ -29,6 +29,7 @@ public:
 public slots:
     void injectAudio();
     void stop() { _shouldStop = true; }
+    void setOptions(AudioInjectorOptions& options);
 signals:
     void finished();
 private:

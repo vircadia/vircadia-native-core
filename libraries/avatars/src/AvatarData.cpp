@@ -683,6 +683,41 @@ glm::quat AvatarData::getJointRotation(const QString& name) const {
     return getJointRotation(getJointIndex(name));
 }
 
+QVector<glm::quat> AvatarData::getJointRotations() const {
+    if (QThread::currentThread() != thread()) {
+        QVector<glm::quat> result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
+                                  "getJointRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(QVector<glm::quat>, result));
+        return result;
+    }
+    QVector<glm::quat> jointRotations(_jointData.size());
+    for (int i = 0; i < _jointData.size(); ++i) {
+        jointRotations[i] = _jointData[i].rotation;
+    }
+    return jointRotations;
+}
+
+void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
+    if (QThread::currentThread() != thread()) {
+        QVector<glm::quat> result;
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
+                                  "setJointRotation", Qt::BlockingQueuedConnection,
+                                  Q_ARG(QVector<glm::quat>, jointRotations));
+    }
+    for (int i = 0; i < jointRotations.size(); ++i) {
+        if (i < _jointData.size()) {
+            setJointData(i, jointRotations[i]);
+        }
+    }
+}
+
+void AvatarData::clearJointsData() {
+    for (int i = 0; i < _jointData.size(); ++i) {
+        clearJointData(i);
+    }
+}
+
 bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));

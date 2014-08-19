@@ -35,6 +35,7 @@
 #include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
+#include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
@@ -83,10 +84,11 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-    _skeletonModel.setEnableShapes(true);
-    // The skeleton is both a PhysicsEntity and Ragdoll, so we add it to the simulation once for each type.
     _physicsSimulation.setEntity(&_skeletonModel);
-    _physicsSimulation.setRagdoll(&_skeletonModel);
+
+    _skeletonModel.setEnableShapes(true);
+    Ragdoll* ragdoll = _skeletonModel.buildRagdoll();
+    _physicsSimulation.setRagdoll(ragdoll);
 }
 
 MyAvatar::~MyAvatar() {
@@ -135,6 +137,12 @@ void MyAvatar::update(float deltaTime) {
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
+    
+    // Play back recording
+    if (_player && _player->isPlaying()) {
+        _player->play();
+    }
+    
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
@@ -147,7 +155,7 @@ void MyAvatar::simulate(float deltaTime) {
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
     }
-
+    
     {
         PerformanceTimer perfTimer("hand");
         // update avatar skeleton and simulate hand and head
@@ -205,12 +213,21 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("ragdoll");
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        Ragdoll* ragdoll = _skeletonModel.getRagdoll();
+        if (ragdoll && Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
             const float minError = 0.00001f;
             const float maxIterations = 3;
             const quint64 maxUsec = 4000;
             _physicsSimulation.setTranslation(_position);
             _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
+
+            // harvest any displacement of the Ragdoll that is a result of collisions
+            glm::vec3 ragdollDisplacement = ragdoll->getAndClearAccumulatedMovement();
+            const float MAX_RAGDOLL_DISPLACEMENT_2 = 1.0f;
+            float length2 = glm::length2(ragdollDisplacement);
+            if (length2 > EPSILON && length2 < MAX_RAGDOLL_DISPLACEMENT_2) {
+                setPosition(getPosition() + ragdollDisplacement);
+            }
         } else {
             _skeletonModel.moveShapesTowardJoints(1.0f);
         }
@@ -242,6 +259,11 @@ void MyAvatar::simulate(float deltaTime) {
         }
     }
 
+    // Record avatars movements.
+    if (_recorder && _recorder->isRecording()) {
+        _recorder->record();
+    }
+    
     // consider updating our billboard
     maybeUpdateBillboard();
 }
@@ -250,7 +272,9 @@ void MyAvatar::simulate(float deltaTime) {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
+    if (isPlaying()) {
+        estimatedRotation = glm::degrees(safeEulerAngles(_player->getHeadRotation()));
+    } else if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
         estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
         estimatedRotation.x *= -1.0f;
         estimatedRotation.z *= -1.0f;
@@ -292,7 +316,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
     Head* head = getHead();
-    if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected() || isPlaying()) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
     } else {
@@ -302,6 +326,11 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
     head->setDeltaRoll(estimatedRotation.z);
 
+    if (isPlaying()) {
+        head->setLeanSideways(_player->getLeanSideways());
+        head->setLeanForward(_player->getLeanForward());
+        return;
+    }
     // the priovr can give us exact lean
     if (Application::getInstance()->getPrioVR()->isActive()) {
         glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
@@ -309,7 +338,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setLeanForward(eulers.x);
         return;
     }
-
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
@@ -477,6 +505,45 @@ bool MyAvatar::setJointReferential(int id, int jointIndex) {
     } else {
         changeReferential(NULL);
         return false;
+    }
+}
+
+bool MyAvatar::isRecording() const {
+    return _recorder && _recorder->isRecording();
+}
+
+RecorderPointer MyAvatar::startRecording() {
+    if (!_recorder) {
+        _recorder = RecorderPointer(new Recorder(this));
+    }
+    _recorder->startRecording();
+    return _recorder;
+}
+
+void MyAvatar::stopRecording() {
+    if (_recorder) {
+        _recorder->stopRecording();
+    }
+}
+
+bool MyAvatar::isPlaying() const {
+    return _player && _player->isPlaying();
+}
+
+PlayerPointer MyAvatar::startPlaying() {
+    if (!_player) {
+        _player = PlayerPointer(new Player(this));
+    }
+    if (_recorder) {
+        _player->loadRecording(_recorder->getRecording());
+        _player->startPlaying();
+    }
+    return _player;
+}
+
+void MyAvatar::stopPlaying() {
+    if (_player) {
+        _player->stopPlaying();
     }
 }
 
@@ -862,6 +929,14 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
 
 const float JOINT_PRIORITY = 2.0f;
 
+void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
+    for (int i = 0; i < jointRotations.size(); ++i) {
+        if (i < _jointData.size()) {
+            _skeletonModel.setJointState(i, true, jointRotations[i], JOINT_PRIORITY + 1.0f);
+        }
+    }
+}
+
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
     Avatar::setJointData(index, rotation);
     if (QThread::currentThread() == thread()) {
@@ -873,6 +948,15 @@ void MyAvatar::clearJointData(int index) {
     Avatar::clearJointData(index);
     if (QThread::currentThread() == thread()) {
         _skeletonModel.setJointState(index, false, glm::quat(), JOINT_PRIORITY);
+    }
+}
+
+void MyAvatar::clearJointsData() {
+    for (int i = 0; i < _jointData.size(); ++i) {
+        Avatar::clearJointData(i);
+        if (QThread::currentThread() == thread()) {
+            _skeletonModel.clearJointState(i);
+        }
     }
 }
 
@@ -1604,10 +1688,10 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 if (simulation != &(_physicsSimulation)) {
                     skeleton->setEnableShapes(true);
                     _physicsSimulation.addEntity(skeleton);
-                    _physicsSimulation.addRagdoll(skeleton);
+                    _physicsSimulation.addRagdoll(skeleton->getRagdoll());
                 }
             } else if (simulation == &(_physicsSimulation)) {
-                _physicsSimulation.removeRagdoll(skeleton);
+                _physicsSimulation.removeRagdoll(skeleton->getRagdoll());
                 _physicsSimulation.removeEntity(skeleton);
                 skeleton->setEnableShapes(false);
             }
