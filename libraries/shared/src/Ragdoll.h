@@ -52,6 +52,10 @@ public:
     void setMassScale(float scale);
     float getMassScale() const { return _massScale; }
 
+    // the ragdoll's rootIndex (within a Model's joints) is not always zero so must be settable
+    void setRootIndex(int index) { _rootIndex = index; }
+    int getRootIndex() const { return _rootIndex; }
+
     void clearConstraintsAndPoints();
     virtual void initPoints() = 0;
     virtual void buildConstraints() = 0;
@@ -66,6 +70,7 @@ protected:
     glm::quat _rotation; // world-frame
     glm::vec3 _translationInSimulationFrame;
     glm::quat _rotationInSimulationFrame;
+    int _rootIndex;
 
     QVector<VerletPoint> _points;
     QVector<DistanceConstraint*> _boneConstraints;

@@ -576,6 +576,7 @@ SkeletonRagdoll* SkeletonModel::buildRagdoll() {
     if (!_ragdoll) {
         _ragdoll = new SkeletonRagdoll(this);
         if (_enableShapes) {
+            clearShapes();
             buildShapes();
         }
     }
@@ -600,6 +601,7 @@ void SkeletonModel::buildShapes() {
     if (!_ragdoll) {
         _ragdoll = new SkeletonRagdoll(this);
     }
+    _ragdoll->setRootIndex(geometry.rootJointIndex);
     _ragdoll->initPoints();
     QVector<VerletPoint>& points = _ragdoll->getPoints();
 
@@ -614,15 +616,14 @@ void SkeletonModel::buildShapes() {
         float radius = uniformScale * joint.boneRadius;
         float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
         Shape::Type type = joint.shapeType;
-        if (i == 0 || (type == Shape::CAPSULE_SHAPE && halfHeight < EPSILON)) {
+        int parentIndex = joint.parentIndex;
+        if (parentIndex == -1 || radius < EPSILON) {
+            type = Shape::UNKNOWN_SHAPE;
+        } else if (type == Shape::CAPSULE_SHAPE && halfHeight < EPSILON) {
             // this shape is forced to be a sphere
             type = Shape::SPHERE_SHAPE;
         }
-        if (radius < EPSILON) {
-            type = Shape::UNKNOWN_SHAPE;
-        }
         Shape* shape = NULL;
-        int parentIndex = joint.parentIndex;
         if (type == Shape::SPHERE_SHAPE) {
             shape = new VerletSphereShape(radius, &(points[i]));
             shape->setEntity(this);
@@ -637,18 +638,16 @@ void SkeletonModel::buildShapes() {
             points[i].setMass(mass);
             totalMass += mass;
         } 
-        if (parentIndex != -1) {
+        if (shape && parentIndex != -1) {
             // always disable collisions between joint and its parent
-            if (shape) {
-                disableCollisions(i, parentIndex);
-            }
+            disableCollisions(i, parentIndex);
         } 
         _shapes.push_back(shape);
     }
 
     // set the mass of the root
     if (numStates > 0) {
-        points[0].setMass(totalMass);
+        points[_ragdoll->getRootIndex()].setMass(totalMass);
     }
 
     // This method moves the shapes to their default positions in Model frame.
