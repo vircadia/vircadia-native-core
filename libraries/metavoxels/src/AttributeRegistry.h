@@ -32,6 +32,7 @@ class Attribute;
 class HeightfieldColorData;
 class HeightfieldData;
 class HeightfieldHeightData;
+class HeightfieldTextureData;
 class MetavoxelData;
 class MetavoxelLOD;
 class MetavoxelNode;
@@ -520,6 +521,25 @@ private:
     void set(const QImage& image);
 };
 
+typedef QExplicitlySharedDataPointer<HeightfieldTextureData> HeightfieldTextureDataPointer;
+
+/// Contains a block of heightfield texture data.
+class HeightfieldTextureData : public HeightfieldData {
+public:
+    
+    HeightfieldTextureData(const QByteArray& contents);
+    HeightfieldTextureData(Bitstream& in, int bytes);
+    HeightfieldTextureData(Bitstream& in, int bytes, const HeightfieldTextureDataPointer& reference);
+    
+    void write(Bitstream& out);
+    void writeDelta(Bitstream& out, const HeightfieldTextureDataPointer& reference);
+
+private:
+    
+    void read(Bitstream& in, int bytes);
+    void set(const QImage& image);
+};
+
 /// Contains the description of a heightfield texture.
 class HeightfieldTexture : public SharedObject {
     Q_OBJECT
@@ -571,7 +591,7 @@ public:
 };
 
 /// An attribute that stores heightfield textures.
-class HeightfieldTextureAttribute : public InlineAttribute<HeightfieldDataPointer> {
+class HeightfieldTextureAttribute : public InlineAttribute<HeightfieldTextureDataPointer> {
     Q_OBJECT
     
 public:

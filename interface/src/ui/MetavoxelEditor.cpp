@@ -975,7 +975,7 @@ void ImportHeightfieldTool::apply() {
             AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
         
         QByteArray texture(height.size(), 0);
-        HeightfieldDataPointer texturePointer(new HeightfieldData(texture));
+        HeightfieldTextureDataPointer texturePointer(new HeightfieldTextureData(texture));
         data.setRoot(AttributeRegistry::getInstance()->getHeightfieldTextureAttribute(), new MetavoxelNode(AttributeValue(
             AttributeRegistry::getInstance()->getHeightfieldTextureAttribute(), encodeInline(texturePointer))));
         

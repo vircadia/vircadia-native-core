@@ -932,6 +932,108 @@ void HeightfieldColorData::set(const QImage& image) {
     memcpy(_contents.data(), image.constBits(), _contents.size());
 }
 
+HeightfieldTextureData::HeightfieldTextureData(const QByteArray& contents) :
+    HeightfieldData(contents) {
+}
+
+HeightfieldTextureData::HeightfieldTextureData(Bitstream& in, int bytes) {
+    read(in, bytes);
+}
+
+HeightfieldTextureData::HeightfieldTextureData(Bitstream& in, int bytes, const HeightfieldTextureDataPointer& reference) {
+    if (!reference) {
+        read(in, bytes);
+        return;
+    }
+    QMutexLocker locker(&reference->getEncodedDeltaMutex());
+    reference->setEncodedDelta(in.readAligned(bytes));
+    reference->setDeltaData(HeightfieldDataPointer(this));
+    _contents = reference->getContents();
+    QImage image = decodeHeightfieldImage(reference->getEncodedDelta());
+    if (image.isNull()) {
+        return;
+    }
+    QPoint offset = image.offset();
+    if (offset.x() == 0) {
+        set(image);
+        return;
+    }
+    int minX = offset.x() - 1;
+    int minY = offset.y() - 1;
+    int size = glm::sqrt((float)_contents.size());
+    char* dest = _contents.data() + minY * size + minX;
+    for (int y = 0; y < image.height(); y++) {
+        memcpy(dest, image.constScanLine(y), image.width());
+        dest += size;
+    }
+}
+
+void HeightfieldTextureData::write(Bitstream& out) {
+    QMutexLocker locker(&_encodedMutex);
+    if (_encoded.isEmpty()) {
+        QImage image;        
+        int size = glm::sqrt((float)_contents.size());
+        image = QImage((uchar*)_contents.data(), size, size, QImage::Format_Indexed8);
+        _encoded = encodeHeightfieldImage(image, true);
+    }
+    out << _encoded.size();
+    out.writeAligned(_encoded);
+}
+
+void HeightfieldTextureData::writeDelta(Bitstream& out, const HeightfieldTextureDataPointer& reference) {
+    if (!reference || reference->getContents().size() != _contents.size()) {
+        write(out);
+        return;
+    }
+    QMutexLocker locker(&reference->getEncodedDeltaMutex());
+    if (reference->getEncodedDelta().isEmpty() || reference->getDeltaData() != this) {
+        QImage image;
+        int size = glm::sqrt((float)_contents.size());
+        int minX = size, minY = size;
+        int maxX = -1, maxY = -1;
+        const char* src = _contents.constData();
+        const char* ref = reference->getContents().constData();
+        for (int y = 0; y < size; y++) {
+            bool difference = false;
+            for (int x = 0; x < size; x++) {
+                if (*src++ != *ref++) {
+                    minX = qMin(minX, x);
+                    maxX = qMax(maxX, x);
+                    difference = true;
+                }
+            }
+            if (difference) {
+                minY = qMin(minY, y);
+                maxY = qMax(maxY, y);
+            }
+        }
+        if (maxX >= minX) {
+            int width = maxX - minX + 1;
+            int height = maxY - minY + 1;
+            image = QImage(width, height, QImage::Format_Indexed8);
+            src = _contents.constData() + minY * size + minX;
+            for (int y = 0; y < height; y++) {
+                memcpy(image.scanLine(y), src, width);
+                src += size;
+            }
+        }
+        image.setOffset(QPoint(minX + 1, minY + 1));
+        reference->setEncodedDelta(encodeHeightfieldImage(image, true));
+        reference->setDeltaData(HeightfieldDataPointer(this));
+    }
+    out << reference->getEncodedDelta().size();
+    out.writeAligned(reference->getEncodedDelta());
+}
+
+void HeightfieldTextureData::read(Bitstream& in, int bytes) {
+    set(decodeHeightfieldImage(_encoded = in.readAligned(bytes)));
+}
+
+void HeightfieldTextureData::set(const QImage& image) {
+    _contents.resize(image.width() * image.height());
+    memcpy(_contents.data(), image.constBits(), _contents.size());
+}
+
 HeightfieldTexture::HeightfieldTexture() {
 }
 
@@ -1199,35 +1301,70 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
 }
 
 HeightfieldTextureAttribute::HeightfieldTextureAttribute(const QString& name) :
-    InlineAttribute<HeightfieldDataPointer>(name) {
+    InlineAttribute<HeightfieldTextureDataPointer>(name) {
 }
 
 void HeightfieldTextureAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
-    
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(HeightfieldTextureDataPointer*)&value = HeightfieldTextureDataPointer();
+    } else {
+        *(HeightfieldTextureDataPointer*)&value = HeightfieldTextureDataPointer(new HeightfieldTextureData(in, size));
+    }
 }
 
 void HeightfieldTextureAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
-    
+    if (!isLeaf) {
+        return;
+    }
+    HeightfieldTextureDataPointer data = decodeInline<HeightfieldTextureDataPointer>(value);
+    if (data) {
+        data->write(out);
+    } else {
+        out << 0;
+    }
 }
 
 void HeightfieldTextureAttribute::readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const {
-    
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(HeightfieldTextureDataPointer*)&value = HeightfieldTextureDataPointer(); 
+    } else {
+        *(HeightfieldTextureDataPointer*)&value = HeightfieldTextureDataPointer(new HeightfieldTextureData(
+            in, size, decodeInline<HeightfieldTextureDataPointer>(reference)));
+    }
 }
 
 void HeightfieldTextureAttribute::writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const {
-    
+    if (!isLeaf) {
+        return;
+    }
+    HeightfieldTextureDataPointer data = decodeInline<HeightfieldTextureDataPointer>(value);
+    if (data) {
+        data->writeDelta(out, decodeInline<HeightfieldTextureDataPointer>(reference));
+    } else {
+        out << 0;
+    }
 }
 
 bool HeightfieldTextureAttribute::merge(void*& parent, void* children[], bool postRead) const {
     int maxSize = 0;
     for (int i = 0; i < MERGE_COUNT; i++) {
-        HeightfieldDataPointer pointer = decodeInline<HeightfieldDataPointer>(children[i]);
+        HeightfieldTextureDataPointer pointer = decodeInline<HeightfieldTextureDataPointer>(children[i]);
         if (pointer) {
             maxSize = qMax(maxSize, pointer->getContents().size());
         }
     }
     if (maxSize == 0) {
-        *(HeightfieldDataPointer*)&parent = HeightfieldDataPointer();
+        *(HeightfieldTextureDataPointer*)&parent = HeightfieldTextureDataPointer();
         return true;
     }
     return false;

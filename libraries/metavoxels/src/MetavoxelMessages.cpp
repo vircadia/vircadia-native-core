@@ -435,25 +435,18 @@ PaintHeightfieldColorEditVisitor::PaintHeightfieldColorEditVisitor(const PaintHe
     _bounds = Box(_edit.position - extents, _edit.position + extents);
 }
 
-int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
-    if (!info.getBounds().intersects(_bounds)) {
-        return STOP_RECURSION;
-    }
-    if (!info.isLeaf) {
-        return DEFAULT_ORDER;
-    }
-    HeightfieldColorDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldColorDataPointer>();
+static void paintColor(MetavoxelInfo& info, int index, const glm::vec3& position, float radius, const QColor& color) {
+    HeightfieldColorDataPointer pointer = info.inputValues.at(index).getInlineValue<HeightfieldColorDataPointer>();
     if (!pointer) {
-        return STOP_RECURSION;
+        return;
     }
     QByteArray contents(pointer->getContents());
-    const int BYTES_PER_PIXEL = 3;
-    int size = glm::sqrt((float)contents.size() / BYTES_PER_PIXEL);
+    int size = glm::sqrt((float)contents.size() / HeightfieldData::COLOR_BYTES);
     int highest = size - 1;
     float heightScale = size / info.size;
     
-    glm::vec3 center = (_edit.position - info.minimum) * heightScale;
-    float scaledRadius = _edit.radius * heightScale;
+    glm::vec3 center = (position - info.minimum) * heightScale;
+    float scaledRadius = radius * heightScale;
     glm::vec3 extents(scaledRadius, scaledRadius, scaledRadius);
     
     glm::vec3 start = glm::floor(center - extents);
@@ -462,14 +455,14 @@ int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
     // paint all points within the radius
     float z = qMax(start.z, 0.0f);
     float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
-    int stride = size * BYTES_PER_PIXEL;
-    char* lineDest = contents.data() + (int)z * stride + (int)startX * BYTES_PER_PIXEL;
+    int stride = size * HeightfieldData::COLOR_BYTES;
+    char* lineDest = contents.data() + (int)z * stride + (int)startX * HeightfieldData::COLOR_BYTES;
     float squaredRadius = scaledRadius * scaledRadius; 
-    char red = _edit.color.red(), green = _edit.color.green(), blue = _edit.color.blue();
+    char red = color.red(), green = color.green(), blue = color.blue();
     bool changed = false;
     for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
         char* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest += BYTES_PER_PIXEL) {
+        for (float x = startX; x <= endX; x += 1.0f, dest += HeightfieldData::COLOR_BYTES) {
             float dx = x - center.x, dz = z - center.z;
             if (dx * dx + dz * dz <= squaredRadius) {
                 dest[0] = red;
@@ -482,8 +475,19 @@ int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
     }
     if (changed) {
         HeightfieldColorDataPointer newPointer(new HeightfieldColorData(contents));
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldColorDataPointer>(newPointer));
+        info.outputValues[index] = AttributeValue(info.inputValues.at(index).getAttribute(),
+            encodeInline<HeightfieldColorDataPointer>(newPointer));
     }
+}
+
+int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_bounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    paintColor(info, 0, _edit.position, _edit.radius, _edit.color);
     return STOP_RECURSION;
 }
 
@@ -531,13 +535,12 @@ int PaintHeightfieldTextureEditVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf) {
         return DEFAULT_ORDER;
     }
-    HeightfieldColorDataPointer pointer = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
+    HeightfieldTextureDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldTextureDataPointer>();
     if (!pointer) {
         return STOP_RECURSION;
     }
     QByteArray contents(pointer->getContents());
-    const int BYTES_PER_PIXEL = 3;
-    int size = glm::sqrt((float)contents.size() / BYTES_PER_PIXEL);
+    int size = glm::sqrt((float)contents.size());
     int highest = size - 1;
     float heightScale = size / info.size;
     
@@ -551,28 +554,25 @@ int PaintHeightfieldTextureEditVisitor::visit(MetavoxelInfo& info) {
     // paint all points within the radius
     float z = qMax(start.z, 0.0f);
     float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
-    int stride = size * BYTES_PER_PIXEL;
-    char* lineDest = contents.data() + (int)z * stride + (int)startX * BYTES_PER_PIXEL;
+    char* lineDest = contents.data() + (int)z * size + (int)startX;
     float squaredRadius = scaledRadius * scaledRadius; 
-    char red = _edit.averageColor.red(), green = _edit.averageColor.green(), blue = _edit.averageColor.blue();
     bool changed = false;
     for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
         char* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest += BYTES_PER_PIXEL) {
+        for (float x = startX; x <= endX; x += 1.0f, dest++) {
             float dx = x - center.x, dz = z - center.z;
             if (dx * dx + dz * dz <= squaredRadius) {
-                dest[0] = red;
-                dest[1] = green;
-                dest[2] = blue;
+                *dest = 1;
                 changed = true;
             }
         }
-        lineDest += stride;
+        lineDest += size;
     }
     if (changed) {
-        HeightfieldColorDataPointer newPointer(new HeightfieldColorData(contents));
-        info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldColorDataPointer>(newPointer));
+        HeightfieldTextureDataPointer newPointer(new HeightfieldTextureData(contents));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldTextureDataPointer>(newPointer));
     }
+    paintColor(info, 1, _edit.position, _edit.radius, _edit.averageColor);
     return STOP_RECURSION;
 }
 
