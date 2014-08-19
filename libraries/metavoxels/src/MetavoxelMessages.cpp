@@ -354,7 +354,7 @@ int PaintHeightfieldHeightEditVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf) {
         return DEFAULT_ORDER;
     }
-    HeightfieldDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
+    HeightfieldHeightDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
     if (!pointer) {
         return STOP_RECURSION;
     }
@@ -396,8 +396,8 @@ int PaintHeightfieldHeightEditVisitor::visit(MetavoxelInfo& info) {
         lineDest += size;
     }
     if (changed) {
-        HeightfieldDataPointer newPointer(new HeightfieldData(contents));
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldDataPointer>(newPointer));
+        HeightfieldHeightDataPointer newPointer(new HeightfieldHeightData(contents));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newPointer));
     }
     return STOP_RECURSION;
 }
@@ -442,7 +442,7 @@ int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf) {
         return DEFAULT_ORDER;
     }
-    HeightfieldDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
+    HeightfieldColorDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldColorDataPointer>();
     if (!pointer) {
         return STOP_RECURSION;
     }
@@ -481,8 +481,8 @@ int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
         lineDest += stride;
     }
     if (changed) {
-        HeightfieldDataPointer newPointer(new HeightfieldData(contents));
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldDataPointer>(newPointer));
+        HeightfieldColorDataPointer newPointer(new HeightfieldColorData(contents));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldColorDataPointer>(newPointer));
     }
     return STOP_RECURSION;
 }
@@ -493,10 +493,10 @@ void PaintHeightfieldColorEdit::apply(MetavoxelData& data, const WeakSharedObjec
 }
 
 PaintHeightfieldTextureEdit::PaintHeightfieldTextureEdit(const glm::vec3& position, float radius,
-        const QUrl& url, const QColor& averageColor) :
+        const SharedObjectPointer& texture, const QColor& averageColor) :
     position(position),
     radius(radius),
-    url(url),
+    texture(texture),
     averageColor(averageColor) {
 }
 
@@ -531,7 +531,7 @@ int PaintHeightfieldTextureEditVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf) {
         return DEFAULT_ORDER;
     }
-    HeightfieldDataPointer pointer = info.inputValues.at(1).getInlineValue<HeightfieldDataPointer>();
+    HeightfieldColorDataPointer pointer = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
     if (!pointer) {
         return STOP_RECURSION;
     }
@@ -570,8 +570,8 @@ int PaintHeightfieldTextureEditVisitor::visit(MetavoxelInfo& info) {
         lineDest += stride;
     }
     if (changed) {
-        HeightfieldDataPointer newPointer(new HeightfieldData(contents));
-        info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldDataPointer>(newPointer));
+        HeightfieldColorDataPointer newPointer(new HeightfieldColorData(contents));
+        info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldColorDataPointer>(newPointer));
     }
     return STOP_RECURSION;
 }

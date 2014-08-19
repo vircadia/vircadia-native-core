@@ -18,6 +18,7 @@
 #include <QReadWriteLock>
 #include <QSharedPointer>
 #include <QString>
+#include <QUrl>
 #include <QWidget>
 
 #include "Bitstream.h"
@@ -28,7 +29,9 @@ class QScriptEngine;
 class QScriptValue;
 
 class Attribute;
+class HeightfieldColorData;
 class HeightfieldData;
+class HeightfieldHeightData;
 class MetavoxelData;
 class MetavoxelLOD;
 class MetavoxelNode;
@@ -439,23 +442,20 @@ public:
 
     static const int COLOR_BYTES = 3;
     
-    HeightfieldData(const QByteArray& contents);
-    HeightfieldData(Bitstream& in, int bytes, bool color);
-    HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& reference, bool color);
-    HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& ancestor,
-        const glm::vec3& minimum, float size, bool color);
+    HeightfieldData(const QByteArray& contents = QByteArray());
+    virtual ~HeightfieldData();
     
     const QByteArray& getContents() const { return _contents; }
 
-    void write(Bitstream& out, bool color);
-    void writeDelta(Bitstream& out, const HeightfieldDataPointer& reference, bool color);
-    void writeSubdivided(Bitstream& out, const HeightfieldDataPointer& ancestor,
-        const glm::vec3& minimum, float size, bool color);
-
-private:
+    void setDeltaData(const HeightfieldDataPointer& deltaData) { _deltaData = deltaData; }
+    const HeightfieldDataPointer& getDeltaData() const { return _deltaData; }
     
-    void read(Bitstream& in, int bytes, bool color);
-    void set(const QImage& image, bool color);
+    void setEncodedDelta(const QByteArray& encodedDelta) { _encodedDelta = encodedDelta; }
+    const QByteArray& getEncodedDelta() const { return _encodedDelta; }
+    
+    QMutex& getEncodedDeltaMutex() { return _encodedDeltaMutex; }
+
+protected:
     
     QByteArray _contents;
     QByteArray _encoded;
@@ -474,8 +474,70 @@ private:
     QMutex _encodedSubdivisionsMutex;
 };
 
+typedef QExplicitlySharedDataPointer<HeightfieldHeightData> HeightfieldHeightDataPointer;
+
+/// Contains a block of heightfield height data.
+class HeightfieldHeightData : public HeightfieldData {
+public:
+    
+    HeightfieldHeightData(const QByteArray& contents);
+    HeightfieldHeightData(Bitstream& in, int bytes);
+    HeightfieldHeightData(Bitstream& in, int bytes, const HeightfieldHeightDataPointer& reference);
+    HeightfieldHeightData(Bitstream& in, int bytes, const HeightfieldHeightDataPointer& ancestor,
+        const glm::vec3& minimum, float size);
+    
+    void write(Bitstream& out);
+    void writeDelta(Bitstream& out, const HeightfieldHeightDataPointer& reference);
+    void writeSubdivided(Bitstream& out, const HeightfieldHeightDataPointer& ancestor,
+        const glm::vec3& minimum, float size);
+
+private:
+    
+    void read(Bitstream& in, int bytes);
+    void set(const QImage& image);
+};
+
+typedef QExplicitlySharedDataPointer<HeightfieldColorData> HeightfieldColorDataPointer;
+
+/// Contains a block of heightfield color data.
+class HeightfieldColorData : public HeightfieldData {
+public:
+    
+    HeightfieldColorData(const QByteArray& contents);
+    HeightfieldColorData(Bitstream& in, int bytes);
+    HeightfieldColorData(Bitstream& in, int bytes, const HeightfieldColorDataPointer& reference);
+    HeightfieldColorData(Bitstream& in, int bytes, const HeightfieldColorDataPointer& ancestor,
+        const glm::vec3& minimum, float size);
+        
+    void write(Bitstream& out);
+    void writeDelta(Bitstream& out, const HeightfieldColorDataPointer& reference);
+    void writeSubdivided(Bitstream& out, const HeightfieldColorDataPointer& ancestor,
+        const glm::vec3& minimum, float size);
+
+private:
+    
+    void read(Bitstream& in, int bytes);
+    void set(const QImage& image);
+};
+
+/// Contains the description of a heightfield texture.
+class HeightfieldTexture : public SharedObject {
+    Q_OBJECT
+    Q_PROPERTY(QUrl url MEMBER _url)
+
+public:
+    
+    Q_INVOKABLE HeightfieldTexture();
+
+    const QUrl& getURL() const { return _url; }
+
+private:
+    
+    QUrl _url;
+};
+
 /// An attribute that stores heightfield data.
-class HeightfieldAttribute : public InlineAttribute<HeightfieldDataPointer> {
+class HeightfieldAttribute : public InlineAttribute<HeightfieldHeightDataPointer> {
     Q_OBJECT
     
 public:
@@ -492,7 +554,7 @@ public:
 };
 
 /// An attribute that stores heightfield colors.
-class HeightfieldColorAttribute : public InlineAttribute<HeightfieldDataPointer> {
+class HeightfieldColorAttribute : public InlineAttribute<HeightfieldColorDataPointer> {
     Q_OBJECT
     
 public:

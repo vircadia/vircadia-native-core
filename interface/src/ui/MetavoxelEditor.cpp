@@ -957,14 +957,28 @@ void ImportHeightfieldTool::apply() {
         HeightfieldBuffer* buffer = static_cast<HeightfieldBuffer*>(bufferData.data());
         MetavoxelData data;
         data.setSize(scale);
-        HeightfieldDataPointer heightPointer(new HeightfieldData(buffer->getUnextendedHeight()));
+        
+        QByteArray height = buffer->getUnextendedHeight();
+        HeightfieldHeightDataPointer heightPointer(new HeightfieldHeightData(height));
         data.setRoot(AttributeRegistry::getInstance()->getHeightfieldAttribute(), new MetavoxelNode(AttributeValue(
             AttributeRegistry::getInstance()->getHeightfieldAttribute(), encodeInline(heightPointer))));
-        if (!buffer->getColor().isEmpty()) {
-            HeightfieldDataPointer colorPointer(new HeightfieldData(buffer->getUnextendedColor()));
-            data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
-                AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
+        
+        QByteArray color;
+        if (buffer->getColor().isEmpty()) {
+            const int WHITE_VALUE = 0xFF;
+            color = QByteArray(height.size() * HeightfieldData::COLOR_BYTES, WHITE_VALUE);
+        } else {
+            color = buffer->getUnextendedColor();
         }
+        HeightfieldColorDataPointer colorPointer(new HeightfieldColorData(color));
+        data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
+            AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
+        
+        QByteArray texture(height.size(), 0);
+        HeightfieldDataPointer texturePointer(new HeightfieldData(texture));
+        data.setRoot(AttributeRegistry::getInstance()->getHeightfieldTextureAttribute(), new MetavoxelNode(AttributeValue(
+            AttributeRegistry::getInstance()->getHeightfieldTextureAttribute(), encodeInline(texturePointer))));
+        
         MetavoxelEditMessage message = { QVariant::fromValue(SetDataEdit(
             _translation->getValue() + buffer->getTranslation() * scale, data)) };
         Application::getInstance()->getMetavoxels()->applyEdit(message, true);
@@ -1165,20 +1179,20 @@ QVariant HeightfieldColorBrushTool::createEdit(bool alternate) {
 HeightfieldTextureBrushTool::HeightfieldTextureBrushTool(MetavoxelEditor* editor) :
     HeightfieldBrushTool(editor, "Texture Brush") {
     
-    _form->addRow("URL:", _url = new QUrlEditor(this));
-    _url->setURL(QUrl());
-    connect(_url, &QUrlEditor::urlChanged, this, &HeightfieldTextureBrushTool::updateTexture);
+    _form->addRow(_textureEditor = new SharedObjectEditor(&HeightfieldTexture::staticMetaObject, false));
+    connect(_textureEditor, &SharedObjectEditor::objectChanged, this, &HeightfieldTextureBrushTool::updateTexture);
 }
 
 QVariant HeightfieldTextureBrushTool::createEdit(bool alternate) {
     if (alternate) {
-        return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), QUrl(), QColor()));
+        return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), SharedObjectPointer(), QColor()));
     } else {
-        return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), _url->getURL(),
+        return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), _textureEditor->getObject(),
             _texture ? _texture->getAverageColor() : QColor()));
     }   
 }
 
 void HeightfieldTextureBrushTool::updateTexture() {
-    _texture = Application::getInstance()->getTextureCache()->getTexture(_url->getURL());
+    HeightfieldTexture* texture = static_cast<HeightfieldTexture*>(_textureEditor->getObject().data());
+    _texture = Application::getInstance()->getTextureCache()->getTexture(texture->getURL());
 }

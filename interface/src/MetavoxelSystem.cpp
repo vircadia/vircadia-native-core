@@ -1011,7 +1011,7 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf && info.size > _buffer->getScale()) {
         return DEFAULT_ORDER;
     }
-    HeightfieldDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
+    HeightfieldHeightDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
     if (!height) {
         return STOP_RECURSION;
     }
@@ -1067,7 +1067,7 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
         if (colorSize == 0) {
             return STOP_RECURSION;
         }
-        HeightfieldDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldDataPointer>();
+        HeightfieldColorDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
         if (!color) {
             return STOP_RECURSION;
         }
@@ -1149,14 +1149,14 @@ int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
         return DEFAULT_ORDER;
     }
     HeightfieldBuffer* buffer = NULL;
-    HeightfieldDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldDataPointer>();
+    HeightfieldHeightDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
     if (height) {
         const QByteArray& heightContents = height->getContents();
         int size = glm::sqrt(heightContents.size());
         int extendedSize = size + HeightfieldBuffer::HEIGHT_EXTENSION;
         int heightContentsSize = extendedSize * extendedSize;
         
-        HeightfieldDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldDataPointer>();
+        HeightfieldColorDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
         int colorContentsSize = 0;
         if (color) {
             const QByteArray& colorContents = color->getContents();

@@ -249,11 +249,11 @@ public:
     
     STREAM glm::vec3 position;
     STREAM float radius;
-    STREAM QUrl url;
+    STREAM SharedObjectPointer texture;
     STREAM QColor averageColor;
     
-    PaintHeightfieldTextureEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f, const QUrl& url = QUrl(),
-        const QColor& averageColor = QColor());
+    PaintHeightfieldTextureEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f,
+        const SharedObjectPointer& texture = SharedObjectPointer(), const QColor& averageColor = QColor());
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };

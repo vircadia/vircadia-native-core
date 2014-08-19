@@ -26,9 +26,9 @@ class QListWidget;
 class QPushButton;
 class QScrollArea;
 class QSpinBox;
-class QUrlEditor;
 
 class MetavoxelTool;
+class SharedObjectEditor;
 class Vec3Editor;
 
 /// Allows editing metavoxels.
@@ -380,7 +380,7 @@ private slots:
     
 private:
     
-    QUrlEditor* _url;
+    SharedObjectEditor* _textureEditor;
     QSharedPointer<NetworkTexture> _texture;
 };
 
