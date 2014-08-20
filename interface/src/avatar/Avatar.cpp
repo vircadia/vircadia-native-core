@@ -394,7 +394,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         }
     }
 
-    const float DISPLAYNAME_DISTANCE = 10.0f;
+    const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(renderMode == NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
     if (renderMode != NORMAL_RENDER_MODE || (isMyAvatar() &&
             Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON)) {
