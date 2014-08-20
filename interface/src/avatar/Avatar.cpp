@@ -302,7 +302,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         return;
     }
 
-    glm::vec3 toTarget = cameraPosition - Application::getInstance()->getAvatar()->getPosition();
+    glm::vec3 toTarget = cameraPosition - getPosition();
     float distanceToTarget = glm::length(toTarget);
    
     {
