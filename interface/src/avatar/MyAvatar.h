@@ -106,7 +106,15 @@ public:
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
     
     static void sendKillAvatar();
-
+    
+    Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
+    Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
+    Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
+    Q_INVOKABLE float getHeadFinalPitch() const { return getHead()->getFinalPitch(); }
+    Q_INVOKABLE float getHeadDeltaPitch() const { return getHead()->getDeltaPitch(); }
+    
+    Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
+    
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     void updateLookAtTargetAvatar();

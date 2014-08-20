@@ -894,7 +894,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_Space:
+            case Qt::Key_Apostrophe:
                 resetSensors();
                 break;
 
