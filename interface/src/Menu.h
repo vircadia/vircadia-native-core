@@ -342,7 +342,7 @@ namespace MenuOption {
     const QString AvatarsReceiveShadows = "Avatars Receive Shadows";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
-    const QString BlueAudioMeter = "Blue Sphere While Speaking";
+    const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BuckyBalls = "Bucky Balls";
     const QString CascadedShadows = "Cascaded";
     const QString Chat = "Chat...";
