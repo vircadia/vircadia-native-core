@@ -179,15 +179,14 @@ public:
     const QByteArray& content;
 };
 
-QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap,
-        bool dilatable, const QByteArray& content) {
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, bool normalMap, bool dilatable, const QByteArray& content) {
     if (!dilatable) {
         TextureExtra extra = { normalMap, content };
         return ResourceCache::getResource(url, QUrl(), false, &extra).staticCast<NetworkTexture>();
     }
-    QSharedPointer<NetworkTexture> texture = _dilatableNetworkTextures.value(url);
+    NetworkTexturePointer texture = _dilatableNetworkTextures.value(url);
     if (texture.isNull()) {
-        texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url, content), &Resource::allReferencesCleared);
+        texture = NetworkTexturePointer(new DilatableNetworkTexture(url, content), &Resource::allReferencesCleared);
         texture->setSelf(texture);
         texture->setCache(this);
         _dilatableNetworkTextures.insert(url, texture);

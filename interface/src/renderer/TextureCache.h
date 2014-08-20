@@ -23,6 +23,8 @@ class QOpenGLFramebufferObject;
 
 class NetworkTexture;
 
+typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
+
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache {
     Q_OBJECT
@@ -47,7 +49,7 @@ public:
     GLuint getBlueTextureID();
 
     /// Loads a texture from the specified URL.
-    QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool normalMap = false, bool dilatable = false,
+    NetworkTexturePointer getTexture(const QUrl& url, bool normalMap = false, bool dilatable = false,
         const QByteArray& content = QByteArray());
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is

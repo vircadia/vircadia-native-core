@@ -602,24 +602,23 @@ const int HeightfieldBuffer::SHARED_EDGE = 1;
 const int HeightfieldBuffer::HEIGHT_EXTENSION = 2 * HeightfieldBuffer::HEIGHT_BORDER + HeightfieldBuffer::SHARED_EDGE;
 
 HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
-        const QByteArray& height, const QByteArray& color, const QByteArray& texture) :
+        const QByteArray& height, const QByteArray& color, const QByteArray& texture,
+        const QVector<SharedObjectPointer>& textures) :
     _translation(translation),
     _scale(scale),
     _heightBounds(translation, translation + glm::vec3(scale, scale, scale)),
     _colorBounds(_heightBounds),
-    _textureBounds(_heightBounds),
     _height(height),
     _color(color),
     _texture(texture),
+    _textures(textures),
     _heightTextureID(0),
     _colorTextureID(0),
     _textureTextureID(0),
     _heightSize(glm::sqrt(height.size())),
     _heightIncrement(scale / (_heightSize - HEIGHT_EXTENSION)),
     _colorSize(glm::sqrt(color.size() / HeightfieldData::COLOR_BYTES)),
-    _colorIncrement(scale / (_colorSize - SHARED_EDGE)),
-    _textureSize(glm::sqrt(texture.size())),
-    _textureIncrement(scale / (_textureSize - SHARED_EDGE)) {
+    _colorIncrement(scale / (_colorSize - SHARED_EDGE)) {
     
     _heightBounds.minimum.x -= _heightIncrement * HEIGHT_BORDER;
     _heightBounds.minimum.z -= _heightIncrement * HEIGHT_BORDER;
@@ -628,9 +627,6 @@ HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
     
     _colorBounds.maximum.x += _colorIncrement * SHARED_EDGE;
     _colorBounds.maximum.z += _colorIncrement * SHARED_EDGE;
-    
-    _textureBounds.maximum.x += _textureIncrement * SHARED_EDGE;
-    _textureBounds.maximum.z += _textureIncrement * SHARED_EDGE;
 }
 
 HeightfieldBuffer::~HeightfieldBuffer() {
@@ -712,6 +708,15 @@ void HeightfieldBuffer::render(bool cursor) {
             int textureSize = glm::sqrt(_texture.size());    
             glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, textureSize, textureSize, 0,
                 GL_LUMINANCE, GL_UNSIGNED_BYTE, _texture.constData());
+            
+            _networkTextures.resize(_textures.size());
+            for (int i = 0; i < _textures.size(); i++) {
+                const SharedObjectPointer texture = _textures.at(i);
+                if (texture) {
+                    _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                        static_cast<HeightfieldTexture*>(texture.data())->getURL());
+                }
+            }
         }
     }
     // create the buffer objects lazily
@@ -780,7 +785,56 @@ void HeightfieldBuffer::render(bool cursor) {
     
     glBindTexture(GL_TEXTURE_2D, _heightTextureID);
     
-    if (!cursor) {
+    if (cursor) {
+        glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+    
+    } else if (!_textures.isEmpty()) {
+        DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().bind();
+        DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().setUniformValue(
+            DefaultMetavoxelRendererImplementation::getBaseHeightScaleLocation(), 1.0f / _heightSize);
+        DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().setUniformValue(
+            DefaultMetavoxelRendererImplementation::getBaseColorScaleLocation(), (float)_heightSize / innerSize);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+        
+        glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+        
+        glDepthFunc(GL_LEQUAL);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_DST_COLOR, GL_ZERO);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
+    
+        glBindTexture(GL_TEXTURE_2D, 0);
+    
+        if (Menu::getInstance()->isOptionChecked(MenuOption::SimpleShadows)) {
+            DefaultMetavoxelRendererImplementation::getShadowLightHeightfieldProgram().bind();
+            DefaultMetavoxelRendererImplementation::getShadowLightHeightfieldProgram().setUniformValue(
+                DefaultMetavoxelRendererImplementation::getShadowLightHeightScaleLocation(), 1.0f / _heightSize);
+                
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+            DefaultMetavoxelRendererImplementation::getCascadedShadowLightHeightfieldProgram().bind();
+            DefaultMetavoxelRendererImplementation::getCascadedShadowLightHeightfieldProgram().setUniformValue(
+                DefaultMetavoxelRendererImplementation::getCascadedShadowLightHeightScaleLocation(), 1.0f / _heightSize);
+                
+        } else {
+            DefaultMetavoxelRendererImplementation::getLightHeightfieldProgram().bind();
+            DefaultMetavoxelRendererImplementation::getLightHeightfieldProgram().setUniformValue(
+                DefaultMetavoxelRendererImplementation::getBaseHeightScaleLocation(), 1.0f / _heightSize);
+        }
+        
+        glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+    
+        DefaultMetavoxelRendererImplementation::getHeightfieldProgram().bind();
+        
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glDisable(GL_BLEND);
+        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+        glDepthFunc(GL_LESS);
+    
+        glActiveTexture(GL_TEXTURE0);
+        
+    } else {
         int heightScaleLocation = DefaultMetavoxelRendererImplementation::getHeightScaleLocation();
         int colorScaleLocation = DefaultMetavoxelRendererImplementation::getColorScaleLocation();
         ProgramObject* program = &DefaultMetavoxelRendererImplementation::getHeightfieldProgram();
@@ -798,11 +852,9 @@ void HeightfieldBuffer::render(bool cursor) {
         program->setUniformValue(colorScaleLocation, (float)_heightSize / innerSize);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-    }
-    
-    glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
-    
-    if (!cursor) {
+        
+        glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+        
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE0); 
     }
@@ -919,6 +971,68 @@ void DefaultMetavoxelRendererImplementation::init() {
         _shadowDistancesLocation = _cascadedShadowMapHeightfieldProgram.uniformLocation("shadowDistances");
         _cascadedShadowMapHeightfieldProgram.release();
         
+        _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_base.vert");
+        _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_base.frag");
+        _baseHeightfieldProgram.link();
+        
+        _baseHeightfieldProgram.bind();
+        _baseHeightfieldProgram.setUniformValue("heightMap", 0);
+        _baseHeightfieldProgram.setUniformValue("diffuseMap", 1);
+        _baseHeightScaleLocation = _heightfieldProgram.uniformLocation("heightScale");
+        _baseColorScaleLocation = _heightfieldProgram.uniformLocation("colorScale");
+        _baseHeightfieldProgram.release();
+        
+        _splatHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_splat.vert");
+        _splatHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_splat.frag");
+        _splatHeightfieldProgram.link();
+        
+        _splatHeightfieldProgram.bind();
+        _splatHeightfieldProgram.setUniformValue("heightMap", 0);
+        _splatHeightfieldProgram.setUniformValue("diffuseMap", 1);
+        _splatHeightScaleLocation = _splatHeightfieldProgram.uniformLocation("heightScale");
+        _splatTextureScaleLocation = _splatHeightfieldProgram.uniformLocation("textureScale");
+        _splatHeightfieldProgram.release();
+        
+        _lightHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_light.vert");
+        _lightHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_light.frag");
+        _lightHeightfieldProgram.link();
+        
+        _lightHeightfieldProgram.bind();
+        _lightHeightfieldProgram.setUniformValue("heightMap", 0);
+        _lightHeightScaleLocation = _lightHeightfieldProgram.uniformLocation("heightScale");
+        _lightHeightfieldProgram.release();
+        
+        _shadowLightHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_light.vert");
+        _shadowLightHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_light_shadow_map.frag");
+        _shadowLightHeightfieldProgram.link();
+        
+        _shadowLightHeightfieldProgram.bind();
+        _shadowLightHeightfieldProgram.setUniformValue("heightMap", 0);
+        _shadowLightHeightfieldProgram.setUniformValue("shadowMap", 2);
+        _shadowLightHeightScaleLocation = _shadowLightHeightfieldProgram.uniformLocation("heightScale");
+        _shadowLightHeightfieldProgram.release();
+        
+        _cascadedShadowLightHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_light.vert");
+        _cascadedShadowLightHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_light_cascaded_shadow_map.frag");
+        _cascadedShadowLightHeightfieldProgram.link();
+        
+        _cascadedShadowLightHeightfieldProgram.bind();
+        _cascadedShadowLightHeightfieldProgram.setUniformValue("heightMap", 0);
+        _cascadedShadowLightHeightfieldProgram.setUniformValue("shadowMap", 2);
+        _cascadedShadowLightHeightScaleLocation = _cascadedShadowLightHeightfieldProgram.uniformLocation("heightScale");
+        _shadowLightDistancesLocation = _cascadedShadowLightHeightfieldProgram.uniformLocation("shadowDistances");
+        _cascadedShadowLightHeightfieldProgram.release();
+        
         _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
             "shaders/metavoxel_heightfield_cursor.vert");
         _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
@@ -1019,8 +1133,7 @@ private:
 
 HeightfieldFetchVisitor::HeightfieldFetchVisitor(const MetavoxelLOD& lod, const QVector<Box>& intersections) :
     MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
-        AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
-        AttributeRegistry::getInstance()->getHeightfieldTextureAttribute(), QVector<AttributePointer>(), lod),
+        AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), QVector<AttributePointer>(), lod),
     _intersections(intersections) {
 }
 
@@ -1135,50 +1248,6 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
                 }
             }
         }
-        
-        int textureSize = _buffer->getTextureSize();
-        if (textureSize == 0) {
-            continue;
-        }
-        HeightfieldTextureDataPointer texture = info.inputValues.at(2).getInlineValue<HeightfieldTextureDataPointer>();
-        if (!texture) {
-            continue;
-        }
-        const Box& textureBounds = _buffer->getTextureBounds();
-        overlap = textureBounds.getIntersection(overlap);
-        float textureIncrement = _buffer->getTextureIncrement();
-        destX = (overlap.minimum.x - textureBounds.minimum.x) / textureIncrement;
-        destY = (overlap.minimum.z - textureBounds.minimum.z) / textureIncrement;
-        destWidth = glm::ceil((overlap.maximum.x - overlap.minimum.x) / textureIncrement);
-        destHeight = glm::ceil((overlap.maximum.z - overlap.minimum.z) / textureIncrement);
-        dest = _buffer->getTexture().data() + destY * textureSize + destX;
-        
-        const QByteArray& srcTexture = texture->getContents();
-        srcSize = glm::sqrt(srcTexture.size());
-        srcIncrement = info.size / srcSize;
-        
-        if (srcIncrement == textureIncrement) {
-            // easy case: same resolution
-            int srcX = (overlap.minimum.x - info.minimum.x) / srcIncrement;
-            int srcY = (overlap.minimum.z - info.minimum.z) / srcIncrement;
-            
-            const char* src = srcTexture.constData() + srcY * srcSize + srcX;    
-            for (int y = 0; y < destHeight; y++, src += srcSize, dest += textureSize) {
-                memcpy(dest, src, destWidth);
-            }
-        } else {
-            // more difficult: different resolutions
-            float srcX = (overlap.minimum.x - info.minimum.x) / srcIncrement;
-            float srcY = (overlap.minimum.z - info.minimum.z) / srcIncrement;
-            float srcAdvance = textureIncrement / srcIncrement;
-            for (int y = 0; y < destHeight; y++, dest += textureSize, srcY += srcAdvance) {
-                const char* src = srcTexture.constData() + (int)srcY * srcSize;
-                float lineSrcX = srcX;
-                for (char* lineDest = dest, *end = dest + destWidth; lineDest != end; lineDest++, lineSrcX += srcAdvance) {
-                    *lineDest = src[(int)lineSrcX];
-                }
-            }
-        }
     }
     return STOP_RECURSION;
 }
@@ -1233,42 +1302,43 @@ int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
         }
         
         HeightfieldTextureDataPointer texture = info.inputValues.at(2).getInlineValue<HeightfieldTextureDataPointer>();
-        int textureContentsSize = 0;
+        QByteArray textureContents;
+        QVector<SharedObjectPointer> textures;
         if (texture) {
-            const QByteArray& textureContents = texture->getContents();
-            int textureSize = glm::sqrt(textureContents.size());
-            int extendedTextureSize = textureSize + HeightfieldBuffer::SHARED_EDGE;
-            textureContentsSize = extendedTextureSize * extendedTextureSize;
+            textureContents = texture->getContents();
+            textures = texture->getTextures();
         }
         
         const HeightfieldBuffer* existingBuffer = static_cast<const HeightfieldBuffer*>(
             info.inputValues.at(3).getInlineValue<BufferDataPointer>().data());
         Box bounds = info.getBounds();
         if (existingBuffer && existingBuffer->getHeight().size() == heightContentsSize &&
-                existingBuffer->getColor().size() == colorContentsSize &&
-                existingBuffer->getTexture().size() == textureContentsSize) {
+                existingBuffer->getColor().size() == colorContentsSize) {
             // we already have a buffer of the correct resolution    
             addRegion(bounds, existingBuffer->getHeightBounds());
-            return STOP_RECURSION;
+            buffer = new HeightfieldBuffer(info.minimum, info.size, existingBuffer->getHeight(),
+                existingBuffer->getColor(), textureContents, textures);
+
+        } else {
+            // we must create a new buffer and update its borders
+            buffer = new HeightfieldBuffer(info.minimum, info.size, QByteArray(heightContentsSize, 0),
+                QByteArray(colorContentsSize, 0), textureContents, textures);
+            const Box& heightBounds = buffer->getHeightBounds();
+            addRegion(bounds, heightBounds);
+            
+            _intersections.clear();
+            _intersections.append(Box(heightBounds.minimum,
+                glm::vec3(bounds.maximum.x, heightBounds.maximum.y, bounds.minimum.z)));
+            _intersections.append(Box(glm::vec3(bounds.maximum.x, heightBounds.minimum.y, heightBounds.minimum.z),
+                glm::vec3(heightBounds.maximum.x, heightBounds.maximum.y, bounds.maximum.z)));
+            _intersections.append(Box(glm::vec3(bounds.minimum.x, heightBounds.minimum.y, bounds.maximum.z),
+                heightBounds.maximum));
+            _intersections.append(Box(glm::vec3(heightBounds.minimum.x, heightBounds.minimum.y, bounds.minimum.z),
+                glm::vec3(bounds.minimum.x, heightBounds.maximum.y, heightBounds.maximum.z)));
+            
+            _fetchVisitor.init(buffer);
+            _data->guide(_fetchVisitor);
         }
-        // we must create a new buffer and update its borders
-        buffer = new HeightfieldBuffer(info.minimum, info.size, QByteArray(heightContentsSize, 0),
-            QByteArray(colorContentsSize, 0), QByteArray(textureContentsSize, 0));
-        const Box& heightBounds = buffer->getHeightBounds();
-        addRegion(bounds, heightBounds);
-        
-        _intersections.clear();
-        _intersections.append(Box(heightBounds.minimum,
-            glm::vec3(bounds.maximum.x, heightBounds.maximum.y, bounds.minimum.z)));
-        _intersections.append(Box(glm::vec3(bounds.maximum.x, heightBounds.minimum.y, heightBounds.minimum.z),
-            glm::vec3(heightBounds.maximum.x, heightBounds.maximum.y, bounds.maximum.z)));
-        _intersections.append(Box(glm::vec3(bounds.minimum.x, heightBounds.minimum.y, bounds.maximum.z),
-            heightBounds.maximum));
-        _intersections.append(Box(glm::vec3(heightBounds.minimum.x, heightBounds.minimum.y, bounds.minimum.z),
-            glm::vec3(bounds.minimum.x, heightBounds.maximum.y, heightBounds.maximum.z)));
-        
-        _fetchVisitor.init(buffer);
-        _data->guide(_fetchVisitor);
     }
     info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
     return STOP_RECURSION;
@@ -1326,7 +1396,7 @@ int HeightfieldUpdateVisitor::visit(MetavoxelInfo& info) {
         return STOP_RECURSION;
     }
     HeightfieldBuffer* newBuffer = new HeightfieldBuffer(info.minimum, info.size,
-        buffer->getHeight(), buffer->getColor(), buffer->getTexture());
+        buffer->getHeight(), buffer->getColor(), buffer->getTexture(), buffer->getTextures());
     _fetchVisitor.init(newBuffer);
     _data->guide(_fetchVisitor);
     info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(newBuffer)));
@@ -1514,6 +1584,9 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     ProgramObject* program = &_heightfieldProgram;
     if (Menu::getInstance()->getShadowsEnabled()) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+            _cascadedShadowLightHeightfieldProgram.bind();
+            _cascadedShadowLightHeightfieldProgram.setUniform(_shadowLightDistancesLocation,
+                Application::getInstance()->getShadowDistances());
             program = &_cascadedShadowMapHeightfieldProgram;
             program->bind();
             program->setUniform(_shadowDistancesLocation, Application::getInstance()->getShadowDistances());
@@ -1559,6 +1632,19 @@ ProgramObject DefaultMetavoxelRendererImplementation::_cascadedShadowMapHeightfi
 int DefaultMetavoxelRendererImplementation::_cascadedShadowMapHeightScaleLocation;
 int DefaultMetavoxelRendererImplementation::_cascadedShadowMapColorScaleLocation;
 int DefaultMetavoxelRendererImplementation::_shadowDistancesLocation;
+ProgramObject DefaultMetavoxelRendererImplementation::_baseHeightfieldProgram;
+int DefaultMetavoxelRendererImplementation::_baseHeightScaleLocation;
+int DefaultMetavoxelRendererImplementation::_baseColorScaleLocation;
+ProgramObject DefaultMetavoxelRendererImplementation::_splatHeightfieldProgram;
+int DefaultMetavoxelRendererImplementation::_splatHeightScaleLocation;
+int DefaultMetavoxelRendererImplementation::_splatTextureScaleLocation;
+ProgramObject DefaultMetavoxelRendererImplementation::_lightHeightfieldProgram;
+int DefaultMetavoxelRendererImplementation::_lightHeightScaleLocation; 
+ProgramObject DefaultMetavoxelRendererImplementation::_shadowLightHeightfieldProgram;
+int DefaultMetavoxelRendererImplementation::_shadowLightHeightScaleLocation;
+ProgramObject DefaultMetavoxelRendererImplementation::_cascadedShadowLightHeightfieldProgram;
+int DefaultMetavoxelRendererImplementation::_cascadedShadowLightHeightScaleLocation;
+int DefaultMetavoxelRendererImplementation::_shadowLightDistancesLocation; 
 ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldCursorProgram;
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {

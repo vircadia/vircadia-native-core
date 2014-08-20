@@ -140,7 +140,8 @@ public:
     static const int HEIGHT_EXTENSION;
     
     HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height,
-        const QByteArray& color, const QByteArray& texture);
+        const QByteArray& color, const QByteArray& texture = QByteArray(),
+        const QVector<SharedObjectPointer>& textures = QVector<SharedObjectPointer>());
     ~HeightfieldBuffer();
     
     const glm::vec3& getTranslation() const { return _translation; }
@@ -148,7 +149,6 @@ public:
     
     const Box& getHeightBounds() const { return _heightBounds; }
     const Box& getColorBounds() const { return _colorBounds; }
-    const Box& getTextureBounds() const { return _textureBounds; }
     
     QByteArray& getHeight() { return _height; }
     const QByteArray& getHeight() const { return _height; }
@@ -159,6 +159,8 @@ public:
     QByteArray& getTexture() { return _texture; }
     const QByteArray& getTexture() const { return _texture; }
     
+    const QVector<SharedObjectPointer>& getTextures() const { return _textures; }
+    
     QByteArray getUnextendedHeight() const;
     QByteArray getUnextendedColor() const;
     
@@ -168,9 +170,6 @@ public:
     int getColorSize() const { return _colorSize; }
     float getColorIncrement() const { return _colorIncrement; }
     
-    int getTextureSize() const { return _textureSize; }
-    float getTextureIncrement() const { return _textureIncrement; }
-    
     virtual void render(bool cursor = false);
 
 private:
@@ -179,19 +178,18 @@ private:
     float _scale;
     Box _heightBounds;
     Box _colorBounds;
-    Box _textureBounds;
     QByteArray _height;
     QByteArray _color;
     QByteArray _texture;
+    QVector<SharedObjectPointer> _textures;
     GLuint _heightTextureID;
     GLuint _colorTextureID;
     GLuint _textureTextureID;
+    QVector<NetworkTexturePointer> _networkTextures;
     int _heightSize;
     float _heightIncrement;
     int _colorSize;
     float _colorIncrement;
-    int _textureSize;
-    float _textureIncrement;
     
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
     static QHash<int, BufferPair> _bufferPairs;
@@ -244,6 +242,23 @@ public:
     static int getCascadedShadowMapHeightScaleLocation() { return _cascadedShadowMapHeightScaleLocation; }
     static int getCascadedShadowMapColorScaleLocation() { return _cascadedShadowMapColorScaleLocation; }
     
+    static ProgramObject& getBaseHeightfieldProgram() { return _baseHeightfieldProgram; }
+    static int getBaseHeightScaleLocation() { return _baseHeightScaleLocation; }
+    static int getBaseColorScaleLocation() { return _baseColorScaleLocation; }
+    
+    static ProgramObject& getSplatHeightfieldProgram() { return _splatHeightfieldProgram; }
+    static int getSplatHeightScaleLocation() { return _splatHeightScaleLocation; }
+    static int getSplatTextureScaleLocation() { return _splatTextureScaleLocation; }
+    
+    static ProgramObject& getLightHeightfieldProgram() { return _lightHeightfieldProgram; }
+    static int getLightHeightScaleLocation() { return _lightHeightScaleLocation; }
+    
+    static ProgramObject& getShadowLightHeightfieldProgram() { return _shadowLightHeightfieldProgram; }
+    static int getShadowLightHeightScaleLocation() { return _shadowLightHeightScaleLocation; }
+    
+    static ProgramObject& getCascadedShadowLightHeightfieldProgram() { return _cascadedShadowLightHeightfieldProgram; }
+    static int getCascadedShadowLightHeightScaleLocation() { return _cascadedShadowLightHeightScaleLocation; }
+    
     static ProgramObject& getHeightfieldCursorProgram() { return _heightfieldCursorProgram; }
     
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
@@ -269,6 +284,24 @@ private:
     static int _cascadedShadowMapHeightScaleLocation;
     static int _cascadedShadowMapColorScaleLocation;
     static int _shadowDistancesLocation;
+    
+    static ProgramObject _baseHeightfieldProgram;
+    static int _baseHeightScaleLocation;
+    static int _baseColorScaleLocation;
+    
+    static ProgramObject _splatHeightfieldProgram;
+    static int _splatHeightScaleLocation;
+    static int _splatTextureScaleLocation;
+    
+    static ProgramObject _lightHeightfieldProgram;
+    static int _lightHeightScaleLocation;
+    
+    static ProgramObject _shadowLightHeightfieldProgram;
+    static int _shadowLightHeightScaleLocation;
+    
+    static ProgramObject _cascadedShadowLightHeightfieldProgram;
+    static int _cascadedShadowLightHeightScaleLocation;
+    static int _shadowLightDistancesLocation;
     
     static ProgramObject _heightfieldCursorProgram;
 };

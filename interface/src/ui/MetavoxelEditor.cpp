@@ -974,7 +974,8 @@ void ImportHeightfieldTool::apply() {
         data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
             AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
         
-        QByteArray texture(height.size(), 0);
+        int size = glm::sqrt(height.size()) + HeightfieldBuffer::SHARED_EDGE; 
+        QByteArray texture(size * size, 0);
         HeightfieldTextureDataPointer texturePointer(new HeightfieldTextureData(texture));
         data.setRoot(AttributeRegistry::getInstance()->getHeightfieldTextureAttribute(), new MetavoxelNode(AttributeValue(
             AttributeRegistry::getInstance()->getHeightfieldTextureAttribute(), encodeInline(texturePointer))));
@@ -1049,8 +1050,7 @@ void ImportHeightfieldTool::updatePreview() {
                             columns * HeightfieldData::COLOR_BYTES);
                     }
                 }
-                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f,
-                    height, color, QByteArray())));
+                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color)));
             }
         }
     }

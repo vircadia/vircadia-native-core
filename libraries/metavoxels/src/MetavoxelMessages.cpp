@@ -593,7 +593,7 @@ int PaintHeightfieldTextureEditVisitor::visit(MetavoxelInfo& info) {
     }
     int size = glm::sqrt((float)contents.size());
     int highest = size - 1;
-    float heightScale = size / info.size;
+    float heightScale = highest / info.size;
     
     glm::vec3 center = (_edit.position - info.minimum) * heightScale;
     float scaledRadius = _edit.radius * heightScale;
