@@ -25,7 +25,6 @@ class EntityItemProperties;
 class ReadBitstreamToTreeParams;
 
 typedef EntityItem* (*EntityTypeFactory)(const EntityItemID& entityID, const EntityItemProperties& properties);
-typedef void (*EntityTypeRenderer)(EntityItem* entity, RenderArgs* args);
 
 class EntityTypes {
 public:
@@ -34,10 +33,7 @@ public:
         Model,
         Box,
         Sphere,
-        Plane,
-        Cylinder,
-        Pyramid,
-        LAST = Pyramid
+        LAST = Sphere
     } EntityType;
 
     static const QString& getEntityTypeName(EntityType entityType);
@@ -46,16 +42,11 @@ public:
     static EntityItem* constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItem* constructEntityItem(const unsigned char* data, int bytesToRead, ReadBitstreamToTreeParams& args);
 
-    static bool registerEntityTypeRenderer(EntityType entityType, EntityTypeRenderer renderMethod);
-    static void renderEntityItem(EntityItem* entityItem, RenderArgs* args);
-
 private:
     static QMap<EntityType, QString> _typeToNameMap;
     static QMap<QString, EntityTypes::EntityType> _nameToTypeMap;
     static EntityTypeFactory _factories[LAST];
     static bool _factoriesInitialized;
-    static EntityTypeRenderer _renderers[LAST];
-    static bool _renderersInitialized;
 };
 
 
@@ -66,7 +57,13 @@ private:
 #define REGISTER_ENTITY_TYPE(x) static bool x##Registration = \
             EntityTypes::registerEntityType(EntityTypes::x, #x, x##EntityItem::factory);
 
-#define REGISTER_ENTITY_TYPE_RENDERER(x,y) EntityTypes::registerEntityTypeRenderer(EntityTypes::x, y);
+/// Macro for registering entity types with an overloaded factory. Like using the REGISTER_ENTITY_TYPE macro: Make sure to add
+/// an element to the EntityType enum with your name. But unlike  REGISTER_ENTITY_TYPE, your class can be named anything
+/// so long as you provide a static method passed to the macro, that takes an EnityItemID, and EntityItemProperties and 
+/// returns a newly constructed (heap allocated) instance of your type. e.g. The following prototype:
+//        static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+#define REGISTER_ENTITY_TYPE_WITH_FACTORY(x,y) static bool x##Registration = \
+            EntityTypes::registerEntityType(EntityTypes::x, #x, y);
 
 
 #endif // hifi_EntityTypes_h

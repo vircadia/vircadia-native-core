@@ -2668,9 +2668,20 @@ void Application::updateShadowMap() {
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
-        _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
-        _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
-        _entities.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        {
+            PerformanceTimer perfTimer("avatarManager");
+            _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("particles");
+            _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("entities");
+            _entities.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
 
@@ -2867,9 +2878,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // render models...
         if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
-            PerformanceTimer perfTimer("models");
+            PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... models...");
+                "Application::displaySide() ... entities...");
             _entities.render();
         }
 

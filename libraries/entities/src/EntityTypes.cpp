@@ -20,23 +20,19 @@
 
 #include "BoxEntityItem.h"
 #include "ModelEntityItem.h"
+#include "SphereEntityItem.h"
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
 QMap<QString, EntityTypes::EntityType> EntityTypes::_nameToTypeMap;
 EntityTypeFactory EntityTypes::_factories[EntityTypes::LAST];
 bool EntityTypes::_factoriesInitialized = false;
-EntityTypeRenderer EntityTypes::_renderers[EntityTypes::LAST];
-bool EntityTypes::_renderersInitialized = false;
 
 const QString ENTITY_TYPE_NAME_UNKNOWN = "Unknown";
 
-// Register Entity Types here...
+// Register Entity the default implementations of entity types here...
 REGISTER_ENTITY_TYPE(Model)
 REGISTER_ENTITY_TYPE(Box)
 REGISTER_ENTITY_TYPE(Sphere)
-REGISTER_ENTITY_TYPE(Plane)
-REGISTER_ENTITY_TYPE(Cylinder)
-REGISTER_ENTITY_TYPE(Pyramid)
 
 
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
@@ -153,24 +149,3 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
     
     return NULL;
 }
-
-bool EntityTypes::registerEntityTypeRenderer(EntityType entityType, EntityTypeRenderer renderMethod) {
-    if (!_renderersInitialized) {
-        memset(&_renderers,0,sizeof(_renderers));
-        _renderersInitialized = true;
-    }
-    _renderers[entityType] = renderMethod;
-    
-    return true;
-}
-
-void EntityTypes::renderEntityItem(EntityItem* entityItem, RenderArgs* args) {
-    EntityType entityType = entityItem->getType();
-    EntityTypeRenderer renderMethod = _renderers[entityType];
-    if (renderMethod) {
-        renderMethod(entityItem, args);
-    }
-}
-
-
-

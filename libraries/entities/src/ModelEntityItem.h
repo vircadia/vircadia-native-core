@@ -20,11 +20,11 @@ public:
 
     ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
 
-    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
+    ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
-    virtual void setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+    virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;

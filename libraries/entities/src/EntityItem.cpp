@@ -421,7 +421,7 @@ int EntityItem::expectedBytes() {
 
 
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-    bool wantDebug = true;
+    bool wantDebug = false;
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
         qDebug() << "EntityItem::readEntityDataFromBuffer()... ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
@@ -499,6 +499,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
 
             _lastEdited = lastEditedFromBuffer;
+            
+            somethingChangedNotification(); // notify derived classes that something has changed
+
         }
 
         // last updated is stored as ByteCountCoded delta from lastEdited
@@ -828,7 +831,7 @@ EntityItemProperties EntityItem::getProperties() const {
     return properties;
 }
 
-void EntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool EntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     //qDebug() << "EntityItem::setProperties()... forceCopy=" << forceCopy;
     //qDebug() << "EntityItem::setProperties() properties.getDamping()=" << properties.getDamping();
     //qDebug() << "EntityItem::setProperties() properties.getVelocity()=" << properties.getVelocity();
@@ -886,6 +889,7 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     }
 
     if (somethingChanged) {
+        somethingChangedNotification(); // notify derived classes that something has changed
         bool wantDebug = false;
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
@@ -895,6 +899,7 @@ void EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         }
         setLastEdited(properties._lastEdited);
     }
-
+    
+    return somethingChanged;
 }
 

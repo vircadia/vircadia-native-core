@@ -1088,6 +1088,7 @@ var active;
 var newModel;
 var browser;
 var newBox;
+var newSphere;
 function initToolBar() {
     toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
     // New Model
@@ -1112,6 +1113,14 @@ function initToolBar() {
                                alpha: 0.7
                                });
     newBox = toolBar.addTool({
+                               imageURL: toolIconUrl + "add-model-tool.svg",
+                               subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                               width: toolWidth, height: toolHeight,
+                               visible: true,
+                               alpha: 0.9
+                               });
+
+    newSphere = toolBar.addTool({
                                imageURL: toolIconUrl + "add-model-tool.svg",
                                subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
                                width: toolWidth, height: toolHeight,
@@ -1253,6 +1262,20 @@ function mousePressEvent(event) {
         if (position.x > 0 && position.y > 0 && position.z > 0) {
             Entities.addEntity({ 
                             type: "Box",
+                            position: position,
+                            radius: radiusDefault,
+                            color: { red: 255, green: 0, blue: 0 }
+                            });
+        } else {
+            print("Can't create box: Box would be out of bounds.");
+        }
+        
+    } else if (newSphere == toolBar.clicked(clickedOverlay)) {
+        var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+        
+        if (position.x > 0 && position.y > 0 && position.z > 0) {
+            Entities.addEntity({ 
+                            type: "Sphere",
                             position: position,
                             radius: radiusDefault,
                             color: { red: 255, green: 0, blue: 0 }

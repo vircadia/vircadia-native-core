@@ -1,5 +1,5 @@
 //
-//  BoxEntityItem.h
+//  SphereEntityItem.h
 //  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
@@ -9,16 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_BoxEntityItem_h
-#define hifi_BoxEntityItem_h
+#ifndef hifi_SphereEntityItem_h
+#define hifi_SphereEntityItem_h
 
 #include "EntityItem.h" 
 
-class BoxEntityItem : public EntityItem {
+class SphereEntityItem : public EntityItem {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     ALLOW_INSTANTIATION // This class can be instantiated
     
@@ -26,7 +26,6 @@ public:
     virtual EntityItemProperties getProperties() const;
     virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
 
-    // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
@@ -55,4 +54,4 @@ protected:
     rgbColor _color;
 };
 
-#endif // hifi_BoxEntityItem_h
+#endif // hifi_SphereEntityItem_h

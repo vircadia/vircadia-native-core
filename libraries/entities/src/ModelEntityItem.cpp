@@ -63,11 +63,11 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     return properties;
 }
 
-void ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     //qDebug() << "ModelEntityItem::setProperties()...";
     bool somethingChanged = false;
     
-    EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+    somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
 
     if (properties._colorChanged || forceCopy) {
         setColor(properties._color);
@@ -114,6 +114,8 @@ void ModelEntityItem::setProperties(const EntityItemProperties& properties, bool
         }
         setLastEdited(properties._lastEdited);
     }
+    
+    return somethingChanged;
 }
 
 

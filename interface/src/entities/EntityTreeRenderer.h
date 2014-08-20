@@ -25,8 +25,6 @@
 
 #include "renderer/Model.h"
 
-class ModelEntityItem;
-
 // Generic client side Octree renderer class.
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
     Q_OBJECT
@@ -58,16 +56,19 @@ public:
     /// clears the tree
     virtual void clear();
 
-    Q_INVOKABLE Model* getModel(const ModelEntityItem* modelEntityItem);
+    //Q_INVOKABLE Model* getModel(const ModelEntityItem* modelEntityItem);
 
     // renderers for various types of entities
     void renderEntityTypeBox(EntityItem* entity, RenderArgs* args);
     void renderEntityTypeModel(EntityItem* entity, RenderArgs* args);
+    
+    static QThread* getMainThread();
 
 protected:
     void clearModelsCache();
-    QMap<QUuid, Model*> _knownEntityItemModels;
-    QMap<uint32_t, Model*> _unknownEntityItemModels;
+    //QMap<QUuid, Model*> _knownEntityItemModels;
+    //QMap<uint32_t, Model*> _unknownEntityItemModels;
+    //QMap<const ModelEntityItem*, Model*> _entityItemModels;
 };
 
 #endif // hifi_EntityTreeRenderer_h

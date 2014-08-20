@@ -180,6 +180,23 @@ public:
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                         EntityItemID& entityID, EntityItemProperties& properties);
 
+    bool positionChanged() const { return _positionChanged; }
+    bool radiusChanged() const { return _radiusChanged; }
+    bool rotationChanged() const { return _rotationChanged; }
+    bool massChanged() const { return _massChanged; }
+    bool velocityChanged() const { return _velocityChanged; }
+    bool gravityChanged() const { return _gravityChanged; }
+    bool dampingChanged() const { return _dampingChanged; }
+    bool lifetimeChanged() const { return _lifetimeChanged; }
+    bool scriptChanged() const { return _scriptChanged; }
+    bool colorChanged() const { return _colorChanged; }
+    bool modelURLChanged() const { return _modelURLChanged; }
+    bool animationURLChanged() const { return _animationURLChanged; }
+    bool animationIsPlayingChanged() const { return _animationIsPlayingChanged; }
+    bool animationFrameIndexChanged() const { return _animationFrameIndexChanged; }
+    bool animationFPSChanged() const { return _animationFPSChanged; }
+    bool glowLevelChanged() const { return _glowLevelChanged; }
+
 private:
     void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
 

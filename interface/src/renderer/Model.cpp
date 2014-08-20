@@ -1242,8 +1242,6 @@ float Model::getLimbLength(int jointIndex) const {
     return length;
 }
 
-const int BALL_SUBDIVISIONS = 10;
-
 void Model::renderJointCollisionShapes(float alpha) {
     // implement this when we have shapes for regular models
 }

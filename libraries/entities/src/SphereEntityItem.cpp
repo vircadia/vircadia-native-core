@@ -1,5 +1,5 @@
 //
-//  BoxEntityItem.cpp
+//  SphereEntityItem.cpp
 //  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
@@ -16,60 +16,41 @@
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "BoxEntityItem.h"
+#include "SphereEntityItem.h"
 
 
-//static bool registerBox = EntityTypes::registerEntityType(EntityTypes::Box, "Box", BoxEntityItem::factory);
- 
-
-EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    qDebug() << "BoxEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
-    return new  BoxEntityItem(entityID, properties);
+EntityItem* SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    qDebug() << "SphereEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
+    return new SphereEntityItem(entityID, properties);
 }
 
 // our non-pure virtual subclass for now...
-BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 { 
-    qDebug() << "BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
-    _type = EntityTypes::Box;
-
-    qDebug() << "BoxEntityItem::BoxEntityItem() properties.getModelURL()=" << properties.getModelURL();
-    
-    qDebug() << "BoxEntityItem::BoxEntityItem() calling setProperties()";
+    _type = EntityTypes::Sphere;
     setProperties(properties);
-
-
 }
 
-EntityItemProperties BoxEntityItem::getProperties() const {
-    qDebug() << "BoxEntityItem::getProperties()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
-
+EntityItemProperties SphereEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
-    properties._color = getXColor();
-    properties._colorChanged = false;
-
-    properties._glowLevel = getGlowLevel();
-    properties._glowLevelChanged = false;
+    properties.setColor(getXColor());
+    properties.setGlowLevel(getGlowLevel());
 
     return properties;
 }
 
-bool BoxEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    qDebug() << "BoxEntityItem::setProperties()...";
-    qDebug() << "BoxEntityItem::BoxEntityItem() properties.getModelURL()=" << properties.getModelURL();
-    bool somethingChanged = false;
-    
-    somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+bool SphereEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+    bool somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
 
-    if (properties._colorChanged || forceCopy) {
-        setColor(properties._color);
+    if (properties.colorChanged() || forceCopy) {
+        setColor(properties.getColor());
         somethingChanged = true;
     }
 
-    if (properties._glowLevelChanged || forceCopy) {
-        setGlowLevel(properties._glowLevel);
+    if (properties.glowLevelChanged() || forceCopy) {
+        setGlowLevel(properties.getGlowLevel());
         somethingChanged = true;
     }
 
@@ -78,22 +59,20 @@ bool BoxEntityItem::setProperties(const EntityItemProperties& properties, bool f
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - _lastEdited;
-            qDebug() << "BoxEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qDebug() << "SphereEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " _lastEdited=" << _lastEdited;
         }
-        setLastEdited(properties._lastEdited);
+        setLastEdited(properties.getLastEdited());
     }
     return somethingChanged;
 }
 
-int BoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+int SphereEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
-
-    qDebug() << "BoxEntityItem::readEntitySubclassDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
 
     // PROP_COLOR
     if (propertyFlags.getHasProperty(PROP_COLOR)) {
@@ -111,23 +90,19 @@ int BoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
 
 
 // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
-EntityPropertyFlags BoxEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
+EntityPropertyFlags SphereEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;
     return requestedProperties;
 }
 
-void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
                                     EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
                                     int& propertyCount, 
                                     OctreeElement::AppendState& appendState) const { 
-
-
-
-qDebug() << "BoxEntityItem::appendSubclassData()... ********************************************";
 
     bool successPropertyFits = true;
 
@@ -150,5 +125,4 @@ qDebug() << "BoxEntityItem::appendSubclassData()... ****************************
         //qDebug() << "PROP_COLOR NOT requested...";
         propertiesDidntFit -= PROP_COLOR;
     }
-
 }

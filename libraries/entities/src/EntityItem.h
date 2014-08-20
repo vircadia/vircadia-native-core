@@ -27,15 +27,21 @@
 
 class EntityTreeElementExtraEncodeData;
 
-/// EntityItem class - this is the actual model item class.
+#define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
+#define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
+
+
+/// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
+/// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
+/// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem  {
 
 public:
+    DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
+    
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     virtual ~EntityItem();
-    
-    virtual void somePureVirtualFunction() = 0;
 
     // ID and EntityItemID related methods
     QUuid getID() const { return _id; }
@@ -48,7 +54,13 @@ public:
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
-    virtual void setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+    
+    /// returns true is something changed
+    virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+
+    /// override this in your derived class if you'd like to be informed when something about the state of the entity
+    /// has changed. This will be called with properties change or when new data is loaded from a stream
+    virtual void somethingChangedNotification() { }
 
     quint64 getLastUpdated() const { return _lastUpdated; } /// Last simulated time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; } /// Last edited time of this entity universal usecs
@@ -78,7 +90,9 @@ public:
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData) 
-                                                { return 0; };
+                                                { return 0; }
+
+    virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
 
     static int expectedBytes();
 
@@ -164,7 +178,7 @@ public:
     static const QString DEFAULT_SCRIPT;
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
-
+    
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
 
@@ -186,54 +200,6 @@ protected:
     float _damping;
     float _lifetime;
     QString _script;
-};
-
-class SphereEntityItem : public EntityItem {
-public:
-    SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { _type = EntityTypes::Sphere; }
-
-    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
-
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-        return new SphereEntityItem(entityID, properties);
-    }
-};
-
-class PlaneEntityItem : public EntityItem {
-public:
-    PlaneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { _type = EntityTypes::Plane; }
-
-    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
-
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-        return new PlaneEntityItem(entityID, properties);
-    }
-};
-
-class CylinderEntityItem : public EntityItem {
-public:
-    CylinderEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { _type = EntityTypes::Cylinder; }
-
-    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
-
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-        return new CylinderEntityItem(entityID, properties);
-    }
-};
-
-class PyramidEntityItem : public EntityItem {
-public:
-    PyramidEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) { _type = EntityTypes::Pyramid; }
-
-    virtual void somePureVirtualFunction() { }; // allow this class to be constructed
-
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-        return new PyramidEntityItem(entityID, properties);
-    }
 };
 
 #endif // hifi_EntityItem_h

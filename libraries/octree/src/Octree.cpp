@@ -236,13 +236,6 @@ OctreeElement* Octree::createMissingElement(OctreeElement* lastParentElement, co
 int Octree::readElementData(OctreeElement* destinationElement, const unsigned char* nodeData, int bytesLeftToRead,
                             ReadBitstreamToTreeParams& args) {
 
-bool wantDebug = true;
-if (wantDebug) {
-    qDebug() << "Octree::readElementData()";
-    qDebug() << "    destinationElement->getAACube()=" << destinationElement->getAACube();
-    qDebug() << "    bytesLeftToRead=" << bytesLeftToRead;
-}
-
     // give this destination element the child mask from the packet
     const unsigned char ALL_CHILDREN_ASSUMED_TO_EXIST = 0xFF;
     unsigned char colorInPacketMask = *nodeData;
@@ -287,8 +280,6 @@ if (wantDebug) {
     int childIndex = 0;
     bytesRead += args.includeExistsBits ? sizeof(childrenInTreeMask) + sizeof(childMask) : sizeof(childMask);
 
-    //qDebug() << "Octree::readElementData()... childrenInTreeMask=" << childrenInTreeMask;
-
     while (bytesLeftToRead - bytesRead > 0 && childIndex < NUMBER_OF_CHILDREN) {
         // check the exists mask to see if we have a child to traverse into
 
@@ -324,32 +315,14 @@ if (wantDebug) {
     // if this is the root, and there is more data to read, allow it to read it's element data...
     if (destinationElement == _rootElement  && rootElementHasData() && (bytesLeftToRead - bytesRead) > 0) {
         // tell the element to read the subsequent data
-        if (wantDebug) {
-            qDebug() << "Octree::readElementData().... reading element data for root element.....";
-            qDebug() << "    bytesRead=" << bytesRead;
-            qDebug() << "    bytesLeftToRead - bytesRead=" << bytesLeftToRead - bytesRead;
-            qDebug() << "   READING ROOT DATA....";
-        }
-
         bytesRead += _rootElement->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead - bytesRead, args);
     }
 
-    if (wantDebug) {
-        qDebug() << "Octree::readElementData()";
-        qDebug() << "    bytesRead=" << bytesLeftToRead;
-    }
-    
     return bytesRead;
 }
 
 void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long int bufferSizeBytes,
                                     ReadBitstreamToTreeParams& args) {
-
-bool wantDebug = true;
-if (wantDebug) {
-    qDebug() << "Octree::readBitstreamToTree()";
-    qDebug() << "    bufferSizeBytes=" << bufferSizeBytes;
-}
 
     int bytesRead = 0;
     const unsigned char* bitstreamAt = bitstream;
@@ -379,30 +352,14 @@ if (wantDebug) {
 
         int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);
 
-if (wantDebug) {
-    qDebug() << "Octree::readBitstreamToTree()";
-    qDebug() << "    octalCodeBytes=" << octalCodeBytes;
-}
-
         int theseBytesRead = 0;
         theseBytesRead += octalCodeBytes;
-if (wantDebug) {
-    qDebug() << "    --- calling readElementData() bytes available=" <<  (bufferSizeBytes - (bytesRead + octalCodeBytes)) << "---";
-}
         theseBytesRead += readElementData(bitstreamRootElement, bitstreamAt + octalCodeBytes,
                                        bufferSizeBytes - (bytesRead + octalCodeBytes), args);
-if (wantDebug) {
-    qDebug() << "    --- AFTER calling readElementData() ---";
-    qDebug() << "    theseBytesRead=" << theseBytesRead;
-}
 
         // skip bitstream to new startPoint
         bitstreamAt += theseBytesRead;
         bytesRead +=  theseBytesRead;
-
-if (wantDebug) {
-    qDebug() << "    bytesRead=" << bytesRead;
-}
 
         if (args.wantImportProgress) {
             emit importProgress((100 * (bitstreamAt - bitstream)) / bufferSizeBytes);
@@ -1891,12 +1848,6 @@ bool Octree::readFromSVOFile(const char* fileName) {
         
         unsigned long headerLength = 0; // bytes in the header
         
-        bool wantDebug = true;
-        if (wantDebug) {
-            qDebug() << "Octree::readFromSVOFile()";
-            qDebug() << "    fileLength=" << fileLength;
-        }
-
         bool wantImportProgress = true;
 
         // before reading the file, check to see if this version of the Octree supports file versions
@@ -1964,11 +1915,6 @@ bool Octree::readFromSVOFile(const char* fileName) {
                 ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
                                                     SharedNodePointer(), wantImportProgress, gotVersion);
 
-                if (wantDebug) {
-                    qDebug() << "    --- after reading header, type and version ---";
-                    qDebug() << "    dataLength=" << dataLength;
-                    qDebug() << "    --- calling readBitstreamToTree() ---";
-                }
                 readBitstreamToTree(dataAt, dataLength, args);
                 delete[] entireFileDataSection;
 
@@ -1984,8 +1930,6 @@ bool Octree::readFromSVOFile(const char* fileName) {
                     quint16 chunkLength = 0;
 
                     file.read((char*)&chunkLength, sizeof(chunkLength)); // read the chunk size from the file
-                    
-                    qDebug() << "read chunk size of:" << chunkLength;
                     
                     remainingLength -= sizeof(chunkLength);
                     
@@ -2011,9 +1955,6 @@ bool Octree::readFromSVOFile(const char* fileName) {
                     ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
                                                         SharedNodePointer(), wantImportProgress, gotVersion);
 
-                    if (wantDebug) {
-                        qDebug() << "    --- calling readBitstreamToTree() dataLength:" << dataLength << "---";
-                    }
                     readBitstreamToTree(dataAt, dataLength, args);
                 }
 
@@ -2084,7 +2025,6 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
                     if (hasBufferBreaks) {
                         quint16 bufferSize = packetData.getFinalizedSize();
                         file.write((const char*)&bufferSize, sizeof(bufferSize));
-                        qDebug() << "wrote chunk size of:" << bufferSize << "---";
                     }
                     file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
                     lastPacketWritten = true;
@@ -2102,7 +2042,6 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
             if (hasBufferBreaks) {
                 quint16 bufferSize = packetData.getFinalizedSize();
                 file.write((const char*)&bufferSize, sizeof(bufferSize));
-                qDebug() << "wrote FINAL chunk size of:" << bufferSize << "---";
             }
             file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
         }

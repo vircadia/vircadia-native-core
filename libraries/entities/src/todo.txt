@@ -33,6 +33,12 @@ Model properties:
 //
 // REQUIRED TO DO:
 
+    0) render performance of models...
+        a) make getModel() faster... consider storing the Model* in the actual EntityItem class
+        b) figure out how to only call simulate when needed:
+             if the properties change
+             when animated?
+
     1) verify lots of models in single element works
         -- repro case - run editModelsExample.js -- create 10 models in the same octree element
 
@@ -62,7 +68,6 @@ Model properties:
     7) Handle the ID -> UUID swap in old files to new files
     
     8) Test models -> attachments logic
-    
    
     9) What happens if the edit properties don't fit in a single message MTU???
    10) animations not always working?????
@@ -79,7 +84,6 @@ Model properties:
     P) unit tests?
     Pa) OctreeTests::modelItemTests()...????
 
-    G) why does is the Box entity not drawn in it's bounds
     H) make the rotated model bounds work for other entity types?
     I) maybe make "hasGeometry" be a property of EntityItem base class??
 
@@ -237,3 +241,4 @@ Model properties:
 //                     maybe remember the extra state before removing it and if it fails, always re-add it
 //                     maybe add support for "reserving" bytes in the packet
 // SOLVED -- BROKEN File persistence... -- added chunking support in SVO file persistence.
+// SOLVED -- G) why does is the Box entity not drawn in it's bounds
