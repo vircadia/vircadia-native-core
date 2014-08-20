@@ -82,7 +82,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 void AvatarManager::renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
-    bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
+    bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
     
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
 
