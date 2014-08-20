@@ -60,9 +60,6 @@ public:
 
     int getParentIndex() const { return _fbxJoint->parentIndex; }
 
-    /// \param rotation rotation of joint in model-frame
-    void setRotation(const glm::quat& rotation, bool constrain, float priority);
-
     /// \param delta is in the model-frame
     void applyRotationDelta(const glm::quat& delta, bool constrain = true, float priority = 1.0f);
 

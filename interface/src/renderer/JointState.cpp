@@ -173,10 +173,6 @@ void JointState::clearTransformTranslation() {
     _visibleTransform[3][2] = 0.0f;
 }
 
-void JointState::setRotation(const glm::quat& rotation, bool constrain, float priority) {
-    applyRotationDelta(rotation * glm::inverse(getRotation()), true, priority);
-}
-
 void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {
     // NOTE: delta is in model-frame
     assert(_fbxJoint != NULL);
