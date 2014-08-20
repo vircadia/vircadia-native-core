@@ -1049,7 +1049,8 @@ void ImportHeightfieldTool::updatePreview() {
                             columns * HeightfieldData::COLOR_BYTES);
                     }
                 }
-                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color)));
+                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f,
+                    height, color, QByteArray())));
             }
         }
     }

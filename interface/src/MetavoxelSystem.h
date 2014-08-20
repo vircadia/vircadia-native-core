@@ -49,7 +49,7 @@ public:
 
     Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
 
-    Q_INVOKABLE void deleteTextures(int heightID, int colorID);
+    Q_INVOKABLE void deleteTextures(int heightID, int colorID, int textureID);
 
 protected:
 
@@ -139,7 +139,8 @@ public:
     static const int SHARED_EDGE;
     static const int HEIGHT_EXTENSION;
     
-    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color);
+    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height,
+        const QByteArray& color, const QByteArray& texture);
     ~HeightfieldBuffer();
     
     const glm::vec3& getTranslation() const { return _translation; }
@@ -147,12 +148,16 @@ public:
     
     const Box& getHeightBounds() const { return _heightBounds; }
     const Box& getColorBounds() const { return _colorBounds; }
+    const Box& getTextureBounds() const { return _textureBounds; }
     
     QByteArray& getHeight() { return _height; }
     const QByteArray& getHeight() const { return _height; }
     
     QByteArray& getColor() { return _color; }
     const QByteArray& getColor() const { return _color; }
+    
+    QByteArray& getTexture() { return _texture; }
+    const QByteArray& getTexture() const { return _texture; }
     
     QByteArray getUnextendedHeight() const;
     QByteArray getUnextendedColor() const;
@@ -163,6 +168,9 @@ public:
     int getColorSize() const { return _colorSize; }
     float getColorIncrement() const { return _colorIncrement; }
     
+    int getTextureSize() const { return _textureSize; }
+    float getTextureIncrement() const { return _textureIncrement; }
+    
     virtual void render(bool cursor = false);
 
 private:
@@ -171,15 +179,20 @@ private:
     float _scale;
     Box _heightBounds;
     Box _colorBounds;
+    Box _textureBounds;
     QByteArray _height;
     QByteArray _color;
+    QByteArray _texture;
     GLuint _heightTextureID;
     GLuint _colorTextureID;
+    GLuint _textureTextureID;
     int _heightSize;
     float _heightIncrement;
     int _colorSize;
     float _colorIncrement;
-
+    int _textureSize;
+    float _textureIncrement;
+    
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
     static QHash<int, BufferPair> _bufferPairs;
 };
