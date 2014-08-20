@@ -23,6 +23,10 @@
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
 
+#ifdef Q_OS_MAC
+#include "SpeechRecognizer.h"
+#endif
+
 #include "location/LocationManager.h"
 #include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
@@ -136,6 +140,10 @@ public:
     float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
+
+#ifdef Q_OS_MAC
+    SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
+#endif
 
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
@@ -272,6 +280,9 @@ private:
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     UserLocationsDialog* _userLocationsDialog;
+#ifdef Q_OS_MAC
+    SpeechRecognizer _speechRecognizer;
+#endif
     int _maxVoxels;
     float _voxelSizeScale;
     float _oculusUIAngularSize;
@@ -351,6 +362,7 @@ namespace MenuOption {
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
+    const QString ControlWithSpeech = "Control With Speech";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
