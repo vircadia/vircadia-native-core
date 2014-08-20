@@ -528,6 +528,7 @@ void MyAvatar::startRecording() {
     }
     Application::getInstance()->getAudio()->setRecorder(_recorder);
     _recorder->startRecording();
+    
 }
 
 void MyAvatar::stopRecording() {
