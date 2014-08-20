@@ -507,7 +507,7 @@ bool MyAvatar::setJointReferential(int id, int jointIndex) {
         return false;
     }
 }
-QString recordingFile = "recording.rec";
+
 bool MyAvatar::isRecording() {
     if (QThread::currentThread() != thread()) {
         bool result;
