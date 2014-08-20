@@ -243,7 +243,7 @@ void SkeletonModel::updateJointState(int index) {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         if (index == geometry.leanJointIndex) {
-            maybeUpdateLeanRotation(parentState, joint, state);
+            maybeUpdateLeanRotation(parentState, state);
         
         } else if (index == geometry.neckJointIndex) {
             maybeUpdateNeckRotation(parentState, joint, state);    
@@ -260,17 +260,18 @@ void SkeletonModel::updateJointState(int index) {
     }
 }
 
-void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, JointState& state) {
     if (!_owningAvatar->isMyAvatar() || Application::getInstance()->getPrioVR()->isActive()) {
         return;
     }
     // get the rotation axes in joint space and use them to adjust the rotation
-    glm::mat3 axes = glm::mat3_cast(glm::quat());
-    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() * glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
-        joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
-    state.setRotationInConstrainedFrame(glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
-        glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), 
-        glm::normalize(inverse * axes[0])) * joint.rotation);
+    glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+    glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
+    glm::quat inverse = glm::inverse(parentState.getRotation() * state.getDefaultRotationInParentFrame());
+    state.setRotationInConstrainedFrame(
+              glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), inverse * zAxis) 
+            * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), inverse * xAxis) 
+            * state.getFBXJoint().rotation);
 }
 
 void SkeletonModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {

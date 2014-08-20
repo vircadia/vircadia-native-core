@@ -254,6 +254,11 @@ const bool JointState::rotationIsDefault(const glm::quat& rotation, float tolera
         glm::abs(rotation.w - defaultRotation.w) < tolerance;
 }
 
+glm::quat JointState::getDefaultRotationInParentFrame() const {
+    // NOTE: the result is constant and could be cached in the FBXJoint
+    return _fbxJoint->preRotation * _fbxJoint->rotation * _fbxJoint->postRotation;
+}
+
 const glm::vec3& JointState::getDefaultTranslationInConstrainedFrame() const {
     assert(_fbxJoint != NULL);
     return _fbxJoint->translation;

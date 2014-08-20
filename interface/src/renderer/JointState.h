@@ -88,6 +88,7 @@ public:
 
     const bool rotationIsDefault(const glm::quat& rotation, float tolerance = EPSILON) const;
 
+    glm::quat getDefaultRotationInParentFrame() const;
     const glm::vec3& getDefaultTranslationInConstrainedFrame() const;
 
 
