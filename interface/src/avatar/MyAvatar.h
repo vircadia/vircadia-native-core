@@ -161,12 +161,12 @@ public slots:
     bool setModelReferential(int id);
     bool setJointReferential(int id, int jointIndex);
     
-    bool isRecording() const;
+    bool isRecording();
     void startRecording();
     void stopRecording();
     void saveRecording(QString filename);
     
-    bool isPlaying() const;
+    bool isPlaying();
     void loadRecording(QString filename);
     void loadLastRecording();
     void startPlaying();
