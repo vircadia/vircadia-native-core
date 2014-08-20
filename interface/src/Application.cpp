@@ -1051,20 +1051,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_R:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
-                } else if (isMeta) {
-                    if (_myAvatar->isRecording()) {
-                        _myAvatar->stopRecording();
-                    } else {
-                        _myAvatar->startRecording();
-                        _audio.setRecorder(_myAvatar->getRecorder());
-                    }
-                } else {
-                    if (_myAvatar->isPlaying()) {
-                        _myAvatar->stopPlaying();
-                    } else {
-                        _myAvatar->startPlaying();
-                        _audio.setPlayer(_myAvatar->getPlayer());
-                    }
                 }
                 break;
             case Qt::Key_Percent:
@@ -3748,6 +3734,10 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
+
+#ifdef Q_OS_MAC
+    scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
+#endif
 
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);

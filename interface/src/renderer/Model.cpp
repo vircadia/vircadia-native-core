@@ -700,6 +700,12 @@ void Model::clearJointState(int index) {
     }
 }
 
+void Model::clearJointAnimationPriority(int index) {
+    if (index != -1 && index < _jointStates.size()) {
+        _jointStates[index]._animationPriority = 0.0f;
+    }
+}
+
 void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];

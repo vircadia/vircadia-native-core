@@ -46,6 +46,15 @@ foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels pa
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)
 
+# Add SpeechRecognizer if on OS X, otherwise remove
+if (APPLE)
+    file(GLOB INTERFACE_OBJCPP_SRCS "src/SpeechRecognizer.mm")
+    set(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_OBJCPP_SRCS})
+else ()
+    get_filename_component(SPEECHRECOGNIZER_H "src/SpeechRecognizer.h" ABSOLUTE)
+    list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_H})
+endif ()
+
 find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Script Svg WebKitWidgets)
 
 # grab the ui files in resources/ui

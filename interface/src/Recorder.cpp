@@ -11,7 +11,9 @@
 
 #include <GLMHelpers.h>
 
+#include <QFile>
 #include <QMetaObject>
+#include <QObject>
 
 #include "Recorder.h"
 
@@ -221,7 +223,7 @@ void Player::startPlaying() {
         _audioThread = new QThread();
         _options.setPosition(_avatar->getPosition());
         _options.setOrientation(_avatar->getOrientation());
-        _injector.reset(new AudioInjector(_recording->getAudio(), _options), &QObject::deleteLater);
+        _injector.reset(new AudioInjector(_recording->getAudio(), _options));
         _injector->moveToThread(_audioThread);
         _audioThread->start();
         QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
@@ -241,9 +243,14 @@ void Player::stopPlaying() {
     
     // Cleanup audio thread
     _injector->stop();
+    QObject::connect(_injector.data(), &AudioInjector::finished,
+                     _injector.data(), &AudioInjector::deleteLater);
+    QObject::connect(_injector.data(), &AudioInjector::destroyed,
+                     _audioThread, &QThread::quit);
+    QObject::connect(_audioThread, &QThread::finished,
+                     _audioThread, &QThread::deleteLater);
     _injector.clear();
-    _audioThread->exit();
-    _audioThread->deleteLater();
+    _audioThread = NULL;
     qDebug() << "Recorder::stopPlaying()";
 }
 
@@ -309,13 +316,249 @@ bool Player::computeCurrentFrame() {
     return true;
 }
 
-void writeRecordingToFile(RecordingPointer recording, QString file) {
-    // TODO
-    qDebug() << "Writing recording to " << file;
+void writeRecordingToFile(RecordingPointer recording, QString filename) {
+    qDebug() << "Writing recording to " << filename;
+    QElapsedTimer timer;
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly)){
+        return;
+    }
+    qDebug() << file.fileName();
+    
+    
+    QDataStream fileStream(&file);
+    
+    fileStream << recording->_timestamps;
+    
+    RecordingFrame& baseFrame = recording->_frames[0];
+    int totalLength = 0;
+    
+    // Blendshape coefficients
+    fileStream << baseFrame._blendshapeCoefficients;
+    totalLength += baseFrame._blendshapeCoefficients.size();
+    
+    // Joint Rotations
+    int jointRotationSize = baseFrame._jointRotations.size();
+    fileStream << jointRotationSize;
+    for (int i = 0; i < jointRotationSize; ++i) {
+        fileStream << baseFrame._jointRotations[i].x << baseFrame._jointRotations[i].y << baseFrame._jointRotations[i].z << baseFrame._jointRotations[i].w;
+    }
+    totalLength += jointRotationSize;
+    
+    // Translation
+    fileStream << baseFrame._translation.x << baseFrame._translation.y << baseFrame._translation.z;
+    totalLength += 1;
+    
+    // Rotation
+    fileStream << baseFrame._rotation.x << baseFrame._rotation.y << baseFrame._rotation.z << baseFrame._rotation.w;
+    totalLength += 1;
+    
+    // Scale
+    fileStream << baseFrame._scale;
+    totalLength += 1;
+    
+    // Head Rotation
+    fileStream << baseFrame._headRotation.x << baseFrame._headRotation.y << baseFrame._headRotation.z << baseFrame._headRotation.w;
+    totalLength += 1;
+    
+    // Lean Sideways
+    fileStream << baseFrame._leanSideways;
+    totalLength += 1;
+    
+    // Lean Forward
+    fileStream << baseFrame._leanForward;
+    totalLength += 1;
+    
+    for (int i = 1; i < recording->_timestamps.size(); ++i) {
+        QBitArray mask(totalLength);
+        int maskIndex = 0;
+        QByteArray buffer;
+        QDataStream stream(&buffer, QIODevice::WriteOnly);
+        RecordingFrame& previousFrame = recording->_frames[i - 1];
+        RecordingFrame& frame = recording->_frames[i];
+        
+        // Blendshape coefficients
+        for (int i = 0; i < frame._blendshapeCoefficients.size(); ++i) {
+            if (frame._blendshapeCoefficients[i] != previousFrame._blendshapeCoefficients[i]) {
+                stream << frame._blendshapeCoefficients[i];
+                mask.setBit(maskIndex);
+            }
+            maskIndex++;
+        }
+        
+        // Joint Rotations
+        for (int i = 0; i < frame._jointRotations.size(); ++i) {
+            if (frame._jointRotations[i] != previousFrame._jointRotations[i]) {
+                stream << frame._jointRotations[i].x << frame._jointRotations[i].y << frame._jointRotations[i].z << frame._jointRotations[i].w;
+                mask.setBit(maskIndex);
+            }
+            maskIndex++;
+        }
+        
+        // Translation
+        if (frame._translation != previousFrame._translation) {
+            stream << frame._translation.x << frame._translation.y << frame._translation.z;
+            mask.setBit(maskIndex);
+        }
+        maskIndex++;
+        
+        // Rotation
+        if (frame._rotation != previousFrame._rotation) {
+            stream << frame._rotation.x << frame._rotation.y << frame._rotation.z << frame._rotation.w;
+            mask.setBit(maskIndex);
+        }
+        maskIndex++;
+        
+        // Scale
+        if (frame._scale != previousFrame._scale) {
+            stream << frame._scale;
+            mask.setBit(maskIndex);
+        }
+        maskIndex++;
+        
+        // Head Rotation
+        if (frame._headRotation != previousFrame._headRotation) {
+            stream << frame._headRotation.x << frame._headRotation.y << frame._headRotation.z << frame._headRotation.w;
+            mask.setBit(maskIndex);
+        }
+        maskIndex++;
+        
+        // Lean Sideways
+        if (frame._leanSideways != previousFrame._leanSideways) {
+            stream << frame._leanSideways;
+            mask.setBit(maskIndex);
+        }
+        maskIndex++;
+        
+        // Lean Forward
+        if (frame._leanForward != previousFrame._leanForward) {
+            stream << frame._leanForward;
+            mask.setBit(maskIndex);
+        }
+        maskIndex++;
+        
+        fileStream << mask;
+        fileStream << buffer;
+    }
+    
+    fileStream << recording->_audio->getByteArray();
+    
+    qDebug() << "Wrote " << file.size() << " bytes in " << timer.elapsed();
 }
 
-RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file) {
-    // TODO
-    qDebug() << "Reading recording from " << file;
+RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename) {
+    qDebug() << "Reading recording from " << filename;
+    if (!recording) {
+        recording.reset(new Recording());
+    }
+    
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly)){
+        return recording;
+    }
+    
+    QDataStream fileStream(&file);
+    
+    fileStream >> recording->_timestamps;
+    RecordingFrame baseFrame;
+    
+    // Blendshape coefficients
+    fileStream >> baseFrame._blendshapeCoefficients;
+    
+    // Joint Rotations
+    int jointRotationSize;
+    fileStream >> jointRotationSize;
+    baseFrame._jointRotations.resize(jointRotationSize);
+    for (int i = 0; i < jointRotationSize; ++i) {
+        fileStream >> baseFrame._jointRotations[i].x >> baseFrame._jointRotations[i].y >> baseFrame._jointRotations[i].z >> baseFrame._jointRotations[i].w;
+    }
+    
+    fileStream >> baseFrame._translation.x >> baseFrame._translation.y >> baseFrame._translation.z;
+    fileStream >> baseFrame._rotation.x >> baseFrame._rotation.y >> baseFrame._rotation.z >> baseFrame._rotation.w;
+    fileStream >> baseFrame._scale;
+    fileStream >> baseFrame._headRotation.x >> baseFrame._headRotation.y >> baseFrame._headRotation.z >> baseFrame._headRotation.w;
+    fileStream >> baseFrame._leanSideways;
+    fileStream >> baseFrame._leanForward;
+    
+    recording->_frames << baseFrame;
+    
+    for (int i = 1; i < recording->_timestamps.size(); ++i) {
+        QBitArray mask;
+        QByteArray buffer;
+        QDataStream stream(&buffer, QIODevice::ReadOnly);
+        RecordingFrame frame;
+        RecordingFrame& previousFrame = recording->_frames.last();
+        
+        fileStream >> mask;
+        fileStream >> buffer;
+        int maskIndex = 0;
+        
+        // Blendshape Coefficients
+        frame._blendshapeCoefficients.resize(baseFrame._blendshapeCoefficients.size());
+        for (int i = 0; i < baseFrame._blendshapeCoefficients.size(); ++i) {
+            if (mask[maskIndex++]) {
+                stream >> frame._blendshapeCoefficients[i];
+            } else {
+                frame._blendshapeCoefficients[i] = previousFrame._blendshapeCoefficients[i];
+            }
+        }
+        
+        // Joint Rotations
+        frame._jointRotations.resize(baseFrame._jointRotations.size());
+        for (int i = 0; i < baseFrame._jointRotations.size(); ++i) {
+            if (mask[maskIndex++]) {
+                stream >> frame._jointRotations[i].x >> frame._jointRotations[i].y >> frame._jointRotations[i].z >> frame._jointRotations[i].w;
+            } else {
+                frame._jointRotations[i] = previousFrame._jointRotations[i];
+            }
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._translation.x >> frame._translation.y >> frame._translation.z;
+        } else {
+            frame._translation = previousFrame._translation;
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._rotation.x >> frame._rotation.y >> frame._rotation.z >> frame._rotation.w;
+        } else {
+            frame._rotation = previousFrame._rotation;
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._scale;
+        } else {
+            frame._scale = previousFrame._scale;
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._headRotation.x >> frame._headRotation.y >> frame._headRotation.z >> frame._headRotation.w;
+        } else {
+            frame._headRotation = previousFrame._headRotation;
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._leanSideways;
+        } else {
+            frame._leanSideways = previousFrame._leanSideways;
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._leanForward;
+        } else {
+            frame._leanForward = previousFrame._leanForward;
+        }
+        
+        recording->_frames << frame;
+    }
+    
+    QByteArray audioArray;
+    fileStream >> audioArray;
+    recording->addAudioPacket(audioArray);
+    
+    
+    qDebug() << "Read " << file.size()  << " bytes";
     return recording;
 }
+
+
