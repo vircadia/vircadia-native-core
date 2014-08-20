@@ -63,7 +63,6 @@ void Recording::addFrame(int timestamp, RecordingFrame &frame) {
 
 void Recording::addAudioPacket(QByteArray byteArray) {
     if (!_audio) {
-        qDebug() << "Current thread: " << QThread::currentThread();
         _audio = new Sound(byteArray);
     }
     _audio->append(byteArray);
@@ -442,7 +441,6 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
         fileStream << buffer;
     }
     
-    qDebug() << QThread::currentThread();
     fileStream << recording->_audio->getByteArray();
     
     qDebug() << "Wrote " << file.size() << " bytes in " << timer.elapsed();
