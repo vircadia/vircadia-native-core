@@ -932,8 +932,9 @@ void HeightfieldColorData::set(const QImage& image) {
     memcpy(_contents.data(), image.constBits(), _contents.size());
 }
 
-HeightfieldTextureData::HeightfieldTextureData(const QByteArray& contents) :
-    HeightfieldData(contents) {
+HeightfieldTextureData::HeightfieldTextureData(const QByteArray& contents, const QVector<SharedObjectPointer>& textures) :
+    HeightfieldData(contents),
+    _textures(textures) {
 }
 
 HeightfieldTextureData::HeightfieldTextureData(Bitstream& in, int bytes) {
@@ -947,6 +948,7 @@ HeightfieldTextureData::HeightfieldTextureData(Bitstream& in, int bytes, const H
     }
     QMutexLocker locker(&reference->getEncodedDeltaMutex());
     reference->setEncodedDelta(in.readAligned(bytes));
+    in.readDelta(_textures, reference->getTextures());
     reference->setDeltaData(HeightfieldDataPointer(this));
     _contents = reference->getContents();
     QImage image = decodeHeightfieldImage(reference->getEncodedDelta());
@@ -978,6 +980,7 @@ void HeightfieldTextureData::write(Bitstream& out) {
     }
     out << _encoded.size();
     out.writeAligned(_encoded);
+    out << _textures;
 }
 
 void HeightfieldTextureData::writeDelta(Bitstream& out, const HeightfieldTextureDataPointer& reference) {
@@ -1023,10 +1026,12 @@ void HeightfieldTextureData::writeDelta(Bitstream& out, const HeightfieldTexture
     }
     out << reference->getEncodedDelta().size();
     out.writeAligned(reference->getEncodedDelta());
+    out.writeDelta(_textures, reference->getTextures());
 }
 
 void HeightfieldTextureData::read(Bitstream& in, int bytes) {
     set(decodeHeightfieldImage(_encoded = in.readAligned(bytes)));
+    in >> _textures;
 }
 
 void HeightfieldTextureData::set(const QImage& image) {
@@ -1363,11 +1368,8 @@ bool HeightfieldTextureAttribute::merge(void*& parent, void* children[], bool po
             maxSize = qMax(maxSize, pointer->getContents().size());
         }
     }
-    if (maxSize == 0) {
-        *(HeightfieldTextureDataPointer*)&parent = HeightfieldTextureDataPointer();
-        return true;
-    }
-    return false;
+    *(HeightfieldTextureDataPointer*)&parent = HeightfieldTextureDataPointer();
+    return maxSize == 0;
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,

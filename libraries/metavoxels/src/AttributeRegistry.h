@@ -527,9 +527,12 @@ typedef QExplicitlySharedDataPointer<HeightfieldTextureData> HeightfieldTextureD
 class HeightfieldTextureData : public HeightfieldData {
 public:
     
-    HeightfieldTextureData(const QByteArray& contents);
+    HeightfieldTextureData(const QByteArray& contents,
+        const QVector<SharedObjectPointer>& textures = QVector<SharedObjectPointer>());
     HeightfieldTextureData(Bitstream& in, int bytes);
     HeightfieldTextureData(Bitstream& in, int bytes, const HeightfieldTextureDataPointer& reference);
+    
+    const QVector<SharedObjectPointer>& getTextures() const { return _textures; }
     
     void write(Bitstream& out);
     void writeDelta(Bitstream& out, const HeightfieldTextureDataPointer& reference);
@@ -538,6 +541,8 @@ private:
     
     void read(Bitstream& in, int bytes);
     void set(const QImage& image);
+    
+    QVector<SharedObjectPointer> _textures;
 };
 
 /// Contains the description of a heightfield texture.
