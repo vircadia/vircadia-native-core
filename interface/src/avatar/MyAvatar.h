@@ -134,6 +134,10 @@ public:
     /// Renders a laser pointer for UI picking
     void renderLaserPointers();
     glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
+    
+    const RecorderPointer getRecorder() const { return _recorder; }
+    const PlayerPointer getPlayer() const { return _player; }
+    
 public slots:
     void goHome();
     void increaseSize();
@@ -157,14 +161,15 @@ public slots:
     bool setModelReferential(int id);
     bool setJointReferential(int id, int jointIndex);
     
-    const RecorderPointer getRecorder() const { return _recorder; }
-    bool isRecording() const;
-    RecorderPointer startRecording();
+    bool isRecording();
+    void startRecording();
     void stopRecording();
+    void saveRecording(QString filename);
     
-    const PlayerPointer getPlayer() const { return _player; }
-    bool isPlaying() const;
-    PlayerPointer startPlaying();
+    bool isPlaying();
+    void loadRecording(QString filename);
+    void loadLastRecording();
+    void startPlaying();
     void stopPlaying();
     
     
