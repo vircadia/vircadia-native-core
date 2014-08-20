@@ -247,7 +247,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                     quint64 usecsNow = usecTimestampNow();
                     if (_lastTrackingStateReceived != 0) {
                         _averageFrameTime = FRAME_AVERAGING_FACTOR * _averageFrameTime +
-                        (1.0f - FRAME_AVERAGING_FACTOR) * (float)(usecsNow - _lastTrackingStateReceived) / 1000000.f;
+                        (1.0f - FRAME_AVERAGING_FACTOR) * (float)(usecsNow - _lastTrackingStateReceived) / 1000000.0f;
                     }
                     _lastTrackingStateReceived = usecsNow;
                 }

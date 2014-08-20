@@ -194,12 +194,12 @@ float updateAndGetCoefficient(float * coefficient, float currentValue, bool scal
     coefficient[AVG] = LONG_TERM_AVERAGE * coefficient[AVG] + (1.f - LONG_TERM_AVERAGE) * currentValue;
     if (coefficient[MAX] > coefficient[MIN]) {
         if (scaleToRange) {
-            return glm::clamp((currentValue - coefficient[AVG]) / (coefficient[MAX] - coefficient[MIN]), 0.f, 1.f);
+            return glm::clamp((currentValue - coefficient[AVG]) / (coefficient[MAX] - coefficient[MIN]), 0.0f, 1.0f);
         } else {
-            return glm::clamp(currentValue - coefficient[AVG], 0.f, 1.f);
+            return glm::clamp(currentValue - coefficient[AVG], 0.0f, 1.0f);
         }
     } else {
-        return 0.f;
+        return 0.0f;
     }
 }
 
@@ -269,8 +269,8 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _blendshapeCoefficients[_jawOpenIndex] = rescaleCoef(packet.expressions[21]) * JAW_OPEN_MAGNIFIER;
         
         float SMILE_MULTIPLIER = 2.0f;
-        _blendshapeCoefficients[_mouthSmileLeftIndex] = glm::clamp(packet.expressions[24] * SMILE_MULTIPLIER, 0.f, 1.f);
-        _blendshapeCoefficients[_mouthSmileRightIndex] = glm::clamp(packet.expressions[23] * SMILE_MULTIPLIER, 0.f, 1.f);
+        _blendshapeCoefficients[_mouthSmileLeftIndex] = glm::clamp(packet.expressions[24] * SMILE_MULTIPLIER, 0.0f, 1.0f);
+        _blendshapeCoefficients[_mouthSmileRightIndex] = glm::clamp(packet.expressions[23] * SMILE_MULTIPLIER, 0.0f, 1.0f);
         
         
     } else {
