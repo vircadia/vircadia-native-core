@@ -223,7 +223,7 @@ void Player::startPlaying() {
         _audioThread = new QThread();
         _options.setPosition(_avatar->getPosition());
         _options.setOrientation(_avatar->getOrientation());
-        _injector.reset(new AudioInjector(_recording->getAudio(), _options));
+        _injector.reset(new AudioInjector(_recording->getAudio(), _options), &QObject::deleteLater);
         _injector->moveToThread(_audioThread);
         _audioThread->start();
         QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
@@ -317,13 +317,18 @@ bool Player::computeCurrentFrame() {
 }
 
 void writeRecordingToFile(RecordingPointer recording, QString filename) {
-    qDebug() << "Writing recording to " << filename;
+    if (!recording || recording->getFrameNumber() < 1) {
+        qDebug() << "Can't save empty recording";
+        return;
+    }
+    
+    qDebug() << "Writing recording to " << filename << ".";
     QElapsedTimer timer;
     QFile file(filename);
     if (!file.open(QIODevice::WriteOnly)){
         return;
     }
-    qDebug() << file.fileName();
+    timer.start();
     
     
     QDataStream fileStream(&file);
@@ -443,20 +448,21 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     
     fileStream << recording->_audio->getByteArray();
     
-    qDebug() << "Wrote " << file.size() << " bytes in " << timer.elapsed();
+    qDebug() << "Wrote " << file.size() << " bytes in " << timer.elapsed() << " ms.";
 }
 
 RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename) {
-    qDebug() << "Reading recording from " << filename;
+    qDebug() << "Reading recording from " << filename << ".";
     if (!recording) {
         recording.reset(new Recording());
     }
     
+    QElapsedTimer timer;
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly)){
         return recording;
     }
-    
+    timer.start();
     QDataStream fileStream(&file);
     
     fileStream >> recording->_timestamps;
@@ -557,7 +563,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     recording->addAudioPacket(audioArray);
     
     
-    qDebug() << "Read " << file.size()  << " bytes";
+    qDebug() << "Read " << file.size()  << " bytes in " << timer.elapsed() << " ms.";
     return recording;
 }
 
