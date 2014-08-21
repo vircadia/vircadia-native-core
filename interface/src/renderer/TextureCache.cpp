@@ -145,6 +145,8 @@ GLuint TextureCache::getPermutationNormalTextureID() {
 }
 
 const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
+const unsigned char TRANSPARENT_WHITE[] = { 0xFF, 0xFF, 0xFF, 0x0 };
+const unsigned char OPAQUE_BLACK[] = { 0x0, 0x0, 0x0, 0xFF };
 const unsigned char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
 
 static void loadSingleColorTexture(const unsigned char* color) {
@@ -175,13 +177,13 @@ GLuint TextureCache::getBlueTextureID() {
 /// Extra data for creating textures.
 class TextureExtra {
 public:
-    bool normalMap;
+    TextureType type;
     const QByteArray& content;
 };
 
-NetworkTexturePointer TextureCache::getTexture(const QUrl& url, bool normalMap, bool dilatable, const QByteArray& content) {
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type, bool dilatable, const QByteArray& content) {
     if (!dilatable) {
-        TextureExtra extra = { normalMap, content };
+        TextureExtra extra = { type, content };
         return ResourceCache::getResource(url, QUrl(), false, &extra).staticCast<NetworkTexture>();
     }
     NetworkTexturePointer texture = _dilatableNetworkTextures.value(url);
@@ -292,7 +294,7 @@ bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
-    return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->normalMap, textureExtra->content),
+    return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->type, textureExtra->content),
         &Resource::allReferencesCleared);
 }
 
@@ -316,7 +318,7 @@ Texture::~Texture() {
     glDeleteTextures(1, &_id);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap, const QByteArray& content) :
+NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
     Resource(url, !content.isEmpty()),
     _translucent(false) {
     
@@ -324,9 +326,25 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap, const QByteArray
         _loaded = true;
     }
     
-    // default to white/blue
+    // default to white/blue/black
     glBindTexture(GL_TEXTURE_2D, getID());
-    loadSingleColorTexture(normalMap ? OPAQUE_BLUE : OPAQUE_WHITE);
+    switch (type) {
+        case NORMAL_TEXTURE:
+            loadSingleColorTexture(OPAQUE_BLUE);  
+            break;
+        
+        case SPECULAR_TEXTURE:
+            loadSingleColorTexture(OPAQUE_BLACK);  
+            break;
+            
+        case SPLAT_TEXTURE:
+            loadSingleColorTexture(TRANSPARENT_WHITE);   
+            break;
+            
+        default:
+            loadSingleColorTexture(OPAQUE_WHITE);        
+            break;
+    }
     glBindTexture(GL_TEXTURE_2D, 0);
     
     // if we have content, load it after we have our self pointer
@@ -465,7 +483,7 @@ void NetworkTexture::imageLoaded(const QImage& image) {
 }
 
 DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, const QByteArray& content) :
-    NetworkTexture(url, false, content),
+    NetworkTexture(url, DEFAULT_TEXTURE, content),
     _innerRadius(0),
     _outerRadius(0)
 {

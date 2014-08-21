@@ -25,6 +25,8 @@ class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
+enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, SPLAT_TEXTURE };
+
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache {
     Q_OBJECT
@@ -49,7 +51,7 @@ public:
     GLuint getBlueTextureID();
 
     /// Loads a texture from the specified URL.
-    NetworkTexturePointer getTexture(const QUrl& url, bool normalMap = false, bool dilatable = false,
+    NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
         const QByteArray& content = QByteArray());
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
@@ -123,7 +125,7 @@ class NetworkTexture : public Resource, public Texture {
 
 public:
     
-    NetworkTexture(const QUrl& url, bool normalMap, const QByteArray& content);
+    NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content);
 
     /// Checks whether it "looks like" this texture is translucent
     /// (majority of pixels neither fully opaque or fully transparent).

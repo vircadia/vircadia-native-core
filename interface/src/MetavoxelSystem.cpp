@@ -719,7 +719,7 @@ void HeightfieldBuffer::render(bool cursor) {
                 const SharedObjectPointer texture = _textures.at(i);
                 if (texture) {
                     _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
-                        static_cast<HeightfieldTexture*>(texture.data())->getURL());
+                        static_cast<HeightfieldTexture*>(texture.data())->getURL(), SPLAT_TEXTURE);
                 }
             }
         }
