@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>ChatWindow</class>
- <widget class="QDialog" name="ChatWindow">
+ <widget class="QWidget" name="ChatWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -83,45 +83,6 @@
          </property>
          <property name="text">
           <string> online now:</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="closeButton">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16</width>
-           <height>16</height>
-          </size>
-         </property>
-         <property name="focusPolicy">
-          <enum>Qt::NoFocus</enum>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">QPushButton {
-    background-color: rgba( 0, 0, 0, 0% );
-	border: none;
-    image: url(../resources/images/close.svg)
-}
-
-
-QPushButton:pressed {
-    background-color: rgba( 0, 0, 0, 0% );
-	border: none;
-    image: url(../resources/images/close_down.svg)
-}</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="flat">
-          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -283,7 +244,7 @@ border-color: palette(dark); border-style: solid;  border-left-width: 1px; borde
            <enum>QAbstractScrollArea::AdjustToContents</enum>
           </property>
           <property name="tabChangesFocus">
-            <bool>true</bool>
+           <bool>true</bool>
           </property>
           <property name="acceptRichText">
            <bool>false</bool>
@@ -308,22 +269,5 @@ border-color: palette(dark); border-style: solid;  border-left-width: 1px; borde
   <tabstop>messagesScrollArea</tabstop>
  </tabstops>
  <resources/>
- <connections>
-  <connection>
-   <sender>closeButton</sender>
-   <signal>clicked()</signal>
-   <receiver>ChatWindow</receiver>
-   <slot>hide()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>390</x>
-     <y>42</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>550</x>
-     <y>42</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>

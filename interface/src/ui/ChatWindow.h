@@ -38,7 +38,7 @@ const int AUTO_SCROLL_THRESHOLD = 20;
 class ChatWindow;
 }
 
-class ChatWindow : public FramelessDialog {
+class ChatWindow : public QWidget {
     Q_OBJECT
 
 public:
