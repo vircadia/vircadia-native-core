@@ -249,6 +249,8 @@ public:
     static ProgramObject& getSplatHeightfieldProgram() { return _splatHeightfieldProgram; }
     static int getSplatHeightScaleLocation() { return _splatHeightScaleLocation; }
     static int getSplatTextureScaleLocation() { return _splatTextureScaleLocation; }
+    static int getSplatTextureValueMinimaLocation() { return _splatTextureValueMinimaLocation; }
+    static int getSplatTextureValueMaximaLocation() { return _splatTextureValueMaximaLocation; }
     
     static ProgramObject& getLightHeightfieldProgram() { return _lightHeightfieldProgram; }
     static int getLightHeightScaleLocation() { return _lightHeightScaleLocation; }
@@ -292,6 +294,8 @@ private:
     static ProgramObject _splatHeightfieldProgram;
     static int _splatHeightScaleLocation;
     static int _splatTextureScaleLocation;
+    static int _splatTextureValueMinimaLocation;
+    static int _splatTextureValueMaximaLocation;
     
     static ProgramObject _lightHeightfieldProgram;
     static int _lightHeightScaleLocation;

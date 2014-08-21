@@ -540,7 +540,6 @@ public:
 private:
     
     void read(Bitstream& in, int bytes);
-    void set(const QImage& image);
     
     QVector<SharedObjectPointer> _textures;
 };

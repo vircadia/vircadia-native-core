@@ -932,6 +932,29 @@ void HeightfieldColorData::set(const QImage& image) {
     memcpy(_contents.data(), image.constBits(), _contents.size());
 }
 
+const int TEXTURE_HEADER_SIZE = sizeof(qint32) * 4;
+
+static QByteArray encodeTexture(int offsetX, int offsetY, int width, int height, const QByteArray& contents) {
+    QByteArray inflated(TEXTURE_HEADER_SIZE, 0);
+    qint32* header = (qint32*)inflated.data();
+    *header++ = offsetX;
+    *header++ = offsetY;
+    *header++ = width;
+    *header++ = height;
+    inflated.append(contents);
+    return qCompress(inflated);
+}
+
+static QByteArray decodeTexture(const QByteArray& encoded, int& offsetX, int& offsetY, int& width, int& height) {
+    QByteArray inflated = qUncompress(encoded);
+    const qint32* header = (const qint32*)inflated.constData();
+    offsetX = *header++;
+    offsetY = *header++;
+    width = *header++;
+    height = *header++;
+    return inflated.mid(TEXTURE_HEADER_SIZE);
+}
+
 HeightfieldTextureData::HeightfieldTextureData(const QByteArray& contents, const QVector<SharedObjectPointer>& textures) :
     HeightfieldData(contents),
     _textures(textures) {
@@ -951,32 +974,31 @@ HeightfieldTextureData::HeightfieldTextureData(Bitstream& in, int bytes, const H
     in.readDelta(_textures, reference->getTextures());
     reference->setDeltaData(HeightfieldDataPointer(this));
     _contents = reference->getContents();
-    QImage image = decodeHeightfieldImage(reference->getEncodedDelta());
-    if (image.isNull()) {
+    
+    int offsetX, offsetY, width, height;
+    QByteArray delta = decodeTexture(reference->getEncodedDelta(), offsetX, offsetY, width, height);
+    if (delta.isEmpty()) {
         return;
     }
-    QPoint offset = image.offset();
-    if (offset.x() == 0) {
-        set(image);
+    if (offsetX == 0) {
+        _contents = delta;
         return;
     }
-    int minX = offset.x() - 1;
-    int minY = offset.y() - 1;
+    int minX = offsetX - 1;
+    int minY = offsetY - 1;
     int size = glm::sqrt((float)_contents.size());
+    const char* src = delta.constData();
     char* dest = _contents.data() + minY * size + minX;
-    for (int y = 0; y < image.height(); y++) {
-        memcpy(dest, image.constScanLine(y), image.width());
-        dest += size;
+    for (int y = 0; y < height; y++, src += width, dest += size) {
+        memcpy(dest, src, width);
     }
 }
 
 void HeightfieldTextureData::write(Bitstream& out) {
     QMutexLocker locker(&_encodedMutex);
     if (_encoded.isEmpty()) {
-        QImage image;        
         int size = glm::sqrt((float)_contents.size());
-        image = QImage((uchar*)_contents.data(), size, size, QImage::Format_Indexed8);
-        _encoded = encodeHeightfieldImage(image, true);
+        _encoded = encodeTexture(0, 0, size, size, _contents);
     }
     out << _encoded.size();
     out.writeAligned(_encoded);
@@ -990,7 +1012,6 @@ void HeightfieldTextureData::writeDelta(Bitstream& out, const HeightfieldTexture
     }
     QMutexLocker locker(&reference->getEncodedDeltaMutex());
     if (reference->getEncodedDelta().isEmpty() || reference->getDeltaData() != this) {
-        QImage image;
         int size = glm::sqrt((float)_contents.size());
         int minX = size, minY = size;
         int maxX = -1, maxY = -1;
@@ -1010,18 +1031,19 @@ void HeightfieldTextureData::writeDelta(Bitstream& out, const HeightfieldTexture
                 maxY = qMax(maxY, y);
             }
         }
+        QByteArray delta;
+        int width = 0, height = 0;
         if (maxX >= minX) {
-            int width = maxX - minX + 1;
-            int height = maxY - minY + 1;
-            image = QImage(width, height, QImage::Format_Indexed8);
+            width = maxX - minX + 1;
+            height = maxY - minY + 1;
+            delta = QByteArray(width * height, 0);
+            char* dest = delta.data();
             src = _contents.constData() + minY * size + minX;
-            for (int y = 0; y < height; y++) {
-                memcpy(image.scanLine(y), src, width);
-                src += size;
+            for (int y = 0; y < height; y++, src += size, dest += width) {
+                memcpy(dest, src, width);
             }
         }
-        image.setOffset(QPoint(minX + 1, minY + 1));
-        reference->setEncodedDelta(encodeHeightfieldImage(image, true));
+        reference->setEncodedDelta(encodeTexture(minX + 1, minY + 1, width, height, delta));
         reference->setDeltaData(HeightfieldDataPointer(this));
     }
     out << reference->getEncodedDelta().size();
@@ -1030,13 +1052,9 @@ void HeightfieldTextureData::writeDelta(Bitstream& out, const HeightfieldTexture
 }
 
 void HeightfieldTextureData::read(Bitstream& in, int bytes) {
-    set(decodeHeightfieldImage(_encoded = in.readAligned(bytes)));
+    int offsetX, offsetY, width, height;
+    _contents = decodeTexture(_encoded = in.readAligned(bytes), offsetX, offsetY, width, height);
     in >> _textures;
-}
-
-void HeightfieldTextureData::set(const QImage& image) {
-    _contents.resize(image.width() * image.height());
-    memcpy(_contents.data(), image.constBits(), _contents.size());
 }
 
 HeightfieldTexture::HeightfieldTexture() {

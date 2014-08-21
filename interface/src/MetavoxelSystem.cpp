@@ -673,13 +673,17 @@ public:
     glm::vec3 vertex;
 };
 
+const int SPLAT_COUNT = 4;
+const GLint SPLAT_TEXTURE_UNITS[] = { 3, 4, 5, 6 };
+
 void HeightfieldBuffer::render(bool cursor) {
     // initialize textures, etc. on first render
     if (_heightTextureID == 0) {
         glGenTextures(1, &_heightTextureID);
         glBindTexture(GL_TEXTURE_2D, _heightTextureID);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _heightSize, _heightSize, 0,
@@ -702,7 +706,8 @@ void HeightfieldBuffer::render(bool cursor) {
         if (!_texture.isEmpty()) {
             glGenTextures(1, &_textureTextureID);
             glBindTexture(GL_TEXTURE_2D, _textureTextureID);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             int textureSize = glm::sqrt(_texture.size());    
@@ -800,11 +805,53 @@ void HeightfieldBuffer::render(bool cursor) {
         glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
         
         glDepthFunc(GL_LEQUAL);
+        glDepthMask(false);
         glEnable(GL_BLEND);
-        glBlendFunc(GL_DST_COLOR, GL_ZERO);
+        glDisable(GL_ALPHA_TEST);
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(-1.0f, -1.0f);
+        
+        DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().bind();
+        DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+            DefaultMetavoxelRendererImplementation::getSplatHeightScaleLocation(), 1.0f / _heightSize);
+        DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+            DefaultMetavoxelRendererImplementation::getSplatTextureScaleLocation(), (float)_heightSize / innerSize);
+            
+        glBindTexture(GL_TEXTURE_2D, _textureTextureID);
     
+        const int TEXTURES_PER_SPLAT = 4;
+        for (int i = 0; i < _textures.size(); i += TEXTURES_PER_SPLAT) {
+            for (int j = 0; j < SPLAT_COUNT; j++) {
+                glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[j]);
+                int index = i + j;
+                if (index < _networkTextures.size()) {
+                    const NetworkTexturePointer& texture = _networkTextures.at(index);
+                    glBindTexture(GL_TEXTURE_2D, texture ? texture->getID() : 0);
+                } else {
+                    glBindTexture(GL_TEXTURE_2D, 0);
+                }
+            }
+            const float QUARTER_STEP = 0.25f * EIGHT_BIT_MAXIMUM_RECIPROCAL;
+            DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+                DefaultMetavoxelRendererImplementation::getSplatTextureValueMinimaLocation(),
+                (i + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP, (i + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                (i + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP, (i + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP);
+            DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+                DefaultMetavoxelRendererImplementation::getSplatTextureValueMaximaLocation(),
+                (i + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP, (i + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                (i + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP, (i + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP);
+            glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+        }
+    
+        glEnable(GL_ALPHA_TEST);
+        glBlendFunc(GL_DST_COLOR, GL_ZERO);
+    
+        for (int i = 0; i < SPLAT_COUNT; i++) {
+            glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[i]);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+    
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, 0);
     
         if (Menu::getInstance()->isOptionChecked(MenuOption::SimpleShadows)) {
@@ -831,7 +878,8 @@ void HeightfieldBuffer::render(bool cursor) {
         glDisable(GL_BLEND);
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
         glDepthFunc(GL_LESS);
-    
+        glDepthMask(true);
+        
         glActiveTexture(GL_TEXTURE0);
         
     } else {
@@ -992,9 +1040,12 @@ void DefaultMetavoxelRendererImplementation::init() {
         
         _splatHeightfieldProgram.bind();
         _splatHeightfieldProgram.setUniformValue("heightMap", 0);
-        _splatHeightfieldProgram.setUniformValue("diffuseMap", 1);
+        _splatHeightfieldProgram.setUniformValue("textureMap", 1);
+        _splatHeightfieldProgram.setUniformValueArray("diffuseMaps", SPLAT_TEXTURE_UNITS, SPLAT_COUNT);
         _splatHeightScaleLocation = _splatHeightfieldProgram.uniformLocation("heightScale");
         _splatTextureScaleLocation = _splatHeightfieldProgram.uniformLocation("textureScale");
+        _splatTextureValueMinimaLocation = _splatHeightfieldProgram.uniformLocation("textureValueMinima");
+        _splatTextureValueMaximaLocation = _splatHeightfieldProgram.uniformLocation("textureValueMaxima");
         _splatHeightfieldProgram.release();
         
         _lightHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
@@ -1638,6 +1689,8 @@ int DefaultMetavoxelRendererImplementation::_baseColorScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_splatHeightfieldProgram;
 int DefaultMetavoxelRendererImplementation::_splatHeightScaleLocation;
 int DefaultMetavoxelRendererImplementation::_splatTextureScaleLocation;
+int DefaultMetavoxelRendererImplementation::_splatTextureValueMinimaLocation;
+int DefaultMetavoxelRendererImplementation::_splatTextureValueMaximaLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_lightHeightfieldProgram;
 int DefaultMetavoxelRendererImplementation::_lightHeightScaleLocation; 
 ProgramObject DefaultMetavoxelRendererImplementation::_shadowLightHeightfieldProgram;
