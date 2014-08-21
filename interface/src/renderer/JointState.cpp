@@ -145,7 +145,7 @@ glm::quat JointState::getVisibleRotationInParentFrame() const {
 void JointState::restoreRotation(float fraction, float priority) {
     assert(_fbxJoint != NULL);
     if (priority == _animationPriority || _animationPriority == 0.0f) {
-        setRotationInConstrainedFrame(safeMix(_rotationInConstrainedFrame, _fbxJoint->rotation, fraction));
+        setRotationInConstrainedFrameInternal(safeMix(_rotationInConstrainedFrame, _fbxJoint->rotation, fraction));
         _animationPriority = 0.0f;
     }
 }
@@ -158,7 +158,7 @@ void JointState::setRotationInBindFrame(const glm::quat& rotation, float priorit
         if (constrain && _constraint) {
             _constraint->softClamp(targetRotation, _rotationInConstrainedFrame, 0.5f);
         }
-        setRotationInConstrainedFrame(targetRotation);
+        setRotationInConstrainedFrameInternal(targetRotation);
         _animationPriority = priority;
     }
 }
@@ -189,7 +189,7 @@ void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, floa
         _rotation = delta * getRotation();
         return;
     }
-    setRotationInConstrainedFrame(targetRotation);
+    setRotationInConstrainedFrameInternal(targetRotation);
 }
 
 /// Applies delta rotation to joint but mixes a little bit of the default pose as well.
@@ -208,7 +208,7 @@ void JointState::mixRotationDelta(const glm::quat& delta, float mixFactor, float
     if (_constraint) {
         _constraint->softClamp(targetRotation, _rotationInConstrainedFrame, 0.5f);
     }
-    setRotationInConstrainedFrame(targetRotation);
+    setRotationInConstrainedFrameInternal(targetRotation);
 }
 
 void JointState::mixVisibleRotationDelta(const glm::quat& delta, float mixFactor) {
@@ -232,7 +232,17 @@ glm::quat JointState::computeVisibleParentRotation() const {
     return _visibleRotation * glm::inverse(_fbxJoint->preRotation * _visibleRotationInConstrainedFrame * _fbxJoint->postRotation);
 }
 
-void JointState::setRotationInConstrainedFrame(const glm::quat& targetRotation) {
+void JointState::setRotationInConstrainedFrame(glm::quat targetRotation, float priority, bool constrain) {
+    if (priority >= _animationPriority || _animationPriority == 0.0f) {
+        if (constrain && _constraint) {
+            _constraint->softClamp(targetRotation, _rotationInConstrainedFrame, 0.5f);
+        }
+        setRotationInConstrainedFrameInternal(targetRotation);
+        _animationPriority = priority;
+    }
+}
+
+void JointState::setRotationInConstrainedFrameInternal(const glm::quat& targetRotation) {
     glm::quat parentRotation = computeParentRotation();
     _rotationInConstrainedFrame = targetRotation;
     _transformChanged = true;

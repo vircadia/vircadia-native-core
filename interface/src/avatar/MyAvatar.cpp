@@ -992,36 +992,39 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
-const float JOINT_PRIORITY = 2.0f;
+const float SCRIPT_PRIORITY = DEFAULT_PRIORITY + 1.0f;
+const float RECORDER_PRIORITY = SCRIPT_PRIORITY + 1.0f;
 
 void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
-    for (int i = 0; i < jointRotations.size(); ++i) {
-        if (i < _jointData.size()) {
-            _skeletonModel.setJointState(i, true, jointRotations[i], JOINT_PRIORITY + 1.0f);
-        }
+    int numStates = glm::min(_skeletonModel.getJointStateCount(), jointRotations.size());
+    for (int i = 0; i < numStates; ++i) {
+        // HACK: ATM only Recorder calls setJointRotations() so we hardcode its priority here
+        _skeletonModel.setJointState(i, true, jointRotations[i], RECORDER_PRIORITY);
     }
 }
 
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
-    Avatar::setJointData(index, rotation);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, true, rotation, JOINT_PRIORITY);
+        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+        _skeletonModel.setJointState(index, true, rotation, SCRIPT_PRIORITY);
     }
 }
 
 void MyAvatar::clearJointData(int index) {
-    Avatar::clearJointData(index);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, false, glm::quat(), JOINT_PRIORITY);
+        // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
+        _skeletonModel.setJointState(index, false, glm::quat(), 0.0f);
     }
 }
 
 void MyAvatar::clearJointsData() {
-    for (int i = 0; i < _jointData.size(); ++i) {
-        Avatar::clearJointData(i);
-        if (QThread::currentThread() == thread()) {
-            _skeletonModel.clearJointAnimationPriority(i);
-        }
+    clearJointAnimationPriorities();
+}
+
+void MyAvatar::clearJointAnimationPriorities() {
+    int numStates = _skeletonModel.getJointStateCount();
+    for (int i = 0; i < numStates; ++i) {
+        _skeletonModel.clearJointAnimationPriority(i);
     }
 }
 
