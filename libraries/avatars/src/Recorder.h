@@ -23,10 +23,10 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <AudioInjector.h>
-#include <AvatarData.h>
 #include <SharedUtil.h>
 #include <Sound.h>
 
+class AvatarData;
 class Recorder;
 class Recording;
 class Player;

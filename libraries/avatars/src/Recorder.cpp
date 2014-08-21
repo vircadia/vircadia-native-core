@@ -15,6 +15,7 @@
 #include <QMetaObject>
 #include <QObject>
 
+#include "AvatarData.h"
 #include "Recorder.h"
 
 void RecordingFrame::setBlendshapeCoefficients(QVector<float> blendshapeCoefficients) {
@@ -281,7 +282,9 @@ void Player::play() {
         _avatar->setTargetScale(_recording->getFrame(_currentFrame).getScale());
         _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
         HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
-        head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
+        if (head) {
+            head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
+        }
     } else {
         _avatar->setPosition(_recording->getFrame(0).getTranslation() +
                              _recording->getFrame(_currentFrame).getTranslation());
@@ -291,7 +294,10 @@ void Player::play() {
                                 _recording->getFrame(_currentFrame).getScale());
         _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
         HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
-        head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
+        if (head) {
+            
+            head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
+        }
     }
     
     _options.setPosition(_avatar->getPosition());
