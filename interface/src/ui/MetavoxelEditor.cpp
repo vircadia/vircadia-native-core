@@ -1188,7 +1188,9 @@ QVariant HeightfieldTextureBrushTool::createEdit(bool alternate) {
     if (alternate) {
         return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), SharedObjectPointer(), QColor()));
     } else {
-        return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), _textureEditor->getObject(),
+        SharedObjectPointer texture = _textureEditor->getObject();
+        _textureEditor->detachObject();
+        return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), texture,
             _texture ? _texture->getAverageColor() : QColor()));
     }   
 }

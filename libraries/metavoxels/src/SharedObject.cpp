@@ -193,7 +193,9 @@ void SharedObjectEditor::detachObject() {
     for (int i = 0; i < form->rowCount(); i++) {
         QWidget* widget = form->itemAt(i, QFormLayout::FieldRole)->widget();
         QMetaProperty property = metaObject->property(widget->property("propertyIndex").toInt());
-        connect(_object.data(), signal(property.notifySignal().methodSignature()), SLOT(updateProperty()));
+        if (property.hasNotifySignal()) {
+            connect(_object.data(), signal(property.notifySignal().methodSignature()), SLOT(updateProperty()));
+        }
     }
 }
 
