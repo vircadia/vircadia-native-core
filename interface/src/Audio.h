@@ -105,7 +105,6 @@ public:
     float getAudioOutputAverageMsecsUnplayed() const { return (float)_audioOutputMsecsUnplayedStats.getWindowAverage(); }
     
     void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
-    void setPlayer(PlayerPointer player) { _player = player; }
 
 public slots:
     void start();
@@ -314,7 +313,6 @@ private:
     AudioOutputIODevice _audioOutputIODevice;
     
     WeakRecorderPointer _recorder;
-    WeakPlayerPointer _player;
 };
 
 

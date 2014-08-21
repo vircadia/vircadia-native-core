@@ -652,7 +652,6 @@ void MyAvatar::startPlaying() {
         _player = PlayerPointer(new Player(this));
     }
     
-    Application::getInstance()->getAudio()->setPlayer(_player);
     _player->startPlaying();
 }
 
