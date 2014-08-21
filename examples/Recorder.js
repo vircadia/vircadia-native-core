@@ -15,17 +15,16 @@ var recordingFile = "recording.rec";
 
 var windowDimensions = Controller.getViewportDimensions();
 var TOOL_ICON_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
-var TOOL_WIDTH = 50;
-var TOOL_HEIGHT = 50;
 var ALPHA_ON = 1.0;
-var ALPHA_OFF = 0.5;
+var ALPHA_OFF = 0.7;
+Tool.IMAGE_WIDTH *= 0.7;
+Tool.IMAGE_HEIGHT *= 0.7;
 
 var toolBar = null;
 var recordIcon;
 var playIcon;
 var saveIcon;
 var loadIcon;
-var loadLastIcon;
 setupToolBar();
 
 function setupToolBar() {
@@ -35,48 +34,36 @@ function setupToolBar() {
 	}
 
 	toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL);
+	toolBar.setBack({ red: 128, green: 128, blue: 128 }, 0.8);
 
 	recordIcon = toolBar.addTool({
-	    imageURL: TOOL_ICON_URL + "add-model-tool.svg",
-	    subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-	    width: TOOL_WIDTH,
-	    height: TOOL_HEIGHT,
-	    alpha: ALPHA_ON,
+	    imageURL: "file:/Users/clement/Downloads/svg/camera8.svg",
+	    width: Tool.IMAGE_WIDTH,
+	    height: Tool.IMAGE_HEIGHT,
+	    alpha: (MyAvatar.isRecording()) ? ALPHA_ON : ALPHA_OFF,
 	    visible: true
-	}, true, MyAvatar.isRecording());
+	}, false);
 
 	playIcon = toolBar.addTool({
-	    imageURL: TOOL_ICON_URL + "add-model-tool.svg",
-	    subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-	    width: TOOL_WIDTH,
-	    height: TOOL_HEIGHT,
+	    imageURL: "file:/Users/clement/Downloads/svg/media23.svg",
+	    width: Tool.IMAGE_WIDTH,
+	    height: Tool.IMAGE_HEIGHT,
 	    alpha: ALPHA_ON,
 	    visible: true
 	}, false, false);
 
 	saveIcon = toolBar.addTool({
-	    imageURL: TOOL_ICON_URL + "add-model-tool.svg",
-	    subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-	    width: TOOL_WIDTH,
-	    height: TOOL_HEIGHT,
+	    imageURL: "file:/Users/clement/Downloads/svg/save15.svg",
+	    width: Tool.IMAGE_WIDTH,
+	    height: Tool.IMAGE_HEIGHT,
 	    alpha: ALPHA_ON,
 	    visible: true
 	}, false, false);
 
 	loadIcon = toolBar.addTool({
-	    imageURL: TOOL_ICON_URL + "add-model-tool.svg",
-	    subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-	    width: TOOL_WIDTH,
-	    height: TOOL_HEIGHT,
-	    alpha: ALPHA_ON,
-	    visible: true
-	}, false, false);
-
-	loadLastIcon = toolBar.addTool({
-	    imageURL: TOOL_ICON_URL + "add-model-tool.svg",
-	    subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-	    width: TOOL_WIDTH,
-	    height: TOOL_HEIGHT,
+	    imageURL: "file:/Users/clement/Downloads/svg/upload2.svg",
+	    width: Tool.IMAGE_WIDTH,
+	    height: Tool.IMAGE_HEIGHT,
 	    alpha: ALPHA_ON,
 	    visible: true
 	}, false, false);
@@ -96,8 +83,13 @@ function mousePressEvent(event) {
   if (recordIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
   		MyAvatar.startRecording();
+  		toolBar.setAlpha(ALPHA_ON, recordIcon);
+	toolBar.setBack({ red: 128, green: 0, blue: 0 }, 0.9);
   	} else {
   		MyAvatar.stopRecording();
+  		MyAvatar.loadLastRecording();
+  		toolBar.setAlpha(ALPHA_OFF, recordIcon);
+	toolBar.setBack({ red: 128, green: 128, blue: 128 }, 0.8);
   	}
   } else if (playIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
@@ -113,8 +105,6 @@ function mousePressEvent(event) {
   } else if (loadIcon === toolBar.clicked(clickedOverlay)) {
   	recordingFile = Window.browse("Load recorcding from file", ".", "*.rec");
   	MyAvatar.loadRecording(recordingFile);
-  } else if (loadLastIcon === toolBar.clicked(clickedOverlay)) {
-  	MyAvatar.loadLastRecording();
   } else {
 
   }
