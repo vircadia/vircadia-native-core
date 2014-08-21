@@ -165,7 +165,7 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
     }
 
     const QRect parentGeometry = parentWidget()->geometry();
-    setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y(), size().width(), parentWidget()->size().height());
+    setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y(), size().width(), parentWidget()->height());
 
     QWidget::showEvent(event);
 }
