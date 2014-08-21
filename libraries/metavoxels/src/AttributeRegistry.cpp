@@ -274,9 +274,7 @@ MetavoxelNode* Attribute::expandMetavoxelRoot(const MetavoxelNode& root) {
             MetavoxelNode* newGrandchild = new MetavoxelNode(attribute);
             newChild->setChild((index + j) % MetavoxelNode::CHILD_COUNT, newGrandchild);
         }
-        newChild->mergeChildren(attribute);
     }
-    newParent->mergeChildren(attribute);
     return newParent;
 }
 
@@ -1501,9 +1499,7 @@ MetavoxelNode* SharedObjectSetAttribute::expandMetavoxelRoot(const MetavoxelNode
             MetavoxelNode* newGrandchild = new MetavoxelNode(attribute);
             newChild->setChild((index + j) % MetavoxelNode::CHILD_COUNT, newGrandchild);
         }
-        newChild->mergeChildren(attribute);
     }
-    newParent->mergeChildren(attribute);
     return newParent;
 }
 
