@@ -128,6 +128,8 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     
+    void clearJointAnimationPriorities();
+
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
