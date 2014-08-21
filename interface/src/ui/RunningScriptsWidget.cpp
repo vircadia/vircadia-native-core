@@ -24,7 +24,8 @@
 #include "ScriptsModel.h"
 
 RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
-    QWidget(parent, Qt::Window),
+    QWidget(parent, Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint |
+            Qt::WindowCloseButtonHint),
     ui(new Ui::RunningScriptsWidget),
     _signalMapper(this),
     _proxyModel(this),
