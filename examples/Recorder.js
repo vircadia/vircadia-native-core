@@ -14,9 +14,11 @@ Script.include("toolBars.js");
 var recordingFile = "recording.rec";
 
 var windowDimensions = Controller.getViewportDimensions();
-var TOOL_ICON_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
+var TOOL_ICON_URL = "http://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/";
 var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
+var COLOR_ON = { red: 128, green: 0, blue: 0 };
+var COLOR_OFF = { red: 128, green: 128, blue: 128 };
 Tool.IMAGE_WIDTH *= 0.7;
 Tool.IMAGE_HEIGHT *= 0.7;
 
@@ -34,18 +36,18 @@ function setupToolBar() {
 	}
 
 	toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL);
-	toolBar.setBack({ red: 128, green: 128, blue: 128 }, 0.8);
+	toolBar.setBack(COLOR_OFF, ALPHA_OFF);
 
 	recordIcon = toolBar.addTool({
-	    imageURL: "file:/Users/clement/Downloads/svg/camera8.svg",
+	    imageURL: TOOL_ICON_URL + "record.svg",
 	    width: Tool.IMAGE_WIDTH,
 	    height: Tool.IMAGE_HEIGHT,
-	    alpha: (MyAvatar.isRecording()) ? ALPHA_ON : ALPHA_OFF,
+	    alpha: ALPHA_ON,
 	    visible: true
 	}, false);
 
 	playIcon = toolBar.addTool({
-	    imageURL: "file:/Users/clement/Downloads/svg/media23.svg",
+	    imageURL: TOOL_ICON_URL + "play.svg",
 	    width: Tool.IMAGE_WIDTH,
 	    height: Tool.IMAGE_HEIGHT,
 	    alpha: ALPHA_ON,
@@ -53,7 +55,7 @@ function setupToolBar() {
 	}, false, false);
 
 	saveIcon = toolBar.addTool({
-	    imageURL: "file:/Users/clement/Downloads/svg/save15.svg",
+	    imageURL: TOOL_ICON_URL + "save.svg",
 	    width: Tool.IMAGE_WIDTH,
 	    height: Tool.IMAGE_HEIGHT,
 	    alpha: ALPHA_ON,
@@ -61,7 +63,7 @@ function setupToolBar() {
 	}, false, false);
 
 	loadIcon = toolBar.addTool({
-	    imageURL: "file:/Users/clement/Downloads/svg/upload2.svg",
+	    imageURL: TOOL_ICON_URL + "load.svg",
 	    width: Tool.IMAGE_WIDTH,
 	    height: Tool.IMAGE_HEIGHT,
 	    alpha: ALPHA_ON,
@@ -83,13 +85,11 @@ function mousePressEvent(event) {
   if (recordIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
   		MyAvatar.startRecording();
-  		toolBar.setAlpha(ALPHA_ON, recordIcon);
-	toolBar.setBack({ red: 128, green: 0, blue: 0 }, 0.9);
+			toolBar.setBack(COLOR_ON, ALPHA_ON);
   	} else {
   		MyAvatar.stopRecording();
   		MyAvatar.loadLastRecording();
-  		toolBar.setAlpha(ALPHA_OFF, recordIcon);
-	toolBar.setBack({ red: 128, green: 128, blue: 128 }, 0.8);
+			toolBar.setBack(COLOR_OFF, ALPHA_OFF);
   	}
   } else if (playIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
