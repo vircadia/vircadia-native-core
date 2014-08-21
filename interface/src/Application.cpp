@@ -894,7 +894,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_Space:
+            case Qt::Key_Apostrophe:
                 resetSensors();
                 break;
 
@@ -1051,20 +1051,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_R:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
-                } else if (isMeta) {
-                    if (_myAvatar->isRecording()) {
-                        _myAvatar->stopRecording();
-                    } else {
-                        _myAvatar->startRecording();
-                        _audio.setRecorder(_myAvatar->getRecorder());
-                    }
-                } else {
-                    if (_myAvatar->isPlaying()) {
-                        _myAvatar->stopPlaying();
-                    } else {
-                        _myAvatar->startPlaying();
-                        _audio.setPlayer(_myAvatar->getPlayer());
-                    }
                 }
                 break;
             case Qt::Key_Percent:
@@ -3749,6 +3735,10 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
 
+#ifdef Q_OS_MAC
+    scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
+#endif
+
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
@@ -3831,6 +3821,10 @@ void Application::stopAllScripts(bool restart) {
         it.value()->stop();
         qDebug() << "stopping script..." << it.key();
     }
+    // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
+    // whenever a script stops in case it happened to have been setting joint rotations.
+    // TODO: expose animation priorities and provide a layered animation control system.
+    _myAvatar->clearJointAnimationPriorities();
 }
 
 void Application::stopScript(const QString &scriptName) {
@@ -3838,6 +3832,10 @@ void Application::stopScript(const QString &scriptName) {
     if (_scriptEnginesHash.contains(scriptURLString)) {
         _scriptEnginesHash.value(scriptURLString)->stop();
         qDebug() << "stopping script..." << scriptName;
+        // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
+        // whenever a script stops in case it happened to have been setting joint rotations.
+        // TODO: expose animation priorities and provide a layered animation control system.
+        _myAvatar->clearJointAnimationPriorities();
     }
 }
 

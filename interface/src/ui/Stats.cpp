@@ -282,19 +282,10 @@ void Stats::display(
             pingVoxel = totalPingVoxel/voxelServerCount;
         }
 
-
-        Audio* audio = Application::getInstance()->getAudio();
-
         lines = _expanded ? 4 : 3;
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
 
-        char audioJitter[30];
-        sprintf(audioJitter,
-            "Buffer msecs %.1f",
-            audio->getDesiredJitterBufferFrames() * BUFFER_SEND_INTERVAL_USECS / (float)USECS_PER_MSEC);
-        drawText(30, glWidget->height() - 22, scale, rotation, font, audioJitter, color);
-        
         
         char audioPing[30];
         sprintf(audioPing, "Audio ping: %d", pingAudio);
@@ -698,27 +689,6 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
 
     }
-    
-    // draw local light stats
-    QVector<Model::LocalLight> localLights = Application::getInstance()->getAvatarManager().getLocalLights();
-    verticalOffset = 400;
-    horizontalOffset = 20;
-     
-    char buffer[128];
-    for (int i = 0; i < localLights.size(); i++) {
-        glm::vec3 lightDirection = localLights.at(i).direction;
-        snprintf(buffer, sizeof(buffer), "Light %d direction (%.2f, %.2f, %.2f)", i, lightDirection.x, lightDirection.y, lightDirection.z);
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, buffer, color);
-        
-        verticalOffset += STATS_PELS_PER_LINE;
-
-        glm::vec3 lightColor = localLights.at(i).color;
-        snprintf(buffer, sizeof(buffer), "Light %d color (%.2f, %.2f, %.2f)", i, lightColor.x, lightColor.y, lightColor.z);
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, buffer, color);
-        
-        verticalOffset += STATS_PELS_PER_LINE;
-    }
-    
 
 }
 

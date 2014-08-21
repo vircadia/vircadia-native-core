@@ -20,7 +20,7 @@
 #include "SharedUtil.h" // for EPSILON
 
 Ragdoll::Ragdoll() : _massScale(1.0f), _translation(0.0f), _translationInSimulationFrame(0.0f), 
-        _accumulatedMovement(0.0f), _simulation(NULL) {
+        _rootIndex(0), _accumulatedMovement(0.0f), _simulation(NULL) {
 }
 
 Ragdoll::~Ragdoll() {
@@ -35,7 +35,7 @@ void Ragdoll::stepForward(float deltaTime) {
         updateSimulationTransforms(_translation - _simulation->getTranslation(), _rotation);
     }
     int numPoints = _points.size();
-    for (int i = 0; i < numPoints; ++i) {
+    for (int i = _rootIndex; i < numPoints; ++i) {
         _points[i].integrateForward();
     }
 }
@@ -77,7 +77,9 @@ void Ragdoll::initTransform() {
 }
 
 void Ragdoll::setTransform(const glm::vec3& translation, const glm::quat& rotation) {
-    _translation = translation;
+    if (translation != _translation) {
+        _translation = translation;
+    }
     _rotation = rotation;
 }
 
@@ -95,7 +97,7 @@ void Ragdoll::updateSimulationTransforms(const glm::vec3& translation, const glm
 
     // apply the deltas to all ragdollPoints
     int numPoints = _points.size();
-    for (int i = 0; i < numPoints; ++i) {
+    for (int i = _rootIndex; i < numPoints; ++i) {
         _points[i].move(deltaPosition, deltaRotation, _translationInSimulationFrame);
     }
 
@@ -111,7 +113,7 @@ void Ragdoll::setMassScale(float scale) {
     if (scale != _massScale) {
         float rescale = scale / _massScale;
         int numPoints = _points.size();
-        for (int i = 0; i < numPoints; ++i) {
+        for (int i = _rootIndex; i < numPoints; ++i) {
             _points[i].setMass(rescale * _points[i].getMass());
         }
         _massScale = scale;
@@ -122,10 +124,10 @@ void Ragdoll::removeRootOffset(bool accumulateMovement) {
     const int numPoints = _points.size();
     if (numPoints > 0) {
         // shift all points so that the root aligns with the the ragdoll's position in the simulation
-        glm::vec3 offset = _translationInSimulationFrame - _points[0]._position;
+        glm::vec3 offset = _translationInSimulationFrame - _points[_rootIndex]._position;
         float offsetLength = glm::length(offset);
         if (offsetLength > EPSILON) {
-            for (int i = 0; i < numPoints; ++i) {
+            for (int i = _rootIndex; i < numPoints; ++i) {
                 _points[i].shift(offset);
             }
             const float MIN_ROOT_OFFSET = 0.02f;

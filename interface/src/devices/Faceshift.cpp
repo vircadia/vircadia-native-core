@@ -26,11 +26,17 @@ using namespace fs;
 using namespace std;
 
 const quint16 FACESHIFT_PORT = 33433;
+float STARTING_FACESHIFT_FRAME_TIME = 0.033f;
 
 Faceshift::Faceshift() :
     _tcpEnabled(true),
     _tcpRetryCount(0),
     _lastTrackingStateReceived(0),
+    _averageFrameTime(STARTING_FACESHIFT_FRAME_TIME),
+    _headAngularVelocity(0),
+    _headLinearVelocity(0),
+    _lastHeadTranslation(0),
+    _filteredHeadTranslation(0),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
@@ -209,23 +215,41 @@ void Faceshift::receive(const QByteArray& buffer) {
                     float theta = 2 * acos(r.w);
                     if (theta > EPSILON) {
                         float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
-                        float AVERAGE_FACESHIFT_FRAME_TIME = 0.033f;
-                        _headAngularVelocity = theta / AVERAGE_FACESHIFT_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
+                        _headAngularVelocity = theta / _averageFrameTime * glm::vec3(r.x, r.y, r.z) / rMag;
                     } else {
                         _headAngularVelocity = glm::vec3(0,0,0);
                     }
-                    _headRotation = newRotation;
+                    const float ANGULAR_VELOCITY_FILTER_STRENGTH = 0.3f;
+                    _headRotation = safeMix(_headRotation, newRotation, glm::clamp(glm::length(_headAngularVelocity) *
+                                                                                   ANGULAR_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f));
 
                     const float TRANSLATION_SCALE = 0.02f;
-                    _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
-                        -data.m_headTranslation.z) * TRANSLATION_SCALE;
+                    glm::vec3 newHeadTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
+                                                            -data.m_headTranslation.z) * TRANSLATION_SCALE;
+                    
+                    _headLinearVelocity = (newHeadTranslation - _lastHeadTranslation) / _averageFrameTime;
+                    
+                    const float LINEAR_VELOCITY_FILTER_STRENGTH = 0.3f;
+                    float velocityFilter = glm::clamp(1.0f - glm::length(_headLinearVelocity) *
+                                                      LINEAR_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+                    _filteredHeadTranslation = velocityFilter * _filteredHeadTranslation + (1.0f - velocityFilter) * newHeadTranslation;
+                    
+                    _lastHeadTranslation = newHeadTranslation;
+                    _headTranslation = _filteredHeadTranslation;
+                    
                     _eyeGazeLeftPitch = -data.m_eyeGazeLeftPitch;
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
                     _blendshapeCoefficients = QVector<float>::fromStdVector(data.m_coeffs);
 
-                    _lastTrackingStateReceived = usecTimestampNow();
+                    const float FRAME_AVERAGING_FACTOR = 0.99f;
+                    quint64 usecsNow = usecTimestampNow();
+                    if (_lastTrackingStateReceived != 0) {
+                        _averageFrameTime = FRAME_AVERAGING_FACTOR * _averageFrameTime +
+                        (1.0f - FRAME_AVERAGING_FACTOR) * (float)(usecsNow - _lastTrackingStateReceived) / 1000000.0f;
+                    }
+                    _lastTrackingStateReceived = usecsNow;
                 }
                 break;
             }

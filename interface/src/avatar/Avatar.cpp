@@ -302,7 +302,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         return;
     }
 
-    glm::vec3 toTarget = cameraPosition - Application::getInstance()->getAvatar()->getPosition();
+    glm::vec3 toTarget = cameraPosition - getPosition();
     float distanceToTarget = glm::length(toTarget);
    
     {
@@ -349,7 +349,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             }
 
             // If this is the avatar being looked at, render a little ball above their head
-            if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::FocusIndicators)) {
+            if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
                 const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
                 const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
                 const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.75f };
@@ -368,10 +368,12 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         // quick check before falling into the code below:
         // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
         const float MIN_VOICE_SPHERE_DISTANCE = 12.0f;
-        if (distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BlueSpeechSphere)
+            && distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
+
             // render voice intensity sphere for avatars that are farther away
             const float MAX_SPHERE_ANGLE = 10.0f * RADIANS_PER_DEGREE;
-            const float MIN_SPHERE_ANGLE = 1.0f * RADIANS_PER_DEGREE;
+            const float MIN_SPHERE_ANGLE = 0.5f * RADIANS_PER_DEGREE;
             const float MIN_SPHERE_SIZE = 0.01f;
             const float SPHERE_LOUDNESS_SCALING = 0.0005f;
             const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
@@ -392,7 +394,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         }
     }
 
-    const float DISPLAYNAME_DISTANCE = 10.0f;
+    const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(renderMode == NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
     if (renderMode != NORMAL_RENDER_MODE || (isMyAvatar() &&
             Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON)) {
