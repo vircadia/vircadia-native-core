@@ -34,7 +34,6 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
 
     setAttribute(Qt::WA_DeleteOnClose, false);
 
-    ui->hideWidgetButton->setIcon(QIcon(Application::resourcesPath() + "images/close.svg"));
     ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
     ui->stopAllButton->setIcon(QIcon(Application::resourcesPath() + "images/stop.svg"));
     ui->loadScriptButton->setIcon(QIcon(Application::resourcesPath() + "images/plus-white.svg"));
@@ -58,8 +57,6 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     _recentlyLoadedScriptsTable->setColumnCount(1);
     _recentlyLoadedScriptsTable->setColumnWidth(0, 265);
 
-    connect(ui->hideWidgetButton, &QPushButton::clicked,
-            Application::getInstance(), &Application::toggleRunningScriptsWidget);
     connect(ui->reloadAllButton, &QPushButton::clicked,
             Application::getInstance(), &Application::reloadAllScripts);
     connect(ui->stopAllButton, &QPushButton::clicked,
