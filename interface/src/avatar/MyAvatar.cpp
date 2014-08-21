@@ -509,6 +509,9 @@ bool MyAvatar::setJointReferential(int id, int jointIndex) {
 }
 
 bool MyAvatar::isRecording() {
+    if (!_recorder) {
+        return false;
+    }
     if (QThread::currentThread() != thread()) {
         bool result;
         QMetaObject::invokeMethod(this, "isRecording", Qt::BlockingQueuedConnection,
@@ -516,6 +519,19 @@ bool MyAvatar::isRecording() {
         return result;
     }
     return _recorder && _recorder->isRecording();
+}
+
+qint64 MyAvatar::recorderElapsed() {
+    if (!_recorder) {
+        return 0;
+    }
+    if (QThread::currentThread() != thread()) {
+        qint64 result;
+        QMetaObject::invokeMethod(this, "recorderElapsed", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(qint64, result));
+        return result;
+    }
+    return _recorder->elapsed();
 }
 
 void MyAvatar::startRecording() {
@@ -532,6 +548,9 @@ void MyAvatar::startRecording() {
 }
 
 void MyAvatar::stopRecording() {
+    if (!_recorder) {
+        return;
+    }
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "stopRecording", Qt::BlockingQueuedConnection);
         return;
@@ -542,6 +561,10 @@ void MyAvatar::stopRecording() {
 }
 
 void MyAvatar::saveRecording(QString filename) {
+    if (!_recorder) {
+        qDebug() << "There is no recording to save";
+        return;
+    }
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "saveRecording", Qt::BlockingQueuedConnection,
                                   Q_ARG(QString, filename));
@@ -553,6 +576,9 @@ void MyAvatar::saveRecording(QString filename) {
 }
 
 bool MyAvatar::isPlaying() {
+    if (!_player) {
+        return false;
+    }
     if (QThread::currentThread() != thread()) {
         bool result;
         QMetaObject::invokeMethod(this, "isPlaying", Qt::BlockingQueuedConnection,
@@ -560,6 +586,32 @@ bool MyAvatar::isPlaying() {
         return result;
     }
     return _player && _player->isPlaying();
+}
+
+qint64 MyAvatar::playerElapsed() {
+    if (!_player) {
+        return 0;
+    }
+    if (QThread::currentThread() != thread()) {
+        qint64 result;
+        QMetaObject::invokeMethod(this, "playerElapsed", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(qint64, result));
+        return result;
+    }
+    return _player->elapsed();
+}
+
+qint64 MyAvatar::playerLength() {
+    if (!_player) {
+        return 0;
+    }
+    if (QThread::currentThread() != thread()) {
+        qint64 result;
+        QMetaObject::invokeMethod(this, "playerLength", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(qint64, result));
+        return result;
+    }
+    return _player->getRecording()->getLength();
 }
 
 void MyAvatar::loadRecording(QString filename) {
@@ -581,6 +633,7 @@ void MyAvatar::loadLastRecording() {
         return;
     }
     if (!_recorder) {
+        qDebug() << "There is no recording to load";
         return;
     }
     if (!_player) {
@@ -604,6 +657,9 @@ void MyAvatar::startPlaying() {
 }
 
 void MyAvatar::stopPlaying() {
+    if (!_player) {
+        return;
+    }
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "stopPlaying", Qt::BlockingQueuedConnection);
         return;

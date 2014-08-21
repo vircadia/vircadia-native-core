@@ -317,6 +317,11 @@ bool Player::computeCurrentFrame() {
 }
 
 void writeRecordingToFile(RecordingPointer recording, QString filename) {
+    if (!recording || recording->getFrameNumber() < 1) {
+        qDebug() << "Can't save empty recording";
+        return;
+    }
+    
     qDebug() << "Writing recording to " << filename << ".";
     QElapsedTimer timer;
     QFile file(filename);
