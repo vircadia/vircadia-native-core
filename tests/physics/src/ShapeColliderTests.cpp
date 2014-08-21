@@ -16,7 +16,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <CapsuleShape.h>
 #include <CollisionInfo.h>
+#include <PlaneShape.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <SphereShape.h>
@@ -112,6 +114,7 @@ void ShapeColliderTests::sphereTouchesSphere() {
         if (!collision) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: null collision" << std::endl;
+            return;
         }
     
         // penetration points from sphereA into sphereB
@@ -1298,7 +1301,41 @@ void ShapeColliderTests::rayMissesPlane() {
     }
 }
 
+void ShapeColliderTests::measureTimeOfCollisionDispatch() {
+    /* KEEP for future manual testing
+    // create two non-colliding spheres
+    float radiusA = 7.0f;
+    float radiusB = 3.0f;
+    float alpha = 1.2f;
+    float beta = 1.3f;
+    glm::vec3 offsetDirection = glm::normalize(glm::vec3(1.0f, 2.0f, 3.0f));
+    float offsetDistance = alpha * radiusA + beta * radiusB;
+
+    SphereShape sphereA(radiusA, origin);
+    SphereShape sphereB(radiusB, offsetDistance * offsetDirection);
+    CollisionList collisions(16);
+
+    //int numTests = 1;
+    quint64 oldTime;
+    quint64 newTime;
+    int numTests = 100000000;
+    {
+        quint64 startTime = usecTimestampNow();
+        for (int i = 0; i < numTests; ++i) {
+            ShapeCollider::collideShapes(&sphereA, &sphereB, collisions);
+        }
+        quint64 endTime = usecTimestampNow();
+        std::cout << numTests << " non-colliding collisions in " << (endTime - startTime) << " usec" << std::endl;
+        newTime = endTime - startTime;
+    }
+    */
+}
+
 void ShapeColliderTests::runAllTests() {
+    ShapeCollider::initDispatchTable();
+
+    //measureTimeOfCollisionDispatch();
+
     sphereMissesSphere();
     sphereTouchesSphere();
 

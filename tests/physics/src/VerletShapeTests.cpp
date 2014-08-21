@@ -757,6 +757,8 @@ void VerletShapeTests::capsuleTouchesCapsule() {
 }
 
 void VerletShapeTests::runAllTests() {
+    ShapeCollider::initDispatchTable();
+
     setSpherePosition();
     sphereMissesSphere();
     sphereTouchesSphere();

@@ -618,19 +618,19 @@ void SkeletonModel::buildShapes() {
         Shape::Type type = joint.shapeType;
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1 || radius < EPSILON) {
-            type = Shape::UNKNOWN_SHAPE;
-        } else if (type == Shape::CAPSULE_SHAPE && halfHeight < EPSILON) {
+            type = UNKNOWN_SHAPE;
+        } else if (type == CAPSULE_SHAPE && halfHeight < EPSILON) {
             // this shape is forced to be a sphere
-            type = Shape::SPHERE_SHAPE;
+            type = SPHERE_SHAPE;
         }
         Shape* shape = NULL;
-        if (type == Shape::SPHERE_SHAPE) {
+        if (type == SPHERE_SHAPE) {
             shape = new VerletSphereShape(radius, &(points[i]));
             shape->setEntity(this);
             float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
             points[i].setMass(mass);
             totalMass += mass;
-        } else if (type == Shape::CAPSULE_SHAPE) {
+        } else if (type == CAPSULE_SHAPE) {
             assert(parentIndex != -1);
             shape = new VerletCapsuleShape(radius, &(points[parentIndex]), &(points[i]));
             shape->setEntity(this);
@@ -729,7 +729,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         shapeExtents.reset();
         glm::vec3 localPosition = shape->getTranslation();
         int type = shape->getType();
-        if (type == Shape::CAPSULE_SHAPE) {
+        if (type == CAPSULE_SHAPE) {
             // add the two furthest surface points of the capsule
             CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
             glm::vec3 axis;
@@ -741,7 +741,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
             shapeExtents.addPoint(localPosition + axis);
             shapeExtents.addPoint(localPosition - axis);
             totalExtents.addExtents(shapeExtents);
-        } else if (type == Shape::SPHERE_SHAPE) {
+        } else if (type == SPHERE_SHAPE) {
             float radius = shape->getBoundingRadius();
             glm::vec3 axis = glm::vec3(radius);
             shapeExtents.addPoint(localPosition + axis);
@@ -845,13 +845,13 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
 
         glPushMatrix();
         // shapes are stored in simulation-frame but we want position to be model-relative
-        if (shape->getType() == Shape::SPHERE_SHAPE) { 
+        if (shape->getType() == SPHERE_SHAPE) { 
             glm::vec3 position = shape->getTranslation() - simulationTranslation;
             glTranslatef(position.x, position.y, position.z);
             // draw a grey sphere at shape position
             glColor4f(0.75f, 0.75f, 0.75f, alpha);
             glutSolidSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-        } else if (shape->getType() == Shape::CAPSULE_SHAPE) {
+        } else if (shape->getType() == CAPSULE_SHAPE) {
             CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
 
             // draw a blue sphere at the capsule endpoint                                         

@@ -81,6 +81,7 @@ MyAvatar::MyAvatar() :
     _billboardValid(false),
     _physicsSimulation()
 {
+    ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
