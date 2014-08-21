@@ -631,26 +631,12 @@ bool EntityTreeElement::removeEntityItem(const EntityItem* entity) {
 int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
 
-bool wantDebug = true;
-if (wantDebug) {
-    qDebug() << "EntityTreeElement::readElementDataFromBuffer()";
-    qDebug() << "    getAACube()=" << getAACube();
-    qDebug() << "    bytesLeftToRead=" << bytesLeftToRead;
-}
-
     // If we're the root, but this bitstream doesn't support root elements with data, then
     // return without reading any bytes
     if (this == _myTree->getRoot() && args.bitstreamVersion < VERSION_ROOT_ELEMENT_HAS_DATA) {
-        qDebug() << "ROOT ELEMENT: no root data for "
-                    "bitstreamVersion=" << (int)args.bitstreamVersion << " bytesLeftToRead=" << bytesLeftToRead;
         return 0;
     }
     
-    if (this == _myTree->getRoot() && args.bitstreamVersion >= VERSION_ROOT_ELEMENT_HAS_DATA) {
-        qDebug() << "ROOT ELEMENT: -------- NOW READING ROOT DATA ---------";
-    }
-    
-
     const unsigned char* dataAt = data;
     int bytesRead = 0;
     uint16_t numberOfEntities = 0;
@@ -664,28 +650,10 @@ if (wantDebug) {
         bytesLeftToRead -= (int)sizeof(numberOfEntities);
         bytesRead += sizeof(numberOfEntities);
 
-if (wantDebug) {
-    qDebug() << "    --- after numberOfEntities ---";
-    qDebug() << "    numberOfEntities=" << numberOfEntities;
-    qDebug() << "    expectedBytesPerEntity=" << expectedBytesPerEntity;
-    qDebug() << "    numberOfEntities * expectedBytesPerEntity=" << numberOfEntities * expectedBytesPerEntity;
-    qDebug() << "    bytesLeftToRead=" << bytesLeftToRead;
-
-    if (numberOfEntities > 0) {
-        qDebug() << "    WE HAVE ENTITIES!!!";
-    }
-}
-        
         if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
             for (uint16_t i = 0; i < numberOfEntities; i++) {
                 int bytesForThisEntity = 0;
                 EntityItemID entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
-
-if (wantDebug) {
-    qDebug() << "        --- entities loop entity["<< i <<"] ---";
-    qDebug() << "        bytesLeftToRead=" << bytesLeftToRead;
-    qDebug() << "        entityItemID=" << entityItemID;
-}
                 EntityItem* entityItem = _myTree->findEntityByEntityItemID(entityItemID);
                 bool newEntity = false;
                 
@@ -732,10 +700,6 @@ if (wantDebug) {
             }
         }
     }
-    
-if (wantDebug) {
-    qDebug() << "EntityTreeElement::readElementDataFromBuffer() bytesRead=" << bytesRead;
-}
     
     return bytesRead;
 }

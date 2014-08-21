@@ -136,8 +136,6 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    //qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
-
     // PROP_COLOR
     if (propertyFlags.getHasProperty(PROP_COLOR)) {
         rgbColor color;
@@ -158,18 +156,11 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         QString modelURLString((const char*)dataAt);
         dataAt += modelURLLength;
         bytesRead += modelURLLength;
-
-qDebug() << "readEntitySubclassDataFromBuffer() included PROP_MODEL_URL url=" << modelURLString;
-
         if (overwriteLocalData) {
             setModelURL(modelURLString);
-
-qDebug() << "   called setModelURL() url=" << getModelURL();
         }
     }
     
-    //qDebug() << "ModelEntityItem::readEntityDataFromBuffer()... modelURL=" << getModelURL();
-
     // PROP_ANIMATION_URL
     if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
         // animationURL
@@ -341,13 +332,10 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
                                 EntityPropertyFlags& propertiesDidntFit,
                                 int& propertyCount, OctreeElement::AppendState& appendState) const {
 
-    //qDebug() << "ModelEntityItem::appendSubclassData()... ********************************************";
-    
     bool successPropertyFits = true;
 
     // PROP_COLOR
     if (requestedProperties.getHasProperty(PROP_COLOR)) {
-        //qDebug() << "PROP_COLOR requested...";
         LevelDetails propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendColor(getColor());
         if (successPropertyFits) {
@@ -356,18 +344,15 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
             propertyCount++;
             packetData->endLevel(propertyLevel);
         } else {
-            //qDebug() << "PROP_COLOR didn't fit...";
             packetData->discardLevel(propertyLevel);
             appendState = OctreeElement::PARTIAL;
         }
     } else {
-        //qDebug() << "PROP_COLOR NOT requested...";
         propertiesDidntFit -= PROP_COLOR;
     }
 
     // PROP_MODEL_URL
     if (requestedProperties.getHasProperty(PROP_MODEL_URL)) {
-        //qDebug() << "PROP_MODEL_URL requested...";
         LevelDetails propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendValue(getModelURL());
         if (successPropertyFits) {
@@ -375,14 +360,11 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
             propertiesDidntFit -= PROP_MODEL_URL;
             propertyCount++;
             packetData->endLevel(propertyLevel);
-qDebug() << "PROP_MODEL_URL DID fit... url=" << getModelURL();
         } else {
-qDebug() << "PROP_MODEL_URL DID NOT fit... url=" << getModelURL();
             packetData->discardLevel(propertyLevel);
             appendState = OctreeElement::PARTIAL;
         }
     } else {
-        //qDebug() << "PROP_MODEL_URL NOT requested...";
         propertiesDidntFit -= PROP_MODEL_URL;
     }
 
@@ -390,7 +372,6 @@ qDebug() << "PROP_MODEL_URL DID NOT fit... url=" << getModelURL();
 
     // PROP_ANIMATION_URL
     if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
-        //qDebug() << "PROP_ANIMATION_URL requested...";
         LevelDetails propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendValue(getAnimationURL());
         if (successPropertyFits) {
@@ -399,18 +380,15 @@ qDebug() << "PROP_MODEL_URL DID NOT fit... url=" << getModelURL();
             propertyCount++;
             packetData->endLevel(propertyLevel);
         } else {
-            //qDebug() << "PROP_ANIMATION_URL didn't fit...";
             packetData->discardLevel(propertyLevel);
             appendState = OctreeElement::PARTIAL;
         }
     } else {
-        //qDebug() << "PROP_ANIMATION_URL NOT requested...";
         propertiesDidntFit -= PROP_ANIMATION_URL;
     }
 
     // PROP_ANIMATION_FPS
     if (requestedProperties.getHasProperty(PROP_ANIMATION_FPS)) {
-        //qDebug() << "PROP_ANIMATION_FPS requested...";
         LevelDetails propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendValue(getAnimationFPS());
         if (successPropertyFits) {
@@ -419,18 +397,15 @@ qDebug() << "PROP_MODEL_URL DID NOT fit... url=" << getModelURL();
             propertyCount++;
             packetData->endLevel(propertyLevel);
         } else {
-            //qDebug() << "PROP_ANIMATION_FPS didn't fit...";
             packetData->discardLevel(propertyLevel);
             appendState = OctreeElement::PARTIAL;
         }
     } else {
-        //qDebug() << "PROP_ANIMATION_FPS NOT requested...";
         propertiesDidntFit -= PROP_ANIMATION_FPS;
     }
 
     // PROP_ANIMATION_FRAME_INDEX
     if (requestedProperties.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-        //qDebug() << "PROP_ANIMATION_FRAME_INDEX requested...";
         LevelDetails propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendValue(getAnimationFrameIndex());
         if (successPropertyFits) {
@@ -439,18 +414,15 @@ qDebug() << "PROP_MODEL_URL DID NOT fit... url=" << getModelURL();
             propertyCount++;
             packetData->endLevel(propertyLevel);
         } else {
-            //qDebug() << "PROP_ANIMATION_FRAME_INDEX didn't fit...";
             packetData->discardLevel(propertyLevel);
             appendState = OctreeElement::PARTIAL;
         }
     } else {
-        //qDebug() << "PROP_ANIMATION_FRAME_INDEX NOT requested...";
         propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
     }
 
     // PROP_ANIMATION_PLAYING
     if (requestedProperties.getHasProperty(PROP_ANIMATION_PLAYING)) {
-        //qDebug() << "PROP_ANIMATION_PLAYING requested...";
         LevelDetails propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendValue(getAnimationIsPlaying());
         if (successPropertyFits) {
@@ -459,12 +431,10 @@ qDebug() << "PROP_MODEL_URL DID NOT fit... url=" << getModelURL();
             propertyCount++;
             packetData->endLevel(propertyLevel);
         } else {
-            //qDebug() << "PROP_ANIMATION_PLAYING didn't fit...";
             packetData->discardLevel(propertyLevel);
             appendState = OctreeElement::PARTIAL;
         }
     } else {
-        //qDebug() << "PROP_ANIMATION_PLAYING NOT requested...";
         propertiesDidntFit -= PROP_ANIMATION_PLAYING;
     }
 

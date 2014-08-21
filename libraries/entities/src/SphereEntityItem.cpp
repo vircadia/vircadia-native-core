@@ -108,7 +108,6 @@ void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBi
 
     // PROP_COLOR
     if (requestedProperties.getHasProperty(PROP_COLOR)) {
-        //qDebug() << "PROP_COLOR requested...";
         LevelDetails propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendColor(getColor());
         if (successPropertyFits) {
@@ -117,12 +116,10 @@ void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBi
             propertyCount++;
             packetData->endLevel(propertyLevel);
         } else {
-            //qDebug() << "PROP_COLOR didn't fit...";
             packetData->discardLevel(propertyLevel);
             appendState = OctreeElement::PARTIAL;
         }
     } else {
-        //qDebug() << "PROP_COLOR NOT requested...";
         propertiesDidntFit -= PROP_COLOR;
     }
 }

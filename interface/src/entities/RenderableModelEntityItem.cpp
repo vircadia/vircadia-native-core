@@ -25,7 +25,6 @@
 #include "RenderableModelEntityItem.h"
 
 EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    qDebug() << "RenderableModelEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
     return new RenderableModelEntityItem(entityID, properties);
 }
 

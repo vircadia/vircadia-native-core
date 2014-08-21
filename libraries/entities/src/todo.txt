@@ -33,11 +33,7 @@ Model properties:
 //
 // REQUIRED TO DO:
 
-    0) render performance of models...
-        a) make getModel() faster... consider storing the Model* in the actual EntityItem class
-        b) figure out how to only call simulate when needed:
-             if the properties change
-             when animated?
+    0) test animation again...
 
     1) verify lots of models in single element works
         -- repro case - run editModelsExample.js -- create 10 models in the same octree element
@@ -242,3 +238,6 @@ Model properties:
 //                     maybe add support for "reserving" bytes in the packet
 // SOLVED -- BROKEN File persistence... -- added chunking support in SVO file persistence.
 // SOLVED -- G) why does is the Box entity not drawn in it's bounds
+// SOLVED -- 0) render performance of models...
+// SOLVED --   a) make getModel() faster... consider storing the Model* in the actual EntityItem class
+// SOLVED --   b) only call simulate when properties change

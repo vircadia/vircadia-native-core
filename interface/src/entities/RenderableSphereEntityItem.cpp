@@ -25,7 +25,6 @@
 
 
 EntityItem* RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    qDebug() << "RenderableSphereEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
     return new RenderableSphereEntityItem(entityID, properties);
 }
 

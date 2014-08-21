@@ -65,7 +65,6 @@ GLubyte indices[]  = { 0, 1, 2,   2, 3, 0,      // front
 
 
 EntityItem* RenderableBoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    qDebug() << "RenderableBoxEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
     return new RenderableBoxEntityItem(entityID, properties);
 }
 

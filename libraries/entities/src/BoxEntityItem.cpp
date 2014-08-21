@@ -19,11 +19,7 @@
 #include "BoxEntityItem.h"
 
 
-//static bool registerBox = EntityTypes::registerEntityType(EntityTypes::Box, "Box", BoxEntityItem::factory);
- 
-
 EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    qDebug() << "BoxEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
     return new  BoxEntityItem(entityID, properties);
 }
 
@@ -31,20 +27,13 @@ EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityIte
 BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 { 
-    qDebug() << "BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
     _type = EntityTypes::Box;
-
-    qDebug() << "BoxEntityItem::BoxEntityItem() properties.getModelURL()=" << properties.getModelURL();
-    
-    qDebug() << "BoxEntityItem::BoxEntityItem() calling setProperties()";
     setProperties(properties);
 
 
 }
 
 EntityItemProperties BoxEntityItem::getProperties() const {
-    qDebug() << "BoxEntityItem::getProperties()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
-
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
     properties._color = getXColor();
@@ -57,8 +46,6 @@ EntityItemProperties BoxEntityItem::getProperties() const {
 }
 
 bool BoxEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    qDebug() << "BoxEntityItem::setProperties()...";
-    qDebug() << "BoxEntityItem::BoxEntityItem() properties.getModelURL()=" << properties.getModelURL();
     bool somethingChanged = false;
     
     somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
@@ -93,8 +80,6 @@ int BoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    qDebug() << "BoxEntityItem::readEntitySubclassDataFromBuffer()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
-
     // PROP_COLOR
     if (propertyFlags.getHasProperty(PROP_COLOR)) {
         rgbColor color;
@@ -125,15 +110,10 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
                                     int& propertyCount, 
                                     OctreeElement::AppendState& appendState) const { 
 
-
-
-qDebug() << "BoxEntityItem::appendSubclassData()... ********************************************";
-
     bool successPropertyFits = true;
 
     // PROP_COLOR
     if (requestedProperties.getHasProperty(PROP_COLOR)) {
-        //qDebug() << "PROP_COLOR requested...";
         LevelDetails propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendColor(getColor());
         if (successPropertyFits) {
@@ -142,12 +122,10 @@ qDebug() << "BoxEntityItem::appendSubclassData()... ****************************
             propertyCount++;
             packetData->endLevel(propertyLevel);
         } else {
-            //qDebug() << "PROP_COLOR didn't fit...";
             packetData->discardLevel(propertyLevel);
             appendState = OctreeElement::PARTIAL;
         }
     } else {
-        //qDebug() << "PROP_COLOR NOT requested...";
         propertiesDidntFit -= PROP_COLOR;
     }
 
