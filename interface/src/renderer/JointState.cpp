@@ -73,7 +73,7 @@ void JointState::setFBXJoint(const FBXJoint* joint) {
     }
 }
 
-void JointState::updateConstraint() {
+void JointState::buildConstraint() {
     if (_constraint) {
         delete _constraint;
         _constraint = NULL;
