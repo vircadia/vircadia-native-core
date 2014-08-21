@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>324</width>
-    <height>971</height>
+    <height>643</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <string notr="true">* {
 	font-family: Helvetica, Arial, sans-serif;
 }
-QWidget {
+#RunningScriptsWidget {
 	background: #f7f7f7; 
 }</string>
   </property>
@@ -326,6 +326,11 @@ padding-top: 3px;</string>
         <property name="layoutDirection">
          <enum>Qt::LeftToRight</enum>
         </property>
+        <property name="styleSheet">
+         <string notr="true">#runningScriptsList {
+	background: #f7f7f7; 
+}</string>
+        </property>
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
         </property>
@@ -608,6 +613,7 @@ background-color: white;</string>
        <widget class="QListView" name="scriptListView">
         <property name="styleSheet">
          <string notr="true">QListView {
+	background: #f7f7f7; 
 	border: 1px solid rgb(128, 128, 128);
 	border-radius: 2px;
 }

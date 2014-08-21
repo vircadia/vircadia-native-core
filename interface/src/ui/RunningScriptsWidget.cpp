@@ -24,7 +24,7 @@
 #include "ScriptsModel.h"
 
 RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
-    FramelessDialog(parent, 0, POSITION_LEFT),
+    QWidget(parent, Qt::Window),
     ui(new Ui::RunningScriptsWidget),
     _signalMapper(this),
     _proxyModel(this),
@@ -32,8 +32,6 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     ui->setupUi(this);
 
     setAttribute(Qt::WA_DeleteOnClose, false);
-
-    setAllowResize(false);
 
     ui->hideWidgetButton->setIcon(QIcon(Application::resourcesPath() + "images/close.svg"));
     ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
@@ -143,6 +141,8 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         line->setFrameShape(QFrame::HLine);
         line->setStyleSheet("color: #E1E1E1; margin-left: 6px; margin-right: 6px;");
 
+        row->setStyleSheet("background: #f7f7f7;");
+
         ui->scrollAreaWidgetContents->layout()->addWidget(row);
         ui->scrollAreaWidgetContents->layout()->addWidget(line);
     }
@@ -163,7 +163,10 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
         ui->filterLineEdit->setFocus();
     }
 
-    FramelessDialog::showEvent(event);
+    const QRect parentGeometry = parentWidget()->geometry();
+    setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y(), size().width(), parentWidget()->size().height());
+
+    QWidget::showEvent(event);
 }
 
 void RunningScriptsWidget::selectFirstInList() {
@@ -189,14 +192,14 @@ bool RunningScriptsWidget::eventFilter(QObject* sender, QEvent* event) {
         return false;
     }
 
-    return FramelessDialog::eventFilter(sender, event);
+    return QWidget::eventFilter(sender, event);
 }
 
 void RunningScriptsWidget::keyPressEvent(QKeyEvent *keyEvent) {
     if (keyEvent->key() == Qt::Key_Escape) {
         return;
     } else {
-        FramelessDialog::keyPressEvent(keyEvent);
+        QWidget::keyPressEvent(keyEvent);
     }
 }
 
