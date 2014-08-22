@@ -18,6 +18,7 @@
 #include <QReadWriteLock>
 #include <QSharedPointer>
 #include <QString>
+#include <QUrl>
 #include <QWidget>
 
 #include "Bitstream.h"
@@ -28,7 +29,10 @@ class QScriptEngine;
 class QScriptValue;
 
 class Attribute;
+class HeightfieldColorData;
 class HeightfieldData;
+class HeightfieldHeightData;
+class HeightfieldTextureData;
 class MetavoxelData;
 class MetavoxelLOD;
 class MetavoxelNode;
@@ -96,11 +100,14 @@ public:
     /// Returns a reference to the standard "spannerMask" attribute.
     const AttributePointer& getSpannerMaskAttribute() const { return _spannerMaskAttribute; }
     
-    /// Returns a reference to the standard HeightfieldPointer "heightfield" attribute.
+    /// Returns a reference to the standard HeightfieldDataPointer "heightfield" attribute.
     const AttributePointer& getHeightfieldAttribute() const { return _heightfieldAttribute; }
     
-    /// Returns a reference to the standard HeightfieldColorPointer "heightfieldColor" attribute.
+    /// Returns a reference to the standard HeightfieldDataPointer "heightfieldColor" attribute.
     const AttributePointer& getHeightfieldColorAttribute() const { return _heightfieldColorAttribute; }
+    
+    /// Returns a reference to the standard HeightfieldDataPointer "heightfieldTexture" attribute.
+    const AttributePointer& getHeightfieldTextureAttribute() const { return _heightfieldTextureAttribute; } 
     
 private:
 
@@ -119,6 +126,7 @@ private:
     AttributePointer _spannerMaskAttribute;
     AttributePointer _heightfieldAttribute;
     AttributePointer _heightfieldColorAttribute;
+    AttributePointer _heightfieldTextureAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -221,6 +229,11 @@ public:
     virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const { write(out, value, isLeaf); }
 
+    virtual void readSubdivided(MetavoxelStreamState& state, void*& value,
+        const MetavoxelStreamState& ancestorState, void* ancestorValue, bool isLeaf) const;
+    virtual void writeSubdivided(MetavoxelStreamState& state, void* value,
+        const MetavoxelStreamState& ancestorState, void* ancestorValue, bool isLeaf) const;
+    
     virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
 
     virtual void readMetavoxelRoot(MetavoxelData& data, MetavoxelStreamState& state);
@@ -430,19 +443,20 @@ public:
 
     static const int COLOR_BYTES = 3;
     
-    HeightfieldData(const QByteArray& contents);
-    HeightfieldData(Bitstream& in, int bytes, bool color);
-    HeightfieldData(Bitstream& in, int bytes, const HeightfieldDataPointer& reference, bool color);
+    HeightfieldData(const QByteArray& contents = QByteArray());
+    virtual ~HeightfieldData();
     
     const QByteArray& getContents() const { return _contents; }
 
-    void write(Bitstream& out, bool color);
-    void writeDelta(Bitstream& out, const HeightfieldDataPointer& reference, bool color);
-
-private:
+    void setDeltaData(const HeightfieldDataPointer& deltaData) { _deltaData = deltaData; }
+    const HeightfieldDataPointer& getDeltaData() const { return _deltaData; }
     
-    void read(Bitstream& in, int bytes, bool color);
-    void set(const QImage& image, bool color);
+    void setEncodedDelta(const QByteArray& encodedDelta) { _encodedDelta = encodedDelta; }
+    const QByteArray& getEncodedDelta() const { return _encodedDelta; }
+    
+    QMutex& getEncodedDeltaMutex() { return _encodedDeltaMutex; }
+
+protected:
     
     QByteArray _contents;
     QByteArray _encoded;
@@ -451,10 +465,103 @@ private:
     HeightfieldDataPointer _deltaData;
     QByteArray _encodedDelta;
     QMutex _encodedDeltaMutex;
+
+    class EncodedSubdivision {
+    public:
+        HeightfieldDataPointer ancestor;
+        QByteArray data;
+    };
+    QVector<EncodedSubdivision> _encodedSubdivisions;
+    QMutex _encodedSubdivisionsMutex;
+};
+
+typedef QExplicitlySharedDataPointer<HeightfieldHeightData> HeightfieldHeightDataPointer;
+
+/// Contains a block of heightfield height data.
+class HeightfieldHeightData : public HeightfieldData {
+public:
+    
+    HeightfieldHeightData(const QByteArray& contents);
+    HeightfieldHeightData(Bitstream& in, int bytes);
+    HeightfieldHeightData(Bitstream& in, int bytes, const HeightfieldHeightDataPointer& reference);
+    HeightfieldHeightData(Bitstream& in, int bytes, const HeightfieldHeightDataPointer& ancestor,
+        const glm::vec3& minimum, float size);
+    
+    void write(Bitstream& out);
+    void writeDelta(Bitstream& out, const HeightfieldHeightDataPointer& reference);
+    void writeSubdivided(Bitstream& out, const HeightfieldHeightDataPointer& ancestor,
+        const glm::vec3& minimum, float size);
+
+private:
+    
+    void read(Bitstream& in, int bytes);
+    void set(const QImage& image);
+};
+
+typedef QExplicitlySharedDataPointer<HeightfieldColorData> HeightfieldColorDataPointer;
+
+/// Contains a block of heightfield color data.
+class HeightfieldColorData : public HeightfieldData {
+public:
+    
+    HeightfieldColorData(const QByteArray& contents);
+    HeightfieldColorData(Bitstream& in, int bytes);
+    HeightfieldColorData(Bitstream& in, int bytes, const HeightfieldColorDataPointer& reference);
+    HeightfieldColorData(Bitstream& in, int bytes, const HeightfieldColorDataPointer& ancestor,
+        const glm::vec3& minimum, float size);
+        
+    void write(Bitstream& out);
+    void writeDelta(Bitstream& out, const HeightfieldColorDataPointer& reference);
+    void writeSubdivided(Bitstream& out, const HeightfieldColorDataPointer& ancestor,
+        const glm::vec3& minimum, float size);
+
+private:
+    
+    void read(Bitstream& in, int bytes);
+    void set(const QImage& image);
+};
+
+typedef QExplicitlySharedDataPointer<HeightfieldTextureData> HeightfieldTextureDataPointer;
+
+/// Contains a block of heightfield texture data.
+class HeightfieldTextureData : public HeightfieldData {
+public:
+    
+    HeightfieldTextureData(const QByteArray& contents,
+        const QVector<SharedObjectPointer>& textures = QVector<SharedObjectPointer>());
+    HeightfieldTextureData(Bitstream& in, int bytes);
+    HeightfieldTextureData(Bitstream& in, int bytes, const HeightfieldTextureDataPointer& reference);
+    
+    const QVector<SharedObjectPointer>& getTextures() const { return _textures; }
+    
+    void write(Bitstream& out);
+    void writeDelta(Bitstream& out, const HeightfieldTextureDataPointer& reference);
+
+private:
+    
+    void read(Bitstream& in, int bytes);
+    
+    QVector<SharedObjectPointer> _textures;
+};
+
+/// Contains the description of a heightfield texture.
+class HeightfieldTexture : public SharedObject {
+    Q_OBJECT
+    Q_PROPERTY(QUrl url MEMBER _url)
+
+public:
+    
+    Q_INVOKABLE HeightfieldTexture();
+
+    const QUrl& getURL() const { return _url; }
+
+private:
+    
+    QUrl _url;
 };
 
 /// An attribute that stores heightfield data.
-class HeightfieldAttribute : public InlineAttribute<HeightfieldDataPointer> {
+class HeightfieldAttribute : public InlineAttribute<HeightfieldHeightDataPointer> {
     Q_OBJECT
     
 public:
@@ -471,12 +578,29 @@ public:
 };
 
 /// An attribute that stores heightfield colors.
-class HeightfieldColorAttribute : public InlineAttribute<HeightfieldDataPointer> {
+class HeightfieldColorAttribute : public InlineAttribute<HeightfieldColorDataPointer> {
     Q_OBJECT
     
 public:
     
     Q_INVOKABLE HeightfieldColorAttribute(const QString& name = QString());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+};
+
+/// An attribute that stores heightfield textures.
+class HeightfieldTextureAttribute : public InlineAttribute<HeightfieldTextureDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE HeightfieldTextureAttribute(const QString& name = QString());
     
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;

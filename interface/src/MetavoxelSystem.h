@@ -49,7 +49,7 @@ public:
 
     Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
 
-    Q_INVOKABLE void deleteTextures(int heightID, int colorID);
+    Q_INVOKABLE void deleteTextures(int heightID, int colorID, int textureID);
 
 protected:
 
@@ -57,7 +57,7 @@ protected:
 
 private:
     
-    void guideToAugmented(MetavoxelVisitor& visitor);
+    void guideToAugmented(MetavoxelVisitor& visitor, bool render = false);
     
     AttributePointer _pointBufferAttribute;
     AttributePointer _heightfieldBufferAttribute;
@@ -92,6 +92,8 @@ public:
     /// Returns a copy of the augmented data.  This function is thread-safe.
     MetavoxelData getAugmentedData();
     
+    void setRenderedAugmentedData(const MetavoxelData& data) { _renderedAugmentedData = data; }
+    
     virtual int parseData(const QByteArray& packet);
 
 protected:
@@ -102,6 +104,7 @@ protected:
 private:
     
     MetavoxelData _augmentedData;
+    MetavoxelData _renderedAugmentedData;
     QReadWriteLock _augmentedDataLock;
 };
 
@@ -139,7 +142,9 @@ public:
     static const int SHARED_EDGE;
     static const int HEIGHT_EXTENSION;
     
-    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height, const QByteArray& color);
+    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height,
+        const QByteArray& color, const QByteArray& texture = QByteArray(),
+        const QVector<SharedObjectPointer>& textures = QVector<SharedObjectPointer>());
     ~HeightfieldBuffer();
     
     const glm::vec3& getTranslation() const { return _translation; }
@@ -153,6 +158,11 @@ public:
     
     QByteArray& getColor() { return _color; }
     const QByteArray& getColor() const { return _color; }
+    
+    QByteArray& getTexture() { return _texture; }
+    const QByteArray& getTexture() const { return _texture; }
+    
+    const QVector<SharedObjectPointer>& getTextures() const { return _textures; }
     
     QByteArray getUnextendedHeight() const;
     QByteArray getUnextendedColor() const;
@@ -173,13 +183,17 @@ private:
     Box _colorBounds;
     QByteArray _height;
     QByteArray _color;
+    QByteArray _texture;
+    QVector<SharedObjectPointer> _textures;
     GLuint _heightTextureID;
     GLuint _colorTextureID;
+    GLuint _textureTextureID;
+    QVector<NetworkTexturePointer> _networkTextures;
     int _heightSize;
     float _heightIncrement;
     int _colorSize;
     float _colorIncrement;
-
+    
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
     static QHash<int, BufferPair> _bufferPairs;
 };
@@ -231,6 +245,25 @@ public:
     static int getCascadedShadowMapHeightScaleLocation() { return _cascadedShadowMapHeightScaleLocation; }
     static int getCascadedShadowMapColorScaleLocation() { return _cascadedShadowMapColorScaleLocation; }
     
+    static ProgramObject& getBaseHeightfieldProgram() { return _baseHeightfieldProgram; }
+    static int getBaseHeightScaleLocation() { return _baseHeightScaleLocation; }
+    static int getBaseColorScaleLocation() { return _baseColorScaleLocation; }
+    
+    static ProgramObject& getSplatHeightfieldProgram() { return _splatHeightfieldProgram; }
+    static int getSplatHeightScaleLocation() { return _splatHeightScaleLocation; }
+    static int getSplatTextureScaleLocation() { return _splatTextureScaleLocation; }
+    static int getSplatTextureValueMinimaLocation() { return _splatTextureValueMinimaLocation; }
+    static int getSplatTextureValueMaximaLocation() { return _splatTextureValueMaximaLocation; }
+    
+    static ProgramObject& getLightHeightfieldProgram() { return _lightHeightfieldProgram; }
+    static int getLightHeightScaleLocation() { return _lightHeightScaleLocation; }
+    
+    static ProgramObject& getShadowLightHeightfieldProgram() { return _shadowLightHeightfieldProgram; }
+    static int getShadowLightHeightScaleLocation() { return _shadowLightHeightScaleLocation; }
+    
+    static ProgramObject& getCascadedShadowLightHeightfieldProgram() { return _cascadedShadowLightHeightfieldProgram; }
+    static int getCascadedShadowLightHeightScaleLocation() { return _cascadedShadowLightHeightScaleLocation; }
+    
     static ProgramObject& getHeightfieldCursorProgram() { return _heightfieldCursorProgram; }
     
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
@@ -256,6 +289,26 @@ private:
     static int _cascadedShadowMapHeightScaleLocation;
     static int _cascadedShadowMapColorScaleLocation;
     static int _shadowDistancesLocation;
+    
+    static ProgramObject _baseHeightfieldProgram;
+    static int _baseHeightScaleLocation;
+    static int _baseColorScaleLocation;
+    
+    static ProgramObject _splatHeightfieldProgram;
+    static int _splatHeightScaleLocation;
+    static int _splatTextureScaleLocation;
+    static int _splatTextureValueMinimaLocation;
+    static int _splatTextureValueMaximaLocation;
+    
+    static ProgramObject _lightHeightfieldProgram;
+    static int _lightHeightScaleLocation;
+    
+    static ProgramObject _shadowLightHeightfieldProgram;
+    static int _shadowLightHeightScaleLocation;
+    
+    static ProgramObject _cascadedShadowLightHeightfieldProgram;
+    static int _cascadedShadowLightHeightScaleLocation;
+    static int _shadowLightDistancesLocation;
     
     static ProgramObject _heightfieldCursorProgram;
 };

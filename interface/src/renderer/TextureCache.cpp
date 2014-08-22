@@ -145,6 +145,8 @@ GLuint TextureCache::getPermutationNormalTextureID() {
 }
 
 const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
+const unsigned char TRANSPARENT_WHITE[] = { 0xFF, 0xFF, 0xFF, 0x0 };
+const unsigned char OPAQUE_BLACK[] = { 0x0, 0x0, 0x0, 0xFF };
 const unsigned char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
 
 static void loadSingleColorTexture(const unsigned char* color) {
@@ -175,19 +177,18 @@ GLuint TextureCache::getBlueTextureID() {
 /// Extra data for creating textures.
 class TextureExtra {
 public:
-    bool normalMap;
+    TextureType type;
     const QByteArray& content;
 };
 
-QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap,
-        bool dilatable, const QByteArray& content) {
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type, bool dilatable, const QByteArray& content) {
     if (!dilatable) {
-        TextureExtra extra = { normalMap, content };
+        TextureExtra extra = { type, content };
         return ResourceCache::getResource(url, QUrl(), false, &extra).staticCast<NetworkTexture>();
     }
-    QSharedPointer<NetworkTexture> texture = _dilatableNetworkTextures.value(url);
+    NetworkTexturePointer texture = _dilatableNetworkTextures.value(url);
     if (texture.isNull()) {
-        texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url, content), &Resource::allReferencesCleared);
+        texture = NetworkTexturePointer(new DilatableNetworkTexture(url, content), &Resource::allReferencesCleared);
         texture->setSelf(texture);
         texture->setCache(this);
         _dilatableNetworkTextures.insert(url, texture);
@@ -293,7 +294,7 @@ bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
-    return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->normalMap, textureExtra->content),
+    return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->type, textureExtra->content),
         &Resource::allReferencesCleared);
 }
 
@@ -317,7 +318,7 @@ Texture::~Texture() {
     glDeleteTextures(1, &_id);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap, const QByteArray& content) :
+NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
     Resource(url, !content.isEmpty()),
     _translucent(false) {
     
@@ -325,9 +326,25 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap, const QByteArray
         _loaded = true;
     }
     
-    // default to white/blue
+    // default to white/blue/black
     glBindTexture(GL_TEXTURE_2D, getID());
-    loadSingleColorTexture(normalMap ? OPAQUE_BLUE : OPAQUE_WHITE);
+    switch (type) {
+        case NORMAL_TEXTURE:
+            loadSingleColorTexture(OPAQUE_BLUE);  
+            break;
+        
+        case SPECULAR_TEXTURE:
+            loadSingleColorTexture(OPAQUE_BLACK);  
+            break;
+            
+        case SPLAT_TEXTURE:
+            loadSingleColorTexture(TRANSPARENT_WHITE);   
+            break;
+            
+        default:
+            loadSingleColorTexture(OPAQUE_WHITE);        
+            break;
+    }
     glBindTexture(GL_TEXTURE_2D, 0);
     
     // if we have content, load it after we have our self pointer
@@ -382,12 +399,24 @@ void ImageReader::run() {
         qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height();
         image = image.scaled(MAXIMUM_SIZE, MAXIMUM_SIZE, Qt::KeepAspectRatio);
     }
+    int imageArea = image.width() * image.height();
     
+    const int EIGHT_BIT_MAXIMUM = 255;
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
         }
-        QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false));
+        int redTotal = 0, greenTotal = 0, blueTotal = 0;
+        for (int y = 0; y < image.height(); y++) {
+            for (int x = 0; x < image.width(); x++) {
+                QRgb rgb = image.pixel(x, y);
+                redTotal += qRed(rgb);
+                greenTotal += qGreen(rgb);
+                blueTotal += qBlue(rgb);
+            }
+        }
+        QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
+            Q_ARG(const QColor&, QColor(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea)));
         return;
     }
     if (image.format() != QImage::Format_ARGB32) {
@@ -397,11 +426,15 @@ void ImageReader::run() {
     // check for translucency/false transparency
     int opaquePixels = 0;
     int translucentPixels = 0;
-    const int EIGHT_BIT_MAXIMUM = 255;
-    const int RGB_BITS = 24;
+    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
     for (int y = 0; y < image.height(); y++) {
         for (int x = 0; x < image.width(); x++) {
-            int alpha = image.pixel(x, y) >> RGB_BITS;
+            QRgb rgb = image.pixel(x, y);
+            redTotal += qRed(rgb);
+            greenTotal += qGreen(rgb);
+            blueTotal += qBlue(rgb);
+            int alpha = qAlpha(rgb);
+            alphaTotal += alpha;
             if (alpha == EIGHT_BIT_MAXIMUM) {
                 opaquePixels++;
             } else if (alpha != 0) {
@@ -409,13 +442,13 @@ void ImageReader::run() {
             }
         }
     }
-    int imageArea = image.width() * image.height();
     if (opaquePixels == imageArea) {
         qDebug() << "Image with alpha channel is completely opaque:" << _url;
         image = image.convertToFormat(QImage::Format_RGB888);
     }
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
-        Q_ARG(bool, translucentPixels >= imageArea / 2));
+        Q_ARG(bool, translucentPixels >= imageArea / 2), Q_ARG(const QColor&, QColor(redTotal / imageArea,
+            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea)));
 }
 
 void NetworkTexture::downloadFinished(QNetworkReply* reply) {
@@ -427,8 +460,9 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, NULL, _url, content));
 }
 
-void NetworkTexture::setImage(const QImage& image, bool translucent) {
+void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor) {
     _translucent = translucent;
+    _averageColor = averageColor;
     
     finishedLoading(true);
     imageLoaded(image);
@@ -449,7 +483,7 @@ void NetworkTexture::imageLoaded(const QImage& image) {
 }
 
 DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, const QByteArray& content) :
-    NetworkTexture(url, false, content),
+    NetworkTexture(url, DEFAULT_TEXTURE, content),
     _innerRadius(0),
     _outerRadius(0)
 {
