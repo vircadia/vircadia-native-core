@@ -116,7 +116,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
 }
 
 bool AssignmentClient::nativeEventFilter(const QByteArray &eventType, void* msg, long* result) {
-#if Q_OS_WIN
+#ifdef Q_OS_WIN
     if (eventType == "windows_generic_MSG") {
         MSG* message = (MSG*)msg;
         if (message->message == WM_CLOSE) {
