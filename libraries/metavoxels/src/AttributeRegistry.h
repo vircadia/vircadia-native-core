@@ -548,16 +548,23 @@ private:
 class HeightfieldTexture : public SharedObject {
     Q_OBJECT
     Q_PROPERTY(QUrl url MEMBER _url)
-
+    Q_PROPERTY(float scaleS MEMBER _scaleS)
+    Q_PROPERTY(float scaleT MEMBER _scaleT)
+    
 public:
     
     Q_INVOKABLE HeightfieldTexture();
 
     const QUrl& getURL() const { return _url; }
 
+    float getScaleS() const { return _scaleS; }
+    float getScaleT() const { return _scaleT; }
+
 private:
     
     QUrl _url;
+    float _scaleS;
+    float _scaleT;
 };
 
 /// An attribute that stores heightfield data.
