@@ -713,7 +713,7 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
             sphereCenter = cubeCenter + sphereOffset * axis;
             sphere.setTranslation(sphereCenter);
     
-            if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+            if (!ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  axis = " << axis << std::endl;
             }
             CollisionInfo* collision = collisions[0];
@@ -746,7 +746,7 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
             sphereCenter = cubeCenter + sphereOffset * axis;
             sphere.setTranslation(sphereCenter);
     
-            if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+            if (!ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube." 
                     << "  axis = " << axis
                     << std::endl;
@@ -820,7 +820,7 @@ void ShapeColliderTests::sphereTouchesAACubeEdges() {
         sphereCenter = cubeCenter + (lengthAxis * 0.5f * cubeSide + sphereRadius - overlap) * axis;
         sphere.setTranslation(sphereCenter);
     
-        if (!ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+        if (!ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  axis = " << axis << std::endl;
         }
         CollisionInfo* collision = collisions[i];
@@ -861,42 +861,42 @@ void ShapeColliderTests::sphereMissesAACube() {
     // top
     sphereCenter = cubeCenter + sphereOffset * yAxis;
     sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
     
     // bottom
     sphereCenter = cubeCenter - sphereOffset * yAxis;
     sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
 
     // left
     sphereCenter = cubeCenter + sphereOffset * xAxis;
     sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
 
     // right
     sphereCenter = cubeCenter - sphereOffset * xAxis;
     sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
 
     // forward
     sphereCenter = cubeCenter + sphereOffset * zAxis;
     sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
 
     // back
     sphereCenter = cubeCenter - sphereOffset * zAxis;
     sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereAACube(&sphere, cubeCenter, cubeSide, collisions)){
+    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
     }
 }

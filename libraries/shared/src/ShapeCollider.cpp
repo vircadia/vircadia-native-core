@@ -50,27 +50,27 @@ void initDispatchTable() {
 
     // NOTE: no need to update any that are notImplemented, but we leave them 
     // commented out in the code so that we remember that they exist.
-    dispatchTable[getDispatchKey(SPHERE_SHAPE, SPHERE_SHAPE)] = &sphereSphere;
-    dispatchTable[getDispatchKey(SPHERE_SHAPE, CAPSULE_SHAPE)] = &sphereCapsule;
-    dispatchTable[getDispatchKey(SPHERE_SHAPE, PLANE_SHAPE)] = &spherePlane;
-    //dispatchTable[getDispatchKey(SPHERE_SHAPE, LIST_SHAPE)] = &notImplemented;
+    dispatchTable[getDispatchKey(SPHERE_SHAPE, SPHERE_SHAPE)] = &sphereVsSphere;
+    dispatchTable[getDispatchKey(SPHERE_SHAPE, CAPSULE_SHAPE)] = &sphereVsCapsule;
+    dispatchTable[getDispatchKey(SPHERE_SHAPE, PLANE_SHAPE)] = &sphereVsPlane;
+    dispatchTable[getDispatchKey(SPHERE_SHAPE, LIST_SHAPE)] = &shapeVsList;
 
-    dispatchTable[getDispatchKey(CAPSULE_SHAPE, SPHERE_SHAPE)] = &capsuleSphere;
-    dispatchTable[getDispatchKey(CAPSULE_SHAPE, CAPSULE_SHAPE)] = &capsuleCapsule;
-    dispatchTable[getDispatchKey(CAPSULE_SHAPE, PLANE_SHAPE)] = &capsulePlane;
-    //dispatchTable[getDispatchKey(CAPSULE_SHAPE, LIST_SHAPE)] = &notImplemented;
+    dispatchTable[getDispatchKey(CAPSULE_SHAPE, SPHERE_SHAPE)] = &capsuleVsSphere;
+    dispatchTable[getDispatchKey(CAPSULE_SHAPE, CAPSULE_SHAPE)] = &capsuleVsCapsule;
+    dispatchTable[getDispatchKey(CAPSULE_SHAPE, PLANE_SHAPE)] = &capsuleVsPlane;
+    dispatchTable[getDispatchKey(CAPSULE_SHAPE, LIST_SHAPE)] = &shapeVsList;
 
-    dispatchTable[getDispatchKey(PLANE_SHAPE, SPHERE_SHAPE)] = &planeSphere;
-    dispatchTable[getDispatchKey(PLANE_SHAPE, CAPSULE_SHAPE)] = &planeCapsule;
-    dispatchTable[getDispatchKey(PLANE_SHAPE, PLANE_SHAPE)] = &planePlane;
-    //dispatchTable[getDispatchKey(PLANE_SHAPE, LIST_SHAPE)] = &notImplemented;
+    dispatchTable[getDispatchKey(PLANE_SHAPE, SPHERE_SHAPE)] = &planeVsSphere;
+    dispatchTable[getDispatchKey(PLANE_SHAPE, CAPSULE_SHAPE)] = &planeVsCapsule;
+    dispatchTable[getDispatchKey(PLANE_SHAPE, PLANE_SHAPE)] = &planeVsPlane;
+    dispatchTable[getDispatchKey(PLANE_SHAPE, LIST_SHAPE)] = &shapeVsList;
 
-    //dispatchTable[getDispatchKey(LIST_SHAPE, SPHERE_SHAPE)] = &notImplemented;
-    //dispatchTable[getDispatchKey(LIST_SHAPE, CAPSULE_SHAPE)] = &notImplemented;
-    //dispatchTable[getDispatchKey(LIST_SHAPE, PLANE_SHAPE)] = &notImplemented;
-    //dispatchTable[getDispatchKey(LIST_SHAPE, LIST_SHAPE)] = &notImplemented;
+    dispatchTable[getDispatchKey(LIST_SHAPE, SPHERE_SHAPE)] = &listVsShape;
+    dispatchTable[getDispatchKey(LIST_SHAPE, CAPSULE_SHAPE)] = &listVsShape;
+    dispatchTable[getDispatchKey(LIST_SHAPE, PLANE_SHAPE)] = &listVsShape;
+    dispatchTable[getDispatchKey(LIST_SHAPE, LIST_SHAPE)] = &listVsList;
 
-    // all of the UNKNOWN_SHAPE pairings point at notImplemented
+    // all of the UNKNOWN_SHAPE pairings are notImplemented
 }
 
 bool collideShapes(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
@@ -78,31 +78,6 @@ bool collideShapes(const Shape* shapeA, const Shape* shapeB, CollisionList& coll
 }
 
 static CollisionList tempCollisions(32);
-
-bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<const Shape*>& shapesB, CollisionInfo& collision) {
-    tempCollisions.clear();
-    foreach (const Shape* shapeA, shapesA) {
-        foreach (const Shape* shapeB, shapesB) {
-            collideShapes(shapeA, shapeB, tempCollisions);
-        }
-    }
-    if (tempCollisions.size() > 0) {
-        glm::vec3 totalPenetration(0.0f);
-        glm::vec3 averageContactPoint(0.0f);
-        for (int j = 0; j < tempCollisions.size(); ++j) {
-            CollisionInfo* c = tempCollisions.getCollision(j);
-            totalPenetration = addPenetrations(totalPenetration, c->_penetration);
-            averageContactPoint += c->_contactPoint;
-        }
-        collision._penetration = totalPenetration;
-        collision._contactPoint = averageContactPoint / (float)(tempCollisions.size());
-        // there are no valid shape pointers for this collision so we set them NULL
-        collision._shapeA = NULL;
-        collision._shapeB = NULL;
-        return true;
-    }
-    return false;
-}
 
 bool collideShapeWithShapes(const Shape* shapeA, const QVector<Shape*>& shapes, int startIndex, CollisionList& collisions) {
     bool collided = false;
@@ -145,9 +120,9 @@ bool collideShapesWithShapes(const QVector<Shape*>& shapesA, const QVector<Shape
 bool collideShapeWithAACube(const Shape* shapeA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
     Shape::Type typeA = shapeA->getType();
     if (typeA == SPHERE_SHAPE) {
-        return sphereAACube(static_cast<const SphereShape*>(shapeA), cubeCenter, cubeSide, collisions);
+        return sphereVsAACube(static_cast<const SphereShape*>(shapeA), cubeCenter, cubeSide, collisions);
     } else if (typeA == CAPSULE_SHAPE) {
-        return capsuleAACube(static_cast<const CapsuleShape*>(shapeA), cubeCenter, cubeSide, collisions);
+        return capsuleVsAACube(static_cast<const CapsuleShape*>(shapeA), cubeCenter, cubeSide, collisions);
     } else if (typeA == LIST_SHAPE) {
         const ListShape* listA = static_cast<const ListShape*>(shapeA);
         bool touching = false;
@@ -155,9 +130,9 @@ bool collideShapeWithAACube(const Shape* shapeA, const glm::vec3& cubeCenter, fl
             const Shape* subShape = listA->getSubShape(i);
             int subType = subShape->getType();
             if (subType == SPHERE_SHAPE) {
-                touching = sphereAACube(static_cast<const SphereShape*>(subShape), cubeCenter, cubeSide, collisions) || touching;
+                touching = sphereVsAACube(static_cast<const SphereShape*>(subShape), cubeCenter, cubeSide, collisions) || touching;
             } else if (subType == CAPSULE_SHAPE) {
-                touching = capsuleAACube(static_cast<const CapsuleShape*>(subShape), cubeCenter, cubeSide, collisions) || touching;
+                touching = capsuleVsAACube(static_cast<const CapsuleShape*>(subShape), cubeCenter, cubeSide, collisions) || touching;
             }
         }
         return touching;
@@ -165,7 +140,7 @@ bool collideShapeWithAACube(const Shape* shapeA, const glm::vec3& cubeCenter, fl
     return false;
 }
 
-bool sphereSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool sphereVsSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const SphereShape* sphereA = static_cast<const SphereShape*>(shapeA);
     const SphereShape* sphereB = static_cast<const SphereShape*>(shapeB);
     glm::vec3 BA = sphereB->getTranslation() - sphereA->getTranslation();
@@ -195,7 +170,7 @@ bool sphereSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& colli
     return false;
 }
 
-bool sphereCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool sphereVsCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const SphereShape* sphereA = static_cast<const SphereShape*>(shapeA);
     const CapsuleShape* capsuleB = static_cast<const CapsuleShape*>(shapeB);
     // find sphereA's closest approach to axis of capsuleB
@@ -266,7 +241,7 @@ bool sphereCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& coll
     return false;
 }
 
-bool spherePlane(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool sphereVsPlane(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const SphereShape* sphereA = static_cast<const SphereShape*>(shapeA);
     const PlaneShape* planeB = static_cast<const PlaneShape*>(shapeB);
     glm::vec3 penetration;
@@ -284,7 +259,7 @@ bool spherePlane(const Shape* shapeA, const Shape* shapeB, CollisionList& collis
     return false;
 }
 
-bool capsuleSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool capsuleVsSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
     const SphereShape* sphereB = static_cast<const SphereShape*>(shapeB);
     // find sphereB's closest approach to axis of capsuleA
@@ -427,7 +402,7 @@ bool lineCylinder(const glm::vec3& lineP, const glm::vec3& lineDir,
     return true;
 }
 
-bool capsuleCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool capsuleVsCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
     const CapsuleShape* capsuleB = static_cast<const CapsuleShape*>(shapeB);
     glm::vec3 axisA;
@@ -588,7 +563,7 @@ bool capsuleCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& col
     return false;
 }
 
-bool capsulePlane(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool capsuleVsPlane(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
     const PlaneShape* planeB = static_cast<const PlaneShape*>(shapeB);
     glm::vec3 start, end, penetration;
@@ -610,7 +585,7 @@ bool capsulePlane(const Shape* shapeA, const Shape* shapeB, CollisionList& colli
     return false;
 }
 
-bool planeSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool planeVsSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const PlaneShape* planeA = static_cast<const PlaneShape*>(shapeA);
     const SphereShape* sphereB = static_cast<const SphereShape*>(shapeB);
     glm::vec3 penetration;
@@ -629,7 +604,7 @@ bool planeSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collis
     return false;
 }
 
-bool planeCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool planeVsCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const PlaneShape* planeA = static_cast<const PlaneShape*>(shapeA);
     const CapsuleShape* capsuleB = static_cast<const CapsuleShape*>(shapeB);
     glm::vec3 start, end, penetration;
@@ -651,115 +626,33 @@ bool planeCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& colli
     return false;
 }
 
-bool planePlane(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool planeVsPlane(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     // technically, planes always collide unless they're parallel and not coincident; however, that's
     // not going to give us any useful information
     return false;
 }
 
-bool sphereList(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool shapeVsList(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     bool touching = false;
     const ListShape* listB = static_cast<const ListShape*>(shapeB);
     for (int i = 0; i < listB->size() && !collisions.isFull(); ++i) {
         const Shape* subShape = listB->getSubShape(i);
-        int subType = subShape->getType();
-        if (subType == SPHERE_SHAPE) {
-            touching = sphereSphere(shapeA, subShape, collisions) || touching;
-        } else if (subType == CAPSULE_SHAPE) {
-            touching = sphereCapsule(shapeA, subShape, collisions) || touching;
-        } else if (subType == PLANE_SHAPE) {
-            touching = spherePlane(shapeA, subShape, collisions) || touching;
-        }
+        touching = collideShapes(shapeA, subShape, collisions) || touching;
     }
     return touching;
 }
 
-bool capsuleList(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
-    bool touching = false;
-    const ListShape* listB = static_cast<const ListShape*>(shapeB);
-    for (int i = 0; i < listB->size() && !collisions.isFull(); ++i) {
-        const Shape* subShape = listB->getSubShape(i);
-        int subType = subShape->getType();
-        if (subType == SPHERE_SHAPE) {
-            touching = capsuleSphere(shapeA, subShape, collisions) || touching;
-        } else if (subType == CAPSULE_SHAPE) {
-            touching = capsuleCapsule(shapeA, subShape, collisions) || touching;
-        } else if (subType == PLANE_SHAPE) {
-            touching = capsulePlane(shapeA, subShape, collisions) || touching;
-        }
-    }
-    return touching;
-}
-
-bool planeList(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
-    bool touching = false;
-    const ListShape* listB = static_cast<const ListShape*>(shapeB);
-    for (int i = 0; i < listB->size() && !collisions.isFull(); ++i) {
-        const Shape* subShape = listB->getSubShape(i);
-        int subType = subShape->getType();
-        if (subType == SPHERE_SHAPE) {
-            touching = planeSphere(shapeA, subShape, collisions) || touching;
-        } else if (subType == CAPSULE_SHAPE) {
-            touching = planeCapsule(shapeA, subShape, collisions) || touching;
-        } else if (subType == PLANE_SHAPE) {
-            touching = planePlane(shapeA, subShape, collisions) || touching;
-        }
-    }
-    return touching;
-}
-
-bool listSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool listVsShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     bool touching = false;
     const ListShape* listA = static_cast<const ListShape*>(shapeA);
     for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
         const Shape* subShape = listA->getSubShape(i);
-        int subType = subShape->getType();
-        if (subType == SPHERE_SHAPE) {
-            touching = sphereSphere(subShape, shapeB, collisions) || touching;
-        } else if (subType == CAPSULE_SHAPE) {
-            touching = capsuleSphere(subShape, shapeB, collisions) || touching;
-        } else if (subType == PLANE_SHAPE) {
-            touching = planeSphere(subShape, shapeB, collisions) || touching;
-        }
+        touching = collideShapes(subShape, shapeB, collisions) || touching;
     }
     return touching;
 }
 
-bool listCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
-    bool touching = false;
-    const ListShape* listA = static_cast<const ListShape*>(shapeA);
-    for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
-        const Shape* subShape = listA->getSubShape(i);
-        int subType = subShape->getType();
-        if (subType == SPHERE_SHAPE) {
-            touching = sphereCapsule(subShape, shapeB, collisions) || touching;
-        } else if (subType == CAPSULE_SHAPE) {
-            touching = capsuleCapsule(subShape, shapeB, collisions) || touching;
-        } else if (subType == PLANE_SHAPE) {
-            touching = planeCapsule(subShape, shapeB, collisions) || touching;
-        }
-    }
-    return touching;
-}
-
-bool listPlane(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
-    bool touching = false;
-    const ListShape* listA = static_cast<const ListShape*>(shapeA);
-    for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
-        const Shape* subShape = listA->getSubShape(i);
-        int subType = subShape->getType();
-        if (subType == SPHERE_SHAPE) {
-            touching = spherePlane(subShape, shapeB, collisions) || touching;
-        } else if (subType == CAPSULE_SHAPE) {
-            touching = capsulePlane(subShape, shapeB, collisions) || touching;
-        } else if (subType == PLANE_SHAPE) {
-            touching = planePlane(subShape, shapeB, collisions) || touching;
-        }
-    }
-    return touching;
-}
-
-bool listList(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+bool listVsList(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     bool touching = false;
     const ListShape* listA = static_cast<const ListShape*>(shapeA);
     const ListShape* listB = static_cast<const ListShape*>(shapeB);
@@ -773,7 +666,7 @@ bool listList(const Shape* shapeA, const Shape* shapeB, CollisionList& collision
 }
 
 // helper function
-bool sphereAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::vec3& cubeCenter, 
+bool sphereVsAACube(const glm::vec3& sphereCenter, float sphereRadius, const glm::vec3& cubeCenter, 
         float cubeSide, CollisionList& collisions) {
     // sphere is A
     // cube is B
@@ -921,11 +814,11 @@ bool sphereAACube_StarkAngles(const glm::vec3& sphereCenter, float sphereRadius,
 }
 */
 
-bool sphereAACube(const SphereShape* sphereA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
-    return sphereAACube(sphereA->getTranslation(), sphereA->getRadius(), cubeCenter, cubeSide, collisions);
+bool sphereVsAACube(const SphereShape* sphereA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+    return sphereVsAACube(sphereA->getTranslation(), sphereA->getRadius(), cubeCenter, cubeSide, collisions);
 }
 
-bool capsuleAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
+bool capsuleVsAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions) {
     // find nerest approach of capsule line segment to cube
     glm::vec3 capsuleAxis;
     capsuleA->computeNormalizedAxis(capsuleAxis);
@@ -938,7 +831,7 @@ bool capsuleAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, fl
     }
     glm::vec3 nearestApproach = capsuleA->getTranslation() + offset * capsuleAxis;
     // collide nearest approach like a sphere at that point
-    return sphereAACube(nearestApproach, capsuleA->getRadius(), cubeCenter, cubeSide, collisions);
+    return sphereVsAACube(nearestApproach, capsuleA->getRadius(), cubeCenter, cubeSide, collisions);
 }
 
 bool findRayIntersectionWithShapes(const QVector<Shape*> shapes, const glm::vec3& rayStart, const glm::vec3& rayDirection, float& minDistance) {

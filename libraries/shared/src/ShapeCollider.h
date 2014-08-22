@@ -35,13 +35,6 @@ namespace ShapeCollider {
     /// \param collisions[out] collision details
     /// \return true if shapes collide
     bool collideShapes(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
-    bool collideShapesOld(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
-
-    /// \param shapesA list of shapes
-    /// \param shapeB list of shapes
-    /// \param collisions[out] average collision details
-    /// \return true if any shapes collide
-    bool collideShapesCoarse(const QVector<const Shape*>& shapesA, const QVector<const Shape*>& shapesB, CollisionInfo& collision);
 
     bool collideShapeWithShapes(const Shape* shapeA, const QVector<Shape*>& shapes, int startIndex, CollisionList& collisions);
     bool collideShapesWithShapes(const QVector<Shape*>& shapesA, const QVector<Shape*>& shapesB, CollisionList& collisions);
@@ -57,111 +50,87 @@ namespace ShapeCollider {
     /// \param sphereB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool sphereSphere(const Shape* sphereA, const Shape* sphereB, CollisionList& collisions);
+    bool sphereVsSphere(const Shape* sphereA, const Shape* sphereB, CollisionList& collisions);
 
     /// \param sphereA pointer to first shape (cannot be NULL)
     /// \param capsuleB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool sphereCapsule(const Shape* sphereA, const Shape* capsuleB, CollisionList& collisions);
+    bool sphereVsCapsule(const Shape* sphereA, const Shape* capsuleB, CollisionList& collisions);
 
     /// \param sphereA pointer to first shape (cannot be NULL)
     /// \param planeB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool spherePlane(const Shape* sphereA, const Shape* planeB, CollisionList& collisions);
+    bool sphereVsPlane(const Shape* sphereA, const Shape* planeB, CollisionList& collisions);
     
     /// \param capsuleA pointer to first shape (cannot be NULL)
     /// \param sphereB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool capsuleSphere(const Shape* capsuleA, const Shape* sphereB, CollisionList& collisions);
+    bool capsuleVsSphere(const Shape* capsuleA, const Shape* sphereB, CollisionList& collisions);
 
     /// \param capsuleA pointer to first shape (cannot be NULL)
     /// \param capsuleB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool capsuleCapsule(const Shape* capsuleA, const Shape* capsuleB, CollisionList& collisions);
+    bool capsuleVsCapsule(const Shape* capsuleA, const Shape* capsuleB, CollisionList& collisions);
 
     /// \param capsuleA pointer to first shape (cannot be NULL)
     /// \param planeB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool capsulePlane(const Shape* capsuleA, const Shape* planeB, CollisionList& collisions);
+    bool capsuleVsPlane(const Shape* capsuleA, const Shape* planeB, CollisionList& collisions);
     
     /// \param planeA pointer to first shape (cannot be NULL)
     /// \param sphereB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool planeSphere(const Shape* planeA, const Shape* sphereB, CollisionList& collisions);
+    bool planeVsSphere(const Shape* planeA, const Shape* sphereB, CollisionList& collisions);
 
     /// \param planeA pointer to first shape (cannot be NULL)
     /// \param capsuleB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool planeCapsule(const Shape* planeA, const Shape* capsuleB, CollisionList& collisions);
+    bool planeVsCapsule(const Shape* planeA, const Shape* capsuleB, CollisionList& collisions);
 
     /// \param planeA pointer to first shape (cannot be NULL)
     /// \param planeB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool planePlane(const Shape* planeA, const Shape* planeB, CollisionList& collisions);
+    bool planeVsPlane(const Shape* planeA, const Shape* planeB, CollisionList& collisions);
     
-    /// \param sphereA pointer to first shape (cannot be NULL)
+    /// \param shapeA pointer to first shape (cannot be NULL)
     /// \param listB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool sphereList(const Shape* sphereA, const Shape* listB, CollisionList& collisions);
+    bool shapeVsList(const Shape* shapeA, const Shape* listB, CollisionList& collisions);
 
-    /// \param capuleA pointer to first shape (cannot be NULL)
+    /// \param listA pointer to first shape (cannot be NULL)
+    /// \param shapeB pointer to second shape (cannot be NULL)
+    /// \param[out] collisions where to append collision details
+    /// \return true if shapes collide
+    bool listVsShape(const Shape* listA, const Shape* shapeB, CollisionList& collisions);
+    
+    /// \param listA pointer to first shape (cannot be NULL)
     /// \param listB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
-    bool capsuleList(const Shape* capsuleA, const Shape* listB, CollisionList& collisions);
-
-    /// \param planeA pointer to first shape (cannot be NULL)
-    /// \param listB pointer to second shape (cannot be NULL)
-    /// \param[out] collisions where to append collision details
-    /// \return true if shapes collide
-    bool planeList(const Shape* planeA, const Shape* listB, CollisionList& collisions);
-    
-    /// \param listA pointer to first shape (cannot be NULL)
-    /// \param sphereB pointer to second shape (cannot be NULL)
-    /// \param[out] collisions where to append collision details
-    /// \return true if shapes collide
-    bool listSphere(const Shape* listA, const Shape* sphereB, CollisionList& collisions);
-
-    /// \param listA pointer to first shape (cannot be NULL)
-    /// \param capsuleB pointer to second shape (cannot be NULL)
-    /// \param[out] collisions where to append collision details
-    /// \return true if shapes collide
-    bool listCapsule(const Shape* listA, const Shape* capsuleB, CollisionList& collisions);
-
-    /// \param listA pointer to first shape (cannot be NULL)
-    /// \param planeB pointer to second shape (cannot be NULL)
-    /// \param[out] collisions where to append collision details
-    /// \return true if shapes collide
-    bool listPlane(const Shape* listA, const Shape* planeB, CollisionList& collisions);
-    
-    /// \param listA pointer to first shape (cannot be NULL)
-    /// \param capsuleB pointer to second shape (cannot be NULL)
-    /// \param[out] collisions where to append collision details
-    /// \return true if shapes collide
-    bool listList(const Shape* listA, const Shape* listB, CollisionList& collisions);
+    bool listVsList(const Shape* listA, const Shape* listB, CollisionList& collisions);
 
     /// \param sphereA pointer to sphere (cannot be NULL)
     /// \param cubeCenter center of cube
     /// \param cubeSide lenght of side of cube
     /// \param[out] collisions where to append collision details
     /// \return true if sphereA collides with axis aligned cube
-    bool sphereAACube(const SphereShape* sphereA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
+    bool sphereVsAACube(const SphereShape* sphereA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
 
     /// \param capsuleA pointer to capsule (cannot be NULL)
     /// \param cubeCenter center of cube
     /// \param cubeSide lenght of side of cube
     /// \param[out] collisions where to append collision details
     /// \return true if capsuleA collides with axis aligned cube
-    bool capsuleAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
+    bool capsuleVsAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
 
     /// \param shapes list of pointers to shapes (shape pointers may be NULL)
     /// \param startPoint beginning of ray
