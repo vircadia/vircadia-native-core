@@ -17,7 +17,7 @@
 
 #include "ThreadedAssignment.h"
 
-class AssignmentClient : public QCoreApplication, QAbstractNativeEventFilter {
+class AssignmentClient : public QCoreApplication, public QAbstractNativeEventFilter {
     Q_OBJECT
 public:
     AssignmentClient(int &argc, char **argv);

@@ -47,6 +47,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
+
+    installNativeEventFilter(this);
     
     _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
     
@@ -59,6 +61,20 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         qDebug() << "Setting up LimitedNodeList and assignments.";
         setupNodeListAndAssignments();
     }
+}
+
+bool DomainServer::nativeEventFilter(const QByteArray &eventType, void* msg, long* result) {
+#ifdef Q_OS_WIN
+    if (eventType == "windows_generic_MSG") {
+        MSG* message = (MSG*)msg;
+        if (message->message == WM_CLOSE) {
+            qDebug() << "Received WM_CLOSE message, closing";
+            quit();
+            return false;
+        }
+    }
+#endif
+    return true;
 }
 
 bool DomainServer::optionallyReadX509KeyAndCertificate() {

@@ -19,6 +19,7 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
+#include <QAbstractNativeEventFilter>
 
 #include <Assignment.h>
 #include <HTTPSConnection.h>
@@ -31,13 +32,15 @@
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
-class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
+class DomainServer : public QCoreApplication, public HTTPSRequestHandler, public QAbstractNativeEventFilter {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url);
+
+    bool nativeEventFilter(const QByteArray &eventType, void* msg, long* result);
     
     void exit(int retCode = 0);
     
