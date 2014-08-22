@@ -51,9 +51,6 @@ var lastVoxelScale = 0;
 var dragStart = { x: 0, y: 0 };
 var wheelPixelsMoved = 0;
 
-var mouseX = 0;
-var mouseY = 0;
-
 //  Create a table of the different colors you can choose
 var colors = new Array();
 colors[0] = { red: 120, green: 181, blue: 126 };
@@ -1041,8 +1038,6 @@ function mousePressEvent(event) {
     
     // TODO: does any of this stuff need to execute if we're panning or orbiting?
     trackMouseEvent(event); // used by preview support
-    mouseX = event.x;
-    mouseY = event.y;
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Voxels.findRayIntersection(pickRay);
     audioOptions.position = Vec3.sum(pickRay.origin, pickRay.direction);
@@ -1296,33 +1291,30 @@ function mouseMoveEvent(event) {
     }
 
     if (isAdding) {
-        //  Watch the drag direction to tell which way to 'extrude' this voxel
-        if (!isExtruding) {
-            var pickRay = Camera.computePickRay(event.x, event.y);
-            var distance = Vec3.length(Vec3.subtract(pickRay.origin, lastVoxelPosition));
-            var mouseSpot = Vec3.sum(Vec3.multiply(pickRay.direction, distance), pickRay.origin);
-            var delta = Vec3.subtract(mouseSpot, lastVoxelPosition);
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        var distance = Vec3.length(Vec3.subtract(pickRay.origin, lastVoxelPosition));
+        var mouseSpot = Vec3.sum(Vec3.multiply(pickRay.direction, distance), pickRay.origin);
+        var delta = Vec3.subtract(mouseSpot, lastVoxelPosition);
 
+        if (!isExtruding) {
+            //  Use the drag direction to tell which way to 'extrude' this voxel
             extrudeScale = lastVoxelScale;
             extrudeDirection = { x: 0, y: 0, z: 0 };
             isExtruding = true;
-            if (delta.x > lastVoxelScale) extrudeDirection.x = extrudeScale;
-            else if (delta.x < -lastVoxelScale) extrudeDirection.x = -extrudeScale;
-            else if (delta.y > lastVoxelScale) extrudeDirection.y = extrudeScale;
-            else if (delta.y < -lastVoxelScale) extrudeDirection.y = -extrudeScale;
-            else if (delta.z > lastVoxelScale) extrudeDirection.z = extrudeScale;
-            else if (delta.z < -lastVoxelScale) extrudeDirection.z = -extrudeScale;
+            if (delta.x > lastVoxelScale) extrudeDirection.x = 1;
+            else if (delta.x < -lastVoxelScale) extrudeDirection.x = -1;
+            else if (delta.y > lastVoxelScale) extrudeDirection.y = 1;
+            else if (delta.y < -lastVoxelScale) extrudeDirection.y = -1;
+            else if (delta.z > lastVoxelScale) extrudeDirection.z = 1;
+            else if (delta.z < -lastVoxelScale) extrudeDirection.z = -1;
             else isExtruding = false;
         } else {
-            //  We have got an extrusion direction, now look for mouse move beyond threshold to add new voxel
-            var dx = event.x - mouseX;
-            var dy = event.y - mouseY;
-            if (Math.sqrt(dx*dx + dy*dy) > PIXELS_PER_EXTRUDE_VOXEL)  {
-                lastVoxelPosition = Vec3.sum(lastVoxelPosition, extrudeDirection);
-                Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z,
-                                extrudeScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
-                mouseX = event.x;
-                mouseY = event.y;
+            //  Extrude if mouse has moved by a voxel in the extrude direction
+            var distanceInDirection = Vec3.dot(delta, extrudeDirection);
+            if (distanceInDirection > extrudeScale) {
+                lastVoxelPosition = Vec3.sum(lastVoxelPosition, Vec3.multiply(extrudeDirection, extrudeScale));
+                Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, extrudeScale,
+                                lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
             }
         }
     }
