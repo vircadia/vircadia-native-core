@@ -57,7 +57,7 @@ protected:
 
 private:
     
-    void guideToAugmented(MetavoxelVisitor& visitor);
+    void guideToAugmented(MetavoxelVisitor& visitor, bool render = false);
     
     AttributePointer _pointBufferAttribute;
     AttributePointer _heightfieldBufferAttribute;
@@ -92,6 +92,8 @@ public:
     /// Returns a copy of the augmented data.  This function is thread-safe.
     MetavoxelData getAugmentedData();
     
+    void setRenderedAugmentedData(const MetavoxelData& data) { _renderedAugmentedData = data; }
+    
     virtual int parseData(const QByteArray& packet);
 
 protected:
@@ -102,6 +104,7 @@ protected:
 private:
     
     MetavoxelData _augmentedData;
+    MetavoxelData _renderedAugmentedData;
     QReadWriteLock _augmentedDataLock;
 };
 

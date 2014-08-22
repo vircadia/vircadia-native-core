@@ -118,7 +118,7 @@ void MetavoxelSystem::render() {
         viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
     
     RenderVisitor renderVisitor(getLOD());
-    guideToAugmented(renderVisitor);
+    guideToAugmented(renderVisitor, true);
 }
 
 class RayHeightfieldIntersectionVisitor : public RayIntersectionVisitor {
@@ -459,13 +459,19 @@ MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
     return new MetavoxelSystemClient(node, _updater);
 }
 
-void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor) {
+void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
             if (client) {
-                client->getAugmentedData().guide(visitor);
+                MetavoxelData data = client->getAugmentedData();
+                data.guide(visitor);
+                if (render) {
+                    // save the rendered augmented data so that its cached texture references, etc., don't
+                    // get collected when we replace it with more recent versions
+                    client->setRenderedAugmentedData(data);
+                }
             }
         }
     }
