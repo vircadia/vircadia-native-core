@@ -41,7 +41,9 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     setOrganizationDomain("highfidelity.io");
     setApplicationName("assignment-client");
     QSettings::setDefaultFormat(QSettings::IniFormat);
-    
+
+    installNativeEventFilter(this);
+
     QStringList argumentList = arguments();
     
     // register meta type is required for queued invoke method on Assignment subclasses
@@ -111,6 +113,18 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // connections to AccountManager for authentication
     connect(&AccountManager::getInstance(), &AccountManager::authRequired,
             this, &AssignmentClient::handleAuthenticationRequest);
+}
+
+bool AssignmentClient::nativeEventFilter(const QByteArray &eventType, void* msg, long* result) {
+    if (eventType == "windows_generic_MSG") {
+        MSG* message = (MSG*)msg;
+        if (message->message == WM_CLOSE) {
+            qDebug() << "Received WM_CLOSE message, closing";
+            quit();
+            return false;
+        }
+    }
+    return true;
 }
 
 void AssignmentClient::sendAssignmentRequest() {

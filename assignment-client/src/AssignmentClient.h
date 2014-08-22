@@ -13,14 +13,17 @@
 #define hifi_AssignmentClient_h
 
 #include <QtCore/QCoreApplication>
+#include <QAbstractNativeEventFilter.h>
 
 #include "ThreadedAssignment.h"
 
-class AssignmentClient : public QCoreApplication {
+class AssignmentClient : public QCoreApplication, QAbstractNativeEventFilter {
     Q_OBJECT
 public:
     AssignmentClient(int &argc, char **argv);
     static const SharedAssignmentPointer& getCurrentAssignment() { return _currentAssignment; }
+    virtual bool nativeEventFilter(const QByteArray& eventType, void* message, long* result);
+
 private slots:
     void sendAssignmentRequest();
     void readPendingDatagrams();
