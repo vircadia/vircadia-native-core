@@ -55,25 +55,8 @@ void EntityTreeRenderer::clear() {
 }
 
 void EntityTreeRenderer::clearModelsCache() {
+    // TODO: we need to implement this.... how do we want to handle this?
     qDebug() << "EntityTreeRenderer::clearModelsCache()...";
-    
-    /*
-    // delete the models in _knownEntityItemModels
-    foreach(Model* model, _knownEntityItemModels) {
-        delete model;
-    }
-    _knownEntityItemModels.clear();
-
-    foreach(Model* model, _unknownEntityItemModels) {
-        delete model;
-    }
-    _unknownEntityItemModels.clear();
-
-     foreach(Model* model, _entityItemModels) {
-     delete model;
-     }
-     _entityItemModels.clear();
-    */
 }
 
 void EntityTreeRenderer::init() {
