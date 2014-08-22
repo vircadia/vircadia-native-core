@@ -1299,26 +1299,19 @@ function mouseMoveEvent(event) {
         //  Watch the drag direction to tell which way to 'extrude' this voxel
         if (!isExtruding) {
             var pickRay = Camera.computePickRay(event.x, event.y);
-            var lastVoxelDistance = { x: pickRay.origin.x - lastVoxelPosition.x,
-            y: pickRay.origin.y - lastVoxelPosition.y,
-                z: pickRay.origin.z - lastVoxelPosition.z };
-            var distance = Vec3.length(lastVoxelDistance);
-            var mouseSpot = { x: pickRay.direction.x * distance, y: pickRay.direction.y * distance, z: pickRay.direction.z * distance };
-            mouseSpot.x += pickRay.origin.x;
-            mouseSpot.y += pickRay.origin.y;
-            mouseSpot.z += pickRay.origin.z;
-            var dx = mouseSpot.x - lastVoxelPosition.x;
-            var dy = mouseSpot.y - lastVoxelPosition.y;
-            var dz = mouseSpot.z - lastVoxelPosition.z;
+            var distance = Vec3.length(Vec3.subtract(pickRay.origin, lastVoxelPosition));
+            var mouseSpot = Vec3.sum(Vec3.multiply(pickRay.direction, distance), pickRay.origin);
+            var delta = Vec3.subtract(mouseSpot, lastVoxelPosition);
+
             extrudeScale = lastVoxelScale;
             extrudeDirection = { x: 0, y: 0, z: 0 };
             isExtruding = true;
-            if (dx > lastVoxelScale) extrudeDirection.x = extrudeScale;
-            else if (dx < -lastVoxelScale) extrudeDirection.x = -extrudeScale;
-            else if (dy > lastVoxelScale) extrudeDirection.y = extrudeScale;
-            else if (dy < -lastVoxelScale) extrudeDirection.y = -extrudeScale;
-            else if (dz > lastVoxelScale) extrudeDirection.z = extrudeScale;
-            else if (dz < -lastVoxelScale) extrudeDirection.z = -extrudeScale;
+            if (delta.x > lastVoxelScale) extrudeDirection.x = extrudeScale;
+            else if (delta.x < -lastVoxelScale) extrudeDirection.x = -extrudeScale;
+            else if (delta.y > lastVoxelScale) extrudeDirection.y = extrudeScale;
+            else if (delta.y < -lastVoxelScale) extrudeDirection.y = -extrudeScale;
+            else if (delta.z > lastVoxelScale) extrudeDirection.z = extrudeScale;
+            else if (delta.z < -lastVoxelScale) extrudeDirection.z = -extrudeScale;
             else isExtruding = false;
         } else {
             //  We have got an extrusion direction, now look for mouse move beyond threshold to add new voxel
