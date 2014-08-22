@@ -16,16 +16,13 @@
 #include "PreferencesDialog.h"
 #include "UserActivityLogger.h"
 
-const int SCROLL_PANEL_BOTTOM_MARGIN = 30;
-const int OK_BUTTON_RIGHT_MARGIN = 30;
-const int BUTTONS_TOP_MARGIN = 24;
-
-PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : FramelessDialog(parent, flags, POSITION_LEFT) {
+PreferencesDialog::PreferencesDialog() :
+    QDialog(Application::getInstance()->getWindow()) {
+        
+    setAttribute(Qt::WA_DeleteOnClose);
 
     ui.setupUi(this);
-    setStyleSheetFile("styles/preferences.qss");
     loadPreferences();
-    connect(ui.closeButton, &QPushButton::clicked, this, &QDialog::close);
 
     connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
     connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
@@ -49,78 +46,48 @@ void PreferencesDialog::setSkeletonUrl(QString modelUrl) {
 }
 
 void PreferencesDialog::openHeadModelBrowser() {
-    setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
-    show();
-
     ModelsBrowser modelBrowser(HEAD_MODEL);
     connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setHeadUrl);
     modelBrowser.browse();
-
-    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
-    show();
 }
 
 void PreferencesDialog::openBodyModelBrowser() {
-    setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
-    show();
-
     ModelsBrowser modelBrowser(SKELETON_MODEL);
     connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setSkeletonUrl);
     modelBrowser.browse();
-
-    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
-    show();
 }
 
 void PreferencesDialog::openSnapshotLocationBrowser() {
-    setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
-    show();
-
     QString dir = QFileDialog::getExistingDirectory(this, tr("Snapshots Location"),
                                                     QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
                                                     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (!dir.isNull() && !dir.isEmpty()) {
         ui.snapshotLocationEdit->setText(dir);
     }
-
-    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
-    show();
 }
 
 void PreferencesDialog::openScriptsLocationBrowser() {
-    setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
-    show();
-
     QString dir = QFileDialog::getExistingDirectory(this, tr("Scripts Location"),
                                                     ui.scriptsLocationEdit->text(),
                                                     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (!dir.isNull() && !dir.isEmpty()) {
         ui.scriptsLocationEdit->setText(dir);
     }
-
-    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
-    show();
 }
 
 void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
-
+    
     // keep buttons panel at the bottom
-    ui.buttonsPanel->setGeometry(0, size().height() - ui.buttonsPanel->height(), size().width(), ui.buttonsPanel->height());
-
+    ui.buttonsPanel->setGeometry(0,
+                                 size().height() - ui.buttonsPanel->height(),
+                                 size().width(),
+                                 ui.buttonsPanel->height());
+    
     // set width and height of srcollarea to match bottom panel and width
     ui.scrollArea->setGeometry(ui.scrollArea->geometry().x(), ui.scrollArea->geometry().y(),
                                size().width(),
-                               size().height() - ui.buttonsPanel->height() -
-                               SCROLL_PANEL_BOTTOM_MARGIN - ui.scrollArea->geometry().y());
-
-    // move Save button to left position
-    ui.defaultButton->move(size().width() - OK_BUTTON_RIGHT_MARGIN - ui.defaultButton->size().width(), BUTTONS_TOP_MARGIN);
-
-    // move Save button to left position
-    ui.cancelButton->move(ui.defaultButton->pos().x() - ui.cancelButton->size().width(), BUTTONS_TOP_MARGIN);
-
-    // move close button
-    ui.closeButton->move(size().width() - OK_BUTTON_RIGHT_MARGIN - ui.closeButton->size().width(), ui.closeButton->pos().y());
+                               size().height() - ui.buttonsPanel->height() - ui.scrollArea->geometry().y());
+    
 }
 
 void PreferencesDialog::loadPreferences() {

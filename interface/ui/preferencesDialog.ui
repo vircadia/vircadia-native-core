@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>PreferencesDialog</class>
- <widget class="FramelessDialog" name="PreferencesDialog">
+ <widget class="QDialog" name="PreferencesDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>638</width>
-    <height>652</height>
+    <width>500</width>
+    <height>609</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,124 +18,23 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>610</width>
+    <width>500</width>
     <height>0</height>
    </size>
   </property>
-  <property name="windowOpacity">
-   <double>0.950000000000000</double>
+  <property name="maximumSize">
+   <size>
+    <width>500</width>
+    <height>16777215</height>
+   </size>
   </property>
-  <widget class="QWidget" name="buttonsPanel" native="true">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>560</y>
-     <width>611</width>
-     <height>97</height>
-    </rect>
-   </property>
-   <property name="sizePolicy">
-    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-     <horstretch>0</horstretch>
-     <verstretch>0</verstretch>
-    </sizepolicy>
-   </property>
-   <property name="minimumSize">
-    <size>
-     <width>0</width>
-     <height>97</height>
-    </size>
-   </property>
-   <property name="font">
-    <font>
-     <family>Arial</family>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background-color: #0e7077</string>
-   </property>
-   <widget class="QPushButton" name="cancelButton">
-    <property name="geometry">
-     <rect>
-      <x>310</x>
-      <y>24</y>
-      <width>91</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="minimumSize">
-     <size>
-      <width>0</width>
-      <height>50</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <family>Arial</family>
-      <pointsize>18</pointsize>
-      <weight>50</weight>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true"/>
-    </property>
-    <property name="text">
-     <string>Cancel</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="defaultButton">
-    <property name="geometry">
-     <rect>
-      <x>400</x>
-      <y>24</y>
-      <width>188</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="minimumSize">
-     <size>
-      <width>188</width>
-      <height>49</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <family>Arial</family>
-      <pointsize>18</pointsize>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: #fff;
-color: #0e7077</string>
-    </property>
-    <property name="text">
-     <string>Save all changes</string>
-    </property>
-    <property name="default">
-     <bool>true</bool>
-    </property>
-   </widget>
-  </widget>
   <widget class="QScrollArea" name="scrollArea">
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>30</y>
-     <width>494</width>
-     <height>361</height>
+     <y>0</y>
+     <width>501</width>
+     <height>501</height>
     </rect>
    </property>
    <property name="frameShape">
@@ -155,8 +54,8 @@ color: #0e7077</string>
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>494</width>
-      <height>1456</height>
+      <width>501</width>
+      <height>1350</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -176,31 +75,6 @@ color: #0e7077</string>
       <number>30</number>
      </property>
      <item>
-      <widget class="QLabel" name="avatarLabel">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="font">
-        <font>
-         <family>Arial</family>
-         <pointsize>24</pointsize>
-        </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
-       </property>
-       <property name="text">
-        <string>Avatar</string>
-       </property>
-       <property name="indent">
-        <number>25</number>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QLabel" name="avatarDisplayLabel">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -219,9 +93,6 @@ color: #0e7077</string>
          <family>Arial</family>
          <pointsize>16</pointsize>
         </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Avatar display name &lt;span style=&quot; color:#909090;&quot;&gt;(optional)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -284,9 +155,6 @@ color: #0e7077</string>
          <pointsize>16</pointsize>
         </font>
        </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
-       </property>
        <property name="text">
         <string>Head</string>
        </property>
@@ -311,11 +179,6 @@ color: #0e7077</string>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
-         <property name="font">
-          <font>
-           <family>Arial</family>
-          </font>
-         </property>
         </widget>
        </item>
        <item>
@@ -336,34 +199,13 @@ color: #0e7077</string>
        </item>
        <item>
         <widget class="QPushButton" name="buttonBrowseHead">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>30</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>30</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true"/>
-         </property>
          <property name="text">
-          <string/>
+          <string>Browse</string>
          </property>
          <property name="iconSize">
           <size>
-           <width>30</width>
-           <height>30</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
         </widget>
@@ -390,9 +232,6 @@ color: #0e7077</string>
          <pointsize>16</pointsize>
         </font>
        </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
-       </property>
        <property name="text">
         <string>Body</string>
        </property>
@@ -414,11 +253,6 @@ color: #0e7077</string>
            <height>0</height>
           </size>
          </property>
-         <property name="font">
-          <font>
-           <family>Arial</family>
-          </font>
-         </property>
         </widget>
        </item>
        <item>
@@ -439,34 +273,13 @@ color: #0e7077</string>
        </item>
        <item>
         <widget class="QPushButton" name="buttonBrowseBody">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>30</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>30</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true"/>
-         </property>
          <property name="text">
-          <string/>
+          <string>Browse</string>
          </property>
          <property name="iconSize">
           <size>
-           <width>30</width>
-           <height>30</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
         </widget>
@@ -495,9 +308,6 @@ color: #0e7077</string>
          <bold>false</bold>
         </font>
        </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
-       </property>
        <property name="text">
         <string>Snapshots</string>
        </property>
@@ -525,9 +335,6 @@ color: #0e7077</string>
          <family>Arial</family>
          <pointsize>16</pointsize>
         </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
         <string>Place my Snapshots here:</string>
@@ -578,34 +385,13 @@ color: #0e7077</string>
        </item>
        <item>
         <widget class="QPushButton" name="buttonBrowseLocation">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>30</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>30</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true"/>
-         </property>
          <property name="text">
-          <string/>
+          <string>Browse</string>
          </property>
          <property name="iconSize">
           <size>
-           <width>30</width>
-           <height>30</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
         </widget>
@@ -634,9 +420,6 @@ color: #0e7077</string>
          <bold>false</bold>
         </font>
        </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
-       </property>
        <property name="text">
         <string>Scripts</string>
        </property>
@@ -664,9 +447,6 @@ color: #0e7077</string>
          <family>Arial</family>
          <pointsize>16</pointsize>
         </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
         <string>Load scripts from this directory:</string>
@@ -717,34 +497,13 @@ color: #0e7077</string>
        </item>
        <item>
         <widget class="QPushButton" name="buttonBrowseScriptsLocation">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>30</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>30</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true"/>
-         </property>
          <property name="text">
-          <string/>
+          <string>Browse</string>
          </property>
          <property name="iconSize">
           <size>
-           <width>30</width>
-           <height>30</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
         </widget>
@@ -756,21 +515,14 @@ color: #0e7077</string>
        <layout class="QHBoxLayout" name="horizontalLayout_12">
         <item>
          <widget class="QPushButton" name="buttonReloadDefaultScripts">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">background: #0e7077;
-color: #fff;
-border-radius: 4px;
-font: bold 14px;
-padding: 10px;margin-top:10px</string>
-          </property>
           <property name="text">
            <string>Load Default Scripts</string>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
           </property>
          </widget>
         </item>
@@ -809,9 +561,6 @@ padding: 10px;margin-top:10px</string>
          <family>Arial</family>
          <pointsize>16</pointsize>
         </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
         <string>Privacy</string>
@@ -890,7 +639,7 @@ padding: 10px;margin-top:10px</string>
          </property>
          <property name="minimumSize">
           <size>
-           <width>32</width>
+           <width>22</width>
            <height>0</height>
           </size>
          </property>
@@ -905,8 +654,8 @@ padding: 10px;margin-top:10px</string>
          </property>
          <property name="iconSize">
           <size>
-           <width>32</width>
-           <height>32</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
          <property name="checked">
@@ -950,7 +699,7 @@ padding: 10px;margin-top:10px</string>
         </font>
        </property>
        <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
+        <string notr="true"/>
        </property>
        <property name="text">
         <string>Advanced Tuning</string>
@@ -959,7 +708,7 @@ padding: 10px;margin-top:10px</string>
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
        </property>
        <property name="indent">
-        <number>25</number>
+        <number>0</number>
        </property>
       </widget>
      </item>
@@ -1015,9 +764,6 @@ padding: 10px;margin-top:10px</string>
          <weight>50</weight>
          <bold>false</bold>
         </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
         <string>Avatar</string>
@@ -1082,16 +828,10 @@ padding: 10px;margin-top:10px</string>
        </item>
        <item>
         <widget class="QSpinBox" name="realWorldFieldOfViewSpin">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
          <property name="minimumSize">
           <size>
-           <width>95</width>
-           <height>36</height>
+           <width>100</width>
+           <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
@@ -1178,8 +918,8 @@ padding: 10px;margin-top:10px</string>
          </property>
          <property name="minimumSize">
           <size>
-           <width>95</width>
-           <height>36</height>
+           <width>100</width>
+           <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
@@ -1277,21 +1017,15 @@ padding: 10px;margin-top:10px</string>
        <item>
         <widget class="QDoubleSpinBox" name="leanScaleSpin">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
          <property name="minimumSize">
           <size>
-           <width>95</width>
-           <height>36</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>16777215</height>
+           <width>100</width>
+           <height>0</height>
           </size>
          </property>
          <property name="font">
@@ -1358,16 +1092,10 @@ padding: 10px;margin-top:10px</string>
        </item>
        <item>
         <widget class="QDoubleSpinBox" name="avatarScaleSpin">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
          <property name="minimumSize">
           <size>
-           <width>95</width>
-           <height>36</height>
+           <width>100</width>
+           <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
@@ -1448,7 +1176,7 @@ padding: 10px;margin-top:10px</string>
          </property>
          <property name="minimumSize">
           <size>
-           <width>125</width>
+           <width>130</width>
            <height>0</height>
           </size>
          </property>
@@ -1519,22 +1247,10 @@ padding: 10px;margin-top:10px</string>
        </item>
        <item>
         <widget class="QSpinBox" name="audioJitterSpin">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
          <property name="minimumSize">
           <size>
-           <width>95</width>
-           <height>36</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>16777215</height>
+           <width>100</width>
+           <height>0</height>
           </size>
          </property>
          <property name="font">
@@ -1556,98 +1272,84 @@ padding: 10px;margin-top:10px</string>
       </layout>
      </item>
      <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_13">
-            <property name="spacing">
-                <number>0</number>
-            </property>
-            <property name="topMargin">
-                <number>10</number>
-            </property>
-            <property name="rightMargin">
-                <number>0</number>
-            </property>
-            <property name="bottomMargin">
-                <number>10</number>
-            </property>
-            <item alignment="Qt::AlignLeft">
-                <widget class="QLabel" name="label_10">
-                    <property name="font">
-                        <font>
-                            <family>Arial</family>
-                        </font>
-                    </property>
-                    <property name="styleSheet">
-                        <string notr="true">color: rgb(51, 51, 51)</string>
-                    </property>
-                    <property name="text">
-                        <string>Max Frames Over Desired</string>
-                    </property>
-                    <property name="indent">
-                        <number>15</number>
-                    </property>
-                    <property name="buddy">
-                        <cstring>maxFramesOverDesiredSpin</cstring>
-                    </property>
-                </widget>
-            </item>
-            <item>
-                <spacer name="horizontalSpacer_12">
-                    <property name="font">
-                        <font>
-                            <family>Arial</family>
-                        </font>
-                    </property>
-                    <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                        <size>
-                            <width>40</width>
-                            <height>20</height>
-                        </size>
-                    </property>
-                </spacer>
-            </item>
-            <item>
-                <widget class="QSpinBox" name="maxFramesOverDesiredSpin">
-                    <property name="sizePolicy">
-                        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                            <horstretch>0</horstretch>
-                            <verstretch>0</verstretch>
-                        </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                        <size>
-                            <width>95</width>
-                            <height>36</height>
-                        </size>
-                    </property>
-                    <property name="maximumSize">
-                        <size>
-                            <width>70</width>
-                            <height>16777215</height>
-                        </size>
-                    </property>
-                    <property name="font">
-                        <font>
-                            <family>Arial</family>
-                        </font>
-                    </property>
-                    <property name="minimum">
-                        <number>0</number>
-                    </property>
-                    <property name="maximum">
-                        <number>10000</number>
-                    </property>
-                    <property name="value">
-                        <number>1</number>
-                    </property>
-                </widget>
-            </item>
-        </layout>
-    </item>
-        
-        
+      <layout class="QHBoxLayout" name="horizontalLayout_13">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>10</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
+       <item alignment="Qt::AlignLeft">
+        <widget class="QLabel" name="label_10">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(51, 51, 51)</string>
+         </property>
+         <property name="text">
+          <string>Max Frames Over Desired</string>
+         </property>
+         <property name="indent">
+          <number>15</number>
+         </property>
+         <property name="buddy">
+          <cstring>maxFramesOverDesiredSpin</cstring>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_12">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="maxFramesOverDesiredSpin">
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="minimum">
+          <number>0</number>
+         </property>
+         <property name="maximum">
+          <number>10000</number>
+         </property>
+         <property name="value">
+          <number>1</number>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_6">
        <property name="spacing">
@@ -1711,7 +1413,7 @@ padding: 10px;margin-top:10px</string>
          </property>
          <property name="minimumSize">
           <size>
-           <width>125</width>
+           <width>130</width>
            <height>0</height>
           </size>
          </property>
@@ -1748,9 +1450,6 @@ padding: 10px;margin-top:10px</string>
          <weight>50</weight>
          <bold>false</bold>
         </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
         <string>Voxels</string>
@@ -1815,16 +1514,10 @@ padding: 10px;margin-top:10px</string>
        </item>
        <item>
         <widget class="QSpinBox" name="maxVoxelsSpin">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
          <property name="minimumSize">
           <size>
-           <width>125</width>
-           <height>36</height>
+           <width>100</width>
+           <height>0</height>
           </size>
          </property>
          <property name="font">
@@ -1894,22 +1587,10 @@ padding: 10px;margin-top:10px</string>
        </item>
        <item>
         <widget class="QSpinBox" name="maxVoxelsPPSSpin">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
          <property name="minimumSize">
           <size>
-           <width>95</width>
-           <height>36</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>16777215</height>
+           <width>100</width>
+           <height>0</height>
           </size>
          </property>
          <property name="font">
@@ -1932,12 +1613,6 @@ padding: 10px;margin-top:10px</string>
      </item>
      <item>
       <widget class="QLabel" name="oculusRiftTitleLabel">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
        <property name="minimumSize">
         <size>
          <width>0</width>
@@ -1951,9 +1626,6 @@ padding: 10px;margin-top:10px</string>
          <weight>50</weight>
          <bold>false</bold>
         </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
         <string>Oculus Rift</string>
@@ -2018,16 +1690,10 @@ padding: 10px;margin-top:10px</string>
        </item>
        <item>
         <widget class="QSpinBox" name="oculusUIAngularSizeSpin">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
          <property name="minimumSize">
           <size>
-           <width>125</width>
-           <height>36</height>
+           <width>100</width>
+           <height>0</height>
           </size>
          </property>
          <property name="font">
@@ -2072,9 +1738,6 @@ padding: 10px;margin-top:10px</string>
          <weight>50</weight>
          <bold>false</bold>
         </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: #0e7077</string>
        </property>
        <property name="text">
         <string>Sixense Controllers</string>
@@ -2139,18 +1802,6 @@ padding: 10px;margin-top:10px</string>
        </item>
        <item>
         <widget class="QCheckBox" name="invertSixenseButtonsCheckBox">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>32</width>
-           <height>0</height>
-          </size>
-         </property>
          <property name="baseSize">
           <size>
            <width>0</width>
@@ -2162,8 +1813,8 @@ padding: 10px;margin-top:10px</string>
          </property>
          <property name="iconSize">
           <size>
-           <width>32</width>
-           <height>32</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
         </widget>
@@ -2225,16 +1876,10 @@ padding: 10px;margin-top:10px</string>
        </item>
        <item>
         <widget class="QSpinBox" name="sixenseReticleMoveSpeedSpin">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
          <property name="minimumSize">
           <size>
-           <width>125</width>
-           <height>36</height>
+           <width>100</width>
+           <height>0</height>
           </size>
          </property>
          <property name="font">
@@ -2258,64 +1903,71 @@ padding: 10px;margin-top:10px</string>
     </layout>
    </widget>
   </widget>
-  <widget class="QPushButton" name="closeButton">
+  <widget class="QFrame" name="buttonsPanel">
    <property name="geometry">
     <rect>
-     <x>540</x>
-     <y>24</y>
-     <width>31</width>
-     <height>31</height>
+     <x>0</x>
+     <y>530</y>
+     <width>501</width>
+     <height>60</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <stylestrategy>PreferAntialias</stylestrategy>
-    </font>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
    </property>
-   <property name="text">
-    <string/>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
    </property>
+   <widget class="QWidget" name="horizontalLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>10</y>
+      <width>491</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="buttonsHBox_2">
+     <item>
+      <spacer name="horizontalSpacer_14">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="cancelButton">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+       <property name="flat">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="defaultButton">
+       <property name="text">
+        <string>Save all changes</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+       <property name="flat">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
   </widget>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>FramelessDialog</class>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
- <connections>
-  <connection>
-   <sender>cancelButton</sender>
-   <signal>clicked()</signal>
-   <receiver>PreferencesDialog</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>966</x>
-     <y>557</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>528</x>
-     <y>0</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>defaultButton</sender>
-   <signal>clicked()</signal>
-   <receiver>PreferencesDialog</receiver>
-   <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>1070</x>
-     <y>557</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>20</x>
-     <y>20</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>
