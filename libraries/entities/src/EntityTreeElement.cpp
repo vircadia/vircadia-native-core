@@ -54,13 +54,13 @@ EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData, 
                                                                     EncodeBitstreamParams& params) const {
                      
-    qDebug() << "START OF ELEMENT packetData->uncompressed size:" << packetData->getUncompressedSize();
 
 
     bool wantDebug = false;
-    if (wantDebug) {                                               
+    if (wantDebug) {
         qDebug() << "EntityTreeElement::appendElementData()";
         qDebug() << "    getAACube()=" << getAACube();
+        qDebug() << "    START OF ELEMENT packetData->uncompressed size:" << packetData->getUncompressedSize();
     }
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
     
@@ -83,7 +83,9 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     uint16_t actualNumberOfEntities = 0;
     QVector<uint16_t> indexesOfEntitiesToInclude;
 
-    qDebug() << "EntityTreeElement::appendElementData() _entityItems->size()=" << _entityItems->size();
+    if (wantDebug) {
+        qDebug() << "EntityTreeElement::appendElementData() _entityItems->size()=" << _entityItems->size();
+    }
 
     for (uint16_t i = 0; i < _entityItems->size(); i++) {
         EntityItem* entity = (*_entityItems)[i];
@@ -91,9 +93,11 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         
         if (hadElementExtraData) {
             includeThisEntity = entityTreeElementExtraEncodeData->includedItems.contains(entity->getEntityItemID());
-            qDebug() << "    hadElementExtraData=" << hadElementExtraData;
-            qDebug() << "    entity[" << i <<"].entityItemID=" << entity->getEntityItemID();
-            qDebug() << "    entity[" << i <<"].includeThisEntity=" << includeThisEntity;
+            if (wantDebug) {
+                qDebug() << "    hadElementExtraData=" << hadElementExtraData;
+                qDebug() << "    entity[" << i <<"].entityItemID=" << entity->getEntityItemID();
+                qDebug() << "    entity[" << i <<"].includeThisEntity=" << includeThisEntity;
+            }
         }
         
         if (includeThisEntity && params.viewFrustum) {
@@ -101,7 +105,10 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
             entityCube.scale(TREE_SCALE);
             if (params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                 includeThisEntity = false; // out of view, don't include it
-                qDebug() << "    entity[" << i <<"] cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE ----> includeThisEntity=" << includeThisEntity;
+                if (wantDebug) {
+                    qDebug() << "    entity[" << i <<"] cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE "
+                                                            "includeThisEntity=" << includeThisEntity;
+                }
             }
         }
         
@@ -114,15 +121,17 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     int numberOfEntitiesOffset = packetData->getUncompressedByteOffset();
     bool successAppendEntityCount = packetData->appendValue(numberOfEntities);
 
-    qDebug() << "    numberOfEntities=" << numberOfEntities;
-    qDebug() << "    successAppendEntityCount=" << successAppendEntityCount;
-    qDebug() << "--- before child loop ---";
-    qDebug() << "    packetData->getUncompressedSize()=" << packetData->getUncompressedSize() << "line:" << __LINE__;
-    qDebug() << "    packetData->getReservedBytes()=" << packetData->getReservedBytes();
-
+    if (wantDebug) {
+        qDebug() << "    numberOfEntities=" << numberOfEntities;
+        qDebug() << "    successAppendEntityCount=" << successAppendEntityCount;
+        qDebug() << "--- before child loop ---";
+        qDebug() << "    packetData->getUncompressedSize()=" << packetData->getUncompressedSize() << "line:" << __LINE__;
+        qDebug() << "    packetData->getReservedBytes()=" << packetData->getReservedBytes();
+    }
+    
     if (successAppendEntityCount) {
     
-        if (true || wantDebug) {                                               
+        if (wantDebug) {                                               
             qDebug() << "EntityTreeElement::appendElementData()";
             qDebug() << "    indexesOfEntitiesToInclude loop.... numberOfEntities=" << numberOfEntities;
         }
@@ -130,44 +139,57 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         foreach (uint16_t i, indexesOfEntitiesToInclude) {
             EntityItem* entity = (*_entityItems)[i];
 
-            if (true || wantDebug) {                                               
+            if (wantDebug) {                                               
                 qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"].entityItemID=" << entity->getEntityItemID();
             }
             
             LevelDetails entityLevel = packetData->startLevel();
 
-            qDebug() << "--- BEFORE entity ---";
-            qDebug() << "    packetData->getUncompressedSize()=" << packetData->getUncompressedSize() << "line:" << __LINE__;
-            qDebug() << "    packetData->getReservedBytes()=" << packetData->getReservedBytes();
+            if (wantDebug) {
+                qDebug() << "--- BEFORE entity ---";
+                qDebug() << "    packetData->getUncompressedSize=" << packetData->getUncompressedSize() << "line:" << __LINE__;
+                qDebug() << "    packetData->getReservedBytes=" << packetData->getReservedBytes();
+            }
+            
+            OctreeElement::AppendState appendEntityState = entity->appendEntityData(packetData, 
+                                                                        params, entityTreeElementExtraEncodeData);
 
-            OctreeElement::AppendState appendEntityState = entity->appendEntityData(packetData, params, entityTreeElementExtraEncodeData);
-
-            qDebug() << "--- AFTER entity ---";
-            qDebug() << "    packetData->getUncompressedSize()=" << packetData->getUncompressedSize() << "line:" << __LINE__;
-            qDebug() << "    packetData->getReservedBytes()=" << packetData->getReservedBytes();
-
+            if (wantDebug) {
+                qDebug() << "--- AFTER entity ---";
+                qDebug() << "    packetData->getUncompressedSize=" << packetData->getUncompressedSize() << "line:" << __LINE__;
+                qDebug() << "    packetData->getReservedBytes=" << packetData->getReservedBytes();
+            }
+            
             // If none of this entity data was able to be appended, then discard it
             // and don't include it in our entity count
             if (appendEntityState == OctreeElement::NONE) {
-                qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] DIDN'T FIT!!!";
+                if (wantDebug) {
+                    qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] DIDN'T FIT!!!";
+                }
                 packetData->discardLevel(entityLevel);
             } else {
                 // If either ALL or some of it got appended, then end the level (commit it)
                 // and include the entity in our final count of entities
                 packetData->endLevel(entityLevel);
                 actualNumberOfEntities++;
-                qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] ALL OR SOME FIT!!!";
+                if (wantDebug) {
+                    qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] ALL OR SOME FIT!!!";
+                }
             }
             
             // If the entity item got completely appended, then we can remove it from the extra encode data
             if (appendEntityState == OctreeElement::COMPLETED) {
                 entityTreeElementExtraEncodeData->includedItems.remove(entity->getEntityItemID());
-                qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] IT ALL FIT!!!";
+                if (wantDebug) {
+                    qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] IT ALL FIT!!!";
+                }
             } else {
-                if (appendEntityState == OctreeElement::NONE) {
-                    qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] DIDN'T FIT!!!";
-                } else {
-                    qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] PARTIAL FIT!!!";
+                if (wantDebug) {
+                    if (appendEntityState == OctreeElement::NONE) {
+                        qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] DIDN'T FIT!!!";
+                    } else {
+                        qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] PARTIAL FIT!!!";
+                    }
                 }
             }
 
@@ -180,27 +202,35 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         }
     }
 
-    qDebug() << "--- done with loop ---";
-    qDebug() << "    actualNumberOfEntities=" << actualNumberOfEntities;
-    qDebug() << "    numberOfEntities=" << numberOfEntities;
-    qDebug() << "    appendElementState=" << appendElementState;
-    
+    if (wantDebug) {
+        qDebug() << "--- done with loop ---";
+        qDebug() << "    actualNumberOfEntities=" << actualNumberOfEntities;
+        qDebug() << "    numberOfEntities=" << numberOfEntities;
+        qDebug() << "    appendElementState=" << appendElementState;
+    }
+        
     // If we were provided with extraEncodeData, and we allocated and/or got entityTreeElementExtraEncodeData
     // then we need to do some additional processing, namely make sure our extraEncodeData is up to date for
     // this octree element.
     if (extraEncodeData && entityTreeElementExtraEncodeData) {
 
-        qDebug() << "    handling extra encode data....";
+        if (wantDebug) {
+            qDebug() << "    handling extra encode data....";
+        }
 
         // If after processing we have some includedItems left in it, then make sure we re-add it back to our map
         if (entityTreeElementExtraEncodeData->includedItems.size()) {
             extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
-            qDebug() << "    RE INSERT OUR EXTRA DATA....";
+            if (wantDebug) {
+                qDebug() << "    RE INSERT OUR EXTRA DATA....";
+            }
         } else {
             // otherwise, clean things up...
             extraEncodeData->remove(this);
             delete entityTreeElementExtraEncodeData;
-            qDebug() << "    REMOVE OUR EXTRA DATA....";
+            if (wantDebug) {
+                qDebug() << "    REMOVE OUR EXTRA DATA....";
+            }
         }
     }
 
@@ -212,7 +242,9 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (!noEntitiesFit && numberOfEntities != actualNumberOfEntities) {
         successUpdateEntityCount = packetData->updatePriorBytes(numberOfEntitiesOffset,
                                             (const unsigned char*)&actualNumberOfEntities, sizeof(actualNumberOfEntities));
-        qDebug() << "    UPDATE NUMER OF ENTITIES.... actualNumberOfEntities=" << actualNumberOfEntities;
+        if (wantDebug) {
+            qDebug() << "    UPDATE NUMER OF ENTITIES.... actualNumberOfEntities=" << actualNumberOfEntities;
+        }
     }
 
     // If we weren't able to update our entity count, or we couldn't fit any entities, then
@@ -220,24 +252,28 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (!successUpdateEntityCount || noEntitiesFit) {
         packetData->discardLevel(elementLevel);
         appendElementState = OctreeElement::NONE;
-        qDebug() << "    something went wrong...  discardLevel().... appendElementState = OctreeElement::NONE;";
-        qDebug() << "        successUpdateEntityCount=" << successUpdateEntityCount;
-        qDebug() << "        noEntitiesFit=" << noEntitiesFit;
-        if (extraEncodeData) {
-            qDebug() << "        do we still have extra data?? " << extraEncodeData->contains(this);
-        } else {
-            qDebug() << "        what happened to extraEncodeData??";
+        if (wantDebug) {
+            qDebug() << "    something went wrong...  discardLevel().... appendElementState = OctreeElement::NONE;";
+            qDebug() << "        successUpdateEntityCount=" << successUpdateEntityCount;
+            qDebug() << "        noEntitiesFit=" << noEntitiesFit;
+            if (extraEncodeData) {
+                qDebug() << "        do we still have extra data?? " << extraEncodeData->contains(this);
+            } else {
+                qDebug() << "        what happened to extraEncodeData??";
+            }
         }
-        
-        
     } else {
         packetData->endLevel(elementLevel);
-        qDebug() << "    looks good  endLevel().... appendElementState=" << appendElementState;
-        qDebug() << "        successUpdateEntityCount=" << successUpdateEntityCount;
-        qDebug() << "        noEntitiesFit=" << noEntitiesFit;
+        if (wantDebug) {
+            qDebug() << "    looks good  endLevel().... appendElementState=" << appendElementState;
+            qDebug() << "        successUpdateEntityCount=" << successUpdateEntityCount;
+            qDebug() << "        noEntitiesFit=" << noEntitiesFit;
+        }
     }
 
-    qDebug() << "END OF ELEMENT packetData->uncompressed size:" << packetData->getUncompressedSize();
+    if (wantDebug) {
+        qDebug() << "END OF ELEMENT packetData->uncompressed size:" << packetData->getUncompressedSize();
+    }
     
     return appendElementState;
 }
@@ -405,10 +441,6 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                         if (localDistance < distance) {
                             distance = localDistance;
                             face = localFace;
-                            
-                            //qDebug() << "about to set intersectedObject=" << entity;
-                            //entity->debugDump();
-                            
                             *intersectedObject = (void*)entity;
                             somethingIntersected = true;
                         }
@@ -417,10 +449,6 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
             } else if (localDistance < distance) {
                 distance = localDistance;
                 face = localFace;
-                
-                //qDebug() << "about to set intersectedObject=" << entity;
-                //entity->debugDump();
-
                 *intersectedObject = (void*)entity;
                 somethingIntersected = true;
             }
@@ -565,35 +593,13 @@ EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id)
     return foundEntity;
 }
 
-/*
-bool EntityTreeElement::removeEntityWithID(uint32_t id) {
-    bool foundEntity = false;
-    uint16_t numberOfEntities = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntities; i++) {
-        if ((*_entityItems)[i]->getID() == id) {
-            foundEntity = true;
-            //EntityItem* entityItem = (*_entityItems)[i];
-            //qDebug() << "EntityTreeElement::removeEntityWithID() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
-            _entityItems->removeAt(i);
-            //qDebug() << "EntityTreeElement::removeEntityWithID() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
-            
-            break;
-        }
-    }
-    return foundEntity;
-}
-*/
-
 bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     bool foundEntity = false;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i]->getEntityItemID() == id) {
             foundEntity = true;
-            //EntityItem* entityItem = (*_entityItems)[i];
-            //qDebug() << "EntityTreeElement::removeEntityWithEntityItemID() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             _entityItems->removeAt(i);
-            //qDebug() << "EntityTreeElement::removeEntityWithEntityItemID() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             break;
         }
     }
@@ -606,10 +612,7 @@ bool EntityTreeElement::removeEntityItem(const EntityItem* entity) {
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i] == entity) {
             foundEntity = true;
-            //EntityItem* entityItem = (*_entityItems)[i];
-            //qDebug() << "EntityTreeElement::removeEntityItem() BEFORE _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             _entityItems->removeAt(i);
-            //qDebug() << "EntityTreeElement::removeEntityItem() AFTER _entityItems->removeAt(i); element=" << this << "entity=" << entityItem << "id=" << entityItem->getEntityItemID() << "bestFit=" << bestFitEntityBounds(entityItem);
             break;
         }
     }

@@ -763,11 +763,15 @@ void EntityTree::deleteEntity(const EntityItemID& entityID) {
 
 void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     // NOTE: callers must lock the tree before using this method
-    qDebug() << "EntityTree::EntityTree::deleteEntities().... ";
-    qDebug() << "    entityIDs=" << entityIDs;
-    qDebug() << "    BEFORE map...";
-    debugDumpMap();
-
+    
+    const bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "EntityTree::EntityTree::deleteEntities().... ";
+        qDebug() << "    entityIDs=" << entityIDs;
+        qDebug() << "    BEFORE map...";
+        debugDumpMap();
+    }
+    
     DeleteEntityOperator theOperator(this);
     foreach(const EntityItemID& entityID, entityIDs) {
         // First, look for the existing entity in the tree..
@@ -777,7 +781,6 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
 
-    bool wantDebug = false;
     if (wantDebug) {
         foreach(const EntityItemID& entityID, entityIDs) {
             EntityTreeElement* containingElement = getContainingElement(entityID);
@@ -1095,20 +1098,22 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
         }
         
         case PacketTypeEntityAddOrEdit: {
-            qDebug() << "EntityTree::processEditPacketData()....";
-
+            const bool wantDebug = false;
+            
             EntityItemID entityItemID;
             EntityItemProperties properties;
             
             bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength,
                                                     processedBytes, entityItemID, properties);
 
-            qDebug() << "EntityTree::processEditPacketData().... ";
-            qDebug() << "    validEditPacket=" << validEditPacket;
-            qDebug() << "    processedBytes=" << processedBytes;
-            qDebug() << "    entityItemID=" << entityItemID;
-            qDebug() << "    BEFORE map...";
-            debugDumpMap();
+            if (wantDebug) {
+                qDebug() << "EntityTree::processEditPacketData().... ";
+                qDebug() << "    validEditPacket=" << validEditPacket;
+                qDebug() << "    processedBytes=" << processedBytes;
+                qDebug() << "    entityItemID=" << entityItemID;
+                qDebug() << "    BEFORE map...";
+                debugDumpMap();
+            }
             
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
@@ -1127,9 +1132,15 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     }
                 } else {
                     // this is a new entity... assign a new entityID
-                    qDebug() << "EntityTree::processEditPacketData() ... BEFORE assignEntityID()... entityItemID=" << entityItemID;
+                    if (wantDebug) {
+                        qDebug() << "EntityTree::processEditPacketData() ... "
+                                        "BEFORE assignEntityID()... entityItemID=" << entityItemID;
+                    }
                     entityItemID = assignEntityID(entityItemID);
-                    qDebug() << "EntityTree::processEditPacketData() ... AFTER assignEntityID()... entityItemID=" << entityItemID;
+                    if (wantDebug) {
+                        qDebug() << "EntityTree::processEditPacketData() ... "
+                                        "AFTER assignEntityID()... entityItemID=" << entityItemID;
+                    }
                     
                     EntityItem* newEntity = addEntity(entityItemID, properties);
                     if (newEntity) {

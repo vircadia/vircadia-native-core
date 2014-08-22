@@ -65,7 +65,6 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
-    //qDebug() << "EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)....";
     _type = EntityTypes::Unknown;
     _lastEdited = 0;
     _lastUpdated = 0;
@@ -123,19 +122,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     // then our modelTreeElementExtraEncodeData should include data about which properties we need to append.
     if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getEntityItemID())) {
         requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
-        
-        qDebug() << "EntityItem::appendEntityData() we have some previous encode data...";        
-        //qDebug() << "    requestedProperties...";
-        //requestedProperties.debugDumpBits();
     }
 
-    //qDebug() << "requestedProperties=";
-    //requestedProperties.debugDumpBits();
-    
     LevelDetails modelLevel = packetData->startLevel();
 
     quint64 lastEdited = getLastEdited();
-    //qDebug() << "EntityItem::appendEntityData() ... lastEdited=" << lastEdited;
     
     bool successIDFits = false;
     bool successTypeFits = false;
@@ -183,7 +174,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
         // PROP_POSITION
         if (requestedProperties.getHasProperty(PROP_POSITION)) {
-            //qDebug() << "PROP_POSITION requested...";
             LevelDetails propertyLevel = packetData->startLevel();
             successPropertyFits = packetData->appendPosition(getPosition());
             if (successPropertyFits) {
@@ -192,18 +182,15 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
                 propertyCount++;
                 packetData->endLevel(propertyLevel);
             } else {
-                //qDebug() << "PROP_POSITION didn't fit...";
                 packetData->discardLevel(propertyLevel);
                 appendState = OctreeElement::PARTIAL;
             }
         } else {
-            //qDebug() << "PROP_POSITION NOT requested...";
             propertiesDidntFit -= PROP_POSITION;
         }
 
         // PROP_RADIUS
         if (requestedProperties.getHasProperty(PROP_RADIUS)) {
-            //qDebug() << "PROP_RADIUS requested...";
             LevelDetails propertyLevel = packetData->startLevel();
             successPropertyFits = packetData->appendValue(getRadius());
             if (successPropertyFits) {
@@ -212,18 +199,15 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
                 propertyCount++;
                 packetData->endLevel(propertyLevel);
             } else {
-                //qDebug() << "PROP_RADIUS didn't fit...";
                 packetData->discardLevel(propertyLevel);
                 appendState = OctreeElement::PARTIAL;
             }
         } else {
-            //qDebug() << "PROP_RADIUS NOT requested...";
             propertiesDidntFit -= PROP_RADIUS;
         }
 
         // PROP_ROTATION
         if (requestedProperties.getHasProperty(PROP_ROTATION)) {
-            //qDebug() << "PROP_ROTATION requested...";
             LevelDetails propertyLevel = packetData->startLevel();
             successPropertyFits = packetData->appendValue(getRotation());
             if (successPropertyFits) {
@@ -232,12 +216,10 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
                 propertyCount++;
                 packetData->endLevel(propertyLevel);
             } else {
-                //qDebug() << "PROP_ROTATION didn't fit...";
                 packetData->discardLevel(propertyLevel);
                 appendState = OctreeElement::PARTIAL;
             }
         } else {
-            //qDebug() << "PROP_ROTATION NOT requested...";
             propertiesDidntFit -= PROP_ROTATION;
         }
 
@@ -297,7 +279,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
             LevelDetails propertyLevel = packetData->startLevel();
             successPropertyFits = packetData->appendValue(getDamping());
             if (successPropertyFits) {
-                //qDebug() << "success writing PROP_DAMPING=" << getDamping();
                 propertyFlags |= PROP_DAMPING;
                 propertiesDidntFit -= PROP_DAMPING;
                 propertyCount++;
@@ -305,11 +286,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
             } else {
                 packetData->discardLevel(propertyLevel);
                 appendState = OctreeElement::PARTIAL;
-                //qDebug() << "didn't fit PROP_DAMPING=" << getDamping();
             }
         } else {
             propertiesDidntFit -= PROP_DAMPING;
-            //qDebug() << "not requested PROP_DAMPING=" << getDamping();
         }
 
         // PROP_LIFETIME,
@@ -365,14 +344,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         // if the size of the PropertyFlags shrunk, we need to shift everything down to front of packet.
         if (newPropertyFlagsLength < oldPropertyFlagsLength) {
             int oldSize = packetData->getUncompressedSize();
-
             const unsigned char* modelItemData = packetData->getUncompressedData(propertyFlagsOffset + oldPropertyFlagsLength);
             int modelItemDataLength = endOfEntityItemData - startOfEntityItemData;
             int newEntityItemDataStart = propertyFlagsOffset + newPropertyFlagsLength;
             packetData->updatePriorBytes(newEntityItemDataStart, modelItemData, modelItemDataLength);
-
             int newSize = oldSize - (oldPropertyFlagsLength - newPropertyFlagsLength);
-qDebug() << "EntityItem::appendEntityData()... SHRINKING CASE??? DID WE TEST THIS!!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
             packetData->setUncompressedSize(newSize);
 
         } else {
@@ -385,21 +361,10 @@ qDebug() << "EntityItem::appendEntityData()... SHRINKING CASE??? DID WE TEST THI
         appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
     }
     
-    //qDebug() << "propertyFlags=";
-    //propertyFlags.debugDumpBits();
-
-    //qDebug() << "propertiesDidntFit=";
-    //propertiesDidntFit.debugDumpBits();
-
     // If any part of the model items didn't fit, then the element is considered partial
     if (appendState != OctreeElement::COMPLETED) {
         // add this item into our list for the next appendElementData() pass
         modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
-
-        qDebug() << "EntityItem::appendEntityData() not complete...  (appendState != OctreeElement::COMPLETED)";        
-        //qDebug() << "    propertiesDidntFit...";
-        //propertiesDidntFit.debugDumpBits();
-
     }
 
     return appendState;
@@ -424,7 +389,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     bool wantDebug = false;
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
-        qDebug() << "EntityItem::readEntityDataFromBuffer()... ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
+    
+        // NOTE: This shouldn't happen. The only versions of the bit stream that didn't support split mtu buffers should
+        // be handled by the model subclass and shouldn't call this routine.
+        qDebug() << "EntityItem::readEntityDataFromBuffer()... "
+                        "ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
         return 0;
     }
 
@@ -455,14 +424,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += encodedID.size();
         bytesRead += encodedID.size();
         
-        /**
-        ByteCountCoded<quint32> idCoder = encodedID;
-        encodedID = idCoder; // determine true length
-        dataAt += encodedID.size();
-        bytesRead += encodedID.size();
-        _id = idCoder;
-        **/
-
         // type
         QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
         ByteCountCoded<quint32> typeCoder = encodedType;
@@ -510,7 +471,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         quint64 updateDelta = updateDeltaCoder;
         if (overwriteLocalData) {
             _lastUpdated = _lastEdited + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
-            //qDebug() << "%%%%%%%%%%%%%%%% EntityItem::readEntityDataFromBuffer() .... SETTING _lastUpdated=" << _lastUpdated;
         }
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += encodedUpdateDelta.size();
@@ -522,12 +482,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
 
-
-/*
-        qDebug() << "EntityItem::readEntityDataFromBuffer() just read properties from buffer....";
-        qDebug() << "    propertyFlags...";
-        propertyFlags.debugDumpBits();
-*/
 
 
         // PROP_POSITION
@@ -604,12 +558,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             dataAt += sizeof(value);
             bytesRead += sizeof(value);
 
-            //qDebug() << "property included in buffer PROP_DAMPING=" << value;
-
             if (overwriteLocalData) {
                 _damping = value;
-
-                //qDebug() << " overwriting local value... PROP_DAMPING=" << getDamping();
             }
         }
 
@@ -832,10 +782,6 @@ EntityItemProperties EntityItem::getProperties() const {
 }
 
 bool EntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    //qDebug() << "EntityItem::setProperties()... forceCopy=" << forceCopy;
-    //qDebug() << "EntityItem::setProperties() properties.getDamping()=" << properties.getDamping();
-    //qDebug() << "EntityItem::setProperties() properties.getVelocity()=" << properties.getVelocity();
-
     bool somethingChanged = false;
     if (properties._positionChanged || forceCopy) {
         setPosition(properties._position / (float) TREE_SCALE);
@@ -859,7 +805,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
 
     if (properties._velocityChanged || forceCopy) {
         setVelocity(properties._velocity / (float) TREE_SCALE);
-        //qDebug() << "EntityItem::setProperties() AFTER setVelocity() getVelocity()=" << getVelocity();
         somethingChanged = true;
     }
 
@@ -871,8 +816,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         setGravity(properties._gravity / (float) TREE_SCALE);
         somethingChanged = true;
     }
-
-    //qDebug() << ">>>>>>>>>>>>>>>>>>> EntityItem::setProperties(); <<<<<<<<<<<<<<<<<<<<<<<<<   properties._dampingChanged=" << properties._dampingChanged;
 
     if (properties._dampingChanged || forceCopy) {
         setDamping(properties._damping);

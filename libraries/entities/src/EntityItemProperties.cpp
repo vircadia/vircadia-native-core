@@ -876,7 +876,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
                         EntityItemID& entityID, EntityItemProperties& properties) {
     bool valid = false;
 
-    bool wantDebug = true;
+    bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "EntityItemProperties::decodeEntityEditPacket() bytesToRead=" << bytesToRead;
     }
@@ -948,8 +948,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         valid = true;
     }
 
-    //qDebug() << "EntityItemProperties::decodeEntityEditPacket() entityID=" << entityID;
-    
     // Entity Type...
     QByteArray encodedType((const char*)dataAt, (bytesToRead - processedBytes));
     ByteCountCoded<quint32> typeCoder = encodedType;
@@ -1087,10 +1085,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         properties.setModelURL(modelURLString);
     }
 
-    if (wantDebug) {
-        qDebug() << "EntityItem EntityItem::decodeEntityEditPacket() model URL=" << properties.getModelURL();
-    }
-
     // PROP_ANIMATION_URL
     if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
         // animationURL
@@ -1130,15 +1124,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         processedBytes += sizeof(animationIsPlaying);
         properties.setAnimationIsPlaying(animationIsPlaying);
     }
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    const bool wantDebugging = false;
-    if (wantDebugging) {
-        qDebug("EntityItem::fromEditPacket()...");
-        qDebug() << "   EntityItem id in packet:" << editID;
-        //newEntityItem.debugDump();
-    }
-    
     return valid;
 }
 
@@ -1149,7 +1135,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityItemID, 
                                             unsigned char* outputBuffer, size_t maxLength, size_t& outputLength) {
 
-    qDebug() << "EntityItemProperties::encodeEraseEntityMessage()";
+    const bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "EntityItemProperties::encodeEraseEntityMessage()";
+    }
 
     unsigned char* copyAt = outputBuffer;
 
@@ -1158,12 +1147,14 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     copyAt += sizeof(numberOfIds);
     outputLength = sizeof(numberOfIds);
 
-    qDebug() << "   numberOfIds=" << numberOfIds;
+    if (wantDebug) {
+        qDebug() << "   numberOfIds=" << numberOfIds;
+    }
     
     QUuid entityID = entityItemID.id;                
     QByteArray encodedEntityID = entityID.toRfc4122();
 
-    {
+    if (wantDebug) {
         QDebug debugA = qDebug();
         debugA << "       encodedEntityID contents:";
         outputBufferBits((unsigned char*)encodedEntityID.constData(), encodedEntityID.size(), &debugA);
@@ -1173,16 +1164,16 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
 
-    qDebug() << "   entityID=" << entityID;
-
-    qDebug() << "   outputLength=" << outputLength;
-    qDebug() << "   NUM_BYTES_RFC4122_UUID=" << NUM_BYTES_RFC4122_UUID;
-    qDebug() << "   encodedEntityID.size()=" << encodedEntityID.size();
-
-    {
-        QDebug debug = qDebug();
-        debug << "       edit data contents:";
-        outputBufferBits(outputBuffer, outputLength, &debug);
+    if (wantDebug) {
+        qDebug() << "   entityID=" << entityID;
+        qDebug() << "   outputLength=" << outputLength;
+        qDebug() << "   NUM_BYTES_RFC4122_UUID=" << NUM_BYTES_RFC4122_UUID;
+        qDebug() << "   encodedEntityID.size()=" << encodedEntityID.size();
+        {
+            QDebug debug = qDebug();
+            debug << "       edit data contents:";
+            outputBufferBits(outputBuffer, outputLength, &debug);
+        }
     }
 
     return true;

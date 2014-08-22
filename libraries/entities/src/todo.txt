@@ -33,14 +33,17 @@ Model properties:
 //
 // REQUIRED TO DO:
 
-    0) test animation again...
+    1) random crashes on moving (I think things going out of bounds???)
+    2) some jutter with moving entities
+   
+    3) test animation again...
+    
+    4) clear all entities when changing domains?
+    5) what to do with entities
 
-    1) verify lots of models in single element works
-        -- repro case - run editModelsExample.js -- create 10 models in the same octree element
 
-
-    2) memory leaks???
-    3) Import/Export Models - verify it works. /copy/paste??
+    4) memory leaks???
+    5) Import/Export Models - verify it works. /copy/paste??
         22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
         22b) Local Entities Overlay - from Local Models Overlay
         22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
@@ -48,8 +51,8 @@ Model properties:
         DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
         DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
 
-    4) support sitpoints and referentials....
-    5) Referentials????
+    6) support sitpoints and referentials....
+    7) Referentials????
    
             For sitting points and referentials you can kill two birds with one stone.
             Put this model in world: http://highfidelity-public.s3-us-west-1.amazonaws.com/ozan/theater.fst
@@ -59,15 +62,18 @@ Model properties:
             Move model with another avatar.
             Observe first avatar moving.   
    
-    6) verify shadows work
+    8) verify shadows work
     
-    7) Handle the ID -> UUID swap in old files to new files
+    9) Handle the ID -> UUID swap in old files to new files
     
-    8) Test models -> attachments logic
+   10) Test models -> attachments logic
    
-    9) What happens if the edit properties don't fit in a single message MTU???
-   10) animations not always working?????
-   11) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
+   11) What happens if the edit properties don't fit in a single message MTU???
+   12) animations not always working?????
+   13) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
+   
+   14) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
+   15) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
 
     
 // NICE TO DO:
@@ -241,3 +247,5 @@ Model properties:
 // SOLVED -- 0) render performance of models...
 // SOLVED --   a) make getModel() faster... consider storing the Model* in the actual EntityItem class
 // SOLVED --   b) only call simulate when properties change
+// SOLVED -- 1) verify lots of models in single element works
+//              -- repro case - run editModelsExample.js -- create 10 models in the same octree element

@@ -1163,7 +1163,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
     // Make our local buffer large enough to handle writing at this level in case we need to.
     LevelDetails thisLevelKey = packetData->startLevel();
-    int requiredBytes = sizeof(childrenDataBits) + sizeof(childrenExistInPacketBits) + sizeof(childrenExistInTreeBits);
+    int requiredBytes = sizeof(childrenDataBits) + sizeof(childrenExistInPacketBits);
+    if (params.includeExistsBits) {
+        requiredBytes += sizeof(childrenExistInTreeBits);
+     }
     bool continueThisLevel = packetData->reserveBytes(requiredBytes);
 
     // If we can't reserve our minimum bytes then we can discard this level and return as if none of this level fits
