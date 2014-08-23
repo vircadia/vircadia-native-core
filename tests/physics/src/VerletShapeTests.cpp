@@ -102,8 +102,7 @@ void VerletShapeTests::sphereMissesSphere() {
 
     if (collisions.size() > 0) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected empty collision list but size is " << collisions.size()
-            << std::endl;
+            << " ERROR: expected empty collision list but size is " << collisions.size() << std::endl;
     }
 }
 
@@ -159,7 +158,7 @@ void VerletShapeTests::sphereTouchesSphere() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of sphereA
@@ -169,7 +168,7 @@ void VerletShapeTests::sphereTouchesSphere() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
 
@@ -189,7 +188,7 @@ void VerletShapeTests::sphereTouchesSphere() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of sphereA
@@ -199,7 +198,7 @@ void VerletShapeTests::sphereTouchesSphere() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
 }
@@ -247,23 +246,20 @@ void VerletShapeTests::sphereMissesCapsule() {
         if (ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should NOT touch"
-                << std::endl;
+                << " ERROR: sphere and capsule should NOT touch" << std::endl;
         }
 
         // capsuleB against sphereA
         if (ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should NOT touch"
-                << std::endl;
+                << " ERROR: sphere and capsule should NOT touch" << std::endl;
         }
     }
 
     if (collisions.size() > 0) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected empty collision list but size is " << collisions.size()
-            << std::endl;
+            << " ERROR: expected empty collision list but size is " << collisions.size() << std::endl;
     }
 }
 
@@ -297,8 +293,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should touch"
-                << std::endl;
+                << " ERROR: sphere and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -310,7 +305,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of sphereA
@@ -319,15 +314,14 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
 
         // capsuleB collides with sphereA
         if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and sphere should touch"
-                << std::endl;
+                << " ERROR: capsule and sphere should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -339,7 +333,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of capsuleB
@@ -350,7 +344,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
     {   // sphereA hits end cap at axis
@@ -360,8 +354,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should touch"
-                << std::endl;
+                << " ERROR: sphere and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -373,7 +366,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of sphereA
@@ -382,15 +375,14 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
 
         // capsuleB collides with sphereA
         if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and sphere should touch"
-                << std::endl;
+                << " ERROR: capsule and sphere should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -402,7 +394,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of capsuleB
@@ -413,7 +405,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
     {   // sphereA hits start cap at axis
@@ -423,8 +415,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should touch"
-                << std::endl;
+                << " ERROR: sphere and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -436,7 +427,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of sphereA
@@ -445,15 +436,14 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
 
         // capsuleB collides with sphereA
         if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and sphere should touch"
-                << std::endl;
+                << " ERROR: capsule and sphere should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -465,7 +455,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of capsuleB
@@ -476,7 +466,7 @@ void VerletShapeTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
     if (collisions.size() != numCollisions) {
@@ -515,14 +505,12 @@ void VerletShapeTests::capsuleMissesCapsule() {
     if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
     if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
 
     // end to end
@@ -530,14 +518,12 @@ void VerletShapeTests::capsuleMissesCapsule() {
     if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
     if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
 
     // rotate B and move it to the side
@@ -547,20 +533,17 @@ void VerletShapeTests::capsuleMissesCapsule() {
     if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
     if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
 
     if (collisions.size() > 0) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected empty collision list but size is " << collisions.size()
-            << std::endl;
+            << " ERROR: expected empty collision list but size is " << collisions.size() << std::endl;
     }
 }
 
@@ -594,16 +577,14 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
         if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -615,16 +596,14 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
         if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -638,16 +617,14 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
         if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -664,8 +641,7 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -676,7 +652,7 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         glm::vec3 expectedContactPoint = capsuleA.getTranslation() + radiusA * xAxis;
@@ -684,15 +660,14 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
 
         // capsuleB vs capsuleA
         if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -703,8 +678,7 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration 
-                << std::endl;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         expectedContactPoint = capsuleB.getTranslation() - (radiusB + halfHeightB) * xAxis;
@@ -712,8 +686,7 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint 
-                << std::endl;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
 
@@ -729,8 +702,7 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -741,8 +713,7 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration 
-                << std::endl;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         glm::vec3 expectedContactPoint = capsuleA.getTranslation() + radiusA * zAxis + shift * yAxis;
@@ -750,8 +721,7 @@ void VerletShapeTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint 
-                << std::endl;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
 }
