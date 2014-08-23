@@ -276,6 +276,10 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         // penetration points from sphereA into capsuleB
         collision = collisions.getCollision(numCollisions - 1);
         expectedPenetration = - (radialOffset - totalRadius) * xAxis;
+        if (collision->_shapeA == &sphereA) {
+            // the ShapeCollider swapped the order of the shapes
+            expectedPenetration *= -1.0f;
+        }
         inaccuracy = glm::length(collision->_penetration - expectedPenetration);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -287,6 +291,11 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         glm::vec3 BtoA = sphereA.getTranslation() - capsuleB.getTranslation();
         glm::vec3 closestApproach = capsuleB.getTranslation() + glm::dot(BtoA, yAxis) * yAxis;
         expectedContactPoint = closestApproach + radiusB * glm::normalize(BtoA - closestApproach);
+        if (collision->_shapeA == &sphereA) {
+            // the ShapeCollider swapped the order of the shapes
+            closestApproach = sphereA.getTranslation() - glm::dot(BtoA, yAxis) * yAxis;
+            expectedContactPoint = closestApproach - radiusB * glm::normalize(BtoA - closestApproach);
+        }
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -296,7 +305,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
     }
     {   // sphereA hits end cap at axis
         glm::vec3 axialOffset = (halfHeightB + alpha * radiusA + beta * radiusB) * yAxis;
-        sphereA.setTranslation(axialOffset * yAxis);
+        sphereA.setTranslation(axialOffset);
         
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
@@ -337,6 +346,10 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         // penetration points from sphereA into capsuleB
         collision = collisions.getCollision(numCollisions - 1);
         expectedPenetration = ((1.0f - alpha) * radiusA + (1.0f - beta) * radiusB) * yAxis;
+        if (collision->_shapeA == &sphereA) {
+            // the ShapeCollider swapped the order of the shapes
+            expectedPenetration *= -1.0f;
+        }
         inaccuracy = glm::length(collision->_penetration - expectedPenetration);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -348,6 +361,10 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         glm::vec3 endPoint;
         capsuleB.getEndPoint(endPoint);
         expectedContactPoint = endPoint + radiusB * yAxis;
+        if (collision->_shapeA == &sphereA) {
+            // the ShapeCollider swapped the order of the shapes
+            expectedContactPoint = axialOffset - radiusA * yAxis;
+        }
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -357,7 +374,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
     }
     {   // sphereA hits start cap at axis
         glm::vec3 axialOffset = - (halfHeightB + alpha * radiusA + beta * radiusB) * yAxis;
-        sphereA.setTranslation(axialOffset * yAxis);
+        sphereA.setTranslation(axialOffset);
         
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
@@ -398,6 +415,10 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         // penetration points from sphereA into capsuleB
         collision = collisions.getCollision(numCollisions - 1);
         expectedPenetration = - ((1.0f - alpha) * radiusA + (1.0f - beta) * radiusB) * yAxis;
+        if (collision->_shapeA == &sphereA) {
+            // the ShapeCollider swapped the order of the shapes
+            expectedPenetration *= -1.0f;
+        }
         inaccuracy = glm::length(collision->_penetration - expectedPenetration);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
@@ -409,6 +430,10 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         glm::vec3 startPoint;
         capsuleB.getStartPoint(startPoint);
         expectedContactPoint = startPoint - radiusB * yAxis;
+        if (collision->_shapeA == &sphereA) {
+            // the ShapeCollider swapped the order of the shapes
+            expectedContactPoint = axialOffset + radiusA * yAxis;
+        }
         inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__

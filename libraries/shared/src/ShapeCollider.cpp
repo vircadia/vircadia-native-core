@@ -260,80 +260,7 @@ bool sphereVsPlane(const Shape* shapeA, const Shape* shapeB, CollisionList& coll
 }
 
 bool capsuleVsSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
-    const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
-    const SphereShape* sphereB = static_cast<const SphereShape*>(shapeB);
-    // find sphereB's closest approach to axis of capsuleA
-    glm::vec3 AB = capsuleA->getTranslation() - sphereB->getTranslation();
-    glm::vec3 capsuleAxis;
-    capsuleA->computeNormalizedAxis(capsuleAxis);
-    float axialDistance = - glm::dot(AB, capsuleAxis);
-    float absAxialDistance = fabsf(axialDistance);
-    float totalRadius = sphereB->getRadius() + capsuleA->getRadius();
-    if (absAxialDistance < totalRadius + capsuleA->getHalfHeight()) {
-        glm::vec3 radialAxis = AB + axialDistance * capsuleAxis; // from sphereB to axis of capsuleA
-        float radialDistance2 = glm::length2(radialAxis);
-        float totalRadius2 = totalRadius * totalRadius;
-        if (radialDistance2 > totalRadius2) {
-            // sphere is too far from capsule axis
-            return false;
-        }
-
-        // closestApproach = point on capsuleA's axis that is closest to sphereB's center
-        glm::vec3 closestApproach = capsuleA->getTranslation() + axialDistance * capsuleAxis;
-
-        if (absAxialDistance > capsuleA->getHalfHeight()) {
-            // sphere hits capsule on a cap 
-            // --> recompute radialAxis and closestApproach
-            float sign = (axialDistance > 0.0f) ? 1.0f : -1.0f;
-            closestApproach = capsuleA->getTranslation() + (sign * capsuleA->getHalfHeight()) * capsuleAxis;
-            radialAxis = closestApproach - sphereB->getTranslation();
-            radialDistance2 = glm::length2(radialAxis);
-            if (radialDistance2 > totalRadius2) {
-                return false;
-            }
-        }
-        if (radialDistance2 > EPSILON * EPSILON) {
-            CollisionInfo* collision = collisions.getNewCollision();
-            if (!collision) {
-                // collisions list is full
-                return false;
-            }
-            // normalize the radialAxis
-            float radialDistance = sqrtf(radialDistance2);
-            radialAxis /= radialDistance;
-            // penetration points from A into B
-            collision->_penetration = (radialDistance - totalRadius) * radialAxis; // points from A into B
-            // contactPoint is on surface of capsuleA
-            collision->_contactPoint = closestApproach - capsuleA->getRadius() * radialAxis;
-            collision->_shapeA = capsuleA;
-            collision->_shapeB = sphereB;
-        } else {
-            // A is on B's axis, so the penetration is undefined... 
-            if (absAxialDistance > capsuleA->getHalfHeight()) {
-                // ...for the cylinder case (for now we pretend the collision doesn't exist)
-                return false;
-            } else {
-                CollisionInfo* collision = collisions.getNewCollision();
-                if (!collision) {
-                    // collisions list is full
-                    return false;
-                }
-                // ... but still defined for the cap case
-                if (axialDistance < 0.0f) {
-                    // we're hitting the start cap, so we negate the capsuleAxis
-                    capsuleAxis *= -1;
-                }
-                float sign = (axialDistance > 0.0f) ? 1.0f : -1.0f;
-                collision->_penetration = (sign * (totalRadius + capsuleA->getHalfHeight() - absAxialDistance)) * capsuleAxis;
-                // contactPoint is on surface of sphereA
-                collision->_contactPoint = closestApproach + (sign * capsuleA->getRadius()) * capsuleAxis;
-                collision->_shapeA = capsuleA;
-                collision->_shapeB = sphereB;
-            }
-        }
-        return true;
-    }
-    return false;
+    return sphereVsCapsule(shapeB, shapeA, collisions);
 }
 
 /// \param lineP point on line
@@ -586,44 +513,11 @@ bool capsuleVsPlane(const Shape* shapeA, const Shape* shapeB, CollisionList& col
 }
 
 bool planeVsSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
-    const PlaneShape* planeA = static_cast<const PlaneShape*>(shapeA);
-    const SphereShape* sphereB = static_cast<const SphereShape*>(shapeB);
-    glm::vec3 penetration;
-    if (findSpherePlanePenetration(sphereB->getTranslation(), sphereB->getRadius(), planeA->getCoefficients(), penetration)) {
-        CollisionInfo* collision = collisions.getNewCollision();
-        if (!collision) {
-            return false; // collision list is full
-        }
-        collision->_penetration = -penetration;
-        collision->_contactPoint = sphereB->getTranslation() +
-            (sphereB->getRadius() / glm::length(penetration) - 1.0f) * penetration;
-        collision->_shapeA = planeA;
-        collision->_shapeB = sphereB;
-        return true;
-    }
-    return false;
+    return sphereVsPlane(shapeB, shapeA, collisions);
 }
 
 bool planeVsCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
-    const PlaneShape* planeA = static_cast<const PlaneShape*>(shapeA);
-    const CapsuleShape* capsuleB = static_cast<const CapsuleShape*>(shapeB);
-    glm::vec3 start, end, penetration;
-    capsuleB->getStartPoint(start);
-    capsuleB->getEndPoint(end);
-    glm::vec4 plane = planeA->getCoefficients();
-    if (findCapsulePlanePenetration(start, end, capsuleB->getRadius(), plane, penetration)) {
-        CollisionInfo* collision = collisions.getNewCollision();
-        if (!collision) {
-            return false; // collision list is full
-        }
-        collision->_penetration = -penetration;
-        glm::vec3 deepestEnd = (glm::dot(start, glm::vec3(plane)) < glm::dot(end, glm::vec3(plane))) ? start : end;
-        collision->_contactPoint = deepestEnd + (capsuleB->getRadius() / glm::length(penetration) - 1.0f) * penetration;
-        collision->_shapeA = planeA;
-        collision->_shapeB = capsuleB;
-        return true;
-    }
-    return false;
+    return capsuleVsPlane(shapeB, shapeA, collisions);
 }
 
 bool planeVsPlane(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
