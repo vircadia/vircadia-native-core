@@ -1003,6 +1003,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                                             const ViewFrustum::location& parentLocationThisView) const {
 
 
+    const bool wantDebug = false;
+
     // The append state of this level/element.
     OctreeElement::AppendState elementAppendState = OctreeElement::COMPLETED; // assume the best
 
@@ -1382,25 +1384,16 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 
                     int bytesBeforeChild = packetData->getUncompressedSize();
                     
-                    // TODO: we want to support the ability for a childElement to "partially" write it's data.
-                    //       for example, consider the case of the model server where the entire contents of the
-                    //       element may be larger than can fit in a single MTU/packetData. In this case, we want
-                    //       to allow the appendElementData() to respond that it produced partial data, which should be
-                    //       written, but that the childElement needs to be reprocessed in an additional pass or passes
-                    //       to be completed. In the case that an element was partially written, we need to 
-
-                    // Make our local buffer large enough to handle writing at this level in case we need to.
+                    // a childElement may "partially" write it's data. for example, the model server where the entire
+                    // contents of the element may be larger than can fit in a single MTU/packetData. In this case,
+                    // we want to allow the appendElementData() to respond that it produced partial data, which should be
+                    // written, but that the childElement needs to be reprocessed in an additional pass or passes
+                    // to be completed.
                     LevelDetails childDataLevelKey = packetData->startLevel();
                     
                     OctreeElement::AppendState childAppendState = childElement->appendElementData(packetData, params);
 
                     // Continue this level so long as some part of this child element was appended.
-                    // TODO: consider if we want to also keep going in the child append state was NONE... to do this
-                    // we'd need to make sure the appendElementData didn't accidentally add bad partial data, we'd
-                    // also want to remove the child exists bit flag from the packet. I tried this quickly with voxels
-                    // and got some bad data including bad colors and some errors in recursing the tree, so clearly there's
-                    // more to it than that. This current implementation is slightly less efficient, because it could
-                    // be that one child element didn't fit but theoretically others could.
                     bool childFit = (childAppendState != OctreeElement::NONE);
                     
                     // If the child was partially or fully appended, then mark the actualChildrenDataBits as including
@@ -1503,16 +1496,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
                 int childTreeBytesOut = 0;
 
-                // XXXBHG - Note, this seems like the correct logic here, if we included the color in this packet, then
-                // the LOD logic determined that the child nodes would not be visible... and if so, we shouldn't recurse
-                // them further. But... for some time now the code has included and recursed into these child nodes, which
-                // would likely still send the child content, even though the client wouldn't render it. This change is
-                // a major savings (~30%) and it seems to work correctly. But I want us to discuss as a group when we do
-                // a voxel protocol review.
-                //
-                // This only applies in the view frustum case, in other cases, like file save and copy/past where
-                // no viewFrustum was requested, we still want to recurse the child tree.
-                //
                 // NOTE: some octree styles (like models and particles) will store content in parent elements, and child
                 // elements. In this case, if we stop recursion when we include any data (the colorbits should really be
                 // called databits), then we wouldn't send the children. So those types of Octree's should tell us to keep
@@ -1544,15 +1527,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 //
                 // we can make this act like no bytes out, by just resetting the bytes out in this case
                 if (params.includeColor && !params.includeExistsBits && childTreeBytesOut == 2) {
-                
-                    // TODO: this might be wrong for non-voxel cases... we might want to add a virtual function
-                    // to override this case... can it happen with entities? and if it happens is is correct to
-                    // remove it????
-                    qDebug() << "    >>>>>>>>>>> SPECIAL CASE FOR EMPTY TREES <<<<<<<<<<<<<< line:" << __LINE__;
-                    qDebug() << "        params.includeColor=" << params.includeColor;
-                    qDebug() << "        params.includeExistsBits=" << params.includeExistsBits;
-                    qDebug() << "        childTreeBytesOut=" << childTreeBytesOut;
-
                     childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
 
                 }
@@ -1582,10 +1556,12 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     }
 
                     if (!continueThisLevel) {
-                        qDebug() << "    WARNING ************************************************* line:" << __LINE__;
-                        qDebug() << "       breaking the child recursion loop with continueThisLevel=false!!!";
-                        qDebug() << "       AFTER attempting to updatePriorBitMask() for empty sub tree....";
-                        qDebug() << "       IS THIS ACCEPTABLE!!!!";
+                        if (wantDebug) {
+                            qDebug() << "    WARNING line:" << __LINE__;
+                            qDebug() << "       breaking the child recursion loop with continueThisLevel=false!!!";
+                            qDebug() << "       AFTER attempting to updatePriorBitMask() for empty sub tree....";
+                            qDebug() << "       IS THIS ACCEPTABLE!!!!";
+                        }
                         break; // can't continue...
                     }
 
