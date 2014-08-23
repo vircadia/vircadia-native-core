@@ -295,7 +295,6 @@ QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QS
     // filename if the directory is valid.
     QString path = "";
     QFileInfo fileInfo = QFileInfo(directory);
-    qDebug() << "File: " << directory << fileInfo.isFile();
     if (fileInfo.isDir()) {
         fileInfo.setFile(directory, "__HIFI_INVALID_FILE__");
         path = fileInfo.filePath();
@@ -303,7 +302,6 @@ QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QS
     
     QFileDialog fileDialog(Application::getInstance()->getWindow(), title, path, nameFilter);
     fileDialog.setAcceptMode(acceptMode);
-    qDebug() << "Opening!";
     QUrl fileUrl(directory);
     if (acceptMode == QFileDialog::AcceptSave) {
         fileDialog.setFileMode(QFileDialog::Directory);

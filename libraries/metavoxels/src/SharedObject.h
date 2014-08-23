@@ -211,7 +211,7 @@ Q_DECLARE_METATYPE(SharedObjectSet)
 /// Allows editing shared object instances.
 class SharedObjectEditor : public QWidget {
     Q_OBJECT
-    Q_PROPERTY(SharedObjectPointer object READ getObject WRITE setObject USER true)
+    Q_PROPERTY(SharedObjectPointer object READ getObject WRITE setObject NOTIFY objectChanged USER true)
 
 public:
     
@@ -221,6 +221,10 @@ public:
 
     /// "Detaches" the object pointer, copying it if anyone else is holding a reference.
     void detachObject();
+
+signals:
+
+    void objectChanged(const SharedObjectPointer& object);
 
 public slots:
 

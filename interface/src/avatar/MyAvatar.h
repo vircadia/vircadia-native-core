@@ -128,6 +128,8 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     
+    void clearJointAnimationPriorities();
+
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
@@ -170,11 +172,14 @@ public slots:
     bool setJointReferential(int id, int jointIndex);
     
     bool isRecording();
+    qint64 recorderElapsed();
     void startRecording();
     void stopRecording();
     void saveRecording(QString filename);
     
     bool isPlaying();
+    qint64 playerElapsed();
+    qint64 playerLength();
     void loadRecording(QString filename);
     void loadLastRecording();
     void startPlaying();

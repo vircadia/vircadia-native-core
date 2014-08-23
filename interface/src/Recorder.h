@@ -137,6 +137,8 @@ public:
     bool isPlaying() const;
     qint64 elapsed() const;
     
+    RecordingPointer getRecording() const { return _recording; }
+    
     // Those should only be called if isPlaying() returns true
     glm::quat getHeadRotation();
     float getLeanSideways();
