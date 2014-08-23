@@ -73,8 +73,7 @@ void ShapeColliderTests::sphereMissesSphere() {
 
     if (collisions.size() > 0) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected empty collision list but size is " << collisions.size()
-            << std::endl;
+            << " ERROR: expected empty collision list but size is " << collisions.size() << std::endl;
     }
 }
 
@@ -122,7 +121,7 @@ void ShapeColliderTests::sphereTouchesSphere() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of sphereA
@@ -132,7 +131,7 @@ void ShapeColliderTests::sphereTouchesSphere() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
 
@@ -152,7 +151,7 @@ void ShapeColliderTests::sphereTouchesSphere() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of sphereA
@@ -162,7 +161,7 @@ void ShapeColliderTests::sphereTouchesSphere() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
 }
@@ -202,23 +201,20 @@ void ShapeColliderTests::sphereMissesCapsule() {
         if (ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should NOT touch"
-                << std::endl;
+                << " ERROR: sphere and capsule should NOT touch" << std::endl;
         }
 
         // capsuleB against sphereA
         if (ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should NOT touch"
-                << std::endl;
+                << " ERROR: sphere and capsule should NOT touch" << std::endl;
         }
     }
 
     if (collisions.size() > 0) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected empty collision list but size is " << collisions.size()
-            << std::endl;
+            << " ERROR: expected empty collision list but size is " << collisions.size() << std::endl;
     }
 }
 
@@ -244,8 +240,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should touch"
-                << std::endl;
+                << " ERROR: sphere and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -257,7 +252,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of sphereA
@@ -266,15 +261,14 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
 
         // capsuleB collides with sphereA
         if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and sphere should touch"
-                << std::endl;
+                << " ERROR: capsule and sphere should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -286,7 +280,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of capsuleB
@@ -297,7 +291,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
     {   // sphereA hits end cap at axis
@@ -307,8 +301,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should touch"
-                << std::endl;
+                << " ERROR: sphere and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -320,7 +313,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of sphereA
@@ -329,15 +322,14 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
 
         // capsuleB collides with sphereA
         if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and sphere should touch"
-                << std::endl;
+                << " ERROR: capsule and sphere should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -349,7 +341,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of capsuleB
@@ -360,7 +352,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
     {   // sphereA hits start cap at axis
@@ -370,8 +362,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should touch"
-                << std::endl;
+                << " ERROR: sphere and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -383,7 +374,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of sphereA
@@ -392,15 +383,14 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
 
         // capsuleB collides with sphereA
         if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and sphere should touch"
-                << std::endl;
+                << " ERROR: capsule and sphere should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -412,7 +402,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         // contactPoint is on surface of capsuleB
@@ -423,7 +413,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
     if (collisions.size() != numCollisions) {
@@ -453,14 +443,12 @@ void ShapeColliderTests::capsuleMissesCapsule() {
     if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
     if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
 
     // end to end
@@ -468,14 +456,12 @@ void ShapeColliderTests::capsuleMissesCapsule() {
     if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
     if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
 
     // rotate B and move it to the side
@@ -485,20 +471,17 @@ void ShapeColliderTests::capsuleMissesCapsule() {
     if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
     if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
     {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch"
-            << std::endl;
+            << " ERROR: capsule and capsule should NOT touch" << std::endl;
     }
 
     if (collisions.size() > 0) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected empty collision list but size is " << collisions.size()
-            << std::endl;
+            << " ERROR: expected empty collision list but size is " << collisions.size() << std::endl;
     }
 }
 
@@ -523,16 +506,14 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
         if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -544,16 +525,14 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
         if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -567,16 +546,14 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
         if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -593,8 +570,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -605,7 +581,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         glm::vec3 expectedContactPoint = capsuleA.getTranslation() + radiusA * xAxis;
@@ -613,15 +589,14 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
 
         // capsuleB vs capsuleA
         if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -632,8 +607,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration 
-                << std::endl;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         expectedContactPoint = capsuleB.getTranslation() - (radiusB + halfHeightB) * xAxis;
@@ -641,8 +615,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint 
-                << std::endl;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
 
@@ -658,8 +631,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
         {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch"
-                << std::endl;
+                << " ERROR: capsule and capsule should touch" << std::endl;
         } else {
             ++numCollisions;
         }
@@ -670,8 +642,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration 
-                << std::endl;
+                << " actual = " << collision->_penetration << std::endl;
         }
     
         glm::vec3 expectedContactPoint = capsuleA.getTranslation() + radiusA * zAxis + shift * yAxis;
@@ -679,8 +650,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         if (fabs(inaccuracy) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint 
-                << std::endl;
+                << " actual = " << collision->_contactPoint << std::endl;
         }
     }
 }
@@ -714,7 +684,8 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
             sphere.setTranslation(sphereCenter);
     
             if (!ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  axis = " << axis << std::endl;
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  axis = " << axis 
+                    << std::endl;
             }
             CollisionInfo* collision = collisions[0];
             if (!collision) {
@@ -724,17 +695,13 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
             glm::vec3 expectedPenetration  = - overlap * axis;
             if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
-                    << "  expected " << expectedPenetration 
-                    << "  axis = " << axis
-                    << std::endl;
+                    << "  expected " << expectedPenetration << "  axis = " << axis << std::endl;
             }
     
             glm::vec3 expectedContact = sphereCenter - sphereRadius * axis;
             if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
-                    << "  expected " << expectedContact 
-                    << "  axis = " << axis
-                    << std::endl;
+                    << "  expected " << expectedContact << "  axis = " << axis << std::endl;
             }
         }
 
@@ -748,30 +715,24 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
     
             if (!ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube." 
-                    << "  axis = " << axis
-                    << std::endl;
+                    << "  axis = " << axis << std::endl;
             }
             CollisionInfo* collision = collisions[0];
             if (!collision) {
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR: no CollisionInfo on y-axis."
-                    << "  axis = " << axis 
-                    << std::endl;
+                    << "  axis = " << axis << std::endl;
             }
     
             glm::vec3 expectedPenetration  = - overlap * axis;
             if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
-                    << "  expected " << expectedPenetration
-                    << "  axis = " << axis 
-                    << std::endl;
+                    << "  expected " << expectedPenetration << "  axis = " << axis << std::endl;
             }
     
             glm::vec3 expectedContact = sphereCenter - sphereRadius * axis;
             if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
-                    << "  expected " << expectedContact
-                    << "  axis = " << axis 
-                    << std::endl;
+                    << "  expected " << expectedContact << "  axis = " << axis << std::endl;
             }
         }
     }
@@ -831,17 +792,13 @@ void ShapeColliderTests::sphereTouchesAACubeEdges() {
         glm::vec3 expectedPenetration  = - overlap * axis;
         if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
-                << "  expected " << expectedPenetration 
-                << "  axis = " << axis
-                << std::endl;
+                << "  expected " << expectedPenetration << "  axis = " << axis << std::endl;
         }
     
         glm::vec3 expectedContact = sphereCenter - sphereRadius * axis;
         if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
-                << "  expected " << expectedContact 
-                << "  axis = " << axis
-                << std::endl;
+                << "  expected " << expectedContact << "  axis = " << axis << std::endl;
         }
     }
 }
@@ -968,7 +925,8 @@ void ShapeColliderTests::rayHitsSphere() {
         float expectedDistance = startDistance - radius;
         float relativeError = fabsf(distance - expectedDistance) / startDistance;
         if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray sphere intersection distance error = " << relativeError << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray sphere intersection distance error = " 
+                << relativeError << std::endl;
         }
     }
 }
@@ -1025,7 +983,8 @@ void ShapeColliderTests::rayBarelyMissesSphere() {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely miss sphere" << std::endl;
     }
     if (distance != FLT_MAX) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" << std::endl;
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+            << std::endl;
     }
 
     // translate and rotate the whole system... 
@@ -1043,7 +1002,8 @@ void ShapeColliderTests::rayBarelyMissesSphere() {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely miss sphere" << std::endl;
     }
     if (distance != FLT_MAX) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" << std::endl;
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+            << std::endl;
     }
 }
 
@@ -1065,7 +1025,8 @@ void ShapeColliderTests::rayHitsCapsule() {
         float expectedDistance = startDistance - radius;
         float relativeError = fabsf(distance - expectedDistance) / startDistance;
         if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " << relativeError << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
+                << relativeError << std::endl;
         }
 
         // toward top of cylindrical wall
@@ -1076,7 +1037,8 @@ void ShapeColliderTests::rayHitsCapsule() {
         }
         relativeError = fabsf(distance - expectedDistance) / startDistance;
         if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " << relativeError << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
+                << relativeError << std::endl;
         }
 
         // toward top cap
@@ -1088,7 +1050,8 @@ void ShapeColliderTests::rayHitsCapsule() {
         }
         relativeError = fabsf(distance - expectedDistance) / startDistance;
         if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " << relativeError << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
+                << relativeError << std::endl;
         }
 
         const float EDGE_CASE_SLOP_FACTOR = 20.0f;
@@ -1103,7 +1066,8 @@ void ShapeColliderTests::rayHitsCapsule() {
         relativeError = fabsf(distance - expectedDistance) / startDistance;
         // for edge cases we allow a LOT of error
         if (relativeError > EDGE_CASE_SLOP_FACTOR * EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " << relativeError << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
+                << relativeError << std::endl;
         }
 
         // toward tip of bottom cap
@@ -1116,7 +1080,8 @@ void ShapeColliderTests::rayHitsCapsule() {
         relativeError = fabsf(distance - expectedDistance) / startDistance;
         // for edge cases we allow a LOT of error
         if (relativeError > EDGE_CASE_SLOP_FACTOR * EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " << relativeError << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
+                << relativeError << std::endl;
         }
 
         // toward edge of capsule cylindrical face
@@ -1130,7 +1095,8 @@ void ShapeColliderTests::rayHitsCapsule() {
         relativeError = fabsf(distance - expectedDistance) / startDistance;
         // for edge cases we allow a LOT of error
         if (relativeError > EDGE_CASE_SLOP_FACTOR * EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " << relativeError << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
+                << relativeError << std::endl;
         }
     }
     // TODO: test at steep angles near cylinder/cap junction
@@ -1157,7 +1123,8 @@ void ShapeColliderTests::rayMissesCapsule() {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss capsule" << std::endl;
         }
         if (distance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+                << std::endl;
         }
 
         // below bottom cap
@@ -1167,7 +1134,8 @@ void ShapeColliderTests::rayMissesCapsule() {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss capsule" << std::endl;
         }
         if (distance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+                << std::endl;
         }
 
         // past edge of capsule cylindrical face
@@ -1178,7 +1146,8 @@ void ShapeColliderTests::rayMissesCapsule() {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss capsule" << std::endl;
         }
         if (distance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+                << std::endl;
         }
     }
     // TODO: test at steep angles near edge
@@ -1204,7 +1173,8 @@ void ShapeColliderTests::rayHitsPlane() {
     float expectedDistance = SQUARE_ROOT_OF_3 * planeDistanceFromOrigin;
     float relativeError = fabsf(distance - expectedDistance) / planeDistanceFromOrigin;
     if (relativeError > EPSILON) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray plane intersection distance error = " << relativeError << std::endl;
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray plane intersection distance error = " 
+            << relativeError << std::endl;
     }
 
     // rotate the whole system and try again
@@ -1225,7 +1195,8 @@ void ShapeColliderTests::rayHitsPlane() {
     expectedDistance = SQUARE_ROOT_OF_3 * planeDistanceFromOrigin;
     relativeError = fabsf(distance - expectedDistance) / planeDistanceFromOrigin;
     if (relativeError > EPSILON) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray plane intersection distance error = " << relativeError << std::endl;
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray plane intersection distance error = " 
+            << relativeError << std::endl;
     }
 }
 
@@ -1246,7 +1217,8 @@ void ShapeColliderTests::rayMissesPlane() {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss plane" << std::endl;
         }
         if (distance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+                << std::endl;
         }
     
         // rotate the whole system and try again
@@ -1264,7 +1236,8 @@ void ShapeColliderTests::rayMissesPlane() {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss plane" << std::endl;
         }
         if (distance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+                << std::endl;
         }
     }
 
@@ -1278,7 +1251,8 @@ void ShapeColliderTests::rayMissesPlane() {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss plane" << std::endl;
         }
         if (distance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+                << std::endl;
         }
     
         // rotate the whole system and try again
@@ -1296,7 +1270,8 @@ void ShapeColliderTests::rayMissesPlane() {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss plane" << std::endl;
         }
         if (distance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" << std::endl;
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+                << std::endl;
         }
     }
 }
