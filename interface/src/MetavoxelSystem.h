@@ -252,6 +252,9 @@ public:
     static ProgramObject& getSplatHeightfieldProgram() { return _splatHeightfieldProgram; }
     static int getSplatHeightScaleLocation() { return _splatHeightScaleLocation; }
     static int getSplatTextureScaleLocation() { return _splatTextureScaleLocation; }
+    static int getSplatTextureOffsetLocation() { return _splatTextureOffsetLocation; }
+    static int getSplatTextureScalesSLocation() { return _splatTextureScalesSLocation; }
+    static int getSplatTextureScalesTLocation() { return _splatTextureScalesTLocation; }
     static int getSplatTextureValueMinimaLocation() { return _splatTextureValueMinimaLocation; }
     static int getSplatTextureValueMaximaLocation() { return _splatTextureValueMaximaLocation; }
     
@@ -297,6 +300,9 @@ private:
     static ProgramObject _splatHeightfieldProgram;
     static int _splatHeightScaleLocation;
     static int _splatTextureScaleLocation;
+    static int _splatTextureOffsetLocation;
+    static int _splatTextureScalesSLocation;
+    static int _splatTextureScalesTLocation;
     static int _splatTextureValueMinimaLocation;
     static int _splatTextureValueMaximaLocation;
     

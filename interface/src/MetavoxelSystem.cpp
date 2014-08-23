@@ -822,22 +822,38 @@ void HeightfieldBuffer::render(bool cursor) {
             DefaultMetavoxelRendererImplementation::getSplatHeightScaleLocation(), 1.0f / _heightSize);
         DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
             DefaultMetavoxelRendererImplementation::getSplatTextureScaleLocation(), (float)_heightSize / innerSize);
+        DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+            DefaultMetavoxelRendererImplementation::getSplatTextureOffsetLocation(),
+            _translation.x / _scale, _translation.z / _scale);
             
         glBindTexture(GL_TEXTURE_2D, _textureTextureID);
     
         const int TEXTURES_PER_SPLAT = 4;
         for (int i = 0; i < _textures.size(); i += TEXTURES_PER_SPLAT) {
+            QVector4D scalesS, scalesT;
+            
             for (int j = 0; j < SPLAT_COUNT; j++) {
                 glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[j]);
                 int index = i + j;
                 if (index < _networkTextures.size()) {
                     const NetworkTexturePointer& texture = _networkTextures.at(index);
-                    glBindTexture(GL_TEXTURE_2D, texture ? texture->getID() : 0);
+                    if (texture) {
+                        HeightfieldTexture* heightfieldTexture = static_cast<HeightfieldTexture*>(_textures.at(index).data());
+                        scalesS[j] = _scale / heightfieldTexture->getScaleS();
+                        scalesT[j] = _scale / heightfieldTexture->getScaleT();
+                        glBindTexture(GL_TEXTURE_2D, texture->getID());    
+                    } else {
+                        glBindTexture(GL_TEXTURE_2D, 0);
+                    }
                 } else {
                     glBindTexture(GL_TEXTURE_2D, 0);
                 }
             }
             const float QUARTER_STEP = 0.25f * EIGHT_BIT_MAXIMUM_RECIPROCAL;
+            DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+                DefaultMetavoxelRendererImplementation::getSplatTextureScalesSLocation(), scalesS);
+            DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+                DefaultMetavoxelRendererImplementation::getSplatTextureScalesTLocation(), scalesT);
             DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
                 DefaultMetavoxelRendererImplementation::getSplatTextureValueMinimaLocation(),
                 (i + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP, (i + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
@@ -1050,6 +1066,9 @@ void DefaultMetavoxelRendererImplementation::init() {
         _splatHeightfieldProgram.setUniformValueArray("diffuseMaps", SPLAT_TEXTURE_UNITS, SPLAT_COUNT);
         _splatHeightScaleLocation = _splatHeightfieldProgram.uniformLocation("heightScale");
         _splatTextureScaleLocation = _splatHeightfieldProgram.uniformLocation("textureScale");
+        _splatTextureOffsetLocation = _splatHeightfieldProgram.uniformLocation("splatTextureOffset");
+        _splatTextureScalesSLocation = _splatHeightfieldProgram.uniformLocation("splatTextureScalesS");
+        _splatTextureScalesTLocation = _splatHeightfieldProgram.uniformLocation("splatTextureScalesT");
         _splatTextureValueMinimaLocation = _splatHeightfieldProgram.uniformLocation("textureValueMinima");
         _splatTextureValueMaximaLocation = _splatHeightfieldProgram.uniformLocation("textureValueMaxima");
         _splatHeightfieldProgram.release();
@@ -1695,6 +1714,9 @@ int DefaultMetavoxelRendererImplementation::_baseColorScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_splatHeightfieldProgram;
 int DefaultMetavoxelRendererImplementation::_splatHeightScaleLocation;
 int DefaultMetavoxelRendererImplementation::_splatTextureScaleLocation;
+int DefaultMetavoxelRendererImplementation::_splatTextureOffsetLocation;
+int DefaultMetavoxelRendererImplementation::_splatTextureScalesSLocation;
+int DefaultMetavoxelRendererImplementation::_splatTextureScalesTLocation;
 int DefaultMetavoxelRendererImplementation::_splatTextureValueMinimaLocation;
 int DefaultMetavoxelRendererImplementation::_splatTextureValueMaximaLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_lightHeightfieldProgram;
