@@ -32,7 +32,7 @@ public:
     void setFBXJoint(const FBXJoint* joint); 
     const FBXJoint& getFBXJoint() const { return *_fbxJoint; }
 
-    void updateConstraint();
+    void buildConstraint();
     void copyState(const JointState& state);
 
     void initTransform(const glm::mat4& parentTransform);

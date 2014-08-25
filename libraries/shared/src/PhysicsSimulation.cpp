@@ -16,8 +16,9 @@
 #include "PerfStat.h"
 #include "PhysicsEntity.h"
 #include "Ragdoll.h"
-#include "SharedUtil.h"
+#include "Shape.h"
 #include "ShapeCollider.h"
+#include "SharedUtil.h"
 
 int MAX_DOLLS_PER_SIMULATION = 16;
 int MAX_ENTITIES_PER_SIMULATION = 64;

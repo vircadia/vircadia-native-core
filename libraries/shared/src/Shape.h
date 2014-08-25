@@ -22,17 +22,18 @@ class VerletPoint;
 
 const float MAX_SHAPE_MASS = 1.0e18f; // something less than sqrt(FLT_MAX)
 
+const quint8 SPHERE_SHAPE = 0;
+const quint8 CAPSULE_SHAPE = 1;
+const quint8 PLANE_SHAPE = 2;
+const quint8 LIST_SHAPE = 3;
+const quint8 UNKNOWN_SHAPE = 4;
+
 class Shape {
 public:
-    static quint32 getNextID() { static quint32 nextID = 0; return ++nextID; }
 
-    enum Type{
-        UNKNOWN_SHAPE = 0,
-        SPHERE_SHAPE,
-        CAPSULE_SHAPE,
-        PLANE_SHAPE,
-        LIST_SHAPE
-    };
+    typedef quint8 Type;
+
+    static quint32 getNextID() { static quint32 nextID = 0; return ++nextID; }
 
     Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.f), 
             _translation(0.f), _rotation(), _mass(MAX_SHAPE_MASS) {
@@ -40,7 +41,7 @@ public:
     }
     virtual ~Shape() { }
 
-    int getType() const { return _type; }
+    Type getType() const { return _type; }
     quint32 getID() const { return _id; }
 
     void setEntity(PhysicsEntity* entity) { _owningEntity = entity; }
@@ -95,8 +96,8 @@ protected:
 
     void setBoundingRadius(float radius) { _boundingRadius = radius; }
 
-    int _type;
-    unsigned int _id;
+    Type _type;
+    quint32 _id;
     PhysicsEntity* _owningEntity;
     float _boundingRadius;
     glm::vec3 _translation;
