@@ -285,7 +285,7 @@ function update(deltaTime){
         avatarOldPosition = MyAvatar.position;
         
         var SEARCH_RADIUS = 50;
-        var foundModels = Models.findModels(MyAvatar.position, SEARCH_RADIUS);
+        var foundModels = Entities.findEntities(MyAvatar.position, SEARCH_RADIUS);
         // Let's remove indicator that got out of radius
         for (model in models) {
             if (Vec3.distance(models[model].properties.position, MyAvatar.position) > SEARCH_RADIUS) {
@@ -297,7 +297,7 @@ function update(deltaTime){
         for (var i = 0; i < foundModels.length; ++i) {
             var model = foundModels[i];
             if (typeof(models[model.id]) == "undefined") {
-                model.properties = Models.getModelProperties(model);
+                model.properties = Entities.getEntityProperties(model);
                 if (Vec3.distance(model.properties.position, MyAvatar.position) < SEARCH_RADIUS) {
                     addIndicators(model);
                 }
@@ -319,7 +319,7 @@ function addIndicators(modelID) {
         
         models[modelID.id] = modelID;
     } else {
-        Models.editModel(modelID, { glowLevel: 0.0 });
+        Entities.editEntity(modelID, { glowLevel: 0.0 });
     }
 }
 

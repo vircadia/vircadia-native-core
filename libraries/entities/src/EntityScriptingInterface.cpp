@@ -11,6 +11,7 @@
 
 #include "EntityScriptingInterface.h"
 #include "EntityTree.h"
+#include "ModelEntityItem.h"
 
 EntityScriptingInterface::EntityScriptingInterface() :
     _nextCreatorTokenID(0),
@@ -75,10 +76,18 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
     if (_entityTree) {
         _entityTree->lockForRead();
         EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(identity));
+        
         if (entity) {
         
-            // TODO: look into sitting points!!!
-            //entity->setSittingPoints(_entityTree->getGeometryForEntity(entity)->sittingPoints);
+            // TODO: improve sitting points in the future, for now we've included the old model behavior for entity
+            //       types that are models
+            if (entity->getType() == EntityTypes::Model) {
+                ModelEntityItem* model = dynamic_cast<ModelEntityItem*>(entity);
+                const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
+                if (geometry) {
+                    model->setSittingPoints(geometry->sittingPoints);
+                }
+            }
             
             results = entity->getProperties();
         } else {
