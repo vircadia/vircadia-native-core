@@ -64,6 +64,7 @@ ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, Avat
 
 void ModelReferential::update() {
     const EntityItem* item = _tree->findEntityByID(_entityID);
+qDebug() << "ModelReferential::update() _entityID=" << _entityID << " item=" << item;
     if (!isValid() || item == NULL || _avatar == NULL) {
         return;
     }
@@ -90,12 +91,14 @@ qDebug() << "ModelReferential::update() _refPosition=" << _refPosition << " QThr
 int ModelReferential::packExtraData(unsigned char* destinationBuffer) const {
     QByteArray encodedEntityID = _entityID.toRfc4122();
     memcpy(destinationBuffer, encodedEntityID.constData(), encodedEntityID.size());
+qDebug() << "ModelReferential::packExtraData() encodedEntityID.size()=" << encodedEntityID.size();
     return encodedEntityID.size();
 }
 
 int ModelReferential::unpackExtraData(const unsigned char *sourceBuffer, int size) {
     QByteArray encodedEntityID((const char*)sourceBuffer, NUM_BYTES_RFC4122_UUID);
     _entityID = QUuid::fromRfc4122(encodedEntityID);
+qDebug() << "ModelReferential::unpackExtraData() encodedEntityID.size()=" << encodedEntityID.size() << " _entityID=" << _entityID;
     return NUM_BYTES_RFC4122_UUID;
 }
 

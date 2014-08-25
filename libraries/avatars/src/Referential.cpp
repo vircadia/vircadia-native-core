@@ -52,6 +52,8 @@ int Referential::packReferential(unsigned char* destinationBuffer) const {
     *sizePosition = size; // write extra data size in saved spot here
     destinationBuffer += size;
     
+    qDebug() << "Referential::packReferential() size=" << (int)size;
+    
     return destinationBuffer - startPosition;
 }
 
@@ -60,6 +62,9 @@ int Referential::unpackReferential(const unsigned char* sourceBuffer) {
     sourceBuffer += unpack(sourceBuffer);
     
     char expectedSize = *sourceBuffer++;
+
+    qDebug() << "Referential::unpackReferential() expectedSize=" << (int)expectedSize;
+
     char bytesRead = unpackExtraData(sourceBuffer, expectedSize);
     _isValid = (bytesRead == expectedSize);
     if (!_isValid) {
