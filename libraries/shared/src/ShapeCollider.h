@@ -16,10 +16,6 @@
 
 #include "CollisionInfo.h"
 #include "SharedUtil.h" 
-//#include "CapsuleShape.h"
-//#include "ListShape.h"
-//#include "PlaneShape.h"
-//#include "SphereShape.h"
 
 class Shape;
 class SphereShape;
