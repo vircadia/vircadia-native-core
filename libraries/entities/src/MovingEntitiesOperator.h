@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifndef hifi_MovingEntitiesOperator_h
+#define hifi_MovingEntitiesOperator_h
+
 class EntityToMoveDetails {
 public:
     EntityItem* entity;
@@ -43,3 +46,5 @@ private:
     int _lookingCount;
     bool shouldRecurseSubTree(OctreeElement* element);
 };
+
+#endif // hifi_MovingEntitiesOperator_h
