@@ -33,6 +33,19 @@ Model properties:
 //
 // REQUIRED TO DO:
 
+
+    7) Referentials -- basics are working... performance/jutter
+   
+            For sitting points and referentials you can kill two birds with one stone.
+            Put this model in world: http://highfidelity-public.s3-us-west-1.amazonaws.com/ozan/theater.fst
+            Launch sit.js
+            See sitting points
+            Sit somewhere
+            Move model with another avatar.
+            Observe first avatar moving.   
+   
+
+
     1) random crashes on moving (I think things going out of bounds???)
 
     2) some jutter with moving entities
@@ -57,16 +70,6 @@ Model properties:
         DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
         DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
 
-    7) Referentials????
-   
-            For sitting points and referentials you can kill two birds with one stone.
-            Put this model in world: http://highfidelity-public.s3-us-west-1.amazonaws.com/ozan/theater.fst
-            Launch sit.js
-            See sitting points
-            Sit somewhere
-            Move model with another avatar.
-            Observe first avatar moving.   
-   
     8) verify shadows work
     
     9) Handle the ID -> UUID swap in old files to new files

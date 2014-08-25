@@ -76,11 +76,13 @@ void ModelReferential::update() {
     }
     if (item->getRotation() != _refRotation) {
         _refRotation = item->getRotation();
+qDebug() << "ModelReferential::update() _refRotation=" << _refRotation;
         _avatar->setOrientation(_refRotation * _rotation, true);
         somethingChanged = true;
     }
     if (item->getPosition() != _refPosition || somethingChanged) {
         _refPosition = item->getPosition();
+qDebug() << "ModelReferential::update() _refPosition=" << _refPosition << " QThread::currentThread()=" << QThread::currentThread();
         _avatar->setPosition(_refPosition * (float)TREE_SCALE + _refRotation * (_translation * _refScale), true);
     }
 }
