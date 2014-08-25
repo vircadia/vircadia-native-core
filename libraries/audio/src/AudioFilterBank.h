@@ -34,7 +34,7 @@ class AudioFilterBank {
     static const int _channelCount  = C;
     static const int _profileCount  = 4;
     
-    static FilterParameter _profiles[_profileCount][_filterCount];
+    static FilterParameter _profiles[ _profileCount ][ _filterCount ];
 
     //
     // private data
@@ -52,7 +52,7 @@ public:
     AudioFilterBank() 
     : _sampleRate(0.)
     , _frameCount(0) {
-        for (int i = 0; i < _channelCount; ++i ) {
+        for (int i = 0; i < _channelCount; ++i) {
             _buffer[ i ] = NULL;
         }
     }
@@ -64,11 +64,11 @@ public:
     //
     // public interface
     //
-    void initialize( const float sampleRate, const int frameCount ) {
+    void initialize(const float sampleRate, const int frameCount) {
         finalize();
 
-        for (int i = 0; i < _channelCount; ++i ) {
-            _buffer[i] = (float*)malloc( frameCount * sizeof( float ) );
+        for (int i = 0; i < _channelCount; ++i) {
+            _buffer[i] = (float*)malloc(frameCount * sizeof(float));
         }
         
         _sampleRate = sampleRate;
@@ -79,7 +79,7 @@ public:
     }
 
     void finalize() {
-        for (int i = 0; i < _channelCount; ++i ) {
+        for (int i = 0; i < _channelCount; ++i) {
             if (_buffer[i]) {
                 free (_buffer[i]);
                 _buffer[i] = NULL;
@@ -87,7 +87,7 @@ public:
         }
     }
 
-    void loadProfile( int profileIndex ) {
+    void loadProfile(int profileIndex) {
         if (profileIndex >= 0 && profileIndex < _profileCount) {
             
             for (int i = 0; i < _filterCount; ++i) {
@@ -100,23 +100,24 @@ public:
         }
     }
 
-    void setParameters( int filterStage, int filterChannel, const float sampleRate, const float frequency, const float gain, const float slope ) {
-        if ( filterStage >= 0 && filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount ) {
+    void setParameters(int filterStage, int filterChannel, const float sampleRate, const float frequency, const float gain, 
+                       const float slope) {
+        if (filterStage >= 0 && filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
             _filters[filterStage][filterChannel].setParameters(sampleRate,frequency,gain,slope);
         }
     }
 
-    void getParameters( int filterStage, int filterChannel, float& sampleRate, float& frequency, float& gain, float& slope ) {
-        if ( filterStage >= 0 && filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount ) {
+    void getParameters(int filterStage, int filterChannel, float& sampleRate, float& frequency, float& gain, float& slope) {
+        if (filterStage >= 0 && filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
             _filters[filterStage][filterChannel].getParameters(sampleRate,frequency,gain,slope);
         }
     }
     
-    void render( const int16_t* in, int16_t* out, const int frameCount ) {
-        if (!_buffer || ( frameCount > _frameCount ))
+    void render(const int16_t* in, int16_t* out, const int frameCount) {
+        if (!_buffer || (frameCount > _frameCount))
             return;
 
-        const int scale = (2 << ((8*sizeof(int16_t))-1));
+        const int scale = (2 << ((8 * sizeof(int16_t)) - 1));
 
         // de-interleave and convert int16_t to float32 (normalized to -1. ... 1.)
         for (int i = 0; i < frameCount; ++i) {
@@ -127,7 +128,7 @@ public:
 
         // now step through each filter
         for (int i = 0; i < _channelCount; ++i) {
-            for (int j = 0; j < _filterCount; ++j ) {
+            for (int j = 0; j < _filterCount; ++j) {
                 _filters[j][i].render( &_buffer[i][0], &_buffer[i][0], frameCount );
             }
         }
@@ -141,8 +142,8 @@ public:
     }
 
     void reset() {
-        for (int i = 0; i < _filterCount; ++i ) {
-            for (int j = 0; j < _channelCount; ++j ) {
+        for (int i = 0; i < _filterCount; ++i) {
+            for (int j = 0; j < _channelCount; ++j) {
                 _filters[i][j].reset();
             }
         }

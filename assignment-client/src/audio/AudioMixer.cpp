@@ -284,7 +284,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
             // normalize penumbra angle
             float normalizedHeadPenumbraAngle = headPenumbraAngle / PI_OVER_TWO;
             
-            if ( normalizedHeadPenumbraAngle < EPSILON ) { 
+            if (normalizedHeadPenumbraAngle < EPSILON) { 
                 normalizedHeadPenumbraAngle = EPSILON;
             }
             

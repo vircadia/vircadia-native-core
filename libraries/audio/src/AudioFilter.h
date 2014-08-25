@@ -51,15 +51,15 @@ public:
     //
     // public interface
     //
-    void setParameters( const float a0, const float a1, const float a2, const float b1, const float b2 ) {
+    void setParameters(const float a0, const float a1, const float a2, const float b1, const float b2) {
         _a0 = a0; _a1 = a1; _a2 = a2; _b1 = b1; _b2 = b2;
     }
 
-    void getParameters( float& a0, float& a1, float& a2, float& b1, float& b2 ) {
+    void getParameters(float& a0, float& a1, float& a2, float& b1, float& b2) {
         a0 = _a0; a1 = _a1; a2 = _a2; b1 = _b1; b2 = _b2;
     }
 
-    void render( const float* in, float* out, const int frames) {
+    void render(const float* in, float* out, const int frames) {
         
         float x;
         float y;
@@ -129,21 +129,21 @@ public:
     //
     // public interface
     //
-    void setParameters( const float sampleRate, const float frequency, const float gain, const float slope ) {
+    void setParameters(const float sampleRate, const float frequency, const float gain, const float slope) {
         
-        _sampleRate = std::max(sampleRate,1.0f);
-        _frequency  = std::max(frequency,2.0f);
-        _gain       = std::max(gain,0.0f);
-        _slope      = std::max(slope,0.00001f);
+        _sampleRate = std::max(sampleRate, 1.0f);
+        _frequency = std::max(frequency, 2.0f);
+        _gain = std::max(gain, 0.0f);
+        _slope = std::max(slope, 0.00001f);
         
         updateKernel();
     }
     
-    void getParameters( float& sampleRate, float& frequency, float& gain, float& slope ) {
+    void getParameters(float& sampleRate, float& frequency, float& gain, float& slope) {
         sampleRate = _sampleRate; frequency = _frequency; gain = _gain; slope = _slope;
     }
     
-    void render(const float* in, float* out, const int frames ) {
+    void render(const float* in, float* out, const int frames) {
         _kernel.render(in,out,frames);
     }
     
@@ -208,15 +208,15 @@ public:
          b1 =  -2*cos(w0)
          b2 =   1 - alpha/A
          */
-        const float a0      =  1.0f + (alpha*a);
+        const float a0      =  1.0f + (alpha * a);
         const float a1      = -2.0f * cosf(omega);
-        const float a2      =  1.0f - (alpha*a);
+        const float a2      =  1.0f - (alpha * a);
         const float b1      =  a1;
-        const float b2      =  1.0f - (alpha/a);
+        const float b2      =  1.0f - (alpha / a);
         
-        const float scale   =  1.0f / ( 1.0f + (alpha/a) );
+        const float scale   =  1.0f / (1.0f + (alpha / a));
         
-        _kernel.setParameters( a0*scale,a1*scale,a2*scale,b1*scale,b2*scale );
+        _kernel.setParameters(a0 * scale, a1 * scale, a2 * scale, b1 * scale, b2 * scale);
     }
 };
 

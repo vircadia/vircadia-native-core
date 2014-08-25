@@ -25,7 +25,7 @@ function playSound() {
 
     var soundOffset = { x:s, y:0, z:c };
 
-    if( debug ) {
+    if (debug) {
     	print("t=" + currentTime + "offset=" + soundOffset.x + "," + soundOffset.y + "," + soundOffset.z);
     }
 
