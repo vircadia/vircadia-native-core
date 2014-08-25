@@ -106,18 +106,30 @@ public:
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
     
     static void sendKillAvatar();
-
+    
+    Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
+    Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
+    Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
+    Q_INVOKABLE float getHeadFinalPitch() const { return getHead()->getFinalPitch(); }
+    Q_INVOKABLE float getHeadDeltaPitch() const { return getHead()->getDeltaPitch(); }
+    
+    Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
+    
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
     
+    virtual void setJointRotations(QVector<glm::quat> jointRotations);
     virtual void setJointData(int index, const glm::quat& rotation);
     virtual void clearJointData(int index);
+    virtual void clearJointsData();
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     
+    void clearJointAnimationPriorities();
+
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
@@ -132,6 +144,10 @@ public:
     /// Renders a laser pointer for UI picking
     void renderLaserPointers();
     glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
+    
+    const RecorderPointer getRecorder() const { return _recorder; }
+    const PlayerPointer getPlayer() const { return _player; }
+    
 public slots:
     void goHome();
     void increaseSize();
@@ -154,6 +170,21 @@ public slots:
     void clearReferential();
     bool setModelReferential(int id);
     bool setJointReferential(int id, int jointIndex);
+    
+    bool isRecording();
+    qint64 recorderElapsed();
+    void startRecording();
+    void stopRecording();
+    void saveRecording(QString filename);
+    
+    bool isPlaying();
+    qint64 playerElapsed();
+    qint64 playerLength();
+    void loadRecording(QString filename);
+    void loadLastRecording();
+    void startPlaying();
+    void stopPlaying();
+    
     
 signals:
     void transformChanged();
@@ -192,6 +223,9 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
     PhysicsSimulation _physicsSimulation;
 
+    RecorderPointer _recorder;
+    PlayerPointer _player;
+    
 	// private methods
     float computeDistanceToFloor(const glm::vec3& startPoint);
     void updateOrientation(float deltaTime);

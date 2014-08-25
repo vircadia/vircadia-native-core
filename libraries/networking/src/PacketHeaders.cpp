@@ -81,7 +81,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeAudioStreamStats:
             return 1;
         case PacketTypeMetavoxelData:
-            return 1;
+            return 3;
         default:
             return 0;
     }

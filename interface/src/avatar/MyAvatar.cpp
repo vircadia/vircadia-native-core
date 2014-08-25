@@ -35,6 +35,7 @@
 #include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
+#include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
@@ -83,10 +84,11 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-    _skeletonModel.setEnableShapes(true);
-    // The skeleton is both a PhysicsEntity and Ragdoll, so we add it to the simulation once for each type.
     _physicsSimulation.setEntity(&_skeletonModel);
-    _physicsSimulation.setRagdoll(&_skeletonModel);
+
+    _skeletonModel.setEnableShapes(true);
+    Ragdoll* ragdoll = _skeletonModel.buildRagdoll();
+    _physicsSimulation.setRagdoll(ragdoll);
 }
 
 MyAvatar::~MyAvatar() {
@@ -135,6 +137,12 @@ void MyAvatar::update(float deltaTime) {
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
+    
+    // Play back recording
+    if (_player && _player->isPlaying()) {
+        _player->play();
+    }
+    
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
@@ -147,7 +155,7 @@ void MyAvatar::simulate(float deltaTime) {
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
     }
-
+    
     {
         PerformanceTimer perfTimer("hand");
         // update avatar skeleton and simulate hand and head
@@ -205,12 +213,21 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("ragdoll");
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        Ragdoll* ragdoll = _skeletonModel.getRagdoll();
+        if (ragdoll && Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
             const float minError = 0.00001f;
             const float maxIterations = 3;
             const quint64 maxUsec = 4000;
             _physicsSimulation.setTranslation(_position);
             _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
+
+            // harvest any displacement of the Ragdoll that is a result of collisions
+            glm::vec3 ragdollDisplacement = ragdoll->getAndClearAccumulatedMovement();
+            const float MAX_RAGDOLL_DISPLACEMENT_2 = 1.0f;
+            float length2 = glm::length2(ragdollDisplacement);
+            if (length2 > EPSILON && length2 < MAX_RAGDOLL_DISPLACEMENT_2) {
+                setPosition(getPosition() + ragdollDisplacement);
+            }
         } else {
             _skeletonModel.moveShapesTowardJoints(1.0f);
         }
@@ -242,6 +259,11 @@ void MyAvatar::simulate(float deltaTime) {
         }
     }
 
+    // Record avatars movements.
+    if (_recorder && _recorder->isRecording()) {
+        _recorder->record();
+    }
+    
     // consider updating our billboard
     maybeUpdateBillboard();
 }
@@ -250,7 +272,9 @@ void MyAvatar::simulate(float deltaTime) {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
+    if (isPlaying()) {
+        estimatedRotation = glm::degrees(safeEulerAngles(_player->getHeadRotation()));
+    } else if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
         estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
         estimatedRotation.x *= -1.0f;
         estimatedRotation.z *= -1.0f;
@@ -292,7 +316,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
     Head* head = getHead();
-    if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected() || isPlaying()) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
     } else {
@@ -302,6 +326,11 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
     head->setDeltaRoll(estimatedRotation.z);
 
+    if (isPlaying()) {
+        head->setLeanSideways(_player->getLeanSideways());
+        head->setLeanForward(_player->getLeanForward());
+        return;
+    }
     // the priovr can give us exact lean
     if (Application::getInstance()->getPrioVR()->isActive()) {
         glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
@@ -309,7 +338,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setLeanForward(eulers.x);
         return;
     }
-
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
@@ -477,6 +505,167 @@ bool MyAvatar::setJointReferential(int id, int jointIndex) {
     } else {
         changeReferential(NULL);
         return false;
+    }
+}
+
+bool MyAvatar::isRecording() {
+    if (!_recorder) {
+        return false;
+    }
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        QMetaObject::invokeMethod(this, "isRecording", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(bool, result));
+        return result;
+    }
+    return _recorder && _recorder->isRecording();
+}
+
+qint64 MyAvatar::recorderElapsed() {
+    if (!_recorder) {
+        return 0;
+    }
+    if (QThread::currentThread() != thread()) {
+        qint64 result;
+        QMetaObject::invokeMethod(this, "recorderElapsed", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(qint64, result));
+        return result;
+    }
+    return _recorder->elapsed();
+}
+
+void MyAvatar::startRecording() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "startRecording", Qt::BlockingQueuedConnection);
+        return;
+    }
+    if (!_recorder) {
+        _recorder = RecorderPointer(new Recorder(this));
+    }
+    Application::getInstance()->getAudio()->setRecorder(_recorder);
+    _recorder->startRecording();
+    
+}
+
+void MyAvatar::stopRecording() {
+    if (!_recorder) {
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopRecording", Qt::BlockingQueuedConnection);
+        return;
+    }
+    if (_recorder) {
+        _recorder->stopRecording();
+    }
+}
+
+void MyAvatar::saveRecording(QString filename) {
+    if (!_recorder) {
+        qDebug() << "There is no recording to save";
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "saveRecording", Qt::BlockingQueuedConnection,
+                                  Q_ARG(QString, filename));
+        return;
+    }
+    if (_recorder) {
+        _recorder->saveToFile(filename);
+    }
+}
+
+bool MyAvatar::isPlaying() {
+    if (!_player) {
+        return false;
+    }
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        QMetaObject::invokeMethod(this, "isPlaying", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(bool, result));
+        return result;
+    }
+    return _player && _player->isPlaying();
+}
+
+qint64 MyAvatar::playerElapsed() {
+    if (!_player) {
+        return 0;
+    }
+    if (QThread::currentThread() != thread()) {
+        qint64 result;
+        QMetaObject::invokeMethod(this, "playerElapsed", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(qint64, result));
+        return result;
+    }
+    return _player->elapsed();
+}
+
+qint64 MyAvatar::playerLength() {
+    if (!_player) {
+        return 0;
+    }
+    if (QThread::currentThread() != thread()) {
+        qint64 result;
+        QMetaObject::invokeMethod(this, "playerLength", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(qint64, result));
+        return result;
+    }
+    return _player->getRecording()->getLength();
+}
+
+void MyAvatar::loadRecording(QString filename) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadRecording", Qt::BlockingQueuedConnection,
+                                  Q_ARG(QString, filename));
+        return;
+    }
+    if (!_player) {
+        _player = PlayerPointer(new Player(this));
+    }
+    
+    _player->loadFromFile(filename);
+}
+
+void MyAvatar::loadLastRecording() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadLastRecording", Qt::BlockingQueuedConnection);
+        return;
+    }
+    if (!_recorder) {
+        qDebug() << "There is no recording to load";
+        return;
+    }
+    if (!_player) {
+        _player = PlayerPointer(new Player(this));
+    }
+    
+    _player->loadRecording(_recorder->getRecording());
+}
+
+void MyAvatar::startPlaying() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "startPlaying", Qt::BlockingQueuedConnection);
+        return;
+    }
+    if (!_player) {
+        _player = PlayerPointer(new Player(this));
+    }
+    
+    Application::getInstance()->getAudio()->setPlayer(_player);
+    _player->startPlaying();
+}
+
+void MyAvatar::stopPlaying() {
+    if (!_player) {
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopPlaying", Qt::BlockingQueuedConnection);
+        return;
+    }
+    if (_player) {
+        _player->stopPlaying();
     }
 }
 
@@ -860,19 +1049,39 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
-const float JOINT_PRIORITY = 2.0f;
+const float SCRIPT_PRIORITY = DEFAULT_PRIORITY + 1.0f;
+const float RECORDER_PRIORITY = SCRIPT_PRIORITY + 1.0f;
+
+void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
+    int numStates = glm::min(_skeletonModel.getJointStateCount(), jointRotations.size());
+    for (int i = 0; i < numStates; ++i) {
+        // HACK: ATM only Recorder calls setJointRotations() so we hardcode its priority here
+        _skeletonModel.setJointState(i, true, jointRotations[i], RECORDER_PRIORITY);
+    }
+}
 
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
-    Avatar::setJointData(index, rotation);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, true, rotation, JOINT_PRIORITY);
+        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+        _skeletonModel.setJointState(index, true, rotation, SCRIPT_PRIORITY);
     }
 }
 
 void MyAvatar::clearJointData(int index) {
-    Avatar::clearJointData(index);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, false, glm::quat(), JOINT_PRIORITY);
+        // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
+        _skeletonModel.setJointState(index, false, glm::quat(), 0.0f);
+    }
+}
+
+void MyAvatar::clearJointsData() {
+    clearJointAnimationPriorities();
+}
+
+void MyAvatar::clearJointAnimationPriorities() {
+    int numStates = _skeletonModel.getJointStateCount();
+    for (int i = 0; i < numStates; ++i) {
+        _skeletonModel.clearJointAnimationPriority(i);
     }
 }
 
@@ -1604,10 +1813,10 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 if (simulation != &(_physicsSimulation)) {
                     skeleton->setEnableShapes(true);
                     _physicsSimulation.addEntity(skeleton);
-                    _physicsSimulation.addRagdoll(skeleton);
+                    _physicsSimulation.addRagdoll(skeleton->getRagdoll());
                 }
             } else if (simulation == &(_physicsSimulation)) {
-                _physicsSimulation.removeRagdoll(skeleton);
+                _physicsSimulation.removeRagdoll(skeleton->getRagdoll());
                 _physicsSimulation.removeEntity(skeleton);
                 skeleton->setEnableShapes(false);
             }

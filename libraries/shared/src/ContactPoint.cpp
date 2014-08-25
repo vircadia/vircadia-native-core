@@ -88,8 +88,75 @@ ContactPoint::ContactPoint(const CollisionInfo& collision, quint32 frame) :
     }
 }
 
-// virtual 
 float ContactPoint::enforce() {
+    glm::vec3 pointA = _shapeA->getTranslation() + _offsetA;
+    glm::vec3 pointB = _shapeB->getTranslation() + _offsetB;
+    glm::vec3 penetration = pointA - pointB;
+   float pDotN = glm::dot(penetration, _normal);
+    bool constraintViolation = (pDotN > CONTACT_PENETRATION_ALLOWANCE);
+
+    // the contact point will be the average of the two points on the shapes
+    _contactPoint = _relativeMassA * pointA + _relativeMassB * pointB;
+
+    if (constraintViolation) {
+        for (int i = 0; i < _numPointsA; ++i) {
+            VerletPoint* point = _points[i];
+            glm::vec3 offset = _offsets[i];
+    
+            // split delta into parallel and perpendicular components
+            glm::vec3 delta = _contactPoint + offset - point->_position;
+            glm::vec3 paraDelta = glm::dot(delta, _normal) * _normal;
+            glm::vec3 perpDelta = delta - paraDelta;
+            
+            // use the relative sizes of the components to decide how much perpenducular delta to use
+            // perpendicular < parallel ==> static friction ==> perpFactor = 1.0
+            // perpendicular > parallel ==> dynamic friction ==> cap to length of paraDelta ==> perpFactor < 1.0
+            float paraLength = _relativeMassB * glm::length(paraDelta);
+            float perpLength = _relativeMassA * glm::length(perpDelta);
+            float perpFactor = (perpLength > paraLength && perpLength > EPSILON) ? (paraLength / perpLength) : 1.0f;
+    
+            // recombine the two components to get the final delta
+            delta = paraDelta + perpFactor * perpDelta;
+        
+            glm::vec3 targetPosition = point->_position + delta;
+            _distances[i] = glm::distance(_contactPoint, targetPosition);
+            point->_position += delta;
+        }
+        for (int i = _numPointsA; i < _numPoints; ++i) {
+            VerletPoint* point = _points[i];
+            glm::vec3 offset = _offsets[i];
+    
+            // split delta into parallel and perpendicular components
+            glm::vec3 delta = _contactPoint + offset - point->_position;
+            glm::vec3 paraDelta = glm::dot(delta, _normal) * _normal;
+            glm::vec3 perpDelta = delta - paraDelta;
+            
+            // use the relative sizes of the components to decide how much perpenducular delta to use
+            // perpendicular < parallel ==> static friction ==> perpFactor = 1.0
+            // perpendicular > parallel ==> dynamic friction ==> cap to length of paraDelta ==> perpFactor < 1.0
+            float paraLength = _relativeMassA * glm::length(paraDelta);
+            float perpLength = _relativeMassB * glm::length(perpDelta);
+            float perpFactor = (perpLength > paraLength && perpLength > EPSILON) ? (paraLength / perpLength) : 1.0f;
+    
+            // recombine the two components to get the final delta
+            delta = paraDelta + perpFactor * perpDelta;
+        
+            glm::vec3 targetPosition = point->_position + delta;
+            _distances[i] = glm::distance(_contactPoint, targetPosition);
+            point->_position += delta;
+        }
+    } else {
+        for (int i = 0; i < _numPoints; ++i) {
+            _distances[i] = glm::length(glm::length(_offsets[i]));
+        }
+    }
+    return 0.0f;
+}
+
+// virtual 
+void ContactPoint::applyFriction() {
+    // TODO: Andrew to re-implement this in a different way
+    /*
     for (int i = 0; i < _numPoints; ++i) {
         glm::vec3& position = _points[i]->_position;
         // TODO: use a fast distance approximation
@@ -103,56 +170,7 @@ float ContactPoint::enforce() {
             position = center - (0.5f * constrainedDistance) * direction;
         }
     }
-    return 0.0f;
-}
-
-void ContactPoint::buildConstraints() {
-    glm::vec3 pointA = _shapeA->getTranslation() + _offsetA;
-    glm::vec3 pointB = _shapeB->getTranslation() + _offsetB;
-    glm::vec3 penetration = pointA - pointB;
-   float pDotN = glm::dot(penetration, _normal);
-    bool constraintViolation = (pDotN > CONTACT_PENETRATION_ALLOWANCE);
-
-    // the contact point will be the average of the two points on the shapes
-    _contactPoint = 0.5f * (pointA + pointB);
-
-    // TODO: Andrew to compute more correct lagrangian weights that provide a more realistic response.
-    //
-    // HACK: since the weights are naively equal for all points (which is what the above TODO is about) we 
-    // don't want to use the full-strength delta because otherwise there can be annoying oscillations.  We 
-    // reduce this problem by in the short-term by attenuating the delta that is applied, the tradeoff is
-    // that this makes it easier for limbs to tunnel through during collisions.
-    const float HACK_STRENGTH = 0.5f;
-
-    if (constraintViolation) {
-        for (int i = 0; i < _numPoints; ++i) {
-            VerletPoint* point = _points[i];
-            glm::vec3 offset = _offsets[i];
-    
-            // split delta into parallel and perpendicular components
-            glm::vec3 delta = _contactPoint + offset - point->_position;
-            glm::vec3 paraDelta = glm::dot(delta, _normal) * _normal;
-            glm::vec3 perpDelta = delta - paraDelta;
-            
-            // use the relative sizes of the components to decide how much perpenducular delta to use
-            // perpendicular < parallel ==> static friction ==> perpFactor = 1.0
-            // perpendicular > parallel ==> dynamic friction ==> cap to length of paraDelta ==> perpFactor < 1.0
-            float paraLength = glm::length(paraDelta);
-            float perpLength = glm::length(perpDelta);
-            float perpFactor = (perpLength > paraLength && perpLength > EPSILON) ? (paraLength / perpLength) : 1.0f;
-    
-            // recombine the two components to get the final delta
-            delta = paraDelta + perpFactor * perpDelta;
-        
-            glm::vec3 targetPosition = point->_position + delta;
-            _distances[i] = glm::distance(_contactPoint, targetPosition);
-            point->_position += HACK_STRENGTH * delta;
-        }
-    } else {
-        for (int i = 0; i < _numPoints; ++i) {
-            _distances[i] = glm::length(glm::length(_offsets[i]));
-        }
-    }
+    */
 }
 
 void ContactPoint::updateContact(const CollisionInfo& collision, quint32 frame) {

@@ -82,6 +82,17 @@ Sound::Sound(const QUrl& sampleURL, QObject* parent) :
     connect(soundDownload, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(replyError(QNetworkReply::NetworkError)));
 }
 
+Sound::Sound(const QByteArray byteArray, QObject* parent) :
+    QObject(parent),
+    _byteArray(byteArray),
+    _hasDownloaded(true)
+{
+}
+
+void Sound::append(const QByteArray byteArray) {
+    _byteArray.append(byteArray);
+}
+
 void Sound::replyFinished() {
 
     QNetworkReply* reply = reinterpret_cast<QNetworkReply*>(sender());

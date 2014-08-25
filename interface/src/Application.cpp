@@ -137,7 +137,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-        _voxelImporter(NULL),
+        _voxelImportDialog(NULL),
+        _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
         _modelClipboardRenderer(),
@@ -432,7 +433,7 @@ Application::~Application() {
     delete idleTimer;
     
     _sharedVoxelSystem.changeTree(new VoxelTree);
-    delete _voxelImporter;
+    delete _voxelImportDialog;
 
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
@@ -467,8 +468,8 @@ void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
 
-    if (_voxelImporter) {
-        _voxelImporter->saveSettings(_settings);
+    if (_voxelImportDialog) {
+        _voxelImportDialog->saveSettings(_settings);
     }
     _settings->sync();
     _numChangedSettings = 0;
@@ -893,7 +894,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_Space:
+            case Qt::Key_Apostrophe:
                 resetSensors();
                 break;
 
@@ -1051,7 +1052,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
                 }
-                break;
                 break;
             case Qt::Key_Percent:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
@@ -1608,17 +1608,17 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
 void Application::importVoxels() {
     _importSucceded = false;
 
-    if (!_voxelImporter) {
-        _voxelImporter = new VoxelImporter(_window);
-        _voxelImporter->loadSettings(_settings);
+    if (!_voxelImportDialog) {
+        _voxelImportDialog = new VoxelImportDialog(_window);
+        _voxelImportDialog->loadSettings(_settings);
     }
 
-    if (!_voxelImporter->exec()) {
+    if (!_voxelImportDialog->exec()) {
         qDebug() << "Import succeeded." << endl;
         _importSucceded = true;
     } else {
         qDebug() << "Import failed." << endl;
-        if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
+        if (_sharedVoxelSystem.getTree() == _voxelImporter.getVoxelTree()) {
             _sharedVoxelSystem.killLocalVoxels();
             _sharedVoxelSystem.changeTree(&_clipboard);
         }
@@ -1733,7 +1733,7 @@ void Application::init() {
     // Cleanup of the original shared tree
     _sharedVoxelSystem.init();
 
-    _voxelImporter = new VoxelImporter(_window);
+    _voxelImportDialog = new VoxelImportDialog(_window);
 
     _environment.init();
 
@@ -3735,6 +3735,10 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
 
+#ifdef Q_OS_MAC
+    scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
+#endif
+
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
@@ -3817,6 +3821,10 @@ void Application::stopAllScripts(bool restart) {
         it.value()->stop();
         qDebug() << "stopping script..." << it.key();
     }
+    // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
+    // whenever a script stops in case it happened to have been setting joint rotations.
+    // TODO: expose animation priorities and provide a layered animation control system.
+    _myAvatar->clearJointAnimationPriorities();
 }
 
 void Application::stopScript(const QString &scriptName) {
@@ -3824,6 +3832,10 @@ void Application::stopScript(const QString &scriptName) {
     if (_scriptEnginesHash.contains(scriptURLString)) {
         _scriptEnginesHash.value(scriptURLString)->stop();
         qDebug() << "stopping script..." << scriptName;
+        // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
+        // whenever a script stops in case it happened to have been setting joint rotations.
+        // TODO: expose animation priorities and provide a layered animation control system.
+        _myAvatar->clearJointAnimationPriorities();
     }
 }
 

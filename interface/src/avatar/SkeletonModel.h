@@ -15,18 +15,20 @@
 #include "renderer/Model.h"
 
 #include <CapsuleShape.h>
-#include <Ragdoll.h>
+#include "SkeletonRagdoll.h"
 
 class Avatar;
 class MuscleConstraint;
+class SkeletonRagdoll;
 
 /// A skeleton loaded from a model.
-class SkeletonModel : public Model, public Ragdoll {
+class SkeletonModel : public Model {
     Q_OBJECT
     
 public:
 
     SkeletonModel(Avatar* owningAvatar, QObject* parent = NULL);
+    ~SkeletonModel();
    
     void setJointStates(QVector<JointState> states);
 
@@ -96,12 +98,11 @@ public:
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
     virtual void updateVisibleJointStates();
-    
-    // virtual overrride from Ragdoll
-    virtual void stepRagdollForward(float deltaTime);
 
+    SkeletonRagdoll* buildRagdoll();
+    SkeletonRagdoll* getRagdoll() { return _ragdoll; }
+    
     void moveShapesTowardJoints(float fraction);
-    void updateMuscles();
 
     void computeBoundingShape(const FBXGeometry& geometry);
     void renderBoundingCollisionShapes(float alpha);
@@ -115,10 +116,6 @@ public:
     
 protected:
 
-    // virtual overrrides from Ragdoll
-    void initRagdollPoints();
-    void buildRagdollConstraints();
-
     void buildShapes();
 
     /// \param jointIndex index of joint in model
@@ -130,7 +127,7 @@ protected:
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);   
     
-    void maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
+    void maybeUpdateLeanRotation(const JointState& parentState, JointState& state);
     void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     
@@ -147,7 +144,7 @@ private:
 
     CapsuleShape _boundingShape;
     glm::vec3 _boundingShapeLocalOffset;
-    QVector<MuscleConstraint*> _muscleConstraints;
+    SkeletonRagdoll* _ragdoll;
 };
 
 #endif // hifi_SkeletonModel_h
