@@ -163,7 +163,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID) {
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
 
-    bool wantDebug = true;
+    bool wantDebug = false;
     if (wantDebug) {
         EntityTreeElement* containingElement = getContainingElement(entityID);
         qDebug() << "EntityTree::deleteEntity().... after delete... containingElement=" << containingElement;
@@ -260,7 +260,7 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     EntityItemID  creatorTokenVersion = searchEntityID.convertToCreatorTokenVersion();
     EntityItemID  knownIDVersion = searchEntityID.convertToKnownIDVersion();
 
-    bool wantDebug = true;
+    bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "EntityTree::handleAddEntityResponse()..."; 
         qDebug() << "    creatorTokenID=" << creatorTokenID;
