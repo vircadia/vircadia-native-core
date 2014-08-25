@@ -29,14 +29,15 @@ class QScriptEngine;
 class QScriptValue;
 
 class Attribute;
+class DataBlock;
 class HeightfieldColorData;
-class HeightfieldData;
 class HeightfieldHeightData;
 class HeightfieldTextureData;
 class MetavoxelData;
 class MetavoxelLOD;
 class MetavoxelNode;
 class MetavoxelStreamState;
+class VoxelSignData;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
@@ -100,13 +101,13 @@ public:
     /// Returns a reference to the standard "spannerMask" attribute.
     const AttributePointer& getSpannerMaskAttribute() const { return _spannerMaskAttribute; }
     
-    /// Returns a reference to the standard HeightfieldDataPointer "heightfield" attribute.
+    /// Returns a reference to the standard HeightfieldHeightDataPointer "heightfield" attribute.
     const AttributePointer& getHeightfieldAttribute() const { return _heightfieldAttribute; }
     
-    /// Returns a reference to the standard HeightfieldDataPointer "heightfieldColor" attribute.
+    /// Returns a reference to the standard HeightfieldColorDataPointer "heightfieldColor" attribute.
     const AttributePointer& getHeightfieldColorAttribute() const { return _heightfieldColorAttribute; }
     
-    /// Returns a reference to the standard HeightfieldDataPointer "heightfieldTexture" attribute.
+    /// Returns a reference to the standard HeightfieldTextureDataPointer "heightfieldTexture" attribute.
     const AttributePointer& getHeightfieldTextureAttribute() const { return _heightfieldTextureAttribute; } 
     
 private:
@@ -435,21 +436,18 @@ public:
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
-typedef QExplicitlySharedDataPointer<HeightfieldData> HeightfieldDataPointer;
+typedef QExplicitlySharedDataPointer<DataBlock> DataBlockPointer;
 
-/// Contains a block of heightfield data.
-class HeightfieldData : public QSharedData {
+/// Base class for blocks of data.
+class DataBlock : public QSharedData {
 public:
 
     static const int COLOR_BYTES = 3;
     
-    HeightfieldData(const QByteArray& contents = QByteArray());
-    virtual ~HeightfieldData();
+    virtual ~DataBlock();
     
-    const QByteArray& getContents() const { return _contents; }
-
-    void setDeltaData(const HeightfieldDataPointer& deltaData) { _deltaData = deltaData; }
-    const HeightfieldDataPointer& getDeltaData() const { return _deltaData; }
+    void setDeltaData(const DataBlockPointer& deltaData) { _deltaData = deltaData; }
+    const DataBlockPointer& getDeltaData() const { return _deltaData; }
     
     void setEncodedDelta(const QByteArray& encodedDelta) { _encodedDelta = encodedDelta; }
     const QByteArray& getEncodedDelta() const { return _encodedDelta; }
@@ -458,17 +456,16 @@ public:
 
 protected:
     
-    QByteArray _contents;
     QByteArray _encoded;
     QMutex _encodedMutex;
     
-    HeightfieldDataPointer _deltaData;
+    DataBlockPointer _deltaData;
     QByteArray _encodedDelta;
     QMutex _encodedDeltaMutex;
 
     class EncodedSubdivision {
     public:
-        HeightfieldDataPointer ancestor;
+        DataBlockPointer ancestor;
         QByteArray data;
     };
     QVector<EncodedSubdivision> _encodedSubdivisions;
@@ -478,7 +475,7 @@ protected:
 typedef QExplicitlySharedDataPointer<HeightfieldHeightData> HeightfieldHeightDataPointer;
 
 /// Contains a block of heightfield height data.
-class HeightfieldHeightData : public HeightfieldData {
+class HeightfieldHeightData : public DataBlock {
 public:
     
     HeightfieldHeightData(const QByteArray& contents);
@@ -487,6 +484,8 @@ public:
     HeightfieldHeightData(Bitstream& in, int bytes, const HeightfieldHeightDataPointer& ancestor,
         const glm::vec3& minimum, float size);
     
+    const QByteArray& getContents() const { return _contents; }
+
     void write(Bitstream& out);
     void writeDelta(Bitstream& out, const HeightfieldHeightDataPointer& reference);
     void writeSubdivided(Bitstream& out, const HeightfieldHeightDataPointer& ancestor,
@@ -496,12 +495,14 @@ private:
     
     void read(Bitstream& in, int bytes);
     void set(const QImage& image);
+    
+    QByteArray _contents;
 };
 
 typedef QExplicitlySharedDataPointer<HeightfieldColorData> HeightfieldColorDataPointer;
 
 /// Contains a block of heightfield color data.
-class HeightfieldColorData : public HeightfieldData {
+class HeightfieldColorData : public DataBlock {
 public:
     
     HeightfieldColorData(const QByteArray& contents);
@@ -510,6 +511,8 @@ public:
     HeightfieldColorData(Bitstream& in, int bytes, const HeightfieldColorDataPointer& ancestor,
         const glm::vec3& minimum, float size);
         
+    const QByteArray& getContents() const { return _contents; }
+
     void write(Bitstream& out);
     void writeDelta(Bitstream& out, const HeightfieldColorDataPointer& reference);
     void writeSubdivided(Bitstream& out, const HeightfieldColorDataPointer& ancestor,
@@ -519,12 +522,14 @@ private:
     
     void read(Bitstream& in, int bytes);
     void set(const QImage& image);
+    
+    QByteArray _contents;
 };
 
 typedef QExplicitlySharedDataPointer<HeightfieldTextureData> HeightfieldTextureDataPointer;
 
 /// Contains a block of heightfield texture data.
-class HeightfieldTextureData : public HeightfieldData {
+class HeightfieldTextureData : public DataBlock {
 public:
     
     HeightfieldTextureData(const QByteArray& contents,
@@ -532,6 +537,8 @@ public:
     HeightfieldTextureData(Bitstream& in, int bytes);
     HeightfieldTextureData(Bitstream& in, int bytes, const HeightfieldTextureDataPointer& reference);
     
+    const QByteArray& getContents() const { return _contents; }
+
     const QVector<SharedObjectPointer>& getTextures() const { return _textures; }
     
     void write(Bitstream& out);
@@ -541,6 +548,7 @@ private:
     
     void read(Bitstream& in, int bytes);
     
+    QByteArray _contents;
     QVector<SharedObjectPointer> _textures;
 };
 
@@ -616,6 +624,28 @@ public:
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+};
+
+typedef QExplicitlySharedDataPointer<VoxelSignData> VoxelSignDataPointer;
+
+/// Contains a block of voxel sign data.
+class VoxelSignData : public DataBlock {
+public:
+    
+    VoxelSignData(const QByteArray& contents);
+    VoxelSignData(Bitstream& in, int bytes);
+    VoxelSignData(Bitstream& in, int bytes, const VoxelSignDataPointer& reference);
+    
+    const QByteArray& getContents() const { return _contents; }
+
+    void write(Bitstream& out);
+    void writeDelta(Bitstream& out, const VoxelSignDataPointer& reference);
+
+private:
+    
+    void read(Bitstream& in, int bytes);
+    
+    QByteArray _contents;
 };
 
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).

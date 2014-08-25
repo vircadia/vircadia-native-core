@@ -966,7 +966,7 @@ void ImportHeightfieldTool::apply() {
         QByteArray color;
         if (buffer->getColor().isEmpty()) {
             const int WHITE_VALUE = 0xFF;
-            color = QByteArray(height.size() * HeightfieldData::COLOR_BYTES, WHITE_VALUE);
+            color = QByteArray(height.size() * DataBlock::COLOR_BYTES, WHITE_VALUE);
         } else {
             color = buffer->getUnextendedColor();
         }
@@ -1032,22 +1032,22 @@ void ImportHeightfieldTool::updatePreview() {
                 int rows = qMin(heightSize - offsetY, _heightImage.height() - extendedI);
                 int columns = qMin(heightSize - offsetX, _heightImage.width() - extendedJ);
                 for (int y = 0; y < rows; y++) {
-                    uchar* src = _heightImage.scanLine(extendedI + y) + extendedJ * HeightfieldData::COLOR_BYTES;
+                    uchar* src = _heightImage.scanLine(extendedI + y) + extendedJ * DataBlock::COLOR_BYTES;
                     char* dest = height.data() + (y + offsetY) * heightSize + offsetX;
                     for (int x = 0; x < columns; x++) {
                         *dest++ = *src;
-                        src += HeightfieldData::COLOR_BYTES;
+                        src += DataBlock::COLOR_BYTES;
                     }
                 }
                 QByteArray color;
                 if (!_colorImage.isNull()) {
-                    color = QByteArray(colorSize * colorSize * HeightfieldData::COLOR_BYTES, 0);
+                    color = QByteArray(colorSize * colorSize * DataBlock::COLOR_BYTES, 0);
                     rows = qMax(0, qMin(colorSize, _colorImage.height() - i));
                     columns = qMax(0, qMin(colorSize, _colorImage.width() - j));
                     for (int y = 0; y < rows; y++) {
-                        memcpy(color.data() + y * colorSize * HeightfieldData::COLOR_BYTES,
-                            _colorImage.scanLine(i + y) + j * HeightfieldData::COLOR_BYTES,
-                            columns * HeightfieldData::COLOR_BYTES);
+                        memcpy(color.data() + y * colorSize * DataBlock::COLOR_BYTES,
+                            _colorImage.scanLine(i + y) + j * DataBlock::COLOR_BYTES,
+                            columns * DataBlock::COLOR_BYTES);
                     }
                 }
                 buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color)));

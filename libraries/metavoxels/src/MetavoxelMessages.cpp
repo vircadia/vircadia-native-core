@@ -442,7 +442,7 @@ static void paintColor(MetavoxelInfo& info, int index, const glm::vec3& position
         return;
     }
     QByteArray contents(pointer->getContents());
-    int size = glm::sqrt((float)contents.size() / HeightfieldData::COLOR_BYTES);
+    int size = glm::sqrt((float)contents.size() / DataBlock::COLOR_BYTES);
     int highest = size - 1;
     float heightScale = size / info.size;
     
@@ -456,14 +456,14 @@ static void paintColor(MetavoxelInfo& info, int index, const glm::vec3& position
     // paint all points within the radius
     float z = qMax(start.z, 0.0f);
     float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
-    int stride = size * HeightfieldData::COLOR_BYTES;
-    char* lineDest = contents.data() + (int)z * stride + (int)startX * HeightfieldData::COLOR_BYTES;
+    int stride = size * DataBlock::COLOR_BYTES;
+    char* lineDest = contents.data() + (int)z * stride + (int)startX * DataBlock::COLOR_BYTES;
     float squaredRadius = scaledRadius * scaledRadius; 
     char red = color.red(), green = color.green(), blue = color.blue();
     bool changed = false;
     for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
         char* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest += HeightfieldData::COLOR_BYTES) {
+        for (float x = startX; x <= endX; x += 1.0f, dest += DataBlock::COLOR_BYTES) {
             float dx = x - center.x, dz = z - center.z;
             if (dx * dx + dz * dz <= squaredRadius) {
                 dest[0] = red;

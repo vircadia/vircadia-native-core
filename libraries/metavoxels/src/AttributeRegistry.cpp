@@ -497,11 +497,7 @@ AttributeValue SpannerPackedNormalAttribute::inherit(const AttributeValue& paren
     return AttributeValue(parentValue.getAttribute());
 }
 
-HeightfieldData::HeightfieldData(const QByteArray& contents) :
-    _contents(contents) {
-}
-
-HeightfieldData::~HeightfieldData() {
+DataBlock::~DataBlock() {
 }
 
 enum HeightfieldImage { NULL_HEIGHTFIELD_IMAGE, NORMAL_HEIGHTFIELD_IMAGE, DEFLATED_HEIGHTFIELD_IMAGE };
@@ -548,7 +544,7 @@ const QImage decodeHeightfieldImage(const QByteArray& data) {
 }
 
 HeightfieldHeightData::HeightfieldHeightData(const QByteArray& contents) :
-    HeightfieldData(contents) {
+    _contents(contents) {
 }
 
 HeightfieldHeightData::HeightfieldHeightData(Bitstream& in, int bytes) {
@@ -562,7 +558,7 @@ HeightfieldHeightData::HeightfieldHeightData(Bitstream& in, int bytes, const Hei
     }
     QMutexLocker locker(&reference->getEncodedDeltaMutex());
     reference->setEncodedDelta(in.readAligned(bytes));
-    reference->setDeltaData(HeightfieldDataPointer(this));
+    reference->setDeltaData(DataBlockPointer(this));
     _contents = reference->getContents();
     QImage image = decodeHeightfieldImage(reference->getEncodedDelta());
     if (image.isNull()) {
@@ -685,7 +681,7 @@ void HeightfieldHeightData::writeDelta(Bitstream& out, const HeightfieldHeightDa
         }
         image.setOffset(QPoint(minX + 1, minY + 1));
         reference->setEncodedDelta(encodeHeightfieldImage(image));
-        reference->setDeltaData(HeightfieldDataPointer(this));
+        reference->setDeltaData(DataBlockPointer(this));
     }
     out << reference->getEncodedDelta().size();
     out.writeAligned(reference->getEncodedDelta());
@@ -744,7 +740,7 @@ void HeightfieldHeightData::set(const QImage& image) {
 }
 
 HeightfieldColorData::HeightfieldColorData(const QByteArray& contents) :
-    HeightfieldData(contents) {
+    _contents(contents) {
 }
 
 HeightfieldColorData::HeightfieldColorData(Bitstream& in, int bytes) {
@@ -758,7 +754,7 @@ HeightfieldColorData::HeightfieldColorData(Bitstream& in, int bytes, const Heigh
     }
     QMutexLocker locker(&reference->getEncodedDeltaMutex());
     reference->setEncodedDelta(in.readAligned(bytes));
-    reference->setDeltaData(HeightfieldDataPointer(this));
+    reference->setDeltaData(DataBlockPointer(this));
     _contents = reference->getContents();
     QImage image = decodeHeightfieldImage(reference->getEncodedDelta());
     if (image.isNull()) {
@@ -875,7 +871,7 @@ void HeightfieldColorData::writeDelta(Bitstream& out, const HeightfieldColorData
         }
         image.setOffset(QPoint(minX + 1, minY + 1));
         reference->setEncodedDelta(encodeHeightfieldImage(image));
-        reference->setDeltaData(HeightfieldDataPointer(this));
+        reference->setDeltaData(DataBlockPointer(this));
     }
     out << reference->getEncodedDelta().size();
     out.writeAligned(reference->getEncodedDelta());
@@ -954,7 +950,7 @@ static QByteArray decodeTexture(const QByteArray& encoded, int& offsetX, int& of
 }
 
 HeightfieldTextureData::HeightfieldTextureData(const QByteArray& contents, const QVector<SharedObjectPointer>& textures) :
-    HeightfieldData(contents),
+    _contents(contents),
     _textures(textures) {
 }
 
@@ -970,7 +966,7 @@ HeightfieldTextureData::HeightfieldTextureData(Bitstream& in, int bytes, const H
     QMutexLocker locker(&reference->getEncodedDeltaMutex());
     reference->setEncodedDelta(in.readAligned(bytes));
     in.readDelta(_textures, reference->getTextures());
-    reference->setDeltaData(HeightfieldDataPointer(this));
+    reference->setDeltaData(DataBlockPointer(this));
     _contents = reference->getContents();
     
     int offsetX, offsetY, width, height;
@@ -1042,7 +1038,7 @@ void HeightfieldTextureData::writeDelta(Bitstream& out, const HeightfieldTexture
             }
         }
         reference->setEncodedDelta(encodeTexture(minX + 1, minY + 1, width, height, delta));
-        reference->setDeltaData(HeightfieldDataPointer(this));
+        reference->setDeltaData(DataBlockPointer(this));
     }
     out << reference->getEncodedDelta().size();
     out.writeAligned(reference->getEncodedDelta());
@@ -1251,8 +1247,8 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
         *(HeightfieldColorDataPointer*)&parent = HeightfieldColorDataPointer();
         return true;
     }
-    int size = glm::sqrt(maxSize / (float)HeightfieldData::COLOR_BYTES);
-    QByteArray contents(size * size * HeightfieldData::COLOR_BYTES, 0);
+    int size = glm::sqrt(maxSize / (float)DataBlock::COLOR_BYTES);
+    QByteArray contents(size * size * DataBlock::COLOR_BYTES, 0);
     int halfSize = size / 2;
     for (int i = 0; i < MERGE_COUNT; i++) {
         HeightfieldColorDataPointer child = decodeInline<HeightfieldColorDataPointer>(children[i]);
@@ -1260,7 +1256,7 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
             continue;
         }
         const QByteArray& childContents = child->getContents();
-        int childSize = glm::sqrt(childContents.size() / (float)HeightfieldData::COLOR_BYTES);
+        int childSize = glm::sqrt(childContents.size() / (float)DataBlock::COLOR_BYTES);
         const int INDEX_MASK = 1;
         int xIndex = i & INDEX_MASK;
         const int Y_SHIFT = 1;
@@ -1270,24 +1266,24 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
         }
         int Z_SHIFT = 2;
         int zIndex = (i >> Z_SHIFT) & INDEX_MASK;
-        char* dest = contents.data() + ((zIndex * halfSize * size) + (xIndex * halfSize)) * HeightfieldData::COLOR_BYTES;
+        char* dest = contents.data() + ((zIndex * halfSize * size) + (xIndex * halfSize)) * DataBlock::COLOR_BYTES;
         uchar* src = (uchar*)childContents.data();
-        int childStride = childSize * HeightfieldData::COLOR_BYTES;
-        int stride = size * HeightfieldData::COLOR_BYTES;
+        int childStride = childSize * DataBlock::COLOR_BYTES;
+        int stride = size * DataBlock::COLOR_BYTES;
         int halfStride = stride / 2;
-        int childStep = 2 * HeightfieldData::COLOR_BYTES;
-        int redOffset3 = childStride + HeightfieldData::COLOR_BYTES;
-        int greenOffset1 = HeightfieldData::COLOR_BYTES + 1;
+        int childStep = 2 * DataBlock::COLOR_BYTES;
+        int redOffset3 = childStride + DataBlock::COLOR_BYTES;
+        int greenOffset1 = DataBlock::COLOR_BYTES + 1;
         int greenOffset2 = childStride + 1;
-        int greenOffset3 = childStride + HeightfieldData::COLOR_BYTES + 1;
-        int blueOffset1 = HeightfieldData::COLOR_BYTES + 2;
+        int greenOffset3 = childStride + DataBlock::COLOR_BYTES + 1;
+        int blueOffset1 = DataBlock::COLOR_BYTES + 2;
         int blueOffset2 = childStride + 2;
-        int blueOffset3 = childStride + HeightfieldData::COLOR_BYTES + 2;
+        int blueOffset3 = childStride + DataBlock::COLOR_BYTES + 2;
         if (childSize == size) {
             // simple case: one destination value for four child values
             for (int z = 0; z < halfSize; z++) {
-                for (char* end = dest + halfSize * HeightfieldData::COLOR_BYTES; dest != end; src += childStep) {
-                    *dest++ = ((int)src[0] + (int)src[HeightfieldData::COLOR_BYTES] +
+                for (char* end = dest + halfSize * DataBlock::COLOR_BYTES; dest != end; src += childStep) {
+                    *dest++ = ((int)src[0] + (int)src[DataBlock::COLOR_BYTES] +
                         (int)src[childStride] + (int)src[redOffset3]) >> 2;
                     *dest++ = ((int)src[1] + (int)src[greenOffset1] + (int)src[greenOffset2] + (int)src[greenOffset3]) >> 2;
                     *dest++ = ((int)src[2] + (int)src[blueOffset1] + (int)src[blueOffset2] + (int)src[blueOffset3]) >> 2;
@@ -1300,14 +1296,14 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
             int halfChildSize = childSize / 2;
             int destPerSrc = size / childSize;
             for (int z = 0; z < halfChildSize; z++) {
-                for (uchar* end = src + childSize * HeightfieldData::COLOR_BYTES; src != end; src += childStep) {
-                    *dest++ = ((int)src[0] + (int)src[HeightfieldData::COLOR_BYTES] +
+                for (uchar* end = src + childSize * DataBlock::COLOR_BYTES; src != end; src += childStep) {
+                    *dest++ = ((int)src[0] + (int)src[DataBlock::COLOR_BYTES] +
                         (int)src[childStride] + (int)src[redOffset3]) >> 2;
                     *dest++ = ((int)src[1] + (int)src[greenOffset1] + (int)src[greenOffset2] + (int)src[greenOffset3]) >> 2;
                     *dest++ = ((int)src[2] + (int)src[blueOffset1] + (int)src[blueOffset2] + (int)src[blueOffset3]) >> 2;
                     for (int j = 1; j < destPerSrc; j++) {
-                        memcpy(dest, dest - HeightfieldData::COLOR_BYTES, HeightfieldData::COLOR_BYTES);
-                        dest += HeightfieldData::COLOR_BYTES;
+                        memcpy(dest, dest - DataBlock::COLOR_BYTES, DataBlock::COLOR_BYTES);
+                        dest += DataBlock::COLOR_BYTES;
                     }
                 }
                 dest += halfStride;
@@ -1388,6 +1384,51 @@ bool HeightfieldTextureAttribute::merge(void*& parent, void* children[], bool po
     }
     *(HeightfieldTextureDataPointer*)&parent = HeightfieldTextureDataPointer();
     return maxSize == 0;
+}
+
+VoxelSignData::VoxelSignData(const QByteArray& contents) :
+    _contents(contents) {
+}
+
+VoxelSignData::VoxelSignData(Bitstream& in, int bytes) {
+    read(in, bytes);
+}
+
+VoxelSignData::VoxelSignData(Bitstream& in, int bytes, const VoxelSignDataPointer& reference) {
+    if (!reference) {
+        read(in, bytes);
+        return;
+    }
+    QMutexLocker locker(&reference->getEncodedDeltaMutex());
+    reference->setEncodedDelta(in.readAligned(bytes));
+    reference->setDeltaData(DataBlockPointer(this));
+    _contents = reference->getContents();
+}
+
+void VoxelSignData::write(Bitstream& out) {
+    QMutexLocker locker(&_encodedMutex);
+    if (_encoded.isEmpty()) {
+        
+    }
+    out << _encoded.size();
+    out.writeAligned(_encoded);
+}
+
+void VoxelSignData::writeDelta(Bitstream& out, const VoxelSignDataPointer& reference) {
+    if (!reference || reference->getContents().size() != _contents.size()) {
+        write(out);
+        return;
+    }
+    QMutexLocker locker(&reference->getEncodedDeltaMutex());
+    if (reference->getEncodedDelta().isEmpty() || reference->getDeltaData() != this) {
+        
+    }
+    out << reference->getEncodedDelta().size();
+    out.writeAligned(reference->getEncodedDelta());
+}
+
+void VoxelSignData::read(Bitstream& in, int bytes) {
+    
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,

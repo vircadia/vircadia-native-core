@@ -623,7 +623,7 @@ HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
     _textureTextureID(0),
     _heightSize(glm::sqrt(height.size())),
     _heightIncrement(scale / (_heightSize - HEIGHT_EXTENSION)),
-    _colorSize(glm::sqrt(color.size() / HeightfieldData::COLOR_BYTES)),
+    _colorSize(glm::sqrt(color.size() / DataBlock::COLOR_BYTES)),
     _colorIncrement(scale / (_colorSize - SHARED_EDGE)) {
     
     _heightBounds.minimum.x -= _heightIncrement * HEIGHT_BORDER;
@@ -660,13 +660,13 @@ QByteArray HeightfieldBuffer::getUnextendedHeight() const {
 }
 
 QByteArray HeightfieldBuffer::getUnextendedColor() const {
-    int srcSize = glm::sqrt(_color.size() / HeightfieldData::COLOR_BYTES);
+    int srcSize = glm::sqrt(_color.size() / DataBlock::COLOR_BYTES);
     int destSize = srcSize - 1;
-    QByteArray unextended(destSize * destSize * HeightfieldData::COLOR_BYTES, 0);
+    QByteArray unextended(destSize * destSize * DataBlock::COLOR_BYTES, 0);
     const char* src = _color.constData();
-    int srcStride = srcSize * HeightfieldData::COLOR_BYTES;
+    int srcStride = srcSize * DataBlock::COLOR_BYTES;
     char* dest = unextended.data();
-    int destStride = destSize * HeightfieldData::COLOR_BYTES;
+    int destStride = destSize * DataBlock::COLOR_BYTES;
     for (int z = 0; z < destSize; z++, src += srcStride, dest += destStride) {
         memcpy(dest, src, destStride);
     }
@@ -705,7 +705,7 @@ void HeightfieldBuffer::render(bool cursor) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
                
         } else {
-            int colorSize = glm::sqrt(_color.size() / HeightfieldData::COLOR_BYTES);    
+            int colorSize = glm::sqrt(_color.size() / DataBlock::COLOR_BYTES);    
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, colorSize, colorSize, 0, GL_RGB, GL_UNSIGNED_BYTE, _color.constData());
         }
         
@@ -1289,13 +1289,13 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
         destY = (overlap.minimum.z - colorBounds.minimum.z) / colorIncrement;
         destWidth = glm::ceil((overlap.maximum.x - overlap.minimum.x) / colorIncrement);
         destHeight = glm::ceil((overlap.maximum.z - overlap.minimum.z) / colorIncrement);
-        dest = _buffer->getColor().data() + (destY * colorSize + destX) * HeightfieldData::COLOR_BYTES;
-        int destStride = colorSize * HeightfieldData::COLOR_BYTES;
-        int destBytes = destWidth * HeightfieldData::COLOR_BYTES;
+        dest = _buffer->getColor().data() + (destY * colorSize + destX) * DataBlock::COLOR_BYTES;
+        int destStride = colorSize * DataBlock::COLOR_BYTES;
+        int destBytes = destWidth * DataBlock::COLOR_BYTES;
         
         const QByteArray& srcColor = color->getContents();
-        srcSize = glm::sqrt(srcColor.size() / HeightfieldData::COLOR_BYTES);
-        int srcStride = srcSize * HeightfieldData::COLOR_BYTES;
+        srcSize = glm::sqrt(srcColor.size() / DataBlock::COLOR_BYTES);
+        int srcStride = srcSize * DataBlock::COLOR_BYTES;
         srcIncrement = info.size / srcSize;
         
         if (srcIncrement == colorIncrement) {
@@ -1303,7 +1303,7 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
             int srcX = (overlap.minimum.x - info.minimum.x) / srcIncrement;
             int srcY = (overlap.minimum.z - info.minimum.z) / srcIncrement;
             
-            const char* src = srcColor.constData() + (srcY * srcSize + srcX) * HeightfieldData::COLOR_BYTES;    
+            const char* src = srcColor.constData() + (srcY * srcSize + srcX) * DataBlock::COLOR_BYTES;    
             for (int y = 0; y < destHeight; y++, src += srcStride, dest += destStride) {
                 memcpy(dest, src, destBytes);
             }
@@ -1315,9 +1315,9 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
             for (int y = 0; y < destHeight; y++, dest += destStride, srcY += srcAdvance) {
                 const char* src = srcColor.constData() + (int)srcY * srcStride;
                 float lineSrcX = srcX;
-                for (char* lineDest = dest, *end = dest + destBytes; lineDest != end; lineDest += HeightfieldData::COLOR_BYTES,
+                for (char* lineDest = dest, *end = dest + destBytes; lineDest != end; lineDest += DataBlock::COLOR_BYTES,
                         lineSrcX += srcAdvance) {
-                    const char* lineSrc = src + (int)lineSrcX * HeightfieldData::COLOR_BYTES;
+                    const char* lineSrc = src + (int)lineSrcX * DataBlock::COLOR_BYTES;
                     lineDest[0] = lineSrc[0];
                     lineDest[1] = lineSrc[1];
                     lineDest[2] = lineSrc[2];
@@ -1372,9 +1372,9 @@ int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
         int colorContentsSize = 0;
         if (color) {
             const QByteArray& colorContents = color->getContents();
-            int colorSize = glm::sqrt(colorContents.size() / HeightfieldData::COLOR_BYTES);
+            int colorSize = glm::sqrt(colorContents.size() / DataBlock::COLOR_BYTES);
             int extendedColorSize = colorSize + HeightfieldBuffer::SHARED_EDGE;
-            colorContentsSize = extendedColorSize * extendedColorSize * HeightfieldData::COLOR_BYTES;
+            colorContentsSize = extendedColorSize * extendedColorSize * DataBlock::COLOR_BYTES;
         }
         
         HeightfieldTextureDataPointer texture = info.inputValues.at(2).getInlineValue<HeightfieldTextureDataPointer>();
