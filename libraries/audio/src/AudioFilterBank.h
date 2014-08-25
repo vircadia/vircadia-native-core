@@ -12,7 +12,7 @@
 #ifndef hifi_AudioFilterBank_h
 #define hifi_AudioFilterBank_h
 
-////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Helper/convenience class that implements a bank of Filter objects
 //
 template< typename T, const int N, const int C >
@@ -150,7 +150,7 @@ public:
 
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Specializations of AudioFilterBank
 //
 typedef AudioFilterBank< AudioFilterLSF, 1, 1> AudioFilterLSF1m; // mono bank with one band of LSF

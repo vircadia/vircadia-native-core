@@ -270,10 +270,10 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
         }
     }
         
-    if ( _enableFilter && shouldAttenuate ) {
+    if (_enableFilter && shouldAttenuate) {
         
         glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
-        if ( relativePosition.z < 0 ) {  // if the source is behind us
+        if (relativePosition.z < 0) {  // if the source is behind us
             
             AudioFilterPEQ1s& penumbraFilter = streamToAdd->getFilter();
 
@@ -297,13 +297,13 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
             penumbraFilterFrequency = 2000.0f;
             penumbraFilterSlope = 1.0f; // gentle slope
             
-//          printf("gain=%f,angle=%f\n",penumbraFilterGain,headPenumbraAngle);
-        
+            qDebug() << "penumbra gain=" << penumbraFilterGain << ", penumbraAngle=" << normalizedHeadPenumbraAngle;
+
             // set the gain on both filter channels
-            penumbraFilter.setParameters(0,0,SAMPLE_RATE,penumbraFilterFrequency,penumbraFilterGain,penumbraFilterSlope);
-            penumbraFilter.setParameters(0,1,SAMPLE_RATE,penumbraFilterFrequency,penumbraFilterGain,penumbraFilterSlope);
+            penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGain, penumbraFilterSlope);
+            penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGain, penumbraFilterSlope);
             
-            penumbraFilter.render( _clientSamples, _clientSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
+            penumbraFilter.render(_clientSamples, _clientSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
         }
     }
 }

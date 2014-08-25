@@ -10,7 +10,6 @@
 //
 
 #include <math.h>
-#include <vector.h>
 #include <SharedUtil.h>
 #include "AudioRingBuffer.h"
 #include "AudioFilter.h"
