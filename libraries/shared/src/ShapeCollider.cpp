@@ -633,9 +633,16 @@ bool sphereVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& col
 
 bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     /*
-    // find nearest approach of capsule line segment to cube
     const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
     const AACubeShape* cubeB = static_cast<const AACubeShape*>(shapeB);
+
+    // find nearest approach of capsule line segment to cube center
+
+    // use nearest approach to find approximate point on cube surface
+
+    // find point on cube surface closest to capsule line segment
+
+    // collide like point inside sphere
 
     glm::vec3 capsuleAxis;
     capsuleA->computeNormalizedAxis(capsuleAxis);
@@ -656,11 +663,11 @@ bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& co
 }
 
 bool aaCubeVsSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
-    return false;
+    return sphereVsAACube(shapeB, shapeA, collisions);
 }
 
 bool aaCubeVsCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
-    return false;
+    return capsuleVsAACube(shapeB, shapeA, collisions);
 }
 
 bool aaCubeVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
