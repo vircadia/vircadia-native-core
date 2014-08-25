@@ -708,12 +708,10 @@ void Model::clearJointAnimationPriority(int index) {
 void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
-        if (priority >= state._animationPriority) {
-            if (valid) {
-                state.setRotationInConstrainedFrame(rotation, priority);
-            } else {
-                state.restoreRotation(1.0f, priority);
-            }
+        if (valid) {
+            state.setRotationInConstrainedFrame(rotation, priority);
+        } else {
+            state.restoreRotation(1.0f, priority);
         }
     }
 }
