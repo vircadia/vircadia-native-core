@@ -404,7 +404,6 @@ void ImageReader::run() {
     
     const int EIGHT_BIT_MAXIMUM = 255;
     if (!image.hasAlphaChannel()) {
-        QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
         }
@@ -417,6 +416,7 @@ void ImageReader::run() {
                 blueTotal += qBlue(rgb);
             }
         }
+        QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
         if (imageArea > 0) {
             averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
         }
