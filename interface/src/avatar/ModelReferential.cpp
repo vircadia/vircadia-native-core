@@ -18,25 +18,26 @@
 
 ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, AvatarData* avatar) :
     Referential(MODEL, avatar),
-    _tree(tree) {
-        _translation = referential->getTranslation();
-        _rotation = referential->getRotation();
-        _scale = referential->getScale();
-        unpackExtraData(reinterpret_cast<unsigned char*>(referential->getExtraData().data()),
-                        referential->getExtraData().size());
-        
-        if (!isValid()) {
-            qDebug() << "ModelReferential::copyConstructor(): Not Valid";
-            return;
-        }
-        
-        const EntityItem* item = _tree->findEntityByID(_entityID);
-        if (item != NULL) {
-            _refScale = item->getRadius();
-            _refRotation = item->getRotation();
-            _refPosition = item->getPosition() * (float)TREE_SCALE;
-            update();
-        }
+    _tree(tree) 
+{
+    _translation = referential->getTranslation();
+    _rotation = referential->getRotation();
+    _scale = referential->getScale();
+    unpackExtraData(reinterpret_cast<unsigned char*>(referential->getExtraData().data()),
+                    referential->getExtraData().size());
+    
+    if (!isValid()) {
+        qDebug() << "ModelReferential::copyConstructor(): Not Valid";
+        return;
+    }
+    
+    const EntityItem* item = _tree->findEntityByID(_entityID);
+    if (item != NULL) {
+        _refScale = item->getRadius();
+        _refRotation = item->getRotation();
+        _refPosition = item->getPosition() * (float)TREE_SCALE;
+        update();
+    }
 }
 
 ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, AvatarData* avatar) :
