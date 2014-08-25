@@ -49,6 +49,7 @@ typedef unsigned long long quint64;
 
 #include <Node.h>
 
+#include "Recorder.h"
 #include "Referential.h"
 #include "HeadData.h"
 #include "HandData.h"
@@ -298,6 +299,14 @@ public slots:
     void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }
     bool hasReferential();
     
+    bool isPlaying();
+    qint64 playerElapsed();
+    qint64 playerLength();
+    void loadRecording(QString filename);
+    void startPlaying();
+    void play();
+    void stopPlaying();
+    
 protected:
     QUuid _sessionUUID;
     glm::vec3 _position;
@@ -350,6 +359,8 @@ protected:
     
     QWeakPointer<Node> _owningAvatarMixer;
     QElapsedTimer _lastUpdateTimer;
+    
+    PlayerPointer _player;
     
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
