@@ -404,6 +404,7 @@ void ImageReader::run() {
     
     const int EIGHT_BIT_MAXIMUM = 255;
     if (!image.hasAlphaChannel()) {
+        QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
         }
@@ -416,8 +417,11 @@ void ImageReader::run() {
                 blueTotal += qBlue(rgb);
             }
         }
+        if (imageArea > 0) {
+            averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
+        }
         QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
-            Q_ARG(const QColor&, QColor(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea)));
+            Q_ARG(const QColor&, averageColor));
         return;
     }
     if (image.format() != QImage::Format_ARGB32) {
