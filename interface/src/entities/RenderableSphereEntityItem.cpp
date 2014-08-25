@@ -2,8 +2,8 @@
 //  RenderableSphereEntityItem.cpp
 //  interface/src
 //
-//  Created by Brad Hefta-Gaub on 12/6/13.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Brad Hefta-Gaub on 8/6/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -33,17 +33,10 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     assert(getType() == EntityTypes::Sphere);
     glm::vec3 position = getPosition() * (float)TREE_SCALE;
     float radius = getRadius() * (float)TREE_SCALE;
-    glm::quat rotation = getRotation();
-
 
     glColor3ub(getColor()[RED_INDEX], getColor()[GREEN_INDEX], getColor()[BLUE_INDEX]);
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        
-        // TODO: we can probably get rid of this rotation until we support different radius dimensions
-        //glm::vec3 axis = glm::axis(rotation);
-        //glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         glutSolidSphere(radius, 15, 15);
-    
     glPopMatrix();
 };

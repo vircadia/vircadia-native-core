@@ -90,8 +90,6 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
     return results;
 }
 
-
-
 EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const EntityItemProperties& properties) {
     EntityItemID actualID = entityID;
     
@@ -104,7 +102,6 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     if (actualID.id != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID.id;
         entityID.isKnownID = true;
-        //qDebug() << "EntityScriptingInterface::editEntity()... isKnownID=" << entityID.isKnownID << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
     
@@ -112,19 +109,12 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     // the actual id, because we can edit out local models just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
-        //qDebug() << "EntityScriptingInterface::editEntity() ******* START _entityTree->updateEntity()...";
         _entityTree->updateEntity(entityID, properties);
-        //qDebug() << "EntityScriptingInterface::editEntity() ******* DONE _entityTree->updateEntity()...";
         _entityTree->unlock();
     }
     return entityID;
 }
 
-
-// TODO: This deleteEntity() method uses the PacketTypeEntityAddOrEdit message to send
-// a changed model with a shouldDie() property set to true. This works and is currently the only
-// way to tell the model server to delete a model. But we should change this to use the PacketTypeEntityErase
-// message which takes a list of model id's to delete.
 void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
 
     EntityItemID actualID = entityID;
@@ -220,10 +210,6 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
                                                                 (void**)&intersectedEntity, lockType, &result.accurate);
         if (result.intersects && intersectedEntity) {
-
-            //qDebug() << "findRayIntersectionWorker().... intersectedEntity=" << intersectedEntity;
-            //intersectedEntity->debugDump();
-
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);

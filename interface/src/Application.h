@@ -321,9 +321,9 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
 
-    void pasteModels(float x, float y, float z);
-    bool exportModels(const QString& filename, float x, float y, float z, float scale);
-    bool importModels(const QString& filename);
+    void pasteEntities(float x, float y, float z);
+    bool exportEntities(const QString& filename, float x, float y, float z, float scale);
+    bool importEntities(const QString& filename);
 
     void importVoxels(); // doesn't include source voxel because it goes to clipboard
     void cutVoxels(const VoxelDetail& sourceVoxel);

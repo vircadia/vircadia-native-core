@@ -34,15 +34,21 @@ Model properties:
 // REQUIRED TO DO:
 
     1) random crashes on moving (I think things going out of bounds???)
+
     2) some jutter with moving entities
    
     3) test animation again...
     
     4) clear all entities when changing domains?
     5) what to do with entities
+    
+    6) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
+       doesn't include the extra exists bits will break something.
 
-
-    4) memory leaks???
+    7) memory leaks???
+    
+    8) EntityTreeRenderer::clearModelsCache()
+    
     5) Import/Export Models - verify it works. /copy/paste??
         22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
         22b) Local Entities Overlay - from Local Models Overlay

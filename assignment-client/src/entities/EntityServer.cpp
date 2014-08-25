@@ -48,8 +48,6 @@ void EntityServer::beforeRun() {
 
 void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
 
-qDebug() << "EntityServer::entityCreated() newEntity.getEntityItemID()=" << newEntity.getEntityItemID();
-
     unsigned char outputBuffer[MAX_PACKET_SIZE];
     unsigned char* copyAt = outputBuffer;
 
@@ -69,8 +67,6 @@ qDebug() << "EntityServer::entityCreated() newEntity.getEntityItemID()=" << newE
     memcpy(copyAt, encodedID.constData(), encodedID.size());
     copyAt += sizeof(entityID);
     packetLength += sizeof(entityID);
-
-qDebug() << "EntityServer::entityCreated() writeDatagram()";
 
     NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, senderNode);
 }
@@ -110,8 +106,6 @@ int EntityServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNo
             hasMoreToSend = tree->encodeEntitiesDeletedSince(queryNode->getSequenceNumber(), deletedEntitiesSentAt,
                                                 outputBuffer, MAX_PACKET_SIZE, packetLength);
 
-            //qDebug() << "sending PacketType_MODEL_ERASE packetLength:" << packetLength;
-
             NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, SharedNodePointer(node));
             queryNode->packetSent(outputBuffer, packetLength);
             packetsSent++;
@@ -128,7 +122,6 @@ void EntityServer::pruneDeletedEntities() {
     EntityTree* tree = static_cast<EntityTree*>(_tree);
     if (tree->hasAnyDeletedEntities()) {
 
-        //qDebug() << "there are some deleted entities to consider...";
         quint64 earliestLastDeletedEntitiesSent = usecTimestampNow() + 1; // in the future
         foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
             if (otherNode->getLinkedData()) {
@@ -139,7 +132,6 @@ void EntityServer::pruneDeletedEntities() {
                 }
             }
         }
-        //qDebug() << "earliestLastDeletedEntitiesSent=" << earliestLastDeletedEntitiesSent;
         tree->forgetEntitiesDeletedBefore(earliestLastDeletedEntitiesSent);
     }
 }

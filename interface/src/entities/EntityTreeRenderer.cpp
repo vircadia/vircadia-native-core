@@ -36,13 +36,9 @@ QThread* EntityTreeRenderer::getMainThread() {
 
 EntityTreeRenderer::EntityTreeRenderer() :
     OctreeRenderer() {
-    
-    qDebug() << "--- Overriding Entity Factories NOW ---";
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableBoxEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
-    qDebug() << "--- DONE Overriding Entity Factories ---";
-    
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
@@ -77,11 +73,7 @@ void EntityTreeRenderer::update() {
 }
 
 void EntityTreeRenderer::render(RenderMode renderMode) {
-    //qDebug() << "EntityTreeRenderer::render() ************";
     OctreeRenderer::render(renderMode);
-    //qDebug() << "-------------------- EntityTreeRenderer::render() ------------";
-    //static_cast<EntityTree*>(_tree)->debugDumpMap();
-    //qDebug() << "******* DONE ******* EntityTreeRenderer::render() ************";
 }
 
 const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem* entityItem) {
@@ -123,8 +115,6 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
 
     uint16_t numberOfEntities = entityItems.size();
 
-    //qDebug() << "EntityTreeRenderer::renderElement() element=" << element << "numberOfEntities=" << numberOfEntities;
-    
     bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
     bool displayElementProxy = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelElementProxy);
     bool displayElementChildProxies = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelElementChildProxies);

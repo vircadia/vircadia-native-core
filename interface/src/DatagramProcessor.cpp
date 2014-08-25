@@ -61,7 +61,6 @@ void DatagramProcessor::processDatagrams() {
                     application->getParticles()->getTree()->handleAddParticleResponse(incomingPacket);
                     break;
                 case PacketTypeEntityAddResponse:
-qDebug() << "DatagramProcessor::processDatagrams() PacketTypeEntityAddResponse...";
                     // this will keep creatorTokenIDs to IDs mapped correctly
                     EntityItemID::handleAddEntityResponse(incomingPacket);
                     application->getEntities()->getTree()->handleAddEntityResponse(incomingPacket);
@@ -89,7 +88,7 @@ qDebug() << "DatagramProcessor::processDatagrams() PacketTypeEntityAddResponse..
                         OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
                         int flightTime = arrivedAt - sentAt;
                         
-                        qDebug("got PacketType_VOXEL_DATA, sequence:%d flightTime:%d", sequence, flightTime);
+                        qDebug("got an Octree data or erase message, sequence:%d flightTime:%d", sequence, flightTime);
                     }
                     
                     SharedNodePointer matchedNode = NodeList::getInstance()->sendingNodeForPacket(incomingPacket);

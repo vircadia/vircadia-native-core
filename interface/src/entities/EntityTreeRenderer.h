@@ -66,9 +66,6 @@ public:
 
 protected:
     void clearModelsCache();
-    //QMap<QUuid, Model*> _knownEntityItemModels;
-    //QMap<uint32_t, Model*> _unknownEntityItemModels;
-    //QMap<const ModelEntityItem*, Model*> _entityItemModels;
 };
 
 #endif // hifi_EntityTreeRenderer_h

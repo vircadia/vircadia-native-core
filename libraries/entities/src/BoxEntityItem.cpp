@@ -23,14 +23,11 @@ EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityIte
     return new  BoxEntityItem(entityID, properties);
 }
 
-// our non-pure virtual subclass for now...
 BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 { 
     _type = EntityTypes::Box;
     setProperties(properties);
-
-
 }
 
 EntityItemProperties BoxEntityItem::getProperties() const {

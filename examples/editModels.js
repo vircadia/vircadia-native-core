@@ -209,7 +209,7 @@ var ExportMenu = function(opts) {
         self.setScale(self._scale *= 2);
     }
 
-    this.exportModels = function() {
+    this.exportEntites = function() {
         var x = self._position.x;
         var y = self._position.y;
         var z = self._position.z;
@@ -217,7 +217,7 @@ var ExportMenu = function(opts) {
         var filename = "models__" + Window.location.hostname + "__" + x + "_" + y + "_" + z + "_" + s + "__.svo";
         filename = Window.save("Select where to save", filename, "*.svo")
         if (filename) {
-            var success = Clipboard.exportModels(filename, x, y, z, s);
+            var success = Clipboard.exportEntites(filename, x, y, z, s);
             if (!success) {
                 Window.alert("Export failed: no models found in selected area.");
             }
@@ -243,7 +243,7 @@ var ExportMenu = function(opts) {
         if (clickedOverlay == locationButton) {
             self.showPositionPrompt();
         } else if (clickedOverlay == exportButton) {
-            self.exportModels();
+            self.exportEntites();
         } else if (clickedOverlay == cancelButton) {
             self.close();
         } else if (clickedOverlay == scaleOverlay) {
@@ -423,23 +423,23 @@ var ModelImporter = function(opts) {
                         }
                     } else {
                         if (Window.confirm(("Would you like to import back to the source location?"))) {
-                            var success = Clipboard.importModels(filename);
+                            var success = Clipboard.importEntities(filename);
                             if (success) {
-                                Clipboard.pasteModels(x, y, z, 1);
+                                Clipboard.pasteEntities(x, y, z, 1);
                             } else {
-                                Window.alert("There was an error importing the model file.");
+                                Window.alert("There was an error importing the entity file.");
                             }
                             return;
                         }
                     }
                 }
-                var success = Clipboard.importModels(filename);
+                var success = Clipboard.importEntities(filename);
                 if (success) {
                     self._importing = true;
                     self.setImportVisible(true);
                     Overlays.editOverlay(importBoundaries, { size: s });
                 } else {
-                    Window.alert("There was an error importing the model file.");
+                    Window.alert("There was an error importing the entity file.");
                 }
             }
         }
@@ -449,7 +449,7 @@ var ModelImporter = function(opts) {
         if (self._importing) {
             // self._importing = false;
             // self.setImportVisible(false);
-            Clipboard.pasteModels(importPosition.x, importPosition.y, importPosition.z, 1);
+            Clipboard.pasteEntities(importPosition.x, importPosition.y, importPosition.z, 1);
         }
     }
 
@@ -912,7 +912,6 @@ function controller(wichSide) {
                     modelURL: attachments[attachmentIndex].modelURL
                 };
 
-print(">>>>>  CALLING >>>>> newModel = Entities.addEntity(newProperties);");
                 newModel = Entities.addEntity(newProperties);
 
 
@@ -973,7 +972,7 @@ print(">>>>>  CALLING >>>>> newModel = Entities.addEntity(newProperties);");
 var leftController = new controller(LEFT);
 var rightController = new controller(RIGHT);
 
-function moveModels() {
+function moveEntities() {
     if (leftController.grabbing && rightController.grabbing && rightController.entityID.id == leftController.entityID.id) {
         var newPosition = leftController.oldModelPosition;
         var rotation = leftController.oldModelRotation;
@@ -1070,7 +1069,7 @@ function checkController(deltaTime) {
         
         leftController.update();
         rightController.update();
-        moveModels();
+        moveEntities();
     } else {
         if (hydraConnected) {
             hydraConnected = false;
@@ -1113,7 +1112,7 @@ function initToolBar() {
                                alpha: 0.7
                                });
     newBox = toolBar.addTool({
-                               imageURL: toolIconUrl + "add-model-tool.svg",
+                               imageURL: toolIconUrl + "models-tool.svg",
                                subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
                                width: toolWidth, height: toolHeight,
                                visible: true,
@@ -1121,7 +1120,7 @@ function initToolBar() {
                                });
 
     newSphere = toolBar.addTool({
-                               imageURL: toolIconUrl + "add-model-tool.svg",
+                               imageURL: toolIconUrl + "models-tool.svg",
                                subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
                                width: toolWidth, height: toolHeight,
                                visible: true,
@@ -1617,19 +1616,19 @@ function handeMenuEvent(menuItem){
     print("menuItemEvent() in JS... menuItem=" + menuItem);
     if (menuItem == "Delete") {
         if (leftController.grabbing) {
-            print("  Delete Model.... leftController.entityID="+ leftController.entityID);
+            print("  Delete Entity.... leftController.entityID="+ leftController.entityID);
             Entities.deleteEntity(leftController.entityID);
             leftController.grabbing = false;
         } else if (rightController.grabbing) {
-            print("  Delete Model.... rightController.entityID="+ rightController.entityID);
+            print("  Delete Entity.... rightController.entityID="+ rightController.entityID);
             Entities.deleteEntity(rightController.entityID);
             rightController.grabbing = false;
         } else if (entitySelected) {
-            print("  Delete Model.... selectedEntityID="+ selectedEntityID);
+            print("  Delete Entity.... selectedEntityID="+ selectedEntityID);
             Entities.deleteEntity(selectedEntityID);
             entitySelected = false;
         } else {
-            print("  Delete Model.... not holding...");
+            print("  Delete Entity.... not holding...");
         }
     } else if (menuItem == "Edit Properties...") {
         var editModelID = -1;

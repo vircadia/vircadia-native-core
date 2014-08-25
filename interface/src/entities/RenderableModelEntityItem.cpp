@@ -1,9 +1,9 @@
 //
-//  EntityTreeRenderer.cpp
+//  RenderableModelEntityItem.cpp
 //  interface/src
 //
-//  Created by Brad Hefta-Gaub on 12/6/13.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Brad Hefta-Gaub on 8/6/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -74,15 +74,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             if (_model) {
                 // handle animations..
                 if (hasAnimation()) {
-                    //qDebug() << "hasAnimation()...";                
                     if (!jointsMapped()) {
                         QStringList modelJointNames = _model->getJointNames();
                         mapJoints(modelJointNames);
-                        //qDebug() << "mapJoints()...";                
                     }
 
                     if (jointsMapped()) {
-                        //qDebug() << "_model->setJointState()...";
                         QVector<glm::quat> frameData = getAnimationFrame();
                         for (int i = 0; i < frameData.size(); i++) {
                             _model->setJointState(i, true, frameData[i]);
@@ -99,9 +96,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     
                     // make sure to simulate so everything gets set up correctly for rendering
                     {
-                        // TODO: _model->simulate() appears to be about 28% of model render time.
-                        // do we really need to call this every frame? I think not. Look into how to
-                        // reduce calls to this.
                         PerformanceTimer perfTimer("_model->simulate");
                         _model->simulate(0.0f);
                     }
@@ -113,9 +107,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                                                         ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
         
                 if (_model->isActive()) {
-                    // TODO: this appears to be about 62% of model render time. Is there a way to call this that doesn't 
-                    // cost us as much? For example if the same model is used but rendered multiple places is it less
-                    // expensive?
+                    // TODO: this is the majority of model render time. And rendering of a cube model vs the basic Box render
+                    // is significantly more expensive. Is there a way to call this that doesn't cost us as much? 
                     PerformanceTimer perfTimer("model->render");
                     _model->render(alpha, modelRenderMode);
                 } else {
@@ -212,7 +205,7 @@ Model* RenderableModelEntityItem::getModel() {
                 // EntityTreeRenderer is a Q_OBJECT it can call invokeMethod()
                 
                 qDebug() << "can't call getModel() on thread other than rendering thread...";
-                //qDebug() << "about to call QMetaObject::invokeMethod(this, 'getModel', Qt::BlockingQueuedConnection,...";
+
                 //QMetaObject::invokeMethod(this, "getModel", Qt::BlockingQueuedConnection, Q_RETURN_ARG(Model*, _model));
                 //qDebug() << "got it... _model=" << _model;
                 return _model;

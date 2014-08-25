@@ -1523,8 +1523,7 @@ struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
 };
 
-// TODO: change names to entities...
-bool Application::exportModels(const QString& filename, float x, float y, float z, float scale) {
+bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItem*> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
                                 y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), entities);
@@ -1632,7 +1631,7 @@ void Application::importVoxels() {
     emit importDone();
 }
 
-bool Application::importModels(const QString& filename) {
+bool Application::importEntities(const QString& filename) {
     _entityClipboard.eraseAllOctreeElements();
     bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
     if (success) {
@@ -1641,7 +1640,7 @@ bool Application::importModels(const QString& filename) {
     return success;
 }
 
-void Application::pasteModels(float x, float y, float z) {
+void Application::pasteEntities(float x, float y, float z) {
     _entityClipboard.sendEntities(&_entityEditSender, x, y, z);
 }
 

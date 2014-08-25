@@ -19,13 +19,6 @@
 #include <VoxelsScriptingInterface.h>
 #include <VoxelDetail.h>
 
-
-// This is not ideal, but adding script-engine as a linked library, will cause a circular reference
-// I'm open to other potential solutions. Could we change cmake to allow libraries to reference each others
-// headers, but not link to each other, this is essentially what this construct is doing, but would be
-// better to add includes to the include path, but not link
-//#include "../../script-engine/src/ScriptEngine.h"
-
 #include "EntityScriptingInterface.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
@@ -370,18 +363,20 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     return appendState;
 }
 
-// TODO: correct this to reflect changes...
+// TODO: My goal is to get rid of this concept completely. The old code (and some of the current code) used this
+// result to calculate if a packet being sent to it was potentially bad or corrupt. I've adjusted this to now
+// only consider the minimum header bytes as being required. But it would be preferable to completely eliminate
+// this logic from the callers.
 int EntityItem::expectedBytes() {
-    
-    int expectedBytes = sizeof(uint32_t) // id
-                + sizeof(float) // age
-                + sizeof(quint64) // last updated
-                + sizeof(quint64) // lasted edited
-                + sizeof(float) // radius
-                + sizeof(glm::vec3) // position
-                + sizeof(rgbColor); // color
-                // potentially more...
-    return expectedBytes;
+    // Header bytes
+    //    object ID [16 bytes]
+    //    ByteCountCoded(type code) [~1 byte]
+    //    last edited [8 bytes]
+    //    ByteCountCoded(last_edited to last_updated delta) [~1-8 bytes]
+    //    PropertyFlags<>( everything ) [1-2 bytes]
+    // ~27-35 bytes...
+    const int MINIMUM_HEADER_BYTES = 27;
+    return MINIMUM_HEADER_BYTES;
 }
 
 
@@ -404,7 +399,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     //    ByteCountCoded(last_edited to last_updated delta) [~1-8 bytes]
     //    PropertyFlags<>( everything ) [1-2 bytes]
     // ~27-35 bytes...
-    const int MINIMUM_HEADER_BYTES = 27; // TODO: this is not correct, we don't yet have 16 byte IDs
+    const int MINIMUM_HEADER_BYTES = 27;
 
     int bytesRead = 0;
     if (bytesLeftToRead >= MINIMUM_HEADER_BYTES) {

@@ -75,9 +75,10 @@ typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 /// set of entity item properties via JavaScript hashes/QScriptValues
 /// all units for position, radius, etc are in meter units
 class EntityItemProperties {
-    friend class EntityItem; // TODO: consider removing this friend relationship and have EntityItem use public methods
-    friend class ModelEntityItem; // TODO: consider removing this friend relationship and have EntityItem use public methods
-    friend class BoxEntityItem; // TODO: consider removing this friend relationship and have EntityItem use public methods
+    friend class EntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class ModelEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class BoxEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class SphereEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties() { };
@@ -100,18 +101,8 @@ public:
     glm::vec3 getMaximumPointTreeUnits() const { return getMaximumPointMeters() / (float)TREE_SCALE; }
     /// AACube in domain scale units (0.0 - 1.0)
     AACube getAACubeTreeUnits() const { 
-        glm::vec3 cornerInTreeUnits = getMinimumPointMeters()/(float)TREE_SCALE;
-        float dimensionInTreeUnits = getMaxDimension()/(float)TREE_SCALE;
-        /*    
-        qDebug() << "        getAACubeTreeUnits()";
-        qDebug() << "           corner in meters=" << getMinimumPointMeters().x << "," << getMinimumPointMeters().y << "," << getMinimumPointMeters().z;
-        qDebug() << "           dimension in meters=" << getMaxDimension();
-        qDebug() << "           corner in tree units=" << cornerInTreeUnits.x << "," << cornerInTreeUnits.y << "," << cornerInTreeUnits.z;
-        qDebug() << "           dimension in tree units=" << dimensionInTreeUnits;
-        */
-        return AACube(cornerInTreeUnits, dimensionInTreeUnits); 
+        return AACube(getMinimumPointMeters() / (float)TREE_SCALE, getMaxDimension() / (float)TREE_SCALE); 
     }
-
 
     void debugDump() const;
 
@@ -132,11 +123,15 @@ public:
     float getMass() const { return _mass; }
     void setMass(float value) { _mass = value; _massChanged = true; }
 
-    const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
-    void setVelocity(const glm::vec3& value) { _velocity = value; _velocityChanged = true; } /// velocity in domain scale units (0.0-1.0) per second
+    /// velocity in domain scale units (0.0-1.0) per second
+    const glm::vec3& getVelocity() const { return _velocity; }
+    /// velocity in domain scale units (0.0-1.0) per second
+    void setVelocity(const glm::vec3& value) { _velocity = value; _velocityChanged = true; }
 
-    const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
-    void setGravity(const glm::vec3& value) { _gravity = value; _gravityChanged = true; } /// gravity in domain scale units (0.0-1.0) per second squared
+    /// gravity in domain scale units (0.0-1.0) per second squared
+    const glm::vec3& getGravity() const { return _gravity; }
+    /// gravity in domain scale units (0.0-1.0) per second squared
+    void setGravity(const glm::vec3& value) { _gravity = value; _gravityChanged = true; }
 
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; _dampingChanged = true; }
