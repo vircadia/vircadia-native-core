@@ -127,13 +127,8 @@ public:
 
 private:
 
-    static bool findAndUpdateOperation(OctreeElement* element, void* extraData);
-    static bool findAndUpdateWithIDandPropertiesOperation(OctreeElement* element, void* extraData);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
-    static bool findByIDOperation(OctreeElement* element, void* extraData);
-    static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
-    static bool findAndUpdateEntityItemIDOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
     static bool sendEntitiesOperation(OctreeElement* element, void* extraData);
 
@@ -142,13 +137,11 @@ private:
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
-
     QReadWriteLock _recentlyDeletedEntitiesLock;
     QMultiMap<quint64, QUuid> _recentlyDeletedEntityItemIDs;
     EntityItemFBXService* _fbxService;
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
-
 
     QList<EntityItem*> _movingEntities; // entities that are moving as part of update
     QList<EntityItem*> _changingEntities; // entities that are changing (like animating), but not moving
