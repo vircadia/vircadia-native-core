@@ -16,6 +16,8 @@
 #include <AABox.h>
 
 #include "InboundAudioStream.h"
+#include "AudioFilter.h"
+#include "AudioFilterBank.h"
 
 const int AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
@@ -44,6 +46,8 @@ public:
 
     void setListenerUnattenuatedZone(AABox* listenerUnattenuatedZone) { _listenerUnattenuatedZone = listenerUnattenuatedZone; }
 
+    AudioFilterPEQ1s& getFilter() { return _filter; }
+    
 protected:
     // disallow copying of PositionalAudioStream objects
     PositionalAudioStream(const PositionalAudioStream&);
@@ -61,6 +65,8 @@ protected:
 
     float _lastPopOutputTrailingLoudness;
     AABox* _listenerUnattenuatedZone;
+    
+    AudioFilterPEQ1s _filter;
 };
 
 #endif // hifi_PositionalAudioStream_h

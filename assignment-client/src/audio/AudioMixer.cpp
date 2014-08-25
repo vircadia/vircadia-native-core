@@ -75,6 +75,8 @@ int AudioMixer::_maxFramesOverDesired = 0;
 
 bool AudioMixer::_printStreamStats = false;
 
+bool AudioMixer::_enableFilter = false;
+
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
@@ -107,7 +109,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
     float weakChannelAmplitudeRatio = 1.0f;
     
     bool shouldAttenuate = (streamToAdd != listeningNodeStream);
-    
+
     if (shouldAttenuate) {
         
         // if the two stream pointers do not match then these are different streams
@@ -265,6 +267,43 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
             _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationCoefficient),
                                             MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+        }
+    }
+        
+    if (_enableFilter && shouldAttenuate) {
+        
+        glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
+        if (relativePosition.z < 0) {  // if the source is behind us
+            
+            AudioFilterPEQ1s& penumbraFilter = streamToAdd->getFilter();
+
+            // calculate penumbra angle
+            float headPenumbraAngle = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                 glm::normalize(relativePosition));
+            
+            // normalize penumbra angle
+            float normalizedHeadPenumbraAngle = headPenumbraAngle / PI_OVER_TWO;
+            
+            if (normalizedHeadPenumbraAngle < EPSILON) { 
+                normalizedHeadPenumbraAngle = EPSILON;
+            }
+            
+            float penumbraFilterGain;
+            float penumbraFilterFrequency;
+            float penumbraFilterSlope;
+            
+            // calculate the updated gain
+            penumbraFilterGain = normalizedHeadPenumbraAngle; // Note this will be tuned - consider this only a crude-first pass at correlating gain with penumbra angle.
+            penumbraFilterFrequency = 2000.0f;
+            penumbraFilterSlope = 1.0f; // gentle slope
+            
+            qDebug() << "penumbra gain=" << penumbraFilterGain << ", penumbraAngle=" << normalizedHeadPenumbraAngle;
+
+            // set the gain on both filter channels
+            penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGain, penumbraFilterSlope);
+            penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGain, penumbraFilterSlope);
+            
+            penumbraFilter.render(_clientSamples, _clientSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
         }
     }
 }
@@ -462,6 +501,12 @@ void AudioMixer::run() {
 
         bool ok;
 
+        const QString FILTER_KEY = "E-enable-filter";
+        _enableFilter = audioGroupObject[FILTER_KEY].toBool();
+        if (_enableFilter) {
+            qDebug() << "Filter enabled";
+        }
+        
         const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "B-desired-jitter-buffer-frames";
         _staticDesiredJitterBufferFrames = audioGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
         if (!ok) {
