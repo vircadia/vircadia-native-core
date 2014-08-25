@@ -99,6 +99,12 @@ namespace ShapeCollider {
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
     bool planeVsPlane(const Shape* planeA, const Shape* planeB, CollisionList& collisions);
+
+    bool sphereVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
+    bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
+    bool aaCubeVsSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
+    bool aaCubeVsCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
+    bool aaCubeVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
     
     /// \param shapeA pointer to first shape (cannot be NULL)
     /// \param listB pointer to second shape (cannot be NULL)
