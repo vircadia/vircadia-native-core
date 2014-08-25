@@ -12,14 +12,14 @@
 var bird = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/bushtit_1.raw");
 
 function maybePlaySound(deltaTime) {
-	if (Math.random() < 0.01) {
+//	if (Math.random() < 0.01) {
 		//  Set the location and other info for the sound to play
 		var options = new AudioInjectionOptions();
 		var position = MyAvatar.position; 
 		options.position = position;
 		options.volume = 0.5;
 		Audio.playSound(bird, options);
-	}
+//	}
 }
 
 // Connect a call back that happens every frame

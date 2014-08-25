@@ -20,6 +20,7 @@
 #include "RingBufferHistory.h"
 #include "MovingMinMaxAvg.h"
 #include "AudioFilter.h"
+#include "AudioFilterBank.h"
 
 #include <QAudio>
 #include <QAudioInput>
@@ -278,8 +279,8 @@ private:
     int _samplesPerScope;
 
     // Multi-band parametric EQ
-    bool            _peqEnabled;
-    AudioFilterPEQ3 _peq;
+    bool                _peqEnabled;
+    AudioFilterPEQ3m    _peq;
 
     QMutex _guard;
     QByteArray* _scopeInput;
