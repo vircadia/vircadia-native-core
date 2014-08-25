@@ -1197,5 +1197,5 @@ QVariant HeightfieldTextureBrushTool::createEdit(bool alternate) {
 
 void HeightfieldTextureBrushTool::updateTexture() {
     HeightfieldTexture* texture = static_cast<HeightfieldTexture*>(_textureEditor->getObject().data());
-    _texture = Application::getInstance()->getTextureCache()->getTexture(texture->getURL());
+    _texture = Application::getInstance()->getTextureCache()->getTexture(texture->getURL(), SPLAT_TEXTURE);
 }
