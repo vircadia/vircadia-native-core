@@ -41,7 +41,7 @@ public slots:
     static bool getUseDynamicJitterBuffers() { return _useDynamicJitterBuffers; }
     static int getStaticDesiredJitterBufferFrames() { return _staticDesiredJitterBufferFrames; }
     static int getMaxFramesOverDesired() { return _maxFramesOverDesired; }
-
+    
 private:
     /// adds one stream to the mix for a listening node
     void addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
@@ -68,7 +68,8 @@ private:
     static int _maxFramesOverDesired;
 
     static bool _printStreamStats;
-
+    static bool _enableFilter;
+    
     quint64 _lastSendAudioStreamStatsTime;
 };
 
