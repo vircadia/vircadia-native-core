@@ -143,8 +143,8 @@ public:
     static const int HEIGHT_EXTENSION;
     
     HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height,
-        const QByteArray& color, const QByteArray& texture = QByteArray(),
-        const QVector<SharedObjectPointer>& textures = QVector<SharedObjectPointer>());
+        const QByteArray& color, const QByteArray& material = QByteArray(),
+        const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
     ~HeightfieldBuffer();
     
     const glm::vec3& getTranslation() const { return _translation; }
@@ -159,10 +159,10 @@ public:
     QByteArray& getColor() { return _color; }
     const QByteArray& getColor() const { return _color; }
     
-    QByteArray& getTexture() { return _texture; }
-    const QByteArray& getTexture() const { return _texture; }
+    QByteArray& getMaterial() { return _material; }
+    const QByteArray& getMaterial() const { return _material; }
     
-    const QVector<SharedObjectPointer>& getTextures() const { return _textures; }
+    const QVector<SharedObjectPointer>& getMaterials() const { return _materials; }
     
     QByteArray getUnextendedHeight() const;
     QByteArray getUnextendedColor() const;
@@ -183,11 +183,11 @@ private:
     Box _colorBounds;
     QByteArray _height;
     QByteArray _color;
-    QByteArray _texture;
-    QVector<SharedObjectPointer> _textures;
+    QByteArray _material;
+    QVector<SharedObjectPointer> _materials;
     GLuint _heightTextureID;
     GLuint _colorTextureID;
-    GLuint _textureTextureID;
+    GLuint _materialTextureID;
     QVector<NetworkTexturePointer> _networkTextures;
     int _heightSize;
     float _heightIncrement;

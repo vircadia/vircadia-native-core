@@ -120,7 +120,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new EraseHeightfieldTool(this));
     addTool(new HeightfieldHeightBrushTool(this));
     addTool(new HeightfieldColorBrushTool(this));
-    addTool(new HeightfieldTextureBrushTool(this));
+    addTool(new HeightfieldMaterialBrushTool(this));
     
     updateAttributes();
     
@@ -975,10 +975,10 @@ void ImportHeightfieldTool::apply() {
             AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
         
         int size = glm::sqrt(height.size()) + HeightfieldBuffer::SHARED_EDGE; 
-        QByteArray texture(size * size, 0);
-        HeightfieldTextureDataPointer texturePointer(new HeightfieldTextureData(texture));
-        data.setRoot(AttributeRegistry::getInstance()->getHeightfieldTextureAttribute(), new MetavoxelNode(AttributeValue(
-            AttributeRegistry::getInstance()->getHeightfieldTextureAttribute(), encodeInline(texturePointer))));
+        QByteArray material(size * size, 0);
+        HeightfieldMaterialDataPointer materialPointer(new HeightfieldMaterialData(material));
+        data.setRoot(AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), new MetavoxelNode(AttributeValue(
+            AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), encodeInline(materialPointer))));
         
         MetavoxelEditMessage message = { QVariant::fromValue(SetDataEdit(
             _translation->getValue() + buffer->getTranslation() * scale, data)) };
@@ -1177,25 +1177,25 @@ QVariant HeightfieldColorBrushTool::createEdit(bool alternate) {
         alternate ? QColor() : _color->getColor()));
 }
 
-HeightfieldTextureBrushTool::HeightfieldTextureBrushTool(MetavoxelEditor* editor) :
-    HeightfieldBrushTool(editor, "Texture Brush") {
+HeightfieldMaterialBrushTool::HeightfieldMaterialBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Material Brush") {
     
-    _form->addRow(_textureEditor = new SharedObjectEditor(&HeightfieldTexture::staticMetaObject, false));
-    connect(_textureEditor, &SharedObjectEditor::objectChanged, this, &HeightfieldTextureBrushTool::updateTexture);
+    _form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
+    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &HeightfieldMaterialBrushTool::updateTexture);
 }
 
-QVariant HeightfieldTextureBrushTool::createEdit(bool alternate) {
+QVariant HeightfieldMaterialBrushTool::createEdit(bool alternate) {
     if (alternate) {
-        return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), SharedObjectPointer(), QColor()));
+        return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), SharedObjectPointer(), QColor()));
     } else {
-        SharedObjectPointer texture = _textureEditor->getObject();
-        _textureEditor->detachObject();
-        return QVariant::fromValue(PaintHeightfieldTextureEdit(_position, _radius->value(), texture,
+        SharedObjectPointer material = _materialEditor->getObject();
+        _materialEditor->detachObject();
+        return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), material,
             _texture ? _texture->getAverageColor() : QColor()));
     }   
 }
 
-void HeightfieldTextureBrushTool::updateTexture() {
-    HeightfieldTexture* texture = static_cast<HeightfieldTexture*>(_textureEditor->getObject().data());
-    _texture = Application::getInstance()->getTextureCache()->getTexture(texture->getURL(), SPLAT_TEXTURE);
+void HeightfieldMaterialBrushTool::updateTexture() {
+    MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
+    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
 }

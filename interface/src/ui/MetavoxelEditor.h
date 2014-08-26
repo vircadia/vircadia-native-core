@@ -363,12 +363,12 @@ private:
 };
 
 /// Allows texturing parts of the heightfield.
-class HeightfieldTextureBrushTool : public HeightfieldBrushTool {
+class HeightfieldMaterialBrushTool : public HeightfieldBrushTool {
     Q_OBJECT
 
 public:
     
-    HeightfieldTextureBrushTool(MetavoxelEditor* editor);
+    HeightfieldMaterialBrushTool(MetavoxelEditor* editor);
 
 protected:
     
@@ -380,7 +380,7 @@ private slots:
     
 private:
     
-    SharedObjectEditor* _textureEditor;
+    SharedObjectEditor* _materialEditor;
     QSharedPointer<NetworkTexture> _texture;
 };
 

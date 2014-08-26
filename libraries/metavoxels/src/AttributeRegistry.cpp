@@ -23,10 +23,10 @@ REGISTER_META_OBJECT(QRgbAttribute)
 REGISTER_META_OBJECT(PackedNormalAttribute)
 REGISTER_META_OBJECT(SpannerQRgbAttribute)
 REGISTER_META_OBJECT(SpannerPackedNormalAttribute)
-REGISTER_META_OBJECT(HeightfieldTexture)
+REGISTER_META_OBJECT(MaterialObject)
 REGISTER_META_OBJECT(HeightfieldAttribute)
 REGISTER_META_OBJECT(HeightfieldColorAttribute)
-REGISTER_META_OBJECT(HeightfieldTextureAttribute)
+REGISTER_META_OBJECT(HeightfieldMaterialAttribute)
 REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
 REGISTER_META_OBJECT(SpannerSetAttribute)
@@ -52,7 +52,7 @@ AttributeRegistry::AttributeRegistry() :
     _spannerMaskAttribute(registerAttribute(new FloatAttribute("spannerMask"))),
     _heightfieldAttribute(registerAttribute(new HeightfieldAttribute("heightfield"))),
     _heightfieldColorAttribute(registerAttribute(new HeightfieldColorAttribute("heightfieldColor"))),
-    _heightfieldTextureAttribute(registerAttribute(new HeightfieldTextureAttribute("heightfieldTexture"))) {
+    _heightfieldMaterialAttribute(registerAttribute(new HeightfieldMaterialAttribute("heightfieldMaterial"))) {
     
     // our baseline LOD threshold is for voxels; spanners and heightfields are a different story
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
@@ -61,7 +61,7 @@ AttributeRegistry::AttributeRegistry() :
     const float HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER = 32.0f;
     _heightfieldAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     _heightfieldColorAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
-    _heightfieldTextureAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
+    _heightfieldMaterialAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
 }
 
 static QScriptValue qDebugFunction(QScriptContext* context, QScriptEngine* engine) {
@@ -926,10 +926,10 @@ void HeightfieldColorData::set(const QImage& image) {
     memcpy(_contents.data(), image.constBits(), _contents.size());
 }
 
-const int TEXTURE_HEADER_SIZE = sizeof(qint32) * 4;
+const int MATERIAL_HEADER_SIZE = sizeof(qint32) * 4;
 
-static QByteArray encodeTexture(int offsetX, int offsetY, int width, int height, const QByteArray& contents) {
-    QByteArray inflated(TEXTURE_HEADER_SIZE, 0);
+static QByteArray encodeMaterial(int offsetX, int offsetY, int width, int height, const QByteArray& contents) {
+    QByteArray inflated(MATERIAL_HEADER_SIZE, 0);
     qint32* header = (qint32*)inflated.data();
     *header++ = offsetX;
     *header++ = offsetY;
@@ -939,38 +939,38 @@ static QByteArray encodeTexture(int offsetX, int offsetY, int width, int height,
     return qCompress(inflated);
 }
 
-static QByteArray decodeTexture(const QByteArray& encoded, int& offsetX, int& offsetY, int& width, int& height) {
+static QByteArray decodeMaterial(const QByteArray& encoded, int& offsetX, int& offsetY, int& width, int& height) {
     QByteArray inflated = qUncompress(encoded);
     const qint32* header = (const qint32*)inflated.constData();
     offsetX = *header++;
     offsetY = *header++;
     width = *header++;
     height = *header++;
-    return inflated.mid(TEXTURE_HEADER_SIZE);
+    return inflated.mid(MATERIAL_HEADER_SIZE);
 }
 
-HeightfieldTextureData::HeightfieldTextureData(const QByteArray& contents, const QVector<SharedObjectPointer>& textures) :
+HeightfieldMaterialData::HeightfieldMaterialData(const QByteArray& contents, const QVector<SharedObjectPointer>& materials) :
     _contents(contents),
-    _textures(textures) {
+    _materials(materials) {
 }
 
-HeightfieldTextureData::HeightfieldTextureData(Bitstream& in, int bytes) {
+HeightfieldMaterialData::HeightfieldMaterialData(Bitstream& in, int bytes) {
     read(in, bytes);
 }
 
-HeightfieldTextureData::HeightfieldTextureData(Bitstream& in, int bytes, const HeightfieldTextureDataPointer& reference) {
+HeightfieldMaterialData::HeightfieldMaterialData(Bitstream& in, int bytes, const HeightfieldMaterialDataPointer& reference) {
     if (!reference) {
         read(in, bytes);
         return;
     }
     QMutexLocker locker(&reference->getEncodedDeltaMutex());
     reference->setEncodedDelta(in.readAligned(bytes));
-    in.readDelta(_textures, reference->getTextures());
+    in.readDelta(_materials, reference->getMaterials());
     reference->setDeltaData(DataBlockPointer(this));
     _contents = reference->getContents();
     
     int offsetX, offsetY, width, height;
-    QByteArray delta = decodeTexture(reference->getEncodedDelta(), offsetX, offsetY, width, height);
+    QByteArray delta = decodeMaterial(reference->getEncodedDelta(), offsetX, offsetY, width, height);
     if (delta.isEmpty()) {
         return;
     }
@@ -988,18 +988,18 @@ HeightfieldTextureData::HeightfieldTextureData(Bitstream& in, int bytes, const H
     }
 }
 
-void HeightfieldTextureData::write(Bitstream& out) {
+void HeightfieldMaterialData::write(Bitstream& out) {
     QMutexLocker locker(&_encodedMutex);
     if (_encoded.isEmpty()) {
         int size = glm::sqrt((float)_contents.size());
-        _encoded = encodeTexture(0, 0, size, size, _contents);
+        _encoded = encodeMaterial(0, 0, size, size, _contents);
     }
     out << _encoded.size();
     out.writeAligned(_encoded);
-    out << _textures;
+    out << _materials;
 }
 
-void HeightfieldTextureData::writeDelta(Bitstream& out, const HeightfieldTextureDataPointer& reference) {
+void HeightfieldMaterialData::writeDelta(Bitstream& out, const HeightfieldMaterialDataPointer& reference) {
     if (!reference || reference->getContents().size() != _contents.size()) {
         write(out);
         return;
@@ -1037,21 +1037,21 @@ void HeightfieldTextureData::writeDelta(Bitstream& out, const HeightfieldTexture
                 memcpy(dest, src, width);
             }
         }
-        reference->setEncodedDelta(encodeTexture(minX + 1, minY + 1, width, height, delta));
+        reference->setEncodedDelta(encodeMaterial(minX + 1, minY + 1, width, height, delta));
         reference->setDeltaData(DataBlockPointer(this));
     }
     out << reference->getEncodedDelta().size();
     out.writeAligned(reference->getEncodedDelta());
-    out.writeDelta(_textures, reference->getTextures());
+    out.writeDelta(_materials, reference->getMaterials());
 }
 
-void HeightfieldTextureData::read(Bitstream& in, int bytes) {
+void HeightfieldMaterialData::read(Bitstream& in, int bytes) {
     int offsetX, offsetY, width, height;
-    _contents = decodeTexture(_encoded = in.readAligned(bytes), offsetX, offsetY, width, height);
-    in >> _textures;
+    _contents = decodeMaterial(_encoded = in.readAligned(bytes), offsetX, offsetY, width, height);
+    in >> _materials;
 }
 
-HeightfieldTexture::HeightfieldTexture() :
+MaterialObject::MaterialObject() :
     _scaleS(1.0f),
     _scaleT(1.0f) {
 }
@@ -1319,28 +1319,28 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
     return false;
 }
 
-HeightfieldTextureAttribute::HeightfieldTextureAttribute(const QString& name) :
-    InlineAttribute<HeightfieldTextureDataPointer>(name) {
+HeightfieldMaterialAttribute::HeightfieldMaterialAttribute(const QString& name) :
+    InlineAttribute<HeightfieldMaterialDataPointer>(name) {
 }
 
-void HeightfieldTextureAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+void HeightfieldMaterialAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
     if (!isLeaf) {
         return;
     }
     int size;
     in >> size;
     if (size == 0) {
-        *(HeightfieldTextureDataPointer*)&value = HeightfieldTextureDataPointer();
+        *(HeightfieldMaterialDataPointer*)&value = HeightfieldMaterialDataPointer();
     } else {
-        *(HeightfieldTextureDataPointer*)&value = HeightfieldTextureDataPointer(new HeightfieldTextureData(in, size));
+        *(HeightfieldMaterialDataPointer*)&value = HeightfieldMaterialDataPointer(new HeightfieldMaterialData(in, size));
     }
 }
 
-void HeightfieldTextureAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+void HeightfieldMaterialAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
     if (!isLeaf) {
         return;
     }
-    HeightfieldTextureDataPointer data = decodeInline<HeightfieldTextureDataPointer>(value);
+    HeightfieldMaterialDataPointer data = decodeInline<HeightfieldMaterialDataPointer>(value);
     if (data) {
         data->write(out);
     } else {
@@ -1348,53 +1348,53 @@ void HeightfieldTextureAttribute::write(Bitstream& out, void* value, bool isLeaf
     }
 }
 
-void HeightfieldTextureAttribute::readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const {
+void HeightfieldMaterialAttribute::readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const {
     if (!isLeaf) {
         return;
     }
     int size;
     in >> size;
     if (size == 0) {
-        *(HeightfieldTextureDataPointer*)&value = HeightfieldTextureDataPointer(); 
+        *(HeightfieldMaterialDataPointer*)&value = HeightfieldMaterialDataPointer(); 
     } else {
-        *(HeightfieldTextureDataPointer*)&value = HeightfieldTextureDataPointer(new HeightfieldTextureData(
-            in, size, decodeInline<HeightfieldTextureDataPointer>(reference)));
+        *(HeightfieldMaterialDataPointer*)&value = HeightfieldMaterialDataPointer(new HeightfieldMaterialData(
+            in, size, decodeInline<HeightfieldMaterialDataPointer>(reference)));
     }
 }
 
-void HeightfieldTextureAttribute::writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const {
+void HeightfieldMaterialAttribute::writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const {
     if (!isLeaf) {
         return;
     }
-    HeightfieldTextureDataPointer data = decodeInline<HeightfieldTextureDataPointer>(value);
+    HeightfieldMaterialDataPointer data = decodeInline<HeightfieldMaterialDataPointer>(value);
     if (data) {
-        data->writeDelta(out, decodeInline<HeightfieldTextureDataPointer>(reference));
+        data->writeDelta(out, decodeInline<HeightfieldMaterialDataPointer>(reference));
     } else {
         out << 0;
     }
 }
 
-bool HeightfieldTextureAttribute::merge(void*& parent, void* children[], bool postRead) const {
+bool HeightfieldMaterialAttribute::merge(void*& parent, void* children[], bool postRead) const {
     int maxSize = 0;
     for (int i = 0; i < MERGE_COUNT; i++) {
-        HeightfieldTextureDataPointer pointer = decodeInline<HeightfieldTextureDataPointer>(children[i]);
+        HeightfieldMaterialDataPointer pointer = decodeInline<HeightfieldMaterialDataPointer>(children[i]);
         if (pointer) {
             maxSize = qMax(maxSize, pointer->getContents().size());
         }
     }
-    *(HeightfieldTextureDataPointer*)&parent = HeightfieldTextureDataPointer();
+    *(HeightfieldMaterialDataPointer*)&parent = HeightfieldMaterialDataPointer();
     return maxSize == 0;
 }
 
-VoxelSignData::VoxelSignData(const QByteArray& contents) :
+VoxelColorData::VoxelColorData(const QVector<QRgb>& contents) :
     _contents(contents) {
 }
 
-VoxelSignData::VoxelSignData(Bitstream& in, int bytes) {
+VoxelColorData::VoxelColorData(Bitstream& in, int bytes) {
     read(in, bytes);
 }
 
-VoxelSignData::VoxelSignData(Bitstream& in, int bytes, const VoxelSignDataPointer& reference) {
+VoxelColorData::VoxelColorData(Bitstream& in, int bytes, const VoxelColorDataPointer& reference) {
     if (!reference) {
         read(in, bytes);
         return;
@@ -1405,7 +1405,7 @@ VoxelSignData::VoxelSignData(Bitstream& in, int bytes, const VoxelSignDataPointe
     _contents = reference->getContents();
 }
 
-void VoxelSignData::write(Bitstream& out) {
+void VoxelColorData::write(Bitstream& out) {
     QMutexLocker locker(&_encodedMutex);
     if (_encoded.isEmpty()) {
         
@@ -1414,7 +1414,7 @@ void VoxelSignData::write(Bitstream& out) {
     out.writeAligned(_encoded);
 }
 
-void VoxelSignData::writeDelta(Bitstream& out, const VoxelSignDataPointer& reference) {
+void VoxelColorData::writeDelta(Bitstream& out, const VoxelColorDataPointer& reference) {
     if (!reference || reference->getContents().size() != _contents.size()) {
         write(out);
         return;
@@ -1427,7 +1427,52 @@ void VoxelSignData::writeDelta(Bitstream& out, const VoxelSignDataPointer& refer
     out.writeAligned(reference->getEncodedDelta());
 }
 
-void VoxelSignData::read(Bitstream& in, int bytes) {
+void VoxelColorData::read(Bitstream& in, int bytes) {
+    
+}
+
+VoxelMaterialData::VoxelMaterialData(const QByteArray& contents) :
+    _contents(contents) {
+}
+
+VoxelMaterialData::VoxelMaterialData(Bitstream& in, int bytes) {
+    read(in, bytes);
+}
+
+VoxelMaterialData::VoxelMaterialData(Bitstream& in, int bytes, const VoxelMaterialDataPointer& reference) {
+    if (!reference) {
+        read(in, bytes);
+        return;
+    }
+    QMutexLocker locker(&reference->getEncodedDeltaMutex());
+    reference->setEncodedDelta(in.readAligned(bytes));
+    reference->setDeltaData(DataBlockPointer(this));
+    _contents = reference->getContents();
+}
+
+void VoxelMaterialData::write(Bitstream& out) {
+    QMutexLocker locker(&_encodedMutex);
+    if (_encoded.isEmpty()) {
+        
+    }
+    out << _encoded.size();
+    out.writeAligned(_encoded);
+}
+
+void VoxelMaterialData::writeDelta(Bitstream& out, const VoxelMaterialDataPointer& reference) {
+    if (!reference || reference->getContents().size() != _contents.size()) {
+        write(out);
+        return;
+    }
+    QMutexLocker locker(&reference->getEncodedDeltaMutex());
+    if (reference->getEncodedDelta().isEmpty() || reference->getDeltaData() != this) {
+        
+    }
+    out << reference->getEncodedDelta().size();
+    out.writeAligned(reference->getEncodedDelta());
+}
+
+void VoxelMaterialData::read(Bitstream& in, int bytes) {
     
 }
 

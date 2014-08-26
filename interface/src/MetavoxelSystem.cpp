@@ -608,19 +608,19 @@ const int HeightfieldBuffer::SHARED_EDGE = 1;
 const int HeightfieldBuffer::HEIGHT_EXTENSION = 2 * HeightfieldBuffer::HEIGHT_BORDER + HeightfieldBuffer::SHARED_EDGE;
 
 HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
-        const QByteArray& height, const QByteArray& color, const QByteArray& texture,
-        const QVector<SharedObjectPointer>& textures) :
+        const QByteArray& height, const QByteArray& color, const QByteArray& material,
+        const QVector<SharedObjectPointer>& materials) :
     _translation(translation),
     _scale(scale),
     _heightBounds(translation, translation + glm::vec3(scale, scale, scale)),
     _colorBounds(_heightBounds),
     _height(height),
     _color(color),
-    _texture(texture),
-    _textures(textures),
+    _material(material),
+    _materials(materials),
     _heightTextureID(0),
     _colorTextureID(0),
-    _textureTextureID(0),
+    _materialTextureID(0),
     _heightSize(glm::sqrt(height.size())),
     _heightIncrement(scale / (_heightSize - HEIGHT_EXTENSION)),
     _colorSize(glm::sqrt(color.size() / DataBlock::COLOR_BYTES)),
@@ -639,11 +639,11 @@ HeightfieldBuffer::~HeightfieldBuffer() {
     // the textures have to be deleted on the main thread (for its opengl context)
     if (QThread::currentThread() != Application::getInstance()->thread()) {
         QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "deleteTextures",
-            Q_ARG(int, _heightTextureID), Q_ARG(int, _colorTextureID), Q_ARG(int, _textureTextureID));
+            Q_ARG(int, _heightTextureID), Q_ARG(int, _colorTextureID), Q_ARG(int, _materialTextureID));
     } else {
         glDeleteTextures(1, &_heightTextureID);
         glDeleteTextures(1, &_colorTextureID);
-        glDeleteTextures(1, &_textureTextureID);
+        glDeleteTextures(1, &_materialTextureID);
     }
 }
 
@@ -709,23 +709,23 @@ void HeightfieldBuffer::render(bool cursor) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, colorSize, colorSize, 0, GL_RGB, GL_UNSIGNED_BYTE, _color.constData());
         }
         
-        if (!_texture.isEmpty()) {
-            glGenTextures(1, &_textureTextureID);
-            glBindTexture(GL_TEXTURE_2D, _textureTextureID);
+        if (!_material.isEmpty()) {
+            glGenTextures(1, &_materialTextureID);
+            glBindTexture(GL_TEXTURE_2D, _materialTextureID);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            int textureSize = glm::sqrt(_texture.size());    
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, textureSize, textureSize, 0,
-                GL_LUMINANCE, GL_UNSIGNED_BYTE, _texture.constData());
+            int materialSize = glm::sqrt(_material.size());    
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, materialSize, materialSize, 0,
+                GL_LUMINANCE, GL_UNSIGNED_BYTE, _material.constData());
             
-            _networkTextures.resize(_textures.size());
-            for (int i = 0; i < _textures.size(); i++) {
-                const SharedObjectPointer texture = _textures.at(i);
-                if (texture) {
+            _networkTextures.resize(_materials.size());
+            for (int i = 0; i < _materials.size(); i++) {
+                const SharedObjectPointer material = _materials.at(i);
+                if (material) {
                     _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
-                        static_cast<HeightfieldTexture*>(texture.data())->getURL(), SPLAT_TEXTURE);
+                        static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
                 }
             }
         }
@@ -799,7 +799,7 @@ void HeightfieldBuffer::render(bool cursor) {
     if (cursor) {
         glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
     
-    } else if (!_textures.isEmpty()) {
+    } else if (!_materials.isEmpty()) {
         DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().bind();
         DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().setUniformValue(
             DefaultMetavoxelRendererImplementation::getBaseHeightScaleLocation(), 1.0f / _heightSize);
@@ -826,10 +826,10 @@ void HeightfieldBuffer::render(bool cursor) {
             DefaultMetavoxelRendererImplementation::getSplatTextureOffsetLocation(),
             _translation.x / _scale, _translation.z / _scale);
             
-        glBindTexture(GL_TEXTURE_2D, _textureTextureID);
+        glBindTexture(GL_TEXTURE_2D, _materialTextureID);
     
         const int TEXTURES_PER_SPLAT = 4;
-        for (int i = 0; i < _textures.size(); i += TEXTURES_PER_SPLAT) {
+        for (int i = 0; i < _materials.size(); i += TEXTURES_PER_SPLAT) {
             QVector4D scalesS, scalesT;
             
             for (int j = 0; j < SPLAT_COUNT; j++) {
@@ -838,9 +838,9 @@ void HeightfieldBuffer::render(bool cursor) {
                 if (index < _networkTextures.size()) {
                     const NetworkTexturePointer& texture = _networkTextures.at(index);
                     if (texture) {
-                        HeightfieldTexture* heightfieldTexture = static_cast<HeightfieldTexture*>(_textures.at(index).data());
-                        scalesS[j] = _scale / heightfieldTexture->getScaleS();
-                        scalesT[j] = _scale / heightfieldTexture->getScaleT();
+                        MaterialObject* material = static_cast<MaterialObject*>(_materials.at(index).data());
+                        scalesS[j] = _scale / material->getScaleS();
+                        scalesT[j] = _scale / material->getScaleT();
                         glBindTexture(GL_TEXTURE_2D, texture->getID());    
                     } else {
                         glBindTexture(GL_TEXTURE_2D, 0);
@@ -1349,7 +1349,7 @@ private:
 HeightfieldRegionVisitor::HeightfieldRegionVisitor(const MetavoxelLOD& lod) :
     MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
         AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
-        AttributeRegistry::getInstance()->getHeightfieldTextureAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute() <<
         Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), QVector<AttributePointer>() <<
             Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), lod),
     regionBounds(glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX), glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
@@ -1377,12 +1377,12 @@ int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
             colorContentsSize = extendedColorSize * extendedColorSize * DataBlock::COLOR_BYTES;
         }
         
-        HeightfieldTextureDataPointer texture = info.inputValues.at(2).getInlineValue<HeightfieldTextureDataPointer>();
-        QByteArray textureContents;
-        QVector<SharedObjectPointer> textures;
-        if (texture) {
-            textureContents = texture->getContents();
-            textures = texture->getTextures();
+        HeightfieldMaterialDataPointer material = info.inputValues.at(2).getInlineValue<HeightfieldMaterialDataPointer>();
+        QByteArray materialContents;
+        QVector<SharedObjectPointer> materials;
+        if (material) {
+            materialContents = material->getContents();
+            materials = material->getMaterials();
         }
         
         const HeightfieldBuffer* existingBuffer = static_cast<const HeightfieldBuffer*>(
@@ -1393,12 +1393,12 @@ int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
             // we already have a buffer of the correct resolution    
             addRegion(bounds, existingBuffer->getHeightBounds());
             buffer = new HeightfieldBuffer(info.minimum, info.size, existingBuffer->getHeight(),
-                existingBuffer->getColor(), textureContents, textures);
+                existingBuffer->getColor(), materialContents, materials);
 
         } else {
             // we must create a new buffer and update its borders
             buffer = new HeightfieldBuffer(info.minimum, info.size, QByteArray(heightContentsSize, 0),
-                QByteArray(colorContentsSize, 0), textureContents, textures);
+                QByteArray(colorContentsSize, 0), materialContents, materials);
             const Box& heightBounds = buffer->getHeightBounds();
             addRegion(bounds, heightBounds);
             
@@ -1472,7 +1472,7 @@ int HeightfieldUpdateVisitor::visit(MetavoxelInfo& info) {
         return STOP_RECURSION;
     }
     HeightfieldBuffer* newBuffer = new HeightfieldBuffer(info.minimum, info.size,
-        buffer->getHeight(), buffer->getColor(), buffer->getTexture(), buffer->getTextures());
+        buffer->getHeight(), buffer->getColor(), buffer->getMaterial(), buffer->getMaterials());
     _fetchVisitor.init(newBuffer);
     _data->guide(_fetchVisitor);
     info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(newBuffer)));

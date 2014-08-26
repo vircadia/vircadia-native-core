@@ -241,23 +241,23 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(PaintHeightfieldColorEdit)
 
-/// An edit that sets a region of a heightfield texture.
-class PaintHeightfieldTextureEdit : public MetavoxelEdit {
+/// An edit that sets a region of a heightfield material.
+class PaintHeightfieldMaterialEdit : public MetavoxelEdit {
     STREAMABLE
 
 public:
     
     STREAM glm::vec3 position;
     STREAM float radius;
-    STREAM SharedObjectPointer texture;
+    STREAM SharedObjectPointer material;
     STREAM QColor averageColor;
     
-    PaintHeightfieldTextureEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f,
-        const SharedObjectPointer& texture = SharedObjectPointer(), const QColor& averageColor = QColor());
+    PaintHeightfieldMaterialEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f,
+        const SharedObjectPointer& material = SharedObjectPointer(), const QColor& averageColor = QColor());
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
-DECLARE_STREAMABLE_METATYPE(PaintHeightfieldTextureEdit)
+DECLARE_STREAMABLE_METATYPE(PaintHeightfieldMaterialEdit)
 
 #endif // hifi_MetavoxelMessages_h

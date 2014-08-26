@@ -497,31 +497,31 @@ void PaintHeightfieldColorEdit::apply(MetavoxelData& data, const WeakSharedObjec
     data.guide(visitor);
 }
 
-PaintHeightfieldTextureEdit::PaintHeightfieldTextureEdit(const glm::vec3& position, float radius,
-        const SharedObjectPointer& texture, const QColor& averageColor) :
+PaintHeightfieldMaterialEdit::PaintHeightfieldMaterialEdit(const glm::vec3& position, float radius,
+        const SharedObjectPointer& material, const QColor& averageColor) :
     position(position),
     radius(radius),
-    texture(texture),
+    material(material),
     averageColor(averageColor) {
 }
 
-class PaintHeightfieldTextureEditVisitor : public MetavoxelVisitor {
+class PaintHeightfieldMaterialEditVisitor : public MetavoxelVisitor {
 public:
     
-    PaintHeightfieldTextureEditVisitor(const PaintHeightfieldTextureEdit& edit);
+    PaintHeightfieldMaterialEditVisitor(const PaintHeightfieldMaterialEdit& edit);
     
     virtual int visit(MetavoxelInfo& info);
 
 private:
     
-    PaintHeightfieldTextureEdit _edit;
+    PaintHeightfieldMaterialEdit _edit;
     Box _bounds;
 };
 
-PaintHeightfieldTextureEditVisitor::PaintHeightfieldTextureEditVisitor(const PaintHeightfieldTextureEdit& edit) :
-    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldTextureAttribute() <<
+PaintHeightfieldMaterialEditVisitor::PaintHeightfieldMaterialEditVisitor(const PaintHeightfieldMaterialEdit& edit) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute() <<
         AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), QVector<AttributePointer>() <<
-        AttributeRegistry::getInstance()->getHeightfieldTextureAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute() <<
             AttributeRegistry::getInstance()->getHeightfieldColorAttribute()),
     _edit(edit) {
     
@@ -539,28 +539,28 @@ static QHash<uchar, int> countIndices(const QByteArray& contents) {
     return counts;
 }
 
-int PaintHeightfieldTextureEditVisitor::visit(MetavoxelInfo& info) {
+int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
     if (!info.getBounds().intersects(_bounds)) {
         return STOP_RECURSION;
     }
     if (!info.isLeaf) {
         return DEFAULT_ORDER;
     }
-    HeightfieldTextureDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldTextureDataPointer>();
+    HeightfieldMaterialDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldMaterialDataPointer>();
     if (!pointer) {
         return STOP_RECURSION;
     }
-    QVector<SharedObjectPointer> textures = pointer->getTextures();
+    QVector<SharedObjectPointer> materials = pointer->getMaterials();
     QByteArray contents(pointer->getContents());
-    uchar textureIndex = 0;
-    if (_edit.texture && static_cast<HeightfieldTexture*>(_edit.texture.data())->getURL().isValid()) {
-        // first look for a matching existing texture, noting the first reusable slot
+    uchar materialIndex = 0;
+    if (_edit.material && static_cast<MaterialObject*>(_edit.material.data())->getDiffuse().isValid()) {
+        // first look for a matching existing material, noting the first reusable slot
         int firstEmptyIndex = -1;
-        for (int i = 0; i < textures.size(); i++) {
-            const SharedObjectPointer& texture = textures.at(i);
-            if (texture) {
-                if (texture->equals(_edit.texture.data())) {
-                    textureIndex = i + 1;
+        for (int i = 0; i < materials.size(); i++) {
+            const SharedObjectPointer& material = materials.at(i);
+            if (material) {
+                if (material->equals(_edit.material.data())) {
+                    materialIndex = i + 1;
                     break;
                 }
             } else if (firstEmptyIndex == -1) {
@@ -568,26 +568,26 @@ int PaintHeightfieldTextureEditVisitor::visit(MetavoxelInfo& info) {
             }
         }
         // if nothing found, use the first empty slot or append
-        if (textureIndex == 0) {
+        if (materialIndex == 0) {
             if (firstEmptyIndex != -1) {
-                textures[firstEmptyIndex] = _edit.texture;
-                textureIndex = firstEmptyIndex + 1;
+                materials[firstEmptyIndex] = _edit.material;
+                materialIndex = firstEmptyIndex + 1;
                 
-            } else if (textures.size() < EIGHT_BIT_MAXIMUM) {
-                textures.append(_edit.texture);
-                textureIndex = textures.size();
+            } else if (materials.size() < EIGHT_BIT_MAXIMUM) {
+                materials.append(_edit.material);
+                materialIndex = materials.size();
                 
             } else {
-                // last resort: find the least-used texture and remove it
+                // last resort: find the least-used material and remove it
                 QHash<uchar, int> counts = countIndices(contents);
                 int lowestCount = INT_MAX;
                 for (QHash<uchar, int>::const_iterator it = counts.constBegin(); it != counts.constEnd(); it++) {
                     if (it.value() < lowestCount) {
-                        textureIndex = it.key();
+                        materialIndex = it.key();
                         lowestCount = it.value();
                     }
                 }
-                contents.replace((char)textureIndex, (char)0);
+                contents.replace((char)materialIndex, (char)0);
             }
         }
     }
@@ -614,31 +614,31 @@ int PaintHeightfieldTextureEditVisitor::visit(MetavoxelInfo& info) {
         for (float x = startX; x <= endX; x += 1.0f, dest++) {
             float dx = x - center.x, dz = z - center.z;
             if (dx * dx + dz * dz <= squaredRadius) {
-                *dest = textureIndex;
+                *dest = materialIndex;
                 changed = true;
             }
         }
         lineDest += size;
     }
     if (changed) {
-        // clear any unused textures
+        // clear any unused materials
         QHash<uchar, int> counts = countIndices(contents);
-        for (int i = 0; i < textures.size(); i++) {
+        for (int i = 0; i < materials.size(); i++) {
             if (counts.value(i + 1) == 0) {
-                textures[i] = SharedObjectPointer();
+                materials[i] = SharedObjectPointer();
             }
         }
-        while (!(textures.isEmpty() || textures.last())) {
-            textures.removeLast();
+        while (!(materials.isEmpty() || materials.last())) {
+            materials.removeLast();
         }
-        HeightfieldTextureDataPointer newPointer(new HeightfieldTextureData(contents, textures));
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldTextureDataPointer>(newPointer));
+        HeightfieldMaterialDataPointer newPointer(new HeightfieldMaterialData(contents, materials));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldMaterialDataPointer>(newPointer));
     }
     paintColor(info, 1, _edit.position, _edit.radius, _edit.averageColor);
     return STOP_RECURSION;
 }
 
-void PaintHeightfieldTextureEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    PaintHeightfieldTextureEditVisitor visitor(*this);
+void PaintHeightfieldMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    PaintHeightfieldMaterialEditVisitor visitor(*this);
     data.guide(visitor);
 }
