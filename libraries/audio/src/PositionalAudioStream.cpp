@@ -33,7 +33,8 @@ PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, b
     _lastPopOutputTrailingLoudness(0.0f),
     _listenerUnattenuatedZone(NULL)
 {
-    // constant defined in AudioMixer.h.  However, we don't want to include this here, since we will soon find a better common home for these audio-related constants
+    // constant defined in AudioMixer.h.  However, we don't want to include this here
+    // we will soon find a better common home for these audio-related constants
     const int SAMPLE_PHASE_DELAY_AT_90 = 20; 
     _filter.initialize(SAMPLE_RATE, (NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)) / 2);
 }

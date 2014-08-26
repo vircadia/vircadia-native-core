@@ -46,7 +46,7 @@ public:
 
     void setListenerUnattenuatedZone(AABox* listenerUnattenuatedZone) { _listenerUnattenuatedZone = listenerUnattenuatedZone; }
 
-    AudioFilterPEQ1s& getFilter() { return _filter; }
+    AudioFilterHSF1s& getFilter() { return _filter; }
     
 protected:
     // disallow copying of PositionalAudioStream objects
@@ -66,7 +66,7 @@ protected:
     float _lastPopOutputTrailingLoudness;
     AABox* _listenerUnattenuatedZone;
     
-    AudioFilterPEQ1s _filter;
+    AudioFilterHSF1s _filter;
 };
 
 #endif // hifi_PositionalAudioStream_h
