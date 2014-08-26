@@ -487,7 +487,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             bytesRead += sizeof(positionFromBuffer);
             if (overwriteLocalData) {
                 _position = positionFromBuffer;
-qDebug() << "EntityItem::readEntityDataFromBuffer() _position=" << _position << " QThread::currentThread()=" << QThread::currentThread();
             }
         }
         
@@ -781,7 +780,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     bool somethingChanged = false;
     if (properties._positionChanged || forceCopy) {
         setPosition(properties._position / (float) TREE_SCALE);
-qDebug() << "EntityItem::setProperties() _position=" << _position << " QThread::currentThread()=" << QThread::currentThread();
         somethingChanged = true;
     }
 
