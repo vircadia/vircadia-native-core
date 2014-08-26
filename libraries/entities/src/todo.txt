@@ -1,38 +1,4 @@
-Base properties...
-    * type
-    * position
-    * size/radius/bounds?? maybe correct is x,y,z scales
-    * rotation
-    * script
-    * velocity
-    * gravity
-    * damping
-    * mass
-    * glow level
-    * lifetime
-
-should these be included for all entities? Light, Models, planes, etc?
-    * rotational velocity? - wouldn't that be cool to be automatic with no edits
-    * rotational damping?? - can you slow a quat rotation by simply multiplying it by a fraction?
-    * color??
-    
-Primitive Object Properties:
-    * color?
-    * texture?
-    
-    
-Model properties:
-    void setModelURL(const QString& url)
-    void setAnimationURL(const QString& url)
-    void setAnimationFrameIndex(float value)
-    void setAnimationIsPlaying(bool value)
-    void setAnimationFPS(float value)
-    void setSittingPoints(QVector<SittingPoint> sittingPoints) ??? - should this just be a string property??? 
-
-// Things to do with entities...
-//
-// REQUIRED TO DO:
-
+// REQUIRED:
 
     1) Import/Export Models - verify it works. /copy/paste??
         22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
@@ -42,35 +8,31 @@ Model properties:
         DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
         DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
 
+    2) Test models -> attachments logic
 
 
+    3) random crashes on moving (I think things going out of bounds???)
 
-
-    1) random crashes on moving (I think things going out of bounds???)
-
-    2) some jutter with moving entities
+    4) some jutter with moving entities
    
-    3) test animation again...
+    5) test animation again...
+    5b) animations not always working?????
     
-    4) clear all entities when changing domains?
-    5) what to do with entities
+    6) clear all entities when changing domains?
     
-    6) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
+    7) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
        doesn't include the extra exists bits will break something.
 
-    7) memory leaks???
+    8) memory leaks???
     
-    8) EntityTreeRenderer::clearModelsCache()
+    9) EntityTreeRenderer::clearModelsCache()
     
-    
-    
-   10) Test models -> attachments logic
-   
    11) What happens if the edit properties don't fit in a single message MTU???
-   12) animations not always working?????
+
    13) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
-   
+
    14) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
+
    15) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
 
     
@@ -259,4 +221,38 @@ Model properties:
 // SOLVED -- 2) verify shadows work
 // SOLVED -- 9) Handle the ID -> UUID swap in old files to new files - verify old files read correctly
 
+
+
+
+---------------- properties -----------------
+Base properties...
+    * type
+    * position
+    * size/radius/bounds?? maybe correct is x,y,z scales
+    * rotation
+    * script
+    * velocity
+    * gravity
+    * damping
+    * mass
+    * glow level
+    * lifetime
+
+should these be included for all entities? Light, Models, planes, etc?
+    * rotational velocity? - wouldn't that be cool to be automatic with no edits
+    * rotational damping?? - can you slow a quat rotation by simply multiplying it by a fraction?
+    * color??
+    
+Primitive Object Properties:
+    * color?
+    * texture?
+    
+    
+Model properties:
+    void setModelURL(const QString& url)
+    void setAnimationURL(const QString& url)
+    void setAnimationFrameIndex(float value)
+    void setAnimationIsPlaying(bool value)
+    void setAnimationFPS(float value)
+    void setSittingPoints(QVector<SittingPoint> sittingPoints) ??? - should this just be a string property??? 
 
