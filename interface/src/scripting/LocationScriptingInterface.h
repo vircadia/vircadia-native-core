@@ -22,6 +22,7 @@
 
 class LocationScriptingInterface : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool isConnected READ isConnected)
     Q_PROPERTY(QString href READ getHref)
     Q_PROPERTY(QString protocol READ getProtocol)
     Q_PROPERTY(QString hostname READ getHostname)
@@ -30,6 +31,7 @@ class LocationScriptingInterface : public QObject {
 public:
     static LocationScriptingInterface* getInstance();
 
+    bool isConnected();
     QString getHref();
     QString getProtocol() { return CUSTOM_URL_SCHEME; };
     QString getPathname();
