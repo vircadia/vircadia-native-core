@@ -272,10 +272,12 @@ void MyAvatar::simulate(float deltaTime) {
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
-
-    if (isPlaying()) {
-        estimatedRotation = glm::degrees(safeEulerAngles(_player->getHeadRotation()));
-    } else if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
+    
+    if (isPlaying() && !OculusManager::isConnected()) {
+        return;
+    }
+    
+    if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
         estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
         estimatedRotation.x *= -1.0f;
         estimatedRotation.z *= -1.0f;
@@ -327,11 +329,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
     head->setDeltaRoll(estimatedRotation.z);
 
-    if (isPlaying()) {
-        head->setLeanSideways(_player->getLeanSideways());
-        head->setLeanForward(_player->getLeanForward());
-        return;
-    }
     // the priovr can give us exact lean
     if (Application::getInstance()->getPrioVR()->isActive()) {
         glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));

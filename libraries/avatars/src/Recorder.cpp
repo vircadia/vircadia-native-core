@@ -229,6 +229,11 @@ void Player::startPlaying() {
         _audioThread->start();
         QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
         
+        // Save head orientation
+        if (_avatar->getHeadData()) {
+            _originalHeadOrientation = _avatar->getHeadOrientation();
+        }
+        
         _timer.start();
     }
 }
@@ -252,6 +257,12 @@ void Player::stopPlaying() {
                      _audioThread, &QThread::deleteLater);
     _injector.clear();
     _audioThread = NULL;
+    
+    // Restore head orientation
+    if (_avatar->getHeadData()) {
+        _avatar->setHeadOrientation(_originalHeadOrientation);
+    }
+    
     qDebug() << "Recorder::stopPlaying()";
 }
 
@@ -281,10 +292,6 @@ void Player::play() {
         _avatar->setOrientation(_recording->getFrame(_currentFrame).getRotation());
         _avatar->setTargetScale(_recording->getFrame(_currentFrame).getScale());
         _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
-        HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
-        if (head) {
-            head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
-        }
     } else {
         _avatar->setPosition(_recording->getFrame(0).getTranslation() +
                              _recording->getFrame(_currentFrame).getTranslation());
@@ -293,11 +300,16 @@ void Player::play() {
         _avatar->setTargetScale(_recording->getFrame(0).getScale() *
                                 _recording->getFrame(_currentFrame).getScale());
         _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
-        HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
-        if (head) {
-            
-            head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
-        }
+    }
+    HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
+    if (head) {
+        head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
+        head->setLeanSideways(_recording->getFrame(_currentFrame).getLeanSideways());
+        head->setLeanForward(_recording->getFrame(_currentFrame).getLeanForward());
+        glm::vec3 eulers = glm::degrees(safeEulerAngles(_recording->getFrame(_currentFrame).getHeadRotation()));
+        head->setBasePitch(eulers.x);
+        head->setBaseYaw(eulers.y);
+        head->setBaseRoll(eulers.z);
     }
     
     _options.setPosition(_avatar->getPosition());
