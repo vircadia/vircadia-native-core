@@ -229,6 +229,9 @@ void Player::startPlaying() {
         _audioThread->start();
         QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
         
+        // Fake faceshift connection
+        _avatar->setForceFaceshiftConnected(true);
+        
         _timer.start();
     }
 }
@@ -252,6 +255,9 @@ void Player::stopPlaying() {
                      _audioThread, &QThread::deleteLater);
     _injector.clear();
     _audioThread = NULL;
+    
+    // Turn off fake faceshift connection
+    _avatar->setForceFaceshiftConnected(false);
     
     qDebug() << "Recorder::stopPlaying()";
 }

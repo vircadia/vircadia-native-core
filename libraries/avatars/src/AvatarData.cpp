@@ -135,9 +135,9 @@ QByteArray AvatarData::toByteArray() {
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);
-        if (_forceFaceshiftConnected) {
-            _headData->_isFaceshiftConnected = true;
-        }
+    }
+    if (_forceFaceshiftConnected) {
+        _headData->_isFaceshiftConnected = true;
     }
     
     QByteArray avatarDataByteArray;
