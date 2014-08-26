@@ -111,6 +111,9 @@ public:
     /// Returns a reference to the standard HeightfieldMaterialDataPointer "heightfieldMaterial" attribute.
     const AttributePointer& getHeightfieldMaterialAttribute() const { return _heightfieldMaterialAttribute; } 
     
+    /// Returns a reference to the standard VoxelMaterialDataPointer "voxelMaterial" attribute.
+    const AttributePointer& getVoxelMaterialAttribute() const { return _voxelMaterialAttribute; } 
+    
 private:
 
     static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
@@ -129,6 +132,7 @@ private:
     AttributePointer _heightfieldAttribute;
     AttributePointer _heightfieldColorAttribute;
     AttributePointer _heightfieldMaterialAttribute;
+    AttributePointer _voxelMaterialAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -655,12 +659,17 @@ typedef QExplicitlySharedDataPointer<VoxelMaterialData> VoxelMaterialDataPointer
 class VoxelMaterialData : public DataBlock {
 public:
     
-    VoxelMaterialData(const QByteArray& contents);
+    VoxelMaterialData(const QByteArray& contents, int size,
+        const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
     VoxelMaterialData(Bitstream& in, int bytes);
     VoxelMaterialData(Bitstream& in, int bytes, const VoxelMaterialDataPointer& reference);
     
     const QByteArray& getContents() const { return _contents; }
 
+    int getSize() const { return _size; }
+
+    const QVector<SharedObjectPointer>& getMaterials() const { return _materials; }
+    
     void write(Bitstream& out);
     void writeDelta(Bitstream& out, const VoxelMaterialDataPointer& reference);
 
@@ -669,6 +678,25 @@ private:
     void read(Bitstream& in, int bytes);
     
     QByteArray _contents;
+    int _size;
+    QVector<SharedObjectPointer> _materials;
+};
+
+/// An attribute that stores voxel materials.
+class VoxelMaterialAttribute : public InlineAttribute<VoxelMaterialDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE VoxelMaterialAttribute(const QString& name = QString());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };
 
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).

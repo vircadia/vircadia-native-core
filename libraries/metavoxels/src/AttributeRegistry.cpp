@@ -52,7 +52,8 @@ AttributeRegistry::AttributeRegistry() :
     _spannerMaskAttribute(registerAttribute(new FloatAttribute("spannerMask"))),
     _heightfieldAttribute(registerAttribute(new HeightfieldAttribute("heightfield"))),
     _heightfieldColorAttribute(registerAttribute(new HeightfieldColorAttribute("heightfieldColor"))),
-    _heightfieldMaterialAttribute(registerAttribute(new HeightfieldMaterialAttribute("heightfieldMaterial"))) {
+    _heightfieldMaterialAttribute(registerAttribute(new HeightfieldMaterialAttribute("heightfieldMaterial"))),
+    _voxelMaterialAttribute(registerAttribute(new VoxelMaterialAttribute("voxelMaterial"))) {
     
     // our baseline LOD threshold is for voxels; spanners and heightfields are a different story
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
@@ -62,6 +63,9 @@ AttributeRegistry::AttributeRegistry() :
     _heightfieldAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     _heightfieldColorAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     _heightfieldMaterialAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
+    
+    const float VOXEL_LOD_THRESHOLD_MULTIPLIER = 32.0f;
+    _voxelMaterialAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
 }
 
 static QScriptValue qDebugFunction(QScriptContext* context, QScriptEngine* engine) {
@@ -1431,8 +1435,39 @@ void VoxelColorData::read(Bitstream& in, int bytes) {
     
 }
 
-VoxelMaterialData::VoxelMaterialData(const QByteArray& contents) :
-    _contents(contents) {
+const int VOXEL_MATERIAL_HEADER_SIZE = sizeof(qint32) * 6;
+
+static QByteArray encodeVoxelMaterial(int offsetX, int offsetY, int offsetZ,
+        int sizeX, int sizeY, int sizeZ, const QByteArray& contents) {
+    QByteArray inflated(VOXEL_MATERIAL_HEADER_SIZE, 0);
+    qint32* header = (qint32*)inflated.data();
+    *header++ = offsetX;
+    *header++ = offsetY;
+    *header++ = offsetZ;
+    *header++ = sizeX;
+    *header++ = sizeY;
+    *header++ = sizeZ;
+    inflated.append(contents);
+    return qCompress(inflated);
+}
+
+static QByteArray decodeVoxelMaterial(const QByteArray& encoded, int& offsetX, int& offsetY, int& offsetZ,
+        int& sizeX, int& sizeY, int& sizeZ) {
+    QByteArray inflated = qUncompress(encoded);
+    const qint32* header = (const qint32*)inflated.constData();
+    offsetX = *header++;
+    offsetY = *header++;
+    offsetZ = *header++;
+    sizeX = *header++;
+    sizeY = *header++;
+    sizeZ = *header++;
+    return inflated.mid(HEIGHTFIELD_MATERIAL_HEADER_SIZE);
+}
+
+VoxelMaterialData::VoxelMaterialData(const QByteArray& contents, int size, const QVector<SharedObjectPointer>& materials) :
+    _contents(contents),
+    _size(size),
+    _materials(materials) {
 }
 
 VoxelMaterialData::VoxelMaterialData(Bitstream& in, int bytes) {
@@ -1446,34 +1481,174 @@ VoxelMaterialData::VoxelMaterialData(Bitstream& in, int bytes, const VoxelMateri
     }
     QMutexLocker locker(&reference->getEncodedDeltaMutex());
     reference->setEncodedDelta(in.readAligned(bytes));
+    in.readDelta(_materials, reference->getMaterials());
     reference->setDeltaData(DataBlockPointer(this));
     _contents = reference->getContents();
+    _size = reference->getSize();
+    
+    int offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ;
+    QByteArray delta = decodeVoxelMaterial(reference->getEncodedDelta(), offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ);
+    if (delta.isEmpty()) {
+        return;
+    }
+    if (offsetX == 0) {
+        _contents = delta;
+        _size = sizeX;
+        return;
+    }
+    int minX = offsetX - 1;
+    int minY = offsetY - 1;
+    int minZ = offsetZ - 1;
+    const char* src = delta.constData();
+    int size2 = _size * _size;
+    char* planeDest = _contents.data() + minZ * size2 + minY * _size + minX;
+    for (int z = 0; z < sizeZ; z++, planeDest += size2) {
+        char* dest = planeDest;
+        for (int y = 0; y < sizeY; y++, src += sizeX, dest += _size) {
+            memcpy(dest, src, sizeX);
+        }
+    }
 }
 
 void VoxelMaterialData::write(Bitstream& out) {
     QMutexLocker locker(&_encodedMutex);
     if (_encoded.isEmpty()) {
-        
+        _encoded = encodeVoxelMaterial(0, 0, 0, _size, _size, _size, _contents);
     }
     out << _encoded.size();
     out.writeAligned(_encoded);
+    out << _materials;
 }
 
 void VoxelMaterialData::writeDelta(Bitstream& out, const VoxelMaterialDataPointer& reference) {
-    if (!reference || reference->getContents().size() != _contents.size()) {
+    if (!reference || reference->getSize() != _size) {
         write(out);
         return;
     }
     QMutexLocker locker(&reference->getEncodedDeltaMutex());
     if (reference->getEncodedDelta().isEmpty() || reference->getDeltaData() != this) {
-        
+        int minX = _size, minY = _size, minZ = _size;
+        int maxX = -1, maxY = -1, maxZ = -1;
+        const char* src = _contents.constData();
+        const char* ref = reference->getContents().constData();
+        for (int z = 0; z < _size; z++) {
+            bool differenceZ = false;
+            for (int y = 0; y < _size; y++) {
+                bool differenceY = false;
+                for (int x = 0; x < _size; x++) {
+                    if (*src++ != *ref++) {
+                        minX = qMin(minX, x);
+                        maxX = qMax(maxX, x);
+                        differenceY = differenceZ = true;
+                    }
+                }
+                if (differenceY) {
+                    minY = qMin(minY, y);
+                    maxY = qMax(maxY, y);
+                }
+            }
+            if (differenceZ) {
+                minZ = qMin(minZ, z);
+                maxZ = qMax(maxZ, z);
+            }
+        }
+        QByteArray delta;
+        int sizeX = 0, sizeY = 0, sizeZ = 0;
+        if (maxX >= minX) {
+            sizeX = maxX - minX + 1;
+            sizeY = maxY - minY + 1;
+            sizeZ = maxZ - minZ + 1;
+            delta = QByteArray(sizeX * sizeY * sizeZ, 0);
+            char* dest = delta.data();
+            int size2 = _size * _size;
+            const char* planeSrc = _contents.constData() + minZ * size2 + minY * _size + minX;
+            for (int z = 0; z < sizeZ; z++, planeSrc += size2) {
+                src = planeSrc;
+                for (int y = 0; y < sizeY; y++, src += _size, dest += sizeX) {
+                    memcpy(dest, src, sizeX);
+                }
+            }
+        }
+        reference->setEncodedDelta(encodeVoxelMaterial(minX + 1, minY + 1, minZ + 1, sizeX, sizeY, sizeZ, delta));
+        reference->setDeltaData(DataBlockPointer(this));
     }
     out << reference->getEncodedDelta().size();
     out.writeAligned(reference->getEncodedDelta());
+    out.writeDelta(_materials, reference->getMaterials());
 }
 
 void VoxelMaterialData::read(Bitstream& in, int bytes) {
-    
+    int offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ;
+    _contents = decodeVoxelMaterial(_encoded = in.readAligned(bytes), offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ);
+    _size = sizeX;
+    in >> _materials;
+}
+
+VoxelMaterialAttribute::VoxelMaterialAttribute(const QString& name) :
+    InlineAttribute<VoxelMaterialDataPointer>(name) {
+}
+
+void VoxelMaterialAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(VoxelMaterialDataPointer*)&value = VoxelMaterialDataPointer();
+    } else {
+        *(VoxelMaterialDataPointer*)&value = VoxelMaterialDataPointer(new VoxelMaterialData(in, size));
+    }
+}
+
+void VoxelMaterialAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    VoxelMaterialDataPointer data = decodeInline<VoxelMaterialDataPointer>(value);
+    if (data) {
+        data->write(out);
+    } else {
+        out << 0;
+    }
+}
+
+void VoxelMaterialAttribute::readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(VoxelMaterialDataPointer*)&value = VoxelMaterialDataPointer(); 
+    } else {
+        *(VoxelMaterialDataPointer*)&value = VoxelMaterialDataPointer(new VoxelMaterialData(
+            in, size, decodeInline<VoxelMaterialDataPointer>(reference)));
+    }
+}
+
+void VoxelMaterialAttribute::writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    VoxelMaterialDataPointer data = decodeInline<VoxelMaterialDataPointer>(value);
+    if (data) {
+        data->writeDelta(out, decodeInline<VoxelMaterialDataPointer>(reference));
+    } else {
+        out << 0;
+    }
+}
+
+bool VoxelMaterialAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    int maxSize = 0;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        VoxelMaterialDataPointer pointer = decodeInline<VoxelMaterialDataPointer>(children[i]);
+        if (pointer) {
+            maxSize = qMax(maxSize, pointer->getContents().size());
+        }
+    }
+    *(VoxelMaterialDataPointer*)&parent = VoxelMaterialDataPointer();
+    return maxSize == 0;
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,
