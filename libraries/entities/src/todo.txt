@@ -34,6 +34,18 @@ Model properties:
 // REQUIRED TO DO:
 
 
+    1) Import/Export Models - verify it works. /copy/paste??
+        22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
+        22b) Local Entities Overlay - from Local Models Overlay
+        22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
+             bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {...
+        DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
+        DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
+
+
+    2) verify shadows work
+
+
     1) random crashes on moving (I think things going out of bounds???)
 
     2) some jutter with moving entities
@@ -50,15 +62,6 @@ Model properties:
     
     8) EntityTreeRenderer::clearModelsCache()
     
-    5) Import/Export Models - verify it works. /copy/paste??
-        22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
-        22b) Local Entities Overlay - from Local Models Overlay
-        22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
-             bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {...
-        DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
-        DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
-
-    8) verify shadows work
     
     9) Handle the ID -> UUID swap in old files to new files
     
