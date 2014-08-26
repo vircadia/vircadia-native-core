@@ -221,11 +221,15 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
         const unsigned char* dataAt = data;
 
         // id
-        //      TODO: this is where we should handle reading old style IDs and converting them into UUIDs... maybe we just discard them
-        //      and create the new ID from that...
-        memcpy(&_id, dataAt, sizeof(_id));
-        dataAt += sizeof(_id);
-        bytesRead += sizeof(_id);
+        // this old bitstream format had 32bit IDs. They are obsolete and need to be replaced with our new UUID
+        // format. We can simply read and ignore the old ID since they should not be repeated. This code should only
+        // run on loading from an old file.
+        quint32 oldID;
+        memcpy(&oldID, dataAt, sizeof(oldID));
+        dataAt += sizeof(oldID);
+        bytesRead += sizeof(oldID);
+        _id = QUuid::createUuid();
+        //qDebug() << "ModelEntityItem::oldVersionReadEntityDataFromBuffer()... oldID=" << oldID << "new _id=" << _id;
 
         // _lastUpdated
         memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));

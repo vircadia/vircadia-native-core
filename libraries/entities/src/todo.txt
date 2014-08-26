@@ -43,7 +43,7 @@ Model properties:
         DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
 
 
-    2) verify shadows work
+
 
 
     1) random crashes on moving (I think things going out of bounds???)
@@ -63,7 +63,6 @@ Model properties:
     8) EntityTreeRenderer::clearModelsCache()
     
     
-    9) Handle the ID -> UUID swap in old files to new files
     
    10) Test models -> attachments logic
    
@@ -257,4 +256,7 @@ Model properties:
 //             Sit somewhere
 //             Move model with another avatar.
 //             Observe first avatar moving.   
-   
+// SOLVED -- 2) verify shadows work
+// SOLVED -- 9) Handle the ID -> UUID swap in old files to new files - verify old files read correctly
+
+
