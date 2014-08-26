@@ -107,7 +107,7 @@ int Referential::packExtraData(unsigned char *destinationBuffer) const {
 
 int Referential::unpackExtraData(const unsigned char* sourceBuffer, int size) {
     _extraDataBuffer.clear();
-    _extraDataBuffer.setRawData(reinterpret_cast<const char*>(sourceBuffer), size);
+    _extraDataBuffer.append(reinterpret_cast<const char*>(sourceBuffer), size);
     return size;
 }
 
