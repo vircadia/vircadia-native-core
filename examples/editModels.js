@@ -1661,7 +1661,7 @@ function handeMenuEvent(menuItem){
             array.push({ label: "X:", value: properties.position.x.toFixed(decimals) });
             array.push({ label: "Y:", value: properties.position.y.toFixed(decimals) });
             array.push({ label: "Z:", value: properties.position.z.toFixed(decimals) });
-            var angles = Quat.safeEulerAngles(properties.modelRotation);
+            var angles = Quat.safeEulerAngles(properties.rotation);
             array.push({ label: "Pitch:", value: angles.x.toFixed(decimals) });
             array.push({ label: "Yaw:", value: angles.y.toFixed(decimals) });
             array.push({ label: "Roll:", value: angles.z.toFixed(decimals) });
@@ -1699,7 +1699,7 @@ function handeMenuEvent(menuItem){
             angles.x = array[index++].value;
             angles.y = array[index++].value;
             angles.z = array[index++].value;
-            properties.modelRotation = Quat.fromVec3Degrees(angles);
+            properties.rotation = Quat.fromVec3Degrees(angles);
             properties.radius = array[index++].value / 2;
 
             properties.velocity.x = array[index++].value;
