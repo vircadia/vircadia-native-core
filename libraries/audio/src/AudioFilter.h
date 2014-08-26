@@ -95,7 +95,7 @@ public:
 // Implements common base class interface for all Audio Filter Objects
 //
 template< class T >
-class AudioFilterBase {
+class AudioFilter {
 
 protected:
     
@@ -119,11 +119,11 @@ public:
     //
     // ctor/dtor
     //
-    AudioFilterBase() {
+    AudioFilter() {
         setParameters(0.,0.,0.,0.);
     }
     
-    ~AudioFilterBase() {
+    ~AudioFilter() {
     }
     
     //
@@ -156,7 +156,7 @@ public:
 // Implements a low-shelf filter using a biquad 
 //
 class AudioFilterLSF : 
-public AudioFilterBase< AudioFilterLSF >
+public AudioFilter< AudioFilterLSF >
 {
 public:
     
@@ -164,7 +164,33 @@ public:
     // helpers
     //
     void updateKernel() {
-        // TBD
+        
+        const float a =  _gain;
+        const float aAdd1 = a + 1.0f;
+        const float aSub1 = a - 1.0f;
+        const float omega = TWO_PI * _frequency / _sampleRate;
+        const float aAdd1TimesCosOmega = aAdd1 * cosf(omega);
+        const float aSub1TimesCosOmega = aSub1 * cosf(omega);
+        const float alpha = 0.5f * sinf(omega) / _slope;
+        const float zeta = 2.0f * sqrtf(a) * alpha;
+        /*
+        b0 =    A*( (A+1) - (A-1)*cos(w0) + 2*sqrt(A)*alpha )
+        b1 =  2*A*( (A-1) - (A+1)*cos(w0)                   )
+        b2 =    A*( (A+1) - (A-1)*cos(w0) - 2*sqrt(A)*alpha )
+        a0 =        (A+1) + (A-1)*cos(w0) + 2*sqrt(A)*alpha
+        a1 =   -2*( (A-1) + (A+1)*cos(w0)                   )
+        a2 =        (A+1) + (A-1)*cos(w0) - 2*sqrt(A)*alpha
+        */
+        const float b0 = +1.0f * (aAdd1 - aSub1TimesCosOmega + zeta) * a;
+        const float b1 = +2.0f * (aSub1 - aAdd1TimesCosOmega + ZERO) * a;
+        const float b2 = +1.0f * (aAdd1 - aSub1TimesCosOmega - zeta) * a;
+        const float a0 = +1.0f * (aAdd1 + aSub1TimesCosOmega + zeta);
+        const float a1 = -2.0f * (aSub1 + aAdd1TimesCosOmega + ZERO);
+        const float a2 = +1.0f * (aAdd1 + aSub1TimesCosOmega - zeta);
+        
+        const float normA0 = 1.0f / a0;
+
+        _kernel.setParameters(b0 * normA0, b1 * normA0 , b2 * normA0, a1 * normA0, a2 * normA0);
     }
 };
 
@@ -172,7 +198,7 @@ public:
 // Implements a hi-shelf filter using a biquad 
 //
 class AudioFilterHSF : 
-public AudioFilterBase< AudioFilterHSF >
+public AudioFilter< AudioFilterHSF >
 {
 public:
     
@@ -180,7 +206,33 @@ public:
     // helpers
     //
     void updateKernel() {
-        // TBD
+        
+        const float a =  _gain;
+        const float aAdd1 = a + 1.0f;
+        const float aSub1 = a - 1.0f;
+        const float omega = TWO_PI * _frequency / _sampleRate;
+        const float aAdd1TimesCosOmega = aAdd1 * cosf(omega);
+        const float aSub1TimesCosOmega = aSub1 * cosf(omega);
+        const float alpha = 0.5f * sinf(omega) / _slope;
+        const float zeta = 2.0f * sqrtf(a) * alpha;
+        /*
+         b0 =    A*( (A+1) + (A-1)*cos(w0) + 2*sqrt(A)*alpha )
+         b1 = -2*A*( (A-1) + (A+1)*cos(w0)                   )
+         b2 =    A*( (A+1) + (A-1)*cos(w0) - 2*sqrt(A)*alpha )
+         a0 =        (A+1) - (A-1)*cos(w0) + 2*sqrt(A)*alpha
+         a1 =    2*( (A-1) - (A+1)*cos(w0)                   )
+         a2 =        (A+1) - (A-1)*cos(w0) - 2*sqrt(A)*alpha
+         */
+        const float b0 = +1.0f * (aAdd1 + aSub1TimesCosOmega + zeta) * a;
+        const float b1 = -2.0f * (aSub1 + aAdd1TimesCosOmega + ZERO) * a;
+        const float b2 = +1.0f * (aAdd1 + aSub1TimesCosOmega - zeta) * a;
+        const float a0 = +1.0f * (aAdd1 - aSub1TimesCosOmega + zeta);
+        const float a1 = +2.0f * (aSub1 - aAdd1TimesCosOmega + ZERO);
+        const float a2 = +1.0f * (aAdd1 - aSub1TimesCosOmega - zeta);
+        
+        const float normA0 = 1.0f / a0;
+        
+        _kernel.setParameters(b0 * normA0, b1 * normA0 , b2 * normA0, a1 * normA0, a2 * normA0);
     }
 };
 
@@ -188,7 +240,7 @@ public:
 // Implements a single-band parametric EQ using a biquad "peaking EQ" configuration
 //
 class AudioFilterPEQ : 
-    public AudioFilterBase< AudioFilterPEQ >
+    public AudioFilter< AudioFilterPEQ >
 {
 public:
     
@@ -197,26 +249,30 @@ public:
     //
     void updateKernel() {
         
-        const float a       =  _gain;
-        const float omega   =  TWO_PI * _frequency / _sampleRate;
-        const float alpha   =  0.5f * sinf(omega) / _slope;
-        
+        const float a = _gain;
+        const float omega = TWO_PI * _frequency / _sampleRate;
+        const float cosOmega = cosf(omega);
+        const float alpha = 0.5f * sinf(omega) / _slope;
+        const float alphaMulA = alpha * a;
+        const float alphaDivA = alpha / a;
         /*
-         a0 =   1 + alpha*A
-         a1 =  -2*cos(w0)
-         a2 =   1 - alpha*A
+         b0 =   1 + alpha*A
          b1 =  -2*cos(w0)
-         b2 =   1 - alpha/A
+         b2 =   1 - alpha*A
+         a0 =   1 + alpha/A
+         a1 =  -2*cos(w0)
+         a2 =   1 - alpha/A
          */
-        const float a0      =  1.0f + (alpha * a);
-        const float a1      = -2.0f * cosf(omega);
-        const float a2      =  1.0f - (alpha * a);
-        const float b1      =  a1;
-        const float b2      =  1.0f - (alpha / a);
+        const float b0 = +1.0f + alphaMulA;
+        const float b1 = -2.0f * cosOmega;
+        const float b2 = +1.0f - alphaMulA;
+        const float a0 = +1.0f + alphaDivA;
+        const float a1 = -2.0f * cosOmega;
+        const float a2 = +1.0f - alphaDivA;
         
-        const float scale   =  1.0f / (1.0f + (alpha / a));
+        const float normA0 = 1.0f / a0;
         
-        _kernel.setParameters(a0 * scale, a1 * scale, a2 * scale, b1 * scale, b2 * scale);
+        _kernel.setParameters(b0 * normA0, b1 * normA0 , b2 * normA0, a1 * normA0, a2 * normA0);
     }
 };
 

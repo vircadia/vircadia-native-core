@@ -275,7 +275,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
         glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
         if (relativePosition.z < 0) {  // if the source is behind us
             
-            AudioFilterPEQ1s& penumbraFilter = streamToAdd->getFilter();
+            AudioFilterHSF1s& penumbraFilter = streamToAdd->getFilter();
 
             // calculate penumbra angle
             float headPenumbraAngle = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
@@ -292,10 +292,11 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
             float penumbraFilterFrequency;
             float penumbraFilterSlope;
             
-            // calculate the updated gain
-            penumbraFilterGain = normalizedHeadPenumbraAngle; // Note this will be tuned - consider this only a crude-first pass at correlating gain with penumbra angle.
-            penumbraFilterFrequency = 2000.0f;
-            penumbraFilterSlope = 1.0f; // gentle slope
+            // calculate the updated gain.  this will be tuned over time.
+            // consider this only a crude-first pass at correlating gain, freq and slope with penumbra angle.
+            penumbraFilterGain = 0.71f * (normalizedHeadPenumbraAngle + 0.71f);  // [1.0,0.71]
+            penumbraFilterFrequency = 4000.0f; // constant frequency
+            penumbraFilterSlope = 0.71f; // constant slope
             
             qDebug() << "penumbra gain=" << penumbraFilterGain << ", penumbraAngle=" << normalizedHeadPenumbraAngle;
 
