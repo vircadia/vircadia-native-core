@@ -57,7 +57,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     bool drawAsModel = hasModel();
 
     glm::vec3 position = getPosition() * (float)TREE_SCALE;
-qDebug() << "RenderableModelEntityItem::render() _position=" << _position << "QThread::currentThread()=" << QThread::currentThread();
     float radius = getRadius() * (float)TREE_SCALE;
     float size = getSize() * (float)TREE_SCALE;
     

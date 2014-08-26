@@ -34,18 +34,6 @@ Model properties:
 // REQUIRED TO DO:
 
 
-    7) Referentials -- basics are working... performance/jutter
-   
-            For sitting points and referentials you can kill two birds with one stone.
-            Put this model in world: http://highfidelity-public.s3-us-west-1.amazonaws.com/ozan/theater.fst
-            Launch sit.js
-            See sitting points
-            Sit somewhere
-            Move model with another avatar.
-            Observe first avatar moving.   
-   
-
-
     1) random crashes on moving (I think things going out of bounds???)
 
     2) some jutter with moving entities
@@ -258,3 +246,12 @@ Model properties:
 // SOLVED -- 1) verify lots of models in single element works
 //              -- repro case - run editModelsExample.js -- create 10 models in the same octree element
 // SOLVED -- 6) support sitpoints and referentials....
+// SOLVED -- 7) Referentials -- working as well as master
+//             For sitting points and referentials you can kill two birds with one stone.
+//             Put this model in world: http://highfidelity-public.s3-us-west-1.amazonaws.com/ozan/theater.fst
+//             Launch sit.js
+//             See sitting points
+//             Sit somewhere
+//             Move model with another avatar.
+//             Observe first avatar moving.   
+   

@@ -383,10 +383,6 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         return; // exit early
     }
 
-    if (renderMode != SHADOW_RENDER_MODE) {
-        qDebug() << "MyAvatar::render() position=" << getPosition() / (float)TREE_SCALE << " QThread::currentThread()=" << QThread::currentThread();
-    }
-
     Avatar::render(cameraPosition, renderMode);
     
     // don't display IK constraints in shadow mode
