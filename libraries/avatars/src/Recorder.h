@@ -162,8 +162,6 @@ private:
     QSharedPointer<AudioInjector> _injector;
     AudioInjectorOptions _options;
     
-    glm::quat _originalHeadOrientation;
-    
     AvatarData* _avatar;
     QThread* _audioThread;
 };

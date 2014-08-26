@@ -153,7 +153,8 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
-
+    
+    
     // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
@@ -792,6 +793,9 @@ void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
         QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
                                   "setJointRotations", Qt::BlockingQueuedConnection,
                                   Q_ARG(QVector<glm::quat>, jointRotations));
+    }
+    if (_jointData.size() < jointRotations.size()) {
+        _jointData.resize(jointRotations.size());
     }
     for (int i = 0; i < jointRotations.size(); ++i) {
         if (i < _jointData.size()) {

@@ -229,11 +229,6 @@ void Player::startPlaying() {
         _audioThread->start();
         QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
         
-        // Save head orientation
-        if (_avatar->getHeadData()) {
-            _originalHeadOrientation = _avatar->getHeadOrientation();
-        }
-        
         _timer.start();
     }
 }
@@ -257,11 +252,6 @@ void Player::stopPlaying() {
                      _audioThread, &QThread::deleteLater);
     _injector.clear();
     _audioThread = NULL;
-    
-    // Restore head orientation
-    if (_avatar->getHeadData()) {
-        _avatar->setHeadOrientation(_originalHeadOrientation);
-    }
     
     qDebug() << "Recorder::stopPlaying()";
 }
@@ -307,9 +297,9 @@ void Player::play() {
         head->setLeanSideways(_recording->getFrame(_currentFrame).getLeanSideways());
         head->setLeanForward(_recording->getFrame(_currentFrame).getLeanForward());
         glm::vec3 eulers = glm::degrees(safeEulerAngles(_recording->getFrame(_currentFrame).getHeadRotation()));
-        head->setBasePitch(eulers.x);
-        head->setBaseYaw(eulers.y);
-        head->setBaseRoll(eulers.z);
+        head->setFinalPitch(eulers.x);
+        head->setFinalYaw(eulers.y);
+        head->setFinalRoll(eulers.z);
     }
     
     _options.setPosition(_avatar->getPosition());
