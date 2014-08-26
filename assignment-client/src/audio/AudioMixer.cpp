@@ -288,7 +288,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
                 normalizedHeadPenumbraAngle = EPSILON;
             }
             
-            const float SQUARE_ROOT_OF_TWO = 0.71f;
+            const float SQUARE_ROOT_OF_TWO_OVER_TWO = 0.71f;
             const float FILTER_CUTOFF_FREQUENCY_HZ = 4000.0f;
             float penumbraFilterGain;
             float penumbraFilterFrequency;
@@ -296,9 +296,9 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
 
             // calculate the updated gain.  this will be tuned over time.
             // consider this only a crude-first pass at correlating gain, freq and slope with penumbra angle.
-            penumbraFilterGain = SQUARE_ROOT_OF_TWO * (normalizedHeadPenumbraAngle + SQUARE_ROOT_OF_TWO);  // [1.0,0.71]
+            penumbraFilterGain = SQUARE_ROOT_OF_TWO_OVER_TWO * (normalizedHeadPenumbraAngle + SQUARE_ROOT_OF_TWO_OVER_TWO);
             penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
-            penumbraFilterSlope = SQUARE_ROOT_OF_TWO; // constant slope
+            penumbraFilterSlope = SQUARE_ROOT_OF_TWO_OVER_TWO; // constant slope
             
             qDebug() << "penumbra gain=" << penumbraFilterGain << ", penumbraAngle=" << normalizedHeadPenumbraAngle;
 
