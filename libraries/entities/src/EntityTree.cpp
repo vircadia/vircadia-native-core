@@ -1049,6 +1049,7 @@ void EntityTree::dumpTree() {
 }
 
 void EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z) {
+qDebug() << "EntityTree::sendEntities(" << x << ", " << y << ", " << z << ")";
     SendEntitiesOperationArgs args;
     args.packetSender = packetSender;
     args.localTree = localTree;
@@ -1061,13 +1062,28 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
+    qDebug() << "EntityTree::sendEntitiesOperation()";
+    qDebug() << "   element box:" << entityTreeElement->getAACube();
+
     const QList<EntityItem*>&  entities = entityTreeElement->getEntities();
     for (int i = 0; i < entities.size(); i++) {
+        qDebug() << "   entity[" << i <<"].id" << entities[i]->getEntityItemID();
         EntityItemID newID(NEW_ENTITY, EntityItemID::getNextCreatorTokenID(), false);
+
+        qDebug() << "   entity[" << i <<"].newID" << newID;
+
         EntityItemProperties properties = entities[i]->getProperties();
-        properties.setPosition(properties.getPosition() + args->root);
+        qDebug() << "   entity[" << i <<"].properties...";
+        properties.debugDump();
+
+        properties.resetPosition(properties.getPosition() + args->root);
+        qDebug() << "    after resetPosition()....";
+        properties.debugDump();
+        
+        properties.markAllChanged();
 
         // queue the packet
+        qDebug() << "    calling queueEditEntityMessage....";
         args->packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, newID, properties);
 
         // It would be nice to also update the local tree...

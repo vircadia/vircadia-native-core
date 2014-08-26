@@ -117,6 +117,7 @@ public:
     void setType(EntityTypes::EntityType type) { _type = type; }
     /// set position in meter units
     void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
+    void resetPosition(const glm::vec3& value) { _position = value; } /// changes the position without marking it as changed
     void setRadius(float value) { _radius = value; _radiusChanged = true; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; _rotationChanged = true; }
 
@@ -193,6 +194,7 @@ public:
     bool glowLevelChanged() const { return _glowLevelChanged; }
 
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
+    void markAllChanged();
 
 private:
     void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }

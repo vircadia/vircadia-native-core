@@ -431,6 +431,9 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
 bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
 
+
+qDebug() << "EntityItemProperties::encodeEntityEditPacket()....";
+
     OctreePacketData packetData(false, sizeIn); // create a packetData object to add out packet details too.
 
     bool success = true; // assume the best
@@ -522,6 +525,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         if (headerFits) {
             bool successPropertyFits;
 
+qDebug() << "    HEADER FITS.....";
+
             propertyFlags -= PROP_LAST_ITEM; // clear the last item for now, we may or may not set it as the actual item
 
             // These items would go here once supported....
@@ -534,6 +539,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 LevelDetails propertyLevel = packetData.startLevel();
                 successPropertyFits = packetData.appendPosition(properties.getPosition());
                 if (successPropertyFits) {
+
+qDebug() << "    PROP_POSITION FITS.....";
+
                     propertyFlags |= PROP_POSITION;
                     propertiesDidntFit -= PROP_POSITION;
                     propertyCount++;
@@ -692,6 +700,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 LevelDetails propertyLevel = packetData.startLevel();
                 successPropertyFits = packetData.appendValue(properties.getModelURL());
                 if (successPropertyFits) {
+
+qDebug() << "    PROP_MODEL_URL FITS.....";
+
                     propertyFlags |= PROP_MODEL_URL;
                     propertiesDidntFit -= PROP_MODEL_URL;
                     propertyCount++;
@@ -1149,4 +1160,26 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     }
 
     return true;
+}
+
+
+void EntityItemProperties::markAllChanged() {
+    _positionChanged = true;
+    _radiusChanged = true;
+    _rotationChanged = true;
+    _massChanged = true;
+    _velocityChanged = true;
+    _gravityChanged = true;
+    _dampingChanged = true;
+    _lifetimeChanged = true;
+    _scriptChanged = true;
+
+    _colorChanged = true;
+    _modelURLChanged = true;
+    _animationURLChanged = true;
+    _animationIsPlayingChanged = true;
+    _animationFrameIndexChanged = true;
+    _animationFPSChanged = true;
+    _glowLevelChanged = true;
+
 }

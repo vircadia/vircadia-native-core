@@ -1,14 +1,16 @@
 // REQUIRED:
 
     1) Import/Export Models - verify it works. /copy/paste??
-        22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // XXX ??? Do we need this????
+
         22b) Local Entities Overlay - from Local Models Overlay
-        22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
-             bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {...
 
         DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
         DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
         DONE -- 22f) Application::exportEntities() tested/works
+        DONE -- 22g) Application::pasteEntities() tested/works
+        DONE -- 22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
+                     bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {...
+        RESOLVED -- 22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // Do we need this? NO!
 
     2) Test models -> attachments logic
     

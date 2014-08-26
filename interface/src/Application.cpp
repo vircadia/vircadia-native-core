@@ -1643,6 +1643,7 @@ _entityClipboard.dumpTree();
 }
 
 void Application::pasteEntities(float x, float y, float z) {
+qDebug() << "Application::pasteEntities(" << x << ", " << y << ", " << z << ")";
     _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
