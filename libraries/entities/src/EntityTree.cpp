@@ -114,7 +114,6 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 
 
 EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
-
     // NOTE: This method is used in the client and the server tree. In the client, it's possible to create EntityItems 
     // that do not yet have known IDs. In the server tree however we don't want to have entities without known IDs.
     if (getIsServer() && !entityID.isKnownID) {
@@ -438,7 +437,7 @@ bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*> foundEntities) {
+void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*>& foundEntities) {
     FindEntitiesInCubeArgs args(cube);
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInCubeOperation, &args);
@@ -1049,9 +1048,10 @@ void EntityTree::dumpTree() {
     recurseTreeWithOperator(&theOperator);
 }
 
-void EntityTree::sendEntities(EntityEditPacketSender* packetSender, float x, float y, float z) {
+void EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.packetSender = packetSender;
+    args.localTree = localTree;
     args.root = glm::vec3(x, y, z);
     recurseTreeWithOperation(sendEntitiesOperation, &args);
     packetSender->releaseQueuedMessages();
@@ -1061,8 +1061,25 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
-    // TODO: implement this!!
-    /**
+    const QList<EntityItem*>&  entities = entityTreeElement->getEntities();
+    for (int i = 0; i < entities.size(); i++) {
+        EntityItemID newID(NEW_ENTITY, EntityItemID::getNextCreatorTokenID(), false);
+        EntityItemProperties properties = entities[i]->getProperties();
+        properties.setPosition(properties.getPosition() + args->root);
+
+        // queue the packet
+        args->packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, newID, properties);
+
+        // It would be nice to also update the local tree...
+        //if (_entityTree) {
+        //    _entityTree->lockForWrite();
+        //    _entityTree->addEntity(id, properties);
+        //    _entityTree->unlock();
+        //}
+    }
+    
+    
+    /** --- OLD WAY ---
     const QList<ModelItem>& modelList = modelTreeElement->getModels();
 
     for (int i = 0; i < modelList.size(); i++) {

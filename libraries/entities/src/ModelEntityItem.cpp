@@ -26,14 +26,8 @@ EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityI
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 { 
-    //qDebug() << "ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
     _type = EntityTypes::Model;     
-
-    //qDebug() << "ModelEntityItem::ModelEntityItem() properties.getModelURL()=" << properties.getModelURL();
-    //qDebug() << "ModelEntityItem::ModelEntityItem() calling setProperties()";
-    setProperties(properties);
-    //qDebug() << "ModelEntityItem::ModelEntityItem() getModelURL()=" << getModelURL();
-    
+    setProperties(properties, true);
     _animationFrameIndex = 0.0f;
 }
 
@@ -64,11 +58,8 @@ EntityItemProperties ModelEntityItem::getProperties() const {
 }
 
 bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    //qDebug() << "ModelEntityItem::setProperties()...";
     bool somethingChanged = false;
-    
     somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
-
     if (properties._colorChanged || forceCopy) {
         setColor(properties._color);
         somethingChanged = true;
@@ -588,5 +579,13 @@ void ModelEntityItem::update(const quint64& updateTime) {
     } else {
         _lastAnimated = now;
     }
+}
+
+void ModelEntityItem::debugDump() const {
+    qDebug() << "ModelEntityItem id:" << getEntityItemID();
+    qDebug() << "    edited ago:" << getEditedAgo();
+    qDebug() << "    position:" << getPosition() * (float)TREE_SCALE;
+    qDebug() << "    radius:" << getRadius() * (float)TREE_SCALE;
+    qDebug() << "    model URL:" << getModelURL();
 }
 

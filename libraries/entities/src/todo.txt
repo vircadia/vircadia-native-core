@@ -5,10 +5,15 @@
         22b) Local Entities Overlay - from Local Models Overlay
         22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
              bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {...
+
         DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
         DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
+        DONE -- 22f) Application::exportEntities() tested/works
 
     2) Test models -> attachments logic
+    
+    3) Don't allow models to be "edited" to be outside of domain. clamp them to the domain.
+    4) if velocity sends a model out of the domain - delete it
 
 
     3) random crashes on moving (I think things going out of bounds???)

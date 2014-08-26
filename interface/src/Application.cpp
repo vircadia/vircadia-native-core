@@ -1527,6 +1527,7 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     QVector<EntityItem*> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
                                 y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), entities);
+
     if (entities.size() > 0) {
         glm::vec3 root(x, y, z);
         EntityTree exportTree;
@@ -1534,11 +1535,9 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
         for (int i = 0; i < entities.size(); i++) {
             EntityItemProperties properties = entities.at(i)->getProperties();
             EntityItemID id = entities.at(i)->getEntityItemID();
-            id.isKnownID = false;
             properties.setPosition(properties.getPosition() - root);
             exportTree.addEntity(id, properties);
         }
-
         exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
     } else {
         qDebug() << "No models were selected";
@@ -1632,16 +1631,19 @@ void Application::importVoxels() {
 }
 
 bool Application::importEntities(const QString& filename) {
+qDebug() << "Application::importEntities()...";
     _entityClipboard.eraseAllOctreeElements();
     bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
+qDebug() << "    success=" << success;
     if (success) {
+_entityClipboard.dumpTree();
         _entityClipboard.reaverageOctreeElements();
     }
     return success;
 }
 
 void Application::pasteEntities(float x, float y, float z) {
-    _entityClipboard.sendEntities(&_entityEditSender, x, y, z);
+    _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {

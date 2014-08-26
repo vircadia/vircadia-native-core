@@ -45,6 +45,7 @@ public:
 
     virtual void update(const quint64& now);
     virtual SimuationState getSimulationState() const;
+    virtual void debugDump() const;
 
 
     // TODO: Move these to subclasses, or other appropriate abstraction

@@ -192,6 +192,8 @@ public:
     bool animationFPSChanged() const { return _animationFPSChanged; }
     bool glowLevelChanged() const { return _glowLevelChanged; }
 
+    void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
+
 private:
     void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
 

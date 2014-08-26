@@ -29,7 +29,7 @@ SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const Entit
         EntityItem(entityItemID, properties) 
 { 
     _type = EntityTypes::Sphere;
-    setProperties(properties);
+    setProperties(properties, true);
 }
 
 EntityItemProperties SphereEntityItem::getProperties() const {

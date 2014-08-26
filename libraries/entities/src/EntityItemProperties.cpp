@@ -68,10 +68,15 @@ EntityItemProperties::EntityItemProperties() :
 
 void EntityItemProperties::debugDump() const {
     qDebug() << "EntityItemProperties...";
+    qDebug() << "    _type=" << EntityTypes::getEntityTypeName(_type);
     qDebug() << "   _id=" << _id;
     qDebug() << "   _idSet=" << _idSet;
     qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
     qDebug() << "   _radius=" << _radius;
+    qDebug() << "   _modelURL=" << _modelURL;
+    qDebug() << "   changed properties...";
+    EntityPropertyFlags props = getChangedProperties();
+    props.debugDumpBits();
 }
 
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {

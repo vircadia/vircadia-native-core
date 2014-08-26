@@ -209,7 +209,7 @@ var ExportMenu = function(opts) {
         self.setScale(self._scale *= 2);
     }
 
-    this.exportEntites = function() {
+    this.exportEntities = function() {
         var x = self._position.x;
         var y = self._position.y;
         var z = self._position.z;
@@ -217,7 +217,7 @@ var ExportMenu = function(opts) {
         var filename = "models__" + Window.location.hostname + "__" + x + "_" + y + "_" + z + "_" + s + "__.svo";
         filename = Window.save("Select where to save", filename, "*.svo")
         if (filename) {
-            var success = Clipboard.exportEntites(filename, x, y, z, s);
+            var success = Clipboard.exportEntities(filename, x, y, z, s);
             if (!success) {
                 Window.alert("Export failed: no models found in selected area.");
             }
@@ -243,7 +243,7 @@ var ExportMenu = function(opts) {
         if (clickedOverlay == locationButton) {
             self.showPositionPrompt();
         } else if (clickedOverlay == exportButton) {
-            self.exportEntites();
+            self.exportEntities();
         } else if (clickedOverlay == cancelButton) {
             self.close();
         } else if (clickedOverlay == scaleOverlay) {

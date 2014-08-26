@@ -109,7 +109,7 @@ public:
     } SimuationState;
     
     virtual SimuationState getSimulationState() const;
-    void debugDump() const;
+    virtual void debugDump() const;
 
     // similar to assignment/copy, but it handles keeping lifetime accurate
     void copyChangedProperties(const EntityItem& other);

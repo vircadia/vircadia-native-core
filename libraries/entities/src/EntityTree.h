@@ -33,6 +33,7 @@ public:
 class SendEntitiesOperationArgs {
 public:
     glm::vec3 root;
+    EntityTree* localTree;
     EntityEditPacketSender* packetSender;
 };
 
@@ -92,7 +93,7 @@ public:
     /// \param cube the query cube
     /// \param foundEntities[out] vector of non-const EntityItem*
     /// \remark Side effect: any initial contents in entities will be lost
-    void findEntities(const AACube& cube, QVector<EntityItem*> foundEntities);
+    void findEntities(const AACube& cube, QVector<EntityItem*>& foundEntities);
 
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
@@ -119,7 +120,7 @@ public:
     void debugDumpMap();
     void dumpTree();
 
-    void sendEntities(EntityEditPacketSender* packetSender, float x, float y, float z);
+    void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
     void changeEntityState(EntityItem* const entity, EntityItem::SimuationState oldState, EntityItem::SimuationState newState);
 

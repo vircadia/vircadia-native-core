@@ -547,27 +547,12 @@ void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& fou
         // TODO: decide whether to replace entityCube-cube query with sphere-cube (requires a square root
         // but will be slightly more accurate).
         entityCube.setBox(entity->getPosition() - glm::vec3(radius), 2.f * radius);
-        if (entityCube.touches(_cube)) {
+        if (entityCube.touches(box)) {
             foundEntities.push_back(entity);
         }
         ++entityItr;
     }
 }
-
-/*
-const EntityItem* EntityTreeElement::getEntityWithID(uint32_t id) const {
-    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num entities per elemen is small?)
-    const EntityItem* foundEntity = NULL;
-    uint16_t numberOfEntities = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntities; i++) {
-        if ((*_entityItems)[i]->getID() == id) {
-            foundEntity = (*_entityItems)[i];
-            break;
-        }
-    }
-    return foundEntity;
-}
-*/
 
 const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) const {
     const EntityItem* foundEntity = NULL;

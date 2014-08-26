@@ -27,7 +27,7 @@ BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemP
         EntityItem(entityItemID, properties) 
 { 
     _type = EntityTypes::Box;
-    setProperties(properties);
+    setProperties(properties, true);
 }
 
 EntityItemProperties BoxEntityItem::getProperties() const {
