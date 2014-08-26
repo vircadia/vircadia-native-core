@@ -926,10 +926,10 @@ void HeightfieldColorData::set(const QImage& image) {
     memcpy(_contents.data(), image.constBits(), _contents.size());
 }
 
-const int MATERIAL_HEADER_SIZE = sizeof(qint32) * 4;
+const int HEIGHTFIELD_MATERIAL_HEADER_SIZE = sizeof(qint32) * 4;
 
-static QByteArray encodeMaterial(int offsetX, int offsetY, int width, int height, const QByteArray& contents) {
-    QByteArray inflated(MATERIAL_HEADER_SIZE, 0);
+static QByteArray encodeHeightfieldMaterial(int offsetX, int offsetY, int width, int height, const QByteArray& contents) {
+    QByteArray inflated(HEIGHTFIELD_MATERIAL_HEADER_SIZE, 0);
     qint32* header = (qint32*)inflated.data();
     *header++ = offsetX;
     *header++ = offsetY;
@@ -939,14 +939,14 @@ static QByteArray encodeMaterial(int offsetX, int offsetY, int width, int height
     return qCompress(inflated);
 }
 
-static QByteArray decodeMaterial(const QByteArray& encoded, int& offsetX, int& offsetY, int& width, int& height) {
+static QByteArray decodeHeightfieldMaterial(const QByteArray& encoded, int& offsetX, int& offsetY, int& width, int& height) {
     QByteArray inflated = qUncompress(encoded);
     const qint32* header = (const qint32*)inflated.constData();
     offsetX = *header++;
     offsetY = *header++;
     width = *header++;
     height = *header++;
-    return inflated.mid(MATERIAL_HEADER_SIZE);
+    return inflated.mid(HEIGHTFIELD_MATERIAL_HEADER_SIZE);
 }
 
 HeightfieldMaterialData::HeightfieldMaterialData(const QByteArray& contents, const QVector<SharedObjectPointer>& materials) :
@@ -970,7 +970,7 @@ HeightfieldMaterialData::HeightfieldMaterialData(Bitstream& in, int bytes, const
     _contents = reference->getContents();
     
     int offsetX, offsetY, width, height;
-    QByteArray delta = decodeMaterial(reference->getEncodedDelta(), offsetX, offsetY, width, height);
+    QByteArray delta = decodeHeightfieldMaterial(reference->getEncodedDelta(), offsetX, offsetY, width, height);
     if (delta.isEmpty()) {
         return;
     }
@@ -992,7 +992,7 @@ void HeightfieldMaterialData::write(Bitstream& out) {
     QMutexLocker locker(&_encodedMutex);
     if (_encoded.isEmpty()) {
         int size = glm::sqrt((float)_contents.size());
-        _encoded = encodeMaterial(0, 0, size, size, _contents);
+        _encoded = encodeHeightfieldMaterial(0, 0, size, size, _contents);
     }
     out << _encoded.size();
     out.writeAligned(_encoded);
@@ -1037,7 +1037,7 @@ void HeightfieldMaterialData::writeDelta(Bitstream& out, const HeightfieldMateri
                 memcpy(dest, src, width);
             }
         }
-        reference->setEncodedDelta(encodeMaterial(minX + 1, minY + 1, width, height, delta));
+        reference->setEncodedDelta(encodeHeightfieldMaterial(minX + 1, minY + 1, width, height, delta));
         reference->setDeltaData(DataBlockPointer(this));
     }
     out << reference->getEncodedDelta().size();
@@ -1047,7 +1047,7 @@ void HeightfieldMaterialData::writeDelta(Bitstream& out, const HeightfieldMateri
 
 void HeightfieldMaterialData::read(Bitstream& in, int bytes) {
     int offsetX, offsetY, width, height;
-    _contents = decodeMaterial(_encoded = in.readAligned(bytes), offsetX, offsetY, width, height);
+    _contents = decodeHeightfieldMaterial(_encoded = in.readAligned(bytes), offsetX, offsetY, width, height);
     in >> _materials;
 }
 
