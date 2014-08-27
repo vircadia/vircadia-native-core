@@ -215,7 +215,7 @@ class Octree : public QObject {
     Q_OBJECT
 public:
     Octree(bool shouldReaverage = false);
-    ~Octree();
+    virtual ~Octree();
 
     /// Your tree class must implement this to create the correct element type
     virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) = 0;
@@ -243,7 +243,7 @@ public:
 
     OctreeElement* getRoot() { return _rootElement; }
 
-    virtual void eraseAllOctreeElements();
+    virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
     void processRemoveOctreeElementsBitstream(const unsigned char* bitstream, int bufferSizeBytes);
     void readBitstreamToTree(const unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);

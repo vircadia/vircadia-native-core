@@ -20,15 +20,23 @@ EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage) {
     _rootElement = createNewElement();
 }
 
+EntityTree::~EntityTree() {
+    eraseAllOctreeElements(false);
+}
+
 EntityTreeElement* EntityTree::createNewElement(unsigned char * octalCode) {
     EntityTreeElement* newElement = new EntityTreeElement(octalCode);
     newElement->setTree(this);
     return newElement;
 }
 
-void EntityTree::eraseAllOctreeElements() {
+void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
+    // this would be a good place to clean up our entities...
+    foreach (EntityTreeElement* element, _entityToElementMap) {
+        element->cleanupEntities();
+    }
     _entityToElementMap.clear();
-    Octree::eraseAllOctreeElements();
+    Octree::eraseAllOctreeElements(createNewRoot);
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {

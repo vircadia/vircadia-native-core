@@ -578,6 +578,15 @@ EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id)
     return foundEntity;
 }
 
+void EntityTreeElement::cleanupEntities() {
+    uint16_t numberOfEntities = _entityItems->size();
+    for (uint16_t i = 0; i < numberOfEntities; i++) {
+        EntityItem* entity = (*_entityItems)[i];
+        delete entity;
+    }
+    _entityItems->clear();
+}
+
 bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     bool foundEntity = false;
     uint16_t numberOfEntities = _entityItems->size();

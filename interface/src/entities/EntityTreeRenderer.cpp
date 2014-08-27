@@ -42,17 +42,10 @@ EntityTreeRenderer::EntityTreeRenderer() :
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    clearModelsCache();
 }
 
 void EntityTreeRenderer::clear() {
     OctreeRenderer::clear();
-    clearModelsCache();
-}
-
-void EntityTreeRenderer::clearModelsCache() {
-    // TODO: we need to implement this.... how do we want to handle this?
-    qDebug() << "EntityTreeRenderer::clearModelsCache()...";
 }
 
 void EntityTreeRenderer::init() {

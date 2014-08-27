@@ -51,9 +51,8 @@ Octree::Octree(bool shouldReaverage) :
 }
 
 Octree::~Octree() {
-    // delete the children of the root element
-    // this recursively deletes the tree
-    delete _rootElement;
+    // This will delete all children, don't create a new root in this case.
+    eraseAllOctreeElements(false);
 }
 
 // Recurses voxel tree calling the RecurseOctreeOperation function for each element.
@@ -488,9 +487,13 @@ void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* element, void* extr
     }
 }
 
-void Octree::eraseAllOctreeElements() {
+void Octree::eraseAllOctreeElements(bool createNewRoot) {
     delete _rootElement; // this will recurse and delete all children
-    _rootElement = createNewElement();
+    if (createNewRoot) {
+        _rootElement = createNewElement();
+    } else {
+        _rootElement = NULL;
+    }
     _isDirty = true;
 }
 

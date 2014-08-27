@@ -1619,14 +1619,23 @@ function handeMenuEvent(menuItem){
             print("  Delete Entity.... leftController.entityID="+ leftController.entityID);
             Entities.deleteEntity(leftController.entityID);
             leftController.grabbing = false;
+            if (glowedEntityID.id == leftController.entityID.id) {
+                glowedEntityID = { id: -1, isKnownID: false };
+            }
         } else if (rightController.grabbing) {
             print("  Delete Entity.... rightController.entityID="+ rightController.entityID);
             Entities.deleteEntity(rightController.entityID);
             rightController.grabbing = false;
+            if (glowedEntityID.id == rightController.entityID.id) {
+                glowedEntityID = { id: -1, isKnownID: false };
+            }
         } else if (entitySelected) {
             print("  Delete Entity.... selectedEntityID="+ selectedEntityID);
             Entities.deleteEntity(selectedEntityID);
             entitySelected = false;
+            if (glowedEntityID.id == selectedEntityID.id) {
+                glowedEntityID = { id: -1, isKnownID: false };
+            }
         } else {
             print("  Delete Entity.... not holding...");
         }

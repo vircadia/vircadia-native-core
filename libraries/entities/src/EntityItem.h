@@ -40,8 +40,7 @@ public:
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    
-    virtual ~EntityItem();
+    virtual ~EntityItem() { }
 
     // ID and EntityItemID related methods
     QUuid getID() const { return _id; }

@@ -28,6 +28,11 @@ EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, con
     return new RenderableModelEntityItem(entityID, properties);
 }
 
+RenderableModelEntityItem::~RenderableModelEntityItem() {
+    delete _model;
+    _model = NULL;
+};
+
 bool RenderableModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     QString oldModelURL = getModelURL();
     bool somethingChanged = ModelEntityItem::setProperties(properties, forceCopy);

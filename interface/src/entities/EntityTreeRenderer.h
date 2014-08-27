@@ -63,9 +63,6 @@ public:
     void renderEntityTypeModel(EntityItem* entity, RenderArgs* args);
     
     static QThread* getMainThread();
-
-protected:
-    void clearModelsCache();
 };
 
 #endif // hifi_EntityTreeRenderer_h

@@ -1,23 +1,7 @@
 // REQUIRED:
 
-
-    8) Make sure EntityItems are deleted...
-            delete all owned entity items on the deletion of the EntityTreeElement?
-            delete all entity items on deletion of the tree?
-            
-            cases:
-                PASSED -- 1) test UI delete entity (on client)
-                PASSED -- 2) test UI delete entity (on server)
-                PASSED --- 7) test UI delete on other client
-                
-                3) test client shutdown
-                4) test server shutdown (on server) - aka domain restart
-                5) test server shutdown (on client)
-                6) test change domains
-
-
     
-    9) EntityTreeRenderer::clearModelsCache()
+    10) Lifetime??
 
 
     7) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
@@ -231,7 +215,7 @@
 // SOLVED -- 2) verify shadows work
 // SOLVED -- 9) Handle the ID -> UUID swap in old files to new files - verify old files read correctly
 // SOLVED -- 2) Test models -> attachments logic --- TESTED/WORKS
-// SOLVED --     1) Import/Export Models - verify it works. /copy/paste??
+// SOLVED -- 1) Import/Export Models - verify it works. /copy/paste??
 //        DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
 //        DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
 //        DONE -- 22f) Application::exportEntities() tested/works
@@ -243,6 +227,19 @@
 //                          Note: there's a bug in production related to the overlay correctly rendering when
 //                          the original (non-translated positions) of the models are out of view. This is a bug
 //                          not introduced byt this PR.
+// SOLVED -- 8) Make sure EntityItems are deleted...
+//            delete all entity items on deletion of the tree?
+//            cases:
+//                PASSED -- 1) test UI delete entity (on client)
+//                PASSED -- 2) test UI delete entity (on server)
+//                PASSED --- 7) test UI delete on other client
+//                PASSED --- 3) test client shutdown
+//                PASSED --- 4) test server shutdown (on server)
+//                PASSED ---   a) click X on domain page
+//                PASSED ---   b) shutdown domain server
+//                PASSED --- 6) test change domains
+//                SAME AS PRODUCTION - 5) test server shutdown (on client) - models aren't deleted when model server goes away
+// SOLVED -- 9) EntityTreeRenderer::clearModelsCache() - Model instance cleanup handled in ~RenderableModelEntityItem
 
 
 

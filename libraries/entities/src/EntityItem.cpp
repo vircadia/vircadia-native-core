@@ -57,21 +57,12 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _lifetime = DEFAULT_LIFETIME;
 }
 
-static int totalLiveEntities = 0;
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
     _type = EntityTypes::Unknown;
     _lastEdited = 0;
     _lastUpdated = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
-    
-    totalLiveEntities++;
-    qDebug() << "*********** ENTITY ITEM BEING CREATED ************* this=" << this << " totalLiveEntities=" << totalLiveEntities;
-}
-
-EntityItem::~EntityItem() {
-    totalLiveEntities--;
-    qDebug() << "*********** ENTITY ITEM BEING DELETED ************* this=" << this << " totalLiveEntities=" << totalLiveEntities;
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {

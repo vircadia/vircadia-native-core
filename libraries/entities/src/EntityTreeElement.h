@@ -141,6 +141,7 @@ public:
 
     EntityItem* getEntityWithEntityItemID(const EntityItemID& id);
 
+    void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
     bool removeEntityWithEntityItemID(const EntityItemID& id);
     bool removeEntityItem(const EntityItem* entity);
 

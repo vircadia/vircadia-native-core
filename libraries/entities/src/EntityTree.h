@@ -42,6 +42,7 @@ class EntityTree : public Octree {
     Q_OBJECT
 public:
     EntityTree(bool shouldReaverage = false);
+    virtual ~EntityTree();
 
     /// Implements our type specific root element factory
     virtual EntityTreeElement* createNewElement(unsigned char * octalCode = NULL);
@@ -49,7 +50,7 @@ public:
     /// Type safe version of getRoot()
     EntityTreeElement* getRoot() { return static_cast<EntityTreeElement*>(_rootElement); }
 
-    virtual void eraseAllOctreeElements();
+    virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
