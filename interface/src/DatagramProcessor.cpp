@@ -48,6 +48,7 @@ void DatagramProcessor::processDatagrams() {
             // only process this packet if we have a match on the packet version
             switch (packetTypeForPacket(incomingPacket)) {
                 case PacketTypeMixedAudio:
+                case PacketTypeSilentAudioFrame:
                     QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToStream", Qt::QueuedConnection,
                                               Q_ARG(QByteArray, incomingPacket));
                     break;

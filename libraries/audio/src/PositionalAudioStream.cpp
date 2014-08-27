@@ -21,16 +21,16 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 
-PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, bool dynamicJitterBuffers,
-    int staticDesiredJitterBufferFrames, int maxFramesOverDesired) :
+PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, const InboundAudioStream::Settings& settings) :
     InboundAudioStream(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-    AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, dynamicJitterBuffers, staticDesiredJitterBufferFrames, maxFramesOverDesired),
+    AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, settings),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
     _shouldLoopbackForNode(false),
     _isStereo(isStereo),
     _lastPopOutputTrailingLoudness(0.0f),
+    _lastPopOutputLoudness(0.0f),
     _listenerUnattenuatedZone(NULL)
 {
     // constant defined in AudioMixer.h.  However, we don't want to include this here
@@ -39,18 +39,23 @@ PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, b
     _filter.initialize(SAMPLE_RATE, (NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)) / 2);
 }
 
-void PositionalAudioStream::updateLastPopOutputTrailingLoudness() {
-    float lastPopLoudness = _ringBuffer.getFrameLoudness(_lastPopOutput);
+void PositionalAudioStream::resetStats() {
+    _lastPopOutputTrailingLoudness = 0.0f;
+    _lastPopOutputLoudness = 0.0f;
+}
+
+void PositionalAudioStream::updateLastPopOutputLoudnessAndTrailingLoudness() {
+    _lastPopOutputLoudness = _ringBuffer.getFrameLoudness(_lastPopOutput);
 
     const int TRAILING_AVERAGE_FRAMES = 100;
     const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
     const float LOUDNESS_EPSILON = 0.000001f;
 
-    if (lastPopLoudness >= _lastPopOutputTrailingLoudness) {
-        _lastPopOutputTrailingLoudness = lastPopLoudness;
+    if (_lastPopOutputLoudness >= _lastPopOutputTrailingLoudness) {
+        _lastPopOutputTrailingLoudness = _lastPopOutputLoudness;
     } else {
-        _lastPopOutputTrailingLoudness = (_lastPopOutputTrailingLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * lastPopLoudness);
+        _lastPopOutputTrailingLoudness = (_lastPopOutputTrailingLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * _lastPopOutputLoudness);
 
         if (_lastPopOutputTrailingLoudness < LOUDNESS_EPSILON) {
             _lastPopOutputTrailingLoudness = 0;
