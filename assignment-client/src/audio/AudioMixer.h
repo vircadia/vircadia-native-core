@@ -39,18 +39,7 @@ public slots:
     
     void sendStatsPacket();
 
-#if 0
-<<<<<<< HEAD
-    static bool getUseDynamicJitterBuffers() { return _useDynamicJitterBuffers; }
-    static int getStaticDesiredJitterBufferFrames() { return _staticDesiredJitterBufferFrames; }
-    static int getMaxFramesOverDesired() { return _maxFramesOverDesired; }
-    
-=======
-#endif
     static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }
-#if 0
->>>>>>> 7a8a8684d6f8c9956ca7e4f81eb8064b8dece58e
-#endif
     
 private:
     /// adds one stream to the mix for a listening node
@@ -83,10 +72,8 @@ private:
     static InboundAudioStream::Settings _streamSettings;
 
     static bool _printStreamStats;
-
     static bool _enableFilter;
     
-    quint64 _lastSendAudioStreamStatsTime;
     quint64 _lastPerSecondCallbackTime;
 
     bool _sendAudioStreamStats;
