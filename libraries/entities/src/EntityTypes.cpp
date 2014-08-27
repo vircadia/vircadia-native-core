@@ -104,7 +104,7 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
 
         EntityItemID tempEntityID;
         EntityItemProperties tempProperties;
-        return new ModelEntityItem(tempEntityID, tempProperties);
+        return constructEntityItem(Model, tempEntityID, tempProperties);
     }
 
     // Header bytes

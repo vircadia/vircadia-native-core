@@ -1631,19 +1631,15 @@ void Application::importVoxels() {
 }
 
 bool Application::importEntities(const QString& filename) {
-qDebug() << "Application::importEntities()...";
     _entityClipboard.eraseAllOctreeElements();
     bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
-qDebug() << "    success=" << success;
     if (success) {
-_entityClipboard.dumpTree();
         _entityClipboard.reaverageOctreeElements();
     }
     return success;
 }
 
 void Application::pasteEntities(float x, float y, float z) {
-qDebug() << "Application::pasteEntities(" << x << ", " << y << ", " << z << ")";
     _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 

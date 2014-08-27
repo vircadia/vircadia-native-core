@@ -186,7 +186,6 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
 
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem* entityItem = entityItems[i];
-
         bool wantDebug = false;
         
         if (wantDebug) {
@@ -205,7 +204,6 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         // TODO: some entity types (like lights) might want to be rendered even
         // when they are outside of the view frustum...
         if (args->_viewFrustum->cubeInFrustum(entityCube) != ViewFrustum::OUTSIDE) {
-
             Glower* glower = NULL;
             if (entityItem->getGlowLevel() > 0.0f) {
                 glower = new Glower(entityItem->getGlowLevel());

@@ -31,9 +31,7 @@ void LocalModelsOverlay::render() {
             Application* app = Application::getInstance();
             glm::vec3 oldTranslation = app->getViewMatrixTranslation();
             app->setViewMatrixTranslation(oldTranslation + _position);
-
             _entityTreeRenderer->render();
-
             Application::getInstance()->setViewMatrixTranslation(oldTranslation);
         } glPopMatrix();
     }

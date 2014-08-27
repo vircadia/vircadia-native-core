@@ -165,9 +165,7 @@ void OctreeRenderer::render(RenderMode renderMode) {
     RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 0, 0, 0 };
     if (_tree) {
         _tree->lockForRead();
-        //qDebug() << "OctreeRenderer::render() tree locked START RENDER RECURSION...";
         _tree->recurseTreeWithOperation(renderOperation, &args);
-        //qDebug() << "OctreeRenderer::render() tree locked ENDED RENDER RECURSION...";
         _tree->unlock();
     }
 }

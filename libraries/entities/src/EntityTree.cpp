@@ -1049,7 +1049,6 @@ void EntityTree::dumpTree() {
 }
 
 void EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z) {
-qDebug() << "EntityTree::sendEntities(" << x << ", " << y << ", " << z << ")";
     SendEntitiesOperationArgs args;
     args.packetSender = packetSender;
     args.localTree = localTree;
@@ -1062,51 +1061,23 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
-    qDebug() << "EntityTree::sendEntitiesOperation()";
-    qDebug() << "   element box:" << entityTreeElement->getAACube();
-
     const QList<EntityItem*>&  entities = entityTreeElement->getEntities();
     for (int i = 0; i < entities.size(); i++) {
-        qDebug() << "   entity[" << i <<"].id" << entities[i]->getEntityItemID();
         EntityItemID newID(NEW_ENTITY, EntityItemID::getNextCreatorTokenID(), false);
-
-        qDebug() << "   entity[" << i <<"].newID" << newID;
-
         EntityItemProperties properties = entities[i]->getProperties();
-        qDebug() << "   entity[" << i <<"].properties...";
-        properties.debugDump();
+        properties.setPosition(properties.getPosition() + args->root);
+        properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
-        properties.resetPosition(properties.getPosition() + args->root);
-        qDebug() << "    after resetPosition()....";
-        properties.debugDump();
-        
-        properties.markAllChanged();
-
-        // queue the packet
-        qDebug() << "    calling queueEditEntityMessage....";
+        // queue the packet to send to the server
         args->packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, newID, properties);
 
-        // It would be nice to also update the local tree...
-        //if (_entityTree) {
-        //    _entityTree->lockForWrite();
-        //    _entityTree->addEntity(id, properties);
-        //    _entityTree->unlock();
-        //}
+        // also update the local tree instantly (note: this is not our tree, but an alternate tree)
+        if (args->localTree) {
+            args->localTree->lockForWrite();
+            args->localTree->addEntity(newID, properties);
+            args->localTree->unlock();
+        }
     }
-    
-    
-    /** --- OLD WAY ---
-    const QList<ModelItem>& modelList = modelTreeElement->getModels();
-
-    for (int i = 0; i < modelList.size(); i++) {
-        uint32_t creatorTokenID = ModelItem::getNextCreatorTokenID();
-        ModelItemID id(NEW_MODEL, creatorTokenID, false);
-        ModelItemProperties properties;
-        properties.copyFromNewModelItem(modelList.at(i));
-        properties.setPosition(properties.getPosition() + args->root);
-        args->packetSender->queueModelEditMessage(PacketTypeModelAddOrEdit, id, properties);
-    }
-    **/
 
     return true;
 }

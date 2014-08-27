@@ -18,8 +18,7 @@
 
 
 EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    //qDebug() << "ModelEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
-    return new  ModelEntityItem(entityID, properties);
+    return new ModelEntityItem(entityID, properties);
 }
 
 // our non-pure virtual subclass for now...

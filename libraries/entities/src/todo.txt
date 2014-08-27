@@ -1,20 +1,17 @@
 // REQUIRED:
 
-    1) Import/Export Models - verify it works. /copy/paste??
+    7) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
+       doesn't include the extra exists bits will break something.
 
-        22b) Local Entities Overlay - from Local Models Overlay
+   14) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
 
-        DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
-        DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
-        DONE -- 22f) Application::exportEntities() tested/works
-        DONE -- 22g) Application::pasteEntities() tested/works
-        DONE -- 22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
-                     bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {...
-        RESOLVED -- 22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // Do we need this? NO!
-
+    8) memory leaks???
+    
+    9) EntityTreeRenderer::clearModelsCache()
+    
     3) Don't allow models to be "edited" to be outside of domain. clamp them to the domain.
-    4) if velocity sends a model out of the domain - delete it
 
+    4) if velocity sends a model out of the domain - delete it
 
     3) random crashes on moving (I think things going out of bounds???)
 
@@ -25,18 +22,9 @@
     
     6) clear all entities when changing domains?
     
-    7) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
-       doesn't include the extra exists bits will break something.
-
-    8) memory leaks???
-    
-    9) EntityTreeRenderer::clearModelsCache()
-    
    11) What happens if the edit properties don't fit in a single message MTU???
 
    13) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
-
-   14) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
 
    15) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
 
@@ -226,8 +214,18 @@
 // SOLVED -- 2) verify shadows work
 // SOLVED -- 9) Handle the ID -> UUID swap in old files to new files - verify old files read correctly
 // SOLVED -- 2) Test models -> attachments logic --- TESTED/WORKS
-    
-
+// SOLVED --     1) Import/Export Models - verify it works. /copy/paste??
+//        DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
+//        DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
+//        DONE -- 22f) Application::exportEntities() tested/works
+//        DONE -- 22g) Application::pasteEntities() tested/works
+//        DONE -- 22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
+//                     bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {...
+//        RESOLVED -- 22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // Do we need this? NO!
+//        WORKS AS PRODUCTION -- 22b) Local Entities Overlay - from Local Models Overlay
+//                          Note: there's a bug in production related to the overlay correctly rendering when
+//                          the original (non-translated positions) of the models are out of view. This is a bug
+//                          not introduced byt this PR.
 
 
 
