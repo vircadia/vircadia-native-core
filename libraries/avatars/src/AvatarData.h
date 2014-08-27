@@ -303,7 +303,7 @@ public slots:
     qint64 playerElapsed();
     qint64 playerLength();
     void loadRecording(QString filename);
-    void startPlaying();
+    void startPlaying(bool fromCurrentPosition = false);
     void play();
     void stopPlaying();
     

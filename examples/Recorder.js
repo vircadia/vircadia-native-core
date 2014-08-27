@@ -153,7 +153,7 @@ function mousePressEvent(event) {
   		if (MyAvatar.isPlaying()) {
   			MyAvatar.stopPlaying();
   		} else {
-		  	MyAvatar.startPlaying();
+		  	MyAvatar.startPlaying(true);
 		  }
   	}
   } else if (saveIcon === toolBar.clicked(clickedOverlay)) {

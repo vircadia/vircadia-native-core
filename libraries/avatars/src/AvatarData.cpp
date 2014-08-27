@@ -638,16 +638,17 @@ void AvatarData::loadRecording(QString filename) {
     _player->loadFromFile(filename);
 }
 
-void AvatarData::startPlaying() {
+void AvatarData::startPlaying(bool fromCurrentPosition) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "startPlaying", Qt::BlockingQueuedConnection);
+        QMetaObject::invokeMethod(this, "startPlaying", Qt::BlockingQueuedConnection,
+                                  Q_ARG(bool, fromCurrentPosition));
         return;
     }
     if (!_player) {
         _player = PlayerPointer(new Player(this));
     }
-    
-    _player->startPlaying();
+    qDebug() << "AvatarData::startPlaying():" << fromCurrentPosition;
+    _player->startPlaying(fromCurrentPosition);
 }
 
 void AvatarData::play() {

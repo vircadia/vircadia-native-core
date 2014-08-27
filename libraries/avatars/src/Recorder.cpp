@@ -165,7 +165,8 @@ void Recorder::record(char* samples, int size) {
 Player::Player(AvatarData* avatar) :
     _recording(new Recording()),
     _avatar(avatar),
-    _audioThread(NULL)
+    _audioThread(NULL),
+    _startingScale(1.0f)
 {
     _timer.invalidate();
     _options.setLoop(false);
@@ -215,7 +216,7 @@ float Player::getLeanForward() {
     return _recording->getFrame(_currentFrame).getLeanForward();
 }
 
-void Player::startPlaying() {
+void Player::startPlaying(bool fromCurrentPosition) {
     if (_recording && _recording->getFrameNumber() > 0) {
         qDebug() << "Recorder::startPlaying()";
         _currentFrame = 0;
@@ -231,6 +232,16 @@ void Player::startPlaying() {
         
         // Fake faceshift connection
         _avatar->setForceFaceshiftConnected(true);
+        
+        if (fromCurrentPosition) {
+            _startingPosition = _avatar->getPosition();
+            _startingRotation = _avatar->getOrientation();
+            _startingScale = _avatar->getTargetScale();
+        } else {
+            _startingPosition = _recording->getFrame(0).getTranslation();
+            _startingRotation = _recording->getFrame(0).getRotation();
+            _startingScale = _recording->getFrame(0).getScale();
+        }
         
         _timer.start();
     }
@@ -283,20 +294,25 @@ void Player::play() {
         return;
     }
     
-    if (_currentFrame == 0) {
-        _avatar->setPosition(_recording->getFrame(_currentFrame).getTranslation());
-        _avatar->setOrientation(_recording->getFrame(_currentFrame).getRotation());
-        _avatar->setTargetScale(_recording->getFrame(_currentFrame).getScale());
-        _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
-    } else {
-        _avatar->setPosition(_recording->getFrame(0).getTranslation() +
-                             _recording->getFrame(_currentFrame).getTranslation());
-        _avatar->setOrientation(_recording->getFrame(0).getRotation() *
-                                _recording->getFrame(_currentFrame).getRotation());
-        _avatar->setTargetScale(_recording->getFrame(0).getScale() *
-                                _recording->getFrame(_currentFrame).getScale());
-        _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
+    glm::vec3 positionOffset;
+    glm::quat rotationOffset;
+    float scaleOffset = 1.0f;
+    
+    if (_currentFrame > 0) {
+        positionOffset = _startingPosition;
+        rotationOffset = _startingRotation;
+        scaleOffset = _startingScale;
     }
+    
+    _avatar->setPosition(positionOffset +
+                         glm::inverse(_recording->getFrame(0).getRotation()) * rotationOffset *
+                         _recording->getFrame(_currentFrame).getTranslation());
+    _avatar->setOrientation(rotationOffset *
+                            _recording->getFrame(_currentFrame).getRotation());
+    _avatar->setTargetScale(scaleOffset *
+                            _recording->getFrame(_currentFrame).getScale());
+    _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
+    
     HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
     if (head) {
         head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
