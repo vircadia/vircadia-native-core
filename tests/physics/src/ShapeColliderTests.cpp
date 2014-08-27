@@ -683,81 +683,93 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
 void ShapeColliderTests::sphereTouchesAACubeFaces() {
     CollisionList collisions(16);
     
-    glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
-    float cubeSide = 2.34f;
-
     float sphereRadius = 1.13f;
     glm::vec3 sphereCenter(0.0f);
-    SphereShape sphere(sphereRadius, sphereCenter);
 
-    QVector<glm::vec3> axes;
-    axes.push_back(xAxis);
-    axes.push_back(-xAxis);
-    axes.push_back(yAxis);
-    axes.push_back(-yAxis);
-    axes.push_back(zAxis);
-    axes.push_back(-zAxis);
+    glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
+    float cubeSide = 4.34f;
 
-    for (int i = 0; i < axes.size(); ++i) {
-        glm::vec3 axis = axes[i];
-        // outside
-        {
-            collisions.clear();
-            float overlap = 0.25f;
-            float sphereOffset = 0.5f * cubeSide + sphereRadius - overlap;
-            sphereCenter = cubeCenter + sphereOffset * axis;
-            sphere.setTranslation(sphereCenter);
-    
-            if (!ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  axis = " << axis 
-                    << std::endl;
-            }
-            CollisionInfo* collision = collisions[0];
-            if (!collision) {
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: no CollisionInfo. axis = " << axis << std::endl;
-            }
-    
-            glm::vec3 expectedPenetration  = - overlap * axis;
-            if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
-                    << "  expected " << expectedPenetration << "  axis = " << axis << std::endl;
-            }
-    
-            glm::vec3 expectedContact = sphereCenter - sphereRadius * axis;
-            if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
-                    << "  expected " << expectedContact << "  axis = " << axis << std::endl;
-            }
-        }
+    glm::vec3 faceNormals[] = {xAxis, yAxis, zAxis};
+    int numDirections = 3;
 
-        // inside
-        {
-            collisions.clear();
-            float overlap = 1.25f * sphereRadius;
-            float sphereOffset = 0.5f * cubeSide + sphereRadius - overlap;
-            sphereCenter = cubeCenter + sphereOffset * axis;
-            sphere.setTranslation(sphereCenter);
+    for (int i = 0; i < numDirections; ++i) {
+        // loop over both sides of cube positive and negative
+        for (float sign = -1.0f; sign < 2.0f; sign += 2.0f) {
+            glm::vec3 faceNormal = sign * faceNormals[i];
+            // outside
+            {
+                collisions.clear();
+                float overlap = 0.25f * sphereRadius;
+                float parallelOffset = 0.5f * cubeSide + sphereRadius - overlap;
+                float perpOffset = 0.25f * cubeSide;
+                glm::vec3 expectedPenetration  = - overlap * faceNormal;
     
-            if (!ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube." 
-                    << "  axis = " << axis << std::endl;
-            }
-            CollisionInfo* collision = collisions[0];
-            if (!collision) {
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: no CollisionInfo on y-axis."
-                    << "  axis = " << axis << std::endl;
+                // We rotate the position of the sphereCenter about a circle on the cube face so that 
+                // it hits the same face in multiple spots.  The penetration should be invarient for 
+                // all collisions.
+                float delta = TWO_PI / 4.0f;
+                for (float angle = 0; angle < TWO_PI + EPSILON; angle += delta) {
+                    glm::quat rotation = glm::angleAxis(angle, faceNormal);
+                    glm::vec3 perpAxis = rotation * faceNormals[(i + 1) % numDirections];
+    
+                    sphereCenter = cubeCenter + parallelOffset * faceNormal + perpOffset * perpAxis;
+        
+                    CollisionInfo* collision = ShapeCollider::sphereVsAACubeHelper(sphereCenter, sphereRadius, 
+                            cubeCenter, cubeSide, collisions);
+    
+                    if (!collision) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  faceNormal = " << faceNormal 
+                            << std::endl;
+                        break;
+                    }
+            
+                    if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
+                            << "  expected " << expectedPenetration << "  faceNormal = " << faceNormal << std::endl;
+                    }
+    
+                    glm::vec3 expectedContact = sphereCenter - sphereRadius * faceNormal;
+                    if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
+                            << "  expected " << expectedContact << "  faceNormal = " << faceNormal << std::endl;
+                    }
+        
+                    if (collision->getShapeA()) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: collision->_shapeA should be NULL" << std::endl;
+                    }
+                    if (collision->getShapeB()) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: collision->_shapeB should be NULL" << std::endl;
+                    }
+                }
             }
     
-            glm::vec3 expectedPenetration  = - overlap * axis;
-            if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
-                    << "  expected " << expectedPenetration << "  axis = " << axis << std::endl;
-            }
+            // inside
+            {
+                collisions.clear();
+                float overlap = 1.25f * sphereRadius;
+                float sphereOffset = 0.5f * cubeSide + sphereRadius - overlap;
+                sphereCenter = cubeCenter + sphereOffset * faceNormal;
+        
+                CollisionInfo* collision = ShapeCollider::sphereVsAACubeHelper(sphereCenter, sphereRadius, 
+                        cubeCenter, cubeSide, collisions);
     
-            glm::vec3 expectedContact = sphereCenter - sphereRadius * axis;
-            if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
-                    << "  expected " << expectedContact << "  axis = " << axis << std::endl;
+                if (!collision) {
+                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube." 
+                        << "  faceNormal = " << faceNormal << std::endl;
+                    break;
+                }
+        
+                glm::vec3 expectedPenetration  = - overlap * faceNormal;
+                if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
+                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
+                        << "  expected " << expectedPenetration << "  faceNormal = " << faceNormal << std::endl;
+                }
+        
+                glm::vec3 expectedContact = sphereCenter - sphereRadius * faceNormal;
+                if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
+                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
+                        << "  expected " << expectedContact << "  faceNormal = " << faceNormal << std::endl;
+                }
             }
         }
     }
@@ -766,64 +778,133 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
 void ShapeColliderTests::sphereTouchesAACubeEdges() {
     CollisionList collisions(20);
     
-    glm::vec3 cubeCenter(0.0f, 0.0f, 0.0f);
-    float cubeSide = 2.0f;
-
-    float sphereRadius = 1.0f;
+    float sphereRadius = 1.37f;
     glm::vec3 sphereCenter(0.0f);
-    SphereShape sphere(sphereRadius, sphereCenter);
 
-    QVector<glm::vec3> axes;
-    // edges
-    axes.push_back(glm::vec3(0.0f, 1.0f, 1.0f));
-    axes.push_back(glm::vec3(0.0f, 1.0f, -1.0f));
-    axes.push_back(glm::vec3(0.0f, -1.0f, 1.0f));
-    axes.push_back(glm::vec3(0.0f, -1.0f, -1.0f));
-    axes.push_back(glm::vec3(1.0f, 1.0f, 0.0f));
-    axes.push_back(glm::vec3(1.0f, -1.0f, 0.0f));
-    axes.push_back(glm::vec3(-1.0f, 1.0f, 0.0f));
-    axes.push_back(glm::vec3(-1.0f, -1.0f, 0.0f));
-    axes.push_back(glm::vec3(1.0f, 0.0f, 1.0f));
-    axes.push_back(glm::vec3(1.0f, 0.0f, -1.0f));
-    axes.push_back(glm::vec3(-1.0f, 0.0f, 1.0f));
-    axes.push_back(glm::vec3(-1.0f, 0.0f, -1.0f));
-    // and corners
-    axes.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
-    axes.push_back(glm::vec3(1.0f, 1.0f, -1.0f));
-    axes.push_back(glm::vec3(1.0f, -1.0f, 1.0f));
-    axes.push_back(glm::vec3(1.0f, -1.0f, -1.0f));
-    axes.push_back(glm::vec3(-1.0f, 1.0f, 1.0f));
-    axes.push_back(glm::vec3(-1.0f, 1.0f, -1.0f));
-    axes.push_back(glm::vec3(-1.0f, -1.0f, 1.0f));
-    axes.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
+    glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
+    float cubeSide = 2.98f;
 
-    for (int i =0; i < axes.size(); ++i) {
-        glm::vec3 axis = axes[i];
-        float lengthAxis = glm::length(axis);
-        axis /= lengthAxis;
-        float overlap = 0.25f;
-    
-        sphereCenter = cubeCenter + (lengthAxis * 0.5f * cubeSide + sphereRadius - overlap) * axis;
-        sphere.setTranslation(sphereCenter);
-    
-        if (!ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube.  axis = " << axis << std::endl;
+    float overlap = 0.25 * sphereRadius;
+    int numSteps = 5;
+
+    glm::vec3 faceNormals[] = {xAxis, yAxis, zAxis};
+    int numDirections = 3;
+
+    // loop over each face...
+    for (int i = 0; i < numDirections; ++i) {
+        for (float faceSign = -1.0f; faceSign < 2.0f; faceSign += 2.0f) {
+            glm::vec3 faceNormal = faceSign * faceNormals[i];
+
+            // loop over each neighboring face...
+            for (int j = (i + 1) % numDirections; j != i; j = (j + 1) % numDirections) {
+                // Compute the index to the third direction, which points perpendicular to both the face
+                // and the neighbor face.
+                int k = (j + 1) % numDirections;
+                if (k == i) {
+                    k = (i + 1) % numDirections;
+                }
+                glm::vec3 thirdNormal = faceNormals[k];
+
+                for (float neighborSign = -1.0f; neighborSign < 2.0f; neighborSign += 2.0f) {
+                    collisions.clear();
+                    glm::vec3 neighborNormal = neighborSign * faceNormals[j];
+
+                    // combine the face and neighbor normals to get the edge normal
+                    glm::vec3 edgeNormal = glm::normalize(faceNormal + neighborNormal);
+
+                    // Step the sphere along the edge in the direction of thirdNormal, starting at one corner and
+                    // moving to the other.  Test the penetration (invarient) and contact (changing) at each point.
+                    glm::vec3 expectedPenetration  = - overlap * edgeNormal;
+                    float delta = cubeSide / (float)(numSteps - 1);
+                    glm::vec3 startPosition = cubeCenter + (0.5f * cubeSide) * (faceNormal + neighborNormal - thirdNormal);
+                    for (int m = 0; m < numSteps; ++m) {
+                        sphereCenter = startPosition + ((float)m * delta) * thirdNormal + (sphereRadius - overlap) * edgeNormal;
+
+                        CollisionInfo* collision = ShapeCollider::sphereVsAACubeHelper(sphereCenter, sphereRadius, 
+                                cubeCenter, cubeSide, collisions);
+        
+                        if (!collision) {
+                            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube edge."
+                                << "  edgeNormal = " << edgeNormal << std::endl;
+                            break;
+                        }
+                
+                        if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
+                            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
+                                << "  expected " << expectedPenetration << "  edgeNormal = " << edgeNormal << std::endl;
+                        }
+        
+                        glm::vec3 expectedContact = sphereCenter - sphereRadius * edgeNormal;
+                        if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
+                            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
+                                << "  expected " << expectedContact << "  edgeNormal = " << edgeNormal << std::endl;
+                        }
+                    }
+                }
+            }
         }
-        CollisionInfo* collision = collisions[i];
-        if (!collision) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: no CollisionInfo. axis = " << axis << std::endl;
-        }
+    }
+}
+
+void ShapeColliderTests::sphereTouchesAACubeCorners() {
+    CollisionList collisions(20);
     
-        glm::vec3 expectedPenetration  = - overlap * axis;
-        if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
-                << "  expected " << expectedPenetration << "  axis = " << axis << std::endl;
-        }
+    float sphereRadius = 1.37f;
+    glm::vec3 sphereCenter(0.0f);
+
+    glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
+    float cubeSide = 2.98f;
+
+    float overlap = 0.25 * sphereRadius;
+    int numSteps = 5;
+
+    glm::vec3 faceNormals[] = {xAxis, yAxis, zAxis};
+
+    for (float firstSign = -1.0f; firstSign < 2.0f; firstSign += 2.0f) {
+        glm::vec3 firstNormal = firstSign * faceNormals[0];
+        for (float secondSign = -1.0f; secondSign < 2.0f; secondSign += 2.0f) {
+            glm::vec3 secondNormal = secondSign * faceNormals[1];
+            for (float thirdSign = -1.0f; thirdSign < 2.0f; thirdSign += 2.0f) {
+                collisions.clear();
+                glm::vec3 thirdNormal = thirdSign * faceNormals[2];
+
+                // the cornerNormal is the normalized sum of the three faces
+                glm::vec3 cornerNormal = glm::normalize(firstNormal + secondNormal + thirdNormal);
+
+                // compute a direction that is slightly offset from cornerNormal
+                glm::vec3 perpAxis = glm::normalize(glm::cross(cornerNormal, firstNormal));
+                glm::vec3 nearbyAxis = glm::normalize(cornerNormal + 0.1f * perpAxis);
+
+                // swing the sphere on a small cone that starts at the corner and is centered on the cornerNormal
+                float delta = TWO_PI / (float)(numSteps - 1);
+                for (int i = 0; i < numSteps; i++) {
+                    float angle = (float)i * delta;
+                    glm::quat rotation = glm::angleAxis(angle, cornerNormal);
+                    glm::vec3 offsetAxis = rotation * nearbyAxis;
+                    sphereCenter = cubeCenter + (SQUARE_ROOT_OF_3 * 0.5f * cubeSide) * cornerNormal + (sphereRadius - overlap) * offsetAxis;
+ 
+                    CollisionInfo* collision = ShapeCollider::sphereVsAACubeHelper(sphereCenter, sphereRadius, 
+                            cubeCenter, cubeSide, collisions);
     
-        glm::vec3 expectedContact = sphereCenter - sphereRadius * axis;
-        if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
-                << "  expected " << expectedContact << "  axis = " << axis << std::endl;
+                    if (!collision) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube corner."
+                            << "  cornerNormal = " << cornerNormal << std::endl;
+                        break;
+                    }
+            
+                    glm::vec3 expectedPenetration = - overlap * offsetAxis;
+                    if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration 
+                            << "  expected " << expectedPenetration << "  cornerNormal = " << cornerNormal << std::endl;
+                    }
+    
+                    glm::vec3 expectedContact = sphereCenter - sphereRadius * offsetAxis;
+                    if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint 
+                            << "  expected " << expectedContact << "  cornerNormal = " << cornerNormal << std::endl;
+                    }
+                }
+            }
         }
     }
 }
@@ -831,55 +912,113 @@ void ShapeColliderTests::sphereTouchesAACubeEdges() {
 void ShapeColliderTests::sphereMissesAACube() {
     CollisionList collisions(16);
     
+    float sphereRadius = 1.0f;
+    glm::vec3 sphereCenter(0.0f);
+
     glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
     float cubeSide = 2.0f;
 
-    float sphereRadius = 1.0f;
-    glm::vec3 sphereCenter(0.0f);
-    SphereShape sphere(sphereRadius, sphereCenter);
+    glm::vec3 faceNormals[] = {xAxis, yAxis, zAxis};
+    int numDirections = 3;
 
-    float sphereOffset = (0.5f * cubeSide + sphereRadius + 0.25f);
+    float offset = 2.0f * EPSILON;
 
-    // top
-    sphereCenter = cubeCenter + sphereOffset * yAxis;
-    sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
+    // faces
+    for (int i = 0; i < numDirections; ++i) {
+        for (float sign = -1.0f; sign < 2.0f; sign += 2.0f) {
+            glm::vec3 faceNormal = sign * faceNormals[i];
+
+            sphereCenter = cubeCenter + (0.5f * cubeSide + sphereRadius + offset) * faceNormal;
+
+            CollisionInfo* collision = ShapeCollider::sphereVsAACubeHelper(sphereCenter, sphereRadius, 
+                    cubeCenter, cubeSide, collisions);
+
+            if (collision) {
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube face."
+                    << "  faceNormal = " << faceNormal << std::endl;
+            }
+        }
     }
+
+    // edges
+    int numSteps = 5;
+    // loop over each face...
+    for (int i = 0; i < numDirections; ++i) {
+        for (float faceSign = -1.0f; faceSign < 2.0f; faceSign += 2.0f) {
+            glm::vec3 faceNormal = faceSign * faceNormals[i];
+
+            // loop over each neighboring face...
+            for (int j = (i + 1) % numDirections; j != i; j = (j + 1) % numDirections) {
+                // Compute the index to the third direction, which points perpendicular to both the face
+                // and the neighbor face.
+                int k = (j + 1) % numDirections;
+                if (k == i) {
+                    k = (i + 1) % numDirections;
+                }
+                glm::vec3 thirdNormal = faceNormals[k];
+
+                for (float neighborSign = -1.0f; neighborSign < 2.0f; neighborSign += 2.0f) {
+                    collisions.clear();
+                    glm::vec3 neighborNormal = neighborSign * faceNormals[j];
+
+                    // combine the face and neighbor normals to get the edge normal
+                    glm::vec3 edgeNormal = glm::normalize(faceNormal + neighborNormal);
+                    // Step the sphere along the edge in the direction of thirdNormal, starting at one corner and
+                    // moving to the other.  Test the penetration (invarient) and contact (changing) at each point.
+                    float delta = cubeSide / (float)(numSteps - 1);
+                    glm::vec3 startPosition = cubeCenter + (0.5f * cubeSide) * (faceNormal + neighborNormal - thirdNormal);
+                    for (int m = 0; m < numSteps; ++m) {
+                        sphereCenter = startPosition + ((float)m * delta) * thirdNormal + (sphereRadius + offset) * edgeNormal;
+
+                        CollisionInfo* collision = ShapeCollider::sphereVsAACubeHelper(sphereCenter, sphereRadius, 
+                                cubeCenter, cubeSide, collisions);
     
-    // bottom
-    sphereCenter = cubeCenter - sphereOffset * yAxis;
-    sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
+                        if (collision) {
+                            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube edge."
+                                << "  edgeNormal = " << edgeNormal << std::endl;
+                        }
+                    }
+
+                }
+            }
+        }
     }
 
-    // left
-    sphereCenter = cubeCenter + sphereOffset * xAxis;
-    sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
-    }
+    // corners
+    for (float firstSign = -1.0f; firstSign < 2.0f; firstSign += 2.0f) {
+        glm::vec3 firstNormal = firstSign * faceNormals[0];
+        for (float secondSign = -1.0f; secondSign < 2.0f; secondSign += 2.0f) {
+            glm::vec3 secondNormal = secondSign * faceNormals[1];
+            for (float thirdSign = -1.0f; thirdSign < 2.0f; thirdSign += 2.0f) {
+                collisions.clear();
+                glm::vec3 thirdNormal = thirdSign * faceNormals[2];
 
-    // right
-    sphereCenter = cubeCenter - sphereOffset * xAxis;
-    sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
-    }
+                // the cornerNormal is the normalized sum of the three faces
+                glm::vec3 cornerNormal = glm::normalize(firstNormal + secondNormal + thirdNormal);
 
-    // forward
-    sphereCenter = cubeCenter + sphereOffset * zAxis;
-    sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
-    }
+                // compute a direction that is slightly offset from cornerNormal
+                glm::vec3 perpAxis = glm::normalize(glm::cross(cornerNormal, firstNormal));
+                glm::vec3 nearbyAxis = glm::normalize(cornerNormal + 0.3f * perpAxis);
 
-    // back
-    sphereCenter = cubeCenter - sphereOffset * zAxis;
-    sphere.setTranslation(sphereCenter);
-    if (ShapeCollider::sphereVsAACube(&sphere, cubeCenter, cubeSide, collisions)){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube" << std::endl;
+                // swing the sphere on a small cone that starts at the corner and is centered on the cornerNormal
+                float delta = TWO_PI / (float)(numSteps - 1);
+                for (int i = 0; i < numSteps; i++) {
+                    float angle = (float)i * delta;
+                    glm::quat rotation = glm::angleAxis(angle, cornerNormal);
+                    glm::vec3 offsetAxis = rotation * nearbyAxis;
+                    sphereCenter = cubeCenter + (SQUARE_ROOT_OF_3 * 0.5f * cubeSide) * cornerNormal + (sphereRadius + offset) * offsetAxis;
+ 
+                    CollisionInfo* collision = ShapeCollider::sphereVsAACubeHelper(sphereCenter, sphereRadius, 
+                            cubeCenter, cubeSide, collisions);
+    
+                    if (collision) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube corner."
+                            << "  cornerNormal = " << cornerNormal << std::endl;
+                        break;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1347,6 +1486,7 @@ void ShapeColliderTests::runAllTests() {
 
     sphereTouchesAACubeFaces();
     sphereTouchesAACubeEdges();
+    sphereTouchesAACubeCorners();
     sphereMissesAACube();
 
     rayHitsSphere();

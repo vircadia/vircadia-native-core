@@ -39,13 +39,6 @@ namespace ShapeCollider {
     bool collideShapeWithShapes(const Shape* shapeA, const QVector<Shape*>& shapes, int startIndex, CollisionList& collisions);
     bool collideShapesWithShapes(const QVector<Shape*>& shapesA, const QVector<Shape*>& shapesB, CollisionList& collisions);
 
-    /// \param shapeA a pointer to a shape (cannot be NULL)
-    /// \param cubeCenter center of cube
-    /// \param cubeSide lenght of side of cube
-    /// \param collisions[out] average collision details
-    /// \return true if shapeA collides with axis aligned cube
-    bool collideShapeWithAACube(const Shape* shapeA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
-
     /// \param sphereA pointer to first shape (cannot be NULL)
     /// \param sphereB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
@@ -100,6 +93,16 @@ namespace ShapeCollider {
     /// \return true if shapes collide
     bool planeVsPlane(const Shape* planeA, const Shape* planeB, CollisionList& collisions);
 
+    /// helper function for *VsAACube() methods
+    /// \param sphereCenter center of sphere
+    /// \param sphereRadius radius of sphere
+    /// \param cubeCenter center of AACube
+    /// \param cubeSide scale of cube
+    /// \param[out] collisions where to append collision details
+    /// \return valid pointer to CollisionInfo if sphere and cube overlap or NULL if not
+    CollisionInfo* sphereVsAACubeHelper(const glm::vec3& sphereCenter, float sphereRadius, 
+            const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
+
     bool sphereVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
     bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
     bool aaCubeVsSphere(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
@@ -123,20 +126,6 @@ namespace ShapeCollider {
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
     bool listVsList(const Shape* listA, const Shape* listB, CollisionList& collisions);
-
-    /// \param sphereA pointer to sphere (cannot be NULL)
-    /// \param cubeCenter center of cube
-    /// \param cubeSide lenght of side of cube
-    /// \param[out] collisions where to append collision details
-    /// \return true if sphereA collides with axis aligned cube
-    bool sphereVsAACube(const SphereShape* sphereA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
-
-    /// \param capsuleA pointer to capsule (cannot be NULL)
-    /// \param cubeCenter center of cube
-    /// \param cubeSide lenght of side of cube
-    /// \param[out] collisions where to append collision details
-    /// \return true if capsuleA collides with axis aligned cube
-    bool capsuleVsAACube(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
 
     /// \param shapes list of pointers to shapes (shape pointers may be NULL)
     /// \param startPoint beginning of ray
