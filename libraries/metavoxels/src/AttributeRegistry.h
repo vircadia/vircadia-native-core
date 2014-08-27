@@ -111,6 +111,9 @@ public:
     /// Returns a reference to the standard HeightfieldMaterialDataPointer "heightfieldMaterial" attribute.
     const AttributePointer& getHeightfieldMaterialAttribute() const { return _heightfieldMaterialAttribute; } 
     
+    /// Returns a reference to the standard VoxelColorDataPointer "voxelColor" attribute.
+    const AttributePointer& getVoxelColorAttribute() const { return _voxelColorAttribute; } 
+    
     /// Returns a reference to the standard VoxelMaterialDataPointer "voxelMaterial" attribute.
     const AttributePointer& getVoxelMaterialAttribute() const { return _voxelMaterialAttribute; } 
     
@@ -132,6 +135,7 @@ private:
     AttributePointer _heightfieldAttribute;
     AttributePointer _heightfieldColorAttribute;
     AttributePointer _heightfieldMaterialAttribute;
+    AttributePointer _voxelColorAttribute;
     AttributePointer _voxelMaterialAttribute;
 };
 
@@ -212,6 +216,7 @@ Q_DECLARE_METATYPE(OwnedAttributeValue)
 class Attribute : public SharedObject {
     Q_OBJECT
     Q_PROPERTY(float lodThresholdMultiplier MEMBER _lodThresholdMultiplier)
+    Q_PROPERTY(bool userFacing MEMBER _userFacing)
     
 public:
     
@@ -224,6 +229,9 @@ public:
 
     float getLODThresholdMultiplier() const { return _lodThresholdMultiplier; }
     void setLODThresholdMultiplier(float multiplier) { _lodThresholdMultiplier = multiplier; }
+
+    bool isUserFacing() const { return _userFacing; }
+    void setUserFacing(bool userFacing) { _userFacing = userFacing; }
 
     void* create() const { return create(getDefaultValue()); }
     virtual void* create(void* copy) const = 0;
@@ -289,6 +297,7 @@ public:
 private:
     
     float _lodThresholdMultiplier;
+    bool _userFacing;
 };
 
 /// A simple attribute class that stores its values inline.
@@ -637,11 +646,13 @@ typedef QExplicitlySharedDataPointer<VoxelColorData> VoxelColorDataPointer;
 class VoxelColorData : public DataBlock {
 public:
     
-    VoxelColorData(const QVector<QRgb>& contents);
+    VoxelColorData(const QVector<QRgb>& contents, int size);
     VoxelColorData(Bitstream& in, int bytes);
     VoxelColorData(Bitstream& in, int bytes, const VoxelColorDataPointer& reference);
     
     const QVector<QRgb>& getContents() const { return _contents; }
+
+    int getSize() const { return _size; }
 
     void write(Bitstream& out);
     void writeDelta(Bitstream& out, const VoxelColorDataPointer& reference);
@@ -651,6 +662,24 @@ private:
     void read(Bitstream& in, int bytes);
     
     QVector<QRgb> _contents;
+    int _size;
+};
+
+/// An attribute that stores voxel colors.
+class VoxelColorAttribute : public InlineAttribute<VoxelColorDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE VoxelColorAttribute(const QString& name = QString());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };
 
 typedef QExplicitlySharedDataPointer<VoxelMaterialData> VoxelMaterialDataPointer;

@@ -66,12 +66,15 @@ MetavoxelEditor::MetavoxelEditor() :
     attributeLayout->addLayout(attributeButtonLayout);
 
     QPushButton* newAttribute = new QPushButton("New...");
-    attributeButtonLayout->addWidget(newAttribute);
+    attributeButtonLayout->addWidget(newAttribute, 1);
     connect(newAttribute, SIGNAL(clicked()), SLOT(createNewAttribute()));
 
-    attributeButtonLayout->addWidget(_deleteAttribute = new QPushButton("Delete"));
+    attributeButtonLayout->addWidget(_deleteAttribute = new QPushButton("Delete"), 1);
     _deleteAttribute->setEnabled(false);
     connect(_deleteAttribute, SIGNAL(clicked()), SLOT(deleteSelectedAttribute()));
+
+    attributeButtonLayout->addWidget(_showAll = new QCheckBox("Show All"));
+    connect(_showAll, SIGNAL(clicked()), SLOT(updateAttributes()));
 
     QFormLayout* formLayout = new QFormLayout();
     topLayout->addLayout(formLayout);
@@ -116,11 +119,13 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new RemoveSpannerTool(this));
     addTool(new ClearSpannersTool(this));
     addTool(new SetSpannerTool(this));
-    addTool(new ImportHeightfieldTool(this));
-    addTool(new EraseHeightfieldTool(this));
     addTool(new HeightfieldHeightBrushTool(this));
     addTool(new HeightfieldColorBrushTool(this));
     addTool(new HeightfieldMaterialBrushTool(this));
+    addTool(new ImportHeightfieldTool(this));
+    addTool(new EraseHeightfieldTool(this));
+    addTool(new VoxelColorBoxTool(this));
+    addTool(new VoxelMaterialBoxTool(this));
     
     updateAttributes();
     
@@ -200,7 +205,7 @@ void MetavoxelEditor::selectedAttributeChanged() {
     
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(selected);
     foreach (MetavoxelTool* tool, _tools) {
-        if (tool->appliesTo(attribute)) {
+        if (tool->appliesTo(attribute) && (tool->isUserFacing() || _showAll->isChecked())) {
             _toolBox->addItem(tool->objectName(), QVariant::fromValue(tool));
         }
     }
@@ -271,6 +276,35 @@ void MetavoxelEditor::alignGridPosition() {
     _gridPosition->setValue(step * floor(_gridPosition->value() / step));
 }
 
+void MetavoxelEditor::updateAttributes(const QString& select) {
+    // remember the selection in order to preserve it
+    QString selected = select.isNull() ? getSelectedAttribute() : select;
+    _attributes->clear();
+    
+    // sort the names for consistent ordering
+    QList<QString> names;
+    if (_showAll->isChecked()) {
+        names = AttributeRegistry::getInstance()->getAttributes().keys();
+    
+    } else {
+        foreach (const AttributePointer& attribute, AttributeRegistry::getInstance()->getAttributes()) {
+            if (attribute->isUserFacing()) {
+                names.append(attribute->getName());
+            }
+        }
+    }
+    qSort(names);
+    
+    foreach (const QString& name, names) {
+        QListWidgetItem* item = new QListWidgetItem(name);
+        _attributes->addItem(item);
+        if (name == selected || selected.isNull()) {
+            item->setSelected(true);
+            selected = name;
+        }
+    }
+}
+
 void MetavoxelEditor::updateTool() {
     MetavoxelTool* active = getActiveTool();
     foreach (MetavoxelTool* tool, _tools) {
@@ -335,25 +369,6 @@ void MetavoxelEditor::addTool(MetavoxelTool* tool) {
     layout()->addWidget(tool);
 }
 
-void MetavoxelEditor::updateAttributes(const QString& select) {
-    // remember the selection in order to preserve it
-    QString selected = select.isNull() ? getSelectedAttribute() : select;
-    _attributes->clear();
-    
-    // sort the names for consistent ordering
-    QList<QString> names = AttributeRegistry::getInstance()->getAttributes().keys();
-    qSort(names);
-    
-    foreach (const QString& name, names) {
-        QListWidgetItem* item = new QListWidgetItem(name);
-        _attributes->addItem(item);
-        if (name == selected || selected.isNull()) {
-            item->setSelected(true);
-            selected = name;
-        }
-    }
-}
-
 MetavoxelTool* MetavoxelEditor::getActiveTool() const {
     int index = _toolBox->currentIndex();
     return (index == -1) ? NULL : static_cast<MetavoxelTool*>(_toolBox->itemData(index).value<QObject*>());
@@ -361,9 +376,10 @@ MetavoxelTool* MetavoxelEditor::getActiveTool() const {
 
 ProgramObject MetavoxelEditor::_gridProgram;
 
-MetavoxelTool::MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue) :
+MetavoxelTool::MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue, bool userFacing) :
     _editor(editor),
-    _usesValue(usesValue) {
+    _usesValue(usesValue),
+    _userFacing(userFacing) {
     
     QVBoxLayout* layout = new QVBoxLayout();
     setLayout(layout);
@@ -385,13 +401,13 @@ void MetavoxelTool::render() {
     // nothing by default
 }
 
-BoxSetTool::BoxSetTool(MetavoxelEditor* editor) :
-    MetavoxelTool(editor, "Set Value (Box)") {
+BoxTool::BoxTool(MetavoxelEditor* editor, const QString& name, bool usesValue, bool userFacing) :
+    MetavoxelTool(editor, name, usesValue, userFacing) {
     
     resetState();
 }
 
-void BoxSetTool::render() {
+void BoxTool::render() {
     if (Application::getInstance()->isMouseHidden()) {
         resetState();
         return;
@@ -457,7 +473,7 @@ void BoxSetTool::render() {
         glTranslatef(0.5f, 0.5f, 0.5f);
         if (_state != HOVERING_STATE) {
             const float BOX_ALPHA = 0.25f;
-            QColor color = _editor->getValue().value<QColor>();
+            QColor color = getColor();
             if (color.isValid()) {
                 glColor4f(color.redF(), color.greenF(), color.blueF(), BOX_ALPHA);
             } else {
@@ -476,7 +492,7 @@ void BoxSetTool::render() {
     glPopMatrix();
 }
 
-bool BoxSetTool::eventFilter(QObject* watched, QEvent* event) {
+bool BoxTool::eventFilter(QObject* watched, QEvent* event) {
     switch (_state) {
         case HOVERING_STATE:
             if (event->type() == QEvent::MouseButtonPress && _startPosition != INVALID_VECTOR) {
@@ -515,10 +531,18 @@ bool BoxSetTool::eventFilter(QObject* watched, QEvent* event) {
     return false;
 }
 
-void BoxSetTool::resetState() {
+void BoxTool::resetState() {
     _state = HOVERING_STATE;
     _startPosition = INVALID_VECTOR;
     _height = 0.0f;
+}
+
+BoxSetTool::BoxSetTool(MetavoxelEditor* editor) :
+    BoxTool(editor, "Set Value (Box)", true, false) {
+}
+
+QColor BoxSetTool::getColor() {
+    return _editor->getValue().value<QColor>();
 }
 
 void BoxSetTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
@@ -533,7 +557,7 @@ void BoxSetTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) 
 }
 
 GlobalSetTool::GlobalSetTool(MetavoxelEditor* editor) :
-    MetavoxelTool(editor, "Set Value (Global)") {
+    MetavoxelTool(editor, "Set Value (Global)", true, false) {
     
     QPushButton* button = new QPushButton("Apply");
     layout()->addWidget(button);
@@ -1196,6 +1220,64 @@ QVariant HeightfieldMaterialBrushTool::createEdit(bool alternate) {
 }
 
 void HeightfieldMaterialBrushTool::updateTexture() {
+    MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
+    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
+}
+
+VoxelColorBoxTool::VoxelColorBoxTool(MetavoxelEditor* editor) :
+    BoxTool(editor, "Set Voxel Color (Box)", false) {
+    
+    QWidget* widget = new QWidget();
+    QFormLayout* form = new QFormLayout();
+    widget->setLayout(form);
+    layout()->addWidget(widget);
+    
+    form->addRow("Color:", _color = new QColorEditor(this));
+}
+
+bool VoxelColorBoxTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("VoxelColorAttribute");
+}
+
+QColor VoxelColorBoxTool::getColor() {
+    return _color->getColor();
+}
+
+void VoxelColorBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelColorBoxEdit(Box(minimum, maximum),
+        _editor->getGridSpacing(), _color->getColor())) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+VoxelMaterialBoxTool::VoxelMaterialBoxTool(MetavoxelEditor* editor) :
+    BoxTool(editor, "Set Voxel Material (Box)", false) {
+    
+    QWidget* widget = new QWidget();
+    QFormLayout* form = new QFormLayout();
+    widget->setLayout(form);
+    layout()->addWidget(widget);
+    
+    form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
+    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialBoxTool::updateTexture);
+}
+
+bool VoxelMaterialBoxTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("VoxelColorAttribute");
+}
+
+QColor VoxelMaterialBoxTool::getColor() {
+    return _texture ? _texture->getAverageColor() : QColor();
+}
+
+void VoxelMaterialBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
+    SharedObjectPointer material = _materialEditor->getObject();
+    _materialEditor->detachObject();
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialBoxEdit(Box(minimum, maximum),
+        _editor->getGridSpacing(), material, _texture ? _texture->getAverageColor() : QColor())) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+void VoxelMaterialBoxTool::updateTexture() {
     MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
     _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
 }

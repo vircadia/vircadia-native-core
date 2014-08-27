@@ -642,3 +642,23 @@ void PaintHeightfieldMaterialEdit::apply(MetavoxelData& data, const WeakSharedOb
     PaintHeightfieldMaterialEditVisitor visitor(*this);
     data.guide(visitor);
 }
+
+VoxelColorBoxEdit::VoxelColorBoxEdit(const Box& region, float granularity, const QColor& color) :
+    region(region),
+    granularity(granularity),
+    color(color) {
+}
+
+void VoxelColorBoxEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+}
+
+VoxelMaterialBoxEdit::VoxelMaterialBoxEdit(const Box& region, float granularity,
+        const SharedObjectPointer& material, const QColor& averageColor) :
+    region(region),
+    granularity(granularity),
+    material(material),
+    averageColor(averageColor) {
+}
+
+void VoxelMaterialBoxEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+}

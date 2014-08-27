@@ -30,6 +30,8 @@ REGISTER_META_OBJECT(HeightfieldMaterialAttribute)
 REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
 REGISTER_META_OBJECT(SpannerSetAttribute)
+REGISTER_META_OBJECT(VoxelColorAttribute)
+REGISTER_META_OBJECT(VoxelMaterialAttribute)
 
 static int attributePointerMetaTypeId = qRegisterMetaType<AttributePointer>();
 static int ownedAttributeValueMetaTypeId = qRegisterMetaType<OwnedAttributeValue>();
@@ -53,6 +55,7 @@ AttributeRegistry::AttributeRegistry() :
     _heightfieldAttribute(registerAttribute(new HeightfieldAttribute("heightfield"))),
     _heightfieldColorAttribute(registerAttribute(new HeightfieldColorAttribute("heightfieldColor"))),
     _heightfieldMaterialAttribute(registerAttribute(new HeightfieldMaterialAttribute("heightfieldMaterial"))),
+    _voxelColorAttribute(registerAttribute(new VoxelColorAttribute("voxelColor"))),
     _voxelMaterialAttribute(registerAttribute(new VoxelMaterialAttribute("voxelMaterial"))) {
     
     // our baseline LOD threshold is for voxels; spanners and heightfields are a different story
@@ -61,10 +64,13 @@ AttributeRegistry::AttributeRegistry() :
     
     const float HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER = 32.0f;
     _heightfieldAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
+    _heightfieldAttribute->setUserFacing(true);
     _heightfieldColorAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     _heightfieldMaterialAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     
     const float VOXEL_LOD_THRESHOLD_MULTIPLIER = 32.0f;
+    _voxelColorAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
+    _voxelColorAttribute->setUserFacing(true);
     _voxelMaterialAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
 }
 
@@ -205,7 +211,8 @@ OwnedAttributeValue& OwnedAttributeValue::operator=(const OwnedAttributeValue& o
 }
 
 Attribute::Attribute(const QString& name) :
-        _lodThresholdMultiplier(1.0f) {
+        _lodThresholdMultiplier(1.0f),
+        _userFacing(false) {
     setObjectName(name);
 }
 
@@ -1390,8 +1397,41 @@ bool HeightfieldMaterialAttribute::merge(void*& parent, void* children[], bool p
     return maxSize == 0;
 }
 
-VoxelColorData::VoxelColorData(const QVector<QRgb>& contents) :
-    _contents(contents) {
+const int VOXEL_COLOR_HEADER_SIZE = sizeof(qint32) * 6;
+
+static QByteArray encodeVoxelColor(int offsetX, int offsetY, int offsetZ,
+        int sizeX, int sizeY, int sizeZ, const QVector<QRgb>& contents) {
+    QByteArray inflated(VOXEL_COLOR_HEADER_SIZE, 0);
+    qint32* header = (qint32*)inflated.data();
+    *header++ = offsetX;
+    *header++ = offsetY;
+    *header++ = offsetZ;
+    *header++ = sizeX;
+    *header++ = sizeY;
+    *header++ = sizeZ;
+    inflated.append((const char*)contents.constData(), contents.size() * sizeof(QRgb));
+    return qCompress(inflated);
+}
+
+static QVector<QRgb> decodeVoxelColor(const QByteArray& encoded, int& offsetX, int& offsetY, int& offsetZ,
+        int& sizeX, int& sizeY, int& sizeZ) {
+    QByteArray inflated = qUncompress(encoded);
+    const qint32* header = (const qint32*)inflated.constData();
+    offsetX = *header++;
+    offsetY = *header++;
+    offsetZ = *header++;
+    sizeX = *header++;
+    sizeY = *header++;
+    sizeZ = *header++;
+    int payloadSize = inflated.size() - VOXEL_COLOR_HEADER_SIZE;
+    QVector<QRgb> contents(payloadSize / sizeof(QRgb));
+    memcpy(contents.data(), inflated.constData() + VOXEL_COLOR_HEADER_SIZE, payloadSize);
+    return contents;
+}
+
+VoxelColorData::VoxelColorData(const QVector<QRgb>& contents, int size) :
+    _contents(contents),
+    _size(size) {
 }
 
 VoxelColorData::VoxelColorData(Bitstream& in, int bytes) {
@@ -1407,32 +1447,170 @@ VoxelColorData::VoxelColorData(Bitstream& in, int bytes, const VoxelColorDataPoi
     reference->setEncodedDelta(in.readAligned(bytes));
     reference->setDeltaData(DataBlockPointer(this));
     _contents = reference->getContents();
+    _size = reference->getSize();
+    
+    int offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ;
+    QVector<QRgb> delta = decodeVoxelColor(reference->getEncodedDelta(), offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ);
+    if (delta.isEmpty()) {
+        return;
+    }
+    if (offsetX == 0) {
+        _contents = delta;
+        _size = sizeX;
+        return;
+    }
+    int minX = offsetX - 1;
+    int minY = offsetY - 1;
+    int minZ = offsetZ - 1;
+    const QRgb* src = delta.constData();
+    int size2 = _size * _size;
+    QRgb* planeDest = _contents.data() + minZ * size2 + minY * _size + minX;
+    int length = sizeX * sizeof(QRgb);
+    for (int z = 0; z < sizeZ; z++, planeDest += size2) {
+        QRgb* dest = planeDest;
+        for (int y = 0; y < sizeY; y++, src += sizeX, dest += _size) {
+            memcpy(dest, src, length);
+        }
+    }
 }
 
 void VoxelColorData::write(Bitstream& out) {
     QMutexLocker locker(&_encodedMutex);
     if (_encoded.isEmpty()) {
-        
+        _encoded = encodeVoxelColor(0, 0, 0, _size, _size, _size, _contents);
     }
     out << _encoded.size();
     out.writeAligned(_encoded);
 }
 
 void VoxelColorData::writeDelta(Bitstream& out, const VoxelColorDataPointer& reference) {
-    if (!reference || reference->getContents().size() != _contents.size()) {
+    if (!reference || reference->getSize() != _size) {
         write(out);
         return;
     }
     QMutexLocker locker(&reference->getEncodedDeltaMutex());
     if (reference->getEncodedDelta().isEmpty() || reference->getDeltaData() != this) {
-        
+        int minX = _size, minY = _size, minZ = _size;
+        int maxX = -1, maxY = -1, maxZ = -1;
+        const QRgb* src = _contents.constData();
+        const QRgb* ref = reference->getContents().constData();
+        for (int z = 0; z < _size; z++) {
+            bool differenceZ = false;
+            for (int y = 0; y < _size; y++) {
+                bool differenceY = false;
+                for (int x = 0; x < _size; x++) {
+                    if (*src++ != *ref++) {
+                        minX = qMin(minX, x);
+                        maxX = qMax(maxX, x);
+                        differenceY = differenceZ = true;
+                    }
+                }
+                if (differenceY) {
+                    minY = qMin(minY, y);
+                    maxY = qMax(maxY, y);
+                }
+            }
+            if (differenceZ) {
+                minZ = qMin(minZ, z);
+                maxZ = qMax(maxZ, z);
+            }
+        }
+        QVector<QRgb> delta;
+        int sizeX = 0, sizeY = 0, sizeZ = 0;
+        if (maxX >= minX) {
+            sizeX = maxX - minX + 1;
+            sizeY = maxY - minY + 1;
+            sizeZ = maxZ - minZ + 1;
+            delta = QVector<QRgb>(sizeX * sizeY * sizeZ, 0);
+            QRgb* dest = delta.data();
+            int size2 = _size * _size;
+            const QRgb* planeSrc = _contents.constData() + minZ * size2 + minY * _size + minX;
+            int length = sizeX * sizeof(QRgb);
+            for (int z = 0; z < sizeZ; z++, planeSrc += size2) {
+                src = planeSrc;
+                for (int y = 0; y < sizeY; y++, src += _size, dest += sizeX) {
+                    memcpy(dest, src, length);
+                }
+            }
+        }
+        reference->setEncodedDelta(encodeVoxelColor(minX + 1, minY + 1, minZ + 1, sizeX, sizeY, sizeZ, delta));
+        reference->setDeltaData(DataBlockPointer(this));
     }
     out << reference->getEncodedDelta().size();
     out.writeAligned(reference->getEncodedDelta());
 }
 
 void VoxelColorData::read(Bitstream& in, int bytes) {
-    
+    int offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ;
+    _contents = decodeVoxelColor(_encoded = in.readAligned(bytes), offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ);
+    _size = sizeX;
+}
+
+VoxelColorAttribute::VoxelColorAttribute(const QString& name) :
+    InlineAttribute<VoxelColorDataPointer>(name) {
+}
+
+void VoxelColorAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(VoxelColorDataPointer*)&value = VoxelColorDataPointer();
+    } else {
+        *(VoxelColorDataPointer*)&value = VoxelColorDataPointer(new VoxelColorData(in, size));
+    }
+}
+
+void VoxelColorAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    VoxelColorDataPointer data = decodeInline<VoxelColorDataPointer>(value);
+    if (data) {
+        data->write(out);
+    } else {
+        out << 0;
+    }
+}
+
+void VoxelColorAttribute::readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(VoxelColorDataPointer*)&value = VoxelColorDataPointer(); 
+    } else {
+        *(VoxelColorDataPointer*)&value = VoxelColorDataPointer(new VoxelColorData(
+            in, size, decodeInline<VoxelColorDataPointer>(reference)));
+    }
+}
+
+void VoxelColorAttribute::writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    VoxelColorDataPointer data = decodeInline<VoxelColorDataPointer>(value);
+    if (data) {
+        data->writeDelta(out, decodeInline<VoxelColorDataPointer>(reference));
+    } else {
+        out << 0;
+    }
+}
+
+bool VoxelColorAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    int maxSize = 0;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        VoxelColorDataPointer pointer = decodeInline<VoxelColorDataPointer>(children[i]);
+        if (pointer) {
+            maxSize = qMax(maxSize, pointer->getSize());
+        }
+    }
+    *(VoxelColorDataPointer*)&parent = VoxelColorDataPointer();
+    return maxSize == 0;
 }
 
 const int VOXEL_MATERIAL_HEADER_SIZE = sizeof(qint32) * 6;
@@ -1461,7 +1639,7 @@ static QByteArray decodeVoxelMaterial(const QByteArray& encoded, int& offsetX, i
     sizeX = *header++;
     sizeY = *header++;
     sizeZ = *header++;
-    return inflated.mid(HEIGHTFIELD_MATERIAL_HEADER_SIZE);
+    return inflated.mid(VOXEL_MATERIAL_HEADER_SIZE);
 }
 
 VoxelMaterialData::VoxelMaterialData(const QByteArray& contents, int size, const QVector<SharedObjectPointer>& materials) :
@@ -1644,7 +1822,7 @@ bool VoxelMaterialAttribute::merge(void*& parent, void* children[], bool postRea
     for (int i = 0; i < MERGE_COUNT; i++) {
         VoxelMaterialDataPointer pointer = decodeInline<VoxelMaterialDataPointer>(children[i]);
         if (pointer) {
-            maxSize = qMax(maxSize, pointer->getContents().size());
+            maxSize = qMax(maxSize, pointer->getSize());
         }
     }
     *(VoxelMaterialDataPointer*)&parent = VoxelMaterialDataPointer();

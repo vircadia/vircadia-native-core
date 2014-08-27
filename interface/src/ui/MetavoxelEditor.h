@@ -57,6 +57,7 @@ private slots:
     void deleteSelectedAttribute();
     void centerGridPosition();
     void alignGridPosition();
+    void updateAttributes(const QString& select = QString());
     void updateTool();
     
     void simulate(float deltaTime);
@@ -65,11 +66,11 @@ private slots:
 private:
     
     void addTool(MetavoxelTool* tool);
-    void updateAttributes(const QString& select = QString());    
     MetavoxelTool* getActiveTool() const;
     
     QListWidget* _attributes;
     QPushButton* _deleteAttribute;
+    QCheckBox* _showAll;
     
     QComboBox* _gridPlane;
     QDoubleSpinBox* _gridSpacing;
@@ -90,9 +91,11 @@ class MetavoxelTool : public QWidget {
 
 public:
 
-    MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true);
+    MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true, bool userFacing = true);
     
     bool getUsesValue() const { return _usesValue; }
+    
+    bool isUserFacing() const { return _userFacing; }
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
     
@@ -105,24 +108,30 @@ protected:
     
     MetavoxelEditor* _editor;
     bool _usesValue;
+    bool _userFacing;
 };
 
-/// Allows setting the value of a region by dragging out a box.
-class BoxSetTool : public MetavoxelTool {
+/// Base class for tools that allow dragging out a 3D box.
+class BoxTool : public MetavoxelTool {
     Q_OBJECT
 
 public:
     
-    BoxSetTool(MetavoxelEditor* editor);
-
+    BoxTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true, bool userFacing = true);
+    
     virtual void render();
 
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
+protected:
+
+    virtual QColor getColor() = 0;
+    
+    virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum) = 0; 
+
 private:
     
     void resetState();
-    void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
     
     enum State { HOVERING_STATE, DRAGGING_STATE, RAISING_STATE };
     
@@ -132,6 +141,21 @@ private:
     glm::vec2 _startPosition; ///< the first corner of the selection base
     glm::vec2 _endPosition; ///< the second corner of the selection base
     float _height; ///< the selection height
+};
+
+/// Allows setting the value of a region by dragging out a box.
+class BoxSetTool : public BoxTool {
+    Q_OBJECT
+
+public:
+    
+    BoxSetTool(MetavoxelEditor* editor);
+
+protected:
+    
+    virtual QColor getColor();
+    
+    virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
 };
 
 /// Allows setting the value across the entire space.
@@ -373,6 +397,53 @@ public:
 protected:
     
     virtual QVariant createEdit(bool alternate);
+
+private slots:
+    
+    void updateTexture();
+    
+private:
+    
+    SharedObjectEditor* _materialEditor;
+    QSharedPointer<NetworkTexture> _texture;
+};
+
+/// Allows setting voxel colors by dragging out a box.
+class VoxelColorBoxTool : public BoxTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelColorBoxTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+    
+protected:
+    
+    virtual QColor getColor();
+    
+    virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
+
+private:
+    
+    QColorEditor* _color;
+};
+
+/// Allows setting voxel materials by dragging out a box.
+class VoxelMaterialBoxTool : public BoxTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelMaterialBoxTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+    
+protected:
+    
+    virtual QColor getColor();
+    
+    virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
 
 private slots:
     
