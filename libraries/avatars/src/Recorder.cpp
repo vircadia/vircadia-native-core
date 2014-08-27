@@ -294,22 +294,18 @@ void Player::play() {
         return;
     }
     
-    glm::vec3 positionOffset;
-    glm::quat rotationOffset;
-    float scaleOffset = 1.0f;
-    
-    if (_currentFrame > 0) {
-        positionOffset = _startingPosition;
-        rotationOffset = _startingRotation;
-        scaleOffset = _startingScale;
+    if (_currentFrame == 0) {
+        // Don't play frame 0
+        // only meant to store absolute values
+        return;
     }
     
-    _avatar->setPosition(positionOffset +
-                         glm::inverse(_recording->getFrame(0).getRotation()) * rotationOffset *
+    _avatar->setPosition(_startingPosition +
+                         glm::inverse(_recording->getFrame(0).getRotation()) * _startingRotation *
                          _recording->getFrame(_currentFrame).getTranslation());
-    _avatar->setOrientation(rotationOffset *
+    _avatar->setOrientation(_startingRotation *
                             _recording->getFrame(_currentFrame).getRotation());
-    _avatar->setTargetScale(scaleOffset *
+    _avatar->setTargetScale(_startingScale *
                             _recording->getFrame(_currentFrame).getScale());
     _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
     

@@ -646,7 +646,6 @@ void AvatarData::startPlaying(bool fromCurrentPosition) {
     if (!_player) {
         _player = PlayerPointer(new Player(this));
     }
-    qDebug() << "AvatarData::startPlaying():" << fromCurrentPosition;
     _player->startPlaying(fromCurrentPosition);
 }
 
