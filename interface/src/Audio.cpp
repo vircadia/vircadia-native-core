@@ -1313,7 +1313,10 @@ void Audio::freeScope() {
 
 int Audio::addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamplesPerChannel,
     unsigned int sourceChannel, unsigned int sourceNumberOfChannels, float fade) {
-
+    if (!_scopeEnabled || _scopeEnabledPause) {
+        return 0;
+    }
+    
     // Constant multiplier to map sample value to vertical size of scope
     float multiplier = (float)MULTIPLIER_SCOPE_HEIGHT / logf(2.0f);
 
