@@ -12,8 +12,6 @@
                      bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {...
         RESOLVED -- 22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // Do we need this? NO!
 
-    2) Test models -> attachments logic
-    
     3) Don't allow models to be "edited" to be outside of domain. clamp them to the domain.
     4) if velocity sends a model out of the domain - delete it
 
@@ -227,6 +225,8 @@
 //             Observe first avatar moving.   
 // SOLVED -- 2) verify shadows work
 // SOLVED -- 9) Handle the ID -> UUID swap in old files to new files - verify old files read correctly
+// SOLVED -- 2) Test models -> attachments logic --- TESTED/WORKS
+    
 
 
 
