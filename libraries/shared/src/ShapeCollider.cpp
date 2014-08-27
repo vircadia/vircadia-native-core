@@ -624,6 +624,8 @@ glm::vec3 cubeNormals[3] = { glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 
 // hence the first pair is (1, 2) because the OTHER faces for xFace are (yFace, zFace) = (1, 2)
 int wallIndices[] = { 1, 2, 0, 2, 0, 1 };
 
+const float INV_SQRT_TWO = 1.0f / SQUARE_ROOT_OF_2;
+
 bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
     const AACubeShape* cubeB = static_cast<const AACubeShape*>(shapeB);
@@ -699,7 +701,7 @@ bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& co
                     if (depth > 0.0f) {
                         if (depth < capsuleRadius) {
                             // need to recast against the diagonal plane: wall rotated away from the face
-                            glm::vec3 diagonalNormal = INV_SQUARE_ROOT_OF_2 * (wallNormal - faceNormal);
+                            glm::vec3 diagonalNormal = INV_SQRT_TWO * (wallNormal - faceNormal);
                             distances[i] = glm::min(glm::dot(capsuleStart, diagonalNormal), 0.0f);
                         } else {
                             // capsule misses this wall by more than capsuleRadius
