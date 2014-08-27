@@ -19,6 +19,10 @@ public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    virtual ~ModelEntityItem() {
+qDebug() << "*********** ModelEntityItem -- ENTITY ITEM BEING DELETED ************* this=" << this;
+    };
+
 
     ALLOW_INSTANTIATION // This class can be instantiated
 

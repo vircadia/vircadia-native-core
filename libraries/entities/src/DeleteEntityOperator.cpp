@@ -96,15 +96,26 @@ bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
             // and we can stop searching.
             if (entityTreeElement == details.containingElement) {
 
+                qDebug() << "DeleteEntityOperator::PreRecursion().... details.entity->getEntityItemID()=" << details.entity->getEntityItemID();
+                EntityTreeElement* containingElement = _tree->getContainingElement(details.entity->getEntityItemID());
+                qDebug() << "DeleteEntityOperator::PreRecursion().... BEFORE delete... containingElement=" << containingElement;
+                qDebug() << "DeleteEntityOperator::PreRecursion().... BEFORE delete... details.containingElement=" << details.containingElement;
+
                 // This is a good place to delete it!!!
                 EntityItemID entityItemID = details.entity->getEntityItemID();
-                //qDebug() << "DeleteEntityOperator::PreRecursion() BEFORE entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << entityItemID;
-                entityTreeElement->removeEntityWithEntityItemID(entityItemID);
-                //qDebug() << "DeleteEntityOperator::PreRecursion() AFTER entityTreeElement->removeEntityWithEntityItemID(); element=" << entityTreeElement << "id=" << entityItemID;
 
+                qDebug() << "DeleteEntityOperator::PreRecursion().... calling... entityTreeElement->getEntityWithEntityItemID(entityItemID);";
+                EntityItem* theEntity = entityTreeElement->getEntityWithEntityItemID(entityItemID);
+                qDebug() << "     theEntity=" << theEntity;
+                qDebug() << "DeleteEntityOperator::PreRecursion().... calling... removeEntityItem(theEntity)";
+                bool removed = entityTreeElement->removeEntityItem(theEntity);
+                qDebug() << "     removed=" << removed;
+
+                qDebug() << "DeleteEntityOperator::PreRecursion().... calling... _tree->setContainingElement(entityItemID, NULL);";
                 _tree->setContainingElement(entityItemID, NULL);
-                //qDebug() << "DeleteEntityOperator calling setContainingElement(NULL)... entityID=" << entityItemID;
-                //_tree->debugDumpMap();
+
+                qDebug() << "DeleteEntityOperator::PreRecursion().... calling... delete theEntity";
+                delete theEntity; // now actually delete it!
 
                 _foundCount++;
             }

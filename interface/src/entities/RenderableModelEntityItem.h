@@ -36,7 +36,15 @@ public:
         ModelEntityItem(entityItemID, properties),
         _model(NULL),
         _needsSimulation(true),
-        _needsModelReload(true) { };
+        _needsModelReload(true) { 
+        
+qDebug() << "*********** RenderableModelEntityItem -- ENTITY ITEM BEING CREATED ************* this=" << this;
+        
+        };
+
+    virtual ~RenderableModelEntityItem() { 
+qDebug() << "*********** RenderableModelEntityItem -- ENTITY ITEM BEING DELETED ************* this=" << this;
+        };
 
     virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy);
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 

@@ -154,6 +154,13 @@ void EntityTree::trackDeletedEntity(const EntityItemID& entityID) {
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
+    bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "EntityTree::deleteEntity().... entityID=" << entityID;
+        EntityTreeElement* containingElement = getContainingElement(entityID);
+        qDebug() << "EntityTree::deleteEntity().... BEFORE delete... containingElement=" << containingElement;
+    }
+    
     // NOTE: callers must lock the tree before using this method
 
     // First, look for the existing entity in the tree..
@@ -162,7 +169,6 @@ void EntityTree::deleteEntity(const EntityItemID& entityID) {
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
 
-    bool wantDebug = false;
     if (wantDebug) {
         EntityTreeElement* containingElement = getContainingElement(entityID);
         qDebug() << "EntityTree::deleteEntity().... after delete... containingElement=" << containingElement;

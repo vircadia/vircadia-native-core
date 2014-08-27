@@ -1,13 +1,28 @@
 // REQUIRED:
 
+
+    8) Make sure EntityItems are deleted...
+            delete all owned entity items on the deletion of the EntityTreeElement?
+            delete all entity items on deletion of the tree?
+            
+            cases:
+                PASSED -- 1) test UI delete entity (on client)
+                PASSED -- 2) test UI delete entity (on server)
+                
+                3) test client shutdown
+                4) test server shutdown (on server) - aka domain restart
+                5) test server shutdown (on client)
+                6) test change domains
+                7) test UI delete on other client
+    
+    9) EntityTreeRenderer::clearModelsCache()
+
+
     7) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
        doesn't include the extra exists bits will break something.
 
    14) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
 
-    8) memory leaks???
-    
-    9) EntityTreeRenderer::clearModelsCache()
     
     3) Don't allow models to be "edited" to be outside of domain. clamp them to the domain.
 

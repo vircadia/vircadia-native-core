@@ -28,6 +28,9 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
     _type = EntityTypes::Model;     
     setProperties(properties, true);
     _animationFrameIndex = 0.0f;
+
+qDebug() << "*********** ModelEntityItem -- ENTITY ITEM BEING CREATED ************* this=" << this;
+
 }
 
 EntityItemProperties ModelEntityItem::getProperties() const {

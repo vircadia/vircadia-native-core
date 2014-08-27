@@ -141,7 +141,6 @@ public:
 
     EntityItem* getEntityWithEntityItemID(const EntityItemID& id);
 
-    bool removeEntityWithID(uint32_t id);
     bool removeEntityWithEntityItemID(const EntityItemID& id);
     bool removeEntityItem(const EntityItem* entity);
 
