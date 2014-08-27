@@ -272,10 +272,12 @@ void MyAvatar::simulate(float deltaTime) {
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
-
-    if (isPlaying()) {
-        estimatedRotation = glm::degrees(safeEulerAngles(_player->getHeadRotation()));
-    } else if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
+    
+    if (isPlaying() && !OculusManager::isConnected()) {
+        return;
+    }
+    
+    if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
         estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
         estimatedRotation.x *= -1.0f;
         estimatedRotation.z *= -1.0f;
@@ -327,11 +329,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
     head->setDeltaRoll(estimatedRotation.z);
 
-    if (isPlaying()) {
-        head->setLeanSideways(_player->getLeanSideways());
-        head->setLeanForward(_player->getLeanForward());
-        return;
-    }
     // the priovr can give us exact lean
     if (Application::getInstance()->getPrioVR()->isActive()) {
         glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
@@ -576,58 +573,6 @@ void MyAvatar::saveRecording(QString filename) {
     }
 }
 
-bool MyAvatar::isPlaying() {
-    if (!_player) {
-        return false;
-    }
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        QMetaObject::invokeMethod(this, "isPlaying", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(bool, result));
-        return result;
-    }
-    return _player && _player->isPlaying();
-}
-
-qint64 MyAvatar::playerElapsed() {
-    if (!_player) {
-        return 0;
-    }
-    if (QThread::currentThread() != thread()) {
-        qint64 result;
-        QMetaObject::invokeMethod(this, "playerElapsed", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(qint64, result));
-        return result;
-    }
-    return _player->elapsed();
-}
-
-qint64 MyAvatar::playerLength() {
-    if (!_player) {
-        return 0;
-    }
-    if (QThread::currentThread() != thread()) {
-        qint64 result;
-        QMetaObject::invokeMethod(this, "playerLength", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(qint64, result));
-        return result;
-    }
-    return _player->getRecording()->getLength();
-}
-
-void MyAvatar::loadRecording(QString filename) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadRecording", Qt::BlockingQueuedConnection,
-                                  Q_ARG(QString, filename));
-        return;
-    }
-    if (!_player) {
-        _player = PlayerPointer(new Player(this));
-    }
-    
-    _player->loadFromFile(filename);
-}
-
 void MyAvatar::loadLastRecording() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "loadLastRecording", Qt::BlockingQueuedConnection);
@@ -642,32 +587,6 @@ void MyAvatar::loadLastRecording() {
     }
     
     _player->loadRecording(_recorder->getRecording());
-}
-
-void MyAvatar::startPlaying() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "startPlaying", Qt::BlockingQueuedConnection);
-        return;
-    }
-    if (!_player) {
-        _player = PlayerPointer(new Player(this));
-    }
-    
-    Application::getInstance()->getAudio()->setPlayer(_player);
-    _player->startPlaying();
-}
-
-void MyAvatar::stopPlaying() {
-    if (!_player) {
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stopPlaying", Qt::BlockingQueuedConnection);
-        return;
-    }
-    if (_player) {
-        _player->stopPlaying();
-    }
 }
 
 void MyAvatar::setLocalGravity(glm::vec3 gravity) {

@@ -23,10 +23,10 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <AudioInjector.h>
-#include <AvatarData.h>
 #include <SharedUtil.h>
 #include <Sound.h>
 
+class AvatarData;
 class Recorder;
 class Recording;
 class Player;
@@ -146,7 +146,7 @@ public:
     
     
 public slots:
-    void startPlaying();
+    void startPlaying(bool fromCurrentPosition = false);
     void stopPlaying();
     void loadFromFile(QString file);
     void loadRecording(RecordingPointer recording);
@@ -164,6 +164,10 @@ private:
     
     AvatarData* _avatar;
     QThread* _audioThread;
+    
+    glm::vec3 _startingPosition;
+    glm::quat _startingRotation;
+    float _startingScale;
 };
 
 void writeRecordingToFile(RecordingPointer recording, QString file);
