@@ -219,6 +219,7 @@ void MetavoxelEditor::selectedAttributeChanged() {
         editor->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
         _valueArea->setWidget(editor);
     }
+    updateTool();
 }
 
 void MetavoxelEditor::createNewAttribute() {

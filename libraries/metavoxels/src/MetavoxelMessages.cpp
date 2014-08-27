@@ -649,7 +649,38 @@ VoxelColorBoxEdit::VoxelColorBoxEdit(const Box& region, float granularity, const
     color(color) {
 }
 
+class VoxelColorBoxEditVisitor : public MetavoxelVisitor {
+public:
+    
+    VoxelColorBoxEditVisitor(const VoxelColorBoxEdit& edit);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    const VoxelColorBoxEdit& _edit;
+};
+
+VoxelColorBoxEditVisitor::VoxelColorBoxEditVisitor(const VoxelColorBoxEdit& edit) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute(),
+        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute()),
+    _edit(edit) {
+}
+
+int VoxelColorBoxEditVisitor::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    return STOP_RECURSION;
+}
+
 void VoxelColorBoxEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    // expand to fit the entire edit
+    while (!data.getBounds().contains(region)) {
+        data.expand();
+    }
+    VoxelColorBoxEditVisitor setVisitor(*this);
+    data.guide(setVisitor);
 }
 
 VoxelMaterialBoxEdit::VoxelMaterialBoxEdit(const Box& region, float granularity,
@@ -660,5 +691,38 @@ VoxelMaterialBoxEdit::VoxelMaterialBoxEdit(const Box& region, float granularity,
     averageColor(averageColor) {
 }
 
+class VoxelMaterialBoxEditVisitor : public MetavoxelVisitor {
+public:
+    
+    VoxelMaterialBoxEditVisitor(const VoxelMaterialBoxEdit& edit);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    const VoxelMaterialBoxEdit& _edit;
+};
+
+VoxelMaterialBoxEditVisitor::VoxelMaterialBoxEditVisitor(const VoxelMaterialBoxEdit& edit) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelMaterialAttribute() <<
+        AttributeRegistry::getInstance()->getVoxelColorAttribute(), QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getVoxelMaterialAttribute() <<
+            AttributeRegistry::getInstance()->getVoxelColorAttribute()),
+    _edit(edit) {
+}
+
+int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    return STOP_RECURSION;
+}
+
 void VoxelMaterialBoxEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    // expand to fit the entire edit
+    while (!data.getBounds().contains(region)) {
+        data.expand();
+    }
+    VoxelMaterialBoxEditVisitor setVisitor(*this);
+    data.guide(setVisitor);
 }
