@@ -75,7 +75,6 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeEnvironmentData: {
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                             "Application::networkReceive()... _octreeProcessor.queueReceivedPacket()");
-                    
                     bool wantExtraDebugging = application->getLogger()->extraDebugging();
                     if (wantExtraDebugging && packetTypeForPacket(incomingPacket) == PacketTypeVoxelData) {
                         int numBytesPacketHeader = numBytesForPacketHeader(incomingPacket);

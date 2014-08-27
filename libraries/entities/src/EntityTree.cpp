@@ -726,7 +726,6 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
 // sinceTime is an in/out parameter - it will be side effected with the last time sent out
 bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* outputBuffer,
                                             size_t maxLength, size_t& outputLength) {
-
     bool hasMoreToSend = true;
 
     unsigned char* copyAt = outputBuffer;
@@ -763,6 +762,7 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
     // we keep a multi map of entity IDs to timestamps, we only want to include the entity IDs that have been
     // deleted since we last sent to this node
     _recentlyDeletedEntitiesLock.lockForRead();
+
     QMultiMap<quint64, QUuid>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
     while (iterator != _recentlyDeletedEntityItemIDs.constEnd()) {
         QList<QUuid> values = _recentlyDeletedEntityItemIDs.values(iterator.key());
@@ -771,7 +771,6 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
             // if the timestamp is more recent then out last sent time, include it
             if (iterator.key() > sinceTime) {
                 QUuid entityID = values.at(valueItem);
-                
                 QByteArray encodedEntityID = entityID.toRfc4122();
                 memcpy(copyAt, encodedEntityID.constData(), NUM_BYTES_RFC4122_UUID);
                 copyAt += NUM_BYTES_RFC4122_UUID;
@@ -803,6 +802,7 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
 
     // replace the correct count for ids included
     memcpy(numberOfIDsAt, &numberOfIds, sizeof(numberOfIds));
+    
     return hasMoreToSend;
 }
 
@@ -836,7 +836,6 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
     const bool wantDebug = false;
-    
     if (wantDebug) {
         qDebug() << "EntityTree::processEraseMessage()...";
     }
@@ -850,8 +849,13 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
     dataAt += numBytesPacketHeader;
 
     dataAt += sizeof(OCTREE_PACKET_FLAGS);
+    processedBytes += sizeof(OCTREE_PACKET_FLAGS);
+
     dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    processedBytes += sizeof(OCTREE_PACKET_SEQUENCE);
+
     dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
+    processedBytes += sizeof(OCTREE_PACKET_SENT_TIME);
 
     uint16_t numberOfIds = 0; // placeholder for now
     memcpy(&numberOfIds, dataAt, sizeof(numberOfIds));

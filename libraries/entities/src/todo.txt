@@ -8,12 +8,14 @@
             cases:
                 PASSED -- 1) test UI delete entity (on client)
                 PASSED -- 2) test UI delete entity (on server)
+                PASSED --- 7) test UI delete on other client
                 
                 3) test client shutdown
                 4) test server shutdown (on server) - aka domain restart
                 5) test server shutdown (on client)
                 6) test change domains
-                7) test UI delete on other client
+
+
     
     9) EntityTreeRenderer::clearModelsCache()
 

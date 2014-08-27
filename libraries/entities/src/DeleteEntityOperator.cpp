@@ -46,7 +46,6 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
             details.cube = details.containingElement->getAACube();
             _entitiesToDelete << details;
             _lookingCount++;
-            
             _tree->trackDeletedEntity(searchEntityID);
         }
     }
