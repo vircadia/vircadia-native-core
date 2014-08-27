@@ -29,13 +29,15 @@ public:
         Injector
     };
 
-    PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, 
-        int maxFramesOverDesired);
+    PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, const InboundAudioStream::Settings& settings);
     
+    virtual void resetStats();
+
     virtual AudioStreamStats getAudioStreamStats() const;
 
-    void updateLastPopOutputTrailingLoudness();
+    void updateLastPopOutputLoudnessAndTrailingLoudness();
     float getLastPopOutputTrailingLoudness() const { return _lastPopOutputTrailingLoudness; }
+    float getLastPopOutputLoudness() const { return _lastPopOutputLoudness; }
 
     bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
     bool isStereo() const { return _isStereo; }
@@ -64,6 +66,7 @@ protected:
     bool _isStereo;
 
     float _lastPopOutputTrailingLoudness;
+    float _lastPopOutputLoudness;
     AABox* _listenerUnattenuatedZone;
     
     AudioFilterHSF1s _filter;

@@ -74,9 +74,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
                 quint8 channelFlag = *(reinterpret_cast<const quint8*>(channelFlagAt));
                 bool isStereo = channelFlag == 1;
 
-                _audioStreams.insert(nullUUID,
-                    matchingStream = new AvatarAudioStream(isStereo, AudioMixer::getUseDynamicJitterBuffers(),
-                    AudioMixer::getStaticDesiredJitterBufferFrames(), AudioMixer::getMaxFramesOverDesired()));
+                _audioStreams.insert(nullUUID, matchingStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings()));
             } else {
                 matchingStream = _audioStreams.value(nullUUID);
             }
@@ -88,9 +86,8 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             QUuid streamIdentifier = QUuid::fromRfc4122(packet.mid(bytesBeforeStreamIdentifier, NUM_BYTES_RFC4122_UUID));
 
             if (!_audioStreams.contains(streamIdentifier)) {
-                _audioStreams.insert(streamIdentifier,
-                    matchingStream = new InjectedAudioStream(streamIdentifier, AudioMixer::getUseDynamicJitterBuffers(),
-                    AudioMixer::getStaticDesiredJitterBufferFrames(), AudioMixer::getMaxFramesOverDesired()));
+                // we don't have this injected stream yet, so add it
+                _audioStreams.insert(streamIdentifier, matchingStream = new InjectedAudioStream(streamIdentifier, AudioMixer::getStreamSettings()));
             } else {
                 matchingStream = _audioStreams.value(streamIdentifier);
             }
@@ -105,18 +102,15 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(AABox* checkSourceZone, A
     QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
         PositionalAudioStream* stream = i.value();
+        
         if (stream->popFrames(1, true) > 0) {
-            // this is a ring buffer that is ready to go
-
-            // calculate the trailing avg loudness for the next frame
-            // that would be mixed in
-            stream->updateLastPopOutputTrailingLoudness();
-
-            if (checkSourceZone && checkSourceZone->contains(stream->getPosition())) {
-                stream->setListenerUnattenuatedZone(listenerZone);
-            } else {
-                stream->setListenerUnattenuatedZone(NULL);
-            }
+            stream->updateLastPopOutputLoudnessAndTrailingLoudness();
+        }
+        
+        if (checkSourceZone && checkSourceZone->contains(stream->getPosition())) {
+            stream->setListenerUnattenuatedZone(listenerZone);
+        } else {
+            stream->setListenerUnattenuatedZone(NULL);
         }
     }
 }
@@ -185,7 +179,9 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
         // pack the calculated number of stream stats
         for (int i = 0; i < numStreamStatsToPack; i++) {
-            AudioStreamStats streamStats = audioStreamsIterator.value()->updateSeqHistoryAndGetAudioStreamStats();
+            PositionalAudioStream* stream = audioStreamsIterator.value();
+            stream->perSecondCallbackForUpdatingStats();
+            AudioStreamStats streamStats = stream->getAudioStreamStats();
             memcpy(dataAt, &streamStats, sizeof(AudioStreamStats));
             dataAt += sizeof(AudioStreamStats);
 

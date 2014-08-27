@@ -271,9 +271,10 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
     
         quint64 networkStart = usecTimestampNow();
         n = recvfrom(sockfd, inputBuffer, size, 0, NULL, NULL); // we don't care about where it came from
+
         quint64 networkEnd = usecTimestampNow();
         float networkElapsed = (float)(networkEnd - networkStart);
-    
+
         if (n < 0) {
             std::cout << "Receive error: " << strerror(errno) << "\n";
         }
