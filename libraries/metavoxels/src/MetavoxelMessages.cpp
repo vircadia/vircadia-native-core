@@ -649,6 +649,11 @@ VoxelColorBoxEdit::VoxelColorBoxEdit(const Box& region, float granularity, const
     color(color) {
 }
 
+const int VOXEL_BLOCK_SIZE = 16;
+const int VOXEL_BLOCK_SAMPLES = VOXEL_BLOCK_SIZE + 1;
+const int VOXEL_BLOCK_AREA = VOXEL_BLOCK_SAMPLES * VOXEL_BLOCK_SAMPLES;
+const int VOXEL_BLOCK_VOLUME = VOXEL_BLOCK_AREA * VOXEL_BLOCK_SAMPLES;
+
 class VoxelColorBoxEditVisitor : public MetavoxelVisitor {
 public:
     
@@ -659,18 +664,49 @@ public:
 private:
     
     const VoxelColorBoxEdit& _edit;
+    float _blockSize;
 };
 
 VoxelColorBoxEditVisitor::VoxelColorBoxEditVisitor(const VoxelColorBoxEdit& edit) :
     MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute(),
         QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute()),
-    _edit(edit) {
+    _edit(edit),
+    _blockSize(edit.granularity * VOXEL_BLOCK_SIZE) {
 }
 
 int VoxelColorBoxEditVisitor::visit(MetavoxelInfo& info) {
-    if (!info.isLeaf) {
+    Box bounds = info.getBounds();
+    if (!bounds.intersects(_edit.region)) {
+        return STOP_RECURSION;
+    }
+    if (!info.size > _blockSize) {
         return DEFAULT_ORDER;
     }
+    VoxelColorDataPointer pointer = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
+    QVector<QRgb> contents = (pointer && pointer->getSize() == VOXEL_BLOCK_SAMPLES) ? pointer->getContents() :
+        QVector<QRgb>(VOXEL_BLOCK_VOLUME);
+    
+    Box overlap = bounds.getIntersection(_edit.region);
+    int minX = (overlap.minimum.x - info.minimum.x) / _edit.granularity;
+    int minY = (overlap.minimum.y - info.minimum.y) / _edit.granularity;
+    int minZ = (overlap.minimum.z - info.minimum.z) / _edit.granularity;
+    int sizeX = (overlap.maximum.x - overlap.minimum.x) / _edit.granularity;
+    int sizeY = (overlap.maximum.y - overlap.minimum.y) / _edit.granularity;
+    int sizeZ = (overlap.maximum.z - overlap.minimum.z) / _edit.granularity;
+    
+    QRgb color = _edit.color.rgb();
+    for (QRgb* destZ = contents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
+            *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA) {
+        for (QRgb* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY; destY += VOXEL_BLOCK_SAMPLES) {
+            for (QRgb* destX = destY, *endX = destX + sizeX; destX != endX; destX++) {
+                *destX = color;
+            }
+        }
+    }
+    
+    VoxelColorDataPointer newPointer(new VoxelColorData(contents, VOXEL_BLOCK_SAMPLES));
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<VoxelColorDataPointer>(newPointer));
+        
     return STOP_RECURSION;
 }
 

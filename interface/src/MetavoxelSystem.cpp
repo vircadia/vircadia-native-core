@@ -34,12 +34,18 @@ static int bufferPointVectorMetaTypeId = qRegisterMetaType<BufferPointVector>();
 void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
     DefaultMetavoxelRendererImplementation::init();
-    _pointBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(new BufferDataAttribute("pointBuffer"));
-    _heightfieldBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(
-        new BufferDataAttribute("heightfieldBuffer"));
     
+    _pointBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(new BufferDataAttribute("pointBuffer"));
+    
+    _heightfieldBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(
+        new BufferDataAttribute("heightfieldBuffer"));  
     _heightfieldBufferAttribute->setLODThresholdMultiplier(
         AttributeRegistry::getInstance()->getHeightfieldAttribute()->getLODThresholdMultiplier());
+    
+    _voxelBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(
+        new BufferDataAttribute("voxelBuffer"));
+    _voxelBufferAttribute->setLODThresholdMultiplier(
+        AttributeRegistry::getInstance()->getVoxelColorAttribute()->getLODThresholdMultiplier());
 }
 
 MetavoxelLOD MetavoxelSystem::getLOD() {
@@ -972,6 +978,16 @@ void HeightfieldPreview::render(const glm::vec3& translation, float scale) const
     glEnable(GL_BLEND);
 }
 
+VoxelBuffer::VoxelBuffer(const QVector<VoxelVertex>& vertices, const QVector<int>& indices,
+        const QVector<SharedObjectPointer>& materials) :
+    _vertices(vertices),
+    _indices(indices),
+    _materials(materials) {
+}
+
+void VoxelBuffer::render(bool cursor) {
+}
+
 BufferDataAttribute::BufferDataAttribute(const QString& name) :
     InlineAttribute<BufferDataPointer>(name) {
 }
@@ -1213,6 +1229,8 @@ HeightfieldFetchVisitor::HeightfieldFetchVisitor(const MetavoxelLOD& lod, const 
     _intersections(intersections) {
 }
 
+const int EIGHT_BIT_MAXIMUM = 255;
+
 int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
     Box bounds = info.getBounds();
     const Box& heightBounds = _buffer->getHeightBounds();
@@ -1263,7 +1281,6 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
                 shift++;
                 size *= 2.0f;
             }
-            const int EIGHT_BIT_MAXIMUM = 255;
             int subtract = (_buffer->getTranslation().y - info.minimum.y) * EIGHT_BIT_MAXIMUM / _buffer->getScale();
             for (int y = 0; y < destHeight; y++, dest += heightSize, srcY += srcAdvance) {
                 const uchar* src = (const uchar*)srcHeight.constData() + (int)srcY * srcSize;
@@ -1479,6 +1496,71 @@ int HeightfieldUpdateVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
+class VoxelAugmentVisitor : public MetavoxelVisitor {
+public:
+
+    VoxelAugmentVisitor(const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info);
+};
+
+VoxelAugmentVisitor::VoxelAugmentVisitor(const MetavoxelLOD& lod) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
+        AttributeRegistry::getInstance()->getVoxelMaterialAttribute(), QVector<AttributePointer>() <<
+            Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), lod) {
+}
+
+int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    VoxelBuffer* buffer = NULL;
+    VoxelColorDataPointer color = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
+    if (color) {
+        QVector<VoxelVertex> vertices;
+        QVector<int> indices;
+        
+        const QVector<QRgb>& contents = color->getContents();
+        int size = color->getSize();
+        int area = size * size;
+        int highest = size - 1;
+        int offset3 = size + 1;
+        int offset5 = area + 1;
+        int offset6 = area + size;
+        int offset7 = area + size + 1;
+        
+        const QRgb* src = contents.constData();
+        
+        const int ALPHA_OFFSET = 24;
+        const int MAX_ALPHA_TOTAL = EIGHT_BIT_MAXIMUM * 8;
+        for (int z = 0; z < highest; z++) {
+            for (int y = 0; y < highest; z++) {
+                for (int x = 0; x < highest; x++, src++) {
+                    int alpha0 = src[0] >> ALPHA_OFFSET;
+                    int alpha1 = src[1] >> ALPHA_OFFSET;
+                    int alpha2 = src[size] >> ALPHA_OFFSET;
+                    int alpha3 = src[offset3] >> ALPHA_OFFSET;
+                    int alpha4 = src[area] >> ALPHA_OFFSET;
+                    int alpha5 = src[offset5] >> ALPHA_OFFSET;
+                    int alpha6 = src[offset6] >> ALPHA_OFFSET;
+                    int alpha7 = src[offset7] >> ALPHA_OFFSET;
+                    int alphaTotal = alpha0 + alpha1 + alpha2 + alpha3 + alpha4 + alpha5 + alpha6 + alpha7;
+                    if (alphaTotal == 0 || alphaTotal == MAX_ALPHA_TOTAL) {
+                        continue; // no corners set/all corners set
+                    }
+                    
+                }
+                src++;
+            }
+            src += size;
+        }
+        
+        buffer = new VoxelBuffer(vertices, indices);
+    }
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
+    return STOP_RECURSION;
+}
+
 void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
         MetavoxelInfo& info, const MetavoxelLOD& lod) {
     // copy the previous buffers
@@ -1509,6 +1591,9 @@ void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const 
     HeightfieldUpdateVisitor heightfieldUpdateVisitor(lod, heightfieldRegionVisitor.regions,
         heightfieldRegionVisitor.regionBounds);
     data.guide(heightfieldUpdateVisitor);
+    
+    VoxelAugmentVisitor voxelAugmentVisitor(lod);
+    data.guideToDifferent(expandedPrevious, voxelAugmentVisitor);
 }
 
 class SpannerSimulateVisitor : public SpannerVisitor {

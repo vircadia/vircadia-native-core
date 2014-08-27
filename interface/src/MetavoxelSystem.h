@@ -39,6 +39,7 @@ public:
     
     const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
     const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
+    const AttributePointer& getVoxelBufferAttribute() { return _voxelBufferAttribute; }
     
     void simulate(float deltaTime);
     void render();
@@ -61,6 +62,7 @@ private:
     
     AttributePointer _pointBufferAttribute;
     AttributePointer _heightfieldBufferAttribute;
+    AttributePointer _voxelBufferAttribute;
     
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
@@ -210,6 +212,31 @@ public:
 private:
     
     QVector<BufferDataPointer> _buffers;
+};
+
+/// Describes contents of a vertex in a voxel buffer.
+class VoxelVertex {
+public:
+    glm::vec3 position;
+    quint8 color[3];
+    quint8 normal[3];
+};
+
+/// Contains the information necessary to render a voxel block.
+class VoxelBuffer : public BufferData {
+public:
+    
+    VoxelBuffer(const QVector<VoxelVertex>& vertices, const QVector<int>& indices,
+        const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
+        
+    virtual void render(bool cursor = false);
+
+private:
+    
+    QVector<VoxelVertex> _vertices;
+    QVector<int> _indices;
+    QVector<SharedObjectPointer> _materials;
+    QVector<NetworkTexturePointer> _networkTextures;
 };
 
 /// A client-side attribute that stores renderable buffers.
