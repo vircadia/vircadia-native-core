@@ -137,18 +137,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     }
     if (successTypeFits) {
         successCreatedFits = packetData->appendValue(_created);
-
-qDebug() << "EntityItem::appendEntityData()...";
-qDebug() << "    entityID=" << getEntityItemID();
-if (_created == USE_EXISTING_CREATED_TIME) {
-    qDebug() << "    _created = USE_EXISTING_CREATED_TIME";
-} else if (_created == UNKNOWN_CREATED_TIME) {
-    qDebug() << "    _created = UNKNOWN_CREATED_TIME";
-} else {
-    qDebug() << "    _created=" << _created;
-    qDebug() << "    getAge()=" << getAge() << " - " << formatSecondsElapsed(getAge());
-}
-
     }
     if (successCreatedFits) {
         successLastEditedFits = packetData->appendValue(lastEdited);
@@ -452,22 +440,12 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         createdFromBuffer -= clockSkew;
         
         _created = createdFromBuffer; // TODO: do we ever want to discard this???
-qDebug() << "EntityItem::readEntityDataFromBuffer()...";
-qDebug() << "    entityID=" << getEntityItemID();
-if (_created == USE_EXISTING_CREATED_TIME) {
-    qDebug() << "    _created = USE_EXISTING_CREATED_TIME";
-} else if (_created == UNKNOWN_CREATED_TIME) {
-    qDebug() << "    _created = UNKNOWN_CREATED_TIME";
-} else {
-    qDebug() << "    _created=" << _created;
-    qDebug() << "    getAge()=" << getAge() << " - " << formatSecondsElapsed(getAge());
-}
 
-        /*
-        QString ageAsString = formatSecondsElapsed(getAge());
-        qDebug() << "Loading entity " << getEntityItemID() << " from buffer, _created =" << _created 
-                        << " age=" << getAge() << "seconds - " << ageAsString;
-        */
+        if (wantDebug) {
+            QString ageAsString = formatSecondsElapsed(getAge());
+            qDebug() << "Loading entity " << getEntityItemID() << " from buffer, _created =" << _created 
+                            << " age=" << getAge() << "seconds - " << ageAsString;
+        }
         
         quint64 lastEditedFromBuffer = 0;
 
@@ -791,6 +769,7 @@ EntityItemProperties EntityItem::getProperties() const {
     
     properties._id = getID();
     properties._idSet = true;
+    properties._created = _created;
 
     properties._type = getType();
     
@@ -871,7 +850,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         somethingChanged = true;
     }
     if (properties._lifetimeChanged || forceCopy) {
-qDebug() << "setLifetime().... properties._lifetime=" << properties._lifetime;    
         setLifetime(properties._lifetime);
         somethingChanged = true;
     }
