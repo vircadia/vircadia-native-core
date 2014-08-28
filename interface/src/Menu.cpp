@@ -114,6 +114,7 @@ Menu::Menu() :
     _loginAction(NULL),
     _preferencesDialog(NULL),
     _loginDialog(NULL),
+    _loginDomain(),
     _snapshotsLocation(),
     _scriptsLocation(),
     _walletPrivateKey()
@@ -1052,12 +1053,26 @@ void sendFakeEnterEvent() {
 
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
+void Menu::clearLoginDomain() {
+    // Needed for domains that don't require login.
+    _loginDomain = QString();
+}
+
 void Menu::loginForCurrentDomain() {
-    if (!_loginDialog) {
+    QString domain = NodeList::getInstance()->getDomainHandler().getHostname();
+    bool hasShownForDomain = domain == _loginDomain;
+
+    if (!_loginDialog && !hasShownForDomain) {
+        _loginDomain = domain;
         _loginDialog = new LoginDialog(Application::getInstance()->getWindow());
         _loginDialog->show();
         _loginDialog->resizeAndPosition(false);
     }
+}
+
+void Menu::showLoginForCurrentDomain() {
+    _loginDomain = QString();
+    loginForCurrentDomain();
 }
 
 void Menu::editPreferences() {
@@ -1404,7 +1419,7 @@ void Menu::toggleLoginMenuItem() {
         // change the menu item to login
         _loginAction->setText("Login");
 
-        connect(_loginAction, &QAction::triggered, this, &Menu::loginForCurrentDomain);
+        connect(_loginAction, &QAction::triggered, this, &Menu::showLoginForCurrentDomain);
     }
 }
 
