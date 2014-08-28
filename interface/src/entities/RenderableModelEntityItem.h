@@ -36,7 +36,8 @@ public:
         ModelEntityItem(entityItemID, properties),
         _model(NULL),
         _needsSimulation(true),
-        _needsModelReload(true) { };
+        _needsModelReload(true),
+        _myRenderer(NULL) { };
 
     virtual ~RenderableModelEntityItem();
 
@@ -48,11 +49,12 @@ public:
     virtual void somethingChangedNotification() { _needsSimulation = true; }
 
     virtual void render(RenderArgs* args);
-    Model* getModel();
+    Model* getModel(EntityTreeRenderer* renderer);
 private:
     Model* _model;
     bool _needsSimulation;
     bool _needsModelReload;
+    EntityTreeRenderer* _myRenderer;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

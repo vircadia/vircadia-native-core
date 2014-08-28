@@ -67,6 +67,7 @@ void EntityTreeRenderer::update() {
 
 void EntityTreeRenderer::render(RenderMode renderMode) {
     OctreeRenderer::render(renderMode);
+    deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
 
 const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem* entityItem) {
@@ -76,7 +77,7 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem* en
         const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
         RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
         assert(modelEntityItem); // we need this!!!
-        Model* model = modelEntityItem->getModel();
+        Model* model = modelEntityItem->getModel(this);
         if (model) {
             result = &model->getGeometry()->getFBXGeometry();
         }
@@ -91,7 +92,7 @@ const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityI
         RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
         assert(modelEntityItem); // we need this!!!
     
-        result = modelEntityItem->getModel();
+        result = modelEntityItem->getModel(this);
     }
     return result;
 }
@@ -225,7 +226,71 @@ void EntityTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, co
     static_cast<EntityTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
 }
 
+Model* EntityTreeRenderer::allocateModel(const QString& url) {
+    Model* model = NULL;
+    // Make sure we only create and delete models on the thread that owns the EntityTreeRenderer
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection, 
+                Q_RETURN_ARG(Model*, model),
+                Q_ARG(const QString&, url));
 
+        return model;
+    }
+    model = new Model();
+    model->init();
+    model->setURL(QUrl(url));
+    return model;
+}
 
+Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl) {
+    Model* model = NULL;
+
+    // The caller shouldn't call us if the URL doesn't need to change. But if they
+    // do, we just return their original back to them.
+    if (!original || (QUrl(newUrl) == original->getURL())) {
+        return original;
+    }
+
+    // Before we do any creating or deleting, make sure we're on our renderer thread
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "updateModel", Qt::BlockingQueuedConnection, 
+                Q_RETURN_ARG(Model*, model),
+                Q_ARG(Model*, original),
+                Q_ARG(const QString&, newUrl));
+
+        return model;
+    }
+
+    // at this point we know we need to replace the model, and we know we're on the
+    // correct thread, so we can do all our work.
+    if (original) {
+        delete original; // delete the old model...
+    }
+
+    // create the model and correctly initialize it with the new url
+    model = new Model();
+    model->init();
+    model->setURL(QUrl(newUrl));
+        
+    return model;
+}
+
+void EntityTreeRenderer::releaseModel(Model* model) {
+    // If we're not on the renderer's thread, then remember this model to be deleted later
+    if (QThread::currentThread() != thread()) {
+        _releasedModels << model;
+    } else { // otherwise just delete it right away
+        delete model;
+    }
+}
+
+void EntityTreeRenderer::deleteReleasedModels() {
+    if (_releasedModels.size() > 0) {
+        foreach(Model* model, _releasedModels) {
+            delete model;
+        }
+        _releasedModels.clear();
+    }
+}
 
 

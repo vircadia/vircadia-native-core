@@ -63,6 +63,19 @@ public:
     void renderEntityTypeModel(EntityItem* entity, RenderArgs* args);
     
     static QThread* getMainThread();
+    
+    /// if a renderable entity item needs a model, we will allocate it for them
+    Q_INVOKABLE Model* allocateModel(const QString& url);
+    
+    /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
+    Q_INVOKABLE Model* updateModel(Model* original, const QString& newUrl); 
+
+    /// if a renderable entity item is done with a model, it should return it to us
+    void releaseModel(Model* model);
+    
+    void deleteReleasedModels();
+private:
+    QList<Model*> _releasedModels;
 };
 
 #endif // hifi_EntityTreeRenderer_h

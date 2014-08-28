@@ -29,10 +29,11 @@ EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, con
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() {
-
-    // TODO: we can't just delete this because we may be on the wrong thread.
-    //delete _model;
-    _model = NULL;
+    assert(_myRenderer || !_model); // if we have a model, we need to know our renderer
+    if (_myRenderer && _model) {
+        _myRenderer->releaseModel(_model);
+        _model = NULL;
+    }
 };
 
 bool RenderableModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
@@ -75,7 +76,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             if (!_model || _needsModelReload) {
                 // TODO: this getModel() appears to be about 3% of model render time. We should optimize
                 PerformanceTimer perfTimer("getModel");
-                getModel();
+                EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
+                getModel(renderer);
             }
             
             if (_model) {
@@ -191,47 +193,40 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 }
 
-Model* RenderableModelEntityItem::getModel() {
+Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
+    Model* result = NULL;
+
+    // make sure our renderer is setup
+    if (!_myRenderer) {
+        _myRenderer = renderer;
+    }
+    assert(_myRenderer == renderer); // you should only ever render on one renderer
+    
     _needsModelReload = false; // this is the reload
+
+    // if we have a URL, then we will want to end up returning a model...
     if (!getModelURL().isEmpty()) {
-        // double check our URLS match...
+    
+        // if we have a previously allocated model, but it's URL doesn't match
+        // then we need to let our renderer update our model for us.
         if (_model && QUrl(getModelURL()) != _model->getURL()) {
-            delete _model; // delete the old model...
-            _model = NULL;
+            result = _model = _myRenderer->updateModel(_model, getModelURL());
             _needsSimulation = true;
-        }
-
-        // if we don't have a model... but our item does have a model URL
-        if (!_model) {
-            // Make sure we only create new models on the thread that owns the EntityTreeRenderer
-            if (QThread::currentThread() != EntityTreeRenderer::getMainThread()) {
-            
-                // TODO: how do we better handle this??? we may need this for scripting...
-                // possible go back to a getModel() service on the TreeRenderer, but have it take a URL
-                // this would allow the entity items to use that service for loading, and since the
-                // EntityTreeRenderer is a Q_OBJECT it can call invokeMethod()
-                
-                qDebug() << "can't call getModel() on thread other than rendering thread...";
-
-                //QMetaObject::invokeMethod(this, "getModel", Qt::BlockingQueuedConnection, Q_RETURN_ARG(Model*, _model));
-                //qDebug() << "got it... _model=" << _model;
-                return _model;
-            }
-
-            _model = new Model();
-            _model->init();
-            _model->setURL(QUrl(getModelURL()));
+        } else if (!_model) { // if we don't yet have a model, then we want our renderer to allocate one
+            result = _model = _myRenderer->allocateModel(getModelURL());
             _needsSimulation = true;
+        } else { // we already have the model we want...
+            result = _model;
         }
-    } else {
-        // our URL is empty, we should clean up our old model
+    } else { // if our desired URL is empty, we may need to delete our existing model
         if (_model) {
-            delete _model; // delete the old model...
-            _model = NULL;
+            _myRenderer->releaseModel(_model);
+            result = _model = NULL;
             _needsSimulation = true;
         }
     }
-    return _model;
+    
+    return result;
 }
 
 
