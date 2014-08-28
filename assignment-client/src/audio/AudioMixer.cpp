@@ -324,8 +324,8 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
             const float FILTER_CUTOFF_FREQUENCY_HZ = 4000.0f;
             
             // calculate the updated gain, frequency and slope.  this will be tuned over time.
-            const float penumbraFilterGainL = (-1.0f * ONE_OVER_TWO_PI * headPenumbraAngle ) + SQUARE_ROOT_OF_TWO_OVER_TWO;
-            const float penumbraFilterGainR = (+1.0f * ONE_OVER_TWO_PI * headPenumbraAngle ) + SQUARE_ROOT_OF_TWO_OVER_TWO;
+            const float penumbraFilterGainL = (-1.0f * ONE_OVER_TWO_PI * headPenumbraAngle) + SQUARE_ROOT_OF_TWO_OVER_TWO;
+            const float penumbraFilterGainR = (+1.0f * ONE_OVER_TWO_PI * headPenumbraAngle) + SQUARE_ROOT_OF_TWO_OVER_TWO;
             const float penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
             const float penumbraFilterSlope = SQUARE_ROOT_OF_TWO_OVER_TWO; // constant slope
             

@@ -155,8 +155,7 @@ public:
 //
 // Implements a low-shelf filter using a biquad 
 //
-class AudioFilterLSF : 
-public AudioFilter< AudioFilterLSF >
+class AudioFilterLSF : public AudioFilter< AudioFilterLSF >
 {
 public:
     
@@ -197,8 +196,7 @@ public:
 //
 // Implements a hi-shelf filter using a biquad 
 //
-class AudioFilterHSF : 
-public AudioFilter< AudioFilterHSF >
+class AudioFilterHSF : public AudioFilter< AudioFilterHSF >
 {
 public:
     
@@ -239,8 +237,7 @@ public:
 //
 // Implements a all-pass filter using a biquad
 //
-class AudioFilterALL : 
-public AudioFilter< AudioFilterALL >
+class AudioFilterALL : public AudioFilter< AudioFilterALL >
 {
 public:
     
@@ -276,8 +273,7 @@ public:
 //
 // Implements a single-band parametric EQ using a biquad "peaking EQ" configuration
 //
-class AudioFilterPEQ : 
-    public AudioFilter< AudioFilterPEQ >
+class AudioFilterPEQ : public AudioFilter< AudioFilterPEQ >
 {
 public:
     
