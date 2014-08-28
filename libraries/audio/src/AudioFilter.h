@@ -155,8 +155,7 @@ public:
 //
 // Implements a low-shelf filter using a biquad 
 //
-class AudioFilterLSF : 
-public AudioFilter< AudioFilterLSF >
+class AudioFilterLSF : public AudioFilter< AudioFilterLSF >
 {
 public:
     
@@ -197,8 +196,7 @@ public:
 //
 // Implements a hi-shelf filter using a biquad 
 //
-class AudioFilterHSF : 
-public AudioFilter< AudioFilterHSF >
+class AudioFilterHSF : public AudioFilter< AudioFilterHSF >
 {
 public:
     
@@ -237,10 +235,45 @@ public:
 };
 
 //
+// Implements a all-pass filter using a biquad
+//
+class AudioFilterALL : public AudioFilter< AudioFilterALL >
+{
+public:
+    
+    //
+    // helpers
+    //
+    void updateKernel() {
+        
+        const float omega = TWO_PI * _frequency / _sampleRate;
+        const float cosOmega = cosf(omega);
+        const float alpha = 0.5f * sinf(omega) / _slope;
+        /*
+         b0 =   1 - alpha
+         b1 =  -2*cos(w0)
+         b2 =   1 + alpha
+         a0 =   1 + alpha
+         a1 =  -2*cos(w0)
+         a2 =   1 - alpha
+         */
+        const float b0 = +1.0f - alpha;
+        const float b1 = -2.0f * cosOmega;
+        const float b2 = +1.0f + alpha;
+        const float a0 = +1.0f + alpha;
+        const float a1 = -2.0f * cosOmega;
+        const float a2 = +1.0f - alpha;
+        
+        const float normA0 = 1.0f / a0;
+        
+        _kernel.setParameters(b0 * normA0, b1 * normA0 , b2 * normA0, a1 * normA0, a2 * normA0);
+    }
+};
+
+//
 // Implements a single-band parametric EQ using a biquad "peaking EQ" configuration
 //
-class AudioFilterPEQ : 
-    public AudioFilter< AudioFilterPEQ >
+class AudioFilterPEQ : public AudioFilter< AudioFilterPEQ >
 {
 public:
     

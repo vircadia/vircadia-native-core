@@ -308,38 +308,37 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     if (_enableFilter && shouldAttenuate) {
         
         glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
-        if (relativePosition.z < 0) {  // if the source is behind us
-            
+        if (relativePosition.z < 0) {  // if the source is behind us      
             AudioFilterHSF1s& penumbraFilter = streamToAdd->getFilter();
 
             // calculate penumbra angle
             float headPenumbraAngle = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
                                                  glm::normalize(relativePosition));
             
-            // normalize penumbra angle
-            float normalizedHeadPenumbraAngle = headPenumbraAngle / PI_OVER_TWO;
-            
-            if (normalizedHeadPenumbraAngle < EPSILON) { 
-                normalizedHeadPenumbraAngle = EPSILON;
+            if (relativePosition.x < 0) {
+                headPenumbraAngle *= -1.0f;  // [-pi/2,+pi/2]
             }
             
-            const float SQUARE_ROOT_OF_TWO_OVER_TWO = 0.71f;
+            const float SQUARE_ROOT_OF_TWO_OVER_TWO = 0.71f;  // half power
+            const float ONE_OVER_TWO_PI = 1.0f / TWO_PI;
             const float FILTER_CUTOFF_FREQUENCY_HZ = 4000.0f;
-            float penumbraFilterGain;
-            float penumbraFilterFrequency;
-            float penumbraFilterSlope;
-
-            // calculate the updated gain.  this will be tuned over time.
-            // consider this only a crude-first pass at correlating gain, freq and slope with penumbra angle.
-            penumbraFilterGain = SQUARE_ROOT_OF_TWO_OVER_TWO * (normalizedHeadPenumbraAngle + SQUARE_ROOT_OF_TWO_OVER_TWO);
-            penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
-            penumbraFilterSlope = SQUARE_ROOT_OF_TWO_OVER_TWO; // constant slope
             
-            qDebug() << "penumbra gain=" << penumbraFilterGain << ", penumbraAngle=" << normalizedHeadPenumbraAngle;
+            // calculate the updated gain, frequency and slope.  this will be tuned over time.
+            const float penumbraFilterGainL = (-1.0f * ONE_OVER_TWO_PI * headPenumbraAngle) + SQUARE_ROOT_OF_TWO_OVER_TWO;
+            const float penumbraFilterGainR = (+1.0f * ONE_OVER_TWO_PI * headPenumbraAngle) + SQUARE_ROOT_OF_TWO_OVER_TWO;
+            const float penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
+            const float penumbraFilterSlope = SQUARE_ROOT_OF_TWO_OVER_TWO; // constant slope
+            
+            qDebug() << "penumbra gainL=" 
+                        << penumbraFilterGainL
+                        << "penumbra gainR="
+                        << penumbraFilterGainR
+                        << "penumbraAngle="
+                        << headPenumbraAngle;
 
             // set the gain on both filter channels
-            penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGain, penumbraFilterSlope);
-            penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGain, penumbraFilterSlope);
+            penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
+            penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
             
             penumbraFilter.render(_clientSamples, _clientSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
         }
