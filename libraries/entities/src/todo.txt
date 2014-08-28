@@ -1,51 +1,40 @@
 // REQUIRED:
 
     
-     1) Lifetime, Age, Created
-        * support created timestamp in all entities
-        * handle old model files with no created time stamp
-        * add age, ageAsText properties for scripting
-        
-        * make sure that entities that expire are correctly deleted safely
-        * make sure that deleting a mortal but not yet dead entity works
 
-
-        * make sure that newly "viewed" entities are correctly added to our simulation lists: moral, changing, moving
-
-
-    2) Crash in delete model - deleting the geometry...
+    1) Crash in delete model - deleting the geometry...
         I think this is a cross threading issue... delete Model needs to be on same thread that created it.
 
         -- change Model* RenderableModelEntityItem::getModel(); to call a new method on EntityTreeRenderer::newModel();
         -- change RenderableModelEntityItem::~RenderableModelEntityItem() to call a new method on EntityTreeRenderer::deleteModel(Model*);
 
-    3) Look into why non-changed octree cells are being resent when editing an entity
+        
+    2) Moving models don't always move.. I think this relates to the render optimization... 
+        need to make sure we re-simulate when a model is moving...
 
+    3) if velocity sends a model out of the domain - delete it
 
-    7) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
+    4) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
        doesn't include the extra exists bits will break something.
 
-   14) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
+    5) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
 
-    
-    3) Don't allow models to be "edited" to be outside of domain. clamp them to the domain.
+    6) Don't allow models to be "edited" to be outside of domain. clamp them to the domain.
 
-    4) if velocity sends a model out of the domain - delete it
+    7) random crashes on moving (I think things going out of bounds???)
 
-    3) random crashes on moving (I think things going out of bounds???)
-
-    4) some jutter with moving entities
+    8) some jutter with moving entities
    
-    5) test animation again...
-    5b) animations not always working?????
+    9) test animation again...
     
-    6) clear all entities when changing domains?
-    
-   11) What happens if the edit properties don't fit in a single message MTU???
+   10) What happens if the edit properties don't fit in a single message MTU???
 
-   13) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
+   11) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
 
-   15) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
+   12) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
+
+   13) Look into why non-changed octree cells are being resent when editing an entity
+
 
     
 // NICE TO DO:
@@ -167,46 +156,46 @@
 ===============
 
 
-// SOLVED - 5) crash in client assert on addEntity() assetting that not viewing???
-// SOLVED - 7) when changing properties that include position OR radius, but not both the update logic gets confused.
-// SOLVED - 8) in assignEntityID() we assert if the containing element exists... this is too harsh, what if someone sends us a bad packet
+// SOLVED - 1) crash in client assert on addEntity() assetting that not viewing???
+// SOLVED - 2) when changing properties that include position OR radius, but not both the update logic gets confused.
+// SOLVED - 3) in assignEntityID() we assert if the containing element exists... this is too harsh, what if someone sends us a bad packet
 //             -- fixed this by only storing assigned IDs in the server's ID base
-// SOLVED - 9) problem here... looks like the client got confused and sent us an unknown edit packet with a creator token id we already had...
+// SOLVED - 4) problem here... looks like the client got confused and sent us an unknown edit packet with a creator token id we already had...
 //             we probably can't keep the creator tokens in our server tree or else we'll collide between multiple editors!!
 //             -- fixed this by only storing assigned IDs in the server's ID base
-// SOLVED - 15) fix all places where "Voxels" turns off some features of models/entities
-// SOLVED - 16) duplicate copies of entity references in the elements... this appears to be caused when "viewing" while editing...
-// SOLVED - 17) Handle the newer on client vs changed on server problem properly for entities
-// SOLVED - 20) Verified that multiple machines viewing real time edits works - fixed bugs in lastEdited.
-// SOLVED - b) entities have same ID? unknown??? - wasn't setting ID on read from buffer...
-// SOLVED - a) crash in entity server on add entity? 
-// SOLVED - 8) addOrUpdateEntity()
-// SOLVED - B) enable animation in model class
-// SOLVED - 18) change ID's to UUIDS????
-// SOLVED - L) sometimes assert/crashes in server about containing element? I think we're adding entityIDs with UNKNOWN_ID to our maps
+// SOLVED - 5) fix all places where "Voxels" turns off some features of models/entities
+// SOLVED - 6) duplicate copies of entity references in the elements... this appears to be caused when "viewing" while editing...
+// SOLVED - 7) Handle the newer on client vs changed on server problem properly for entities
+// SOLVED - 8) Verified that multiple machines viewing real time edits works - fixed bugs in lastEdited.
+// SOLVED - 9) entities have same ID? unknown??? - wasn't setting ID on read from buffer...
+// SOLVED - 10) crash in entity server on add entity? 
+// SOLVED - 11) addOrUpdateEntity()
+// SOLVED - 12) enable animation in model class
+// SOLVED - 13) change ID's to UUIDS????
+// SOLVED - 14) sometimes assert/crashes in server about containing element? I think we're adding entityIDs with UNKNOWN_ID to our maps
 //             this crash is definitely caused by starting a server with an existing models file which has ID's already in use...
-// SOLVED - M) change EntityTree::handleAddEntityResponse() to not scan entire tree... it can use the containing element stuff!!!
-// SOLVED - F) TODO: do we need to handle "killing" viewed entities as well???
+// SOLVED - 15) change EntityTree::handleAddEntityResponse() to not scan entire tree... it can use the containing element stuff!!!
+// SOLVED - 16) TODO: do we need to handle "killing" viewed entities as well???
 //             void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID)...
-// SOLVED - R) move to EntityItemProperties
+// SOLVED - 17) move to EntityItemProperties
 //                        EntityItem::encodeEntityEditMessageDetails()
 //                        EntityTypes::decodeEntityEditPacket()
-// SOLVED - Aa) handle sublass appendEntityData() and readEntityItemIDFromBuffer() similar to how we 
+// SOLVED - 18) handle sublass appendEntityData() and readEntityItemIDFromBuffer() similar to how we 
 //                  handle setProperty()/getProperty() so that each subclass doesn't have to completely reimplement
 //                  the entire base class data stream...
-// SOLVED - Ab) implement support for requestedProperties in appendEntityData() to be virtual to handle various subclasses
-// SOLVED - A) add velocity, gravity, damping to entity base class
-// SOLVED - 2) EntityTree::update()/EntityTreeElement::update()... velocity changes...
-// SOLVED - C) verify "update" works
-// SOLVED - V) crash/assert when you move an entity out of domain bounds???
-// SOLVED - U) UNEXPECTED -- OctreeElement::getMyChildContaining() cubeScale=[0.000012] > ourScale=[0.000004] 
-// SOLVED - 19) what about??? rememberDirtyCube()... -- removed it... not needed
-// SOLVED - zz) what about editing/edit messages... moved to EntityItemProperties...
+// SOLVED - 19) implement support for requestedProperties in appendEntityData() to be virtual to handle various subclasses
+// SOLVED - 20) add velocity, gravity, damping to entity base class
+// SOLVED - 21) EntityTree::update()/EntityTreeElement::update()... velocity changes...
+// SOLVED - 22) verify "update" works
+// SOLVED - 23) crash/assert when you move an entity out of domain bounds???
+// SOLVED - 24) UNEXPECTED -- OctreeElement::getMyChildContaining() cubeScale=[0.000012] > ourScale=[0.000004] 
+// SOLVED - 25) what about??? rememberDirtyCube()... -- removed it... not needed
+// SOLVED - 26) what about editing/edit messages... moved to EntityItemProperties...
 //     EntityItem::encodeEntityEditMessageDetails() -- this could be a member of EntityItemProperties
 //     EntityTypes::decodeEntityEditPacket() -- this could be a member of EntityItemProperties
-// SOLVED - 12) change delete to use delete messages instead of shouldBeDeleted property
-// SOLVED - 12a) make sure server is deleting items??
-// SOLVED - 12b) Use the delete message instead of shouldDelete property
+// SOLVED - 27) change delete to use delete messages instead of shouldBeDeleted property
+// SOLVED - 27a) make sure server is deleting items??
+// SOLVED - 27b) Use the delete message instead of shouldDelete property
 // SOLVED -- problem 1:
 //                 it appears as if on a second pass on the element a DONT_FIT case occurs and this confuses things...
 // SOLVED -- problem 2:
@@ -214,15 +203,15 @@
 //                 to fit and in this case the "extra data" gets confused...
 //                     maybe remember the extra state before removing it and if it fails, always re-add it
 //                     maybe add support for "reserving" bytes in the packet
-// SOLVED -- BROKEN File persistence... -- added chunking support in SVO file persistence.
-// SOLVED -- G) why does is the Box entity not drawn in it's bounds
-// SOLVED -- 0) render performance of models...
+// SOLVED -- 28) BROKEN File persistence... -- added chunking support in SVO file persistence.
+// SOLVED -- 29) why does is the Box entity not drawn in it's bounds
+// SOLVED -- 30) render performance of models...
 // SOLVED --   a) make getModel() faster... consider storing the Model* in the actual EntityItem class
 // SOLVED --   b) only call simulate when properties change
-// SOLVED -- 1) verify lots of models in single element works
+// SOLVED -- 31) verify lots of models in single element works
 //              -- repro case - run editModelsExample.js -- create 10 models in the same octree element
-// SOLVED -- 6) support sitpoints and referentials....
-// SOLVED -- 7) Referentials -- working as well as master
+// SOLVED -- 32) support sitpoints and referentials....
+// SOLVED -- 33) Referentials -- working as well as master
 //             For sitting points and referentials you can kill two birds with one stone.
 //             Put this model in world: http://highfidelity-public.s3-us-west-1.amazonaws.com/ozan/theater.fst
 //             Launch sit.js
@@ -230,22 +219,22 @@
 //             Sit somewhere
 //             Move model with another avatar.
 //             Observe first avatar moving.   
-// SOLVED -- 2) verify shadows work
-// SOLVED -- 9) Handle the ID -> UUID swap in old files to new files - verify old files read correctly
-// SOLVED -- 2) Test models -> attachments logic --- TESTED/WORKS
-// SOLVED -- 1) Import/Export Models - verify it works. /copy/paste??
-//        DONE -- 22d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
-//        DONE -- 22e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
-//        DONE -- 22f) Application::exportEntities() tested/works
-//        DONE -- 22g) Application::pasteEntities() tested/works
-//        DONE -- 22c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
+// SOLVED -- 34) verify shadows work
+// SOLVED -- 35) Handle the ID -> UUID swap in old files to new files - verify old files read correctly
+// SOLVED -- 36) Test models -> attachments logic --- TESTED/WORKS
+// SOLVED -- 37) Import/Export Models - verify it works. /copy/paste??
+//        DONE -- 37d) void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels)...
+//        DONE -- 37e) void ModelTreeElement::getModelsInside(const AACube& box, QVector<ModelItem*>& foundModels)...
+//        DONE -- 37f) Application::exportEntities() tested/works
+//        DONE -- 37g) Application::pasteEntities() tested/works
+//        DONE -- 37c) void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z)....
 //                     bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {...
-//        RESOLVED -- 22a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // Do we need this? NO!
-//        WORKS AS PRODUCTION -- 22b) Local Entities Overlay - from Local Models Overlay
+//        RESOLVED -- 37a) void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem); // Do we need this? NO!
+//        WORKS AS PRODUCTION -- 37b) Local Entities Overlay - from Local Models Overlay
 //                          Note: there's a bug in production related to the overlay correctly rendering when
 //                          the original (non-translated positions) of the models are out of view. This is a bug
 //                          not introduced byt this PR.
-// SOLVED -- 8) Make sure EntityItems are deleted...
+// SOLVED -- 38) Make sure EntityItems are deleted...
 //            delete all entity items on deletion of the tree?
 //            cases:
 //                PASSED -- 1) test UI delete entity (on client)
@@ -257,8 +246,16 @@
 //                PASSED ---   b) shutdown domain server
 //                PASSED --- 6) test change domains
 //                SAME AS PRODUCTION - 5) test server shutdown (on client) - models aren't deleted when model server goes away
-// SOLVED -- 9) EntityTreeRenderer::clearModelsCache() - Model instance cleanup handled in ~RenderableModelEntityItem
-
+// SOLVED -- 39) EntityTreeRenderer::clearModelsCache() - Model instance cleanup handled in ~RenderableModelEntityItem
+// SOLVED -- 40) Lifetime, Age, Created
+//        DONE - * support created timestamp in all entities
+//        DONE - * handle old model files with no created time stamp
+//        DONE - * add age, ageAsText properties for scripting
+//        DONE - * make sure that entities that expire are correctly deleted safely
+//        DONE - * make sure that deleting a mortal but not yet dead entity works
+//        DONE - * make sure that newly "viewed" entities are correctly added to our simulation lists: mortal, changing, moving
+// SOLVED -- 41) clear all entities when changing domains?
+    
 
 
 ---------------- properties -----------------
@@ -274,6 +271,7 @@ Base properties...
     * mass
     * glow level
     * lifetime
+    * age
 
 should these be included for all entities? Light, Models, planes, etc?
     * rotational velocity? - wouldn't that be cool to be automatic with no edits
