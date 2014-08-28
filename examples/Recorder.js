@@ -161,12 +161,16 @@ function mousePressEvent(event) {
   } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
   		recordingFile = Window.save("Save recording to file", ".", "*.rec");
-	  	MyAvatar.saveRecording(recordingFile);
+  		if (recordingFile != "") {
+				MyAvatar.saveRecording(recordingFile);
+  		}
 	  }
   } else if (loadIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
   		recordingFile = Window.browse("Load recorcding from file", ".", "*.rec");
-	  	MyAvatar.loadRecording(recordingFile);
+	  	if (recordingFile != "") {
+				MyAvatar.loadRecording("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/bartender.rec");
+  		}
   	}
   } else {
 

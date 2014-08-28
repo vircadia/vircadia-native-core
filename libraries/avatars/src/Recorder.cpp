@@ -10,7 +10,9 @@
 //
 
 #include <GLMHelpers.h>
+#include <NetworkAccessManager.h>
 
+#include <QEventLoop>
 #include <QFile>
 #include <QMetaObject>
 #include <QObject>
@@ -55,6 +57,25 @@ Recording::Recording() : _audio(NULL) {
 
 Recording::~Recording() {
     delete _audio;
+}
+
+int Recording::getLength() const {
+    if (_timestamps.isEmpty()) {
+        return 0;
+    }
+    return _timestamps.last();
+}
+
+qint32 Recording::getFrameTimestamp(int i) const {
+    if (i >= _timestamps.size()) {
+        return getLength();
+    }
+    return _timestamps[i];
+}
+
+const RecordingFrame& Recording::getFrame(int i) const {
+    assert(i < _timestamps.size());
+    return _frames[i];
 }
 
 void Recording::addFrame(int timestamp, RecordingFrame &frame) {
@@ -492,18 +513,38 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
 }
 
 RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename) {
-    qDebug() << "Reading recording from " << filename << ".";
+    QElapsedTimer timer;
+    timer.start();
     if (!recording) {
         recording.reset(new Recording());
     }
     
-    QElapsedTimer timer;
-    QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly)){
-        return recording;
+    QByteArray byteArray;
+    QUrl url(filename);
+    if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
+        qDebug() << "Downloading recording at" << url;
+        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+        QEventLoop loop;
+        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+        loop.exec();
+        if (reply->error() != QNetworkReply::NoError) {
+            qDebug() << "Error while downloading recording: " << reply->error();
+            reply->deleteLater();
+            return recording;
+        }
+        byteArray = reply->readAll();
+        reply->deleteLater();
+    } else {
+        qDebug() << "Reading recording from " << filename << ".";
+        QFile file(filename);
+        if (!file.open(QIODevice::ReadOnly)){
+            return recording;
+        }
+        byteArray = file.readAll();
+        file.close();
     }
-    timer.start();
-    QDataStream fileStream(&file);
+    QDataStream fileStream(byteArray);
     
     fileStream >> recording->_timestamps;
     RecordingFrame baseFrame;
@@ -603,7 +644,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     recording->addAudioPacket(audioArray);
     
     
-    qDebug() << "Read " << file.size()  << " bytes in " << timer.elapsed() << " ms.";
+    qDebug() << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
     return recording;
 }
 

@@ -12,6 +12,7 @@
 
 var filename = "http://your.recording.url";
 var playFromCurrentLocation = true;
+var loop = true;
 
 Avatar.faceModelURL = "http://public.highfidelity.io/models/heads/EvilPhilip_v7.fst";
 Avatar.skeletonModelURL = "http://public.highfidelity.io/models/skeletons/Philip_Carl_Body_A-Pose.fst";
@@ -30,7 +31,9 @@ function update(event) {
     return;
   }
   if (count == 0) {
-    Avatar.startPlaying(playFromCurrentLocation);
+    Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
+    Avatar.setLoop(loop);
+    Avatar.startPlaying();
     Avatar.play();
     Vec3.print("Playing from ", Avatar.position);
 

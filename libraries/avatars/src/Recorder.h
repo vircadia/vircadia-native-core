@@ -81,11 +81,11 @@ public:
     ~Recording();
     
     bool isEmpty() const { return _timestamps.isEmpty(); }
-    int getLength() const { return _timestamps.last(); } // in ms
+    int getLength() const; // in ms
 
     int getFrameNumber() const { return _frames.size(); }
-    qint32 getFrameTimestamp(int i) const { return _timestamps[i]; }
-    const RecordingFrame& getFrame(int i) const { return _frames[i]; }
+    qint32 getFrameTimestamp(int i) const;
+    const RecordingFrame& getFrame(int i) const;
     Sound* getAudio() const { return _audio; }
     
 protected:
@@ -97,7 +97,6 @@ private:
     QVector<qint32> _timestamps;
     QVector<RecordingFrame> _frames;
     
-    bool _stereo;
     Sound* _audio;
     
     friend class Recorder;
