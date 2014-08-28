@@ -175,7 +175,9 @@ signals:
 
 public slots:
 
+    void clearLoginDialogDisplayedFlag();
     void loginForCurrentDomain();
+    void showLoginForCurrentDomain();
     void bandwidthDetails();
     void octreeStatsDetails();
     void lodTools();
@@ -302,6 +304,7 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<LoginDialog> _loginDialog;
+    bool _hasLoginDialogDisplayed;
     QAction* _chatAction;
     QString _snapshotsLocation;
     QString _scriptsLocation;
