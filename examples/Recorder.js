@@ -139,8 +139,6 @@ function moveUI() {
 function mousePressEvent(event) {
 	clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
-	print("Status: isPlaying=" + MyAvatar.isPlaying() + ", isRecording=" + MyAvatar.isRecording());
-
   if (recordIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isPlaying()) {
   	if (!MyAvatar.isRecording()) {
   		MyAvatar.startRecording();
@@ -161,15 +159,16 @@ function mousePressEvent(event) {
   } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
   		recordingFile = Window.save("Save recording to file", ".", "*.rec");
-  		if (recordingFile != "") {
+  		if (recordingFile != null) {
 				MyAvatar.saveRecording(recordingFile);
   		}
 	  }
   } else if (loadIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
   		recordingFile = Window.browse("Load recorcding from file", ".", "*.rec");
-	  	if (recordingFile != "") {
-				MyAvatar.loadRecording("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/bartender.rec");
+	  	if (recordingFile != "null") {
+	  	} else {
+				MyAvatar.loadRecording(recordingFile);
   		}
   	}
   } else {
