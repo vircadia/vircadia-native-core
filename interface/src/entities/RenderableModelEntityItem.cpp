@@ -97,7 +97,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 }
 
                 glm::quat rotation = getRotation();
-                if (_needsSimulation && _model->isActive()) {
+                if (needsSimulation() && _model->isActive()) {
                     _model->setScaleToFit(true, radius * 2.0f);
                     _model->setSnapModelToCenter(true);
                     _model->setRotation(rotation);
@@ -108,7 +108,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                         PerformanceTimer perfTimer("_model->simulate");
                         _model->simulate(0.0f);
                     }
-                    _needsSimulation = false;
+                    _needsInitialSimulation = false;
                 }
 
                 // TODO: should we allow entityItems to have alpha on their models?
@@ -211,10 +211,10 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         // then we need to let our renderer update our model for us.
         if (_model && QUrl(getModelURL()) != _model->getURL()) {
             result = _model = _myRenderer->updateModel(_model, getModelURL());
-            _needsSimulation = true;
+            _needsInitialSimulation = true;
         } else if (!_model) { // if we don't yet have a model, then we want our renderer to allocate one
             result = _model = _myRenderer->allocateModel(getModelURL());
-            _needsSimulation = true;
+            _needsInitialSimulation = true;
         } else { // we already have the model we want...
             result = _model;
         }
@@ -222,11 +222,16 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         if (_model) {
             _myRenderer->releaseModel(_model);
             result = _model = NULL;
-            _needsSimulation = true;
+            _needsInitialSimulation = true;
         }
     }
     
     return result;
+}
+
+bool RenderableModelEntityItem::needsSimulation() const {
+    SimulationState simulationState = getSimulationState();
+    return _needsInitialSimulation || simulationState == Moving || simulationState == Changing;
 }
 
 

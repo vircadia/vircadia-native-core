@@ -35,7 +35,7 @@ public:
     RenderableModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         ModelEntityItem(entityItemID, properties),
         _model(NULL),
-        _needsSimulation(true),
+        _needsInitialSimulation(true),
         _needsModelReload(true),
         _myRenderer(NULL) { };
 
@@ -46,13 +46,15 @@ public:
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
                                                 
-    virtual void somethingChangedNotification() { _needsSimulation = true; }
+    virtual void somethingChangedNotification() { _needsInitialSimulation = true; }
 
     virtual void render(RenderArgs* args);
     Model* getModel(EntityTreeRenderer* renderer);
 private:
+    bool needsSimulation() const;
+    
     Model* _model;
-    bool _needsSimulation;
+    bool _needsInitialSimulation;
     bool _needsModelReload;
     EntityTreeRenderer* _myRenderer;
 };

@@ -1,17 +1,5 @@
 // REQUIRED:
 
-    
-
-    1) Crash in delete model - deleting the geometry...
-        I think this is a cross threading issue... delete Model needs to be on same thread that created it.
-
-        -- change Model* RenderableModelEntityItem::getModel(); to call a new method on EntityTreeRenderer::newModel();
-        -- change RenderableModelEntityItem::~RenderableModelEntityItem() to call a new method on EntityTreeRenderer::deleteModel(Model*);
-
-        
-    2) Moving models don't always move.. I think this relates to the render optimization... 
-        need to make sure we re-simulate when a model is moving...
-
     3) if velocity sends a model out of the domain - delete it
 
     4) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
@@ -24,6 +12,8 @@
     7) random crashes on moving (I think things going out of bounds???)
 
     8) some jutter with moving entities
+            -- I think this might only happen with lots of models in an element or in view
+               this may be related to issue 13 below
    
     9) test animation again...
     
@@ -255,7 +245,10 @@
 //        DONE - * make sure that deleting a mortal but not yet dead entity works
 //        DONE - * make sure that newly "viewed" entities are correctly added to our simulation lists: mortal, changing, moving
 // SOLVED -- 41) clear all entities when changing domains?
-    
+// SOLVED -- 42) Crash in delete model - deleting the geometry...
+// SOLVED -- 43) Moving models don't always move.. I think this relates to the render optimization... 
+//               need to make sure we re-simulate when a model is moving...
+
 
 
 ---------------- properties -----------------
