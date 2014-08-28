@@ -456,6 +456,57 @@ static QHash<uchar, int> countIndices(const QByteArray& contents) {
     return counts;
 }
 
+uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials, QByteArray& contents) {
+    if (!(material && static_cast<MaterialObject*>(material.data())->getDiffuse().isValid())) {
+        return 0;
+    }
+    // first look for a matching existing material, noting the first reusable slot
+    int firstEmptyIndex = -1;
+    for (int i = 0; i < materials.size(); i++) {
+        const SharedObjectPointer& existingMaterial = materials.at(i);
+        if (existingMaterial) {
+            if (existingMaterial->equals(material.data())) {
+                return i + 1;
+            }
+        } else if (firstEmptyIndex == -1) {
+            firstEmptyIndex = i;
+        }
+    }
+    // if nothing found, use the first empty slot or append
+    if (firstEmptyIndex != -1) {
+        materials[firstEmptyIndex] = material;
+        return firstEmptyIndex + 1;
+    }
+    if (materials.size() < EIGHT_BIT_MAXIMUM) {
+        materials.append(material);
+        return materials.size();
+    }
+    // last resort: find the least-used material and remove it
+    QHash<uchar, int> counts = countIndices(contents);
+    uchar materialIndex = 0;
+    int lowestCount = INT_MAX;
+    for (QHash<uchar, int>::const_iterator it = counts.constBegin(); it != counts.constEnd(); it++) {
+        if (it.value() < lowestCount) {
+            materialIndex = it.key();
+            lowestCount = it.value();
+        }
+    }
+    contents.replace((char)materialIndex, (char)0);
+    return materialIndex;
+}
+
+void clearUnusedMaterials(QVector<SharedObjectPointer>& materials, QByteArray& contents) {
+    QHash<uchar, int> counts = countIndices(contents);
+    for (int i = 0; i < materials.size(); i++) {
+        if (counts.value(i + 1) == 0) {
+            materials[i] = SharedObjectPointer();
+        }
+    }
+    while (!(materials.isEmpty() || materials.last())) {
+        materials.removeLast();
+    }
+}
+
 int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
     if (!info.getBounds().intersects(_bounds)) {
         return STOP_RECURSION;
@@ -509,45 +560,7 @@ int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
     if (materialPointer) {
         QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
         QByteArray contents(materialPointer->getContents());
-        uchar materialIndex = 0;
-        if (_material && static_cast<MaterialObject*>(_material.data())->getDiffuse().isValid()) {
-            // first look for a matching existing material, noting the first reusable slot
-            int firstEmptyIndex = -1;
-            for (int i = 0; i < materials.size(); i++) {
-                const SharedObjectPointer& material = materials.at(i);
-                if (material) {
-                    if (material->equals(_material.data())) {
-                        materialIndex = i + 1;
-                        break;
-                    }
-                } else if (firstEmptyIndex == -1) {
-                    firstEmptyIndex = i;
-                }
-            }
-            // if nothing found, use the first empty slot or append
-            if (materialIndex == 0) {
-                if (firstEmptyIndex != -1) {
-                    materials[firstEmptyIndex] = _material;
-                    materialIndex = firstEmptyIndex + 1;
-                    
-                } else if (materials.size() < EIGHT_BIT_MAXIMUM) {
-                    materials.append(_material);
-                    materialIndex = materials.size();
-                    
-                } else {
-                    // last resort: find the least-used material and remove it
-                    QHash<uchar, int> counts = countIndices(contents);
-                    int lowestCount = INT_MAX;
-                    for (QHash<uchar, int>::const_iterator it = counts.constBegin(); it != counts.constEnd(); it++) {
-                        if (it.value() < lowestCount) {
-                            materialIndex = it.key();
-                            lowestCount = it.value();
-                        }
-                    }
-                    contents.replace((char)materialIndex, (char)0);
-                }
-            }
-        }
+        uchar materialIndex = getMaterialIndex(_material, materials, contents);
         int size = glm::sqrt((float)contents.size());
         int highest = size - 1;
         float heightScale = highest / info.size;
@@ -578,16 +591,7 @@ int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
             lineDest += size;
         }
         if (changed) {
-            // clear any unused materials
-            QHash<uchar, int> counts = countIndices(contents);
-            for (int i = 0; i < materials.size(); i++) {
-                if (counts.value(i + 1) == 0) {
-                    materials[i] = SharedObjectPointer();
-                }
-            }
-            while (!(materials.isEmpty() || materials.last())) {
-                materials.removeLast();
-            }
+            clearUnusedMaterials(materials, contents);
             HeightfieldMaterialDataPointer newPointer(new HeightfieldMaterialData(contents, materials));
             info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldMaterialDataPointer>(newPointer));
         }
@@ -694,6 +698,20 @@ int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
     VoxelHermiteDataPointer hermitePointer = info.inputValues.at(1).getInlineValue<VoxelHermiteDataPointer>();
     QVector<QRgb> hermiteContents = (hermitePointer && hermitePointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
         hermitePointer->getContents() : QVector<QRgb>(VOXEL_BLOCK_VOLUME * VoxelHermiteData::EDGE_COUNT);
+    int hermiteArea = VOXEL_BLOCK_AREA * VoxelHermiteData::EDGE_COUNT;
+    int hermiteSamples = VOXEL_BLOCK_SAMPLES * VoxelHermiteData::EDGE_COUNT;
+    
+    for (QRgb* destZ = hermiteContents.data() + minZ * hermiteArea + minY * hermiteSamples +
+            minX * VoxelHermiteData::EDGE_COUNT, *endZ = destZ + sizeZ * hermiteArea; destZ != endZ; destZ += hermiteArea) {
+        for (QRgb* destY = destZ, *endY = destY + sizeY * hermiteSamples; destY != endY; destY += hermiteSamples) {
+            for (QRgb* destX = destY, *endX = destX + sizeX * VoxelHermiteData::EDGE_COUNT; destX != endX;
+                    destX += VoxelHermiteData::EDGE_COUNT) {
+                destX[0] = 0x0;
+                destX[1] = 0x0;
+                destX[2] = 0x0;
+            }
+        }
+    }
         
     VoxelHermiteDataPointer newHermitePointer(new VoxelHermiteData(hermiteContents, VOXEL_BLOCK_SAMPLES));
     info.outputValues[1] = AttributeValue(info.inputValues.at(1).getAttribute(),
@@ -702,18 +720,20 @@ int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
     VoxelMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<VoxelMaterialDataPointer>();
     QByteArray materialContents = (materialPointer && materialPointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
         materialPointer->getContents() : QByteArray(VOXEL_BLOCK_VOLUME, 0);
-    
-    char material = 0;
-    for (char* destZ = materialContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
+    QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
+        
+    uchar materialIndex = getMaterialIndex(_material, materials, materialContents);
+    for (uchar* destZ = (uchar*)materialContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
             *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA) {
-        for (char* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY; destY += VOXEL_BLOCK_SAMPLES) {
-            for (char* destX = destY, *endX = destX + sizeX; destX != endX; destX++) {
-                *destX = material;
+        for (uchar* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY; destY += VOXEL_BLOCK_SAMPLES) {
+            for (uchar* destX = destY, *endX = destX + sizeX; destX != endX; destX++) {
+                *destX = materialIndex;
             }
         }
     }
     
-    VoxelMaterialDataPointer newMaterialPointer(new VoxelMaterialData(materialContents, VOXEL_BLOCK_SAMPLES));
+    clearUnusedMaterials(materials, materialContents);
+    VoxelMaterialDataPointer newMaterialPointer(new VoxelMaterialData(materialContents, VOXEL_BLOCK_SAMPLES, materials));
     info.outputValues[2] = AttributeValue(_inputs.at(2), encodeInline<VoxelMaterialDataPointer>(newMaterialPointer));
     
     return STOP_RECURSION;
