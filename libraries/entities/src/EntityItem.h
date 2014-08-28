@@ -101,13 +101,14 @@ public:
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
     virtual void update(const quint64& now);
     
-    typedef enum SimuationState_t {
+    typedef enum SimulationState_t {
         Static,
+        Mortal,
         Changing,
         Moving
-    } SimuationState;
+    } SimulationState;
     
-    virtual SimuationState getSimulationState() const;
+    virtual SimulationState getSimulationState() const;
     virtual void debugDump() const;
 
     // similar to assignment/copy, but it handles keeping lifetime accurate
@@ -167,6 +168,7 @@ public:
     
     /// age of this entity in seconds
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
+    bool lifetimeHasExpired() const;
 
     // position, size, and bounds related helpers
     float getSize() const { return _radius * 2.0f; } /// get maximum dimension in domain scale units (0.0 - 1.0)

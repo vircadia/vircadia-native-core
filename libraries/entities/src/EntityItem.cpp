@@ -44,6 +44,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     //uint64_t now = usecTimestampNow();
     _lastEdited = 0;
     _lastUpdated = 0;
+    _created = 0; // TODO: when do we actually want to make this "now"
 
     _position = glm::vec3(0,0,0);
     _radius = 0;
@@ -61,6 +62,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _type = EntityTypes::Unknown;
     _lastEdited = 0;
     _lastUpdated = 0;
+    _created = properties.getCreated();
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
 }
@@ -120,6 +122,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     
     bool successIDFits = false;
     bool successTypeFits = false;
+    bool successCreatedFits = false;
     bool successLastEditedFits = false;
     bool successLastUpdatedFits = false;
     bool successPropertyFlagsFits = false;
@@ -132,8 +135,22 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     if (successIDFits) {
         successTypeFits = packetData->appendValue(encodedType);
     }
-    
     if (successTypeFits) {
+        successCreatedFits = packetData->appendValue(_created);
+
+qDebug() << "EntityItem::appendEntityData()...";
+qDebug() << "    entityID=" << getEntityItemID();
+if (_created == USE_EXISTING_CREATED_TIME) {
+    qDebug() << "    _created = USE_EXISTING_CREATED_TIME";
+} else if (_created == UNKNOWN_CREATED_TIME) {
+    qDebug() << "    _created = UNKNOWN_CREATED_TIME";
+} else {
+    qDebug() << "    _created=" << _created;
+    qDebug() << "    getAge()=" << getAge() << " - " << formatSecondsElapsed(getAge());
+}
+
+    }
+    if (successCreatedFits) {
         successLastEditedFits = packetData->appendValue(lastEdited);
     }
     if (successLastEditedFits) {
@@ -147,7 +164,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         successPropertyFlagsFits = packetData->appendValue(encodedPropertyFlags);
     }
 
-    bool headerFits = successIDFits && successTypeFits && successLastEditedFits 
+    bool headerFits = successIDFits && successTypeFits && successCreatedFits && successLastEditedFits 
                               && successLastUpdatedFits && successPropertyFlagsFits;
 
     int startOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -426,9 +443,35 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         _type = (EntityTypes::EntityType)type;
 
         bool overwriteLocalData = true; // assume the new content overwrites our local data
+
+        // _created
+        quint64 createdFromBuffer = 0;
+        memcpy(&createdFromBuffer, dataAt, sizeof(createdFromBuffer));
+        dataAt += sizeof(createdFromBuffer);
+        bytesRead += sizeof(createdFromBuffer);
+        createdFromBuffer -= clockSkew;
+        
+        _created = createdFromBuffer; // TODO: do we ever want to discard this???
+qDebug() << "EntityItem::readEntityDataFromBuffer()...";
+qDebug() << "    entityID=" << getEntityItemID();
+if (_created == USE_EXISTING_CREATED_TIME) {
+    qDebug() << "    _created = USE_EXISTING_CREATED_TIME";
+} else if (_created == UNKNOWN_CREATED_TIME) {
+    qDebug() << "    _created = UNKNOWN_CREATED_TIME";
+} else {
+    qDebug() << "    _created=" << _created;
+    qDebug() << "    getAge()=" << getAge() << " - " << formatSecondsElapsed(getAge());
+}
+
+        /*
+        QString ageAsString = formatSecondsElapsed(getAge());
+        qDebug() << "Loading entity " << getEntityItemID() << " from buffer, _created =" << _created 
+                        << " age=" << getAge() << "seconds - " << ageAsString;
+        */
         
         quint64 lastEditedFromBuffer = 0;
 
+        // TODO: we could make this encoded as a delta from _created
         // _lastEdited
         memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
         dataAt += sizeof(lastEditedFromBuffer);
@@ -621,7 +664,6 @@ bool EntityItem::isRestingOnSurface() const {
             && _gravity.y < 0.0f;
 }
 
-
 void EntityItem::update(const quint64& updateTime) {
     bool wantDebug = false;
     float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
@@ -629,13 +671,6 @@ void EntityItem::update(const quint64& updateTime) {
 
     if (wantDebug) {
         qDebug() << "********** EntityItem::update() .... SETTING _lastUpdated=" << _lastUpdated;
-    }
-
-    if (isMortal()) {
-        if (getAge() > getLifetime()) {
-            qDebug() << "Lifetime has expired... WHAT TO DO??? getAge()=" << getAge() << "getLifetime()=" << getLifetime();
-            //setShouldDie(true); // TODO get rid of this stuff!!
-        }
     }
 
     if (hasVelocity() || hasGravity()) {
@@ -706,7 +741,7 @@ void EntityItem::update(const quint64& updateTime) {
     }
 }
 
-EntityItem::SimuationState EntityItem::getSimulationState() const {
+EntityItem::SimulationState EntityItem::getSimulationState() const {
     bool wantDebug = false;
     
     if (wantDebug) {
@@ -725,15 +760,27 @@ EntityItem::SimuationState EntityItem::getSimulationState() const {
     }
     if (isMortal()) {
         if (wantDebug) {
-            qDebug() << "    return EntityItem::Changing;";
+            qDebug() << "    return EntityItem::Mortal;";
         }
-        return EntityItem::Changing;
+        return EntityItem::Mortal;
     }
     if (wantDebug) {
         qDebug() << "    return EntityItem::Static;";
     }
     return EntityItem::Static;
 }
+
+bool EntityItem::lifetimeHasExpired() const { 
+    bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "EntityItem::lifetimeHasExpired()...";
+        qDebug() << "    isMortal()=" << isMortal();
+        qDebug() << "    getAge()=" << getAge();
+        qDebug() << "    getLifetime()=" << getLifetime();
+    }
+    return isMortal() && (getAge() > getLifetime()); 
+}
+
 
 void EntityItem::copyChangedProperties(const EntityItem& other) {
     *this = other;
@@ -775,6 +822,16 @@ EntityItemProperties EntityItem::getProperties() const {
 
 bool EntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     bool somethingChanged = false;
+
+    // handle the setting of created timestamps for the basic new entity case
+    if (forceCopy) {
+        if (properties.getCreated() == UNKNOWN_CREATED_TIME) {
+            _created = usecTimestampNow();
+        } else if (properties.getCreated() != USE_EXISTING_CREATED_TIME) {
+            _created = properties.getCreated();
+        }
+    }
+    
     if (properties._positionChanged || forceCopy) {
         setPosition(properties._position / (float) TREE_SCALE);
         somethingChanged = true;
@@ -814,6 +871,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         somethingChanged = true;
     }
     if (properties._lifetimeChanged || forceCopy) {
+qDebug() << "setLifetime().... properties._lifetime=" << properties._lifetime;    
         setLifetime(properties._lifetime);
         somethingChanged = true;
     }

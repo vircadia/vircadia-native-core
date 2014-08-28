@@ -29,7 +29,9 @@ EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, con
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() {
-    delete _model;
+
+    // TODO: we can't just delete this because we may be on the wrong thread.
+    //delete _model;
     _model = NULL;
 };
 

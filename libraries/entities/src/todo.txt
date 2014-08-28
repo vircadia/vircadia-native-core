@@ -1,7 +1,25 @@
 // REQUIRED:
 
     
-    10) Lifetime??
+     1) Lifetime, Age, Created
+        * support created timestamp in all entities
+        * handle old model files with no created time stamp
+        * add age, ageAsText properties for scripting
+        
+        * make sure that entities that expire are correctly deleted safely
+        * make sure that deleting a mortal but not yet dead entity works
+
+
+        * make sure that newly "viewed" entities are correctly added to our simulation lists: moral, changing, moving
+
+
+    2) Crash in delete model - deleting the geometry...
+        I think this is a cross threading issue... delete Model needs to be on same thread that created it.
+
+        -- change Model* RenderableModelEntityItem::getModel(); to call a new method on EntityTreeRenderer::newModel();
+        -- change RenderableModelEntityItem::~RenderableModelEntityItem() to call a new method on EntityTreeRenderer::deleteModel(Model*);
+
+    3) Look into why non-changed octree cells are being resent when editing an entity
 
 
     7) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save

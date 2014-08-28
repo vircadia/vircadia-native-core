@@ -24,6 +24,7 @@ EntityItemProperties::EntityItemProperties() :
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
     _lastEdited(0),
+    _created(UNKNOWN_CREATED_TIME),
     _type(EntityTypes::Unknown),
 
     _position(0),
@@ -167,6 +168,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     properties.setProperty("gravity", gravity);
     properties.setProperty("damping", _damping);
     properties.setProperty("lifetime", _lifetime);
+    properties.setProperty("age", getAge()); // gettable, but not settable
+    properties.setProperty("ageAsText", formatSecondsElapsed(getAge())); // gettable, but not settable
     properties.setProperty("script", _script);
 
     QScriptValue color = xColorToScriptValue(engine, _color);
@@ -496,14 +499,17 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         // Last Edited quint64 always first, before any other details, which allows us easy access to adjusting this
         // timestamp for clock skew
         quint64 lastEdited = properties.getLastEdited();
-
         bool successLastEditedFits = packetData.appendValue(lastEdited);
-    
+
         bool successIDFits = packetData.appendValue(encodedID);
         if (isNewEntityItem && successIDFits) {
             successIDFits = packetData.appendValue(encodedToken);
         }
         bool successTypeFits = packetData.appendValue(encodedType);
+
+        // NOTE: We intentionally do not send "created" times in edit messages. This is because:
+        //   1) if the edit is to an existing entity, the created time can not be changed
+        //   2) if the edit is to a new entity, the created time is the last edited time
 
         // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
         bool successLastUpdatedFits = packetData.appendValue(encodedUpdateDelta);
@@ -514,7 +520,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         bool successPropertyFlagsFits = packetData.appendValue(encodedPropertyFlags);
         int propertyCount = 0;
 
-        bool headerFits = successIDFits && successTypeFits && successLastEditedFits 
+        bool headerFits = successIDFits && successTypeFits && successLastEditedFits
                                   && successLastUpdatedFits && successPropertyFlagsFits;
 
         int startOfEntityItemData = packetData.getUncompressedByteOffset();
@@ -883,6 +889,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     processedBytes += sizeof(lastEdited);
     properties.setLastEdited(lastEdited);
 
+    // NOTE: We intentionally do not send "created" times in edit messages. This is because:
+    //   1) if the edit is to an existing entity, the created time can not be changed
+    //   2) if the edit is to a new entity, the created time is the last edited time
+
     // encoded id
     QByteArray encodedID((const char*)dataAt, NUM_BYTES_RFC4122_UUID); // maximum possible size
     QUuid editID = QUuid::fromRfc4122(encodedID);
@@ -917,11 +927,16 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
         valid = true;
 
+        // created time is lastEdited time
+        properties.setCreated(lastEdited);
     } else {
         entityID.id = editID;
         entityID.creatorTokenID = UNKNOWN_ENTITY_TOKEN;
         entityID.isKnownID = true;
         valid = true;
+
+        // created time is lastEdited time
+        properties.setCreated(USE_EXISTING_CREATED_TIME);
     }
 
     // Entity Type...
@@ -932,7 +947,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     encodedType = typeCoder; // determine true bytesToRead
     dataAt += encodedType.size();
     processedBytes += encodedType.size();
-    
+
     // Update Delta - when was this item updated relative to last edit... this really should be 0
     // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
     // TODO: do properties need to handle lastupdated???

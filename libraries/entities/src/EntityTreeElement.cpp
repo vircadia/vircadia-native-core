@@ -663,9 +663,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 if (entityItem) {
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
-                    EntityItem::SimuationState oldState = entityItem->getSimulationState();
+                    EntityItem::SimulationState oldState = entityItem->getSimulationState();
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-                    EntityItem::SimuationState newState = entityItem->getSimulationState();
+                    EntityItem::SimulationState newState = entityItem->getSimulationState();
                     _myTree->changeEntityState(entityItem, oldState, newState);
                     bool bestFitAfter = bestFitEntityBounds(entityItem);
 

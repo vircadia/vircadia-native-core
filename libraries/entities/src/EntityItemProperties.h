@@ -39,6 +39,9 @@ const glm::quat ENTITY_DEFAULT_ROTATION;
 const QString ENTITY_DEFAULT_ANIMATION_URL("");
 const float ENTITY_DEFAULT_ANIMATION_FPS = 30.0f;
 
+const quint64 UNKNOWN_CREATED_TIME = (quint64)(-1);
+const quint64 USE_EXISTING_CREATED_TIME = (quint64)(-2);
+
 // PropertyFlags support
 enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
@@ -138,6 +141,11 @@ public:
 
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
     void setLifetime(float value) { _lifetime = value; _lifetimeChanged = true; } /// set the lifetime in seconds for the entity
+    float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
+    quint64 getCreated() const { return _created; }
+    void setCreated(quint64 usecTime) { _created = usecTime; }
+    bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }
+
     
     // NOTE: how do we handle _defaultSettings???
     bool containsBoundsProperties() const { return (_positionChanged || _radiusChanged); }
@@ -196,11 +204,12 @@ public:
     void markAllChanged();
 
 private:
-    void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
+    void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
     QUuid _id;
     bool _idSet;
     quint64 _lastEdited;
+    quint64 _created;
 
     EntityTypes::EntityType _type;
     glm::vec3 _position;

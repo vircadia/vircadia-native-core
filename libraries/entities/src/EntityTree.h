@@ -75,6 +75,7 @@ public:
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
     void deleteEntity(const EntityItemID& entityID);
     void deleteEntities(QSet<EntityItemID> entityIDs);
+    void removeEntityFromSimulationLists(const EntityItemID& entityID);
 
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItem* findEntityByID(const QUuid& id);
@@ -123,11 +124,16 @@ public:
 
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
-    void changeEntityState(EntityItem* const entity, EntityItem::SimuationState oldState, EntityItem::SimuationState newState);
+    void changeEntityState(EntityItem* const entity, 
+                EntityItem::SimulationState oldState, EntityItem::SimulationState newState);
 
     void trackDeletedEntity(const EntityItemID& entityID);
 
 private:
+
+    void updateChangingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
+    void updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
+    void updateMortalEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
 
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
@@ -147,6 +153,7 @@ private:
 
     QList<EntityItem*> _movingEntities; // entities that are moving as part of update
     QList<EntityItem*> _changingEntities; // entities that are changing (like animating), but not moving
+    QList<EntityItem*> _mortalEntities; // entities that are mortal (have lifetime), but not moving or changing
 };
 
 #endif // hifi_EntityTree_h

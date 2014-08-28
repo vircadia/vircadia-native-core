@@ -47,6 +47,8 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
             _entitiesToDelete << details;
             _lookingCount++;
             _tree->trackDeletedEntity(searchEntityID);
+            // before deleting any entity make sure to remove it from our Mortal, Changing, and Moving lists
+            _tree->removeEntityFromSimulationLists(searchEntityID);
         }
     }
 }
@@ -94,15 +96,11 @@ bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
             // If this is the element we're looking for, then ask it to remove the old entity
             // and we can stop searching.
             if (entityTreeElement == details.containingElement) {
-
-                EntityTreeElement* containingElement = _tree->getContainingElement(details.entity->getEntityItemID());
-
-                // This is a good place to delete it!!!
                 EntityItemID entityItemID = details.entity->getEntityItemID();
-                EntityItem* theEntity = entityTreeElement->getEntityWithEntityItemID(entityItemID);
-                entityTreeElement->removeEntityItem(theEntity);
-                _tree->setContainingElement(entityItemID, NULL);
-                delete theEntity; // now actually delete it!
+                EntityItem* theEntity = entityTreeElement->getEntityWithEntityItemID(entityItemID); // find the actual entity
+                entityTreeElement->removeEntityItem(theEntity); // remove it from the element
+                _tree->setContainingElement(entityItemID, NULL); // update or id to element lookup
+                delete theEntity; // now actually delete the entity!
                 _foundCount++;
             }
         }

@@ -232,6 +232,11 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
         dataAt += sizeof(_lastEdited);
         bytesRead += sizeof(_lastEdited);
         _lastEdited -= clockSkew;
+        _created = _lastEdited; // NOTE: old models didn't have age or created time, assume their last edit was a create
+        
+        QString ageAsString = formatSecondsElapsed(getAge());
+        qDebug() << "Loading old model file, _created = _lastEdited =" << _created 
+                        << " age=" << getAge() << "seconds - " << ageAsString;
 
         // radius
         memcpy(&_radius, dataAt, sizeof(_radius));
@@ -532,8 +537,8 @@ bool ModelEntityItem::isAnimatingSomething() const {
             !getAnimationURL().isEmpty();
 }
 
-EntityItem::SimuationState ModelEntityItem::getSimulationState() const {
-    EntityItem::SimuationState baseClassState = EntityItem::getSimulationState();
+EntityItem::SimulationState ModelEntityItem::getSimulationState() const {
+    EntityItem::SimulationState baseClassState = EntityItem::getSimulationState();
     
     // if the base class is static, then consider our animation state, and upgrade to changing if
     // we are animating. If the base class has a higher simulation state than static, then

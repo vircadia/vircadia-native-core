@@ -1200,17 +1200,23 @@ function Tooltip() {
         text += "Roll:    " + angles.z.toFixed(this.decimals) + "\n"
         text += "Scale: " + 2 * properties.radius.toFixed(this.decimals) + "\n"
         text += "ID: " + properties.id + "\n"
-        text += "Model URL: " + properties.modelURL + "\n"
-        text += "Animation URL: " + properties.animationURL + "\n"
-        text += "Animation is playing: " + properties.animationIsPlaying + "\n"
-        if (properties.sittingPoints && properties.sittingPoints.length > 0) {
-            text += properties.sittingPoints.length + " Sitting points: "
-            for (var i = 0; i < properties.sittingPoints.length; ++i) {
-                text += properties.sittingPoints[i].name + " "
+        if (properties.type == "Model") {
+            text += "Model URL: " + properties.modelURL + "\n"
+            text += "Animation URL: " + properties.animationURL + "\n"
+            text += "Animation is playing: " + properties.animationIsPlaying + "\n"
+            if (properties.sittingPoints && properties.sittingPoints.length > 0) {
+                text += properties.sittingPoints.length + " Sitting points: "
+                for (var i = 0; i < properties.sittingPoints.length; ++i) {
+                    text += properties.sittingPoints[i].name + " "
+                }
+            } else {
+                text += "No sitting points" + "\n"
             }
-        } else {
-            text += "No sitting points"
         }
+        if (properties.lifetime > -1) {
+            text += "Lifetime: " + properties.lifetime + "\n"
+        }
+        text += "Age: " + properties.ageAsText + "\n"
 
 
         Overlays.editOverlay(this.textOverlay, { text: text });
@@ -1684,6 +1690,8 @@ function handeMenuEvent(menuItem){
             array.push({ label: "Gravity X:", value: properties.gravity.x.toFixed(decimals) });
             array.push({ label: "Gravity Y:", value: properties.gravity.y.toFixed(decimals) });
             array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
+
+            array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
             
             if (properties.type == "Box") {
                 array.push({ label: "Red:", value: properties.color.red });
@@ -1718,6 +1726,7 @@ function handeMenuEvent(menuItem){
             properties.gravity.x = array[index++].value;
             properties.gravity.y = array[index++].value;
             properties.gravity.z = array[index++].value;
+            properties.lifetime = array[index++].value; // give ourselves that many more seconds
 
             if (properties.type == "Box") {
                 properties.color.red = array[index++].value;
