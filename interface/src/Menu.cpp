@@ -114,7 +114,7 @@ Menu::Menu() :
     _loginAction(NULL),
     _preferencesDialog(NULL),
     _loginDialog(NULL),
-    _loginDomain(),
+    _hasLoginDialogDisplayed(false),
     _snapshotsLocation(),
     _scriptsLocation(),
     _walletPrivateKey()
@@ -1055,23 +1055,21 @@ const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::clearLoginDomain() {
     // Needed for domains that don't require login.
-    _loginDomain = QString();
+    _hasLoginDialogDisplayed = false;
 }
 
 void Menu::loginForCurrentDomain() {
-    QString domain = NodeList::getInstance()->getDomainHandler().getHostname();
-    bool hasShownForDomain = domain == _loginDomain;
-
-    if (!_loginDialog && !hasShownForDomain) {
-        _loginDomain = domain;
+    if (!_loginDialog && !_hasLoginDialogDisplayed) {
         _loginDialog = new LoginDialog(Application::getInstance()->getWindow());
         _loginDialog->show();
         _loginDialog->resizeAndPosition(false);
     }
+
+    _hasLoginDialogDisplayed = true;
 }
 
 void Menu::showLoginForCurrentDomain() {
-    _loginDomain = QString();
+    _hasLoginDialogDisplayed = false;
     loginForCurrentDomain();
 }
 

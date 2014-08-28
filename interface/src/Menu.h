@@ -304,7 +304,7 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<LoginDialog> _loginDialog;
-    QString _loginDomain;
+    bool _hasLoginDialogDisplayed;
     QAction* _chatAction;
     QString _snapshotsLocation;
     QString _scriptsLocation;
