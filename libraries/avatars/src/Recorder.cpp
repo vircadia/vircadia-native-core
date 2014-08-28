@@ -290,7 +290,7 @@ void Player::loadRecording(RecordingPointer recording) {
 
 void Player::play() {
     computeCurrentFrame();
-    if (_currentFrame < 0 || _currentFrame >= _recording->getFrameNumber() - 1) {
+    if (_currentFrame < 0 || (_currentFrame >= _recording->getFrameNumber() - 1)) {
         // If it's the end of the recording, stop playing
         stopPlaying();
         
