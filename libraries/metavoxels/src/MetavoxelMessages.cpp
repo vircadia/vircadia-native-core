@@ -674,12 +674,14 @@ int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
     
     Box overlap = info.getBounds().getIntersection(_region);
     float scale = VOXEL_BLOCK_SIZE / info.size;
-    int minX = glm::ceil((overlap.minimum.x - info.minimum.x) * scale);
-    int minY = glm::ceil((overlap.minimum.y - info.minimum.y) * scale);
-    int minZ = glm::ceil((overlap.minimum.z - info.minimum.z) * scale);
-    int sizeX = (int)((overlap.maximum.x - info.minimum.x) * scale) - minX + 1;
-    int sizeY = (int)((overlap.maximum.y - info.minimum.y) * scale) - minY + 1;
-    int sizeZ = (int)((overlap.maximum.z - info.minimum.z) * scale) - minZ + 1;
+    overlap.minimum = (overlap.minimum - info.minimum) * scale;
+    overlap.maximum = (overlap.maximum - info.minimum) * scale;
+    int minX = glm::ceil(overlap.minimum.x);
+    int minY = glm::ceil(overlap.minimum.y);
+    int minZ = glm::ceil(overlap.minimum.z);
+    int sizeX = (int)overlap.maximum.x - minX + 1;
+    int sizeY = (int)overlap.maximum.y - minY + 1;
+    int sizeZ = (int)overlap.maximum.z - minZ + 1;
     
     QRgb rgb = _color.rgb();
     for (QRgb* destZ = colorContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
@@ -701,27 +703,81 @@ int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
     int hermiteArea = VOXEL_BLOCK_AREA * VoxelHermiteData::EDGE_COUNT;
     int hermiteSamples = VOXEL_BLOCK_SAMPLES * VoxelHermiteData::EDGE_COUNT;
     
-    for (QRgb* destZ = hermiteContents.data() + minZ * hermiteArea + minY * hermiteSamples +
-            minX * VoxelHermiteData::EDGE_COUNT, *endZ = destZ + sizeZ * hermiteArea; destZ != endZ; destZ += hermiteArea) {
-        for (QRgb* destY = destZ, *endY = destY + sizeY * hermiteSamples; destY != endY; destY += hermiteSamples) {
-            for (QRgb* destX = destY, *endX = destX + sizeX * VoxelHermiteData::EDGE_COUNT; destX != endX;
-                    destX += VoxelHermiteData::EDGE_COUNT) {
-                destX[0] = 0x0;
-                destX[1] = 0x0;
-                destX[2] = 0x0;
+    int hermiteMinX = minX, hermiteMinY = minY, hermiteMinZ = minZ;
+    int hermiteSizeX = sizeX, hermiteSizeY = sizeY, hermiteSizeZ = sizeZ;
+    if (minX > 0) {
+        hermiteMinX--;
+        hermiteSizeX++;
+    }
+    if (minY > 0) {
+        hermiteMinY--;
+        hermiteSizeY++;
+    }
+    if (minZ > 0) {
+        hermiteMinZ--;
+        hermiteSizeZ++;
+    }
+    const int NORMAL_MAX = 127;
+    QRgb* hermiteDestZ = hermiteContents.data() + hermiteMinZ * hermiteArea + hermiteMinY * hermiteSamples +
+        hermiteMinX * VoxelHermiteData::EDGE_COUNT;
+    for (int z = hermiteMinZ, hermiteMaxZ = z + hermiteSizeZ - 1; z <= hermiteMaxZ; z++, hermiteDestZ += hermiteArea) {
+        QRgb* hermiteDestY = hermiteDestZ;
+        for (int y = hermiteMinY, hermiteMaxY = y + hermiteSizeY - 1; y <= hermiteMaxY; y++, hermiteDestY += hermiteSamples) {
+            QRgb* hermiteDestX = hermiteDestY;
+            for (int x = hermiteMinX, hermiteMaxX = x + hermiteSizeX - 1; x <= hermiteMaxX; x++,
+                    hermiteDestX += VoxelHermiteData::EDGE_COUNT) {
+                hermiteDestX[0] = 0x0;
+                if ((x == hermiteMinX || x == hermiteMaxX) && x != VOXEL_BLOCK_SIZE) {
+                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    if (qAlpha(color[0]) != qAlpha(color[1])) {
+                        if (x == hermiteMinX) {
+                            hermiteDestX[0] = qRgba(-NORMAL_MAX, 0, 0, (overlap.minimum.x - x) * EIGHT_BIT_MAXIMUM);
+                        } else {
+                            hermiteDestX[0] = qRgba(NORMAL_MAX, 0, 0, (overlap.maximum.x - x) * EIGHT_BIT_MAXIMUM);
+                        }
+                    }
+                }
+                hermiteDestX[1] = 0x0;
+                if ((y == hermiteMinY || y == hermiteMaxY) && y != VOXEL_BLOCK_SIZE) {
+                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    if (qAlpha(color[0]) != qAlpha(color[VOXEL_BLOCK_SAMPLES])) {
+                        if (y == hermiteMinY) {
+                            hermiteDestX[1] = qRgba(0, -NORMAL_MAX, 0, (overlap.minimum.y - y) * EIGHT_BIT_MAXIMUM);
+                        } else {
+                            hermiteDestX[1] = qRgba(0, NORMAL_MAX, 0, (overlap.maximum.y - y) * EIGHT_BIT_MAXIMUM);
+                        }
+                    }
+                }
+                hermiteDestX[2] = 0x0;
+                if ((z == hermiteMinZ || z == hermiteMaxZ) && z != VOXEL_BLOCK_SIZE) {
+                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    if (qAlpha(color[0]) != qAlpha(color[VOXEL_BLOCK_AREA])) {
+                        if (z == hermiteMinZ) {
+                            hermiteDestX[2] = qRgba(0, 0, -NORMAL_MAX, (overlap.minimum.z - z) * EIGHT_BIT_MAXIMUM);
+                        } else {
+                            hermiteDestX[2] = qRgba(0, 0, NORMAL_MAX, (overlap.maximum.z - z) * EIGHT_BIT_MAXIMUM);
+                        }
+                    }
+                }
             }
         }
-    }
-        
+    } 
+    
     VoxelHermiteDataPointer newHermitePointer(new VoxelHermiteData(hermiteContents, VOXEL_BLOCK_SAMPLES));
     info.outputValues[1] = AttributeValue(info.inputValues.at(1).getAttribute(),
         encodeInline<VoxelHermiteDataPointer>(newHermitePointer));
     
     VoxelMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<VoxelMaterialDataPointer>();
-    QByteArray materialContents = (materialPointer && materialPointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
-        materialPointer->getContents() : QByteArray(VOXEL_BLOCK_VOLUME, 0);
-    QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
+    QByteArray materialContents;
+    QVector<SharedObjectPointer> materials;
+    if (materialPointer && materialPointer->getSize() == VOXEL_BLOCK_SAMPLES) {
+        materialContents = materialPointer->getContents();
+        materials = materialPointer->getMaterials();
         
+    } else {
+        materialContents = QByteArray(VOXEL_BLOCK_VOLUME, 0);
+    }
+    
     uchar materialIndex = getMaterialIndex(_material, materials, materialContents);
     for (uchar* destZ = (uchar*)materialContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
             *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA) {

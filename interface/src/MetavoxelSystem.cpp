@@ -1019,7 +1019,13 @@ void VoxelBuffer::render(bool cursor) {
     glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelPoint), &point->color);
     glNormalPointer(GL_BYTE, sizeof(VoxelPoint), &point->normal);
     
-    glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
+    //glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
+    
+    glPointSize(5.0f);
+    
+    glDrawArrays(GL_POINTS, 0, _vertexCount);
+    
+    glPointSize(1.0f);
     
     _vertexBuffer.release();
     _indexBuffer.release();
@@ -1554,7 +1560,9 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
     }
     VoxelBuffer* buffer = NULL;
     VoxelColorDataPointer color = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
-    if (color) {
+    VoxelMaterialDataPointer material = info.inputValues.at(1).getInlineValue<VoxelMaterialDataPointer>();
+    VoxelHermiteDataPointer hermite = info.inputValues.at(2).getInlineValue<VoxelHermiteDataPointer>();
+    if (color && material && hermite) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
         
@@ -1569,6 +1577,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         
         const QRgb* src = contents.constData();
         
+        float scale = info.size / highest;
         const int ALPHA_OFFSET = 24;
         const int MAX_ALPHA_TOTAL = EIGHT_BIT_MAXIMUM * 8;
         for (int z = 0; z < highest; z++) {
@@ -1586,14 +1595,16 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     if (alphaTotal == 0 || alphaTotal == MAX_ALPHA_TOTAL) {
                         continue; // no corners set/all corners set
                     }
-                    
+                    VoxelPoint point = { info.minimum + glm::vec3(x + 0.5f, y + 0.5f, z + 0.5f) * scale,
+                        { 0, 0, 0 }, { 0, 127, 0} };
+                    vertices.append(point);
                 }
                 src++;
             }
             src += size;
         }
         
-        buffer = new VoxelBuffer(vertices, indices);
+        buffer = new VoxelBuffer(vertices, indices, material->getMaterials());
     }
     info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
     return STOP_RECURSION;
@@ -1817,6 +1828,17 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
+    
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    
+    BufferRenderVisitor voxelRenderVisitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute());
+    data.guide(voxelRenderVisitor);
+    
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
 }
 
 ProgramObject DefaultMetavoxelRendererImplementation::_pointProgram;
