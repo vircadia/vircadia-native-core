@@ -50,6 +50,7 @@ protected:
 
     virtual void keyPressEvent(QKeyEvent *event);
     virtual void showEvent(QShowEvent* event);
+    virtual bool event(QEvent* event);
 
 private:
 #ifdef HAVE_QXMPP

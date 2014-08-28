@@ -42,7 +42,7 @@ public:
 
     ~ListShape();
 
-    void setPosition(const glm::vec3& position);
+    void setTranslation(const glm::vec3& position);
     void setRotation(const glm::quat& rotation);
 
     const Shape* getSubShape(int index) const;
@@ -54,6 +54,9 @@ public:
     void addShape(Shape* shape, const glm::vec3& localPosition, const glm::quat& localRotation);
 
     void setShapes(QVector<ListShapeEntry>& shapes);
+
+    // TODO: either implement this or remove ListShape altogether
+    bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const { return false; }
 
 protected:
     void clear();

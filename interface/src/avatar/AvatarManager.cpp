@@ -41,9 +41,13 @@ void AvatarManager::init() {
 }
 
 void AvatarManager::updateOtherAvatars(float deltaTime) {
+    if (_avatarHash.size() < 2 && _avatarFades.isEmpty()) {
+        return;
+    }
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
+    PerformanceTimer perfTimer("otherAvatars");
     Application* applicationInstance = Application::getInstance();
     glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
     glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
@@ -78,7 +82,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 void AvatarManager::renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
-    bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
+    bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
     
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
 
@@ -154,3 +158,22 @@ void AvatarManager::clearOtherAvatars() {
     }
     _myAvatar->clearLookAtTargetAvatar();
 }
+
+void AvatarManager::setLocalLights(const QVector<Model::LocalLight>& localLights) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setLocalLights", Q_ARG(const QVector<Model::LocalLight>&, localLights));
+        return;
+    }
+    _localLights = localLights;
+}
+
+QVector<Model::LocalLight> AvatarManager::getLocalLights() const {
+    if (QThread::currentThread() != thread()) {
+        QVector<Model::LocalLight> result;
+        QMetaObject::invokeMethod(const_cast<AvatarManager*>(this), "getLocalLights", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QVector<Model::LocalLight>, result));
+        return result;
+    }
+    return _localLights;
+}
+

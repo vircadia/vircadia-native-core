@@ -24,6 +24,7 @@ class MyAvatar;
 
 class AvatarManager : public AvatarHashMap {
     Q_OBJECT
+
 public:
     AvatarManager(QObject* parent = 0);
 
@@ -35,6 +36,9 @@ public:
     void renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
+    
+    Q_INVOKABLE void setLocalLights(const QVector<Model::LocalLight>& localLights);
+    Q_INVOKABLE QVector<Model::LocalLight> getLocalLights() const;
     
 private:
     AvatarManager(const AvatarManager& other);
@@ -49,6 +53,8 @@ private:
     
     QVector<AvatarSharedPointer> _avatarFades;
     QSharedPointer<MyAvatar> _myAvatar;
+    
+    QVector<Model::LocalLight> _localLights;
 };
 
 #endif // hifi_AvatarManager_h

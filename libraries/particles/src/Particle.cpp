@@ -13,7 +13,7 @@
 
 #include <Octree.h>
 #include <RegisteredMetaTypes.h>
-#include <SharedUtil.h> // usecTimestampNow()
+#include <GLMHelpers.h>
 #include <VoxelsScriptingInterface.h>
 #include <VoxelDetail.h>
 
@@ -22,7 +22,7 @@
 // I'm open to other potential solutions. Could we change cmake to allow libraries to reference each others
 // headers, but not link to each other, this is essentially what this construct is doing, but would be
 // better to add includes to the include path, but not link
-#include "../../script-engine/src/ScriptEngine.h"
+#include <ScriptEngine.h>
 
 #include "ParticlesScriptingInterface.h"
 #include "Particle.h"
@@ -357,15 +357,23 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     processedBytes = 0;
 
     // the first part of the data is our octcode...
-    int octets = numberOfThreeBitSectionsInCode(data);
+    int octets = numberOfThreeBitSectionsInCode(data, length);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
 
     // we don't actually do anything with this octcode...
     dataAt += lengthOfOctcode;
     processedBytes += lengthOfOctcode;
-
+    
     // id
     uint32_t editID;
+
+    // check to make sure we have enough content to keep reading...
+    if (length - (processedBytes + (int)sizeof(editID)) < 0) {
+        valid = false;
+        processedBytes = length;
+        return newParticle; // fail as if we read the entire buffer
+    }
+
     memcpy(&editID, dataAt, sizeof(editID));
     dataAt += sizeof(editID);
     processedBytes += sizeof(editID);
@@ -377,6 +385,14 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         // If this is a NEW_PARTICLE, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
         uint32_t creatorTokenID;
+
+        // check to make sure we have enough content to keep reading...
+        if (length - (processedBytes + (int)sizeof(creatorTokenID)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
+
         memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
         dataAt += sizeof(creatorTokenID);
         processedBytes += sizeof(creatorTokenID);
@@ -385,6 +401,8 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         newParticle._newlyCreated = true;
         newParticle.setAge(0); // this guy is new!
 
+        valid = true;
+
     } else {
         // look up the existing particle
         const Particle* existingParticle = tree->findParticleByID(editID, true);
@@ -392,21 +410,27 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         // copy existing properties before over-writing with new properties
         if (existingParticle) {
             newParticle = *existingParticle;
+            valid = true;
+
         } else {
             // the user attempted to edit a particle that doesn't exist
-            qDebug() << "user attempted to edit a particle that doesn't exist...";
+            qDebug() << "user attempted to edit a particle that doesn't exist... editID=" << editID;
+            
+            // NOTE: even though this is a bad particle ID, we have to consume the edit details, so that
+            // the buffer doesn't get corrupted for further processing...
             valid = false;
-            return newParticle;
         }
         newParticle._id = editID;
         newParticle._newlyCreated = false;
     }
     
-    // if we got this far, then our result will be valid
-    valid = true;
-    
-
     // lastEdited
+    // check to make sure we have enough content to keep reading...
+    if (length - (processedBytes + (int)sizeof(newParticle._lastEdited)) < 0) {
+        valid = false;
+        processedBytes = length;
+        return newParticle; // fail as if we read the entire buffer
+    }
     memcpy(&newParticle._lastEdited, dataAt, sizeof(newParticle._lastEdited));
     dataAt += sizeof(newParticle._lastEdited);
     processedBytes += sizeof(newParticle._lastEdited);
@@ -415,6 +439,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     // properties included bits
     uint16_t packetContainsBits = 0;
     if (!isNewParticle) {
+        if (length - (processedBytes + (int)sizeof(packetContainsBits)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&packetContainsBits, dataAt, sizeof(packetContainsBits));
         dataAt += sizeof(packetContainsBits);
         processedBytes += sizeof(packetContainsBits);
@@ -423,6 +452,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // radius
     if (isNewParticle || ((packetContainsBits & CONTAINS_RADIUS) == CONTAINS_RADIUS)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._radius)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
         dataAt += sizeof(newParticle._radius);
         processedBytes += sizeof(newParticle._radius);
@@ -430,6 +464,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // position
     if (isNewParticle || ((packetContainsBits & CONTAINS_POSITION) == CONTAINS_POSITION)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._position)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&newParticle._position, dataAt, sizeof(newParticle._position));
         dataAt += sizeof(newParticle._position);
         processedBytes += sizeof(newParticle._position);
@@ -437,6 +476,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // color
     if (isNewParticle || ((packetContainsBits & CONTAINS_COLOR) == CONTAINS_COLOR)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._color)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(newParticle._color, dataAt, sizeof(newParticle._color));
         dataAt += sizeof(newParticle._color);
         processedBytes += sizeof(newParticle._color);
@@ -444,6 +488,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // velocity
     if (isNewParticle || ((packetContainsBits & CONTAINS_VELOCITY) == CONTAINS_VELOCITY)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._velocity)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&newParticle._velocity, dataAt, sizeof(newParticle._velocity));
         dataAt += sizeof(newParticle._velocity);
         processedBytes += sizeof(newParticle._velocity);
@@ -451,6 +500,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // gravity
     if (isNewParticle || ((packetContainsBits & CONTAINS_GRAVITY) == CONTAINS_GRAVITY)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._gravity)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&newParticle._gravity, dataAt, sizeof(newParticle._gravity));
         dataAt += sizeof(newParticle._gravity);
         processedBytes += sizeof(newParticle._gravity);
@@ -458,6 +512,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // damping
     if (isNewParticle || ((packetContainsBits & CONTAINS_DAMPING) == CONTAINS_DAMPING)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._damping)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&newParticle._damping, dataAt, sizeof(newParticle._damping));
         dataAt += sizeof(newParticle._damping);
         processedBytes += sizeof(newParticle._damping);
@@ -465,6 +524,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // lifetime
     if (isNewParticle || ((packetContainsBits & CONTAINS_LIFETIME) == CONTAINS_LIFETIME)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._lifetime)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&newParticle._lifetime, dataAt, sizeof(newParticle._lifetime));
         dataAt += sizeof(newParticle._lifetime);
         processedBytes += sizeof(newParticle._lifetime);
@@ -473,6 +537,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     // TODO: make inHand and shouldDie into single bits
     // inHand
     if (isNewParticle || ((packetContainsBits & CONTAINS_INHAND) == CONTAINS_INHAND)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._inHand)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&newParticle._inHand, dataAt, sizeof(newParticle._inHand));
         dataAt += sizeof(newParticle._inHand);
         processedBytes += sizeof(newParticle._inHand);
@@ -480,6 +549,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // shouldDie
     if (isNewParticle || ((packetContainsBits & CONTAINS_SHOULDDIE) == CONTAINS_SHOULDDIE)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._shouldDie)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&newParticle._shouldDie, dataAt, sizeof(newParticle._shouldDie));
         dataAt += sizeof(newParticle._shouldDie);
         processedBytes += sizeof(newParticle._shouldDie);
@@ -488,9 +562,20 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     // script
     if (isNewParticle || ((packetContainsBits & CONTAINS_SCRIPT) == CONTAINS_SCRIPT)) {
         uint16_t scriptLength;
+        if (length - (processedBytes + (int)sizeof(scriptLength)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&scriptLength, dataAt, sizeof(scriptLength));
         dataAt += sizeof(scriptLength);
         processedBytes += sizeof(scriptLength);
+
+        if (length - (processedBytes + (int)scriptLength) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         QString tempString((const char*)dataAt);
         newParticle._script = tempString;
         dataAt += scriptLength;
@@ -500,9 +585,20 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     // modelURL
     if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_URL) == CONTAINS_MODEL_URL)) {
         uint16_t modelURLLength;
+        if (length - (processedBytes + (int)sizeof(modelURLLength)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
         dataAt += sizeof(modelURLLength);
         processedBytes += sizeof(modelURLLength);
+
+        if (length - (processedBytes + (int)modelURLLength) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         QString tempString((const char*)dataAt);
         newParticle._modelURL = tempString;
         dataAt += modelURLLength;
@@ -511,6 +607,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // modelScale
     if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_SCALE) == CONTAINS_MODEL_SCALE)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._modelScale)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&newParticle._modelScale, dataAt, sizeof(newParticle._modelScale));
         dataAt += sizeof(newParticle._modelScale);
         processedBytes += sizeof(newParticle._modelScale);
@@ -518,6 +619,11 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // modelTranslation
     if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_TRANSLATION) == CONTAINS_MODEL_TRANSLATION)) {
+        if (length - (processedBytes + (int)sizeof(newParticle._modelTranslation)) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         memcpy(&newParticle._modelTranslation, dataAt, sizeof(newParticle._modelTranslation));
         dataAt += sizeof(newParticle._modelTranslation);
         processedBytes += sizeof(newParticle._modelTranslation);
@@ -525,6 +631,12 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     // modelRotation
     if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_ROTATION) == CONTAINS_MODEL_ROTATION)) {
+        const int expectedBytesForPackedQuat = sizeof(uint16_t) * 4; // this is how we pack the quats
+        if (length - (processedBytes + expectedBytesForPackedQuat) < 0) {
+            valid = false;
+            processedBytes = length;
+            return newParticle; // fail as if we read the entire buffer
+        }
         int bytes = unpackOrientationQuatFromBytes(dataAt, newParticle._modelRotation);
         dataAt += bytes;
         processedBytes += bytes;
@@ -744,7 +856,7 @@ bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID i
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
+void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew) {
     unsigned char* dataAt = codeColorBuffer;
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);

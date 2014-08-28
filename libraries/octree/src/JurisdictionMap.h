@@ -18,6 +18,7 @@
 
 #include <QtCore/QString>
 #include <QtCore/QUuid>
+#include <QReadWriteLock>
 
 #include <Node.h>
 
@@ -82,7 +83,7 @@ private:
 
 /// Map between node IDs and their reported JurisdictionMap. Typically used by classes that need to know which nodes are 
 /// managing which jurisdictions.
-typedef QMap<QUuid, JurisdictionMap> NodeToJurisdictionMap;
+class NodeToJurisdictionMap : public QMap<QUuid, JurisdictionMap>, public QReadWriteLock {};
 typedef QMap<QUuid, JurisdictionMap>::iterator NodeToJurisdictionMapIterator;
 
 

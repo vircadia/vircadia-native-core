@@ -69,8 +69,9 @@ ModelItemProperties ModelsScriptingInterface::getModelProperties(ModelItemID mod
     }
     if (_modelTree) {
         _modelTree->lockForRead();
-        const ModelItem* model = _modelTree->findModelByID(identity.id, true);
-        if (model) {
+        ModelItem* model = const_cast<ModelItem*>(_modelTree->findModelByID(identity.id, true));
+        if (model && _modelTree->getGeometryForModel(*model)) {
+            model->setSittingPoints(_modelTree->getGeometryForModel(*model)->sittingPoints);
             results.copyFromModelItem(*model);
         } else {
             results.setIsUnknownID();
@@ -160,10 +161,8 @@ ModelItemID ModelsScriptingInterface::findClosestModel(const glm::vec3& center, 
 QVector<ModelItemID> ModelsScriptingInterface::findModels(const glm::vec3& center, float radius) const {
     QVector<ModelItemID> result;
     if (_modelTree) {
-        _modelTree->lockForRead();
         QVector<const ModelItem*> models;
         _modelTree->findModels(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, models);
-        _modelTree->unlock();
 
         foreach (const ModelItem* model, models) {
             ModelItemID thisModelItemID(model->getID(), UNKNOWN_MODEL_TOKEN, true);

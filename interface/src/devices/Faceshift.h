@@ -15,7 +15,9 @@
 #include <QTcpSocket>
 #include <QUdpSocket>
 
+#ifdef HAVE_FACESHIFT
 #include <fsbinarystream.h>
+#endif
 
 #include "FaceTracker.h"
 
@@ -24,7 +26,6 @@ class Faceshift : public FaceTracker {
     Q_OBJECT
 
 public:
-
     Faceshift();
 
     void init();
@@ -88,13 +89,21 @@ private:
     
     QTcpSocket _tcpSocket;
     QUdpSocket _udpSocket;
+
+#ifdef HAVE_FACESHIFT
     fs::fsBinaryStream _stream;
+#endif
+    
     bool _tcpEnabled;
     int _tcpRetryCount;
     bool _tracking;
     quint64 _lastTrackingStateReceived;
+    float _averageFrameTime;
     
     glm::vec3 _headAngularVelocity;
+    glm::vec3 _headLinearVelocity;
+    glm::vec3 _lastHeadTranslation;
+    glm::vec3 _filteredHeadTranslation;
     
     // degrees
     float _eyeGazeLeftPitch;
@@ -123,6 +132,7 @@ private:
     float _longTermAverageEyePitch;
     float _longTermAverageEyeYaw;
     bool _longTermAverageInitialized;
+    
 };
 
 #endif // hifi_Faceshift_h

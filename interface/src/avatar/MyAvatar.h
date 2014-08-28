@@ -14,14 +14,18 @@
 
 #include <QSettings>
 
+#include <PhysicsSimulation.h>
+
 #include "Avatar.h"
+
+class ModelItemID;
 
 enum AvatarHandState
 {
     HAND_STATE_NULL = 0,
-    HAND_STATE_OPEN,
-    HAND_STATE_GRASPING,
-    HAND_STATE_POINTING,
+    HAND_STATE_LEFT_POINTING,
+    HAND_STATE_RIGHT_POINTING,
+    HAND_STATE_BOTH_POINTING,
     NUM_HAND_STATES
 };
 
@@ -68,7 +72,7 @@ public:
     
     /// Allows scripts to run animations.
     Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
-        bool hold = false, int firstFrame = 0, int lastFrame = INT_MAX, const QStringList& maskedJoints = QStringList());
+        bool hold = false, float firstFrame = 0.0f, float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
     
     /// Stops an animation as identified by a URL.
     Q_INVOKABLE void stopAnimation(const QString& url);
@@ -76,11 +80,14 @@ public:
     /// Starts an animation by its role, using the provided URL and parameters if the avatar doesn't have a custom
     /// animation for the role.
     Q_INVOKABLE void startAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
-        float priority = 1.0f, bool loop = false, bool hold = false, int firstFrame = 0,
-        int lastFrame = INT_MAX, const QStringList& maskedJoints = QStringList());
+        float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
+        float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
     
     /// Stops an animation identified by its role.
     Q_INVOKABLE void stopAnimationByRole(const QString& role);
+
+    Q_INVOKABLE AnimationDetails getAnimationDetailsByRole(const QString& role);
+    Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     
     // get/set avatar data
     void saveData(QSettings* settings);
@@ -99,18 +106,30 @@ public:
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
     
     static void sendKillAvatar();
-
+    
+    Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
+    Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
+    Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
+    Q_INVOKABLE float getHeadFinalPitch() const { return getHead()->getFinalPitch(); }
+    Q_INVOKABLE float getHeadDeltaPitch() const { return getHead()->getDeltaPitch(); }
+    
+    Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
+    
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
     
+    virtual void setJointRotations(QVector<glm::quat> jointRotations);
     virtual void setJointData(int index, const glm::quat& rotation);
     virtual void clearJointData(int index);
+    virtual void clearJointsData();
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     
+    void clearJointAnimationPriorities();
+
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
@@ -122,6 +141,13 @@ public:
 
     void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
 
+    /// Renders a laser pointer for UI picking
+    void renderLaserPointers();
+    glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
+    
+    const RecorderPointer getRecorder() const { return _recorder; }
+    const PlayerPointer getPlayer() const { return _player; }
+    
 public slots:
     void goHome();
     void increaseSize();
@@ -129,6 +155,7 @@ public slots:
     void resetSize();
     
     void goToLocationFromResponse(const QJsonObject& jsonObject);
+    void goToLocationFromAddress(const QJsonObject& jsonObject);
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
@@ -136,7 +163,21 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehaviorsFromMenu();
-
+    
+    glm::vec3 getLeftPalmPosition();
+    glm::vec3 getRightPalmPosition();
+    
+    void clearReferential();
+    bool setModelReferential(int id);
+    bool setJointReferential(int id, int jointIndex);
+    
+    bool isRecording();
+    qint64 recorderElapsed();
+    void startRecording();
+    void stopRecording();
+    void saveRecording(QString filename);
+    void loadLastRecording();
+    
 signals:
     void transformChanged();
 
@@ -172,7 +213,10 @@ private:
     float _oculusYawOffset;
 
     QList<AnimationHandlePointer> _animationHandles;
+    PhysicsSimulation _physicsSimulation;
 
+    RecorderPointer _recorder;
+    
 	// private methods
     float computeDistanceToFloor(const glm::vec3& startPoint);
     void updateOrientation(float deltaTime);

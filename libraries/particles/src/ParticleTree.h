@@ -67,7 +67,7 @@ public:
 
     bool hasAnyDeletedParticles() const { return _recentlyDeletedParticleIDs.size() > 0; }
     bool hasParticlesDeletedSince(quint64 sinceTime);
-    bool encodeParticlesDeletedSince(quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    bool encodeParticlesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
     void forgetParticlesDeletedBefore(quint64 sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);

@@ -27,6 +27,16 @@ namespace ShapeColliderTests {
     void sphereTouchesAACubeEdges();
     void sphereMissesAACube();
 
+    void rayHitsSphere();
+    void rayBarelyHitsSphere();
+    void rayBarelyMissesSphere();
+    void rayHitsCapsule();
+    void rayMissesCapsule();
+    void rayHitsPlane();
+    void rayMissesPlane();
+
+    void measureTimeOfCollisionDispatch();
+
     void runAllTests(); 
 }
 

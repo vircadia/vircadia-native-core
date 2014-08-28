@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelEditPacketSender.h"
+#include "ModelItem.h"
+
 #include "ModelTree.h"
 
 ModelTree::ModelTree(bool shouldReaverage) : Octree(shouldReaverage) {
@@ -108,6 +111,7 @@ bool FindAndUpdateModelOperator::PostRecursion(OctreeElement* element) {
     return !_found; // if we haven't yet found it, keep looking
 }
 
+
 // TODO: improve this to not use multiple recursions
 void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& senderNode) {
     // First, look for the existing model in the tree..
@@ -117,7 +121,7 @@ void ModelTree::storeModel(const ModelItem& model, const SharedNodePointer& send
     // if we didn't find it in the tree, then store it...
     if (!theOperator.wasFound()) {
         AACube modelCube = model.getAACube();
-        ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementContaining(model.getAACube());
+        ModelTreeElement* element = static_cast<ModelTreeElement*>(getOrCreateChildElementContaining(model.getAACube()));
         element->storeModel(model);
         
         // In the case where we stored it, we also need to mark the entire "path" down to the model as
@@ -185,7 +189,7 @@ void ModelTree::addModel(const ModelItemID& modelID, const ModelItemProperties& 
     glm::vec3 position = model.getPosition();
     float size = std::max(MINIMUM_MODEL_ELEMENT_SIZE, model.getRadius());
     
-    ModelTreeElement* element = (ModelTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
+    ModelTreeElement* element = static_cast<ModelTreeElement*>(getOrCreateChildElementAt(position.x, position.y, position.z, size));
     element->storeModel(model);
     
     _isDirty = true;
@@ -197,6 +201,32 @@ void ModelTree::deleteModel(const ModelItemID& modelID) {
         args._idsToDelete.push_back(modelID.id);
         recurseTreeWithOperation(findAndDeleteOperation, &args);
     }
+}
+
+void ModelTree::sendModels(ModelEditPacketSender* packetSender, float x, float y, float z) {
+    SendModelsOperationArgs args;
+    args.packetSender = packetSender;
+    args.root = glm::vec3(x, y, z);
+    recurseTreeWithOperation(sendModelsOperation, &args);
+    packetSender->releaseQueuedMessages();
+}
+
+bool ModelTree::sendModelsOperation(OctreeElement* element, void* extraData) {
+    SendModelsOperationArgs* args = static_cast<SendModelsOperationArgs*>(extraData);
+    ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+
+    const QList<ModelItem>& modelList = modelTreeElement->getModels();
+
+    for (int i = 0; i < modelList.size(); i++) {
+        uint32_t creatorTokenID = ModelItem::getNextCreatorTokenID();
+        ModelItemID id(NEW_MODEL, creatorTokenID, false);
+        ModelItemProperties properties;
+        properties.copyFromNewModelItem(modelList.at(i));
+        properties.setPosition(properties.getPosition() + args->root);
+        args->packetSender->queueModelEditMessage(PacketTypeModelAddOrEdit, id, properties);
+    }
+
+    return true;
 }
 
 // scans the tree and handles mapping locally created models to know IDs.
@@ -353,8 +383,28 @@ public:
     QVector<ModelItem*> _foundModels;
 };
 
+void ModelTree::findModelsInCube(const AACube& cube, QVector<ModelItem*>& foundModels) {
+    FindModelsInCubeArgs args(cube);
+    lockForRead();
+    recurseTreeWithOperation(findInCubeOperation, &args);
+    unlock();
+    // swap the two lists of model pointers instead of copy
+    foundModels.swap(args._foundModels);
+}
+
+bool ModelTree::findInCubeOperation(OctreeElement* element, void* extraData) {
+    FindModelsInCubeArgs* args = static_cast<FindModelsInCubeArgs*>(extraData);
+    const AACube& elementCube = element->getAACube();
+    if (elementCube.touches(args->_cube)) {
+        ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
+        modelTreeElement->getModelsInside(args->_cube, args->_foundModels);
+        return true;
+    }
+    return false;
+}
+
 bool ModelTree::findInCubeForUpdateOperation(OctreeElement* element, void* extraData) {
-    FindModelsInCubeArgs* args = static_cast< FindModelsInCubeArgs*>(extraData);
+    FindModelsInCubeArgs* args = static_cast<FindModelsInCubeArgs*>(extraData);
     const AACube& elementCube = element->getAACube();
     if (elementCube.touches(args->_cube)) {
         ModelTreeElement* modelTreeElement = static_cast<ModelTreeElement*>(element);
@@ -364,7 +414,7 @@ bool ModelTree::findInCubeForUpdateOperation(OctreeElement* element, void* extra
     return false;
 }
 
-void ModelTree::findModelsForUpdate(const AACube& cube, QVector<ModelItem*> foundModels) {
+void ModelTree::findModelsForUpdate(const AACube& cube, QVector<ModelItem*>& foundModels) {
     FindModelsInCubeArgs args(cube);
     lockForRead();
     recurseTreeWithOperation(findInCubeForUpdateOperation, &args);
@@ -545,8 +595,8 @@ bool ModelTree::hasModelsDeletedSince(quint64 sinceTime) {
 }
 
 // sinceTime is an in/out parameter - it will be side effected with the last time sent out
-bool ModelTree::encodeModelsDeletedSince(quint64& sinceTime, unsigned char* outputBuffer, size_t maxLength,
-                                                    size_t& outputLength) {
+bool ModelTree::encodeModelsDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* outputBuffer,
+                                            size_t maxLength, size_t& outputLength) {
 
     bool hasMoreToSend = true;
 
@@ -554,6 +604,26 @@ bool ModelTree::encodeModelsDeletedSince(quint64& sinceTime, unsigned char* outp
     size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeModelErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
+
+    // pack in flags
+    OCTREE_PACKET_FLAGS flags = 0;
+    OCTREE_PACKET_FLAGS* flagsAt = (OCTREE_PACKET_FLAGS*)copyAt;
+    *flagsAt = flags;
+    copyAt += sizeof(OCTREE_PACKET_FLAGS);
+    outputLength += sizeof(OCTREE_PACKET_FLAGS);
+
+    // pack in sequence number
+    OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)copyAt;
+    *sequenceAt = sequenceNumber;
+    copyAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    outputLength += sizeof(OCTREE_PACKET_SEQUENCE);
+
+    // pack in timestamp
+    OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
+    OCTREE_PACKET_SENT_TIME* timeAt = (OCTREE_PACKET_SENT_TIME*)copyAt;
+    *timeAt = now;
+    copyAt += sizeof(OCTREE_PACKET_SENT_TIME);
+    outputLength += sizeof(OCTREE_PACKET_SENT_TIME);
 
     uint16_t numberOfIds = 0; // placeholder for now
     unsigned char* numberOfIDsAt = copyAt;
@@ -641,6 +711,10 @@ void ModelTree::processEraseMessage(const QByteArray& dataByteArray, const Share
     size_t numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
     size_t processedBytes = numBytesPacketHeader;
     dataAt += numBytesPacketHeader;
+
+    dataAt += sizeof(OCTREE_PACKET_FLAGS);
+    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
 
     uint16_t numberOfIds = 0; // placeholder for now
     memcpy(&numberOfIds, dataAt, sizeof(numberOfIds));

@@ -27,7 +27,6 @@ AudioInjector::AudioInjector(QObject* parent) :
     _options(),
     _shouldStop(false)
 {
-    
 }
 
 AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
@@ -35,7 +34,10 @@ AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorO
     _options(injectorOptions),
     _shouldStop(false)
 {
-    
+}
+
+void AudioInjector::setOptions(AudioInjectorOptions& options) {
+    _options = options;
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
@@ -55,12 +57,15 @@ void AudioInjector::injectAudio() {
             
         }
         
-        NodeList* nodeList = NodeList::getInstance();
-        
         // setup the packet for injected audio
         QByteArray injectAudioPacket = byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
         QDataStream packetStream(&injectAudioPacket, QIODevice::Append);
         
+        // pack some placeholder sequence number for now
+        int numPreSequenceNumberBytes = injectAudioPacket.size();
+        packetStream << (quint16)0;
+
+        // pack stream identifier (a generated UUID)
         packetStream << QUuid::createUuid();
         
         // pack the flag for loopback
@@ -68,9 +73,11 @@ void AudioInjector::injectAudio() {
         packetStream << loopbackFlag;
         
         // pack the position for injected audio
+        int positionOptionOffset = injectAudioPacket.size();
         packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getPosition()), sizeof(_options.getPosition()));
         
         // pack our orientation for injected audio
+        int orientationOptionOffset = injectAudioPacket.size();
         packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getOrientation()), sizeof(_options.getOrientation()));
         
         // pack zero for radius
@@ -88,24 +95,37 @@ void AudioInjector::injectAudio() {
         int currentSendPosition = 0;
         
         int numPreAudioDataBytes = injectAudioPacket.size();
+        bool shouldLoop = _options.getLoop();
         
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
+        quint16 outgoingInjectedAudioSequenceNumber = 0;
         while (currentSendPosition < soundByteArray.size() && !_shouldStop) {
             
             int bytesToCopy = std::min(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
                                        soundByteArray.size() - currentSendPosition);
+            memcpy(injectAudioPacket.data() + positionOptionOffset,
+                   &_options.getPosition(),
+                   sizeof(_options.getPosition()));
+            memcpy(injectAudioPacket.data() + orientationOptionOffset,
+                   &_options.getOrientation(),
+                   sizeof(_options.getOrientation()));
             
             // resize the QByteArray to the right size
             injectAudioPacket.resize(numPreAudioDataBytes + bytesToCopy);
+
+            // pack the sequence number
+            memcpy(injectAudioPacket.data() + numPreSequenceNumberBytes, &outgoingInjectedAudioSequenceNumber, sizeof(quint16));
             
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
             memcpy(injectAudioPacket.data() + numPreAudioDataBytes, soundByteArray.data() + currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
+            NodeList* nodeList = NodeList::getInstance();
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
             
             // send off this audio packet
             nodeList->writeDatagram(injectAudioPacket, audioMixer);
+            outgoingInjectedAudioSequenceNumber++;
             
             currentSendPosition += bytesToCopy;
             
@@ -119,6 +139,10 @@ void AudioInjector::injectAudio() {
                 if (usecToSleep > 0) {
                     usleep(usecToSleep);
                 }
+            }
+
+            if (shouldLoop && currentSendPosition == soundByteArray.size()) {
+                currentSendPosition = 0;
             }
         }
     }

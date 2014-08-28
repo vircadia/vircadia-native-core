@@ -18,6 +18,7 @@
 #include "Camera.h"
 #include "Menu.h"
 #include "Util.h"
+#include "devices/OculusManager.h"
 
 const float CAMERA_FIRST_PERSON_MODE_UP_SHIFT  = 0.0f;
 const float CAMERA_FIRST_PERSON_MODE_DISTANCE  = 0.0f;
@@ -46,8 +47,8 @@ Camera::Camera() :
     _targetPosition(0.0f, 0.0f, 0.0f),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
     _aspectRatio(16.0f/9.0f),
-    _nearClip(0.08f), // default
-    _farClip(50.0f * TREE_SCALE), // default
+    _nearClip(DEFAULT_NEAR_CLIP), // default
+    _farClip(DEFAULT_FAR_CLIP), // default
     _upShift(0.0f),
     _distance(0.0f),
     _tightness(10.0f), // default
@@ -264,7 +265,12 @@ PickRay CameraScriptableObject::computePickRay(float x, float y) {
     float screenWidth = Application::getInstance()->getGLWidget()->width();
     float screenHeight = Application::getInstance()->getGLWidget()->height();
     PickRay result;
-    _viewFrustum->computePickRay(x / screenWidth, y / screenHeight, result.origin, result.direction);
+    if (OculusManager::isConnected()) {
+        result.origin = _camera->getPosition();
+        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(x / screenWidth, y / screenHeight, result.direction);
+    } else {
+        _viewFrustum->computePickRay(x / screenWidth, y / screenHeight, result.origin, result.direction);
+    }
     return result;
 }
 
@@ -311,8 +317,6 @@ void CameraScriptableObject::setMode(const QString& mode) {
     }
     if (currentMode != targetMode) {
         _camera->setMode(targetMode);
-        const float DEFAULT_MODE_SHIFT_PERIOD = 0.5f; // half second
-        _camera->setModeShiftPeriod(DEFAULT_MODE_SHIFT_PERIOD);
     }
 }
 

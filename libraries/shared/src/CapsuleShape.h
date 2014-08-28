@@ -14,7 +14,11 @@
 
 #include "Shape.h"
 
+#include "SharedUtil.h"
+
 // default axis of CapsuleShape is Y-axis
+const glm::vec3 DEFAULT_CAPSULE_AXIS(0.0f, 1.0f, 0.0f);
+
 
 class CapsuleShape : public Shape {
 public:
@@ -23,23 +27,33 @@ public:
     CapsuleShape(float radius, float halfHeight, const glm::vec3& position, const glm::quat& rotation);
     CapsuleShape(float radius, const glm::vec3& startPoint, const glm::vec3& endPoint);
 
+    virtual ~CapsuleShape() {}
+
     float getRadius() const { return _radius; }
-    float getHalfHeight() const { return _halfHeight; }
+    virtual float getHalfHeight() const { return _halfHeight; }
 
     /// \param[out] startPoint is the center of start cap
-    void getStartPoint(glm::vec3& startPoint) const;
+    virtual void getStartPoint(glm::vec3& startPoint) const;
 
     /// \param[out] endPoint is the center of the end cap
-    void getEndPoint(glm::vec3& endPoint) const;
+    virtual void getEndPoint(glm::vec3& endPoint) const;
 
-    void computeNormalizedAxis(glm::vec3& axis) const;
+    virtual void computeNormalizedAxis(glm::vec3& axis) const;
 
     void setRadius(float radius);
-    void setHalfHeight(float height);
-    void setRadiusAndHalfHeight(float radius, float height);
+    virtual void setHalfHeight(float height);
+    virtual void setRadiusAndHalfHeight(float radius, float height);
+
+    /// Sets the endpoints and updates center, rotation, and halfHeight to agree.
+    virtual void setEndPoints(const glm::vec3& startPoint, const glm::vec3& endPoint);
+
+    bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const;
+
+    virtual float getVolume() const { return (PI * _radius * _radius) * (1.3333333333f * _radius + getHalfHeight()); }
 
 protected:
-    void updateBoundingRadius() { _boundingRadius = _radius + _halfHeight; }
+    virtual void updateBoundingRadius() { _boundingRadius = _radius + getHalfHeight(); }
+    static glm::quat computeNewRotation(const glm::vec3& newAxis);
 
     float _radius;
     float _halfHeight;

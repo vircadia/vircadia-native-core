@@ -602,7 +602,6 @@ public:
 
 bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
-
     bool keepSearching = true;
     if (element->findRayIntersection(args->origin, args->direction, keepSearching, 
                             args->element, args->distance, args->face, args->intersectedObject)) {
@@ -758,7 +757,7 @@ bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
     // coarse check against bounds
     AACube cube = element->getAACube();
     cube.scale(TREE_SCALE);
-    if (!cube.expandedContains(args->shape->getPosition(), args->shape->getBoundingRadius())) {
+    if (!cube.expandedContains(args->shape->getTranslation(), args->shape->getBoundingRadius())) {
         return false;
     }
     if (!element->isLeaf()) {
@@ -1336,14 +1335,23 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         }
     }
 
-    // write the color data...
+    // write the child element data...
     if (continueThisLevel && params.includeColor) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             if (oneAtBit(childrenColoredBits, i)) {
                 OctreeElement* childElement = element->getChildAtIndex(i);
                 if (childElement) {
+                
                     int bytesBeforeChild = packetData->getUncompressedSize();
+                    
+                    // TODO: we want to support the ability for a childElement to "partially" write it's data.
+                    //       for example, consider the case of the model server where the entire contents of the
+                    //       element may be larger than can fit in a single MTU/packetData. In this case, we want
+                    //       to allow the appendElementData() to respond that it produced partial data, which should be
+                    //       written, but that the childElement needs to be reprocessed in an additional pass or passes
+                    //       to be completed. In the case that an element was partially written, we need to 
                     continueThisLevel = childElement->appendElementData(packetData, params);
+                    
                     int bytesAfterChild = packetData->getUncompressedSize();
 
                     if (!continueThisLevel) {

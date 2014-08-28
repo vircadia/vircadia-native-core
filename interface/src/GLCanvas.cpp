@@ -12,6 +12,7 @@
 #include "Application.h"
 
 #include "GLCanvas.h"
+#include "devices/OculusManager.h"
 #include <QMimeData>
 #include <QUrl>
 #include <QMainWindow>
@@ -22,6 +23,11 @@ GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer)),
     _throttleRendering(false),
     _idleRenderInterval(MSECS_PER_FRAME_WHEN_THROTTLED)
 {
+#ifdef Q_OS_LINUX
+    // Cause GLCanvas::eventFilter to be called.
+    // It wouldn't hurt to do this on Mac and PC too; but apparently it's only needed on linux.
+    qApp->installEventFilter(this);
+#endif
 }
 
 bool GLCanvas::isThrottleRendering() const {
@@ -41,8 +47,17 @@ void GLCanvas::initializeGL() {
 
 void GLCanvas::paintGL() {
     if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
+        //Need accurate frame timing for the oculus rift
+        if (OculusManager::isConnected()) {
+            OculusManager::beginFrameTiming();
+        }
+
         Application::getInstance()->paintGL();
         swapBuffers();
+
+        if (OculusManager::isConnected()) {
+            OculusManager::endFrameTiming();
+        }
     }
 }
 
@@ -102,8 +117,17 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
 void GLCanvas::throttleRender() {
     _frameTimer.start(_idleRenderInterval);
     if (!Application::getInstance()->getWindow()->isMinimized()) {
+        //Need accurate frame timing for the oculus rift
+        if (OculusManager::isConnected()) {
+            OculusManager::beginFrameTiming();
+        }
+
         Application::getInstance()->paintGL();
         swapBuffers();
+
+        if (OculusManager::isConnected()) {
+            OculusManager::endFrameTiming();
+        }
     }
 }
 
@@ -142,4 +166,36 @@ void GLCanvas::dragEnterEvent(QDragEnterEvent* event) {
 
 void GLCanvas::dropEvent(QDropEvent* event) {
     Application::getInstance()->dropEvent(event);
+}
+
+// Pressing Alt (and Meta) key alone activates the menubar because its style inherits the
+// SHMenuBarAltKeyNavigation from QWindowsStyle. This makes it impossible for a scripts to
+// receive keyPress events for the Alt (and Meta) key in a reliable manner.
+//
+// This filter catches events before QMenuBar can steal the keyboard focus.
+// The idea was borrowed from
+// http://www.archivum.info/qt-interest@trolltech.com/2006-09/00053/Re-(Qt4)-Alt-key-focus-QMenuBar-(solved).html
+
+bool GLCanvas::eventFilter(QObject*, QEvent* event) {
+    switch (event->type()) {
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease:
+        case QEvent::ShortcutOverride:
+        {
+            QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+            if (keyEvent->key() == Qt::Key_Alt || keyEvent->key() == Qt::Key_Meta) {
+                if (event->type() == QEvent::KeyPress) {
+                    keyPressEvent(keyEvent);
+                } else if (event->type() == QEvent::KeyRelease) {
+                    keyReleaseEvent(keyEvent);
+                } else {
+                    QGLWidget::event(event);
+                }
+                return true;
+            }
+        }
+        default:
+            break;
+    }
+    return false;
 }

@@ -245,28 +245,28 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="src/ui/ImportDialog.cpp" line="22"/>
-        <location filename="src/ui/ImportDialog.cpp" line="23"/>
+        <location filename="src/ui/VoxelImportDialog.cpp" line="22"/>
+        <location filename="src/ui/VoxelImportDialog.cpp" line="23"/>
         <source>Import Voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/ui/ImportDialog.cpp" line="24"/>
+        <location filename="src/ui/VoxelImportDialog.cpp" line="24"/>
         <source>Loading ...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/ui/ImportDialog.cpp" line="25"/>
+        <location filename="src/ui/VoxelImportDialog.cpp" line="25"/>
         <source>Place voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/ui/ImportDialog.cpp" line="26"/>
+        <location filename="src/ui/VoxelImportDialog.cpp" line="26"/>
         <source>&lt;b&gt;Import&lt;/b&gt; %1 as voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="src/ui/ImportDialog.cpp" line="27"/>
+        <location filename="src/ui/VoxelImportDialog.cpp" line="27"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>

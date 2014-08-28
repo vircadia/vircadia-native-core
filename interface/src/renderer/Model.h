@@ -16,14 +16,17 @@
 #include <QObject>
 #include <QUrl>
 
-#include <CapsuleShape.h>
+#include <PhysicsEntity.h>
 
 #include <AnimationCache.h>
 
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
+#include "JointState.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
+
+class QScriptEngine;
 
 class AnimationHandle;
 class Shape;
@@ -31,20 +34,19 @@ class Shape;
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
+const int MAX_LOCAL_LIGHTS = 2;
+
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject {
+class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
     
 public:
 
+    /// Registers the script types associated with models.
+    static void registerMetaTypes(QScriptEngine* engine);
+
     Model(QObject* parent = NULL);
     virtual ~Model();
-    
-    void setTranslation(const glm::vec3& translation) { _translation = translation; }
-    const glm::vec3& getTranslation() const { return _translation; }
-    
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
-    const glm::quat& getRotation() const { return _rotation; }
     
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
@@ -66,7 +68,7 @@ public:
     
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
-    
+
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
@@ -111,6 +113,16 @@ public:
     /// Fetches the joint state at the specified index.
     /// \return whether or not the joint state is "valid" (that is, non-default)
     bool getJointState(int index, glm::quat& rotation) const;
+
+    /// Fetches the visible joint state at the specified index.
+    /// \return whether or not the joint state is "valid" (that is, non-default)
+    bool getVisibleJointState(int index, glm::quat& rotation) const;
+    
+    /// Clear the joint states
+    void clearJointState(int index);
+    
+    /// Clear the joint animation priority
+    void clearJointAnimationPriority(int index);
     
     /// Sets the joint state at the specified index.
     void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat(), float priority = 1.0f);
@@ -121,84 +133,65 @@ public:
     /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
     int getLastFreeJointIndex(int jointIndex) const;
     
+    bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
+    bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
+    bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
+
+    bool getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
+    bool getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
+
+    /// \param jointIndex index of joint in model structure
+    /// \param position[out] position of joint in model-frame
+    /// \return true if joint exists
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
-    bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
 
     QStringList getJointNames() const;
     
     AnimationHandlePointer createAnimationHandle();
-    
+
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
+   
+    // virtual overrides from PhysicsEntity
+    virtual void buildShapes();
+    virtual void updateShapePositions();
+
+    virtual void renderJointCollisionShapes(float alpha);
     
-    void clearShapes();
-    void rebuildShapes();
-    void resetShapePositions();
-    void updateShapePositions();
-    void renderJointCollisionShapes(float alpha);
-    void renderBoundingCollisionShapes(float alpha);
-    
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
-    
-    /// \param shapes list of pointers shapes to test against Model
-    /// \param collisions list to store collision results
-    /// \return true if at least one shape collided agains Model
-    bool findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions);
-
-    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, int skipIndex = -1);
-
-    bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
-    
-    /// \param collision details about the collisions
-    /// \return true if the collision is against a moveable joint
-    bool collisionHitsMoveableJoint(CollisionInfo& collision) const;
-
-    /// \param collision details about the collision
-    /// Use the collision to affect the model
-    void applyCollision(CollisionInfo& collision);
-
-    float getBoundingRadius() const { return _boundingRadius; }
-    float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
-
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
-    const CapsuleShape& getBoundingShape() const { return _boundingShape; }
+    class LocalLight {
+    public:
+        glm::vec3 color;
+        glm::vec3 direction;
+    };
+    
+    void setLocalLights(const QVector<LocalLight>& localLights) { _localLights = localLights; }
+    const QVector<LocalLight>& getLocalLights() const { return _localLights; }
 
+    void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
+
+    QVector<JointState>& getJointStates() { return _jointStates; }
+    const QVector<JointState>& getJointStates() const { return _jointStates; }
+ 
 protected:
-
     QSharedPointer<NetworkGeometry> _geometry;
     
-    glm::vec3 _translation;
-    glm::quat _rotation;
     glm::vec3 _scale;
     glm::vec3 _offset;
 
     bool _scaleToFit; /// If you set scaleToFit, we will calculate scale based on MeshExtents
     float _scaleToFitLargestDimension; /// this is the dimension that scale to fit will use
     bool _scaledToFit; /// have we scaled to fit
-    
+
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
     bool _snappedToCenter; /// are we currently snapped to center
-    int _rootIndex;
+    bool _showTrueJointTransforms;
     
-    class JointState {
-    public:
-        glm::vec3 translation;  // translation relative to parent
-        glm::quat rotation;     // rotation relative to parent
-        glm::mat4 transform;    // rotation to world frame + translation in model frame
-        glm::quat combinedRotation; // rotation from joint local to world frame
-        float animationPriority; // the priority of the animation affecting this joint
-    };
+    QVector<LocalLight> _localLights;
     
-    bool _shapesAreDirty;
     QVector<JointState> _jointStates;
-    QVector<Shape*> _jointShapes;
-    
-    float _boundingRadius;
-    CapsuleShape _boundingShape;
-    glm::vec3 _boundingShapeLocalOffset;
-    
+
     class MeshState {
     public:
         QVector<glm::mat4> clusterMatrices;
@@ -208,6 +201,8 @@ protected:
     
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
+
+    virtual void setJointStates(QVector<JointState> states);
     
     void setScaleInternal(const glm::vec3& scale);
     void scaleToFit();
@@ -217,27 +212,32 @@ protected:
 
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
+
+    virtual void updateVisibleJointStates();
     
-    bool setJointPosition(int jointIndex, const glm::vec3& translation, const glm::quat& rotation = glm::quat(),
+    /// \param jointIndex index of joint in model structure
+    /// \param position position of joint in model-frame
+    /// \param rotation rotation of joint in model-frame
+    /// \param useRotation false if rotation should be ignored
+    /// \param lastFreeIndex
+    /// \param allIntermediatesFree
+    /// \param alignment
+    /// \return true if joint exists
+    bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation = glm::quat(),
         bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
         const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
-    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false, float priority = 1.0f);
-    
-    void setJointTranslation(int jointIndex, const glm::vec3& translation);
+
+    void inverseKinematics(int jointIndex, glm::vec3 position, const glm::quat& rotation, float priority);
     
     /// Restores the indexed joint to its default position.
-    /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
+    /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
     /// the original position
     /// \return true if the joint was found
-    bool restoreJointPosition(int jointIndex, float percent = 1.0f, float priority = 0.0f);
+    bool restoreJointPosition(int jointIndex, float fraction = 1.0f, float priority = 0.0f);
     
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
-
-    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true, float priority = 1.0f);
-    
-    void computeBoundingShape(const FBXGeometry& geometry);
 
 private:
     
@@ -247,6 +247,7 @@ private:
     void deleteGeometry();
     void renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
+    void initJointTransforms();
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
     QSharedPointer<NetworkGeometry> _nextBaseGeometry;
@@ -270,6 +271,9 @@ private:
 
     QList<AnimationHandlePointer> _runningAnimations;
 
+    glm::vec4 _localLightColors[MAX_LOCAL_LIGHTS];
+    glm::vec4 _localLightDirections[MAX_LOCAL_LIGHTS];
+
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;
@@ -279,6 +283,11 @@ private:
     static ProgramObject _shadowNormalMapProgram;
     static ProgramObject _shadowSpecularMapProgram;
     static ProgramObject _shadowNormalSpecularMapProgram;
+    
+    static ProgramObject _cascadedShadowMapProgram;
+    static ProgramObject _cascadedShadowNormalMapProgram;
+    static ProgramObject _cascadedShadowSpecularMapProgram;
+    static ProgramObject _cascadedShadowNormalSpecularMapProgram;
     
     static ProgramObject _shadowProgram;
     
@@ -292,19 +301,54 @@ private:
     static ProgramObject _skinShadowSpecularMapProgram;
     static ProgramObject _skinShadowNormalSpecularMapProgram;
     
+    static ProgramObject _skinCascadedShadowMapProgram;
+    static ProgramObject _skinCascadedShadowNormalMapProgram;
+    static ProgramObject _skinCascadedShadowSpecularMapProgram;
+    static ProgramObject _skinCascadedShadowNormalSpecularMapProgram;
+    
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
     static int _shadowNormalMapTangentLocation;
     static int _shadowNormalSpecularMapTangentLocation;
+    static int _cascadedShadowNormalMapTangentLocation;
+    static int _cascadedShadowNormalSpecularMapTangentLocation;
     
-    class SkinLocations {
+    static int _cascadedShadowMapDistancesLocation;
+    static int _cascadedShadowNormalMapDistancesLocation;
+    static int _cascadedShadowSpecularMapDistancesLocation;
+    static int _cascadedShadowNormalSpecularMapDistancesLocation;
+    
+    class Locations {
+    public:
+        int localLightColors;
+        int localLightDirections; 
+        int tangent;
+        int shadowDistances;
+    };
+    
+    static Locations _locations;
+    static Locations _normalMapLocations;
+    static Locations _specularMapLocations;
+    static Locations _normalSpecularMapLocations;
+    static Locations _shadowMapLocations;
+    static Locations _shadowNormalMapLocations;
+    static Locations _shadowSpecularMapLocations;
+    static Locations _shadowNormalSpecularMapLocations;
+    static Locations _cascadedShadowMapLocations;
+    static Locations _cascadedShadowNormalMapLocations;
+    static Locations _cascadedShadowSpecularMapLocations;
+    static Locations _cascadedShadowNormalSpecularMapLocations;
+    
+    static void initProgram(ProgramObject& program, Locations& locations,
+        int specularTextureUnit = 1, int shadowTextureUnit = 1);
+        
+    class SkinLocations : public Locations {
     public:
         int clusterMatrices;
         int clusterIndices;
-        int clusterWeights;
-        int tangent;
+        int clusterWeights;    
     };
     
     static SkinLocations _skinLocations;
@@ -315,6 +359,10 @@ private:
     static SkinLocations _skinShadowNormalMapLocations;
     static SkinLocations _skinShadowSpecularMapLocations;
     static SkinLocations _skinShadowNormalSpecularMapLocations;
+    static SkinLocations _skinCascadedShadowMapLocations;
+    static SkinLocations _skinCascadedShadowNormalMapLocations;
+    static SkinLocations _skinCascadedShadowSpecularMapLocations;
+    static SkinLocations _skinCascadedShadowNormalSpecularMapLocations;
     static SkinLocations _skinShadowLocations;
     
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations,
@@ -324,6 +372,8 @@ private:
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
+Q_DECLARE_METATYPE(Model::LocalLight)
+Q_DECLARE_METATYPE(QVector<Model::LocalLight>)
 
 /// Represents a handle to a model animation.
 class AnimationHandle : public QObject {
@@ -352,17 +402,22 @@ public:
     void setStartAutomatically(bool startAutomatically);
     bool getStartAutomatically() const { return _startAutomatically; }
     
-    void setFirstFrame(int firstFrame) { _firstFrame = firstFrame; }
-    int getFirstFrame() const { return _firstFrame; }
+    void setFirstFrame(float firstFrame) { _firstFrame = firstFrame; }
+    float getFirstFrame() const { return _firstFrame; }
     
-    void setLastFrame(int lastFrame) { _lastFrame = lastFrame; }
-    int getLastFrame() const { return _lastFrame; }
+    void setLastFrame(float lastFrame) { _lastFrame = lastFrame; }
+    float getLastFrame() const { return _lastFrame; }
     
     void setMaskedJoints(const QStringList& maskedJoints);
     const QStringList& getMaskedJoints() const { return _maskedJoints; }
     
     void setRunning(bool running);
     bool isRunning() const { return _running; }
+
+    void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(_frameIndex, _firstFrame, _lastFrame); }
+    float getFrameIndex() const { return _frameIndex; }
+
+    AnimationDetails getAnimationDetails() const;
 
 signals:
     
@@ -380,6 +435,7 @@ private:
     AnimationHandle(Model* model);
         
     void simulate(float deltaTime);
+    void applyFrame(float frameIndex);
     void replaceMatchingPriorities(float newPriority);
     
     Model* _model;
@@ -392,8 +448,8 @@ private:
     bool _loop;
     bool _hold;
     bool _startAutomatically;
-    int _firstFrame;
-    int _lastFrame;
+    float _firstFrame;
+    float _lastFrame;
     QStringList _maskedJoints;
     bool _running;
     QVector<int> _jointMappings;

@@ -64,10 +64,18 @@ void Head::reset() {
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     //  Update audio trailing average for rendering facial animations
     if (isMine) {
-		FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-        if ((_isFaceshiftConnected = faceTracker)) {
-            _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-            _isFaceshiftConnected = true;   
+        MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+        
+        // Only use face trackers when not playing back a recording.
+        if (!myAvatar->isPlaying()) {
+            FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
+            if ((_isFaceshiftConnected = faceTracker)) {
+                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+                _isFaceshiftConnected = true;
+            } else if (Application::getInstance()->getDDE()->isActive()) {
+                faceTracker = Application::getInstance()->getDDE();
+                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+            }            
         }
     }
     
@@ -159,6 +167,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
     }
     _eyePosition = calculateAverageEyePosition();
+
 }
 
 void Head::relaxLean(float deltaTime) {
@@ -188,9 +197,12 @@ void Head::setScale (float scale) {
     _scale = scale;
 }
 
-glm::quat Head::getFinalOrientation() const {
-    return _owningAvatar->getOrientation() * glm::quat(glm::radians(
-                glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
+glm::quat Head::getFinalOrientationInWorldFrame() const {
+    return _owningAvatar->getOrientation() * getFinalOrientationInLocalFrame();
+}
+
+glm::quat Head::getFinalOrientationInLocalFrame() const {
+    return glm::quat(glm::radians(glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
 }
 
 glm::quat Head::getCameraOrientation () const {
@@ -208,6 +220,18 @@ glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
 
 glm::vec3 Head::getScalePivot() const {
     return _faceModel.isActive() ? _faceModel.getTranslation() : _position;
+}
+
+void Head::setFinalPitch(float finalPitch) {
+    _deltaPitch = glm::clamp(finalPitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH) - _basePitch;
+}
+
+void Head::setFinalYaw(float finalYaw) {
+    _deltaYaw = glm::clamp(finalYaw, MIN_HEAD_YAW, MAX_HEAD_YAW) - _baseYaw;
+}
+
+void Head::setFinalRoll(float finalRoll) {
+    _deltaRoll = glm::clamp(finalRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL) - _baseRoll;
 }
 
 float Head::getFinalYaw() const {

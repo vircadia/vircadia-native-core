@@ -17,6 +17,7 @@
 #include <QTreeView>
 
 enum ModelType {
+    ENTITY_MODEL,
     HEAD_MODEL,
     SKELETON_MODEL,
     ATTACHMENT_MODEL
@@ -38,18 +39,20 @@ signals:
     void updated();
     
 public slots:
+    void setNameFilter(QString nameFilter);
     void download();
     void update();
     void exit();
     
 private slots:
-    void downloadFinished(QNetworkReply* reply);
+    void downloadFinished();
     
 private:
     bool _initiateExit;
     ModelType _type;
     QReadWriteLock _lock;
     QStandardItemModel _model;
+    QString _nameFilter;
     
     void queryNewFiles(QString marker = QString());
     bool parseXML(QByteArray xmlFile);
@@ -62,6 +65,7 @@ class ModelsBrowser : public QWidget {
 public:
     
     ModelsBrowser(ModelType modelsType, QWidget* parent = NULL);
+    QString getSelectedFile() { return _selectedFile; }
     
 signals:
     void startDownloading();
@@ -69,15 +73,19 @@ signals:
     void selected(QString filename);
     
 public slots:
+    void setNameFilter(QString nameFilter);
     void browse();
     
 private slots:
     void applyFilter(const QString& filter);
     void resizeView();
+    void enableSearchBar();
     
 private:
     ModelHandler* _handler;
+    QLineEdit* _searchBar;
     QTreeView _view;
+    QString _selectedFile;
 };
 
 #endif // hifi_ModelsBrowser_h

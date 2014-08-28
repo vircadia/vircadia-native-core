@@ -61,6 +61,17 @@ class MetavoxelDeltaMessage {
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelDeltaMessage)
 
+/// A message indicating that metavoxel delta information is being sent on a reliable channel.
+class MetavoxelDeltaPendingMessage {
+    STREAMABLE
+    
+public:
+    
+    STREAM int id;
+};
+
+DECLARE_STREAMABLE_METATYPE(MetavoxelDeltaPendingMessage)
+
 /// A simple streamable edit.
 class MetavoxelEditMessage {
     STREAMABLE
@@ -195,5 +206,58 @@ public:
 };
 
 DECLARE_STREAMABLE_METATYPE(SetDataEdit)
+
+/// An edit that sets a region of a heightfield height.
+class PaintHeightfieldHeightEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+    
+    STREAM glm::vec3 position;
+    STREAM float radius;
+    STREAM float height;
+    
+    PaintHeightfieldHeightEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f, float height = 0.0f);
+    
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(PaintHeightfieldHeightEdit)
+
+/// An edit that sets a region of a heightfield color.
+class PaintHeightfieldColorEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+    
+    STREAM glm::vec3 position;
+    STREAM float radius;
+    STREAM QColor color;
+    
+    PaintHeightfieldColorEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f, const QColor& color = QColor());
+    
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(PaintHeightfieldColorEdit)
+
+/// An edit that sets a region of a heightfield texture.
+class PaintHeightfieldTextureEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+    
+    STREAM glm::vec3 position;
+    STREAM float radius;
+    STREAM SharedObjectPointer texture;
+    STREAM QColor averageColor;
+    
+    PaintHeightfieldTextureEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f,
+        const SharedObjectPointer& texture = SharedObjectPointer(), const QColor& averageColor = QColor());
+    
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(PaintHeightfieldTextureEdit)
 
 #endif // hifi_MetavoxelMessages_h

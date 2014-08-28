@@ -70,14 +70,16 @@ void NodeBounds::draw() {
         }
 
         QUuid nodeUUID = node->getUUID();
+        serverJurisdictions->lockForRead();
         if (serverJurisdictions->find(nodeUUID) != serverJurisdictions->end()) {
-            const JurisdictionMap& map = serverJurisdictions->value(nodeUUID);
+            const JurisdictionMap& map = (*serverJurisdictions)[nodeUUID];
 
             unsigned char* rootCode = map.getRootOctalCode();
 
             if (rootCode) {
                 VoxelPositionSize rootDetails;
                 voxelDetailsForCode(rootCode, rootDetails);
+                serverJurisdictions->unlock();
                 glm::vec3 location(rootDetails.x, rootDetails.y, rootDetails.z);
                 location *= (float)TREE_SCALE;
 
@@ -123,7 +125,11 @@ void NodeBounds::draw() {
                     selectedCenter = center;
                     selectedScale = scaleFactor;
                 }
+            } else {
+                serverJurisdictions->unlock();
             }
+        } else {
+            serverJurisdictions->unlock();
         }
     }
 
@@ -136,7 +142,7 @@ void NodeBounds::draw() {
         float red, green, blue;
         getColorForNodeType(selectedNode->getType(), red, green, blue);
 
-        glColor4f(red, green, blue, 0.2);
+        glColor4f(red, green, blue, 0.2f);
         glutSolidCube(1.0);
 
         glPopMatrix();
@@ -229,7 +235,7 @@ void NodeBounds::drawOverlay() {
         int mouseX = application->getMouseX(),
             mouseY = application->getMouseY(),
             textWidth = widthText(TEXT_SCALE, 0, _overlayText);
-        glColor4f(0.4, 0.4, 0.4, 0.6);
+        glColor4f(0.4f, 0.4f, 0.4f, 0.6f);
         renderBevelCornersRect(mouseX + MOUSE_OFFSET, mouseY - TEXT_HEIGHT - PADDING,
                                textWidth + (2 * PADDING), TEXT_HEIGHT + (2 * PADDING), BACKGROUND_BEVEL);
         drawText(mouseX + MOUSE_OFFSET + PADDING, mouseY, TEXT_SCALE, ROTATION, FONT, _overlayText, TEXT_COLOR);

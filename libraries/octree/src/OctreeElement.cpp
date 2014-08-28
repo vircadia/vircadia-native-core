@@ -1308,11 +1308,6 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
 
     keepSearching = true; // assume that we will continue searching after this.
 
-    // by default, we only allow intersections with leaves with content
-    if (!canRayIntersect()) {
-        return false; // we don't intersect with non-leaves, and we keep searching
-    }
-
     AACube cube = getAACube();
     float localDistance;
     BoxFace localFace;
@@ -1321,6 +1316,11 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
     if (!cube.findRayIntersection(origin, direction, localDistance, localFace)) {
         keepSearching = false; // no point in continuing to search
         return false; // we did not intersect
+    }
+
+    // by default, we only allow intersections with leaves with content
+    if (!canRayIntersect()) {
+        return false; // we don't intersect with non-leaves, and we keep searching
     }
 
     // we did hit this element, so calculate appropriate distances    
@@ -1346,6 +1346,7 @@ bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const g
         if (intersectedObject) {
             *intersectedObject = this;
         }
+        keepSearching = false;
         return true; // we did intersect
     }
     return false; // we did not intersect

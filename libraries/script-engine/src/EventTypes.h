@@ -13,6 +13,7 @@
 #define hifi_EventTypes_h
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <QtScript/QScriptEngine>
 
@@ -43,9 +44,10 @@ public:
 class MouseEvent {
 public:
     MouseEvent(); 
-    MouseEvent(const QMouseEvent& event);
+    MouseEvent(const QMouseEvent& event, const unsigned int deviceID = 0);
     int x;
     int y;
+    unsigned int deviceID;
     QString button;
     bool isLeftButton;
     bool isRightButton;
@@ -107,10 +109,25 @@ public:
     bool isAlt;
 };
 
+class SpatialEvent {
+public:
+    SpatialEvent();
+    SpatialEvent(const SpatialEvent& other);
+
+    glm::vec3 locTranslation;
+    glm::quat locRotation;
+    glm::vec3 absTranslation;
+    glm::quat absRotation;
+
+private:
+};
+
+
 Q_DECLARE_METATYPE(KeyEvent)
 Q_DECLARE_METATYPE(MouseEvent)
 Q_DECLARE_METATYPE(TouchEvent)
 Q_DECLARE_METATYPE(WheelEvent)
+Q_DECLARE_METATYPE(SpatialEvent)
 
 void registerEventTypes(QScriptEngine* engine);
 
@@ -125,5 +142,8 @@ void touchEventFromScriptValue(const QScriptValue& object, TouchEvent& event);
 
 QScriptValue wheelEventToScriptValue(QScriptEngine* engine, const WheelEvent& event);
 void wheelEventFromScriptValue(const QScriptValue& object, WheelEvent& event);
+
+QScriptValue spatialEventToScriptValue(QScriptEngine* engine, const SpatialEvent& event);
+void spatialEventFromScriptValue(const QScriptValue& object, SpatialEvent& event);
 
 #endif // hifi_EventTypes_h

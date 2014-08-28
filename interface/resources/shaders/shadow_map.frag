@@ -16,6 +16,7 @@ uniform sampler2DShadow shadowMap;
 // the inverse of the size of the shadow map
 const float shadowScale = 1.0 / 2048.0;
 
+// the color in shadow
 varying vec4 shadowColor;
 
 void main(void) {

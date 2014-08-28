@@ -71,7 +71,6 @@ void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
     VoxelDetail addVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE, 
                                     scale / (float)TREE_SCALE, red, green, blue};
 
-
     // handle the local tree also...
     if (_tree) {
         if (_undoStack) {
@@ -81,11 +80,16 @@ void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
             DeleteVoxelCommand* deleteCommand = new DeleteVoxelCommand(_tree,
                                                                        addVoxelDetail,
                                                                        getVoxelPacketSender());
+            _undoStackMutex.lock();
+
             _undoStack->beginMacro(addCommand->text());
             // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
             _undoStack->push(deleteCommand);
             _undoStack->push(addCommand);
             _undoStack->endMacro();
+
+            //Unlock the mutex
+            _undoStackMutex.unlock();
         } else {
             // queue the destructive add
             queueVoxelAdd(PacketTypeVoxelSetDestructive, addVoxelDetail);
@@ -110,11 +114,15 @@ void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale
         }
         
         if (_undoStack) {
+            
             DeleteVoxelCommand* command = new DeleteVoxelCommand(_tree,
                                                                  deleteVoxelDetail,
                                                                  getVoxelPacketSender());
+
+            _undoStackMutex.lock();
             // As QUndoStack automatically executes redo() on push, we don't need to execute the command ourselves.
             _undoStack->push(command);
+            _undoStackMutex.unlock();
         } else {
             getVoxelPacketSender()->queueVoxelEditMessages(PacketTypeVoxelErase, 1, &deleteVoxelDetail);
             _tree->deleteVoxelAt(deleteVoxelDetail.x, deleteVoxelDetail.y, deleteVoxelDetail.z, deleteVoxelDetail.s);
@@ -187,4 +195,21 @@ VoxelDetail VoxelsScriptingInterface::getVoxelEnclosingPoint(const glm::vec3& po
     return result;
 }
 
+VoxelDetail VoxelsScriptingInterface::getVoxelEnclosingPointBlocking(const glm::vec3& point) {
+    VoxelDetail result = { 0.0f, 0.0f, 0.0f, 0.0f, 0, 0, 0 };
+    if (_tree) {
+        OctreeElement* element = _tree->getElementEnclosingPoint(point / (float)TREE_SCALE, Octree::Lock);
+        if (element) {
+            VoxelTreeElement* voxel = static_cast<VoxelTreeElement*>(element);
+            result.x = voxel->getCorner().x;
+            result.y = voxel->getCorner().y;
+            result.z = voxel->getCorner().z;
+            result.s = voxel->getScale();
+            result.red = voxel->getColor()[0];
+            result.green = voxel->getColor()[1];
+            result.blue = voxel->getColor()[2];
+        }
+    }
+    return result;
+}
 

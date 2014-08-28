@@ -7,8 +7,8 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-macro(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
-  project(${TARGET})
+macro(SETUP_HIFI_PROJECT)
+  project(${TARGET_NAME})
   
   # grab the implemenation and header files
   file(GLOB TARGET_SRCS src/*)
@@ -23,12 +23,19 @@ macro(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
   endforeach()
   
   # add the executable, include additional optional sources
-  add_executable(${TARGET} ${TARGET_SRCS} ${ARGN})
+  add_executable(${TARGET_NAME} ${TARGET_SRCS} "${AUTOMTC_SRC}")
   
-  if (${INCLUDE_QT})
-    find_package(Qt5Core REQUIRED)
-    qt5_use_modules(${TARGET} Core)
-  endif ()
-
-  target_link_libraries(${TARGET} ${QT_LIBRARIES})
+  set(QT_MODULES_TO_LINK ${ARGN})
+  list(APPEND QT_MODULES_TO_LINK Core)
+  
+  find_package(Qt5 COMPONENTS ${QT_MODULES_TO_LINK} REQUIRED)
+  
+  foreach(QT_MODULE ${QT_MODULES_TO_LINK})    
+    target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})
+    
+    # add the actual path to the Qt module to our LIBRARIES_TO_LINK variable
+    get_target_property(QT_LIBRARY_LOCATION Qt5::${QT_MODULE} LOCATION)
+    list(APPEND ${TARGET_NAME}_QT_MODULES_TO_LINK ${QT_LIBRARY_LOCATION})
+  endforeach()
+  
 endmacro()

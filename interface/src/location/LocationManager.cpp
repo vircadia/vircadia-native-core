@@ -13,13 +13,15 @@
 
 #include "Application.h"
 #include "LocationManager.h"
+#include <UserActivityLogger.h>
 
 const QString GET_USER_ADDRESS = "/api/v1/users/%1/address";
-const QString GET_PLACE_ADDRESS = "/api/v1/places/%1/address";
+const QString GET_PLACE_ADDRESS = "/api/v1/places/%1";
+const QString GET_ADDRESSES = "/api/v1/addresses/%1";
 const QString POST_PLACE_CREATE = "/api/v1/places/";
 
 
-LocationManager::LocationManager() : _userData(), _placeData() {
+LocationManager::LocationManager() {
 
 };
 
@@ -59,74 +61,60 @@ void LocationManager::createNamedLocation(NamedLocation* namedLocation) {
 }
 
 void LocationManager::goTo(QString destination) {
-
+    const QString USER_DESTINATION_TYPE = "user";
+    const QString PLACE_DESTINATION_TYPE = "place";
+    const QString OTHER_DESTINATION_TYPE = "coordinate_or_username";
+    
     if (destination.startsWith("@")) {
         // remove '@' and go to user
-        goToUser(destination.remove(0, 1));
+        QString destinationUser = destination.remove(0, 1);
+        UserActivityLogger::getInstance().wentTo(USER_DESTINATION_TYPE, destinationUser);
+        goToUser(destinationUser);
         return;
     }
 
     if (destination.startsWith("#")) {
         // remove '#' and go to named place
-        goToPlace(destination.remove(0, 1));
+        QString destinationPlace = destination.remove(0, 1);
+        UserActivityLogger::getInstance().wentTo(PLACE_DESTINATION_TYPE, destinationPlace);
+        goToPlace(destinationPlace);
         return;
     }
 
     // go to coordinate destination or to Username
     if (!goToDestination(destination)) {
-        // reset data on local variables
-        _userData = QJsonObject();
-        _placeData = QJsonObject();
-
         destination = QString(QUrl::toPercentEncoding(destination));
+        UserActivityLogger::getInstance().wentTo(OTHER_DESTINATION_TYPE, destination);
         JSONCallbackParameters callbackParams;
         callbackParams.jsonCallbackReceiver = this;
-        callbackParams.jsonCallbackMethod = "goToUserFromResponse";
-        AccountManager::getInstance().authenticatedRequest(GET_USER_ADDRESS.arg(destination),
-                                                           QNetworkAccessManager::GetOperation,
-                                                           callbackParams);
-
-        callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
-        AccountManager::getInstance().authenticatedRequest(GET_PLACE_ADDRESS.arg(destination),
+        callbackParams.jsonCallbackMethod = "goToAddressFromResponse";
+        AccountManager::getInstance().authenticatedRequest(GET_ADDRESSES.arg(destination),
                                                            QNetworkAccessManager::GetOperation,
                                                            callbackParams);
     }
 }
 
-void LocationManager::goToUserFromResponse(const QJsonObject& jsonObject) {
-    _userData = jsonObject;
-    checkForMultipleDestinations();
-}
+void LocationManager::goToAddressFromResponse(const QJsonObject& responseData) {
+    QJsonValue status = responseData["status"];
+    qDebug() << responseData;
+    if (!status.isUndefined() && status.toString() == "success") {
+        const QJsonObject& data = responseData["data"].toObject();
+        const QJsonValue& userObject = data["user"];
+        const QJsonValue& placeObject = data["place"];
 
-void LocationManager::goToLocationFromResponse(const QJsonObject& jsonObject) {
-    _placeData = jsonObject;
-    checkForMultipleDestinations();
-}
-
-void LocationManager::checkForMultipleDestinations() {
-    if (!_userData.isEmpty() && !_placeData.isEmpty()) {
-        if (_userData.contains("status") && _userData["status"].toString() == "success" &&
-            _placeData.contains("status") && _placeData["status"].toString() == "success") {
-            emit multipleDestinationsFound(_userData, _placeData);
-            return;
+        if (!placeObject.isUndefined() && !userObject.isUndefined()) {
+            emit multipleDestinationsFound(userObject.toObject(), placeObject.toObject());
+        } else if (placeObject.isUndefined()) {
+            Application::getInstance()->getAvatar()->goToLocationFromAddress(userObject.toObject()["address"].toObject());
+        } else {
+            Application::getInstance()->getAvatar()->goToLocationFromAddress(placeObject.toObject()["address"].toObject());
         }
-
-        if (_userData.contains("status") && _userData["status"].toString() == "success") {
-            Application::getInstance()->getAvatar()->goToLocationFromResponse(_userData);
-            return;
-        }
-
-        if (_placeData.contains("status") && _placeData["status"].toString() == "success") {
-            Application::getInstance()->getAvatar()->goToLocationFromResponse(_placeData);
-            return;
-        }
-
+    } else {
         QMessageBox::warning(Application::getInstance()->getWindow(), "", "That user or location could not be found.");
     }
 }
 
 void LocationManager::goToUser(QString userName) {
-
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
     callbackParams.jsonCallbackMethod = "goToLocationFromResponse";

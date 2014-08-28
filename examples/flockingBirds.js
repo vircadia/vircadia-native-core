@@ -31,7 +31,7 @@ var count=0; // iterations
 
 var enableFlyTowardPoints = true; // some birds have a point they want to fly to
 var enabledClustedFlyTowardPoints = true; // the flyToward points will be generally near each other
-var flyToFrames = 10; // number of frames the bird would like to attempt to fly to it's flyTo point
+var flyToFrames = 100; // number of frames the bird would like to attempt to fly to it's flyTo point
 var PROBABILITY_OF_FLY_TOWARD_CHANGE = 0.01; // chance the bird will decide to change its flyTo point
 var PROBABILITY_EACH_BIRD_WILL_FLY_TOWARD = 0.2; // chance the bird will decide to flyTo, otherwise it follows
 var flyingToCount = 0; // count of birds currently flying to someplace
@@ -51,16 +51,16 @@ var flockGravity = { x: 0, y: -1, z: 0};
 var enableRandomXZThrust = false; // leading birds randomly decide to thrust in some random direction.
 var enableSomeBirdsLead = false; // birds randomly decide not fly toward flock, causing other birds to follow
 var leaders = 0; // number of birds leading
-var PROBABILITY_TO_LEAD = 0.1; // probabolity a bird will choose to lead
+var PROBABILITY_TO_LEAD = 0.1; // probability a bird will choose to lead
 
 var birds = new Array(); // array of bird state data
 
 
-var flockStartPosition = { x: 100, y: 10, z: 100};
+var flockStartPosition = MyAvatar.position;
 var flockStartVelocity = { x: 0, y: 0, z: 0};
 var flockStartThrust =  { x: 0, y: 0, z: 0}; // slightly upward against gravity
 var INITIAL_XY_VELOCITY_SCALE = 2;
-var birdRadius = 0.0625;
+var birdRadius = 0.0925;
 var baseBirdColor = { red: 0, green: 255, blue: 255 };
 var glidingColor = { red: 255, green: 0, blue: 0 };
 var thrustUpwardColor = { red: 0, green: 255, blue: 0 };

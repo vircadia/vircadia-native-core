@@ -11,18 +11,114 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// the texture containing our permutations and normals
-uniform sampler2D permutationNormalTexture;
+// implementation based on Ken Perlin's Improved Noise reference implementation (orig. in Java) at
+// http://mrl.nyu.edu/~perlin/noise/
+
+uniform sampler2D permutationTexture;
 
 // the noise frequency
-const float frequency = 65536.0; // looks better with current TREE_SCALE, was 1024 when TREE_SCALE was either 512 or 128
+const float frequency = 256.0;
+//const float frequency = 65536.0; // looks better with current TREE_SCALE, was 1024 when TREE_SCALE was either 512 or 128
 
 // the noise amplitude
-const float amplitude = 0.1;
+const float amplitude = 0.5;
 
 // the position in model space
 varying vec3 position;
 
+// gradient based on gradients from cube edge centers rather than random from texture lookup
+float randomEdgeGrad(int hash, vec3 position){
+    int h = int(mod(hash, 16));
+    float u = h < 8 ? position.x : position.y;
+    float v = h < 4 ? position.y : h == 12 || h == 14 ? position.x : position.z;
+    bool even = mod(hash, 2) == 0;
+    bool four = mod(hash, 4) == 0;
+    return (even ? u : -u) + (four ? v : -v);
+}
+
+// still have the option to lookup based on texture
+float randomTextureGrad(int hash, vec3 position){
+    float u = float(hash) / 256.0;
+    vec3 g = -1 + 2 * texture2D(permutationTexture, vec2(u, 0.75)).rgb;
+    return dot(position, g);
+}
+
+float improvedGrad(int hash, vec3 position){
+// Untested whether texture lookup is faster than math, uncomment one line or the other to try out
+// cube edge gradients versus random spherical gradients sent in texture.
+
+//    return randomTextureGrad(hash, position);
+    return randomEdgeGrad(hash, position);
+}
+
+// 5th order fade function to remove 2nd order discontinuties
+vec3 fade3(vec3 t){
+    return t * t * t * (t * (t * 6 - 15) + 10); 
+}
+
+int permutation(int index){
+    float u = float(index) / 256.0;
+    float t = texture2D(permutationTexture, vec2(u, 0.25)).r;
+    return int(t * 256);
+}
+
+float improvedNoise(vec3 position){
+    int X = int(mod(floor(position.x), 256));
+    int Y = int(mod(floor(position.y), 256));
+    int Z = int(mod(floor(position.z), 256));
+
+    vec3 fracs = fract(position);
+
+    vec3 fades = fade3(fracs);
+
+    int A  = permutation(X + 0) + Y;
+    int AA = permutation(A + 0) + Z;
+    int AB = permutation(A + 1) + Z;
+    int B  = permutation(X + 1) + Y;
+    int BA = permutation(B + 0) + Z;
+    int BB = permutation(B + 1) + Z;
+
+    float gradAA0 = improvedGrad(permutation(AA + 0), vec3(fracs.x    , fracs.y    , fracs.z    ));
+    float gradBA0 = improvedGrad(permutation(BA + 0), vec3(fracs.x - 1, fracs.y    , fracs.z    ));
+    float gradAB0 = improvedGrad(permutation(AB + 0), vec3(fracs.x    , fracs.y - 1, fracs.z    ));
+    float gradBB0 = improvedGrad(permutation(BB + 0), vec3(fracs.x - 1, fracs.y - 1, fracs.z    ));
+    float gradAA1 = improvedGrad(permutation(AA + 1), vec3(fracs.x    , fracs.y    , fracs.z - 1));
+    float gradBA1 = improvedGrad(permutation(BA + 1), vec3(fracs.x - 1, fracs.y    , fracs.z - 1));
+    float gradAB1 = improvedGrad(permutation(AB + 1), vec3(fracs.x    , fracs.y - 1, fracs.z - 1));
+    float gradBB1 = improvedGrad(permutation(BB + 1), vec3(fracs.x - 1, fracs.y - 1, fracs.z - 1));
+
+    return mix(mix(mix(gradAA0, gradBA0, fades.x), mix(gradAB0, gradBB0, fades.x), fades.y), mix(mix(gradAA1, gradBA1, fades.x), mix(gradAB1, gradBB1, fades.x), fades.y), fades.z);
+}
+
+float turbulence(vec3 position, float power){
+    return (1.0f / power) * improvedNoise(power * position);
+}
+
+float turb(vec3 position){
+    return turbulence(position, 1)
+    + turbulence(position, 2), 
+    + turbulence(position, 4) 
+    + turbulence(position, 8) 
+    + turbulence(position, 16) 
+    + turbulence(position, 32)
+    + turbulence(position, 64)
+    + turbulence(position, 128)
+    ;
+}
+
+
+void main(void) {
+
+    // get noise in range 0 .. 1
+    float noise = clamp(0.5f + amplitude * turb(position * frequency), 0, 1); 
+
+    // apply vertex lighting
+    vec3 color = gl_Color.rgb * vec3(noise, noise, noise);
+    gl_FragColor = vec4(color, 1);
+}
+
+
+/* old implementation
 // returns the gradient at a single corner of our sampling cube
 vec3 grad(vec3 location) {
     float p1 = texture2D(permutationNormalTexture, vec2(location.x / 256.0, 0.25)).r;
@@ -60,7 +156,4 @@ float perlin(vec3 location) {
         mix(mix(ffcv, cfcv, params.x), mix(fccv, cccv, params.x), params.y),
         params.z);
 }
-
-void main(void) {
-    gl_FragColor = vec4(gl_Color.rgb * (1.0 + amplitude*(perlin(position * frequency) - 1.0)), 1.0);
-}
+*/

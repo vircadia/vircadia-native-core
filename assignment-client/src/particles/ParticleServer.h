@@ -33,11 +33,12 @@ public:
     virtual const char* getMyServerName() const { return PARTICLE_SERVER_NAME; }
     virtual const char* getMyLoggingServerTargetName() const { return PARTICLE_SERVER_LOGGING_TARGET_NAME; }
     virtual const char* getMyDefaultPersistFilename() const { return LOCAL_PARTICLES_PERSIST_FILE; }
+    virtual PacketType getMyEditNackType() const { return PacketTypeParticleEditNack; }
 
     // subclass may implement these method
     virtual void beforeRun();
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node);
-    virtual int sendSpecialPacket(const SharedNodePointer& node);
+    virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent);
 
     virtual void particleCreated(const Particle& newParticle, const SharedNodePointer& senderNode);
 

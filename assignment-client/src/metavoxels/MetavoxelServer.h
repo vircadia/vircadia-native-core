@@ -17,10 +17,11 @@
 
 #include <ThreadedAssignment.h>
 
-#include <DatagramSequencer.h>
-#include <MetavoxelData.h>
+#include <Endpoint.h>
 
 class MetavoxelEditMessage;
+class MetavoxelPersister;
+class MetavoxelSender;
 class MetavoxelSession;
 
 /// Maintains a shared metavoxel system, accepting change requests and broadcasting updates.
@@ -31,20 +32,63 @@ public:
     
     MetavoxelServer(const QByteArray& packet);
 
-    void applyEdit(const MetavoxelEditMessage& edit);
+    Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit);
 
     const MetavoxelData& getData() const { return _data; }
+    
+    Q_INVOKABLE void setData(const MetavoxelData& data);
 
     virtual void run();
     
     virtual void readPendingDatagrams();
     
+    virtual void aboutToFinish();
+
+signals:
+
+    void dataChanged(const MetavoxelData& data);
+
 private slots:
 
     void maybeAttachSession(const SharedNodePointer& node);
-    void sendDeltas();    
+    void maybeDeleteSession(const SharedNodePointer& node);   
     
 private:
+    
+    QVector<MetavoxelSender*> _senders;
+    int _nextSender;
+    
+    MetavoxelPersister* _persister;
+    
+    MetavoxelData _data;
+};
+
+/// Handles update sending for one thread.
+class MetavoxelSender : public QObject {
+    Q_OBJECT
+
+public:
+    
+    MetavoxelSender(MetavoxelServer* server);
+    
+    MetavoxelServer* getServer() const { return _server; }
+    
+    const MetavoxelData& getData() const { return _data; }
+    
+    Q_INVOKABLE void start();
+    
+    Q_INVOKABLE void addSession(QObject* session);
+    
+private slots:
+    
+    void setData(const MetavoxelData& data) { _data = data; }
+    void sendDeltas();
+    void removeSession(QObject* session);
+    
+private:
+    
+    MetavoxelServer* _server;
+    QSet<MetavoxelSession*> _sessions;
     
     QTimer _sendTimer;
     qint64 _lastSend;
@@ -53,46 +97,56 @@ private:
 };
 
 /// Contains the state of a single client session.
-class MetavoxelSession : public NodeData {
+class MetavoxelSession : public Endpoint {
     Q_OBJECT
     
 public:
     
-    MetavoxelSession(MetavoxelServer* server, const SharedNodePointer& node);
-    virtual ~MetavoxelSession();
+    MetavoxelSession(const SharedNodePointer& node, MetavoxelSender* sender);
+    
+    virtual void update();
 
-    virtual int parseData(const QByteArray& packet);
+protected:
 
-    void sendDelta();
+    virtual void handleMessage(const QVariant& message, Bitstream& in);
+    
+    virtual PacketRecord* maybeCreateSendRecord() const;
 
 private slots:
 
-    void sendData(const QByteArray& data);
-
-    void readPacket(Bitstream& in);    
-    
-    void clearSendRecordsBefore(int index);
-    
     void handleMessage(const QVariant& message);
+    void checkReliableDeltaReceived();
     
 private:
     
-    class SendRecord {
-    public:
-        int packetNumber;
-        MetavoxelData data;
-        MetavoxelLOD lod;
-    };
+    void sendPacketGroup(int alreadySent = 0);
     
-    MetavoxelServer* _server;
-    
-    DatagramSequencer _sequencer;
-    
-    SharedNodePointer _node;
+    MetavoxelSender* _sender;
     
     MetavoxelLOD _lod;
     
-    QList<SendRecord> _sendRecords;
+    ReliableChannel* _reliableDeltaChannel;
+    int _reliableDeltaReceivedOffset;
+    MetavoxelData _reliableDeltaData;
+    MetavoxelLOD _reliableDeltaLOD;
+    Bitstream::WriteMappings _reliableDeltaWriteMappings;
+    int _reliableDeltaID;
+};
+
+/// Handles persistence in a separate thread.
+class MetavoxelPersister : public QObject {
+    Q_OBJECT
+
+public:
+    
+    MetavoxelPersister(MetavoxelServer* server);
+
+    Q_INVOKABLE void load();
+    Q_INVOKABLE void save(const MetavoxelData& data);
+
+private:
+    
+    MetavoxelServer* _server;
 };
 
 #endif // hifi_MetavoxelServer_h

@@ -18,10 +18,13 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <PerfStat.h>
+
 #include "Stats.h"
 #include "InterfaceConfig.h"
 #include "Menu.h"
 #include "Util.h"
+#include "SequenceNumberStats.h"
 
 using namespace std;
 
@@ -45,7 +48,13 @@ Stats::Stats():
         _pingStatsWidth(STATS_PING_MIN_WIDTH),
         _geoStatsWidth(STATS_GEO_MIN_WIDTH),
         _voxelStatsWidth(STATS_VOXEL_MIN_WIDTH),
-        _lastHorizontalOffset(0)
+        _lastHorizontalOffset(0),
+        _metavoxelInternal(0),
+        _metavoxelLeaves(0),
+        _metavoxelSendProgress(0),
+        _metavoxelSendTotal(0),
+        _metavoxelReceiveProgress(0),
+        _metavoxelReceiveTotal(0)
 {
     QGLWidget* glWidget = Application::getInstance()->getGLWidget();
     resetWidth(glWidget->width(), 0);
@@ -158,6 +167,28 @@ void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int heigh
     glColor4f(1, 1, 1, 1); 
 }
 
+bool Stats::includeTimingRecord(const QString& name) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+        if (name.startsWith("/idle/update/")) {
+            if (name.startsWith("/idle/update/myAvatar/")) {
+                if (name.startsWith("/idle/update/myAvatar/simulate/")) {
+                    return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
+                }
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarTiming);
+            } else if (name.startsWith("/idle/update/otherAvatars/")) {
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandOtherAvatarTiming);
+            }
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandUpdateTiming);
+        } else if (name.startsWith("/idle/updateGL/paintGL/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+        } else if (name.startsWith("/paintGL/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+        }
+        return true;
+    }
+    return false;
+}
+
 // display expanded or contracted stats
 void Stats::display(
         const float* color, 
@@ -255,19 +286,9 @@ void Stats::display(
         drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
         horizontalOffset += 5;
 
-        Audio* audio = Application::getInstance()->getAudio();
-
-        char audioJitter[30];
-        sprintf(audioJitter,
-                "Buffer msecs %.1f",
-                (float) (audio->getNetworkBufferLengthSamplesPerChannel() + (float) audio->getJitterBufferSamples()) /
-                (float) audio->getNetworkSampleRate() * 1000.f);
-        drawText(30, glWidget->height() - 22, scale, rotation, font, audioJitter, color);
         
-                 
         char audioPing[30];
         sprintf(audioPing, "Audio ping: %d", pingAudio);
-       
                  
         char avatarPing[30];
         sprintf(avatarPing, "Avatar ping: %d", pingAvatar);
@@ -292,11 +313,11 @@ void Stats::display(
         verticalOffset = 0;
         horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + 2;
     }
-
+    
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 
-    lines = _expanded ? 5 : 3;
+    lines = _expanded ? 8 : 3;
 
     drawBackground(backgroundColor, horizontalOffset, 0, _geoStatsWidth, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
@@ -338,6 +359,31 @@ void Stats::display(
         
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, downloads.str().c_str(), color);
+        
+        QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels()->getUpdater(), "getStats",
+            Q_ARG(QObject*, this), Q_ARG(const QByteArray&, "setMetavoxelStats"));
+        
+        stringstream nodes;
+        nodes << "Metavoxels: " << (_metavoxelInternal + _metavoxelLeaves);
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodes.str().c_str(), color);
+        
+        stringstream nodeTypes;
+        nodeTypes << "Internal: " << _metavoxelInternal << "  Leaves: " << _metavoxelLeaves;
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodeTypes.str().c_str(), color);
+        
+        if (_metavoxelSendTotal > 0 || _metavoxelReceiveTotal > 0) {
+            stringstream reliableStats;
+            if (_metavoxelSendTotal > 0) {
+                reliableStats << "Upload: " << (_metavoxelSendProgress * 100 / _metavoxelSendTotal) << "%  ";
+            }
+            if (_metavoxelReceiveTotal > 0) {
+                reliableStats << "Download: " << (_metavoxelReceiveProgress * 100 / _metavoxelReceiveTotal) << "%";
+            }
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, reliableStats.str().c_str(), color);
+        }
     }
 
     verticalOffset = 0;
@@ -345,11 +391,25 @@ void Stats::display(
 
     VoxelSystem* voxels = Application::getInstance()->getVoxels();
 
-    lines = _expanded ? 12 : 3;
+    lines = _expanded ? 11 : 3;
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
         lines += 9; // spatial audio processing adds 1 spacing line and 8 extra lines of info
     }
 
+    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+        // we will also include room for 1 line per timing record and a header
+        lines += 1;
+
+        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
+        while (i.hasNext()) {
+            i.next();
+            if (includeTimingRecord(i.key())) {
+                lines++;
+            }
+        }
+    }
+    
     drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
@@ -454,8 +514,6 @@ void Stats::display(
         }
     }
 
-    verticalOffset += (_expanded ? STATS_PELS_PER_LINE : 0);
-
     QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
 
     // Server Voxels
@@ -508,6 +566,31 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
+    PerformanceTimer::tallyAllTimerRecords();
+
+    // TODO: the display of these timing details should all be moved to JavaScript
+    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+        // Timing details...
+        const int TIMER_OUTPUT_LINE_LENGTH = 300;
+        char perfLine[TIMER_OUTPUT_LINE_LENGTH];
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, 
+                "--------------------- Function -------------------- --msecs- -calls--", color);
+
+        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
+        while (i.hasNext()) {
+            i.next();
+            if (includeTimingRecord(i.key())) {
+                sprintf(perfLine, "%50s: %8.4f [%6llu]", qPrintable(i.key()),
+                            (float)i.value().getMovingAverage() / (float)USECS_PER_MSEC,
+                            i.value().getCount());
+            
+                verticalOffset += STATS_PELS_PER_LINE;
+                drawText(horizontalOffset, verticalOffset, scale, rotation, font, perfLine, color);
+            }
+        }
+    }
 
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
         verticalOffset += STATS_PELS_PER_LINE; // space one line...
@@ -607,4 +690,14 @@ void Stats::display(
 
     }
 
+}
+
+void Stats::setMetavoxelStats(int internal, int leaves, int sendProgress,
+        int sendTotal, int receiveProgress, int receiveTotal) {
+    _metavoxelInternal = internal;
+    _metavoxelLeaves = leaves;
+    _metavoxelSendProgress = sendProgress;
+    _metavoxelSendTotal = sendTotal;
+    _metavoxelReceiveProgress = receiveProgress;
+    _metavoxelReceiveTotal = receiveTotal;
 }

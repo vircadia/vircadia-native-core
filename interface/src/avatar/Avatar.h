@@ -19,9 +19,11 @@
 
 #include <AvatarData.h>
 
+#include "Hair.h"
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
+#include "Recorder.h"
 #include "SkeletonModel.h"
 #include "world.h"
 
@@ -31,6 +33,10 @@ static const float RESCALING_TOLERANCE = .02f;
 
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
+
+const int HAIR_STRANDS = 150;           //  Number of strands of hair
+const int HAIR_LINKS = 10;              //  Number of links in a hair strand
+const int HAIR_MAX_CONSTRAINTS = 2;     //  Hair verlet is connected to at most how many others
 
 enum DriveKeys {
     FWD = 0,
@@ -85,7 +91,7 @@ public:
     const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
-    const glm::vec3& getVelocity() const { return _velocity; }
+    Q_INVOKABLE const glm::vec3& getVelocity() const { return _velocity; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
@@ -101,14 +107,12 @@ public:
     /// \return true if at least one shape collided with avatar
     bool findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions);
 
-    /// Checks for penetration between the described sphere and the avatar.
+    /// Checks for penetration between the a sphere and the avatar's models.
     /// \param penetratorCenter the center of the penetration test sphere
     /// \param penetratorRadius the radius of the penetration test sphere
     /// \param collisions[out] a list to which collisions get appended
-    /// \param skeletonSkipIndex if not -1, the index of a joint to skip (along with its descendents) in the skeleton model
     /// \return whether or not the sphere penetrated
-    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, int skeletonSkipIndex = -1);
+    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions);
 
     /// Checks for penetration between the described plane and the avatar.
     /// \param plane the penetration plane
@@ -116,15 +120,9 @@ public:
     /// \return whether or not the plane penetrated
     bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
 
-    /// Checks for collision between the a spherical particle and the avatar (including paddle hands)
-    /// \param collisionCenter the center of particle's bounding sphere
-    /// \param collisionRadius the radius of particle's bounding sphere
-    /// \param collisions[out] a list to which collisions get appended
-    /// \return whether or not the particle collided
-    bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions);
-
     virtual bool isMyAvatar() { return false; }
     
+    virtual QVector<glm::quat> getJointRotations() const;
     virtual glm::quat getJointRotation(int index) const;
     virtual int getJointIndex(const QString& name) const;
     virtual QStringList getJointNames() const;
@@ -141,29 +139,46 @@ public:
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
-    /// \return true if we expect the avatar would move as a result of the collision
-    bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
-
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
     /// \return bounding radius of avatar
     virtual float getBoundingRadius() const;
-    void updateShapePositions();
 
     quint32 getCollisionGroups() const { return _collisionGroups; }
     virtual void setCollisionGroups(quint32 collisionGroups) { _collisionGroups = (collisionGroups & VALID_COLLISION_GROUPS); }
+    
+    Q_INVOKABLE glm::vec3 getJointPosition(int index) const;
+    Q_INVOKABLE glm::vec3 getJointPosition(const QString& name) const;
+    Q_INVOKABLE glm::quat getJointCombinedRotation(int index) const;
+    Q_INVOKABLE glm::quat getJointCombinedRotation(const QString& name) const;
+    
+    Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
+    Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
+    Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
+    
 
+    /// Scales a world space position vector relative to the avatar position and scale
+    /// \param vector position to be scaled. Will store the result
+    void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
+    
 public slots:
     void updateCollisionGroups();
-
+    
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
 protected:
+    Hair _hair;
     SkeletonModel _skeletonModel;
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
     glm::vec3 _velocity;
+    glm::vec3 _lastVelocity;
+    glm::vec3 _acceleration;
+    glm::vec3 _angularVelocity;
+    glm::vec3 _lastAngularVelocity;
+    glm::vec3 _angularAcceleration;
+    glm::quat _lastOrientation;
     float _leanScale;
     float _scale;
     glm::vec3 _worldUpDirection;
@@ -171,15 +186,16 @@ protected:
     glm::vec3 _mouseRayDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-
+    
     quint32 _collisionGroups;
-
+ 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void setScale(float scale);
+    void updateAcceleration(float deltaTime);
 
     float getSkeletonHeight() const;
     float getHeadHeight() const;
@@ -195,7 +211,7 @@ protected:
     virtual void renderAttachments(RenderMode renderMode);
 
     virtual void updateJointMappings();
-
+    
 private:
 
     bool _initialized;

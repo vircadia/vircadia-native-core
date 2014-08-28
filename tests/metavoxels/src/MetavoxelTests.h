@@ -15,7 +15,8 @@
 #include <QCoreApplication>
 #include <QVariantList>
 
-#include <DatagramSequencer.h>
+#include <Endpoint.h>
+#include <ScriptCache.h>
 
 class SequencedTestMessage;
 
@@ -33,53 +34,113 @@ public:
 };
 
 /// Represents a simulated endpoint.
-class Endpoint : public QObject {
+class TestEndpoint : public Endpoint {
     Q_OBJECT
 
 public:
     
-    Endpoint(const QByteArray& datagramHeader);
+    enum Mode { BASIC_PEER_MODE, CONGESTION_MODE, METAVOXEL_SERVER_MODE, METAVOXEL_CLIENT_MODE };
+    
+    TestEndpoint(Mode mode = BASIC_PEER_MODE);
 
-    void setOther(Endpoint* other) { _other = other; }
+    void setOther(TestEndpoint* other) { _other = other; }
 
     /// Perform a simulation step.
     /// \return true if failure was detected
     bool simulate(int iterationNumber);
 
-private slots:
+    virtual int parseData(const QByteArray& packet);
+    
+protected:
 
-    void sendDatagram(const QByteArray& datagram);    
+    virtual void sendDatagram(const QByteArray& data);
+    virtual void readMessage(Bitstream& in);
+    
+    virtual void handleMessage(const QVariant& message, Bitstream& in); 
+    
+    virtual PacketRecord* maybeCreateSendRecord() const;
+    virtual PacketRecord* maybeCreateReceiveRecord() const;
+    
+private slots:
+   
     void handleHighPriorityMessage(const QVariant& message);
-    void readMessage(Bitstream& in);
-    void handleReliableMessage(const QVariant& message);
+    void handleReliableMessage(const QVariant& message, Bitstream& in);
     void readReliableChannel();
+    void checkReliableDeltaReceived();
 
 private:
     
-    DatagramSequencer* _sequencer;
-    Endpoint* _other;
-    QList<QPair<QByteArray, int> > _delayedDatagrams;
+    void compareMetavoxelData();
+    
+    Mode _mode;
+    
+    SharedObjectPointer _localState;
+    SharedObjectPointer _remoteState;
+    
+    MetavoxelData _data;
+    MetavoxelLOD _dataLOD;
+    MetavoxelData _remoteData;
+    MetavoxelLOD _remoteDataLOD;
+    MetavoxelLOD _lod;
+    
+    SharedObjectPointer _sphere;
+    
+    TestEndpoint* _other;
+    
+    typedef QPair<QByteArray, int> ByteArrayIntPair;
+    QList<ByteArrayIntPair> _delayedDatagrams;
+
+    typedef QVector<QByteArray> ByteArrayVector;
+    QList<ByteArrayVector> _pipeline;
+    int _remainingPipelineCapacity;
+
     float _highPriorityMessagesToSend;
     QVariantList _highPriorityMessagesSent;
     QList<SequencedTestMessage> _unreliableMessagesSent;
     float _reliableMessagesToSend;
     QVariantList _reliableMessagesSent;
     CircularBuffer _dataStreamed;
+    
+    ReliableChannel* _reliableDeltaChannel;
+    int _reliableDeltaReceivedOffset;
+    MetavoxelData _reliableDeltaData;
+    MetavoxelLOD _reliableDeltaLOD;
+    Bitstream::WriteMappings _reliableDeltaWriteMappings;
+    int _reliableDeltaID;
 };
 
 /// A simple shared object.
 class TestSharedObjectA : public SharedObject {
     Q_OBJECT
+    Q_ENUMS(TestEnum)
+    Q_FLAGS(TestFlag TestFlags)
     Q_PROPERTY(float foo READ getFoo WRITE setFoo NOTIFY fooChanged)
-
+    Q_PROPERTY(TestEnum baz READ getBaz WRITE setBaz)
+    Q_PROPERTY(TestFlags bong READ getBong WRITE setBong)
+    Q_PROPERTY(QScriptValue bizzle READ getBizzle WRITE setBizzle)
+    
 public:
     
-    Q_INVOKABLE TestSharedObjectA(float foo = 0.0f);
+    enum TestEnum { FIRST_TEST_ENUM, SECOND_TEST_ENUM, THIRD_TEST_ENUM };
+    
+    enum TestFlag { NO_TEST_FLAGS = 0x0, FIRST_TEST_FLAG = 0x01, SECOND_TEST_FLAG = 0x02, THIRD_TEST_FLAG = 0x04 };
+    Q_DECLARE_FLAGS(TestFlags, TestFlag)
+    
+    Q_INVOKABLE TestSharedObjectA(float foo = 0.0f, TestEnum baz = FIRST_TEST_ENUM, TestFlags bong = 0);
     virtual ~TestSharedObjectA();
 
     void setFoo(float foo);
     float getFoo() const { return _foo; }
 
+    void setBaz(TestEnum baz) { _baz = baz; }
+    TestEnum getBaz() const { return _baz; }
+
+    void setBong(TestFlags bong) { _bong = bong; }
+    TestFlags getBong() const { return _bong; }
+    
+    void setBizzle(const QScriptValue& bizzle) { _bizzle = bizzle; }
+    const QScriptValue& getBizzle() const { return _bizzle; }
+    
 signals:
     
     void fooChanged(float foo);    
@@ -87,17 +148,33 @@ signals:
 private:
     
     float _foo;
+    TestEnum _baz;
+    TestFlags _bong;
+    QScriptValue _bizzle;
 };
+
+DECLARE_ENUM_METATYPE(TestSharedObjectA, TestEnum)
 
 /// Another simple shared object.
 class TestSharedObjectB : public SharedObject {
     Q_OBJECT
+    Q_ENUMS(TestEnum)
+    Q_FLAGS(TestFlag TestFlags)
     Q_PROPERTY(float foo READ getFoo WRITE setFoo)
     Q_PROPERTY(QByteArray bar READ getBar WRITE setBar)
-
+    Q_PROPERTY(TestEnum baz READ getBaz WRITE setBaz)
+    Q_PROPERTY(TestFlags bong READ getBong WRITE setBong)
+    
 public:
     
-    Q_INVOKABLE TestSharedObjectB(float foo = 0.0f, const QByteArray& bar = QByteArray());
+    enum TestEnum { ZEROTH_TEST_ENUM, FIRST_TEST_ENUM, SECOND_TEST_ENUM, THIRD_TEST_ENUM, FOURTH_TEST_ENUM };
+    
+    enum TestFlag { NO_TEST_FLAGS = 0x0, ZEROTH_TEST_FLAG = 0x01, FIRST_TEST_FLAG = 0x02,
+        SECOND_TEST_FLAG = 0x04, THIRD_TEST_FLAG = 0x08, FOURTH_TEST_FLAG = 0x10 };
+    Q_DECLARE_FLAGS(TestFlags, TestFlag)
+    
+    Q_INVOKABLE TestSharedObjectB(float foo = 0.0f, const QByteArray& bar = QByteArray(),
+        TestEnum baz = FIRST_TEST_ENUM, TestFlags bong = 0);
     virtual ~TestSharedObjectB();
 
     void setFoo(float foo) { _foo = foo; }
@@ -106,10 +183,18 @@ public:
     void setBar(const QByteArray& bar) { _bar = bar; }
     const QByteArray& getBar() const { return _bar; }
 
+    void setBaz(TestEnum baz) { _baz = baz; }
+    TestEnum getBaz() const { return _baz; }
+
+    void setBong(TestFlags bong) { _bong = bong; }
+    TestFlags getBong() const { return _bong; }
+    
 private:
     
     float _foo;
     QByteArray _bar;
+    TestEnum _baz;
+    TestFlags _bong;
 };
 
 /// A simple test message.
@@ -133,6 +218,7 @@ public:
     
     STREAM QByteArray foo;
     STREAM SharedObjectPointer bar;
+    STREAM TestSharedObjectA::TestEnum baz;
 };
 
 DECLARE_STREAMABLE_METATYPE(TestMessageB)
@@ -144,6 +230,7 @@ class TestMessageC : STREAM public TestMessageA {
 public:
     
     STREAM TestMessageB bong;
+    STREAM QScriptValue bizzle;
 };
 
 DECLARE_STREAMABLE_METATYPE(TestMessageC)
@@ -156,6 +243,7 @@ public:
     
     STREAM int sequenceNumber;
     STREAM QVariant submessage;
+    STREAM SharedObjectPointer state;
 };
 
 DECLARE_STREAMABLE_METATYPE(SequencedTestMessage)

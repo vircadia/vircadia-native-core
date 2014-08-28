@@ -281,8 +281,10 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
             
             // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
             // missing at least one jurisdiction
+            serverJurisdictions.lockForRead();
             if (serverJurisdictions.find(nodeUUID) == serverJurisdictions.end()) {
                 serverDetails << " unknown jurisdiction ";
+                serverJurisdictions.unlock();
             } else {
                 const JurisdictionMap& map = serverJurisdictions[nodeUUID];
                 
@@ -305,6 +307,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                 } else {
                     serverDetails << " jurisdiction has no rootCode";
                 } // root code
+                serverJurisdictions.unlock();
             } // jurisdiction
             
             // now lookup stats details for this server...
@@ -362,13 +365,13 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             QString incomingPacketsString = locale.toString((uint)stats.getIncomingPackets());
                             QString incomingBytesString = locale.toString((uint)stats.getIncomingBytes());
                             QString incomingWastedBytesString = locale.toString((uint)stats.getIncomingWastedBytes());
-                            QString incomingOutOfOrderString = locale.toString((uint)stats.getIncomingOutOfOrder());
-                            QString incomingLateString = locale.toString((uint)stats.getIncomingLate());
-                            QString incomingReallyLateString = locale.toString((uint)stats.getIncomingReallyLate());
-                            QString incomingEarlyString = locale.toString((uint)stats.getIncomingEarly());
-                            QString incomingLikelyLostString = locale.toString((uint)stats.getIncomingLikelyLost());
-                            QString incomingRecovered = locale.toString((uint)stats.getIncomingRecovered());
-                            QString incomingDuplicateString = locale.toString((uint)stats.getIncomingPossibleDuplicate());
+                            const SequenceNumberStats& seqStats = stats.getIncomingOctreeSequenceNumberStats();
+                            QString incomingOutOfOrderString = locale.toString((uint)seqStats.getOutOfOrder());
+                            QString incomingLateString = locale.toString((uint)seqStats.getLate());
+                            QString incomingUnreasonableString = locale.toString((uint)seqStats.getUnreasonable());
+                            QString incomingEarlyString = locale.toString((uint)seqStats.getEarly());
+                            QString incomingLikelyLostString = locale.toString((uint)seqStats.getLost());
+                            QString incomingRecovered = locale.toString((uint)seqStats.getRecovered());
                             
                             int clockSkewInMS = node->getClockSkewUsec() / (int)USECS_PER_MSEC;
                             QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
@@ -382,8 +385,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             serverDetails << "<br/>" << " Out of Order: " << qPrintable(incomingOutOfOrderString) <<
                                 "/ Early: " << qPrintable(incomingEarlyString) <<
                                 "/ Late: " << qPrintable(incomingLateString) <<
-                                "/ Really Late: " << qPrintable(incomingReallyLateString) <<
-                                "/ Duplicate: " << qPrintable(incomingDuplicateString);
+                                "/ Unreasonable: " << qPrintable(incomingUnreasonableString);
                             
                             serverDetails << "<br/>" <<
                                 " Average Flight Time: " << qPrintable(incomingFlightTimeString) << " msecs";

@@ -4,12 +4,11 @@
 //  oculus.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 11/26/13.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Ben Arnold on 6/24/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
-//  this shader is an adaptation (HLSL -> GLSL, removed conditional) of the one in the Oculus sample
-//  code (Samples/OculusRoomTiny/RenderTiny_D3D1X_Device.cpp), which is under the Apache license
-//  (http://www.apache.org/licenses/LICENSE-2.0)
+//  this shader is an adaptation (HLSL -> GLSL) of the one in the
+//  Oculus_SDK_Overview.pdf for the 3.2 SDK.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,23 +16,16 @@
 
 uniform sampler2D texture;
 
-uniform vec2 lensCenter;
-uniform vec2 screenCenter;
-uniform vec2 scale;
-uniform vec2 scaleIn;
-uniform vec4 hmdWarpParam;
-
-vec2 hmdWarp(vec2 in01) {
-    vec2 theta = (in01 - lensCenter) * scaleIn;
-    float rSq = theta.x * theta.x + theta.y * theta.y;
-    vec2 theta1 = theta * (hmdWarpParam.x + hmdWarpParam.y * rSq +
-    hmdWarpParam.z * rSq * rSq + hmdWarpParam.w * rSq * rSq * rSq);
-    return lensCenter + scale * theta1;
-}
+varying float vFade;
+varying vec2 oTexCoord0;
+varying vec2 oTexCoord1;
+varying vec2 oTexCoord2;
 
 void main(void) {
-    vec2 tc = hmdWarp(gl_TexCoord[0].st);
-    vec2 below = step(screenCenter.st + vec2(-0.25, -0.5), tc.st);
-    vec2 above = vec2(1.0, 1.0) - step(screenCenter.st + vec2(0.25, 0.5), tc.st);
-    gl_FragColor = mix(vec4(0.0, 0.0, 0.0, 1.0), texture2D(texture, tc), above.s * above.t * below.s * below.t);
+    // 3 samples for fixing chromatic aberrations
+    float r = texture2D(texture, oTexCoord0.xy).r;
+    float g = texture2D(texture, oTexCoord1.xy).g;
+    float b = texture2D(texture, oTexCoord2.xy).b;
+    
+    gl_FragColor = vec4(r * vFade, g * vFade, b * vFade, 1.0);
 }

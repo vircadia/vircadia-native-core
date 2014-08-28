@@ -10,6 +10,7 @@
 //
 
 #include "ProgramObject.h"
+#include <glm/gtc/type_ptr.hpp>
 
 ProgramObject::ProgramObject(QObject* parent) : QGLShaderProgram(parent) {
 }
@@ -22,3 +23,17 @@ void ProgramObject::setUniform(const char* name, const glm::vec3& value) {
     setUniformValue(name, value.x, value.y, value.z);
 }
 
+void ProgramObject::setUniformArray(const char* name, const glm::vec3* values, int count) {
+    GLfloat* floatVal = new GLfloat[count*3];
+    int index = 0;
+    for (int i = 0; i < count; i++) {
+        assert(index < count*3);
+        const float* valPtr = glm::value_ptr(values[i]);
+        floatVal[index++] = valPtr[0];
+        floatVal[index++] = valPtr[1];
+        floatVal[index++] = valPtr[2];
+    }
+    
+    setUniformValueArray(name, floatVal, count, 3);
+    delete[] floatVal;
+}

@@ -62,7 +62,7 @@ public:
     static bool renderOperation(OctreeElement* element, void* extraData);
 
     /// clears the tree
-    void clear();
+    virtual void clear();
 protected:
     Octree* _tree;
     bool _managedTree;

@@ -33,7 +33,7 @@
     <number>0</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0,0">
      <property name="spacing">
       <number>3</number>
      </property>
@@ -184,6 +184,16 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="autoReloadCheckBox">
+       <property name="styleSheet">
+        <string notr="true">font: 13px &quot;Helvetica&quot;,&quot;Arial&quot;,&quot;sans-serif&quot;;</string>
+       </property>
+       <property name="text">
+        <string>Automatically reload externally changed files</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

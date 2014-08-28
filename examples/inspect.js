@@ -34,6 +34,7 @@ var noMode = 0;
 var orbitMode = 1;
 var radialMode = 2;
 var panningMode = 3;
+var detachedMode = 4;
 
 var mode = noMode;
 
@@ -47,6 +48,9 @@ var vector = { x: 0, y: 0, z: 0 };
 var radius = 0.0;
 var azimuth = 0.0;
 var altitude = 0.0;
+
+var avatarPosition;
+var avatarOrientation;
 
 
 function handleRadialMode(dx, dy) {
@@ -108,7 +112,7 @@ function restoreCameraState() {
 }
 
 function handleModes() {
-    var newMode = noMode;
+    var newMode = (mode == noMode) ? noMode : detachedMode;
     if (alt) {
         if (control) {
             if (shift) {
@@ -121,6 +125,22 @@ function handleModes() {
         }
     }
     
+    // if entering detachMode
+    if (newMode == detachedMode && mode != detachedMode) {
+        avatarPosition = MyAvatar.position;
+        avatarOrientation = MyAvatar.orientation;
+    }
+    // if leaving detachMode
+    if (mode == detachedMode && newMode == detachedMode &&
+        (avatarPosition.x != MyAvatar.position.x ||
+         avatarPosition.y != MyAvatar.position.y ||
+         avatarPosition.z != MyAvatar.position.z ||
+         avatarOrientation.x != MyAvatar.orientation.x ||
+         avatarOrientation.y != MyAvatar.orientation.y ||
+         avatarOrientation.z != MyAvatar.orientation.z ||
+         avatarOrientation.w != MyAvatar.orientation.w)) {
+        newMode = noMode;
+    }
     // if leaving noMode
     if (mode == noMode && newMode != noMode) {
         saveCameraState();
@@ -175,32 +195,49 @@ function keyReleaseEvent(event) {
     }
 }
 
+
+
 function mousePressEvent(event) {
     if (alt && !isActive) {
-        isActive = true;
         mouseLastX = event.x;
         mouseLastY = event.y;
         
         // Compute trajectories related values
         var pickRay = Camera.computePickRay(mouseLastX, mouseLastY);
-        var intersection = Voxels.findRayIntersection(pickRay);
+        var voxelIntersection = Voxels.findRayIntersection(pickRay);
+        var modelIntersection = Models.findRayIntersection(pickRay);
         
         position = Camera.getPosition();
         
-        avatarTarget = MyAvatar.getTargetAvatarPosition();
-        voxelTarget = intersection.intersection;
-        if (Vec3.length(Vec3.subtract(avatarTarget, position)) < Vec3.length(Vec3.subtract(voxelTarget, position))) {
-            if (avatarTarget.x != 0 || avatarTarget.y != 0 || avatarTarget.z != 0) {
-                center  = avatarTarget;
-            } else {
-                center = voxelTarget;
-            }
-        } else {
-            if (voxelTarget.x != 0 || voxelTarget.y != 0 || voxelTarget.z != 0) {
-                center  = voxelTarget;
-            } else {
-                center = avatarTarget;
-            }
+        var avatarTarget = MyAvatar.getTargetAvatarPosition();
+        var voxelTarget = voxelIntersection.intersection;
+        
+        
+        var distance = -1;
+        var string;
+        
+        if (modelIntersection.intersects && modelIntersection.accurate) {
+            distance = modelIntersection.distance;
+            center = modelIntersection.modelProperties.position;
+            string = "Inspecting model";
+        }
+        
+        if ((distance == -1 || Vec3.length(Vec3.subtract(avatarTarget, position)) < distance) &&
+            (avatarTarget.x != 0 || avatarTarget.y != 0 || avatarTarget.z != 0)) {
+            distance = Vec3.length(Vec3.subtract(avatarTarget, position));
+            center  = avatarTarget;
+            string = "Inspecting avatar";
+        }
+        
+        if ((distance == -1 || Vec3.length(Vec3.subtract(voxelTarget, position)) < distance) &&
+            (voxelTarget.x != 0 || voxelTarget.y != 0 || voxelTarget.z != 0)) {
+            distance = Vec3.length(Vec3.subtract(voxelTarget, position));
+            center  = voxelTarget;
+            string = "Inspecting voxel";
+        }
+        
+        if (distance == -1) {
+            return;
         }
         
         vector = Vec3.subtract(position, center);
@@ -209,6 +246,8 @@ function mousePressEvent(event) {
         altitude = Math.asin(vector.y / Vec3.length(vector));
         
         Camera.keepLookingAt(center);
+        print(string);
+        isActive = true;
     }
 }
 
@@ -235,6 +274,10 @@ function mouseMoveEvent(event) {
     }
 }
 
+function update() {
+    handleModes();
+}
+
 function scriptEnding() {
     if (mode != noMode) {
         restoreCameraState();
@@ -248,4 +291,5 @@ Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 
+Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);

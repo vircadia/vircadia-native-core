@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
 #include <QString>
 #include <QStringList>
 
@@ -18,10 +19,6 @@
 #include "OctreePacketData.h"
 #include "OctreeElement.h"
 #include "OctreeSceneStats.h"
-
-
-const uint16_t MAX_MISSING_SEQUENCE = 100; /// how many items in our _missingSequenceNumbers before we start to prune them
-const uint16_t MAX_MISSING_SEQUENCE_OLD_AGE = 1000; /// age we allow items in _missingSequenceNumbers to be before pruning
 
 
 const int samples = 100;
@@ -38,14 +35,7 @@ OctreeSceneStats::OctreeSceneStats() :
     _incomingPacket(0),
     _incomingBytes(0),
     _incomingWastedBytes(0),
-    _incomingLastSequence(0),
-    _incomingLikelyLost(0),
-    _incomingRecovered(0),
-    _incomingEarly(0),
-    _incomingLate(0),
-    _incomingReallyLate(0),
-    _incomingPossibleDuplicate(0),
-    _missingSequenceNumbers(),
+    _incomingOctreeSequenceNumberStats(),
     _incomingFlightTimeAverage(samples),
     _jurisdictionRoot(NULL)
 {
@@ -149,15 +139,8 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
     _incomingPacket = other._incomingPacket;
     _incomingBytes = other._incomingBytes;
     _incomingWastedBytes = other._incomingWastedBytes;
-    _incomingLastSequence = other._incomingLastSequence;
-    _incomingLikelyLost = other._incomingLikelyLost;
-    _incomingRecovered = other._incomingRecovered;
-    _incomingEarly = other._incomingEarly;
-    _incomingLate = other._incomingLate;
-    _incomingReallyLate = other._incomingReallyLate;
-    _incomingPossibleDuplicate = other._incomingPossibleDuplicate;
-    
-    _missingSequenceNumbers = other._missingSequenceNumbers;
+
+    _incomingOctreeSequenceNumberStats = other._incomingOctreeSequenceNumberStats;
 }
 
 
@@ -840,7 +823,7 @@ const char* OctreeSceneStats::getItemValue(Item item) {
 }
 
 void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
-                                    bool wasStatsPacket, int nodeClockSkewUsec) {
+    bool wasStatsPacket, int nodeClockSkewUsec) {
     const bool wantExtraDebugging = false;
 
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
@@ -850,15 +833,15 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     dataAt += sizeof(OCTREE_PACKET_FLAGS);
     OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
     dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-    
+
     OCTREE_PACKET_SENT_TIME sentAt = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
     dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
-    
+
     //bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
     //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
     
     OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
-    int flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
+    qint64 flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
 
     if (wantExtraDebugging) {
         qDebug() << "sentAt:" << sentAt << " usecs";
@@ -866,7 +849,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         qDebug() << "nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
         qDebug() << "flightTime:" << flightTime << " usecs";
     }
-    
+
     // Guard against possible corrupted packets... with bad timestamps
     const int MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
     const int MIN_RESONABLE_FLIGHT_TIME = 0;
@@ -874,18 +857,8 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
         qDebug() << "ignoring unreasonable packet... flightTime:" << flightTime;
         return; // ignore any packets that are unreasonable
     }
-
-    // determine our expected sequence number... handle rollover appropriately
-    OCTREE_PACKET_SEQUENCE expected = _incomingPacket > 0 ? _incomingLastSequence + 1 : sequence;
-
-    // Guard against possible corrupted packets... with bad sequence numbers
-    const int MAX_RESONABLE_SEQUENCE_OFFSET = 2000;
-    const int MIN_RESONABLE_SEQUENCE_OFFSET = -2000;
-    int sequenceOffset = (sequence - expected);
-    if (sequenceOffset > MAX_RESONABLE_SEQUENCE_OFFSET || sequenceOffset < MIN_RESONABLE_SEQUENCE_OFFSET) {
-        qDebug() << "ignoring unreasonable packet... sequence:" << sequence << "_incomingLastSequence:" << _incomingLastSequence;
-        return; // ignore any packets that are unreasonable
-    }
+    
+    _incomingOctreeSequenceNumberStats.sequenceNumberReceived(sequence);
 
     // track packets here...
     _incomingPacket++;
@@ -893,98 +866,4 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     if (!wasStatsPacket) {
         _incomingWastedBytes += (MAX_PACKET_SIZE - packet.size());
     }
-
-    const int USECS_PER_MSEC = 1000;
-    float flightTimeMsecs = flightTime / USECS_PER_MSEC;
-    _incomingFlightTimeAverage.updateAverage(flightTimeMsecs);
-    
-    // track out of order and possibly lost packets...
-    if (sequence == _incomingLastSequence) {
-        if (wantExtraDebugging) {
-            qDebug() << "last packet duplicate got:" << sequence << "_incomingLastSequence:" << _incomingLastSequence;
-        }
-    } else {
-        if (sequence != expected) {
-            if (wantExtraDebugging) {
-                qDebug() << "out of order... got:" << sequence << "expected:" << expected;
-            }
-
-            // if the sequence is less than our expected, then this might be a packet
-            // that was delayed and so we should find it in our lostSequence list
-            if (sequence < expected) {
-                if (wantExtraDebugging) {
-                    qDebug() << "this packet is later than expected...";
-                }
-                if (sequence < std::max(0, (expected - MAX_MISSING_SEQUENCE_OLD_AGE))) {
-                    _incomingReallyLate++;
-                } else {
-                    _incomingLate++;
-                }
-
-                if (_missingSequenceNumbers.contains(sequence)) {
-                    if (wantExtraDebugging) {
-                        qDebug() << "found it in _missingSequenceNumbers";
-                    }
-                    _missingSequenceNumbers.remove(sequence);
-                    _incomingLikelyLost--;
-                    _incomingRecovered++;
-                } else {
-                    // if we're still in our pruning window, and we didn't find it in our missing list,
-                    // than this is really unexpected and can probably only happen if the packet was a
-                    // duplicate
-                    if (sequence >= std::max(0, (expected - MAX_MISSING_SEQUENCE_OLD_AGE))) {
-                        if (wantExtraDebugging) {
-                            qDebug() << "sequence:" << sequence << "WAS NOT found in _missingSequenceNumbers, and not that old... (expected - MAX_MISSING_SEQUENCE_OLD_AGE):" << (expected - MAX_MISSING_SEQUENCE_OLD_AGE);
-                        }
-                        _incomingPossibleDuplicate++;
-                    }
-                }
-            }
-        
-            if (sequence > expected) {
-                if (wantExtraDebugging) {
-                    qDebug() << "this packet is earlier than expected...";
-                }
-                _incomingEarly++;
-
-                // hmm... so, we either didn't get some packets, or this guy came early...
-                unsigned int missing = sequence - expected;
-                if (wantExtraDebugging) {
-                    qDebug() << ">>>>>>>> missing gap=" << missing;
-                }
-                _incomingLikelyLost += missing;
-                for(unsigned int missingSequence = expected; missingSequence < sequence; missingSequence++) {
-                    _missingSequenceNumbers << missingSequence;
-                }
-            }
-        }
-    }
-
-    // only bump the last sequence if it was greater than our expected sequence, this will keep us from
-    // accidentally going backwards when an out of order (recovered) packet comes in
-    if (sequence >= expected) {
-        _incomingLastSequence = sequence;
-    }
-    
-    // do some garbage collecting on our _missingSequenceNumbers
-    if (_missingSequenceNumbers.size() > MAX_MISSING_SEQUENCE) {
-        if (wantExtraDebugging) {
-            qDebug() << "too many _missingSequenceNumbers:" << _missingSequenceNumbers.size();
-        }
-        foreach(uint16_t missingItem, _missingSequenceNumbers) {
-            if (wantExtraDebugging) {
-                qDebug() << "checking item:" << missingItem << "is it in need of pruning?";
-                qDebug() << "(_incomingLastSequence - MAX_MISSING_SEQUENCE_OLD_AGE):" 
-                                << (_incomingLastSequence - MAX_MISSING_SEQUENCE_OLD_AGE);
-            }
-            if (missingItem <= std::max(0, _incomingLastSequence - MAX_MISSING_SEQUENCE_OLD_AGE)) {
-                if (wantExtraDebugging) {
-                    qDebug() << "pruning really old missing sequence:" << missingItem;
-                }
-                _missingSequenceNumbers.remove(missingItem);
-            }
-        }
-    }
-    
 }
-

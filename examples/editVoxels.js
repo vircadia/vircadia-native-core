@@ -28,14 +28,16 @@ var NEW_VOXEL_SIZE = 1.0;
 var NEW_VOXEL_DISTANCE_FROM_CAMERA = 3.0;
 var PIXELS_PER_EXTRUDE_VOXEL = 16;
 var WHEEL_PIXELS_PER_SCALE_CHANGE = 100;
-var MAX_VOXEL_SCALE = 1.0;
-var MIN_VOXEL_SCALE = 1.0 / Math.pow(2.0, 8.0);
+var MAX_VOXEL_SCALE_POWER = 4;
+var MIN_VOXEL_SCALE_POWER = -8;
+var MAX_VOXEL_SCALE = Math.pow(2.0, MAX_VOXEL_SCALE_POWER);
+var MIN_VOXEL_SCALE = Math.pow(2.0, MIN_VOXEL_SCALE_POWER);
 var WHITE_COLOR = { red: 255, green: 255, blue: 255 };
 
 var MAX_PASTE_VOXEL_SCALE = 256;
 var MIN_PASTE_VOXEL_SCALE = .256;
 
-var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
+var zFightingSizeAdjustRatio = 0.004; // used to adjust preview voxels to prevent z fighting
 var previewLineWidth = 1.5;
 
 var inspectJsIsRunning = false;
@@ -49,10 +51,6 @@ var lastVoxelScale = 0;
 var dragStart = { x: 0, y: 0 };
 var wheelPixelsMoved = 0;
 
-
-var mouseX = 0;
-var mouseY = 0;
-
 //  Create a table of the different colors you can choose
 var colors = new Array();
 colors[0] = { red: 120, green: 181, blue: 126 };
@@ -63,7 +61,7 @@ colors[4] = { red: 236, green: 174,  blue: 0 };
 colors[5] = { red: 234, green: 133,  blue: 0 };
 colors[6] = { red: 211, green: 115,  blue: 0 };
 colors[7] = { red: 48,  green: 116,  blue: 119 };
-colors[8] = { red: 31,  green: 64,  blue: 64 };
+colors[8] = { red: 36,  green: 64,  blue: 64 };
 var numColors = 9;
 var whichColor = 0;            //  Starting color is 'Copy' mode
 
@@ -166,7 +164,16 @@ var voxelPreview = Overlays.addOverlay("cube", {
                                        lineWidth: 4
                                        });
 
-var linePreviewTop = Overlays.addOverlay("line3d", {
+var linePreviewTop = [];
+var linePreviewBottom = [];
+var linePreviewLeft = [];
+var linePreviewRight = [];
+
+// Currend cursor index
+var currentCursor = 0;
+                        
+function addLineOverlay() {
+    return Overlays.addOverlay("line3d", {
                                          position: { x: 0, y: 0, z: 0},
                                          end: { x: 0, y: 0, z: 0},
                                          color: { red: 255, green: 255, blue: 255},
@@ -174,34 +181,24 @@ var linePreviewTop = Overlays.addOverlay("line3d", {
                                          visible: false,
                                          lineWidth: previewLineWidth
                                          });
+}
+                  
+//Cursor line previews for up to three cursors                  
+linePreviewTop[0] = addLineOverlay();       
+linePreviewTop[1] = addLineOverlay();
+linePreviewTop[2] = addLineOverlay();
 
-var linePreviewBottom = Overlays.addOverlay("line3d", {
-                                            position: { x: 0, y: 0, z: 0},
-                                            end: { x: 0, y: 0, z: 0},
-                                            color: { red: 255, green: 255, blue: 255},
-                                            alpha: 1,
-                                            visible: false,
-                                            lineWidth: previewLineWidth
-                                            });
-
-var linePreviewLeft = Overlays.addOverlay("line3d", {
-                                          position: { x: 0, y: 0, z: 0},
-                                          end: { x: 0, y: 0, z: 0},
-                                          color: { red: 255, green: 255, blue: 255},
-                                          alpha: 1,
-                                          visible: false,
-                                          lineWidth: previewLineWidth
-                                          });
-
-var linePreviewRight = Overlays.addOverlay("line3d", {
-                                           position: { x: 0, y: 0, z: 0},
-                                           end: { x: 0, y: 0, z: 0},
-                                           color: { red: 255, green: 255, blue: 255},
-                                           alpha: 1,
-                                           visible: false,
-                                           lineWidth: previewLineWidth
-                                           });
-
+linePreviewBottom[0] = addLineOverlay();
+linePreviewBottom[1] = addLineOverlay();
+linePreviewBottom[2] = addLineOverlay();
+                                            
+linePreviewLeft[0] = addLineOverlay();
+linePreviewLeft[1] = addLineOverlay();
+linePreviewLeft[2] = addLineOverlay();
+                                          
+linePreviewRight[0] = addLineOverlay();
+linePreviewRight[1] = addLineOverlay();
+linePreviewRight[2] = addLineOverlay();
 
 // these will be used below
 var scaleSelectorWidth = 144;
@@ -330,6 +327,13 @@ function ScaleSelector() {
                                             visible: false
                                             });
     this.setScale = function(scale) {
+        if (scale > MAX_VOXEL_SCALE) {
+            scale = MAX_VOXEL_SCALE;
+        }
+        if (scale < MIN_VOXEL_SCALE) {
+            scale = MIN_VOXEL_SCALE;
+        }
+        
         this.scale = scale;
         this.power = Math.floor(Math.log(scale) / Math.log(2));
         rescaleImport();
@@ -391,7 +395,7 @@ function ScaleSelector() {
     
     this.incrementScale = function() {
         copyScale = false;
-        if (this.power < 13) {
+        if (this.power < MAX_VOXEL_SCALE_POWER) {
             ++this.power;
             this.scale *= 2.0;
             this.update();
@@ -402,7 +406,7 @@ function ScaleSelector() {
     
     this.decrementScale = function() {
         copyScale = false;
-        if (-4 < this.power) {
+        if (MIN_VOXEL_SCALE_POWER < this.power) {
             --this.power;
             this.scale /= 2.0;
             this.update();
@@ -689,79 +693,99 @@ function calculateVoxelFromIntersection(intersection, operation) {
     if (wantDebug) {
         print("wantAddAdjust="+wantAddAdjust);
     }
+
+    var zFightingSizeAdjust = zFightingSizeAdjustRatio * intersection.distance;
     
     // now we also want to calculate the "edge square" for the face for this voxel
     if (intersection.face == "MIN_X_FACE") {
-        
+
         highlightAt.x = x - zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.x -= voxelSize;
         }
         
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z + voxelSize };
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z + voxelSize };
         
     } else if (intersection.face == "MAX_X_FACE") {
         
         highlightAt.x = x + voxelSize + zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.x += resultVoxel.s;
         }
         
-        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
-        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z + voxelSize };
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z + voxelSize };
         
     } else if (intersection.face == "MIN_Y_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
         highlightAt.y = y - zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.y -= voxelSize;
         }
         
-        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust  };
-        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z  + voxelSize - zFightingSizeAdjust };
-        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.topRight = {x: highlightAt.x , y: highlightAt.y, z: highlightAt.z  };
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x , y: highlightAt.y, z: highlightAt.z  + voxelSize };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z + voxelSize };
         
     } else if (intersection.face == "MAX_Y_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
         highlightAt.y = y + voxelSize + zFightingSizeAdjust;
+        highlightAt.z = z + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
-            resultVoxel.y += voxelSize;
+            resultVoxel.y += resultVoxel.s;
         }
         
-        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust };
-        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust};
-        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z  + voxelSize - zFightingSizeAdjust};
-        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + voxelSize - zFightingSizeAdjust};
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z  + voxelSize};
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z + voxelSize};
         
     } else if (intersection.face == "MIN_Z_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
         highlightAt.z = z - zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
             resultVoxel.z -= voxelSize;
         }
         
-        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z};
-        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z};
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize, y: highlightAt.y + voxelSize, z: highlightAt.z};
         
     } else if (intersection.face == "MAX_Z_FACE") {
         
+        highlightAt.x = x + zFightingSizeAdjust;
+        highlightAt.y = y + zFightingSizeAdjust;
         highlightAt.z = z + voxelSize + zFightingSizeAdjust;
+        voxelSize -= 2 * zFightingSizeAdjust;
         if (wantAddAdjust) {
-            resultVoxel.z += voxelSize;
+            resultVoxel.z += resultVoxel.s;
         }
         
-        resultVoxel.bottomLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z};
-        resultVoxel.topLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z };
-        resultVoxel.topRight = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z};
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize, y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x + voxelSize, y: highlightAt.y + voxelSize, z: highlightAt.z};
         
     }
     
@@ -800,21 +824,21 @@ function showPreviewLines() {
         var pasteVoxel = getNewPasteVoxel(pickRay);
         
         // X axis
-        Overlays.editOverlay(linePreviewBottom, {
+        Overlays.editOverlay(linePreviewBottom[currentCursor], {
                              position: pasteVoxel.origin,
                              end: {x: pasteVoxel.origin.x + pasteVoxel.voxelSize, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z },
                              visible: true
                              });
         
         // Y axis
-        Overlays.editOverlay(linePreviewRight, {
+        Overlays.editOverlay(linePreviewRight[currentCursor], {
                              position: pasteVoxel.origin,
                              end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y + pasteVoxel.voxelSize, z: pasteVoxel.origin.z },
                              visible: true
                              });
         
         // Z axis
-        Overlays.editOverlay(linePreviewTop, {
+        Overlays.editOverlay(linePreviewTop[currentCursor], {
                              position: pasteVoxel.origin,
                              end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z - pasteVoxel.voxelSize },
                              visible: true
@@ -828,22 +852,22 @@ function showPreviewLines() {
     if (intersection.intersects) {
         resultVoxel = calculateVoxelFromIntersection(intersection,"");
         Overlays.editOverlay(voxelPreview, { visible: false });
-        Overlays.editOverlay(linePreviewTop, { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
-        Overlays.editOverlay(linePreviewBottom, { position: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
-        Overlays.editOverlay(linePreviewLeft, { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
-        Overlays.editOverlay(linePreviewRight, { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
+        Overlays.editOverlay(linePreviewTop[currentCursor], { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
+        Overlays.editOverlay(linePreviewBottom[currentCursor], { position: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
+        Overlays.editOverlay(linePreviewLeft[currentCursor], { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
+        Overlays.editOverlay(linePreviewRight[currentCursor], { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
         colors[0] = {red: intersection.voxel.red, green: intersection.voxel.green , blue: intersection.voxel.blue };
         
         if (copyScale) {
             scaleSelector.setScale(intersection.voxel.s);
         }
         moveTools();
-    } else {
+    } else if (intersection.accurate) {
         Overlays.editOverlay(voxelPreview, { visible: false });
-        Overlays.editOverlay(linePreviewTop, { visible: false });
-        Overlays.editOverlay(linePreviewBottom, { visible: false });
-        Overlays.editOverlay(linePreviewLeft, { visible: false });
-        Overlays.editOverlay(linePreviewRight, { visible: false });
+        Overlays.editOverlay(linePreviewTop[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewBottom[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewLeft[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewRight[currentCursor], { visible: false });
     }
 }
 
@@ -853,20 +877,20 @@ function showPreviewGuides() {
             showPreviewVoxel();
             
             // make sure alternative is hidden
-            Overlays.editOverlay(linePreviewTop, { visible: false });
-            Overlays.editOverlay(linePreviewBottom, { visible: false });
-            Overlays.editOverlay(linePreviewLeft, { visible: false });
-            Overlays.editOverlay(linePreviewRight, { visible: false });
+            Overlays.editOverlay(linePreviewTop[currentCursor], { visible: false });
+            Overlays.editOverlay(linePreviewBottom[currentCursor], { visible: false });
+            Overlays.editOverlay(linePreviewLeft[currentCursor], { visible: false });
+            Overlays.editOverlay(linePreviewRight[currentCursor], { visible: false });
         } else {
             showPreviewLines();
         }
     } else {
         // make sure all previews are off
         Overlays.editOverlay(voxelPreview, { visible: false });
-        Overlays.editOverlay(linePreviewTop, { visible: false });
-        Overlays.editOverlay(linePreviewBottom, { visible: false });
-        Overlays.editOverlay(linePreviewLeft, { visible: false });
-        Overlays.editOverlay(linePreviewRight, { visible: false });
+        Overlays.editOverlay(linePreviewTop[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewBottom[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewLeft[currentCursor], { visible: false });
+        Overlays.editOverlay(linePreviewRight[currentCursor], { visible: false });
     }
 }
 
@@ -959,6 +983,14 @@ function mousePressEvent(event) {
         return;
     }
     
+    if (event.deviceID == 1500) { // Left Hydra Controller
+        currentCursor = 0;
+    } else if (event.deviceID == 1501) { // Right Hydra Controller
+        currentCursor = 1;
+    } else {
+        currentCursor = 2;
+    }
+    
     var clickedOnSomething = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     
@@ -1006,8 +1038,6 @@ function mousePressEvent(event) {
     
     // TODO: does any of this stuff need to execute if we're panning or orbiting?
     trackMouseEvent(event); // used by preview support
-    mouseX = event.x;
-    mouseY = event.y;
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Voxels.findRayIntersection(pickRay);
     audioOptions.position = Vec3.sum(pickRay.origin, pickRay.direction);
@@ -1056,6 +1086,9 @@ function mousePressEvent(event) {
             lastVoxelPosition = { x: voxelDetails.x, y: voxelDetails.y, z: voxelDetails.z };
             lastVoxelColor = { red: newColor.red, green: newColor.green, blue: newColor.blue };
             lastVoxelScale = voxelDetails.s;
+            if (lastVoxelScale > MAX_VOXEL_SCALE) {
+              lastVoxelScale = MAX_VOXEL_SCALE; 
+            }
             
             addVoxelSound.playRandom();
             
@@ -1105,7 +1138,12 @@ function keyReleaseEvent(event) {
     trackKeyReleaseEvent(event); // used by preview support
 }
 
-function setupMenus() {
+
+// In order for editVoxels and editModels to play nice together, they each check to see if a "delete" menu item already
+// exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
+// added it.
+var voxelMenuAddedDelete = false;
+function setupVoxelMenus() {
     // hook up menus
     Menu.menuItemEvent.connect(menuItemEvent);
     
@@ -1115,7 +1153,13 @@ function setupMenus() {
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Copy", shortcutKey: "CTRL+C", afterItem: "Cut" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste", shortcutKey: "CTRL+V", afterItem: "Copy" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Nudge", shortcutKey: "CTRL+N", afterItem: "Paste" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
+
+
+    if (!Menu.menuItemExists("Edit","Delete")) {
+        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", 
+            shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
+        voxelMenuAddedDelete = true;
+    }
     
     Menu.addMenuItem({ menuName: "File", menuItemName: "Voxels", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Voxels", shortcutKey: "CTRL+E", afterItem: "Voxels" });
@@ -1129,7 +1173,9 @@ function cleanupMenus() {
     Menu.removeMenuItem("Edit", "Copy");
     Menu.removeMenuItem("Edit", "Paste");
     Menu.removeMenuItem("Edit", "Nudge");
-    Menu.removeMenuItem("Edit", "Delete");
+    if (voxelMenuAddedDelete) {
+        Menu.removeMenuItem("Edit", "Delete");
+    }
     Menu.removeSeparator("File", "Voxels");
     Menu.removeMenuItem("File", "Export Voxels");
     Menu.removeMenuItem("File", "Import Voxels");
@@ -1171,7 +1217,7 @@ function menuItemEvent(menuItem) {
             print("deleting...");
             if (isImporting) {
                 cancelImport();
-            } else {
+            } else if (voxelToolSelected) {
                 Clipboard.deleteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
             }
         }
@@ -1195,11 +1241,16 @@ function menuItemEvent(menuItem) {
 }
 
 function mouseMoveEvent(event) {
-    if (!editToolsOn) {
-        return;
+    if (!editToolsOn || inspectJsIsRunning) {
+      return;
     }
-    if (inspectJsIsRunning) {
-        return;
+    
+    if (event.deviceID == 1500) { // Left Hydra Controller
+        currentCursor = 0;
+    } else if (event.deviceID == 1501) { // Right Hydra Controller
+        currentCursor = 1;
+    } else {
+        currentCursor = 2;
     }
     
     // Move Import Preview
@@ -1240,40 +1291,30 @@ function mouseMoveEvent(event) {
     }
 
     if (isAdding) {
-        //  Watch the drag direction to tell which way to 'extrude' this voxel
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        var distance = Vec3.length(Vec3.subtract(pickRay.origin, lastVoxelPosition));
+        var mouseSpot = Vec3.sum(Vec3.multiply(pickRay.direction, distance), pickRay.origin);
+        var delta = Vec3.subtract(mouseSpot, lastVoxelPosition);
+
         if (!isExtruding) {
-            var pickRay = Camera.computePickRay(event.x, event.y);
-            var lastVoxelDistance = { x: pickRay.origin.x - lastVoxelPosition.x,
-            y: pickRay.origin.y - lastVoxelPosition.y,
-                z: pickRay.origin.z - lastVoxelPosition.z };
-            var distance = Vec3.length(lastVoxelDistance);
-            var mouseSpot = { x: pickRay.direction.x * distance, y: pickRay.direction.y * distance, z: pickRay.direction.z * distance };
-            mouseSpot.x += pickRay.origin.x;
-            mouseSpot.y += pickRay.origin.y;
-            mouseSpot.z += pickRay.origin.z;
-            var dx = mouseSpot.x - lastVoxelPosition.x;
-            var dy = mouseSpot.y - lastVoxelPosition.y;
-            var dz = mouseSpot.z - lastVoxelPosition.z;
+            //  Use the drag direction to tell which way to 'extrude' this voxel
             extrudeScale = lastVoxelScale;
             extrudeDirection = { x: 0, y: 0, z: 0 };
             isExtruding = true;
-            if (dx > lastVoxelScale) extrudeDirection.x = extrudeScale;
-            else if (dx < -lastVoxelScale) extrudeDirection.x = -extrudeScale;
-            else if (dy > lastVoxelScale) extrudeDirection.y = extrudeScale;
-            else if (dy < -lastVoxelScale) extrudeDirection.y = -extrudeScale;
-            else if (dz > lastVoxelScale) extrudeDirection.z = extrudeScale;
-            else if (dz < -lastVoxelScale) extrudeDirection.z = -extrudeScale;
+            if (delta.x > lastVoxelScale) extrudeDirection.x = 1;
+            else if (delta.x < -lastVoxelScale) extrudeDirection.x = -1;
+            else if (delta.y > lastVoxelScale) extrudeDirection.y = 1;
+            else if (delta.y < -lastVoxelScale) extrudeDirection.y = -1;
+            else if (delta.z > lastVoxelScale) extrudeDirection.z = 1;
+            else if (delta.z < -lastVoxelScale) extrudeDirection.z = -1;
             else isExtruding = false;
         } else {
-            //  We have got an extrusion direction, now look for mouse move beyond threshold to add new voxel
-            var dx = event.x - mouseX;
-            var dy = event.y - mouseY;
-            if (Math.sqrt(dx*dx + dy*dy) > PIXELS_PER_EXTRUDE_VOXEL)  {
-                lastVoxelPosition = Vec3.sum(lastVoxelPosition, extrudeDirection);
-                Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z,
-                                extrudeScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
-                mouseX = event.x;
-                mouseY = event.y;
+            //  Extrude if mouse has moved by a voxel in the extrude direction
+            var distanceInDirection = Vec3.dot(delta, extrudeDirection);
+            if (distanceInDirection > extrudeScale) {
+                lastVoxelPosition = Vec3.sum(lastVoxelPosition, Vec3.multiply(extrudeDirection, extrudeScale));
+                Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, extrudeScale,
+                                lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
             }
         }
     }
@@ -1450,10 +1491,12 @@ Controller.captureKeyEvents({ text: "-" });
 
 function scriptEnding() {
     Overlays.deleteOverlay(voxelPreview);
-    Overlays.deleteOverlay(linePreviewTop);
-    Overlays.deleteOverlay(linePreviewBottom);
-    Overlays.deleteOverlay(linePreviewLeft);
-    Overlays.deleteOverlay(linePreviewRight);
+    for (var i = 0; i < linePreviewTop.length; i++) {
+        Overlays.deleteOverlay(linePreviewTop[i]);
+        Overlays.deleteOverlay(linePreviewBottom[i]);
+        Overlays.deleteOverlay(linePreviewLeft[i]);
+        Overlays.deleteOverlay(linePreviewRight[i]);
+    }
     for (s = 0; s < numColors; s++) {
         Overlays.deleteOverlay(swatches[s]);
     }
@@ -1470,4 +1513,4 @@ Script.scriptEnding.connect(scriptEnding);
 
 Script.update.connect(update);
 
-setupMenus();
+setupVoxelMenus();

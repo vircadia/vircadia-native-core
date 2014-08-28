@@ -14,7 +14,7 @@
 #include <QDebug>
 
 #include <OctreeConstants.h>
-#include <SharedUtil.h>
+#include <GLMHelpers.h>
 #include "Quat.h"
 
 
@@ -64,6 +64,20 @@ glm::quat Quat::angleAxis(float angle, const glm::vec3& v) {
 
 glm::quat Quat::mix(const glm::quat& q1, const glm::quat& q2, float alpha) {
     return safeMix(q1, q2, alpha);
+}
+
+/// Spherical Linear Interpolation
+glm::quat Quat::slerp(const glm::quat& q1, const glm::quat& q2, float alpha) {
+    return glm::slerp(q1, q2, alpha);
+}
+
+// Spherical Quadratic Interpolation
+glm::quat Quat::squad(const glm::quat& q1, const glm::quat& q2, const glm::quat& s1, const glm::quat& s2, float h) {
+    return glm::squad(q1, q2, s1, s2, h);
+}
+
+float Quat::dot(const glm::quat& q1, const glm::quat& q2) {
+    return glm::dot(q1, q2);
 }
 
 void Quat::print(const QString& lable, const glm::quat& q) {

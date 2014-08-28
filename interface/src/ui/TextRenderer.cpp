@@ -26,9 +26,9 @@ Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int wid
 }
 
 TextRenderer::TextRenderer(const char* family, int pointSize, int weight,
-                           bool italic, EffectType effectType, int effectThickness)
+                           bool italic, EffectType effectType, int effectThickness, QColor color)
         : _font(family, pointSize, weight, italic), _metrics(_font), _effectType(effectType),
-          _effectThickness(effectThickness), _x(IMAGE_SIZE), _y(IMAGE_SIZE), _rowHeight(0) {
+          _effectThickness(effectThickness), _x(IMAGE_SIZE), _y(IMAGE_SIZE), _rowHeight(0), _color(color) {
     _font.setKerning(false);
 }
 
@@ -157,7 +157,7 @@ const Glyph& TextRenderer::getGlyph(char c) {
     // render the glyph into an image and copy it into the texture
     QImage image(bounds.width(), bounds.height(), QImage::Format_ARGB32);
     if (c == SOLID_BLOCK_CHAR) {
-        image.fill(QColor(255, 255, 255));
+        image.fill(_color);
     
     } else {
         image.fill(0);
@@ -180,7 +180,7 @@ const Glyph& TextRenderer::getGlyph(char c) {
             painter.setRenderHint(QPainter::Antialiasing);
             painter.drawPath(path);
         }
-        painter.setPen(QColor(255, 255, 255));
+        painter.setPen(_color);
         painter.drawText(-bounds.x(), -bounds.y(), ch);
     }    
     glTexSubImage2D(GL_TEXTURE_2D, 0, _x, _y, bounds.width(), bounds.height(), GL_RGBA, GL_UNSIGNED_BYTE, image.constBits());

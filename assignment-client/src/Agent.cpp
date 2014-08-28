@@ -13,13 +13,13 @@
 #include <QtCore/QEventLoop>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QTimer>
-#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
+#include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <ResourceCache.h>
@@ -29,14 +29,21 @@
 #include <ParticlesScriptingInterface.h> // TODO: consider moving to scriptengine.h
 #include <ModelsScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
+#include "avatars/ScriptableAvatar.h"
+
 #include "Agent.h"
+
+static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
     _particleEditSender(),
     _modelEditSender(),
-    _receivedAudioBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO),
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
+        InboundAudioStream::Settings(0, false, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, false,
+        DEFAULT_WINDOW_STARVE_THRESHOLD, DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES,
+        DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false)),
     _avatarHashMap()
 {
     // be the parent of the script engine so it gets moved when we do
@@ -113,7 +120,7 @@ void Agent::readPendingDatagrams() {
                 sourceNode->setLastHeardMicrostamp(usecTimestampNow());
 
                 QByteArray mutablePacket = receivedPacket;
-                ssize_t messageLength = mutablePacket.size();
+                int messageLength = mutablePacket.size();
 
                 if (datagramPacketType == PacketTypeOctreeStats) {
 
@@ -146,13 +153,13 @@ void Agent::readPendingDatagrams() {
                     _voxelViewer.processDatagram(mutablePacket, sourceNode);
                 }
 
-            } else if (datagramPacketType == PacketTypeMixedAudio) {
-                // parse the data and grab the average loudness
-                _receivedAudioBuffer.parseData(receivedPacket);
-                
-                // pretend like we have read the samples from this buffer so it does not fill
-                static int16_t garbageAudioBuffer[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
-                _receivedAudioBuffer.readSamples(garbageAudioBuffer, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+            } else if (datagramPacketType == PacketTypeMixedAudio || datagramPacketType == PacketTypeSilentAudioFrame) {
+
+                _receivedAudioStream.parseData(receivedPacket);
+
+                _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
+
+                _receivedAudioStream.clearBuffer();
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer
@@ -199,12 +206,13 @@ void Agent::run() {
         scriptURL = QUrl(_payload);
     }
    
-    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
-    QNetworkReply *reply = networkManager->get(QNetworkRequest(scriptURL));
-    QNetworkDiskCache* cache = new QNetworkDiskCache(networkManager);
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkReply *reply = networkAccessManager.get(QNetworkRequest(scriptURL));
+    
+    QNetworkDiskCache* cache = new QNetworkDiskCache();
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
-    networkManager->setCache(cache);
+    networkAccessManager.setCache(cache);
     
     qDebug() << "Downloading script at" << scriptURL.toString();
     
@@ -213,19 +221,14 @@ void Agent::run() {
     
     loop.exec();
     
-    
-    
-    // let the AvatarData and ResourceCache classes use our QNetworkAccessManager
-    AvatarData::setNetworkAccessManager(networkManager);
-    ResourceCache::setNetworkAccessManager(networkManager);
-    
     QString scriptContents(reply->readAll());
     
     qDebug() << "Downloaded script:" << scriptContents;
     
     // setup an Avatar for the script to use
-    AvatarData scriptedAvatar;
-    
+    ScriptableAvatar scriptedAvatar(&_scriptEngine);
+    scriptedAvatar.setForceFaceshiftConnected(true);
+
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar.setFaceModelURL(QUrl());
     scriptedAvatar.setSkeletonModelURL(QUrl());
@@ -265,4 +268,5 @@ void Agent::run() {
 
 void Agent::aboutToFinish() {
     _scriptEngine.stop();
+    NetworkAccessManager::getInstance().clearAccessCache();
 }

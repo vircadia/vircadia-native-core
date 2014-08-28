@@ -60,7 +60,7 @@ BuckyBalls::BuckyBalls() {
 
 void BuckyBalls::grab(PalmData& palm, float deltaTime) {
     float penetration;
-    glm::vec3 fingerTipPosition = palm.getFingerTipPosition();
+    glm::vec3 fingerTipPosition = palm.getTipPosition();
 
     if (palm.getControllerButtons() & BUTTON_FWD) {
         if (!_bballIsGrabbed[palm.getSixenseID()]) {

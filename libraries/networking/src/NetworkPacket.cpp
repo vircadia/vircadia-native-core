@@ -17,9 +17,9 @@
 
 #include "NetworkPacket.h"
 
-void NetworkPacket::copyContents(const SharedNodePointer& destinationNode, const QByteArray& packet) {
+void NetworkPacket::copyContents(const SharedNodePointer& node, const QByteArray& packet) {
     if (packet.size() && packet.size() <= MAX_PACKET_SIZE) {
-        _destinationNode = destinationNode;
+        _node = node;
         _byteArray = packet;
     } else {
         qDebug(">>> NetworkPacket::copyContents() unexpected length = %d", packet.size());
@@ -27,28 +27,28 @@ void NetworkPacket::copyContents(const SharedNodePointer& destinationNode, const
 }
 
 NetworkPacket::NetworkPacket(const NetworkPacket& packet) {
-    copyContents(packet.getDestinationNode(), packet.getByteArray());
+    copyContents(packet.getNode(), packet.getByteArray());
 }
 
-NetworkPacket::NetworkPacket(const SharedNodePointer& destinationNode, const QByteArray& packet) {
-    copyContents(destinationNode, packet);
+NetworkPacket::NetworkPacket(const SharedNodePointer& node, const QByteArray& packet) {
+    copyContents(node, packet);
 };
 
 // copy assignment 
 NetworkPacket& NetworkPacket::operator=(NetworkPacket const& other) {
-    copyContents(other.getDestinationNode(), other.getByteArray());
+    copyContents(other.getNode(), other.getByteArray());
     return *this;
 }
 
 #ifdef HAS_MOVE_SEMANTICS
 // move, same as copy, but other packet won't be used further
 NetworkPacket::NetworkPacket(NetworkPacket && packet) {
-    copyContents(packet.getDestinationNode(), packet.getByteArray());
+    copyContents(packet.getNode(), packet.getByteArray());
 }
 
 // move assignment
 NetworkPacket& NetworkPacket::operator=(NetworkPacket&& other) {
-    copyContents(other.getDestinationNode(), other.getByteArray());
+    copyContents(other.getNode(), other.getByteArray());
     return *this;
 }
 #endif

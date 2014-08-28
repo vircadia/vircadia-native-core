@@ -28,10 +28,12 @@ TextureCache::TextureCache() :
     _permutationNormalTextureID(0),
     _whiteTextureID(0),
     _blueTextureID(0),
+    _primaryDepthTextureID(0),
     _primaryFramebufferObject(NULL),
     _secondaryFramebufferObject(NULL),
     _tertiaryFramebufferObject(NULL),
-    _shadowFramebufferObject(NULL)
+    _shadowFramebufferObject(NULL),
+    _frameBufferSize(100, 100)
 {
 }
 
@@ -46,10 +48,69 @@ TextureCache::~TextureCache() {
         glDeleteTextures(1, &_primaryDepthTextureID);
     }
     
-    delete _primaryFramebufferObject;
-    delete _secondaryFramebufferObject;
-    delete _tertiaryFramebufferObject;
+    if (_primaryFramebufferObject) {
+        delete _primaryFramebufferObject;
+    }
+
+    if (_secondaryFramebufferObject) {
+        delete _secondaryFramebufferObject;
+    }
+
+    if (_tertiaryFramebufferObject) {
+        delete _tertiaryFramebufferObject;
+    }
 }
+
+void TextureCache::setFrameBufferSize(QSize frameBufferSize) {
+    //If the size changed, we need to delete our FBOs
+    if (_frameBufferSize != frameBufferSize) {
+        _frameBufferSize = frameBufferSize;
+
+        if (_primaryFramebufferObject) {
+            delete _primaryFramebufferObject;
+            _primaryFramebufferObject = NULL;
+            glDeleteTextures(1, &_primaryDepthTextureID);
+            _primaryDepthTextureID = 0;
+        }
+
+        if (_secondaryFramebufferObject) {
+            delete _secondaryFramebufferObject;
+            _secondaryFramebufferObject = NULL;
+        }
+
+        if (_tertiaryFramebufferObject) {
+            delete _tertiaryFramebufferObject;
+            _tertiaryFramebufferObject = NULL;
+        }
+    }
+}
+
+// use fixed table of permutations. Could also make ordered list programmatically
+// and then shuffle algorithm. For testing, this ensures consistent behavior in each run.
+// this list taken from Ken Perlin's Improved Noise reference implementation (orig. in Java) at
+// http://mrl.nyu.edu/~perlin/noise/
+
+const int permutation[256] = 
+{
+    151, 160, 137,  91,  90,  15, 131,  13, 201,  95,  96,  53, 194, 233,   7, 225,
+    140,  36, 103,  30,  69, 142,   8,  99,  37, 240,  21,  10,  23, 190,   6, 148,
+    247, 120, 234,  75,   0,  26, 197,  62,  94, 252, 219, 203, 117,  35,  11,  32,
+     57, 177,  33,  88, 237, 149,  56,  87, 174,  20, 125, 136, 171, 168,  68, 175,
+     74, 165,  71, 134, 139,  48,  27, 166,  77, 146, 158, 231,  83, 111, 229, 122,
+     60, 211, 133, 230, 220, 105,  92,  41,  55,  46, 245,  40, 244, 102, 143,  54,
+     65,  25,  63, 161,   1, 216,  80,  73, 209,  76, 132, 187, 208,  89,  18, 169,
+     200, 196, 135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186,   3,  64,
+     52, 217, 226, 250, 124, 123,   5, 202,  38, 147, 118, 126, 255,  82,  85, 212,
+    207, 206,  59, 227,  47,  16,  58,  17, 182, 189,  28,  42, 223, 183, 170, 213,
+    119, 248, 152,   2,  44, 154, 163,  70, 221, 153, 101, 155, 167,  43, 172,   9,
+    129,  22,  39, 253,  19,  98, 108, 110,  79, 113, 224, 232, 178, 185, 112, 104,
+    218, 246,  97, 228, 251,  34, 242, 193, 238, 210, 144,  12, 191, 179, 162, 241,
+     81,  51, 145, 235, 249,  14, 239, 107,  49, 192, 214,  31, 181, 199, 106, 157,
+    184,  84, 204, 176, 115, 121,  50,  45, 127,   4, 150, 254, 138, 236, 205,  93,
+    222, 114,  67,  29,  24,  72, 243, 141, 128, 195,  78,  66, 215,  61, 156, 180
+};
+
+#define USE_CHRIS_NOISE 1
 
 GLuint TextureCache::getPermutationNormalTextureID() {
     if (_permutationNormalTextureID == 0) {
@@ -58,10 +119,17 @@ GLuint TextureCache::getPermutationNormalTextureID() {
         
         // the first line consists of random permutation offsets
         unsigned char data[256 * 2 * 3];
+#if (USE_CHRIS_NOISE==1)
+        for (int i = 0; i < 256; i++) {
+            data[3*i+0] = permutation[i];
+            data[3*i+1] = permutation[i];
+            data[3*i+2] = permutation[i];
+#else
         for (int i = 0; i < 256 * 3; i++) {
             data[i] = rand() % 256;
+#endif
         }
-        // the next, random unit normals
+
         for (int i = 256 * 3; i < 256 * 3 * 2; i += 3) {
             glm::vec3 randvec = glm::sphericalRand(1.0f);
             data[i] = ((randvec.x + 1.0f) / 2.0f) * 255.0f;
@@ -71,13 +139,14 @@ GLuint TextureCache::getPermutationNormalTextureID() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     return _permutationNormalTextureID;
 }
 
 const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
+const unsigned char TRANSPARENT_WHITE[] = { 0xFF, 0xFF, 0xFF, 0x0 };
+const unsigned char OPAQUE_BLACK[] = { 0x0, 0x0, 0x0, 0xFF };
 const unsigned char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
 
 static void loadSingleColorTexture(const unsigned char* color) {
@@ -108,19 +177,18 @@ GLuint TextureCache::getBlueTextureID() {
 /// Extra data for creating textures.
 class TextureExtra {
 public:
-    bool normalMap;
+    TextureType type;
     const QByteArray& content;
 };
 
-QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap,
-        bool dilatable, const QByteArray& content) {
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type, bool dilatable, const QByteArray& content) {
     if (!dilatable) {
-        TextureExtra extra = { normalMap, content };
+        TextureExtra extra = { type, content };
         return ResourceCache::getResource(url, QUrl(), false, &extra).staticCast<NetworkTexture>();
     }
-    QSharedPointer<NetworkTexture> texture = _dilatableNetworkTextures.value(url);
+    NetworkTexturePointer texture = _dilatableNetworkTextures.value(url);
     if (texture.isNull()) {
-        texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url, content), &Resource::allReferencesCleared);
+        texture = NetworkTexturePointer(new DilatableNetworkTexture(url, content), &Resource::allReferencesCleared);
         texture->setSelf(texture);
         texture->setCache(this);
         _dilatableNetworkTextures.insert(url, texture);
@@ -131,13 +199,14 @@ QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool no
 }
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
+
     if (!_primaryFramebufferObject) {
         _primaryFramebufferObject = createFramebufferObject();
-        
+       
         glGenTextures(1, &_primaryDepthTextureID);
         glBindTexture(GL_TEXTURE_2D, _primaryDepthTextureID);
-        QSize size = Application::getInstance()->getGLWidget()->size();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, size.width(), size.height(),
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, _frameBufferSize.width(), _frameBufferSize.height(),
             0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -225,12 +294,12 @@ bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
-    return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->normalMap, textureExtra->content),
+    return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->type, textureExtra->content),
         &Resource::allReferencesCleared);
 }
 
 QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
-    QOpenGLFramebufferObject* fbo = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
+    QOpenGLFramebufferObject* fbo = new QOpenGLFramebufferObject(_frameBufferSize);
     Application::getInstance()->getGLWidget()->installEventFilter(this);
     
     glBindTexture(GL_TEXTURE_2D, fbo->texture());
@@ -249,17 +318,34 @@ Texture::~Texture() {
     glDeleteTextures(1, &_id);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap, const QByteArray& content) :
+NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
     Resource(url, !content.isEmpty()),
+    _type(type),
     _translucent(false) {
     
     if (!url.isValid()) {
         _loaded = true;
     }
     
-    // default to white/blue
+    // default to white/blue/black
     glBindTexture(GL_TEXTURE_2D, getID());
-    loadSingleColorTexture(normalMap ? OPAQUE_BLUE : OPAQUE_WHITE);
+    switch (type) {
+        case NORMAL_TEXTURE:
+            loadSingleColorTexture(OPAQUE_BLUE);  
+            break;
+        
+        case SPECULAR_TEXTURE:
+            loadSingleColorTexture(OPAQUE_BLACK);  
+            break;
+            
+        case SPLAT_TEXTURE:
+            loadSingleColorTexture(TRANSPARENT_WHITE);   
+            break;
+            
+        default:
+            loadSingleColorTexture(OPAQUE_WHITE);        
+            break;
+    }
     glBindTexture(GL_TEXTURE_2D, 0);
     
     // if we have content, load it after we have our self pointer
@@ -314,12 +400,28 @@ void ImageReader::run() {
         qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height();
         image = image.scaled(MAXIMUM_SIZE, MAXIMUM_SIZE, Qt::KeepAspectRatio);
     }
+    int imageArea = image.width() * image.height();
     
+    const int EIGHT_BIT_MAXIMUM = 255;
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
         }
-        QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false));
+        int redTotal = 0, greenTotal = 0, blueTotal = 0;
+        for (int y = 0; y < image.height(); y++) {
+            for (int x = 0; x < image.width(); x++) {
+                QRgb rgb = image.pixel(x, y);
+                redTotal += qRed(rgb);
+                greenTotal += qGreen(rgb);
+                blueTotal += qBlue(rgb);
+            }
+        }
+        QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
+        if (imageArea > 0) {
+            averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
+        }
+        QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
+            Q_ARG(const QColor&, averageColor));
         return;
     }
     if (image.format() != QImage::Format_ARGB32) {
@@ -329,11 +431,15 @@ void ImageReader::run() {
     // check for translucency/false transparency
     int opaquePixels = 0;
     int translucentPixels = 0;
-    const int EIGHT_BIT_MAXIMUM = 255;
-    const int RGB_BITS = 24;
+    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
     for (int y = 0; y < image.height(); y++) {
         for (int x = 0; x < image.width(); x++) {
-            int alpha = image.pixel(x, y) >> RGB_BITS;
+            QRgb rgb = image.pixel(x, y);
+            redTotal += qRed(rgb);
+            greenTotal += qGreen(rgb);
+            blueTotal += qBlue(rgb);
+            int alpha = qAlpha(rgb);
+            alphaTotal += alpha;
             if (alpha == EIGHT_BIT_MAXIMUM) {
                 opaquePixels++;
             } else if (alpha != 0) {
@@ -341,13 +447,13 @@ void ImageReader::run() {
             }
         }
     }
-    int imageArea = image.width() * image.height();
     if (opaquePixels == imageArea) {
         qDebug() << "Image with alpha channel is completely opaque:" << _url;
         image = image.convertToFormat(QImage::Format_RGB888);
     }
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
-        Q_ARG(bool, translucentPixels >= imageArea / 2));
+        Q_ARG(bool, translucentPixels >= imageArea / 2), Q_ARG(const QColor&, QColor(redTotal / imageArea,
+            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea)));
 }
 
 void NetworkTexture::downloadFinished(QNetworkReply* reply) {
@@ -359,8 +465,9 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, NULL, _url, content));
 }
 
-void NetworkTexture::setImage(const QImage& image, bool translucent) {
+void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor) {
     _translucent = translucent;
+    _averageColor = averageColor;
     
     finishedLoading(true);
     imageLoaded(image);
@@ -372,7 +479,13 @@ void NetworkTexture::setImage(const QImage& image, bool translucent) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width(), image.height(), 0,
             GL_RGB, GL_UNSIGNED_BYTE, image.constBits());
     }
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    if (_type == SPLAT_TEXTURE) {
+        // generate mipmaps for splat textures
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    } else {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -381,7 +494,7 @@ void NetworkTexture::imageLoaded(const QImage& image) {
 }
 
 DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, const QByteArray& content) :
-    NetworkTexture(url, false, content),
+    NetworkTexture(url, DEFAULT_TEXTURE, content),
     _innerRadius(0),
     _outerRadius(0)
 {

@@ -12,8 +12,9 @@
 
 #include "Application.h"
 #include "Menu.h"
-#include "PreferencesDialog.h"
 #include "ModelsBrowser.h"
+#include "PreferencesDialog.h"
+#include "UserActivityLogger.h"
 
 const int SCROLL_PANEL_BOTTOM_MARGIN = 30;
 const int OK_BUTTON_RIGHT_MARGIN = 30;
@@ -29,6 +30,9 @@ PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : F
     connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
     connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
     connect(ui.buttonBrowseLocation, &QPushButton::clicked, this, &PreferencesDialog::openSnapshotLocationBrowser);
+    connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
+    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked,
+            Application::getInstance(), &Application::loadDefaultScripts);
 }
 
 void PreferencesDialog::accept() {
@@ -70,13 +74,32 @@ void PreferencesDialog::openBodyModelBrowser() {
 
 void PreferencesDialog::openSnapshotLocationBrowser() {
     setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
+    show();
+
     QString dir = QFileDialog::getExistingDirectory(this, tr("Snapshots Location"),
                                                     QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
                                                     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (!dir.isNull() && !dir.isEmpty()) {
         ui.snapshotLocationEdit->setText(dir);
     }
+
     setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    show();
+}
+
+void PreferencesDialog::openScriptsLocationBrowser() {
+    setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
+    show();
+
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Scripts Location"),
+                                                    ui.scriptsLocationEdit->text(),
+                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (!dir.isNull() && !dir.isEmpty()) {
+        ui.scriptsLocationEdit->setText(dir);
+    }
+
+    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    show();
 }
 
 void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
@@ -113,8 +136,12 @@ void PreferencesDialog::loadPreferences() {
 
     _skeletonURLString = myAvatar->getSkeletonModel().getURL().toString();
     ui.skeletonURLEdit->setText(_skeletonURLString);
+    
+    ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
     ui.snapshotLocationEdit->setText(menuInstance->getSnapshotsLocation());
+
+    ui.scriptsLocationEdit->setText(menuInstance->getScriptsLocation());
 
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
@@ -122,7 +149,16 @@ void PreferencesDialog::loadPreferences() {
     ui.faceshiftEyeDeflectionSider->setValue(menuInstance->getFaceshiftEyeDeflection() *
                                              ui.faceshiftEyeDeflectionSider->maximum());
     
-    ui.audioJitterSpin->setValue(menuInstance->getAudioJitterBufferSamples());
+    const InboundAudioStream::Settings& streamSettings = menuInstance->getReceivedAudioStreamSettings();
+
+    ui.dynamicJitterBuffersCheckBox->setChecked(streamSettings._dynamicJitterBuffers);
+    ui.staticDesiredJitterBufferFramesSpin->setValue(streamSettings._staticDesiredJitterBufferFrames);
+    ui.maxFramesOverDesiredSpin->setValue(streamSettings._maxFramesOverDesired);
+    ui.useStdevForJitterCalcCheckBox->setChecked(streamSettings._useStDevForJitterCalc);
+    ui.windowStarveThresholdSpin->setValue(streamSettings._windowStarveThreshold);
+    ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->setValue(streamSettings._windowSecondsForDesiredCalcOnTooManyStarves);
+    ui.windowSecondsForDesiredReductionSpin->setValue(streamSettings._windowSecondsForDesiredReduction);
+    ui.repetitionWithFadeCheckBox->setChecked(streamSettings._repetitionWithFade);
 
     ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
 
@@ -135,6 +171,13 @@ void PreferencesDialog::loadPreferences() {
     ui.maxVoxelsSpin->setValue(menuInstance->getMaxVoxels());
     
     ui.maxVoxelsPPSSpin->setValue(menuInstance->getMaxVoxelPacketsPerSecond());
+
+    ui.oculusUIAngularSizeSpin->setValue(menuInstance->getOculusUIAngularSize());
+
+    ui.sixenseReticleMoveSpeedSpin->setValue(menuInstance->getSixenseReticleMoveSpeed());
+
+    ui.invertSixenseButtonsCheckBox->setChecked(menuInstance->getInvertSixenseButtons());
+
 }
 
 void PreferencesDialog::savePreferences() {
@@ -145,6 +188,7 @@ void PreferencesDialog::savePreferences() {
     QString displayNameStr(ui.displayNameEdit->text());
     if (displayNameStr != _displayNameString) {
         myAvatar->setDisplayName(displayNameStr);
+        UserActivityLogger::getInstance().changedDisplayName(displayNameStr);
         shouldDispatchIdentityPacket = true;
     }
     
@@ -152,6 +196,7 @@ void PreferencesDialog::savePreferences() {
     if (faceModelURL.toString() != _faceURLString) {
         // change the faceModelURL in the profile, it will also update this user's BlendFace
         myAvatar->setFaceModelURL(faceModelURL);
+        UserActivityLogger::getInstance().changedModel("head", faceModelURL.toString());
         shouldDispatchIdentityPacket = true;
     }
 
@@ -159,6 +204,7 @@ void PreferencesDialog::savePreferences() {
     if (skeletonModelURL.toString() != _skeletonURLString) {
         // change the skeletonModelURL in the profile, it will also update this user's Body
         myAvatar->setSkeletonModelURL(skeletonModelURL);
+        UserActivityLogger::getInstance().changedModel("skeleton", skeletonModelURL.toString());
         shouldDispatchIdentityPacket = true;
     }
     
@@ -166,9 +212,18 @@ void PreferencesDialog::savePreferences() {
         myAvatar->sendIdentityPacket();
         Application::getInstance()->bumpSettings();
     }
+    
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger)
+        != ui.sendDataCheckBox->isChecked()) {
+        Menu::getInstance()->triggerOption(MenuOption::DisableActivityLogger);
+    }
 
     if (!ui.snapshotLocationEdit->text().isEmpty() && QDir(ui.snapshotLocationEdit->text()).exists()) {
         Menu::getInstance()->setSnapshotsLocation(ui.snapshotLocationEdit->text());
+    }
+
+    if (!ui.scriptsLocationEdit->text().isEmpty() && QDir(ui.scriptsLocationEdit->text()).exists()) {
+        Menu::getInstance()->setScriptsLocation(ui.scriptsLocationEdit->text());
     }
 
     myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());
@@ -187,8 +242,24 @@ void PreferencesDialog::savePreferences() {
                                                      (float)ui.faceshiftEyeDeflectionSider->maximum());
     Menu::getInstance()->setMaxVoxelPacketsPerSecond(ui.maxVoxelsPPSSpin->value());
 
-    Menu::getInstance()->setAudioJitterBufferSamples(ui.audioJitterSpin->value());
-    Application::getInstance()->getAudio()->setJitterBufferSamples(ui.audioJitterSpin->value());
+    Menu::getInstance()->setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
+
+    Menu::getInstance()->setSixenseReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
+
+    Menu::getInstance()->setInvertSixenseButtons(ui.invertSixenseButtonsCheckBox->isChecked());
+
+    InboundAudioStream::Settings streamSettings;
+    streamSettings._dynamicJitterBuffers = ui.dynamicJitterBuffersCheckBox->isChecked();
+    streamSettings._staticDesiredJitterBufferFrames = ui.staticDesiredJitterBufferFramesSpin->value();
+    streamSettings._maxFramesOverDesired = ui.maxFramesOverDesiredSpin->value();
+    streamSettings._useStDevForJitterCalc = ui.useStdevForJitterCalcCheckBox->isChecked();
+    streamSettings._windowStarveThreshold = ui.windowStarveThresholdSpin->value();
+    streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->value();
+    streamSettings._windowSecondsForDesiredReduction = ui.windowSecondsForDesiredReductionSpin->value();
+    streamSettings._repetitionWithFade = ui.repetitionWithFadeCheckBox->isChecked();
+
+    Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
+    Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);
 
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
                                          Application::getInstance()->getGLWidget()->height());

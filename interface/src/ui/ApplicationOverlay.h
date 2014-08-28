@@ -15,7 +15,11 @@
 class Overlays;
 class QOpenGLFramebufferObject;
 
-// Handles the drawing of the overlays to the scree
+const float MAGNIFY_WIDTH = 160.0f;
+const float MAGNIFY_HEIGHT = 80.0f;
+const float MAGNIFY_MULT = 4.0f;
+
+// Handles the drawing of the overlays to the screen
 class ApplicationOverlay {
 public:
 
@@ -23,16 +27,54 @@ public:
     ~ApplicationOverlay();
 
     void renderOverlay(bool renderToTexture = false);
-    void displayOverlayTexture(Camera& whichCamera);
+    void displayOverlayTexture();
     void displayOverlayTextureOculus(Camera& whichCamera);
+    void displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov);
+    void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
+    void getClickLocation(int &x, int &y) const;
+    QPoint getPalmClickLocation(const PalmData *palm) const;
+    bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
+
 
     // Getters
     QOpenGLFramebufferObject* getFramebufferObject();
-
+    float getAlpha() const { return _alpha; }
+  
 private:
+    // Interleaved vertex data
+    struct TextureVertex {
+        glm::vec3 position;
+        glm::vec2 uv;
+    };
+
+    typedef QPair<GLuint, GLuint> VerticesIndices;
+
+    void renderPointers();
+    void renderControllerPointers();
+    void renderPointersOculus(const glm::vec3& eyePos);
+    void renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const;
+    void renderAudioMeter();
+    void renderStatsAndLogs();
+    void renderTexturedHemisphere();
+    void renderDomainConnectionStatusBorder();
 
     QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;
+    float _textureFov;
+    
+    enum MagnifyDevices { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_MAGNIFIERS = RIGHT_CONTROLLER + 1 };
+    bool _reticleActive[NUMBER_OF_MAGNIFIERS];
+    int _mouseX[NUMBER_OF_MAGNIFIERS];
+    int _mouseY[NUMBER_OF_MAGNIFIERS];
+    bool _magActive[NUMBER_OF_MAGNIFIERS];
+    int _magX[NUMBER_OF_MAGNIFIERS];
+    int _magY[NUMBER_OF_MAGNIFIERS];
+    float _magSizeMult[NUMBER_OF_MAGNIFIERS];
+    
+    float _alpha;
+    float _oculusuiRadius;
+
+    GLuint _crosshairTexture;
 };
 
 #endif // hifi_ApplicationOverlay_h

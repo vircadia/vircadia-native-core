@@ -96,8 +96,8 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
     int clockSkew = othersReplyTime - othersExprectedReply;
     
     sendingNode->setPingMs(pingTime / 1000);
-    sendingNode->setClockSkewUsec(clockSkew);
-    
+    sendingNode->updateClockSkewUsec(clockSkew);
+
     const bool wantDebug = false;
     
     if (wantDebug) {
@@ -178,7 +178,7 @@ void NodeList::reset() {
     setSessionUUID(QUuid());
     
     // clear the domain connection information
-    _domainHandler.clearConnectionInfo();
+    _domainHandler.softReset();
     
     // if we setup the DTLS socket, also disconnect from the DTLS socket readyRead() so it can handle handshaking
     if (_dtlsSocket) {
@@ -281,7 +281,7 @@ void NodeList::processSTUNResponse(const QByteArray& packet) {
                 int byteIndex = attributeStartIndex + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
                 
                 uint8_t addressFamily = 0;
-                memcpy(&addressFamily, packet.data(), sizeof(addressFamily));
+                memcpy(&addressFamily, packet.data() + byteIndex, sizeof(addressFamily));
 
                 byteIndex += sizeof(addressFamily);
 

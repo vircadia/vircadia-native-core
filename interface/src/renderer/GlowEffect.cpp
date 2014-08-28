@@ -14,6 +14,8 @@
 
 #include <QOpenGLFramebufferObject>
 
+#include <PerfStat.h>
+
 #include "Application.h"
 #include "GlowEffect.h"
 #include "ProgramObject.h"
@@ -119,6 +121,8 @@ static void maybeRelease(QOpenGLFramebufferObject* fbo) {
 }
 
 QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
+    PerformanceTimer perfTimer("glowEffect");
+
     QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
     primaryFBO->release();
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
@@ -176,7 +180,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
             glBindTexture(GL_TEXTURE_2D, oldDiffusedFBO->texture());
             
             _diffuseProgram->bind();
-            QSize size = Application::getInstance()->getGLWidget()->size();
+            QSize size = primaryFBO->size();
             _diffuseProgram->setUniformValue(_diffusionScaleLocation, 1.0f / size.width(), 1.0f / size.height());
         
             renderFullscreenQuad();

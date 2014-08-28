@@ -47,12 +47,19 @@ int packArithmeticallyCodedValue(int value, char* destination) {
 
 PacketVersion versionForPacketType(PacketType type) {
     switch (type) {
+        case PacketTypeMicrophoneAudioNoEcho:
+        case PacketTypeMicrophoneAudioWithEcho:
+            return 2;
+        case PacketTypeSilentAudioFrame:
+            return 3;
+        case PacketTypeMixedAudio:
+            return 1;
         case PacketTypeAvatarData:
             return 3;
         case PacketTypeAvatarIdentity:
             return 1;
         case PacketTypeEnvironmentData:
-            return 1;
+            return 2;
         case PacketTypeDomainList:
         case PacketTypeDomainListRequest:
             return 3;
@@ -66,8 +73,16 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeParticleData:
             return 1;
+        case PacketTypeParticleErase:
+            return 1;
         case PacketTypeModelData:
-            return 2; 
+            return 2;
+        case PacketTypeModelErase:
+            return 1;
+        case PacketTypeAudioStreamStats:
+            return 1;
+        case PacketTypeMetavoxelData:
+            return 3;
         default:
             return 0;
     }
@@ -100,7 +115,7 @@ int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionU
     position += NUM_BYTES_RFC4122_UUID;
     
     if (!NON_VERIFIED_PACKETS.contains(type)) {
-        // pack 16 bytes of zeros where the md5 hash will be placed one data is packed
+        // pack 16 bytes of zeros where the md5 hash will be placed once data is packed
         memset(position, 0, NUM_BYTES_MD5_HASH);
         position += NUM_BYTES_MD5_HASH;
     }

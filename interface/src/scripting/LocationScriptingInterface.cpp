@@ -20,6 +20,10 @@ LocationScriptingInterface* LocationScriptingInterface::getInstance() {
     return &sharedInstance;
 }
 
+bool LocationScriptingInterface::isConnected() {
+    return NodeList::getInstance()->getDomainHandler().isConnected();
+}
+
 QString LocationScriptingInterface::getHref() {
     return getProtocol() + "//" + getHostname() + getPathname();
 }

@@ -12,7 +12,8 @@ QLabel#advancedTuningLabel {
 
 QPushButton#buttonBrowseHead,
 QPushButton#buttonBrowseBody,
-QPushButton#buttonBrowseLocation {
+QPushButton#buttonBrowseLocation,
+QPushButton#buttonBrowseScriptsLocation {
     background-image: url(styles/search.svg);
     background-repeat: no-repeat;
     background-position: center center;

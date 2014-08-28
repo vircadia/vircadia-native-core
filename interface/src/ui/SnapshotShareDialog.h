@@ -14,7 +14,6 @@
 
 #include "ui_shareSnapshot.h"
 
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QUrl>
 
@@ -26,7 +25,6 @@ public:
 
 private:
     QString _fileName;
-    QNetworkAccessManager* _networkAccessManager;
     Ui_SnapshotShareDialog _ui;
 
     void uploadSnapshot();

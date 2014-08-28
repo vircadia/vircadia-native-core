@@ -41,7 +41,8 @@ OctreeQueryNode::OctreeQueryNode() :
     _sequenceNumber(0),
     _lastRootTimestamp(0),
     _myPacketType(PacketTypeUnknown),
-    _isShuttingDown(false)
+    _isShuttingDown(false),
+    _sentPacketHistory()
 {
 }
 
@@ -363,6 +364,44 @@ void OctreeQueryNode::dumpOutOfView() {
     }
 }
 
-void OctreeQueryNode::incrementSequenceNumber() {
+void OctreeQueryNode::octreePacketSent() {
+    packetSent(_octreePacket, getPacketLength());
+}
+
+void OctreeQueryNode::packetSent(unsigned char* packet, int packetLength) {
+    packetSent(QByteArray((char*)packet, packetLength));
+}
+
+void OctreeQueryNode::packetSent(const QByteArray& packet) {
+    _sentPacketHistory.packetSent(_sequenceNumber, packet);
     _sequenceNumber++;
+}
+
+bool OctreeQueryNode::hasNextNackedPacket() const {
+    return !_nackedSequenceNumbers.isEmpty();
+}
+
+const QByteArray* OctreeQueryNode::getNextNackedPacket() {
+    if (!_nackedSequenceNumbers.isEmpty()) {
+        // could return null if packet is not in the history
+        return _sentPacketHistory.getPacket(_nackedSequenceNumbers.dequeue());
+    }
+    return NULL;
+}
+
+void OctreeQueryNode::parseNackPacket(QByteArray& packet) {
+
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
+
+    // read number of sequence numbers
+    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
+    dataAt += sizeof(uint16_t);
+
+    // read sequence numbers
+    for (int i = 0; i < numSequenceNumbers; i++) {
+        OCTREE_PACKET_SEQUENCE sequenceNumber = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
+        _nackedSequenceNumbers.enqueue(sequenceNumber);
+        dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    }
 }

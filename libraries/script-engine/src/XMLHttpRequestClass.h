@@ -13,7 +13,6 @@
 #define hifi_XMLHttpRequestClass_h
 
 #include <QBuffer>
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
@@ -85,7 +84,7 @@ public slots:
     void open(const QString& method, const QString& url, bool async = true, const QString& username = "",
               const QString& password = "");
     void send();
-    void send(const QString& data);
+    void send(const QScriptValue& data);
     QScriptValue getAllResponseHeaders() const;
     QScriptValue getResponseHeader(const QString& name) const;
 
@@ -98,13 +97,13 @@ private:
     void connectToReply(QNetworkReply* reply);
     void disconnectFromReply(QNetworkReply* reply);
     void abortRequest();
+    void notImplemented();
 
     QScriptEngine* _engine;
     bool _async;
     QUrl _url;
     QString _method;
     QString _responseType;
-    QNetworkAccessManager _manager;
     QNetworkRequest _request;
     QNetworkReply* _reply;
     QBuffer* _sendData;
@@ -114,6 +113,7 @@ private:
     QScriptValue _onReadyStateChange;
     ReadyState _readyState;
     QNetworkReply::NetworkError _errorCode;
+    QFile* _file;
     int _timeout;
     QTimer _timer;
     int _numRedirects;

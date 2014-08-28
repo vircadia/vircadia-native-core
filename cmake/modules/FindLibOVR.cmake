@@ -18,55 +18,59 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-if (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
-  # in cache already
-  set(LIBOVR_FOUND TRUE)
-else (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
-  set(LIBOVR_SEARCH_DIRS "${LIBOVR_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/oculus")
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("libovr")
+
+find_path(LIBOVR_INCLUDE_DIRS OVR.h PATH_SUFFIXES Include HINTS ${LIBOVR_SEARCH_DIRS})
+find_path(LIBOVR_SRC_DIR Util_Render_Stereo.h PATH_SUFFIXES Src/Util HINTS ${LIBOVR_SEARCH_DIRS})
+
+include(SelectLibraryConfigurations)
+
+if (APPLE)
+  find_library(LIBOVR_LIBRARY_DEBUG NAMES ovr PATH_SUFFIXES Lib/Mac/Debug HINTS ${LIBOVR_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_RELEASE NAMES ovr PATH_SUFFIXES Lib/Mac/Release HINTS ${LIBOVR_SEARCH_DIRS})
+  find_library(ApplicationServices ApplicationServices)
+  find_library(IOKit IOKit)
+elseif (UNIX)
+  find_library(UDEV_LIBRARY_RELEASE udev /usr/lib/x86_64-linux-gnu/)
+  find_library(XINERAMA_LIBRARY_RELEASE Xinerama /usr/lib/x86_64-linux-gnu/)
   
-  find_path(LIBOVR_INCLUDE_DIRS OVR.h PATH_SUFFIXES Include HINTS ${LIBOVR_SEARCH_DIRS})
+  if (CMAKE_CL_64)
+    set(LINUX_ARCH_DIR "i386")
+  else()
+    set(LINUX_ARCH_DIR "x86_64")
+  endif()
   
-  if (APPLE)
-    find_library(LIBOVR_LIBRARIES "Lib/MacOS/Release/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
-  elseif (UNIX)
-    find_library(UDEV_LIBRARY libudev.a /usr/lib/x86_64-linux-gnu/)
-    find_library(XINERAMA_LIBRARY libXinerama.a /usr/lib/x86_64-linux-gnu/)
-    
-    if (CMAKE_CL_64)
-      set(LINUX_ARCH_DIR "i386")
-    else()
-      set(LINUX_ARCH_DIR "x86_64")
-    endif()
-    
-    find_library(OVR_LIBRARY "Lib/Linux/${CMAKE_BUILD_TYPE}/${LINUX_ARCH_DIR}/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
-    if (UDEV_LIBRARY AND XINERAMA_LIBRARY AND OVR_LIBRARY)
-      set(LIBOVR_LIBRARIES "${OVR_LIBRARY};${UDEV_LIBRARY};${XINERAMA_LIBRARY}" CACHE INTERNAL "Oculus libraries")
-    endif (UDEV_LIBRARY AND XINERAMA_LIBRARY AND OVR_LIBRARY)
-  elseif (WIN32)    
-    if (CMAKE_BUILD_TYPE MATCHES DEBUG)
-      set(WINDOWS_LIBOVR_NAME "libovrd.lib")
-    else()
-      set(WINDOWS_LIBOVR_NAME "libovr.lib")
-    endif()
-    
-    find_library(LIBOVR_LIBRARIES "Lib/Win32/${WINDOWS_LIBOVR_NAME}" HINTS ${LIBOVR_SEARCH_DIRS})
-  endif ()
+  find_library(LIBOVR_LIBRARY_DEBUG NAMES ovr PATH_SUFFIXES Lib/Linux/Debug/${LINUX_ARCH_DIR} HINTS ${LIBOVR_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_RELEASE NAMES ovr PATH_SUFFIXES Lib/Linux/Release/${LINUX_ARCH_DIR} HINTS ${LIBOVR_SEARCH_DIRS})
+  
+  select_library_configurations(UDEV)
+  select_library_configurations(XINERAMA)
+  
+elseif (WIN32)   
+  find_library(LIBOVR_LIBRARY_DEBUG NAMES libovrd PATH_SUFFIXES Lib/Win32/VS2010 HINTS ${LIBOVR_SEARCH_DIRS})
+  find_library(LIBOVR_LIBRARY_RELEASE NAMES libovr PATH_SUFFIXES Lib/Win32/VS2010 HINTS ${LIBOVR_SEARCH_DIRS})
+  find_package(ATL)
+endif ()
 
-  if (LIBOVR_INCLUDE_DIRS AND LIBOVR_LIBRARIES)
-     set(LIBOVR_FOUND TRUE)
-  endif (LIBOVR_INCLUDE_DIRS AND LIBOVR_LIBRARIES)
- 
-  if (LIBOVR_FOUND)
-    if (NOT LibOVR_FIND_QUIETLY)
-      message(STATUS "Found LibOVR: ${LIBOVR_LIBRARIES}")
-    endif (NOT LibOVR_FIND_QUIETLY)
-  else (LIBOVR_FOUND)
-    if (LibOVR_FIND_REQUIRED)
-      message(FATAL_ERROR "Could not find LibOVR")
-    endif (LibOVR_FIND_REQUIRED)
-  endif (LIBOVR_FOUND)
+select_library_configurations(LIBOVR)
+set(LIBOVR_LIBRARIES ${LIBOVR_LIBRARY})
 
-  # show the LIBOVR_INCLUDE_DIRS and LIBOVR_LIBRARIES variables only in the advanced view
-  mark_as_advanced(LIBOVR_INCLUDE_DIRS LIBOVR_LIBRARIES)
+list(APPEND LIBOVR_ARGS_LIST LIBOVR_INCLUDE_DIRS LIBOVR_SRC_DIR LIBOVR_LIBRARY)
 
-endif (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
+if (APPLE)
+  list(APPEND LIBOVR_LIBRARIES ${IOKit} ${ApplicationServices})
+  list(APPEND LIBOVR_ARGS_LIST IOKit ApplicationServices)
+elseif (UNIX) 
+  list(APPEND LIBOVR_LIBRARIES "${UDEV_LIBRARY}" "${XINERAMA_LIBRARY}")
+  list(APPEND LIBOVR_ARGS_LIST UDEV_LIBRARY XINERAMA_LIBRARY)
+elseif (WIN32)
+  list(APPEND LIBOVR_LIBRARIES ${ATL_LIBRARIES})
+  list(APPEND LIBOVR_ARGS_LIST ATL_LIBRARIES)
+endif ()
+
+include(FindPackageHandleStandardArgs)
+
+find_package_handle_standard_args(LibOVR DEFAULT_MSG ${LIBOVR_ARGS_LIST})
+
+mark_as_advanced(LIBOVR_INCLUDE_DIRS LIBOVR_LIBRARIES LIBOVR_SEARCH_DIRS)

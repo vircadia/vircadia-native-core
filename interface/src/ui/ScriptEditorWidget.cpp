@@ -28,8 +28,12 @@
 
 ScriptEditorWidget::ScriptEditorWidget() :
     _scriptEditorWidgetUI(new Ui::ScriptEditorWidget),
-    _scriptEngine(NULL)
+    _scriptEngine(NULL),
+    _isRestarting(false),
+    _isReloading(false)
 {
+    setAttribute(Qt::WA_DeleteOnClose);
+
     _scriptEditorWidgetUI->setupUi(this);
 
     connect(_scriptEditorWidgetUI->scriptEdit->document(), &QTextDocument::modificationChanged, this,
@@ -51,15 +55,19 @@ ScriptEditorWidget::~ScriptEditorWidget() {
 }
 
 void ScriptEditorWidget::onScriptModified() {
-    if(_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isRunning()) {
+    if(_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isModified() && isRunning() && !_isReloading) {
+        _isRestarting = true;
         setRunning(false);
-        setRunning(true);
+        // Script is restarted once current script instance finishes.
     }
 }
 
-void ScriptEditorWidget::onScriptEnding() {
-    // signals will automatically be disonnected when the _scriptEngine is deleted later
+void ScriptEditorWidget::onScriptFinished(const QString& scriptPath) {
     _scriptEngine = NULL;
+    if (_isRestarting) {
+        _isRestarting = false;
+        setRunning(true);
+    }
 }
 
 bool ScriptEditorWidget::isModified() {
@@ -71,27 +79,28 @@ bool ScriptEditorWidget::isRunning() {
 }
 
 bool ScriptEditorWidget::setRunning(bool run) {
-    if (run && !save()) {
+    if (run && isModified() && !save()) {
         return false;
     }
 
-    // Clean-up old connections.
     if (_scriptEngine != NULL) {
         disconnect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
-        disconnect(_scriptEngine, &ScriptEngine::scriptEnding, this, &ScriptEditorWidget::onScriptEnding);
+        disconnect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
+        disconnect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     }
 
     if (run) {
-        _scriptEngine = Application::getInstance()->loadScript(_currentScript, true);
+        const QString& scriptURLString = QUrl(_currentScript).toString();
+        _scriptEngine = Application::getInstance()->loadScript(scriptURLString, true);
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
-
-        // Make new connections.
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
-        connect(_scriptEngine, &ScriptEngine::scriptEnding, this, &ScriptEditorWidget::onScriptEnding);
+        connect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
+        connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     } else {
+        connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
         Application::getInstance()->stopScript(_currentScript);
         _scriptEngine = NULL;
     }
@@ -108,13 +117,14 @@ bool ScriptEditorWidget::saveFile(const QString &scriptPath) {
 
      QTextStream out(&file);
      out << _scriptEditorWidgetUI->scriptEdit->toPlainText();
+     file.close();
 
      setScriptFile(scriptPath);
      return true;
 }
 
 void ScriptEditorWidget::loadFile(const QString& scriptPath) {
-     QUrl url(scriptPath);
+    QUrl url(scriptPath);
 
     // if the scheme length is one or lower, maybe they typed in a file, let's try
     const int WINDOWS_DRIVE_LETTER_SIZE = 1;
@@ -127,17 +137,19 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         }
         QTextStream in(&file);
         _scriptEditorWidgetUI->scriptEdit->setPlainText(in.readAll());
+        file.close();
         setScriptFile(scriptPath);
 
         if (_scriptEngine != NULL) {
             disconnect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
             disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
             disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
-            disconnect(_scriptEngine, &ScriptEngine::scriptEnding, this, &ScriptEditorWidget::onScriptEnding);
+            disconnect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
+            disconnect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
         }
     } else {
-        QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
-        QNetworkReply* reply = networkManager->get(QNetworkRequest(url));
+        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
         qDebug() << "Downloading included script at" << scriptPath;
         QEventLoop loop;
         QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -148,12 +160,14 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         }
     }
 
-    _scriptEngine = Application::getInstance()->getScriptEngine(_currentScript);
+    const QString& scriptURLString = QUrl(_currentScript).toString();
+    _scriptEngine = Application::getInstance()->getScriptEngine(scriptURLString);
     if (_scriptEngine != NULL) {
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
-        connect(_scriptEngine, &ScriptEngine::scriptEnding, this, &ScriptEditorWidget::onScriptEnding);
+        connect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
+        connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     }
 }
 
@@ -175,6 +189,7 @@ bool ScriptEditorWidget::saveAs() {
 
 void ScriptEditorWidget::setScriptFile(const QString& scriptPath) {
     _currentScript = scriptPath;
+    _currentScriptModified = QFileInfo(_currentScript).lastModified();
     _scriptEditorWidgetUI->scriptEdit->document()->setModified(false);
     setWindowModified(false);
 
@@ -197,4 +212,30 @@ void ScriptEditorWidget::onScriptError(const QString& message) {
 
 void ScriptEditorWidget::onScriptPrint(const QString& message) {
     _scriptEditorWidgetUI->debugText->appendPlainText("> " + message);
+}
+
+void ScriptEditorWidget::onWindowActivated() {
+    if (!_isReloading) {
+        _isReloading = true;
+        
+        if (QFileInfo(_currentScript).lastModified() > _currentScriptModified) {
+            if (static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->autoReloadScripts()
+                || QMessageBox::warning(this, _currentScript,
+                    tr("This file has been modified outside of the Interface editor.") + "\n\n"
+                        + (isModified()
+                        ? tr("Do you want to reload it and lose the changes you've made in the Interface editor?")
+                        : tr("Do you want to reload it?")),
+                    QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+                loadFile(_currentScript);
+                if (_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isRunning()) {
+                    _isRestarting = true;
+                    setRunning(false);
+                    // Script is restarted once current script instance finishes.
+                }
+
+            }
+        }
+
+        _isReloading = false;
+    }
 }

@@ -40,8 +40,7 @@ Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
 
 SnapshotShareDialog::SnapshotShareDialog(QString fileName, QWidget* parent) :
     QDialog(parent),
-    _fileName(fileName),
-    _networkAccessManager(NULL)
+    _fileName(fileName)
 {
 
     setAttribute(Qt::WA_DeleteOnClose);
@@ -92,10 +91,6 @@ void SnapshotShareDialog::uploadSnapshot() {
         return;
     }
 
-    if (!_networkAccessManager) {
-        _networkAccessManager = new QNetworkAccessManager(this);
-    }
-
     QHttpMultiPart* multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
 
     QHttpPart apiKeyPart;
@@ -118,9 +113,7 @@ void SnapshotShareDialog::uploadSnapshot() {
     QUrl url(FORUM_UPLOADS_URL);
     QNetworkRequest request(url);
 
-    QNetworkReply* reply = _networkAccessManager->post(request, multiPart);
-
-
+    QNetworkReply* reply = NetworkAccessManager::getInstance().post(request, multiPart);
     connect(reply, &QNetworkReply::finished, this, &SnapshotShareDialog::uploadRequestFinished);
 
     QEventLoop loop;
@@ -129,11 +122,6 @@ void SnapshotShareDialog::uploadSnapshot() {
 }
 
 void SnapshotShareDialog::sendForumPost(QString snapshotPath) {
-
-    if (!_networkAccessManager) {
-        _networkAccessManager = new QNetworkAccessManager(this);
-    }
-
     // post to Discourse forum
     QNetworkRequest request;
     QUrl forumUrl(FORUM_POST_URL);
@@ -148,7 +136,7 @@ void SnapshotShareDialog::sendForumPost(QString snapshotPath) {
     request.setUrl(forumUrl);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-    QNetworkReply* requestReply = _networkAccessManager->post(request, postData);
+    QNetworkReply* requestReply = NetworkAccessManager::getInstance().post(request, postData);
     connect(requestReply, &QNetworkReply::finished, this, &SnapshotShareDialog::postRequestFinished);
 
     QEventLoop loop;

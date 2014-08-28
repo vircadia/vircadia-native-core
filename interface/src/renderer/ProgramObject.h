@@ -23,6 +23,7 @@ public:
     
     void setUniform(int location, const glm::vec3& value);
     void setUniform(const char* name, const glm::vec3& value);
+    void setUniformArray(const char* name, const glm::vec3* values, int count); 
 };
 
 #endif // hifi_ProgramObject_h

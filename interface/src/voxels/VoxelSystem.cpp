@@ -21,6 +21,8 @@
 #include <SharedUtil.h>
 #include <NodeList.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "Menu.h"
@@ -57,6 +59,8 @@ GLubyte identityIndicesRight[]  = {  1, 2, 6,  1, 6, 5 };
 GLubyte identityIndicesFront[]  = {  0, 2, 1,  0, 3, 2 };
 GLubyte identityIndicesBack[]   = {  4, 5, 6,  4, 6, 7 };
 
+static glm::vec3 grayColor = glm::vec3(0.3f, 0.3f, 0.3f);
+
 VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
     : NodeData(),
     _treeScale(treeScale),
@@ -67,7 +71,10 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
     _inOcclusions(false),
     _showCulledSharedFaces(false),
     _usePrimitiveRenderer(false),
-    _renderer(0) 
+    _renderer(0),
+    _drawHaze(false),
+    _farHazeDistance(300.0f),
+    _hazeColor(grayColor)
 {
 
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
@@ -373,6 +380,7 @@ void VoxelSystem::cleanupVoxelMemory() {
         delete[] _readVoxelDirtyArray;
         _writeVoxelDirtyArray = _readVoxelDirtyArray = NULL;
         _readArraysLock.unlock();
+    
     }
 }
 
@@ -454,6 +462,7 @@ void VoxelSystem::initVoxelMemory() {
 
         _readVoxelShaderData = new VoxelShaderVBOData[_maxVoxels];
         _memoryUsageRAM += (sizeof(VoxelShaderVBOData) * _maxVoxels);
+        
     } else {
 
         // Global Normals mode uses a technique of not including normals on any voxel vertices, and instead
@@ -499,17 +508,7 @@ void VoxelSystem::initVoxelMemory() {
         _memoryUsageRAM += (sizeof(GLubyte) * vertexPointsPerVoxel * _maxVoxels);
 
         // create our simple fragment shader if we're the first system to init
-        if (!_perlinModulateProgram.isLinked()) {
-            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
-                                                           + "shaders/perlin_modulate.vert");
-            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
-                                                           + "shaders/perlin_modulate.frag");
-            _perlinModulateProgram.link();
-
-            _perlinModulateProgram.bind();
-            _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
-            _perlinModulateProgram.release();
-
+        if (!_shadowMapProgram.isLinked()) {
             _shadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
                 Application::resourcesPath() + "shaders/shadow_map.vert");
             _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
@@ -519,14 +518,35 @@ void VoxelSystem::initVoxelMemory() {
             _shadowMapProgram.bind();
             _shadowMapProgram.setUniformValue("shadowMap", 0);
             _shadowMapProgram.release();
+            
+            _cascadedShadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+                Application::resourcesPath() + "shaders/cascaded_shadow_map.vert");
+            _cascadedShadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+                Application::resourcesPath() + "shaders/cascaded_shadow_map.frag");
+            _cascadedShadowMapProgram.link();
+
+            _cascadedShadowMapProgram.bind();
+            _cascadedShadowMapProgram.setUniformValue("shadowMap", 0);
+            _shadowDistancesLocation = _cascadedShadowMapProgram.uniformLocation("shadowDistances");
+            _cascadedShadowMapProgram.release();
         }
+        
     }
     _renderer = new PrimitiveRenderer(_maxVoxels);
 
     _initialized = true;
-
+    
     _writeArraysLock.unlock();
     _readArraysLock.unlock();
+    
+    // fog for haze
+    if (_drawHaze) {
+        GLfloat fogColor[] = {_hazeColor.x, _hazeColor.y, _hazeColor.z, 1.0f};
+        glFogi(GL_FOG_MODE, GL_LINEAR);
+        glFogfv(GL_FOG_COLOR, fogColor);
+        glFogf(GL_FOG_START, 0.0f);
+        glFogf(GL_FOG_END, _farHazeDistance);
+    }
 }
 
 int VoxelSystem::parseData(const QByteArray& packet) {
@@ -1113,6 +1133,7 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
                     node->setBufferIndex(nodeIndex);
                     node->setVoxelSystem(this);
                 }
+                
                 // populate the array with points for the 8 vertices and RGB color for each added vertex
                 updateArraysDetails(nodeIndex, startVertex, voxelScale, node->getColor());
             }
@@ -1130,11 +1151,13 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
 
 void VoxelSystem::updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                      float voxelScale, const nodeColor& color) {
-
+    
     if (_initialized && nodeIndex <= _maxVoxels) {
         _writeVoxelDirtyArray[nodeIndex] = true;
-
+        
         if (_useVoxelShader) {
+            // write in position, scale, and color for the voxel
+            
             if (_writeVoxelShaderData) {
                 VoxelShaderVBOData* writeVerticesAt = &_writeVoxelShaderData[nodeIndex];
                 writeVerticesAt->x = startVertex.x * TREE_SCALE;
@@ -1156,6 +1179,7 @@ void VoxelSystem::updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& 
                 }
             }
         }
+    
     }
 }
 
@@ -1166,6 +1190,8 @@ glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float vo
 
 ProgramObject VoxelSystem::_perlinModulateProgram;
 ProgramObject VoxelSystem::_shadowMapProgram;
+ProgramObject VoxelSystem::_cascadedShadowMapProgram;
+int VoxelSystem::_shadowDistancesLocation;
 
 void VoxelSystem::init() {
     if (_initialized) {
@@ -1404,6 +1430,10 @@ void VoxelSystem::render() {
         }
     } else 
     if (!_usePrimitiveRenderer) {
+        if (_drawHaze) {
+            glEnable(GL_FOG);
+        }
+
         PerformanceWarning warn(showWarnings, "render().. TRIANGLES...");
 
         {
@@ -1475,6 +1505,10 @@ void VoxelSystem::render() {
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         }
+        
+        if (_drawHaze) {
+            glDisable(GL_FOG);
+        }
     }
     else {
         applyScaleAndBindProgram(texture);
@@ -1486,16 +1520,17 @@ void VoxelSystem::render() {
 
 void VoxelSystem::applyScaleAndBindProgram(bool texture) {
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
-        _shadowMapProgram.bind();
+    if (Menu::getInstance()->getShadowsEnabled()) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+            _cascadedShadowMapProgram.bind();
+            _cascadedShadowMapProgram.setUniform(_shadowDistancesLocation, Application::getInstance()->getShadowDistances());
+        } else {
+            _shadowMapProgram.bind();
+        }
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
 
-        glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[0]);
-        glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[1]);
-        glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[2]);
-
     } else if (texture) {
-        _perlinModulateProgram.bind();
+        bindPerlinModulateProgram();
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
     }
 
@@ -1507,11 +1542,14 @@ void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
     // scale back down to 1 so heads aren't massive
     glPopMatrix();
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
-        _shadowMapProgram.release();
+    if (Menu::getInstance()->getShadowsEnabled()) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+            _cascadedShadowMapProgram.release();
+        } else {
+            _shadowMapProgram.release();
+        }
         glBindTexture(GL_TEXTURE_2D, 0);
         
-
     } else if (texture) {
         _perlinModulateProgram.release();
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -2140,6 +2178,22 @@ unsigned long VoxelSystem::getFreeMemoryGPU() {
 unsigned long VoxelSystem::getVoxelMemoryUsageGPU() {
     unsigned long currentFreeMemory = getFreeMemoryGPU();
     return (_initialMemoryUsageGPU - currentFreeMemory);
+}
+
+void VoxelSystem::bindPerlinModulateProgram() {
+    if (!_perlinModulateProgram.isLinked()) {
+        _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/perlin_modulate.vert");
+        _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/perlin_modulate.frag");
+        _perlinModulateProgram.link();
+
+        _perlinModulateProgram.bind();
+        _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
+    
+    } else {
+        _perlinModulateProgram.bind();
+    }
 }
 
 // Swizzle value of bit pairs of the value of index

@@ -18,8 +18,10 @@
 #include "ui/TextRenderer.h"
 
 TextOverlay::TextOverlay() :
+    _backgroundColor(DEFAULT_BACKGROUND_COLOR),
     _leftMargin(DEFAULT_MARGIN),
-    _topMargin(DEFAULT_MARGIN)
+    _topMargin(DEFAULT_MARGIN),
+    _fontSize(DEFAULT_FONTSIZE)
 {
 }
 
@@ -32,7 +34,7 @@ void TextOverlay::render() {
     }
 
     const float MAX_COLOR = 255;
-    glColor4f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, _alpha);
+    glColor4f(_backgroundColor.red / MAX_COLOR, _backgroundColor.green / MAX_COLOR, _backgroundColor.blue / MAX_COLOR, _alpha);
 
     glBegin(GL_QUADS);
         glVertex2f(_bounds.left(), _bounds.top());
@@ -43,8 +45,9 @@ void TextOverlay::render() {
 
     //TextRenderer(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
     //             EffectType effect = NO_EFFECT, int effectThickness = 1);
-
-    TextRenderer textRenderer(SANS_FONT_FAMILY, 11, 50);
+    TextRenderer textRenderer(SANS_FONT_FAMILY, _fontSize, 50, false, TextRenderer::NO_EFFECT, 1,
+                              QColor(_color.red, _color.green, _color.blue));
+    
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
     const int topAdjust = -2; // required to make text render relative to top edge of bounds
     int x = _bounds.left() + _leftMargin + leftAdjust;
@@ -67,10 +70,29 @@ void TextOverlay::render() {
 
 void TextOverlay::setProperties(const QScriptValue& properties) {
     Overlay2D::setProperties(properties);
+    
+    QScriptValue font = properties.property("font");
+    if (font.isObject()) {
+        if (font.property("size").isValid()) {
+            setFontSize(font.property("size").toInt32());
+        }
+    }
 
     QScriptValue text = properties.property("text");
     if (text.isValid()) {
         setText(text.toVariant().toString());
+    }
+
+    QScriptValue backgroundColor = properties.property("backgroundColor");
+    if (backgroundColor.isValid()) {
+        QScriptValue red = backgroundColor.property("red");
+        QScriptValue green = backgroundColor.property("green");
+        QScriptValue blue = backgroundColor.property("blue");
+        if (red.isValid() && green.isValid() && blue.isValid()) {
+            _backgroundColor.red = red.toVariant().toInt();
+            _backgroundColor.green = green.toVariant().toInt();
+            _backgroundColor.blue = blue.toVariant().toInt();
+        }
     }
 
     if (properties.property("leftMargin").isValid()) {

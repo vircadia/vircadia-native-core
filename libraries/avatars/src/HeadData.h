@@ -20,8 +20,8 @@
 #include <glm/gtc/quaternion.hpp>
 
 // degrees
-const float MIN_HEAD_YAW = -110.f;
-const float MAX_HEAD_YAW = 110.f;
+const float MIN_HEAD_YAW = -180.f;
+const float MAX_HEAD_YAW = 180.f;
 const float MIN_HEAD_PITCH = -60.f;
 const float MAX_HEAD_PITCH = 60.f;
 const float MIN_HEAD_ROLL = -50.f;
@@ -41,6 +41,10 @@ public:
     void setBasePitch(float pitch) { _basePitch = glm::clamp(pitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH); }
     float getBaseRoll() const { return _baseRoll; }
     void setBaseRoll(float roll) { _baseRoll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
+    
+    virtual void setFinalYaw(float finalYaw) { _baseYaw = finalYaw; }
+    virtual void setFinalPitch(float finalPitch) { _basePitch = finalPitch; }
+    virtual void setFinalRoll(float finalRoll) { _baseRoll = finalRoll; }
     virtual float getFinalYaw() const { return _baseYaw; }
     virtual float getFinalPitch() const { return _basePitch; }
     virtual float getFinalRoll() const { return _baseRoll; }
@@ -54,7 +58,9 @@ public:
     float getAudioAverageLoudness() const { return _audioAverageLoudness; }
 	void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
 
+    void setBlendshape(QString name, float val);
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
     
     float getPupilDilation() const { return _pupilDilation; }
     void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
@@ -66,6 +72,15 @@ public:
     
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
     void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
+    
+    
+    float getLeanSideways() const { return _leanSideways; }
+    float getLeanForward() const { return _leanForward; }
+    virtual float getFinalLeanSideways() const { return _leanSideways; }
+    virtual float getFinalLeanForward() const { return _leanForward; }
+    
+    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
+    void setLeanForward(float leanForward) { _leanForward = leanForward; }
     
     friend class AvatarData;
     

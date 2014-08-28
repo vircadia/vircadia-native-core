@@ -181,10 +181,6 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
     }
 }
 
-// MIN_VALID_SPEED is obtained by computing speed gained at one gravity after the shortest expected frame
-const float MIN_EXPECTED_FRAME_PERIOD = 0.0167f;  // 1/60th of a second
-const float HALTING_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE);
-
 void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     // particles that are in hand, don't collide with avatars
     if (!_avatars || particle->getInHand()) {
@@ -202,14 +198,13 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     foreach (const AvatarSharedPointer& avatarPointer, _avatars->getAvatarHash()) {
         AvatarData* avatar = avatarPointer.data();
 
-        // use a very generous bounding radius since the arms can stretch
-        float totalRadius = 2.f * avatar->getBoundingRadius() + radius;
+        float totalRadius = avatar->getBoundingRadius() + radius;
         glm::vec3 relativePosition = center - avatar->getPosition();
         if (glm::dot(relativePosition, relativePosition) > (totalRadius * totalRadius)) {
             continue;
         }
 
-        if (avatar->findParticleCollisions(center, radius, _collisions)) {
+        if (avatar->findSphereCollisions(center, radius, _collisions)) {
             int numCollisions = _collisions.size();
             for (int i = 0; i < numCollisions; ++i) {
                 CollisionInfo* collision = _collisions.getCollision(i);
@@ -222,25 +217,6 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 if (glm::dot(relativeVelocity, collision->_penetration) <= 0.f) {
                     // only collide when particle and collision point are moving toward each other
                     // (doing this prevents some "collision snagging" when particle penetrates the object)
-    
-                    // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against them.
-                    if (collision->_type == COLLISION_TYPE_PADDLE_HAND) {
-                        // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
-                        // TODO: make this less hacky when we have more per-collision details
-                        float elasticity = ELASTICITY;
-                        float attenuationFactor = glm::length(collision->_addedVelocity) / HALTING_SPEED;
-                        float damping = DAMPING;
-                        if (attenuationFactor < 1.f) {
-                            collision->_addedVelocity *= attenuationFactor;
-                            elasticity *= attenuationFactor;
-                            // NOTE: the math below keeps the damping piecewise continuous,
-                            // while ramping it up to 1 when attenuationFactor = 0
-                            damping = DAMPING + (1.f - attenuationFactor) * (1.f - DAMPING);
-                        }
-                        collision->_damping = damping;
-                    }
-                    // HACK END
-    
                     updateCollisionSound(particle, collision->_penetration, COLLISION_FREQUENCY);
                     collision->_penetration /= (float)(TREE_SCALE);
                     particle->applyHardCollision(*collision);

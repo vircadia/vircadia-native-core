@@ -29,6 +29,8 @@ typedef QList<FBXNode> FBXNodeList;
 
 /// The names of the blendshapes expected by Faceshift, terminated with an empty string.
 extern const char* FACESHIFT_BLENDSHAPES[];
+/// The size of FACESHIFT_BLENDSHAPES
+extern const int NUM_FACESHIFT_BLENDSHAPES;
 
 /// The names of the joints in the Maya HumanIK rig, terminated with an empty string.
 extern const char* HUMANIK_JOINTS[];
@@ -182,6 +184,14 @@ public:
     glm::vec3 scale;
 };
 
+/// A point where an avatar can sit
+class SittingPoint {
+public:
+    QString name;
+    glm::vec3 position; // relative postion
+    glm::quat rotation; // relative orientation
+};
+
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
 public:
@@ -208,6 +218,8 @@ public:
     QVector<int> humanIKJointIndices;
     
     glm::vec3 palmDirection;
+    
+    QVector<SittingPoint> sittingPoints;
     
     glm::vec3 neckPivot;
     

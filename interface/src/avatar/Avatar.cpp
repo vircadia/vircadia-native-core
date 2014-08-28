@@ -14,19 +14,22 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
-
-#include <NodeList.h>
-#include <PacketHeaders.h>
-#include <SharedUtil.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <GeometryUtil.h>
+#include <NodeList.h>
+#include <PacketHeaders.h>
+#include <PerfStat.h>
+#include <SharedUtil.h>
 
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
+#include "ModelReferential.h"
 #include "Physics.h"
+#include "Recorder.h"
 #include "world.h"
 #include "devices/OculusManager.h"
 #include "renderer/TextureCache.h"
@@ -48,6 +51,12 @@ Avatar::Avatar() :
     _skeletonModel(this),
     _bodyYawDelta(0.0f),
     _velocity(0.0f, 0.0f, 0.0f),
+    _lastVelocity(0.0f, 0.0f, 0.0f),
+    _acceleration(0.0f, 0.0f, 0.0f),
+    _angularVelocity(0.0f, 0.0f, 0.0f),
+    _lastAngularVelocity(0.0f, 0.0f, 0.0f),
+    _angularAcceleration(0.0f, 0.0f, 0.0f),
+    _lastOrientation(),
     _leanScale(0.5f),
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
@@ -94,6 +103,32 @@ float Avatar::getLODDistance() const {
 }
 
 void Avatar::simulate(float deltaTime) {
+    PerformanceTimer perfTimer("simulate");
+    
+    // update the avatar's position according to its referential
+    if (_referential) {
+        if (_referential->hasExtraData()) {
+            ModelTree* tree = Application::getInstance()->getModels()->getTree();
+            switch (_referential->type()) {
+                case Referential::MODEL:
+                    _referential = new ModelReferential(_referential,
+                                                        tree,
+                                                        this);
+                    break;
+                case Referential::JOINT:
+                    _referential = new JointReferential(_referential,
+                                                        tree,
+                                                        this);
+                    break;
+                default:
+                    qDebug() << "[WARNING] Avatar::simulate(): Unknown referential type.";
+                    break;
+            }
+        }
+        
+        _referential->update();
+    }
+    
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
@@ -113,31 +148,47 @@ void Avatar::simulate(float deltaTime) {
     bool inViewFrustum = Application::getInstance()->getViewFrustum()->sphereInFrustum(_position, boundingRadius) !=
         ViewFrustum::OUTSIDE;
 
-    getHand()->simulate(deltaTime, false);
+    {
+        PerformanceTimer perfTimer("hand");
+        getHand()->simulate(deltaTime, false);
+    }
     _skeletonModel.setLODDistance(getLODDistance());
     
     if (!_shouldRenderBillboard && inViewFrustum) {
-        if (_hasNewJointRotations) {
-            for (int i = 0; i < _jointData.size(); i++) {
-                const JointData& data = _jointData.at(i);
-                _skeletonModel.setJointState(i, data.valid, data.rotation);
+        {
+            PerformanceTimer perfTimer("skeleton");
+            if (_hasNewJointRotations) {
+                for (int i = 0; i < _jointData.size(); i++) {
+                    const JointData& data = _jointData.at(i);
+                    _skeletonModel.setJointState(i, data.valid, data.rotation);
+                }
             }
-            _skeletonModel.simulate(deltaTime);
+            _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
+            simulateAttachments(deltaTime);
+            _hasNewJointRotations = false;
         }
-        _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
-        simulateAttachments(deltaTime);
-        _hasNewJointRotations = false;
-
-        glm::vec3 headPosition = _position;
-        _skeletonModel.getHeadPosition(headPosition);
-        Head* head = getHead();
-        head->setPosition(headPosition);
-        head->setScale(_scale);
-        head->simulate(deltaTime, false, _shouldRenderBillboard);
+        {
+            PerformanceTimer perfTimer("head");
+            glm::vec3 headPosition = _position;
+            _skeletonModel.getHeadPosition(headPosition);
+            Head* head = getHead();
+            head->setPosition(headPosition);
+            head->setScale(_scale);
+            head->simulate(deltaTime, false, _shouldRenderBillboard);
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
+            PerformanceTimer perfTimer("hair");
+            _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.simulate(deltaTime);
+        }
     }
     
     // update position by velocity, and subtract the change added earlier for gravity
     _position += _velocity * deltaTime;
+    updateAcceleration(deltaTime);
     
     // update animation for display name fade in/out
     if ( _displayNameTargetAlpha != _displayNameAlpha) {
@@ -155,6 +206,18 @@ void Avatar::simulate(float deltaTime) {
         }
         _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
+}
+
+void Avatar::updateAcceleration(float deltaTime) {
+    // Linear Component of Acceleration
+    _acceleration = (_velocity - _lastVelocity) * (1.f / deltaTime);
+    _lastVelocity = _velocity;
+    //  Angular Component of Acceleration
+    glm::quat orientation = getOrientation();
+    glm::quat delta = glm::inverse(_lastOrientation) * orientation;
+    _angularVelocity = safeEulerAngles(delta) * (1.f / deltaTime);
+    _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * (1.f / deltaTime);
+    _lastOrientation = getOrientation();
 }
 
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
@@ -182,15 +245,64 @@ static TextRenderer* textRenderer(TextRendererType type) {
 }
 
 void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
+    if (_referential) {
+        _referential->update();
+    }
+    
+    if (glm::distance(Application::getInstance()->getAvatar()->getPosition(),
+                      _position) < 10.0f) {
+        // render pointing lasers
+        glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
+        float laserLength = 50.0f;
+        if (_handState == HAND_STATE_LEFT_POINTING ||
+            _handState == HAND_STATE_BOTH_POINTING) {
+            int leftIndex = _skeletonModel.getLeftHandJointIndex();
+            glm::vec3 leftPosition;
+            glm::quat leftRotation;
+            _skeletonModel.getJointPositionInWorldFrame(leftIndex, leftPosition);
+            _skeletonModel.getJointRotationInWorldFrame(leftIndex, leftRotation);
+            glPushMatrix(); {
+                glTranslatef(leftPosition.x, leftPosition.y, leftPosition.z);
+                float angle = glm::degrees(glm::angle(leftRotation));
+                glm::vec3 axis = glm::axis(leftRotation);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glBegin(GL_LINES);
+                glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, laserLength, 0.0f);
+                glEnd();
+            } glPopMatrix();
+        }
+        if (_handState == HAND_STATE_RIGHT_POINTING ||
+            _handState == HAND_STATE_BOTH_POINTING) {
+            int rightIndex = _skeletonModel.getRightHandJointIndex();
+            glm::vec3 rightPosition;
+            glm::quat rightRotation;
+            _skeletonModel.getJointPositionInWorldFrame(rightIndex, rightPosition);
+            _skeletonModel.getJointRotationInWorldFrame(rightIndex, rightRotation);
+            glPushMatrix(); {
+                glTranslatef(rightPosition.x, rightPosition.y, rightPosition.z);
+                float angle = glm::degrees(glm::angle(rightRotation));
+                glm::vec3 axis = glm::axis(rightRotation);
+                glRotatef(angle, axis.x, axis.y, axis.z);
+                glBegin(GL_LINES);
+                glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, laserLength, 0.0f);
+                glEnd();
+            } glPopMatrix();
+        }
+    }
+    
     // simple frustum check
     float boundingRadius = getBillboardSize();
     ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
         Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getViewFrustum();
-    if (frustum->sphereInFrustum(_position, boundingRadius) == ViewFrustum::OUTSIDE) {
+    if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
 
-    glm::vec3 toTarget = cameraPosition - Application::getInstance()->getAvatar()->getPosition();
+    glm::vec3 toTarget = cameraPosition - getPosition();
     float distanceToTarget = glm::length(toTarget);
    
     {
@@ -198,7 +310,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         const float GLOW_DISTANCE = 20.0f;
         const float GLOW_MAX_LOUDNESS = 2500.0f;
         const float MAX_GLOW = 0.5f;
-        
+     
         float GLOW_FROM_AVERAGE_LOUDNESS = ((this == Application::getInstance()->getAvatar())
                                             ? 0.0f
                                             : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
@@ -209,7 +321,13 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
                       ? 1.0f
                       : GLOW_FROM_AVERAGE_LOUDNESS;
-
+        
+        
+        // local lights directions and colors
+        const QVector<Model::LocalLight>& localLights = Application::getInstance()->getAvatarManager().getLocalLights();
+        _skeletonModel.setLocalLights(localLights);
+        getHead()->getFaceModel().setLocalLights(localLights);
+        
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode, glowLevel);
@@ -218,9 +336,6 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
             bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
             bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
-            if (renderSkeleton || renderHead || renderBounding) {
-                updateShapePositions();
-            }
 
             if (renderSkeleton) {
                 _skeletonModel.renderJointCollisionShapes(0.7f);
@@ -230,12 +345,11 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
                 getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
             }
             if (renderBounding && shouldRenderHead(cameraPosition, renderMode)) {
-                getHead()->getFaceModel().renderBoundingCollisionShapes(0.7f);
                 _skeletonModel.renderBoundingCollisionShapes(0.7f);
             }
 
             // If this is the avatar being looked at, render a little ball above their head
-            if (_isLookAtTarget) {
+            if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
                 const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
                 const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
                 const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.75f };
@@ -254,10 +368,12 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         // quick check before falling into the code below:
         // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
         const float MIN_VOICE_SPHERE_DISTANCE = 12.0f;
-        if (distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BlueSpeechSphere)
+            && distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
+
             // render voice intensity sphere for avatars that are farther away
             const float MAX_SPHERE_ANGLE = 10.0f * RADIANS_PER_DEGREE;
-            const float MIN_SPHERE_ANGLE = 1.0f * RADIANS_PER_DEGREE;
+            const float MIN_SPHERE_ANGLE = 0.5f * RADIANS_PER_DEGREE;
             const float MIN_SPHERE_SIZE = 0.01f;
             const float SPHERE_LOUDNESS_SCALING = 0.0005f;
             const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
@@ -278,7 +394,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         }
     }
 
-    const float DISPLAYNAME_DISTANCE = 10.0f;
+    const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(renderMode == NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
     if (renderMode != NORMAL_RENDER_MODE || (isMyAvatar() &&
             Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON)) {
@@ -361,6 +477,18 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
         getHand()->render(false, modelRenderMode);
     }
     getHead()->render(1.0f, modelRenderMode);
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
+        // Render Hair
+        glPushMatrix();
+        glm::vec3 headPosition = getHead()->getPosition();
+        glTranslatef(headPosition.x, headPosition.y, headPosition.z);
+        const glm::quat& rotation = getHead()->getFinalOrientationInWorldFrame();
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+        _hair.render();
+        glPopMatrix();
+    }
 }
 
 bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
@@ -377,11 +505,11 @@ void Avatar::simulateAttachments(float deltaTime) {
         if (!isMyAvatar()) {
             model->setLODDistance(getLODDistance());
         }
-        if (_skeletonModel.getJointPosition(jointIndex, jointPosition) &&
-                _skeletonModel.getJointRotation(jointIndex, jointRotation)) {
+        if (_skeletonModel.getJointPositionInWorldFrame(jointIndex, jointPosition) &&
+                _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
-            model->setScale(_skeletonModel.getScale() * attachment.scale);
+            model->setScaleToFit(true, _scale * attachment.scale);
             model->simulate(deltaTime);
         }
     }
@@ -579,28 +707,15 @@ bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     return false;
 }
 
-bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, int skeletonSkipIndex) {
-    return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions, skeletonSkipIndex);
-    // Temporarily disabling collisions against the head because most of its collision proxies are bad.
+bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions) {
+    return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
+    // TODO: Andrew to fix: Temporarily disabling collisions against the head
     //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
 }
 
 bool Avatar::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
     return _skeletonModel.findPlaneCollisions(plane, collisions) ||
         getHead()->getFaceModel().findPlaneCollisions(plane, collisions);
-}
-
-void Avatar::updateShapePositions() {
-    _skeletonModel.updateShapePositions();
-    Model& headModel = getHead()->getFaceModel();
-    headModel.updateShapePositions();
-    /* KEEP FOR DEBUG: use this in rather than code above to see shapes 
-     * in their default positions where the bounding shape is computed.
-    _skeletonModel.resetShapePositions();
-    Model& headModel = getHead()->getFaceModel();
-    headModel.resetShapePositions();
-    */
 }
 
 bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
@@ -613,67 +728,15 @@ bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& 
     return collided;
 }
 
-bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
-    if (_collisionGroups & COLLISION_GROUP_PARTICLES) {
-        return false;
+QVector<glm::quat> Avatar::getJointRotations() const {
+    if (QThread::currentThread() != thread()) {
+        return AvatarData::getJointRotations();
     }
-    bool collided = false;
-    // first do the hand collisions
-    const HandData* handData = getHandData();
-    if (handData) {
-        for (int i = 0; i < NUM_HANDS; i++) {
-            const PalmData* palm = handData->getPalm(i);
-            if (palm && palm->hasPaddle()) {
-                // create a disk collision proxy where the hand is
-                int jointIndex = -1;
-                glm::vec3 handPosition;
-                if (i == 0) {
-                    _skeletonModel.getLeftHandPosition(handPosition);
-                    jointIndex = _skeletonModel.getLeftHandJointIndex();
-                }
-                else {
-                    _skeletonModel.getRightHandPosition(handPosition);
-                    jointIndex = _skeletonModel.getRightHandJointIndex();
-                }
-
-                glm::vec3 fingerAxis = palm->getFingerDirection();
-                glm::vec3 diskCenter = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
-                glm::vec3 diskNormal = palm->getNormal();
-                const float DISK_THICKNESS = 0.08f;
-
-                // collide against the disk
-                glm::vec3 penetration;
-                if (findSphereDiskPenetration(particleCenter, particleRadius, 
-                            diskCenter, HAND_PADDLE_RADIUS, DISK_THICKNESS, diskNormal,
-                            penetration)) {
-                    CollisionInfo* collision = collisions.getNewCollision();
-                    if (collision) {
-                        collision->_type = COLLISION_TYPE_PADDLE_HAND;
-                        collision->_intData = jointIndex;
-                        collision->_penetration = penetration;
-                        collision->_addedVelocity = palm->getVelocity();
-                        collided = true;
-                    } else {
-                        // collisions are full, so we might as well bail now
-                        return collided;
-                    }
-                }
-            }
-        }
+    QVector<glm::quat> jointRotations(_skeletonModel.getJointStateCount());
+    for (int i = 0; i < _skeletonModel.getJointStateCount(); ++i) {
+        _skeletonModel.getJointState(i, jointRotations[i]);
     }
-    // then collide against the models
-    int preNumCollisions = collisions.size();
-    if (_skeletonModel.findSphereCollisions(particleCenter, particleRadius, collisions)) {
-        // the Model doesn't have velocity info, so we have to set it for each new collision
-        int postNumCollisions = collisions.size();
-        for (int i = preNumCollisions; i < postNumCollisions; ++i) {
-            CollisionInfo* collision = collisions.getCollision(i);
-            collision->_penetration /= (float)(TREE_SCALE);
-            collision->_addedVelocity = getVelocity();
-        }
-        collided = true;
-    }
-    return collided;
+    return jointRotations;
 }
 
 glm::quat Avatar::getJointRotation(int index) const {
@@ -705,6 +768,59 @@ QStringList Avatar::getJointNames() const {
     return _skeletonModel.isActive() ? _skeletonModel.getGeometry()->getFBXGeometry().getJointNames() : QStringList();
 }
 
+glm::vec3 Avatar::getJointPosition(int index) const {
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 position;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
+        return position;
+    }
+    glm::vec3 position;
+    _skeletonModel.getJointPositionInWorldFrame(index, position);
+    return position;
+}
+
+glm::vec3 Avatar::getJointPosition(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 position;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
+        return position;
+    }
+    glm::vec3 position;
+    _skeletonModel.getJointPositionInWorldFrame(getJointIndex(name), position);
+    return position;
+}
+
+glm::quat Avatar::getJointCombinedRotation(int index) const {
+    if (QThread::currentThread() != thread()) {
+        glm::quat rotation;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointCombinedRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::quat, rotation), Q_ARG(const int, index));
+        return rotation;
+    }
+    glm::quat rotation;
+    _skeletonModel.getJointCombinedRotation(index, rotation);
+    return rotation;
+}
+
+glm::quat Avatar::getJointCombinedRotation(const QString& name) const {
+    if (QThread::currentThread() != thread()) {
+        glm::quat rotation;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointCombinedRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::quat, rotation), Q_ARG(const QString&, name));
+        return rotation;
+    }
+    glm::quat rotation;
+    _skeletonModel.getJointCombinedRotation(getJointIndex(name), rotation);
+    return rotation;
+}
+
+void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
+    //Scale a world space vector as if it was relative to the position
+    positionToScale = _position + _scale * (positionToScale - _position);
+}
+
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");
@@ -734,6 +850,8 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     
     // update the urls
     for (int i = 0; i < attachmentData.size(); i++) {
+        _attachmentModels[i]->setSnapModelToCenter(true);
+        _attachmentModels[i]->setScaleToFit(true, _scale * _attachmentData.at(i).scale);
         _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
     }
 }
@@ -857,25 +975,6 @@ float Avatar::getHeadHeight() const {
     }
     const float DEFAULT_HEAD_HEIGHT = 0.1f;
     return DEFAULT_HEAD_HEIGHT;
-}
-
-bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
-    if (!collision._data || collision._type != COLLISION_TYPE_MODEL) {
-        return false;
-    }
-    Model* model = static_cast<Model*>(collision._data);
-    int jointIndex = collision._intData;
-
-    if (model == &(_skeletonModel) && jointIndex != -1) {
-        // collision response of skeleton is temporarily disabled
-        return false;
-        //return _skeletonModel.collisionHitsMoveableJoint(collision);
-    }
-    if (model == &(getHead()->getFaceModel())) {
-        // ATM we always handle COLLISION_TYPE_MODEL against the face.
-        return true;
-    }
-    return false;
 }
 
 float Avatar::getBoundingRadius() const {

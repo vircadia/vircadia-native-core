@@ -28,27 +28,9 @@ DerivedData
 
 *.hmap
 
-# ignore oculus
-interface/external/oculus/*
-!interface/external/oculus/readme.txt
-
-# Ignore Sixense
-interface/external/sixense/*
-!interface/external/sixense/readme.txt
-
-# Ignore Visage
-interface/external/visage/*
-!interface/external/visage/readme.txt
-interface/resources/visage/*
-!interface/resources/visage/tracker.cfg
-
-# Ignore Faceplus
-interface/external/faceplus/*
-!interface/external/faceplus/readme.txt
-
-# Ignore PrioVR
-interface/external/priovr/*
-!interface/external/priovr/readme.txt
+# ignore interface optional externals
+interface/external/*/*
+!interface/external/*/readme.txt
 
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/

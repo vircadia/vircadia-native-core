@@ -9,12 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QJsonDocument>
 #include <QJsonObject>
-#include <QNetworkAccessManager>
 #include <QTimer>
 #include <QUuid>
 
 #include <time.h>
+
+#include <AccountManager.h>
 #include <HTTPConnection.h>
 #include <Logging.h>
 #include <UUID.h>
@@ -245,6 +247,10 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
 
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
+    
+    // make sure the AccountManager has an Auth URL for payment redemptions
+    
+    AccountManager::getInstance().setAuthURL(DEFAULT_NODE_AUTH_URL);
 }
 
 OctreeServer::~OctreeServer() {
@@ -648,10 +654,10 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         int senderNumber = 0;
         NodeToSenderStatsMap& allSenderStats = _octreeInboundPacketProcessor->getSingleSenderStats();
-        for (NodeToSenderStatsMapIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
+        for (NodeToSenderStatsMapConstIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
             senderNumber++;
-            QUuid senderID = i->first;
-            SingleSenderStats& senderStats = i->second;
+            QUuid senderID = i.key();
+            const SingleSenderStats& senderStats = i.value();
 
             statsString += QString("\r\n             Stats for sender %1 uuid: %2\r\n")
                 .arg(senderNumber).arg(senderID.toString());
@@ -832,14 +838,13 @@ void OctreeServer::readPendingDatagrams() {
             PacketType packetType = packetTypeForPacket(receivedPacket);
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (packetType == getMyQueryMessageType()) {
-            
                 // If we got a query packet, then we're talking to an agent, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
                     nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
-                    OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
                     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                    
+                        
                         // NOTE: this is an important aspect of the proper ref counting. The send threads/node data need to 
                         // know that the OctreeServer/Assignment will not get deleted on it while it's still active. The 
                         // solution is to get the shared pointer for the current assignment. We need to make sure this is the 
@@ -848,8 +853,19 @@ void OctreeServer::readPendingDatagrams() {
                         nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
                     }
                 }
+            } else if (packetType == PacketTypeOctreeDataNack) {
+                // If we got a nack packet, then we're talking to an agent, and we
+                // need to make sure we have it in our nodeList.
+                if (matchingNode) {
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
+                    if (nodeData) {
+                        nodeData->parseNackPacket(receivedPacket);
+                    }
+                }
             } else if (packetType == PacketTypeJurisdictionRequest) {
                 _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
+            } else if (packetType == PacketTypeSignedTransactionPayment) {
+                handleSignedTransactionPayment(packetType, receivedPacket);
             } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
                 _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
             } else {
@@ -1051,6 +1067,9 @@ void OctreeServer::nodeAdded(SharedNodePointer node) {
 void OctreeServer::nodeKilled(SharedNodePointer node) {
     quint64 start  = usecTimestampNow();
 
+    // calling this here since nodeKilled slot in ReceivedPacketProcessor can't be triggered by signals yet!!
+    _octreeInboundPacketProcessor->nodeKilled(node);
+
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
@@ -1086,6 +1105,8 @@ void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
 
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
+    qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
+    _octreeInboundPacketProcessor->shuttingDown();
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);
@@ -1190,6 +1211,51 @@ QString OctreeServer::getStatusLink() {
         result = "Status port not enabled.";
     }
     return result;
+}
+
+void OctreeServer::handleSignedTransactionPayment(PacketType packetType, const QByteArray& datagram) {
+    // for now we're not verifying that this is actual payment for any octree edits
+    // just use the AccountManager to send it up to the data server and have it redeemed
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    const int NUM_BYTES_SIGNED_TRANSACTION_BINARY_MESSAGE = 72;
+    const int NUM_BYTES_SIGNED_TRANSACTION_BINARY_SIGNATURE = 256;
+    
+    int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(packetType);
+    
+    // pull out the transaction message in binary
+    QByteArray messageHex = datagram.mid(numBytesPacketHeader, NUM_BYTES_SIGNED_TRANSACTION_BINARY_MESSAGE).toHex();
+    // pull out the binary signed message digest
+    QByteArray signatureHex = datagram.mid(numBytesPacketHeader + NUM_BYTES_SIGNED_TRANSACTION_BINARY_MESSAGE,
+                                           NUM_BYTES_SIGNED_TRANSACTION_BINARY_SIGNATURE).toHex();
+    
+    // setup the QJSONObject we are posting
+    QJsonObject postObject;
+    
+    const QString TRANSACTION_OBJECT_MESSAGE_KEY = "message";
+    const QString TRANSACTION_OBJECT_SIGNATURE_KEY = "signature";
+    const QString POST_OBJECT_TRANSACTION_KEY = "transaction";
+    
+    QJsonObject transactionObject;
+    transactionObject.insert(TRANSACTION_OBJECT_MESSAGE_KEY, QString(messageHex));
+    transactionObject.insert(TRANSACTION_OBJECT_SIGNATURE_KEY, QString(signatureHex));
+    
+    postObject.insert(POST_OBJECT_TRANSACTION_KEY, transactionObject);
+    
+    // setup our callback params
+    JSONCallbackParameters callbackParameters;
+    callbackParameters.jsonCallbackReceiver = this;
+    callbackParameters.jsonCallbackMethod = "handleSignedTransactionPaymentResponse";
+    
+    accountManager.unauthenticatedRequest("/api/v1/transactions/redeem", QNetworkAccessManager::PostOperation,
+                                          callbackParameters, QJsonDocument(postObject).toJson());
+    
+}
+
+void OctreeServer::handleSignedTransactionPaymentResponse(const QJsonObject& jsonObject) {
+    // pull the ID to debug the transaction
+    QString transactionIDString = jsonObject["data"].toObject()["transaction"].toObject()["id"].toString();
+    qDebug() << "Redeemed transaction with ID" << transactionIDString << "successfully.";
 }
 
 void OctreeServer::sendStatsPacket() {

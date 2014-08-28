@@ -93,6 +93,19 @@ void TV3DManager::display(Camera& whichCamera) {
     int portalW = Application::getInstance()->getGLWidget()->width() / 2;
     int portalH = Application::getInstance()->getGLWidget()->height();
 
+    const bool glowEnabled = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
+
+    ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
+
+    // We only need to render the overlays to a texture once, then we just render the texture as a quad
+    // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
+    applicationOverlay.renderOverlay(true);
+    const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::UserInterface);
+
+    if (glowEnabled) {
+        Application::getInstance()->getGlowEffect()->prepare();
+    }
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glEnable(GL_SCISSOR_TEST);
@@ -102,13 +115,23 @@ void TV3DManager::display(Camera& whichCamera) {
 
     glPushMatrix();
     {
+        
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity(); // reset projection matrix
         glFrustum(_leftEye.left, _leftEye.right, _leftEye.bottom, _leftEye.top, nearZ, farZ); // set left view frustum
+        GLfloat p[4][4];
+        glGetFloatv(GL_PROJECTION_MATRIX, &(p[0][0]));
+        GLfloat cotangent = p[1][1];
+        GLfloat fov = atan(1.0f / cotangent);
         glTranslatef(_leftEye.modelTranslation, 0.0, 0.0); // translate to cancel parallax
+
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         Application::getInstance()->displaySide(whichCamera);
+
+        if (displayOverlays) {
+            applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
+        }
     }
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
@@ -124,14 +147,27 @@ void TV3DManager::display(Camera& whichCamera) {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity(); // reset projection matrix
         glFrustum(_rightEye.left, _rightEye.right, _rightEye.bottom, _rightEye.top, nearZ, farZ); // set left view frustum
+        GLfloat p[4][4];
+        glGetFloatv(GL_PROJECTION_MATRIX, &(p[0][0]));
+        GLfloat cotangent = p[1][1];
+        GLfloat fov = atan(1.0f / cotangent);
         glTranslatef(_rightEye.modelTranslation, 0.0, 0.0); // translate to cancel parallax
+
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         Application::getInstance()->displaySide(whichCamera);
+
+        if (displayOverlays) {
+            applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
+        }
     }
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
 
     // reset the viewport to how we started
     glViewport(0, 0, Application::getInstance()->getGLWidget()->width(), Application::getInstance()->getGLWidget()->height());
+
+    if (glowEnabled) {
+        Application::getInstance()->getGlowEffect()->render();
+    }
 }

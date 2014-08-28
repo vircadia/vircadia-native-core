@@ -459,7 +459,7 @@ void AudioReflector::calculateAllReflections() {
     // only recalculate when we've moved, or if the attributes have changed
     // TODO: what about case where new voxels are added in front of us???
     bool wantHeadOrientation = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingHeadOriented);
-    glm::quat orientation = wantHeadOrientation ? _myAvatar->getHead()->getFinalOrientation() : _myAvatar->getOrientation();
+    glm::quat orientation = wantHeadOrientation ? _myAvatar->getHead()->getFinalOrientationInWorldFrame() : _myAvatar->getOrientation();
     glm::vec3 origin = _myAvatar->getHead()->getPosition();
     glm::vec3 listenerPosition = _myAvatar->getHead()->getPosition();
 

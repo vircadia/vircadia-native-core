@@ -21,6 +21,8 @@
 
 #include <SharedUtil.h>
 
+#include <QThread>
+
 #include "InterfaceConfig.h"
 #include "ui/TextRenderer.h"
 #include "VoxelConstants.h"
@@ -65,6 +67,7 @@ void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * righ
 void printVector(glm::vec3 vec) {
     qDebug("%4.2f, %4.2f, %4.2f", vec.x, vec.y, vec.z);
 }
+
 
 //  Return the azimuth angle (in radians) between two points.
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
@@ -400,20 +403,56 @@ bool closeEnoughForGovernmentWork(float a, float b) {
 void runTimingTests() {
     //  How long does it take to make a call to get the time?
     const int numTests = 1000000;
-    int iResults[numTests];
+    int* iResults = (int*)malloc(sizeof(int) * numTests);
     float fTest = 1.0;
-    float fResults[numTests];
+    float* fResults = (float*)malloc(sizeof(float) * numTests);
     QElapsedTimer startTime;
     startTime.start();
     float elapsedUsecs;
     
     float NSEC_TO_USEC = 1.0f / 1000.0f;
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("QElapsedTimer::nsecElapsed() usecs: %f", elapsedUsecs / (float) numTests);
+    qDebug("QElapsedTimer::nsecElapsed() usecs: %f", elapsedUsecs);
     
+    // Test sleep functions for accuracy
+    startTime.start();
+    QThread::msleep(1);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("QThread::msleep(1) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    QThread::sleep(1);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("QThread::sleep(1) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    usleep(1);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("usleep(1) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    usleep(10);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("usleep(10) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    usleep(100);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("usleep(100) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    usleep(1000);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("usleep(1000) ms: %f", elapsedUsecs / 1000.0f);
+
+    startTime.start();
+    usleep(15000);
+    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    qDebug("usleep(15000) ms: %f", elapsedUsecs / 1000.0f);
+
     // Random number generation
     startTime.start();
-    for (int i = 1; i < numTests; i++) {
+    for (int i = 0; i < numTests; i++) {
         iResults[i] = rand();
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
@@ -421,16 +460,19 @@ void runTimingTests() {
 
     // Random number generation using randFloat()
     startTime.start();
-    for (int i = 1; i < numTests; i++) {
+    for (int i = 0; i < numTests; i++) {
         fResults[i] = randFloat();
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
     qDebug("randFloat() stored in array usecs: %f, first result: %f", elapsedUsecs / (float) numTests, fResults[0]);
 
+    free(iResults);
+    free(fResults);
+
     //  PowF function
     fTest = 1145323.2342f;
     startTime.start();
-    for (int i = 1; i < numTests; i++) {
+    for (int i = 0; i < numTests; i++) {
         fTest = powf(fTest, 0.5f);
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
@@ -440,7 +482,7 @@ void runTimingTests() {
     float distance;
     glm::vec3 pointA(randVector()), pointB(randVector());
     startTime.start();
-    for (int i = 1; i < numTests; i++) {
+    for (int i = 0; i < numTests; i++) {
         //glm::vec3 temp = pointA - pointB;
         //float distanceSquared = glm::dot(temp, temp);
         distance = glm::distance(pointA, pointB);
@@ -454,7 +496,7 @@ void runTimingTests() {
     float result;
     
     startTime.start();
-    for (int i = 1; i < numTests; i++) {
+    for (int i = 0; i < numTests; i++) {
         glm::vec3 temp = vecA-vecB;
         result = glm::dot(temp,temp);
     }

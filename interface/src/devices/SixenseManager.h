@@ -27,6 +27,13 @@ const unsigned int BUTTON_3 = 1U << 3;
 const unsigned int BUTTON_4 = 1U << 4;
 const unsigned int BUTTON_FWD = 1U << 7;
 
+// Event type that represents using the controller
+const unsigned int CONTROLLER_0_EVENT = 1500U;
+const unsigned int CONTROLLER_1_EVENT = 1501U;
+
+const float DEFAULT_SIXENSE_RETICLE_MOVE_SPEED = 37.5f;
+const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
+
 /// Handles interaction with the Sixense SDK (e.g., Razer Hydra).
 class SixenseManager : public QObject {
     Q_OBJECT
@@ -36,14 +43,17 @@ public:
     ~SixenseManager();
     
     void update(float deltaTime);
+    float getCursorPixelRangeMult() const;
     
 public slots:
     
     void setFilter(bool filter);
+    void setLowVelocityFilter(bool lowVelocityFilter) { _lowVelocityFilter = lowVelocityFilter; };
 
 private:
 #ifdef HAVE_SIXENSE
     void updateCalibration(const sixenseControllerData* controllers);
+    void emulateMouse(PalmData* palm, int index);
 
     int _calibrationState;
 
@@ -61,10 +71,19 @@ private:
     glm::vec3 _reachUp;
     glm::vec3 _reachForward;
     float _lastDistance;
-
+    
 #endif
+    bool _hydrasConnected;
     quint64 _lastMovement;
     glm::vec3 _amountMoved;
+
+    // for mouse emulation with the two controllers
+    bool _triggerPressed[2];
+    bool _bumperPressed[2];
+    int _oldX[2];
+    int _oldY[2];
+    
+    bool _lowVelocityFilter;
 };
 
 #endif // hifi_SixenseManager_h

@@ -39,11 +39,7 @@ public:
     bool goToDestination(QString destination);
 
 private:
-    QJsonObject _userData;
-    QJsonObject _placeData;
-
     void replaceLastOccurrence(const QChar search, const QChar replace, QString& string);
-    void checkForMultipleDestinations();
 
 signals:
     void creationCompleted(LocationManager::NamedLocationCreateResponse response);
@@ -52,8 +48,7 @@ signals:
 private slots:
     void namedLocationDataReceived(const QJsonObject& data);
     void errorDataReceived(QNetworkReply::NetworkError error, const QString& message);
-    void goToLocationFromResponse(const QJsonObject& jsonObject);
-    void goToUserFromResponse(const QJsonObject& jsonObject);
+    void goToAddressFromResponse(const QJsonObject& jsonObject);
 
 };
 

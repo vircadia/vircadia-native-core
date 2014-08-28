@@ -68,11 +68,12 @@ public:
     virtual const char* getMyServerName() const = 0;
     virtual const char* getMyLoggingServerTargetName() const = 0;
     virtual const char* getMyDefaultPersistFilename() const = 0;
+    virtual PacketType getMyEditNackType() const = 0;
 
     // subclass may implement these method
     virtual void beforeRun() { };
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node) { return false; }
-    virtual int sendSpecialPacket(const SharedNodePointer& node) { return 0; }
+    virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) { return 0; }
 
     static void attachQueryNodeToNode(Node* newNode);
     
@@ -126,6 +127,8 @@ public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void sendStatsPacket();
+    
+    void handleSignedTransactionPaymentResponse(const QJsonObject& jsonObject);
 
 protected:
     void parsePayload();
@@ -136,6 +139,8 @@ protected:
     QString getConfiguration();
     QString getStatusLink();
 
+    void handleSignedTransactionPayment(PacketType packetType, const QByteArray& datagram);
+    
     int _argc;
     const char** _argv;
     char** _parsedArgV;

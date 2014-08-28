@@ -23,7 +23,7 @@ ScriptsTableWidget::ScriptsTableWidget(QWidget* parent) :
     setShowGrid(false);
     setSelectionMode(QAbstractItemView::NoSelection);
     setEditTriggers(QAbstractItemView::NoEditTriggers);
-    setStyleSheet("QTableWidget { background: transparent; color: #333333; } QToolTip { color: #000000; background: #f9f6e4; padding: 2px;  }");
+    setStyleSheet("QTableWidget { border: none; background: transparent; color: #333333; } QToolTip { color: #000000; background: #f9f6e4; padding: 2px;  }");
     setToolTipDuration(200);
     setWordWrap(true);
     setGeometry(0, 0, parent->width(), parent->height());

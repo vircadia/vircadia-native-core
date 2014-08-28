@@ -42,9 +42,8 @@ public:
     void setTargetPosition(const glm::vec3& t);
     void setTightness(float t) { _tightness = t; }
     void setTargetRotation(const glm::quat& rotation);
-    
-    void setMode(CameraMode m);
     void setModeShiftPeriod(float r);
+    void setMode(CameraMode m);
     void setFieldOfView(float f);
     void setAspectRatio(float a);
     void setNearClip(float n);
@@ -130,6 +129,7 @@ public:
 public slots:
     QString getMode() const;
     void setMode(const QString& mode);
+    void setModeShiftPeriod(float r) {_camera->setModeShiftPeriod(r); }
     void setPosition(const glm::vec3& value) { _camera->setTargetPosition(value);}
 
     glm::vec3 getPosition() const { return _camera->getPosition(); }

@@ -16,7 +16,6 @@
 
 #include <QGLWidget>
 #include <QImage>
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QRect>
 #include <QScriptValue>
@@ -28,7 +27,9 @@
 #include "Overlay.h"
 #include "Overlay2D.h"
 
+const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const int DEFAULT_MARGIN = 10;
+const int DEFAULT_FONTSIZE = 11;
 
 class TextOverlay : public Overlay2D {
     Q_OBJECT
@@ -47,15 +48,17 @@ public:
     void setText(const QString& text) { _text = text; }
     void setLeftMargin(int margin) { _leftMargin = margin; }
     void setTopMargin(int margin) { _topMargin = margin; }
+    void setFontSize(int fontSize) { _fontSize = fontSize; }
 
     virtual void setProperties(const QScriptValue& properties);
 
 private:
 
     QString _text;
+    xColor _backgroundColor;
     int _leftMargin;
     int _topMargin;
-    
+    int _fontSize;
 };
 
  

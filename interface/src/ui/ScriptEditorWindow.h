@@ -26,9 +26,14 @@ public:
     ~ScriptEditorWindow();
 
     void terminateCurrentTab();
+    bool autoReloadScripts();
+
+signals:
+    void windowActivated();
 
 protected:
     void closeEvent(QCloseEvent* event);
+    virtual bool event(QEvent* event);
 
 private:
     Ui::ScriptEditorWindow* _ScriptEditorWindowUI;

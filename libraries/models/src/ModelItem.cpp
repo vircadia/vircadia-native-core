@@ -11,18 +11,11 @@
 
 #include <QtCore/QObject>
 
+#include <GLMHelpers.h> 
 #include <Octree.h>
 #include <RegisteredMetaTypes.h>
-#include <SharedUtil.h> // usecTimestampNow()
 #include <VoxelsScriptingInterface.h>
 #include <VoxelDetail.h>
-
-
-// This is not ideal, but adding script-engine as a linked library, will cause a circular reference
-// I'm open to other potential solutions. Could we change cmake to allow libraries to reference each others
-// headers, but not link to each other, this is essentially what this construct is doing, but would be
-// better to add includes to the include path, but not link
-#include "../../script-engine/src/ScriptEngine.h"
 
 #include "ModelsScriptingInterface.h"
 #include "ModelItem.h"
@@ -331,6 +324,7 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
 
         newModelItem.setCreatorTokenID(creatorTokenID);
         newModelItem._newlyCreated = true;
+        valid = true;
 
     } else {
         // look up the existing modelItem
@@ -339,20 +333,19 @@ ModelItem ModelItem::fromEditPacket(const unsigned char* data, int length, int& 
         // copy existing properties before over-writing with new properties
         if (existingModelItem) {
             newModelItem = *existingModelItem;
+            valid = true;
         } else {
             // the user attempted to edit a modelItem that doesn't exist
-            qDebug() << "user attempted to edit a modelItem that doesn't exist...";
+            qDebug() << "user attempted to edit a modelItem that doesn't exist... editID=" << editID;
+
+            // NOTE: even though this is a bad editID, we have to consume the edit details, so that
+            // the buffer doesn't get corrupted for further processing...
             valid = false;
-            return newModelItem;
         }
         newModelItem._id = editID;
         newModelItem._newlyCreated = false;
     }
     
-    // if we got this far, then our result will be valid
-    valid = true;
-    
-
     // lastEdited
     memcpy(&newModelItem._lastEdited, dataAt, sizeof(newModelItem._lastEdited));
     dataAt += sizeof(newModelItem._lastEdited);
@@ -641,7 +634,7 @@ bool ModelItem::encodeModelEditMessageDetails(PacketType command, ModelItemID id
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
+void ModelItem::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew) {
     unsigned char* dataAt = codeColorBuffer;
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
@@ -886,7 +879,19 @@ QScriptValue ModelItemProperties::copyToScriptValue(QScriptEngine* engine) const
     properties.setProperty("shouldDie", _shouldDie);
 
     properties.setProperty("modelURL", _modelURL);
-
+    
+    
+    QScriptValue sittingPoints = engine->newObject();
+    for (int i = 0; i < _sittingPoints.size(); ++i) {
+        QScriptValue sittingPoint = engine->newObject();
+        sittingPoint.setProperty("name", _sittingPoints[i].name);
+        sittingPoint.setProperty("position", vec3toScriptValue(engine, _sittingPoints[i].position));
+        sittingPoint.setProperty("rotation", quatToScriptValue(engine, _sittingPoints[i].rotation));
+        sittingPoints.setProperty(i, sittingPoint);
+    }
+    sittingPoints.setProperty("length", _sittingPoints.size());
+    properties.setProperty("sittingPoints", sittingPoints);
+    
     QScriptValue modelRotation = quatToScriptValue(engine, _modelRotation);
     properties.setProperty("modelRotation", modelRotation);
 
@@ -971,7 +976,7 @@ void ModelItemProperties::copyFromScriptValue(const QScriptValue &object) {
             _modelURLChanged = true;
         }
     }
-
+    
     QScriptValue modelRotation = object.property("modelRotation");
     if (modelRotation.isValid()) {
         QScriptValue x = modelRotation.property("x");
@@ -1125,6 +1130,7 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _animationFrameIndex = modelItem.getAnimationFrameIndex();
     _animationFPS = modelItem.getAnimationFPS();
     _glowLevel = modelItem.getGlowLevel();
+    _sittingPoints = modelItem.getSittingPoints();
 
     _id = modelItem.getID();
     _idSet = true;
@@ -1142,6 +1148,38 @@ void ModelItemProperties::copyFromModelItem(const ModelItem& modelItem) {
     _animationFPSChanged = false;
     _glowLevelChanged = false;
     _defaultSettings = false;
+}
+
+void ModelItemProperties::copyFromNewModelItem(const ModelItem& modelItem) {
+    _position = modelItem.getPosition() * (float) TREE_SCALE;
+    _color = modelItem.getXColor();
+    _radius = modelItem.getRadius() * (float) TREE_SCALE;
+    _shouldDie = modelItem.getShouldDie();
+    _modelURL = modelItem.getModelURL();
+    _modelRotation = modelItem.getModelRotation();
+    _animationURL = modelItem.getAnimationURL();
+    _animationIsPlaying = modelItem.getAnimationIsPlaying();
+    _animationFrameIndex = modelItem.getAnimationFrameIndex();
+    _animationFPS = modelItem.getAnimationFPS();
+    _glowLevel = modelItem.getGlowLevel();
+    _sittingPoints = modelItem.getSittingPoints();
+
+    _id = modelItem.getID();
+    _idSet = true;
+
+    _positionChanged = true;
+    _colorChanged = true;
+    _radiusChanged = true;
+    
+    _shouldDieChanged = true;
+    _modelURLChanged = true;
+    _modelRotationChanged = true;
+    _animationURLChanged = true;
+    _animationIsPlayingChanged = true;
+    _animationFrameIndexChanged = true;
+    _animationFPSChanged = true;
+    _glowLevelChanged = true;
+    _defaultSettings = true;
 }
 
 QScriptValue ModelItemPropertiesToScriptValue(QScriptEngine* engine, const ModelItemProperties& properties) {

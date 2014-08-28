@@ -16,6 +16,8 @@
 #include <NodeList.h>
 #include <SharedUtil.h>
 #include "JurisdictionMap.h"
+#include "OctreePacketData.h"
+#include "SequenceNumberStats.h"
 
 #define GREENISH  0x40ff40d0
 #define YELLOWISH 0xffef40c0
@@ -163,14 +165,10 @@ public:
     quint32 getIncomingPackets() const { return _incomingPacket; }
     quint64 getIncomingBytes() const { return _incomingBytes; } 
     quint64 getIncomingWastedBytes() const { return _incomingWastedBytes; }
-    quint32 getIncomingOutOfOrder() const { return _incomingLate + _incomingEarly; }
-    quint32 getIncomingLikelyLost() const { return _incomingLikelyLost; }
-    quint32 getIncomingRecovered() const { return _incomingRecovered; }
-    quint32 getIncomingEarly() const { return _incomingEarly; }
-    quint32 getIncomingLate() const { return _incomingLate; }
-    quint32 getIncomingReallyLate() const { return _incomingReallyLate; }
-    quint32 getIncomingPossibleDuplicate() const { return _incomingPossibleDuplicate; }
     float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
+    
+    const SequenceNumberStats& getIncomingOctreeSequenceNumberStats() const { return _incomingOctreeSequenceNumberStats; }
+    SequenceNumberStats& getIncomingOctreeSequenceNumberStats() { return _incomingOctreeSequenceNumberStats; }
 
 private:
 
@@ -265,14 +263,8 @@ private:
     quint64 _incomingBytes;
     quint64 _incomingWastedBytes;
 
-    quint16 _incomingLastSequence; /// last incoming sequence number
-    quint32 _incomingLikelyLost; /// count of packets likely lost, may be off by _incomingReallyLate count
-    quint32 _incomingRecovered; /// packets that were late, and we had in our missing list, we consider recovered
-    quint32 _incomingEarly; /// out of order earlier than expected
-    quint32 _incomingLate; /// out of order later than expected
-    quint32 _incomingReallyLate; /// out of order and later than MAX_MISSING_SEQUENCE_OLD_AGE late
-    quint32 _incomingPossibleDuplicate; /// out of order possibly a duplicate
-    QSet<uint16_t> _missingSequenceNumbers;
+    SequenceNumberStats _incomingOctreeSequenceNumberStats;
+
     SimpleMovingAverage _incomingFlightTimeAverage;
     
     // features related items

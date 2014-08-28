@@ -15,12 +15,12 @@
 
 #include <QDataStream>
 #include <QtCore/QDebug>
-#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 #include <qendian.h>
 
 #include <LimitedNodeList.h>
+#include <NetworkAccessManager.h>
 #include <SharedUtil.h>
 
 #include "AudioRingBuffer.h"
@@ -73,13 +73,24 @@ Sound::Sound(const QUrl& sampleURL, QObject* parent) :
     // assume we have a QApplication or QCoreApplication instance and use the
     // QNetworkAccess manager to grab the raw audio file at the given URL
 
-    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     qDebug() << "Requesting audio file" << sampleURL.toDisplayString();
     
-    QNetworkReply* soundDownload = manager->get(QNetworkRequest(sampleURL));
+    QNetworkReply* soundDownload = networkAccessManager.get(QNetworkRequest(sampleURL));
     connect(soundDownload, &QNetworkReply::finished, this, &Sound::replyFinished);
     connect(soundDownload, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(replyError(QNetworkReply::NetworkError)));
+}
+
+Sound::Sound(const QByteArray byteArray, QObject* parent) :
+    QObject(parent),
+    _byteArray(byteArray),
+    _hasDownloaded(true)
+{
+}
+
+void Sound::append(const QByteArray byteArray) {
+    _byteArray.append(byteArray);
 }
 
 void Sound::replyFinished() {
@@ -258,7 +269,7 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
         // Now pull out the data
         quint32 outputAudioByteArraySize = qFromLittleEndian<quint32>(dataHeader.descriptor.size);
         outputAudioByteArray.resize(outputAudioByteArraySize);
-        if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != outputAudioByteArraySize) {
+        if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
             qDebug() << "Error reading WAV file";
         }
 

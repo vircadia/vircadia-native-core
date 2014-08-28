@@ -20,7 +20,6 @@ class WindowScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(int innerWidth READ getInnerWidth)
     Q_PROPERTY(int innerHeight READ getInnerHeight)
-    WindowScriptingInterface() { };
 public:
     static WindowScriptingInterface* getInstance();
     int getInnerWidth();
@@ -29,14 +28,26 @@ public:
 public slots:
     QScriptValue alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
+    QScriptValue form(const QString& title, QScriptValue array);
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    QScriptValue s3Browse(const QString& nameFilter = "");
 
 private slots:
     QScriptValue showAlert(const QString& message);
     QScriptValue showConfirm(const QString& message);
+    QScriptValue showForm(const QString& title, QScriptValue form);
     QScriptValue showPrompt(const QString& message, const QString& defaultText);
-    QScriptValue showBrowse(const QString& title, const QString& directory, const QString& nameFilter);
+    QScriptValue showBrowse(const QString& title, const QString& directory, const QString& nameFilter,
+                            QFileDialog::AcceptMode acceptMode = QFileDialog::AcceptOpen);
+    QScriptValue showS3Browse(const QString& nameFilter);
+    void chooseDirectory();
+    
+private:
+    WindowScriptingInterface();
+
+    QString jsRegExp2QtRegExp(QString string);
 };
 
 #endif // hifi_WindowScriptingInterface_h

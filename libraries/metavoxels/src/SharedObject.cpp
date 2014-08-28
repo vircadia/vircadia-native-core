@@ -14,6 +14,7 @@
 #include <QItemEditorFactory>
 #include <QMetaProperty>
 #include <QVBoxLayout>
+#include <QWriteLocker>
 
 #include "Bitstream.h"
 #include "MetavoxelUtil.h"
@@ -22,10 +23,19 @@
 REGISTER_META_OBJECT(SharedObject)
 
 SharedObject::SharedObject() :
-    _id(++_lastID),
-    _remoteID(0) {
+    _id(_nextID.fetchAndAddOrdered(1)),
+    _originID(_id),
+    _remoteID(0),
+    _remoteOriginID(0) {
     
+    QWriteLocker locker(&_weakHashLock);
     _weakHash.insert(_id, this);
+}
+
+void SharedObject::setID(int id) {
+    QWriteLocker locker(&_weakHashLock);
+    _weakHash.remove(_id);
+    _weakHash.insert(_id = id, this);
 }
 
 void SharedObject::incrementReferenceCount() {
@@ -34,31 +44,41 @@ void SharedObject::incrementReferenceCount() {
 
 void SharedObject::decrementReferenceCount() {
     if (!_referenceCount.deref()) {
-        _weakHash.remove(_id);
+        {
+            QWriteLocker locker(&_weakHashLock);
+            _weakHash.remove(_id);
+        }
         delete this;
     }
 }
 
-SharedObject* SharedObject::clone(bool withID) const {
+SharedObject* SharedObject::clone(bool withID, SharedObject* target) const {
     // default behavior is to make a copy using the no-arg constructor and copy the stored properties
     const QMetaObject* metaObject = this->metaObject();
-    SharedObject* newObject = static_cast<SharedObject*>(metaObject->newInstance());
+    if (!target) {
+        target = static_cast<SharedObject*>(metaObject->newInstance());
+    }
     for (int i = 0; i < metaObject->propertyCount(); i++) {
         QMetaProperty property = metaObject->property(i);
         if (property.isStored()) {
-            property.write(newObject, property.read(this));
+            if (property.userType() == qMetaTypeId<SharedObjectPointer>()) {
+                SharedObject* value = property.read(this).value<SharedObjectPointer>().data();
+                property.write(target, QVariant::fromValue(value ? value->clone(withID) : value));  
+            } else {
+                property.write(target, property.read(this));
+            }
         }
     }
     foreach (const QByteArray& propertyName, dynamicPropertyNames()) {
-        newObject->setProperty(propertyName, property(propertyName));
+        target->setProperty(propertyName, property(propertyName));
     }
     if (withID) {
-        newObject->setID(_id);
+        target->setOriginID(_originID);
     }
-    return newObject;
+    return target;
 }
 
-bool SharedObject::equals(const SharedObject* other) const {
+bool SharedObject::equals(const SharedObject* other, bool sharedAncestry) const {
     if (!other) {
         return false;
     }
@@ -67,13 +87,21 @@ bool SharedObject::equals(const SharedObject* other) const {
     }
     // default behavior is to compare the properties
     const QMetaObject* metaObject = this->metaObject();
-    if (metaObject != other->metaObject()) {
+    if (metaObject != other->metaObject() && !sharedAncestry) {
         return false;
     }
-    for (int i = 0; i < metaObject->propertyCount(); i++) {
-        QMetaProperty property = metaObject->property(i);
-        if (property.isStored() && property.read(this) != property.read(other)) {
+    // use the streamer, if we have one
+    const ObjectStreamer* streamer = Bitstream::getObjectStreamer(metaObject);
+    if (streamer) {
+        if (!streamer->equal(this, other)) {
             return false;
+        }
+    } else {
+        for (int i = 0; i < metaObject->propertyCount(); i++) {
+            QMetaProperty property = metaObject->property(i);
+            if (property.isStored() && property.read(this) != property.read(other)) {
+                return false;
+            }
         }
     }
     QList<QByteArray> dynamicPropertyNames = this->dynamicPropertyNames();
@@ -92,17 +120,20 @@ void SharedObject::dump(QDebug debug) const {
     debug << this;
     const QMetaObject* metaObject = this->metaObject();
     for (int i = 0; i < metaObject->propertyCount(); i++) {
-        debug << metaObject->property(i).name() << metaObject->property(i).read(this);
+        QMetaProperty property = metaObject->property(i);
+        if (property.isStored()) {
+            debug << property.name() << property.read(this);
+        }
+    }
+    QList<QByteArray> dynamicPropertyNames = this->dynamicPropertyNames();
+    foreach (const QByteArray& propertyName, dynamicPropertyNames) {
+        debug << propertyName << property(propertyName);
     }
 }
 
-void SharedObject::setID(int id) {
-    _weakHash.remove(_id);
-    _weakHash.insert(_id = id, this);
-}
-
-int SharedObject::_lastID = 0;
+QAtomicInt SharedObject::_nextID(1);
 WeakSharedObjectHash SharedObject::_weakHash;
+QReadWriteLock SharedObject::_weakHashLock;
 
 void pruneWeakSharedObjectHash(WeakSharedObjectHash& hash) {
     for (WeakSharedObjectHash::iterator it = hash.begin(); it != hash.end(); ) {
@@ -127,7 +158,7 @@ SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, bool nulla
         _type->addItem("(none)");
     }
     foreach (const QMetaObject* metaObject, Bitstream::getMetaObjectSubClasses(metaObject)) {
-        // add add constructable subclasses
+        // add constructable subclasses
         if (metaObject->constructorCount() > 0) {
             _type->addItem(metaObject->className(), QVariant::fromValue(metaObject));
         }
@@ -162,7 +193,9 @@ void SharedObjectEditor::detachObject() {
     for (int i = 0; i < form->rowCount(); i++) {
         QWidget* widget = form->itemAt(i, QFormLayout::FieldRole)->widget();
         QMetaProperty property = metaObject->property(widget->property("propertyIndex").toInt());
-        connect(_object.data(), signal(property.notifySignal().methodSignature()), SLOT(updateProperty()));
+        if (property.hasNotifySignal()) {
+            connect(_object.data(), signal(property.notifySignal().methodSignature()), SLOT(updateProperty()));
+        }
     }
 }
 
@@ -195,6 +228,7 @@ void SharedObjectEditor::updateType() {
     const QMetaObject* metaObject = _type->itemData(_type->currentIndex()).value<const QMetaObject*>();
     if (!metaObject) {
         _object.reset();
+        emit objectChanged(_object);
         return;
     }
     QObject* newObject = metaObject->newInstance();
@@ -228,7 +262,7 @@ void SharedObjectEditor::updateType() {
             }
         }
     }
-    _object = static_cast<SharedObject*>(newObject);
+    emit objectChanged(_object = static_cast<SharedObject*>(newObject));
 }
 
 void SharedObjectEditor::propertyChanged() {
@@ -244,6 +278,7 @@ void SharedObjectEditor::propertyChanged() {
         QByteArray valuePropertyName = QItemEditorFactory::defaultFactory()->valuePropertyName(property.userType());
         property.write(object, widget->property(valuePropertyName));
     }
+    emit objectChanged(_object);
 }
 
 void SharedObjectEditor::updateProperty() {

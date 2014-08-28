@@ -12,8 +12,9 @@
 #ifndef hifi_ModelItem_h
 #define hifi_ModelItem_h
 
-#include <glm/glm.hpp>
 #include <stdint.h>
+
+#include <glm/glm.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
@@ -22,6 +23,8 @@
 #include <CollisionInfo.h>
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
+#include <FBXReader.h>
+
 
 class ModelItem;
 class ModelEditPacketSender;
@@ -71,6 +74,7 @@ public:
 
     void copyToModelItem(ModelItem& modelItem) const;
     void copyFromModelItem(const ModelItem& modelItem);
+    void copyFromNewModelItem(const ModelItem& modelItem);
 
     const glm::vec3& getPosition() const { return _position; }
     xColor getColor() const { return _color; }
@@ -122,7 +126,8 @@ private:
     float _animationFrameIndex;
     float _animationFPS;
     float _glowLevel;
-
+    QVector<SittingPoint> _sittingPoints;
+    
     uint32_t _id;
     bool _idSet;
     quint64 _lastEdited;
@@ -174,7 +179,6 @@ void ModelItemIDfromScriptValue(const QScriptValue &object, ModelItemID& propert
 
 /// ModelItem class - this is the actual model item class.
 class ModelItem  {
-
 public:
     ModelItem();
 
@@ -211,6 +215,7 @@ public:
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
     const QString& getAnimationURL() const { return _animationURL; }
     float getGlowLevel() const { return _glowLevel; }
+    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
 
     ModelItemID getModelItemID() const { return ModelItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_MODEL_ID); }
     ModelItemProperties getProperties() const;
@@ -254,6 +259,7 @@ public:
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
     void setAnimationFPS(float value) { _animationFPS = value; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
+    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
     
     void setProperties(const ModelItemProperties& properties);
 
@@ -264,7 +270,7 @@ public:
     static bool encodeModelEditMessageDetails(PacketType command, ModelItemID id, const ModelItemProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
-    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
+    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
     
     void update(const quint64& now);
 
@@ -299,6 +305,8 @@ protected:
     // model related items
     QString _modelURL;
     glm::quat _modelRotation;
+    
+    QVector<SittingPoint> _sittingPoints;
     
     float _glowLevel;
 

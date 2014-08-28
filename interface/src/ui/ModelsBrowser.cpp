@@ -14,15 +14,16 @@
 #include <QGridLayout>
 #include <QHeaderView>
 #include <QMessageBox>
-#include <QNetworkAccessManager>
 #include <QUrl>
 #include <QXmlStreamReader>
+
+#include <NetworkAccessManager.h>
 
 #include "Application.h"
 
 #include "ModelsBrowser.h"
 
-const char* MODEL_TYPE_NAMES[] = { "heads", "skeletons", "attachments" };
+const char* MODEL_TYPE_NAMES[] = { "entities", "heads", "skeletons", "attachments" };
 
 static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
 static const QString PUBLIC_URL = "http://public.highfidelity.io";
@@ -89,6 +90,12 @@ ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
     _view.setEditTriggers(QAbstractItemView::NoEditTriggers);
     _view.setRootIsDecorated(false);
     _view.setModel(_handler->getModel());
+    _view.blockSignals(true);
+
+    // Initialize the search bar
+    _searchBar = new QLineEdit;
+    _searchBar->setDisabled(true);
+    connect(_handler, SIGNAL(doneDownloading()), SLOT(enableSearchBar()));
 }
 
 void ModelsBrowser::applyFilter(const QString &filter) {
@@ -115,11 +122,7 @@ void ModelsBrowser::applyFilter(const QString &filter) {
         }
         
         // Hid the row if it doesn't match (Make sure it's not it it does)
-        if (match) {
-            _view.setRowHidden(i, QModelIndex(), false);
-        } else {
-            _view.setRowHidden(i, QModelIndex(), true);
-        }
+        _view.setRowHidden(i, QModelIndex(), !match);
     }
     _handler->unlockModel();
 }
@@ -130,7 +133,18 @@ void ModelsBrowser::resizeView() {
     }
 }
 
+void ModelsBrowser::enableSearchBar() {
+    _view.blockSignals(false);
+    _searchBar->setEnabled(true);
+}
+
+void ModelsBrowser::setNameFilter(QString nameFilter) {
+    _handler->setNameFilter(nameFilter);
+}
+
 void ModelsBrowser::browse() {
+    _selectedFile = "";
+    
     QDialog dialog;
     dialog.setWindowTitle("Browse models");
     dialog.setMinimumSize(570, 500);
@@ -138,26 +152,26 @@ void ModelsBrowser::browse() {
     QGridLayout* layout = new QGridLayout(&dialog);
     dialog.setLayout(layout);
     
-    QLineEdit* searchBar = new QLineEdit(&dialog);
-    layout->addWidget(searchBar, 0, 0);
-    
+    layout->addWidget(_searchBar, 0, 0);
     layout->addWidget(&_view, 1, 0);
     dialog.connect(&_view, SIGNAL(doubleClicked(const QModelIndex&)), SLOT(accept()));
-    connect(searchBar, SIGNAL(textChanged(const QString&)), SLOT(applyFilter(const QString&)));
+    connect(_searchBar, SIGNAL(textChanged(const QString&)), SLOT(applyFilter(const QString&)));
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     layout->addWidget(buttons, 2, 0);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
     
+    QVariant selectedFile;
     if (dialog.exec() == QDialog::Accepted) {
         _handler->lockModel();
-        QVariant selectedFile = _handler->getModel()->data(_view.currentIndex(), Qt::UserRole);
+        selectedFile = _handler->getModel()->data(_view.currentIndex(), Qt::UserRole);
         _handler->unlockModel();
         if (selectedFile.isValid()) {
-            emit selected(selectedFile.toString());
+            _selectedFile = selectedFile.toString();
         }
     }
+    emit selected(_selectedFile);
     
     // So that we don't have to reconstruct the view
     _view.setParent(NULL);
@@ -167,7 +181,8 @@ void ModelsBrowser::browse() {
 ModelHandler::ModelHandler(ModelType modelsType, QWidget* parent) :
     QObject(parent),
     _initiateExit(false),
-    _type(modelsType)
+    _type(modelsType),
+    _nameFilter(".*fst")
 {
     // set headers data
     QStringList headerData;
@@ -175,6 +190,10 @@ ModelHandler::ModelHandler(ModelType modelsType, QWidget* parent) :
         headerData << propertiesNames[i];
     }
     _model.setHorizontalHeaderLabels(headerData);
+}
+
+void ModelHandler::setNameFilter(QString nameFilter) {
+    _nameFilter = nameFilter;
 }
 
 void ModelHandler::download() {
@@ -201,10 +220,10 @@ void ModelHandler::update() {
     }
     for (int i = 0; i < _model.rowCount(); ++i) {
         QUrl url(_model.item(i,0)->data(Qt::UserRole).toString());
-        QNetworkAccessManager* accessManager = new QNetworkAccessManager(this);
+        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest request(url);
-        accessManager->head(request);
-        connect(accessManager, SIGNAL(finished(QNetworkReply*)), SLOT(downloadFinished(QNetworkReply*)));
+        QNetworkReply* reply = networkAccessManager.head(request);
+        connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
     }
     _lock.unlock();
 }
@@ -224,7 +243,8 @@ void ModelHandler::exit() {
     _lock.unlock();
 }
 
-void ModelHandler::downloadFinished(QNetworkReply* reply) {
+void ModelHandler::downloadFinished() {
+    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
     QByteArray data = reply->readAll();
     
     if (!data.isEmpty()) {
@@ -233,7 +253,6 @@ void ModelHandler::downloadFinished(QNetworkReply* reply) {
         parseHeaders(reply);
     }
     reply->deleteLater();
-    sender()->deleteLater();
 }
 
 void ModelHandler::queryNewFiles(QString marker) {
@@ -252,10 +271,10 @@ void ModelHandler::queryNewFiles(QString marker) {
     
     // Download
     url.setQuery(query);
-    QNetworkAccessManager* accessManager = new QNetworkAccessManager(this);
+    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest request(url);
-    accessManager->get(request);
-    connect(accessManager, SIGNAL(finished(QNetworkReply*)), SLOT(downloadFinished(QNetworkReply*)));
+    QNetworkReply* reply = networkAccessManager.get(request);
+    connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
             
 }
 
@@ -267,7 +286,7 @@ bool ModelHandler::parseXML(QByteArray xmlFile) {
     }
     
     QXmlStreamReader xml(xmlFile);
-    QRegExp rx(".*fst");
+    QRegExp rx(_nameFilter);
     bool truncated = false;
     QString lastKey;
     

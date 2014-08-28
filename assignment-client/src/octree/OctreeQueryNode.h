@@ -23,6 +23,8 @@
 #include <OctreeQuery.h>
 #include <OctreeSceneStats.h>
 #include <ThreadedAssignment.h> // for SharedAssignmentPointer
+#include "SentPacketHistory.h"
+#include <qqueue.h>
 
 class OctreeSendThread;
 
@@ -100,8 +102,16 @@ public:
     void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
 
-    void incrementSequenceNumber();
-    
+    void octreePacketSent();
+    void packetSent(unsigned char* packet, int packetLength);
+    void packetSent(const QByteArray& packet);
+
+    OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
+
+    void parseNackPacket(QByteArray& packet);
+    bool hasNextNackedPacket() const;
+    const QByteArray* getNextNackedPacket();
+
 private slots:
     void sendThreadFinished();
     
@@ -144,6 +154,9 @@ private:
     
     PacketType _myPacketType;
     bool _isShuttingDown;
+
+    SentPacketHistory _sentPacketHistory;
+    QQueue<OCTREE_PACKET_SEQUENCE> _nackedSequenceNumbers;
 };
 
 #endif // hifi_OctreeQueryNode_h

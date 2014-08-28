@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 
@@ -17,6 +18,7 @@
 #include "OctreeInboundPacketProcessor.h"
 
 static QUuid DEFAULT_NODE_ID_REF;
+const quint64 TOO_LONG_SINCE_LAST_NACK = 1 * USECS_PER_SECOND;
 
 OctreeInboundPacketProcessor::OctreeInboundPacketProcessor(OctreeServer* myServer) :
     _myServer(myServer),
@@ -25,7 +27,9 @@ OctreeInboundPacketProcessor::OctreeInboundPacketProcessor(OctreeServer* myServe
     _totalProcessTime(0),
     _totalLockWaitTime(0),
     _totalElementsInPacket(0),
-    _totalPackets(0)
+    _totalPackets(0),
+    _lastNackTime(usecTimestampNow()),
+    _shuttingDown(false)
 {
 }
 
@@ -35,12 +39,44 @@ void OctreeInboundPacketProcessor::resetStats() {
     _totalLockWaitTime = 0;
     _totalElementsInPacket = 0;
     _totalPackets = 0;
+    _lastNackTime = usecTimestampNow();
 
     _singleSenderStats.clear();
 }
 
+unsigned long OctreeInboundPacketProcessor::getMaxWait() const {
+    // calculate time until next sendNackPackets()
+    quint64 nextNackTime = _lastNackTime + TOO_LONG_SINCE_LAST_NACK;
+    quint64 now = usecTimestampNow();
+    if (now >= nextNackTime) {
+        return 0;
+    }
+    return (nextNackTime - now) / USECS_PER_MSEC + 1;
+}
+
+void OctreeInboundPacketProcessor::preProcess() {
+    // check if it's time to send a nack. If yes, do so
+    quint64 now = usecTimestampNow();
+    if (now - _lastNackTime >= TOO_LONG_SINCE_LAST_NACK) {
+        _lastNackTime = now;
+        sendNackPackets();
+    }
+}
+
+void OctreeInboundPacketProcessor::midProcess() {
+    // check if it's time to send a nack. If yes, do so
+    quint64 now = usecTimestampNow();
+    if (now - _lastNackTime >= TOO_LONG_SINCE_LAST_NACK) {
+        _lastNackTime = now;
+        sendNackPackets();
+    }
+}
 
 void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
+    if (_shuttingDown) {
+        qDebug() << "OctreeInboundPacketProcessor::processPacket() while shutting down... ignoring incoming packet";
+        return;
+    }
 
     bool debugProcessPacket = _myServer->wantsVerboseDebug();
 
@@ -123,13 +159,13 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                 qDebug() << "sender has no known nodeUUID.";
             }
         }
-        trackInboundPackets(nodeUUID, sequence, transitTime, editsInPacket, processTime, lockWaitTime);
+        trackInboundPacket(nodeUUID, sequence, transitTime, editsInPacket, processTime, lockWaitTime);
     } else {
         qDebug("unknown packet ignored... packetType=%d", packetType);
     }
 }
 
-void OctreeInboundPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, int sequence, quint64 transitTime,
+void OctreeInboundPacketProcessor::trackInboundPacket(const QUuid& nodeUUID, unsigned short int sequence, quint64 transitTime,
             int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
 
     _totalTransitTime += transitTime;
@@ -142,31 +178,113 @@ void OctreeInboundPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, in
     // see if this is the first we've heard of this node...
     if (_singleSenderStats.find(nodeUUID) == _singleSenderStats.end()) {
         SingleSenderStats stats;
-
-        stats._totalTransitTime += transitTime;
-        stats._totalProcessTime += processTime;
-        stats._totalLockWaitTime += lockWaitTime;
-        stats._totalElementsInPacket += editsInPacket;
-        stats._totalPackets++;
-
+        stats.trackInboundPacket(sequence, transitTime, editsInPacket, processTime, lockWaitTime);
         _singleSenderStats[nodeUUID] = stats;
     } else {
         SingleSenderStats& stats = _singleSenderStats[nodeUUID];
-        stats._totalTransitTime += transitTime;
-        stats._totalProcessTime += processTime;
-        stats._totalLockWaitTime += lockWaitTime;
-        stats._totalElementsInPacket += editsInPacket;
-        stats._totalPackets++;
+        stats.trackInboundPacket(sequence, transitTime, editsInPacket, processTime, lockWaitTime);
     }
 }
 
+int OctreeInboundPacketProcessor::sendNackPackets() {
+    int packetsSent = 0;
 
-SingleSenderStats::SingleSenderStats() {
-    _totalTransitTime = 0;
-    _totalProcessTime = 0;
-    _totalLockWaitTime = 0;
-    _totalElementsInPacket = 0;
-    _totalPackets = 0;
+    if (_shuttingDown) {
+        qDebug() << "OctreeInboundPacketProcessor::sendNackPackets() while shutting down... ignore";
+        return packetsSent;
+    }
+
+    char packet[MAX_PACKET_SIZE];
+    
+    NodeToSenderStatsMapIterator i = _singleSenderStats.begin();
+    while (i != _singleSenderStats.end()) {
+
+        QUuid nodeUUID = i.key();
+        SingleSenderStats nodeStats = i.value();
+
+        // check if this node is still alive.  Remove its stats if it's dead.
+        if (!isAlive(nodeUUID)) {
+            i = _singleSenderStats.erase(i);
+            continue;
+        }
+
+        // if there are packets from _node that are waiting to be processed,
+        // don't send a NACK since the missing packets may be among those waiting packets.
+        if (hasPacketsToProcessFrom(nodeUUID)) {
+            i++;
+            continue;
+        }
+
+        const SharedNodePointer& destinationNode = NodeList::getInstance()->getNodeHash().value(nodeUUID);
+
+        // retrieve sequence number stats of node, prune its missing set
+        SequenceNumberStats& sequenceNumberStats = nodeStats.getIncomingEditSequenceNumberStats();
+        sequenceNumberStats.pruneMissingSet();
+        
+        // construct nack packet(s) for this node
+        const QSet<unsigned short int>& missingSequenceNumbers = sequenceNumberStats.getMissingSet();
+        int numSequenceNumbersAvailable = missingSequenceNumbers.size();
+        QSet<unsigned short int>::const_iterator missingSequenceNumberIterator = missingSequenceNumbers.constBegin();
+        while (numSequenceNumbersAvailable > 0) {
+
+            char* dataAt = packet;
+            int bytesRemaining = MAX_PACKET_SIZE;
+
+            // pack header
+            int numBytesPacketHeader = populatePacketHeader(packet, _myServer->getMyEditNackType());
+            dataAt += numBytesPacketHeader;
+            bytesRemaining -= numBytesPacketHeader;
+
+            // calculate and pack the number of sequence numbers to nack
+            int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(unsigned short int);
+            uint16_t numSequenceNumbers = std::min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
+            uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
+            *numSequenceNumbersAt = numSequenceNumbers;
+            dataAt += sizeof(uint16_t);
+
+            // pack sequence numbers to nack
+            for (uint16_t i = 0; i < numSequenceNumbers; i++) {
+                unsigned short int* sequenceNumberAt = (unsigned short int*)dataAt;
+                *sequenceNumberAt = *missingSequenceNumberIterator;
+                dataAt += sizeof(unsigned short int);
+
+                missingSequenceNumberIterator++;
+            }
+            numSequenceNumbersAvailable -= numSequenceNumbers;
+
+            // send it
+            NodeList::getInstance()->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
+            packetsSent++;
+            
+            qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
+        }
+        i++;
+    }
+    return packetsSent;
 }
 
 
+SingleSenderStats::SingleSenderStats()
+    : _totalTransitTime(0),
+    _totalProcessTime(0),
+    _totalLockWaitTime(0),
+    _totalElementsInPacket(0),
+    _totalPackets(0),
+    _incomingEditSequenceNumberStats()
+{
+
+}
+
+void SingleSenderStats::trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
+    int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
+
+    // track sequence number
+    _incomingEditSequenceNumberStats.sequenceNumberReceived(incomingSequence);
+
+    // update other stats
+    _totalTransitTime += transitTime;
+    _totalProcessTime += processTime;
+    _totalLockWaitTime += lockWaitTime;
+    _totalElementsInPacket += editsInPacket;
+    _totalPackets++;
+}

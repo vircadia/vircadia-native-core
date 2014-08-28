@@ -12,26 +12,43 @@
 #ifndef hifi_AudioMixerClientData_h
 #define hifi_AudioMixerClientData_h
 
-#include <vector>
+#include <AABox.h>
 
-#include <NodeData.h>
-#include <PositionalAudioRingBuffer.h>
-
-#include "AvatarAudioRingBuffer.h"
+#include "PositionalAudioStream.h"
+#include "AvatarAudioStream.h"
 
 class AudioMixerClientData : public NodeData {
 public:
     AudioMixerClientData();
     ~AudioMixerClientData();
     
-    const std::vector<PositionalAudioRingBuffer*> getRingBuffers() const { return _ringBuffers; }
-    AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
+    const QHash<QUuid, PositionalAudioStream*>& getAudioStreams() const { return _audioStreams; }
+    AvatarAudioStream* getAvatarAudioStream() const;
     
     int parseData(const QByteArray& packet);
-    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples);
-    void pushBuffersAfterFrameSend();
+
+    void checkBuffersBeforeFrameSend(AABox* checkSourceZone, AABox* listenerZone);
+
+    void removeDeadInjectedStreams();
+
+    QString getAudioStreamStatsString() const;
+    
+    void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
+    
+    void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
+    quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
+
+    void printUpstreamDownstreamStats() const;
+
 private:
-    std::vector<PositionalAudioRingBuffer*> _ringBuffers;
+    void printAudioStreamStats(const AudioStreamStats& streamStats) const;
+
+private:
+    QHash<QUuid, PositionalAudioStream*> _audioStreams;     // mic stream stored under key of null UUID
+
+    quint16 _outgoingMixedAudioSequenceNumber;
+
+    AudioStreamStats _downstreamAudioStreamStats;
 };
 
 #endif // hifi_AudioMixerClientData_h

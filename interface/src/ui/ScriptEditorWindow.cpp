@@ -27,12 +27,17 @@
 
 #include "Application.h"
 #include "FlowLayout.h"
+#include "JSConsole.h"
+
+const int CONSOLE_HEIGHT = 150;
 
 ScriptEditorWindow::ScriptEditorWindow() :
     _ScriptEditorWindowUI(new Ui::ScriptEditorWindow),
     _loadMenu(new QMenu),
     _saveMenu(new QMenu)
 {
+    setAttribute(Qt::WA_DeleteOnClose);
+
     _ScriptEditorWindowUI->setupUi(this);
     this->setWindowFlags(Qt::Tool);
     show();
@@ -48,6 +53,10 @@ ScriptEditorWindow::ScriptEditorWindow() :
     connect(new QShortcut(QKeySequence("Ctrl+S"), this), &QShortcut::activated, this,&ScriptEditorWindow::saveScriptClicked);
     connect(new QShortcut(QKeySequence("Ctrl+O"), this), &QShortcut::activated, this, &ScriptEditorWindow::loadScriptClicked);
     connect(new QShortcut(QKeySequence("F5"), this), &QShortcut::activated, this, &ScriptEditorWindow::toggleRunScriptClicked);
+
+    QWidget* console = new JSConsole(this);
+    console->setFixedHeight(CONSOLE_HEIGHT);
+    this->layout()->addWidget(console);
 }
 
 ScriptEditorWindow::~ScriptEditorWindow() {
@@ -133,6 +142,7 @@ ScriptEditorWidget* ScriptEditorWindow::addScriptEditorWidget(QString title) {
     connect(newScriptEditorWidget, &ScriptEditorWidget::scriptnameChanged, this, &ScriptEditorWindow::updateScriptNameOrStatus);
     connect(newScriptEditorWidget, &ScriptEditorWidget::scriptModified, this, &ScriptEditorWindow::updateScriptNameOrStatus);
     connect(newScriptEditorWidget, &ScriptEditorWidget::runningStateChanged, this, &ScriptEditorWindow::updateButtons);
+    connect(this, &ScriptEditorWindow::windowActivated, newScriptEditorWidget, &ScriptEditorWidget::onWindowActivated);
     _ScriptEditorWindowUI->tabWidget->addTab(newScriptEditorWidget, title);
     _ScriptEditorWindowUI->tabWidget->setCurrentWidget(newScriptEditorWidget);
     newScriptEditorWidget->setUpdatesEnabled(true);
@@ -209,3 +219,15 @@ void ScriptEditorWindow::terminateCurrentTab() {
         this->raise();
     }
 }
+
+bool ScriptEditorWindow::autoReloadScripts() {
+    return _ScriptEditorWindowUI->autoReloadCheckBox->isChecked();
+}
+
+bool ScriptEditorWindow::event(QEvent* event) {
+    if (event->type() == QEvent::WindowActivate) {
+        emit windowActivated();
+    }
+    return QWidget::event(event);
+}
+

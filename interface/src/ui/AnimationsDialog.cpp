@@ -98,6 +98,7 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     
     layout->addRow("FPS:", _fps = new QDoubleSpinBox());
     _fps->setSingleStep(0.01);
+    _fps->setMinimum(-FLT_MAX);
     _fps->setMaximum(FLT_MAX);
     _fps->setValue(handle->getFPS());
     connect(_fps, SIGNAL(valueChanged(double)), SLOT(updateHandle()));
@@ -128,15 +129,17 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     _startAutomatically->setChecked(handle->getStartAutomatically());
     connect(_startAutomatically, SIGNAL(toggled(bool)), SLOT(updateHandle()));
     
-    layout->addRow("First Frame:", _firstFrame = new QSpinBox());
+    layout->addRow("First Frame:", _firstFrame = new QDoubleSpinBox());
+    _firstFrame->setSingleStep(0.01);
     _firstFrame->setMaximum(INT_MAX);
     _firstFrame->setValue(handle->getFirstFrame());
-    connect(_firstFrame, SIGNAL(valueChanged(int)), SLOT(updateHandle()));
+    connect(_firstFrame, SIGNAL(valueChanged(double)), SLOT(updateHandle()));
     
-    layout->addRow("Last Frame:", _lastFrame = new QSpinBox());
+    layout->addRow("Last Frame:", _lastFrame = new QDoubleSpinBox());
+    _lastFrame->setSingleStep(0.01);
     _lastFrame->setMaximum(INT_MAX);
     _lastFrame->setValue(handle->getLastFrame());
-    connect(_lastFrame, SIGNAL(valueChanged(int)), SLOT(updateHandle()));
+    connect(_lastFrame, SIGNAL(valueChanged(double)), SLOT(updateHandle()));
     
     QHBoxLayout* buttons = new QHBoxLayout();
     layout->addRow(buttons);

@@ -48,11 +48,12 @@ public:
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
-    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
-    void setLeanForward(float leanForward) { _leanForward = leanForward; }
+
+    /// \return orientationBase+Delta
+    glm::quat getFinalOrientationInLocalFrame() const;
     
-    /// \return orientationBody * orientationBase+Delta
-    glm::quat getFinalOrientation() const;
+    /// \return orientationBody * (orientationBase+Delta)
+    glm::quat getFinalOrientationInWorldFrame() const;
 
     /// \return orientationBody * orientationBasePitch
     glm::quat getCameraOrientation () const;
@@ -67,8 +68,6 @@ public:
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
-    float getLeanSideways() const { return _leanSideways; }
-    float getLeanForward() const { return _leanForward; }
     float getFinalLeanSideways() const { return _leanSideways + _deltaLeanSideways; }
     float getFinalLeanForward() const { return _leanForward + _deltaLeanForward; }
     
@@ -84,8 +83,6 @@ public:
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
-    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
-    
     /// \return the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
 
@@ -98,6 +95,9 @@ public:
     void setDeltaRoll(float roll) { _deltaRoll = roll; }
     float getDeltaRoll() const { return _deltaRoll; }
     
+    virtual void setFinalYaw(float finalYaw);
+    virtual void setFinalPitch(float finalPitch);
+    virtual void setFinalRoll(float finalRoll);
     virtual float getFinalPitch() const;
     virtual float getFinalYaw() const;
     virtual float getFinalRoll() const;
@@ -106,6 +106,8 @@ public:
     void addLeanDeltas(float sideways, float forward);
     
 private:
+    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
+
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
     Head& operator= (const Head&);
@@ -116,6 +118,7 @@ private:
     glm::vec3 _leftEyePosition;
     glm::vec3 _rightEyePosition;
     glm::vec3 _eyePosition;
+    
     float _scale;
     float _lastLoudness;
     float _audioAttack;

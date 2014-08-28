@@ -318,3 +318,327 @@ SetDataEdit::SetDataEdit(const glm::vec3& minimum, const MetavoxelData& data, bo
 void SetDataEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     data.set(minimum, this->data, blend);
 }
+
+PaintHeightfieldHeightEdit::PaintHeightfieldHeightEdit(const glm::vec3& position, float radius, float height) :
+    position(position),
+    radius(radius),
+    height(height) {
+}
+
+class PaintHeightfieldHeightEditVisitor : public MetavoxelVisitor {
+public:
+    
+    PaintHeightfieldHeightEditVisitor(const PaintHeightfieldHeightEdit& edit);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    PaintHeightfieldHeightEdit _edit;
+    Box _bounds;
+};
+
+PaintHeightfieldHeightEditVisitor::PaintHeightfieldHeightEditVisitor(const PaintHeightfieldHeightEdit& edit) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute(),
+        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute()),
+    _edit(edit) {
+    
+    glm::vec3 extents(_edit.radius, _edit.radius, _edit.radius);
+    _bounds = Box(_edit.position - extents, _edit.position + extents);
+}
+
+const int EIGHT_BIT_MAXIMUM = 255;
+
+int PaintHeightfieldHeightEditVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_bounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    HeightfieldHeightDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
+    if (!pointer) {
+        return STOP_RECURSION;
+    }
+    QByteArray contents(pointer->getContents());
+    int size = glm::sqrt((float)contents.size());
+    int highest = size - 1;
+    float heightScale = size / info.size;
+    
+    glm::vec3 center = (_edit.position - info.minimum) * heightScale;
+    float scaledRadius = _edit.radius * heightScale;
+    glm::vec3 extents(scaledRadius, scaledRadius, scaledRadius);
+    
+    glm::vec3 start = glm::floor(center - extents);
+    glm::vec3 end = glm::ceil(center + extents);
+    
+    // raise/lower all points within the radius
+    float z = qMax(start.z, 0.0f);
+    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
+    uchar* lineDest = (uchar*)contents.data() + (int)z * size + (int)startX;
+    float squaredRadius = scaledRadius * scaledRadius;
+    float squaredRadiusReciprocal = 1.0f / squaredRadius; 
+    float scaledHeight = _edit.height * EIGHT_BIT_MAXIMUM / info.size;
+    bool changed = false;
+    for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
+        uchar* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest++) {
+            float dx = x - center.x, dz = z - center.z;
+            float distanceSquared = dx * dx + dz * dz;
+            if (distanceSquared <= squaredRadius) {
+                // height falls off towards edges
+                int value = *dest + scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
+                if (value != *dest) {
+                    *dest = qMin(qMax(value, 0), EIGHT_BIT_MAXIMUM);
+                    changed = true;
+                }
+            }
+        }
+        lineDest += size;
+    }
+    if (changed) {
+        HeightfieldHeightDataPointer newPointer(new HeightfieldHeightData(contents));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newPointer));
+    }
+    return STOP_RECURSION;
+}
+
+void PaintHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    PaintHeightfieldHeightEditVisitor visitor(*this);
+    data.guide(visitor);
+}
+
+PaintHeightfieldColorEdit::PaintHeightfieldColorEdit(const glm::vec3& position, float radius, const QColor& color) :
+    position(position),
+    radius(radius),
+    color(color) {
+}
+
+class PaintHeightfieldColorEditVisitor : public MetavoxelVisitor {
+public:
+    
+    PaintHeightfieldColorEditVisitor(const PaintHeightfieldColorEdit& edit);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    PaintHeightfieldColorEdit _edit;
+    Box _bounds;
+};
+
+PaintHeightfieldColorEditVisitor::PaintHeightfieldColorEditVisitor(const PaintHeightfieldColorEdit& edit) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldColorAttribute(),
+        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldColorAttribute()),
+    _edit(edit) {
+    
+    glm::vec3 extents(_edit.radius, _edit.radius, _edit.radius);
+    _bounds = Box(_edit.position - extents, _edit.position + extents);
+}
+
+static void paintColor(MetavoxelInfo& info, int index, const glm::vec3& position, float radius, const QColor& color) {
+    HeightfieldColorDataPointer pointer = info.inputValues.at(index).getInlineValue<HeightfieldColorDataPointer>();
+    if (!pointer) {
+        return;
+    }
+    QByteArray contents(pointer->getContents());
+    int size = glm::sqrt((float)contents.size() / HeightfieldData::COLOR_BYTES);
+    int highest = size - 1;
+    float heightScale = size / info.size;
+    
+    glm::vec3 center = (position - info.minimum) * heightScale;
+    float scaledRadius = radius * heightScale;
+    glm::vec3 extents(scaledRadius, scaledRadius, scaledRadius);
+    
+    glm::vec3 start = glm::floor(center - extents);
+    glm::vec3 end = glm::ceil(center + extents);
+    
+    // paint all points within the radius
+    float z = qMax(start.z, 0.0f);
+    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
+    int stride = size * HeightfieldData::COLOR_BYTES;
+    char* lineDest = contents.data() + (int)z * stride + (int)startX * HeightfieldData::COLOR_BYTES;
+    float squaredRadius = scaledRadius * scaledRadius; 
+    char red = color.red(), green = color.green(), blue = color.blue();
+    bool changed = false;
+    for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
+        char* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest += HeightfieldData::COLOR_BYTES) {
+            float dx = x - center.x, dz = z - center.z;
+            if (dx * dx + dz * dz <= squaredRadius) {
+                dest[0] = red;
+                dest[1] = green;
+                dest[2] = blue;
+                changed = true;
+            }
+        }
+        lineDest += stride;
+    }
+    if (changed) {
+        HeightfieldColorDataPointer newPointer(new HeightfieldColorData(contents));
+        info.outputValues[index] = AttributeValue(info.inputValues.at(index).getAttribute(),
+            encodeInline<HeightfieldColorDataPointer>(newPointer));
+    }
+}
+
+int PaintHeightfieldColorEditVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_bounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    paintColor(info, 0, _edit.position, _edit.radius, _edit.color);
+    return STOP_RECURSION;
+}
+
+void PaintHeightfieldColorEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    PaintHeightfieldColorEditVisitor visitor(*this);
+    data.guide(visitor);
+}
+
+PaintHeightfieldTextureEdit::PaintHeightfieldTextureEdit(const glm::vec3& position, float radius,
+        const SharedObjectPointer& texture, const QColor& averageColor) :
+    position(position),
+    radius(radius),
+    texture(texture),
+    averageColor(averageColor) {
+}
+
+class PaintHeightfieldTextureEditVisitor : public MetavoxelVisitor {
+public:
+    
+    PaintHeightfieldTextureEditVisitor(const PaintHeightfieldTextureEdit& edit);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    PaintHeightfieldTextureEdit _edit;
+    Box _bounds;
+};
+
+PaintHeightfieldTextureEditVisitor::PaintHeightfieldTextureEditVisitor(const PaintHeightfieldTextureEdit& edit) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldTextureAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getHeightfieldTextureAttribute() <<
+            AttributeRegistry::getInstance()->getHeightfieldColorAttribute()),
+    _edit(edit) {
+    
+    glm::vec3 extents(_edit.radius, _edit.radius, _edit.radius);
+    _bounds = Box(_edit.position - extents, _edit.position + extents);
+}
+
+static QHash<uchar, int> countIndices(const QByteArray& contents) {
+    QHash<uchar, int> counts;
+    for (const uchar* src = (const uchar*)contents.constData(), *end = src + contents.size(); src != end; src++) {
+        if (*src != 0) {
+            counts[*src]++;
+        }
+    }
+    return counts;
+}
+
+int PaintHeightfieldTextureEditVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_bounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    HeightfieldTextureDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldTextureDataPointer>();
+    if (!pointer) {
+        return STOP_RECURSION;
+    }
+    QVector<SharedObjectPointer> textures = pointer->getTextures();
+    QByteArray contents(pointer->getContents());
+    uchar textureIndex = 0;
+    if (_edit.texture && static_cast<HeightfieldTexture*>(_edit.texture.data())->getURL().isValid()) {
+        // first look for a matching existing texture, noting the first reusable slot
+        int firstEmptyIndex = -1;
+        for (int i = 0; i < textures.size(); i++) {
+            const SharedObjectPointer& texture = textures.at(i);
+            if (texture) {
+                if (texture->equals(_edit.texture.data())) {
+                    textureIndex = i + 1;
+                    break;
+                }
+            } else if (firstEmptyIndex == -1) {
+                firstEmptyIndex = i;
+            }
+        }
+        // if nothing found, use the first empty slot or append
+        if (textureIndex == 0) {
+            if (firstEmptyIndex != -1) {
+                textures[firstEmptyIndex] = _edit.texture;
+                textureIndex = firstEmptyIndex + 1;
+                
+            } else if (textures.size() < EIGHT_BIT_MAXIMUM) {
+                textures.append(_edit.texture);
+                textureIndex = textures.size();
+                
+            } else {
+                // last resort: find the least-used texture and remove it
+                QHash<uchar, int> counts = countIndices(contents);
+                int lowestCount = INT_MAX;
+                for (QHash<uchar, int>::const_iterator it = counts.constBegin(); it != counts.constEnd(); it++) {
+                    if (it.value() < lowestCount) {
+                        textureIndex = it.key();
+                        lowestCount = it.value();
+                    }
+                }
+                contents.replace((char)textureIndex, (char)0);
+            }
+        }
+    }
+    int size = glm::sqrt((float)contents.size());
+    int highest = size - 1;
+    float heightScale = highest / info.size;
+    
+    glm::vec3 center = (_edit.position - info.minimum) * heightScale;
+    float scaledRadius = _edit.radius * heightScale;
+    glm::vec3 extents(scaledRadius, scaledRadius, scaledRadius);
+    
+    glm::vec3 start = glm::floor(center - extents);
+    glm::vec3 end = glm::ceil(center + extents);
+    
+    // paint all points within the radius
+    float z = qMax(start.z, 0.0f);
+    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
+    uchar* lineDest = (uchar*)contents.data() + (int)z * size + (int)startX;
+    float squaredRadius = scaledRadius * scaledRadius; 
+    bool changed = false;
+    QHash<uchar, int> counts;
+    for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
+        uchar* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest++) {
+            float dx = x - center.x, dz = z - center.z;
+            if (dx * dx + dz * dz <= squaredRadius) {
+                *dest = textureIndex;
+                changed = true;
+            }
+        }
+        lineDest += size;
+    }
+    if (changed) {
+        // clear any unused textures
+        QHash<uchar, int> counts = countIndices(contents);
+        for (int i = 0; i < textures.size(); i++) {
+            if (counts.value(i + 1) == 0) {
+                textures[i] = SharedObjectPointer();
+            }
+        }
+        while (!(textures.isEmpty() || textures.last())) {
+            textures.removeLast();
+        }
+        HeightfieldTextureDataPointer newPointer(new HeightfieldTextureData(contents, textures));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldTextureDataPointer>(newPointer));
+    }
+    paintColor(info, 1, _edit.position, _edit.radius, _edit.averageColor);
+    return STOP_RECURSION;
+}
+
+void PaintHeightfieldTextureEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    PaintHeightfieldTextureEditVisitor visitor(*this);
+    data.guide(visitor);
+}

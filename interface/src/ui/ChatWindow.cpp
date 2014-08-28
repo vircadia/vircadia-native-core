@@ -30,6 +30,9 @@
 
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
 
+const float OPACITY_ACTIVE = 1.0f;
+const float OPACITY_INACTIVE = 0.8f;
+
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?)|(?:hifi))://\\S+)");
 const QRegularExpression regexHifiLinks("([#@]\\S+)");
 const QString mentionSoundsPath("/mention-sounds/");
@@ -108,7 +111,7 @@ ChatWindow::~ChatWindow() {
 
 void ChatWindow::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Escape) {
-        hide();
+        Application::getInstance()->getWindow()->activateWindow();
     } else {
         FramelessDialog::keyPressEvent(event);
     }
@@ -178,7 +181,7 @@ void ChatWindow::addTimeStamp() {
         QLabel* timeLabel = new QLabel(timeString);
         timeLabel->setStyleSheet("color: #333333;"
                                  "background-color: white;"
-                                 "font-size: 14pt;"
+                                 "font-size: 14px;"
                                  "padding: 4px;");
         timeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         timeLabel->setAlignment(Qt::AlignLeft);
@@ -284,7 +287,7 @@ void ChatWindow::participantsChanged() {
                                  "padding-bottom: 2px;"
                                  "padding-left: 2px;"
                                  "border: 1px solid palette(shadow);"
-                                 "font-size: 14pt;"
+                                 "font-size: 14px;"
                                  "font-weight: bold");
         userLabel->setProperty("user", participantName);
         userLabel->setCursor(Qt::PointingHandCursor);
@@ -320,7 +323,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
                                "padding-right: 20px;"
                                "margin: 0px;"
                                "color: #333333;"
-                               "font-size: 14pt;"
+                               "font-size: 14px;"
                                "background-color: rgba(0, 0, 0, 0%);"
                                "border: 0; }"
                                "QMenu{ border: 2px outset gray; }");
@@ -382,4 +385,13 @@ bool ChatWindow::isNearBottom() {
 void ChatWindow::scrollToBottom() {
     QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
     verticalScrollBar->setValue(verticalScrollBar->maximum());
+}
+
+bool ChatWindow::event(QEvent* event) {
+    if (event->type() == QEvent::WindowActivate) {
+        setWindowOpacity(OPACITY_ACTIVE);
+    } else if (event->type() == QEvent::WindowDeactivate) {
+        setWindowOpacity(OPACITY_INACTIVE);
+    }
+    return FramelessDialog::event(event);
 }
