@@ -1053,7 +1053,7 @@ void sendFakeEnterEvent() {
 
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
-void Menu::clearLoginDomain() {
+void Menu::clearLoginDialogDisplayedFlag() {
     // Needed for domains that don't require login.
     _hasLoginDialogDisplayed = false;
 }

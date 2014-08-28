@@ -175,7 +175,7 @@ signals:
 
 public slots:
 
-    void clearLoginDomain();
+    void clearLoginDialogDisplayedFlag();
     void loginForCurrentDomain();
     void showLoginForCurrentDomain();
     void bandwidthDetails();
