@@ -28,6 +28,9 @@ namespace ShapeColliderTests {
     void sphereTouchesAACubeCorners();
     void sphereMissesAACube();
 
+    void capsuleMissesAACube();
+    void capsuleTouchesAACube();
+
     void rayHitsSphere();
     void rayBarelyHitsSphere();
     void rayBarelyMissesSphere();

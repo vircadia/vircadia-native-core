@@ -624,8 +624,6 @@ glm::vec3 cubeNormals[3] = { glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 
 // hence the first pair is (1, 2) because the OTHER faces for xFace are (yFace, zFace) = (1, 2)
 int wallIndices[] = { 1, 2, 0, 2, 0, 1 };
 
-const float INV_SQRT_TWO = 1.0f / SQUARE_ROOT_OF_2;
-
 bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
     const AACubeShape* cubeB = static_cast<const AACubeShape*>(shapeB);
@@ -635,12 +633,13 @@ bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& co
     capsuleA->computeNormalizedAxis(capsuleAxis);
     float halfHeight = capsuleA->getHalfHeight();
     glm::vec3 cubeCenter = cubeB->getTranslation();
-    glm::vec3 BA = cubeCenter - capsuleA->getTranslation();
+    glm::vec3 capsuleCenter = capsuleA->getTranslation();
+    glm::vec3 BA = cubeCenter - capsuleCenter;
     float axialOffset = glm::dot(capsuleAxis, BA);
     if (fabsf(axialOffset) > halfHeight) {
         axialOffset = (axialOffset < 0.0f) ? -halfHeight : halfHeight;
     }
-    glm::vec3 nearestApproach = axialOffset * capsuleAxis;
+    glm::vec3 nearestApproach = capsuleCenter + axialOffset * capsuleAxis;
 
     // transform nearestApproach into cube-relative frame
     nearestApproach -= cubeCenter;
@@ -659,6 +658,13 @@ bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& co
         maxApproach = fabsf(nearestApproach.z);
         faceIndex = 2;
         faceNormal = glm::vec3(0.0f, 0.0f, signs.z);
+    }
+
+    if (fabs(glm::dot(faceNormal, capsuleAxis)) < EPSILON) {
+        // TODO: Andrew to implement this special case 
+        // where capsule is perpendicular to the face that it hits
+        // (Make this its own function?  or implement it here?)
+        return false;
     }
 
     // Revisualize the capsule as a startPoint and an axis that points toward the cube face.
@@ -680,10 +686,10 @@ bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& co
     float capsuleRadius = capsuleA->getRadius();
 
     // Loop over the directions that are NOT parallel to face (there are two of them).
-    // For each direction we'll raytrace along capsuleAxis to find point impact 
-    // on the furthest face and clamp it to remain on the capsule's line segment
-    float distances[2] = { 0, capsuleLength};
-    int numCompleteMisses = 0;
+    // For each direction we'll raytrace along capsuleAxis to find where the axis passes
+    // through the furthest face and then we'll clamp to remain on the capsule's line segment
+    float shortestDistance = capsuleLength;
+
     for (int i = 0; i < 2; ++i) {
         int wallIndex = wallIndices[2 * faceIndex + i];
         // each direction has two walls: positive and negative
@@ -691,44 +697,48 @@ bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& co
             glm::vec3 wallNormal = wallSign * cubeNormals[wallIndex];
             float axisDotWall = glm::dot(capsuleAxis, wallNormal);
             if (axisDotWall > EPSILON) {
-                float distance = (halfCubeSide + glm::dot(capsuleStart, wallNormal)) / axisDotWall;
-                distances[i] = glm::clamp(distance, 0.0f, capsuleLength);
-                if (distance == distances[i]) {
-                    // the wall truncated the capsule which means there is a possibility that the capusule 
-                    // actually collides against the edge of the face, so we check for that case now
-                    glm::vec3 impact = capsuleStart + distance * capsuleAxis;
-                    float depth = glm::dot(impact, faceNormal) - halfCubeSide;
-                    if (depth > 0.0f) {
-                        if (depth < capsuleRadius) {
-                            // need to recast against the diagonal plane: wall rotated away from the face
-                            glm::vec3 diagonalNormal = INV_SQRT_TWO * (wallNormal - faceNormal);
-                            distances[i] = glm::min(glm::dot(capsuleStart, diagonalNormal), 0.0f);
-                        } else {
-                            // capsule misses this wall by more than capsuleRadius
-                            ++numCompleteMisses;
-                        }
+                // formula for distance to intersection between line (P,p) and plane (V,n) is: (V-P)*n / p*n
+                float newDistance = (halfCubeSide - glm::dot(capsuleStart, wallNormal)) / axisDotWall;
+                if (newDistance < 0.0f) {
+                    // The wall is behind the capsule, but there is still a possibility that it collides 
+                    // against the edge so we recast against the diagonal plane beteween the two faces.
+                    // NOTE: it is impossible for the startPoint to be in front of the diagonal plane,
+                    // therefore we know we'll get a valid distance.
+                    glm::vec3 thirdNormal = glm::cross(faceNormal, wallNormal);
+                    glm::vec3 diagonalNormal = glm::normalize(glm::cross(glm::cross(capsuleAxis, thirdNormal), thirdNormal));
+                    newDistance = glm::dot(halfCubeSide * (faceNormal + wallNormal) - capsuleStart, diagonalNormal) / 
+                        glm::dot(capsuleAxis, diagonalNormal);
+                } else if (newDistance < capsuleLength) {
+                    // The wall truncates the capsule axis, but we must check the case where the capsule
+                    // collides with an edge/corner rather than the face.  The good news is that this gives us
+                    // an opportunity to check for an early exit case.
+                    float heightOfImpact = glm::dot(capsuleStart + newDistance * capsuleAxis, faceNormal);
+                    if (heightOfImpact > halfCubeSide + SQUARE_ROOT_OF_2 * capsuleRadius) {
+                        // it is impossible for the capsule to hit the face
+                        return false;
+                    } else {
+                        // recast against the diagonal plane between the two faces
+                        glm::vec3 thirdNormal = glm::cross(faceNormal, wallNormal);
+                        glm::vec3 diagonalNormal = glm::normalize(glm::cross(glm::cross(capsuleAxis, thirdNormal), thirdNormal));
+                        newDistance = glm::dot(halfCubeSide * (faceNormal + wallNormal) - capsuleStart, diagonalNormal) / 
+                            glm::dot(capsuleAxis, diagonalNormal);
                     }
                 }
-                // there can't be more than one hit for any direction so we break
+                if (newDistance < shortestDistance) {
+                    shortestDistance = newDistance;
+                }
+                // there can only be one hit per direction
                 break;
             }
         }
     }
-    if (numCompleteMisses == 2) {
-        return false;
-    }
-
+    
     // chose the point that produces the deepest penetration against face
-    glm::vec3 point0 = capsuleStart + distances[0] * capsuleAxis;
-    glm::vec3 point1 = capsuleStart + distances[1] * capsuleAxis;
-    if (glm::dot(point0, faceNormal) > glm::dot(point1, faceNormal)) {
-        point0 = point1;
-    }
-    // move back into real frame
-    point0 += cubeCenter;
+    // and translate back into real frame
+    glm::vec3 sphereCenter = cubeCenter + capsuleStart + shortestDistance * capsuleAxis;
 
     // collide like a sphere at point0 with capsuleRadius
-    CollisionInfo* collision = sphereVsAACubeHelper(point0, capsuleRadius,
+    CollisionInfo* collision = sphereVsAACubeHelper(sphereCenter, capsuleRadius,
             cubeCenter, 2.0f * halfCubeSide, collisions);
     if (collision) {
         // we hit! so store back pointers to the shapes

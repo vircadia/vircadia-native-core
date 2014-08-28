@@ -16,6 +16,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <AACubeShape.h>
 #include <CapsuleShape.h>
 #include <CollisionInfo.h>
 #include <PlaneShape.h>
@@ -1022,6 +1023,557 @@ void ShapeColliderTests::sphereTouchesAACubeCorners() {
     }
 }
 
+void ShapeColliderTests::capsuleMissesAACube() {
+    CollisionList collisions(16);
+    
+    float capsuleRadius = 1.0f;
+
+    glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
+    float cubeSide = 2.0f;
+    AACubeShape cube(cubeSide, cubeCenter);
+
+    glm::vec3 faceNormals[] = {xAxis, yAxis, zAxis};
+    int numDirections = 3;
+
+    float offset = 2.0f * EPSILON;
+
+    // faces
+    for (int i = 0; i < numDirections; ++i) {
+        for (float sign = -1.0f; sign < 2.0f; sign += 2.0f) {
+            glm::vec3 faceNormal = sign * faceNormals[i];
+
+            glm::vec3 secondNormal = faceNormals[(i + 1) % numDirections];
+            glm::vec3 thirdNormal = faceNormals[(i + 2) % numDirections];
+
+            // pick a random point somewhere above the face
+            glm::vec3 startPoint = cubeCenter + (cubeSide + capsuleRadius) * faceNormal + 
+                (cubeSide * (randFloat() - 0.5f)) * secondNormal +
+                (cubeSide * (randFloat() - 0.5f)) * thirdNormal;
+
+            // pick a second random point slightly more than one radius above the face
+            glm::vec3 endPoint = cubeCenter + (0.5f * cubeSide + capsuleRadius + offset) * faceNormal +
+                (cubeSide * (randFloat() - 0.5f)) * secondNormal +
+                (cubeSide * (randFloat() - 0.5f)) * thirdNormal;
+
+            // randomly swap the points so capsule axis may point toward or away from face
+            if (randFloat() > 0.5f) {
+                glm::vec3 temp = startPoint;
+                startPoint = endPoint;
+                endPoint = temp;
+            }
+
+            // create a capsule between the points
+            CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
+
+            // collide capsule with cube
+            bool hit = ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions);
+            if (hit) {
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should NOT collide with cube face."
+                    << "  faceNormal = " << faceNormal << std::endl;
+            }
+        }
+    }
+
+    // edges
+    // loop over each face...
+    for (int i = 0; i < numDirections; ++i) {
+        for (float faceSign = -1.0f; faceSign < 2.0f; faceSign += 2.0f) {
+            glm::vec3 faceNormal = faceSign * faceNormals[i];
+
+            // loop over each neighboring face...
+            for (int j = (i + 1) % numDirections; j != i; j = (j + 1) % numDirections) {
+                // Compute the index to the third direction, which points perpendicular to both the face
+                // and the neighbor face.
+                int k = (j + 1) % numDirections;
+                if (k == i) {
+                    k = (i + 1) % numDirections;
+                }
+                glm::vec3 thirdNormal = faceNormals[k];
+
+                collisions.clear();
+                for (float neighborSign = -1.0f; neighborSign < 2.0f; neighborSign += 2.0f) {
+                    glm::vec3 neighborNormal = neighborSign * faceNormals[j];
+
+                    // combine the face and neighbor normals to get the edge normal
+                    glm::vec3 edgeNormal = glm::normalize(faceNormal + neighborNormal);
+
+                    // pick a random point somewhere above the edge
+                    glm::vec3 startPoint = cubeCenter + (SQUARE_ROOT_OF_2 * cubeSide + capsuleRadius) * edgeNormal + 
+                        (cubeSide * (randFloat() - 0.5f)) * thirdNormal;
+        
+                    // pick a second random point slightly more than one radius above the edge
+                    glm::vec3 endPoint = cubeCenter + (SQUARE_ROOT_OF_2 * 0.5f * cubeSide + capsuleRadius + offset) * edgeNormal +
+                        (cubeSide * (randFloat() - 0.5f)) * thirdNormal;
+        
+                    // randomly swap the points so capsule axis may point toward or away from edge
+                    if (randFloat() > 0.5f) {
+                        glm::vec3 temp = startPoint;
+                        startPoint = endPoint;
+                        endPoint = temp;
+                    }
+        
+                    // create a capsule between the points
+                    CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
+        
+                    // collide capsule with cube
+                    bool hit = ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions);
+                    if (hit) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should NOT collide with cube face."
+                            << "  edgeNormal = " << edgeNormal << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
+    // corners
+    for (float firstSign = -1.0f; firstSign < 2.0f; firstSign += 2.0f) {
+        glm::vec3 firstNormal = firstSign * faceNormals[0];
+        for (float secondSign = -1.0f; secondSign < 2.0f; secondSign += 2.0f) {
+            glm::vec3 secondNormal = secondSign * faceNormals[1];
+            for (float thirdSign = -1.0f; thirdSign < 2.0f; thirdSign += 2.0f) {
+                collisions.clear();
+                glm::vec3 thirdNormal = thirdSign * faceNormals[2];
+
+                // the cornerNormal is the normalized sum of the three faces
+                glm::vec3 cornerNormal = glm::normalize(firstNormal + secondNormal + thirdNormal);
+
+                // pick a random point somewhere above the corner
+                glm::vec3 startPoint = cubeCenter + (SQUARE_ROOT_OF_3 * cubeSide + capsuleRadius) * cornerNormal + 
+                    (0.25f * cubeSide * (randFloat() - 0.5f)) * firstNormal +
+                    (0.25f * cubeSide * (randFloat() - 0.5f)) * secondNormal +
+                    (0.25f * cubeSide * (randFloat() - 0.5f)) * thirdNormal;
+    
+                // pick a second random point slightly more than one radius above the corner
+                glm::vec3 endPoint = cubeCenter + (SQUARE_ROOT_OF_3 * 0.5f * cubeSide + capsuleRadius + offset) * cornerNormal;
+    
+                // randomly swap the points so capsule axis may point toward or away from corner
+                if (randFloat() > 0.5f) {
+                    glm::vec3 temp = startPoint;
+                    startPoint = endPoint;
+                    endPoint = temp;
+                }
+    
+                // create a capsule between the points
+                CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
+    
+                // collide capsule with cube
+                bool hit = ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions);
+                if (hit) {
+                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should NOT collide with cube face."
+                        << "  cornerNormal = " << cornerNormal << std::endl;
+                }
+            }
+        }
+    }
+}
+
+void ShapeColliderTests::capsuleTouchesAACube() {
+    CollisionList collisions(16);
+    
+    float capsuleRadius = 1.0f;
+
+    //glm::vec3 cubeCenter(0.0f);
+    glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
+    float cubeSide = 2.0f;
+    AACubeShape cube(cubeSide, cubeCenter);
+
+    glm::vec3 faceNormals[] = {xAxis, yAxis, zAxis};
+    int numDirections = 3;
+
+    float overlap = 0.25f * capsuleRadius;
+    float allowableError = 10.0f * EPSILON;
+
+    // capsule caps against cube faces
+    for (int i = 0; i < numDirections; ++i) {
+        for (float sign = -1.0f; sign < 2.0f; sign += 2.0f) {
+            glm::vec3 faceNormal = sign * faceNormals[i];
+
+            glm::vec3 secondNormal = faceNormals[(i + 1) % numDirections];
+            glm::vec3 thirdNormal = faceNormals[(i + 2) % numDirections];
+
+            // pick a random point somewhere above the face
+            glm::vec3 startPoint = cubeCenter + (cubeSide + capsuleRadius) * faceNormal + 
+                (cubeSide * (randFloat() - 0.5f)) * secondNormal +
+                (cubeSide * (randFloat() - 0.5f)) * thirdNormal;
+
+            // pick a second random point slightly less than one radius above the face
+            // (but reduce width of range by 2*overlap to prevent the penetration from 
+            // registering against other faces)
+            glm::vec3 endPoint = cubeCenter + (0.5f * cubeSide + capsuleRadius - overlap) * faceNormal +
+                ((cubeSide - 2.0f * overlap) * (randFloat() - 0.5f)) * secondNormal +
+                ((cubeSide - 2.0f * overlap) * (randFloat() - 0.5f)) * thirdNormal;
+            glm::vec3 collidingPoint = endPoint;
+
+            // randomly swap the points so capsule axis may point toward or away from face
+            if (randFloat() > 0.5f) {
+                glm::vec3 temp = startPoint;
+                startPoint = endPoint;
+                endPoint = temp;
+            }
+
+            // create a capsule between the points
+            CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
+
+            // collide capsule with cube
+            bool hit = ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions);
+            if (!hit) {
+                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
+                    << "  faceNormal = " << faceNormal << std::endl;
+                break;
+            }
+
+            CollisionInfo* collision = collisions.getLastCollision();
+            if (!collision) {
+                std::cout << __FILE__ << ":" << __LINE__
+                    << " ERROR: null collision with faceNormal = " << faceNormal << std::endl;
+                return;
+            }
+        
+            // penetration points from capsule into cube 
+            glm::vec3 expectedPenetration = - overlap * faceNormal;
+            float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
+            if (fabs(inaccuracy) > allowableError) {
+                std::cout << __FILE__ << ":" << __LINE__
+                    << " ERROR: bad penetration: expected = " << expectedPenetration
+                    << " actual = " << collision->_penetration 
+                    << " faceNormal = " << faceNormal
+                    << std::endl;
+            }
+        
+            // contactPoint is on surface of capsule
+            glm::vec3 expectedContactPoint = collidingPoint - capsuleRadius * faceNormal;
+            inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
+            if (fabs(inaccuracy) > allowableError) {
+                std::cout << __FILE__ << ":" << __LINE__
+                    << " ERROR: bad contactPoint: expected = " << expectedContactPoint
+                    << " actual = " << collision->_contactPoint 
+                    << " faceNormal = " << faceNormal
+                    << std::endl;
+            }
+        }
+    }
+
+    // capsule caps against cube edges
+    // loop over each face...
+    for (int i = 0; i < numDirections; ++i) {
+        for (float faceSign = -1.0f; faceSign < 2.0f; faceSign += 2.0f) {
+            glm::vec3 faceNormal = faceSign * faceNormals[i];
+
+            // loop over each neighboring face...
+            for (int j = (i + 1) % numDirections; j != i; j = (j + 1) % numDirections) {
+                // Compute the index to the third direction, which points perpendicular to both the face
+                // and the neighbor face.
+                int k = (j + 1) % numDirections;
+                if (k == i) {
+                    k = (i + 1) % numDirections;
+                }
+                glm::vec3 thirdNormal = faceNormals[k];
+
+                collisions.clear();
+                for (float neighborSign = -1.0f; neighborSign < 2.0f; neighborSign += 2.0f) {
+                    glm::vec3 neighborNormal = neighborSign * faceNormals[j];
+
+                    // combine the face and neighbor normals to get the edge normal
+                    glm::vec3 edgeNormal = glm::normalize(faceNormal + neighborNormal);
+
+                    // pick a random point somewhere above the edge
+                    glm::vec3 startPoint = cubeCenter + (SQUARE_ROOT_OF_2 * cubeSide + capsuleRadius) * edgeNormal + 
+                        (cubeSide * (randFloat() - 0.5f)) * thirdNormal;
+        
+                    // pick a second random point slightly less than one radius above the edge
+                    glm::vec3 endPoint = cubeCenter + (SQUARE_ROOT_OF_2 * 0.5f * cubeSide + capsuleRadius - overlap) * edgeNormal +
+                        (cubeSide * (randFloat() - 0.5f)) * thirdNormal;
+                    glm::vec3 collidingPoint = endPoint;
+        
+                    // randomly swap the points so capsule axis may point toward or away from edge
+                    if (randFloat() > 0.5f) {
+                        glm::vec3 temp = startPoint;
+                        startPoint = endPoint;
+                        endPoint = temp;
+                    }
+        
+                    // create a capsule between the points
+                    CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
+        
+                    // collide capsule with cube
+                    bool hit = ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions);
+                    if (!hit) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
+                            << "  edgeNormal = " << edgeNormal << std::endl;
+                    }
+
+                    CollisionInfo* collision = collisions.getLastCollision();
+                    if (!collision) {
+                        std::cout << __FILE__ << ":" << __LINE__
+                            << " ERROR: null collision with edgeNormal = " << edgeNormal << std::endl;
+                        return;
+                    }
+                
+                    // penetration points from capsule into cube 
+                    glm::vec3 expectedPenetration = - overlap * edgeNormal;
+                    float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
+                    if (fabs(inaccuracy) > allowableError) {
+                        std::cout << __FILE__ << ":" << __LINE__
+                            << " ERROR: bad penetration: expected = " << expectedPenetration
+                            << " actual = " << collision->_penetration 
+                            << " edgeNormal = " << edgeNormal
+                            << std::endl;
+                    }
+                
+                    // contactPoint is on surface of capsule
+                    glm::vec3 expectedContactPoint = collidingPoint - capsuleRadius * edgeNormal;
+                    inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
+                    if (fabs(inaccuracy) > allowableError) {
+                        std::cout << __FILE__ << ":" << __LINE__
+                            << " ERROR: bad contactPoint: expected = " << expectedContactPoint
+                            << " actual = " << collision->_contactPoint 
+                            << " edgeNormal = " << edgeNormal
+                            << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
+    // capsule caps against cube corners
+    for (float firstSign = -1.0f; firstSign < 2.0f; firstSign += 2.0f) {
+        glm::vec3 firstNormal = firstSign * faceNormals[0];
+        for (float secondSign = -1.0f; secondSign < 2.0f; secondSign += 2.0f) {
+            glm::vec3 secondNormal = secondSign * faceNormals[1];
+            for (float thirdSign = -1.0f; thirdSign < 2.0f; thirdSign += 2.0f) {
+                collisions.clear();
+                glm::vec3 thirdNormal = thirdSign * faceNormals[2];
+
+                // the cornerNormal is the normalized sum of the three faces
+                glm::vec3 cornerNormal = glm::normalize(firstNormal + secondNormal + thirdNormal);
+
+                // pick a random point somewhere above the corner
+                glm::vec3 startPoint = cubeCenter + (SQUARE_ROOT_OF_3 * cubeSide + capsuleRadius) * cornerNormal + 
+                    (0.25f * cubeSide * (randFloat() - 0.5f)) * firstNormal +
+                    (0.25f * cubeSide * (randFloat() - 0.5f)) * secondNormal +
+                    (0.25f * cubeSide * (randFloat() - 0.5f)) * thirdNormal;
+    
+                // pick a second random point slightly less than one radius above the corner
+                glm::vec3 endPoint = cubeCenter + (SQUARE_ROOT_OF_3 * 0.5f * cubeSide + capsuleRadius - overlap) * cornerNormal;
+                glm::vec3 collidingPoint = endPoint;
+    
+                // randomly swap the points so capsule axis may point toward or away from corner
+                if (randFloat() > 0.5f) {
+                    glm::vec3 temp = startPoint;
+                    startPoint = endPoint;
+                    endPoint = temp;
+                }
+    
+                // create a capsule between the points
+                CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
+    
+                // collide capsule with cube
+                bool hit = ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions);
+                if (!hit) {
+                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
+                        << "  cornerNormal = " << cornerNormal << std::endl;
+                }
+
+                CollisionInfo* collision = collisions.getLastCollision();
+                if (!collision) {
+                    std::cout << __FILE__ << ":" << __LINE__
+                        << " ERROR: null collision with cornerNormal = " << cornerNormal << std::endl;
+                    return;
+                }
+            
+                // penetration points from capsule into cube 
+                glm::vec3 expectedPenetration = - overlap * cornerNormal;
+                float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
+                if (fabs(inaccuracy) > allowableError) {
+                    std::cout << __FILE__ << ":" << __LINE__
+                        << " ERROR: bad penetration: expected = " << expectedPenetration
+                        << " actual = " << collision->_penetration 
+                        << " cornerNormal = " << cornerNormal
+                        << std::endl;
+                }
+            
+                // contactPoint is on surface of capsule
+                glm::vec3 expectedContactPoint = collidingPoint - capsuleRadius * cornerNormal;
+                inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
+                if (fabs(inaccuracy) > allowableError) {
+                    std::cout << __FILE__ << ":" << __LINE__
+                        << " ERROR: bad contactPoint: expected = " << expectedContactPoint
+                        << " actual = " << collision->_contactPoint 
+                        << " cornerNormal = " << cornerNormal
+                        << std::endl;
+                }
+            }
+        }
+    }
+
+    // capsule sides against cube edges
+    // loop over each face...
+    float capsuleLength = 2.0f;
+    for (int i = 0; i < numDirections; ++i) {
+        for (float faceSign = -1.0f; faceSign < 2.0f; faceSign += 2.0f) {
+            glm::vec3 faceNormal = faceSign * faceNormals[i];
+
+            // loop over each neighboring face...
+            for (int j = (i + 1) % numDirections; j != i; j = (j + 1) % numDirections) {
+                // Compute the index to the third direction, which points perpendicular to both the face
+                // and the neighbor face.
+                int k = (j + 1) % numDirections;
+                if (k == i) {
+                    k = (i + 1) % numDirections;
+                }
+                glm::vec3 thirdNormal = faceNormals[k];
+
+                collisions.clear();
+                for (float neighborSign = -1.0f; neighborSign < 2.0f; neighborSign += 2.0f) {
+                    glm::vec3 neighborNormal = neighborSign * faceNormals[j];
+
+                    // combine the face and neighbor normals to get the edge normal
+                    glm::vec3 edgeNormal = glm::normalize(faceNormal + neighborNormal);
+
+                    // pick a random point somewhere along the edge
+                    glm::vec3 edgePoint = cubeCenter + (SQUARE_ROOT_OF_2 * 0.5f * cubeSide) * edgeNormal + 
+                        ((cubeSide - 2.0f * overlap) * (randFloat() - 0.5f)) * thirdNormal;
+
+                    // pick a random normal that is deflected slightly from edgeNormal
+                    glm::vec3 deflectedNormal = glm::normalize(edgeNormal +
+                            (0.1f * (randFloat() - 0.5f)) * faceNormal +
+                            (0.1f * (randFloat() - 0.5f)) * neighborNormal);
+
+                    // compute the axis direction, which will be perp to deflectedNormal and thirdNormal
+                    glm::vec3 axisDirection = glm::normalize(glm::cross(deflectedNormal, thirdNormal));
+
+                    // compute a point for the capsule's axis along deflection normal away from edgePoint
+                    glm::vec3 axisPoint = edgePoint + (capsuleRadius - overlap) * deflectedNormal;
+
+                    // now we can compute the capsule endpoints
+                    glm::vec3 endPoint = axisPoint + (0.5f * capsuleLength * randFloat()) * axisDirection;
+                    glm::vec3 startPoint = axisPoint - (0.5f * capsuleLength * randFloat()) * axisDirection;
+        
+                    // create a capsule between the points
+                    CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
+        
+                    // collide capsule with cube
+                    bool hit = ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions);
+                    if (!hit) {
+                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
+                            << "  edgeNormal = " << edgeNormal << std::endl;
+                    }
+
+                    CollisionInfo* collision = collisions.getLastCollision();
+                    if (!collision) {
+                        std::cout << __FILE__ << ":" << __LINE__
+                            << " ERROR: null collision with edgeNormal = " << edgeNormal << std::endl;
+                        return;
+                    }
+                
+                    // penetration points from capsule into cube 
+                    glm::vec3 expectedPenetration = - overlap * deflectedNormal;
+                    float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
+                    if (fabs(inaccuracy) > allowableError / capsuleLength) {
+                        std::cout << __FILE__ << ":" << __LINE__
+                            << " ERROR: bad penetration: expected = " << expectedPenetration
+                            << " actual = " << collision->_penetration 
+                            << " edgeNormal = " << edgeNormal
+                            << std::endl;
+                    }
+                
+                    // contactPoint is on surface of capsule
+                    glm::vec3 expectedContactPoint = axisPoint - capsuleRadius * deflectedNormal;
+                    inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
+                    if (fabs(inaccuracy) > allowableError / capsuleLength) {
+                        std::cout << __FILE__ << ":" << __LINE__
+                            << " ERROR: bad contactPoint: expected = " << expectedContactPoint
+                            << " actual = " << collision->_contactPoint 
+                            << " edgeNormal = " << edgeNormal
+                            << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
+    // capsule sides against cube corners
+    for (float firstSign = -1.0f; firstSign < 2.0f; firstSign += 2.0f) {
+        glm::vec3 firstNormal = firstSign * faceNormals[0];
+        for (float secondSign = -1.0f; secondSign < 2.0f; secondSign += 2.0f) {
+            glm::vec3 secondNormal = secondSign * faceNormals[1];
+            for (float thirdSign = -1.0f; thirdSign < 2.0f; thirdSign += 2.0f) {
+                collisions.clear();
+                glm::vec3 thirdNormal = thirdSign * faceNormals[2];
+
+                // the cornerNormal is the normalized sum of the three faces
+                glm::vec3 cornerNormal = glm::normalize(firstNormal + secondNormal + thirdNormal);
+
+                // compute a penetration normal that is somewhat randomized about cornerNormal
+                glm::vec3 penetrationNormal = - glm::normalize(cornerNormal +
+                    (0.05f * cubeSide * (randFloat() - 0.5f)) * firstNormal +
+                    (0.05f * cubeSide * (randFloat() - 0.5f)) * secondNormal +
+                    (0.05f * cubeSide * (randFloat() - 0.5f)) * thirdNormal);
+
+                // pick a random point somewhere above the corner
+                glm::vec3 corner = cubeCenter + (0.5f * cubeSide) * (firstNormal + secondNormal + thirdNormal);
+                glm::vec3 startPoint = corner + (3.0f * cubeSide) * cornerNormal + 
+                    (0.25f * cubeSide * (randFloat() - 0.5f)) * firstNormal +
+                    (0.25f * cubeSide * (randFloat() - 0.5f)) * secondNormal +
+                    (0.25f * cubeSide * (randFloat() - 0.5f)) * thirdNormal;
+
+                // pick a second random point slightly less than one radius above the corner
+                // with some sight perp motion
+                glm::vec3 endPoint = corner - (capsuleRadius - overlap) * penetrationNormal;
+                glm::vec3 collidingPoint = endPoint;
+
+                // randomly swap the points so capsule axis may point toward or away from corner
+                if (randFloat() > 0.5f) {
+                    glm::vec3 temp = startPoint;
+                    startPoint = endPoint;
+                    endPoint = temp;
+                }
+    
+                // create a capsule between the points
+                CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
+    
+                // collide capsule with cube
+                bool hit = ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions);
+                if (!hit) {
+                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
+                        << "  cornerNormal = " << cornerNormal << std::endl;
+                }
+
+                CollisionInfo* collision = collisions.getLastCollision();
+                if (!collision) {
+                    std::cout << __FILE__ << ":" << __LINE__
+                        << " ERROR: null collision with cornerNormal = " << cornerNormal << std::endl;
+                    return;
+                }
+            
+                // penetration points from capsule into cube 
+                glm::vec3 expectedPenetration = overlap * penetrationNormal;
+                float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
+                if (fabs(inaccuracy) > allowableError) {
+                    std::cout << __FILE__ << ":" << __LINE__
+                        << " ERROR: bad penetration: expected = " << expectedPenetration
+                        << " actual = " << collision->_penetration 
+                        << " cornerNormal = " << cornerNormal
+                        << std::endl;
+                }
+            
+                // contactPoint is on surface of capsule
+                glm::vec3 expectedContactPoint = collidingPoint + capsuleRadius * penetrationNormal;
+                inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
+                if (fabs(inaccuracy) > allowableError) {
+                    std::cout << __FILE__ << ":" << __LINE__
+                        << " ERROR: bad contactPoint: expected = " << expectedContactPoint
+                        << " actual = " << collision->_contactPoint 
+                        << " cornerNormal = " << cornerNormal
+                        << std::endl;
+                }
+            }
+        }
+    }
+}
+
+
 void ShapeColliderTests::rayHitsSphere() {
     float startDistance = 3.0f;
     glm::vec3 rayStart(-startDistance, 0.0f, 0.0f);
@@ -1488,6 +2040,9 @@ void ShapeColliderTests::runAllTests() {
     sphereTouchesAACubeFaces();
     sphereTouchesAACubeEdges();
     sphereTouchesAACubeCorners();
+
+    capsuleMissesAACube();
+    capsuleTouchesAACube();
 
     rayHitsSphere();
     rayBarelyHitsSphere();
