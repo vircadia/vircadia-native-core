@@ -1896,12 +1896,8 @@ void MyAvatar::resetSize() {
 }
 
 void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
-    if (jsonObject["status"].toString() == "success") {
-        QJsonObject locationObject = jsonObject["data"].toObject()["address"].toObject();
-        goToLocationFromAddress(locationObject);
-    } else {
-        QMessageBox::warning(Application::getInstance()->getWindow(), "", "That user or location could not be found.");
-    }
+    QJsonObject locationObject = jsonObject["data"].toObject()["address"].toObject();
+    goToLocationFromAddress(locationObject);
 }
 
 void MyAvatar::goToLocationFromAddress(const QJsonObject& locationObject) {
