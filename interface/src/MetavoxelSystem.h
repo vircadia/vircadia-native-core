@@ -215,9 +215,9 @@ private:
 };
 
 /// Describes contents of a vertex in a voxel buffer.
-class VoxelVertex {
+class VoxelPoint {
 public:
-    glm::vec3 position;
+    glm::vec3 vertex;
     quint8 color[3];
     quint8 normal[3];
 };
@@ -226,15 +226,19 @@ public:
 class VoxelBuffer : public BufferData {
 public:
     
-    VoxelBuffer(const QVector<VoxelVertex>& vertices, const QVector<int>& indices,
+    VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices,
         const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
         
     virtual void render(bool cursor = false);
 
 private:
     
-    QVector<VoxelVertex> _vertices;
+    QVector<VoxelPoint> _vertices;
     QVector<int> _indices;
+    int _vertexCount;
+    int _indexCount;
+    QOpenGLBuffer _vertexBuffer;
+    QOpenGLBuffer _indexBuffer;
     QVector<SharedObjectPointer> _materials;
     QVector<NetworkTexturePointer> _networkTextures;
 };

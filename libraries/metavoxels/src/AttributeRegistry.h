@@ -38,6 +38,7 @@ class MetavoxelLOD;
 class MetavoxelNode;
 class MetavoxelStreamState;
 class VoxelColorData;
+class VoxelHermiteData;
 class VoxelMaterialData;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
@@ -117,6 +118,9 @@ public:
     /// Returns a reference to the standard VoxelMaterialDataPointer "voxelMaterial" attribute.
     const AttributePointer& getVoxelMaterialAttribute() const { return _voxelMaterialAttribute; } 
     
+    /// Returns a reference to the standard VoxelHermiteDataPointer "voxelHermite" attribute.
+    const AttributePointer& getVoxelHermiteAttribute() const { return _voxelHermiteAttribute; }
+    
 private:
 
     static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
@@ -137,6 +141,7 @@ private:
     AttributePointer _heightfieldMaterialAttribute;
     AttributePointer _voxelColorAttribute;
     AttributePointer _voxelMaterialAttribute;
+    AttributePointer _voxelHermiteAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -718,6 +723,50 @@ class VoxelMaterialAttribute : public InlineAttribute<VoxelMaterialDataPointer> 
 public:
     
     Q_INVOKABLE VoxelMaterialAttribute(const QString& name = QString());
+    
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
+    
+    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+};
+
+typedef QExplicitlySharedDataPointer<VoxelHermiteData> VoxelHermiteDataPointer;
+
+/// Contains a block of voxel Hermite data (positions and normals at edge crossings).
+class VoxelHermiteData : public DataBlock {
+public:
+    
+    static const int EDGE_COUNT = 3;
+    
+    VoxelHermiteData(const QVector<QRgb>& contents, int size);
+    VoxelHermiteData(Bitstream& in, int bytes);
+    VoxelHermiteData(Bitstream& in, int bytes, const VoxelHermiteDataPointer& reference);
+    
+    const QVector<QRgb>& getContents() const { return _contents; }
+
+    int getSize() const { return _size; }
+
+    void write(Bitstream& out);
+    void writeDelta(Bitstream& out, const VoxelHermiteDataPointer& reference);
+
+private:
+    
+    void read(Bitstream& in, int bytes);
+    
+    QVector<QRgb> _contents;
+    int _size;
+};
+
+/// An attribute that stores voxel Hermite data.
+class VoxelHermiteAttribute : public InlineAttribute<VoxelHermiteDataPointer> {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE VoxelHermiteAttribute(const QString& name = QString());
     
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;

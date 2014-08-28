@@ -31,6 +31,7 @@ REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
 REGISTER_META_OBJECT(SpannerSetAttribute)
 REGISTER_META_OBJECT(VoxelColorAttribute)
+REGISTER_META_OBJECT(VoxelHermiteAttribute)
 REGISTER_META_OBJECT(VoxelMaterialAttribute)
 
 static int attributePointerMetaTypeId = qRegisterMetaType<AttributePointer>();
@@ -56,7 +57,8 @@ AttributeRegistry::AttributeRegistry() :
     _heightfieldColorAttribute(registerAttribute(new HeightfieldColorAttribute("heightfieldColor"))),
     _heightfieldMaterialAttribute(registerAttribute(new HeightfieldMaterialAttribute("heightfieldMaterial"))),
     _voxelColorAttribute(registerAttribute(new VoxelColorAttribute("voxelColor"))),
-    _voxelMaterialAttribute(registerAttribute(new VoxelMaterialAttribute("voxelMaterial"))) {
+    _voxelMaterialAttribute(registerAttribute(new VoxelMaterialAttribute("voxelMaterial"))),
+    _voxelHermiteAttribute(registerAttribute(new VoxelHermiteAttribute("voxelHermite"))) {
     
     // our baseline LOD threshold is for voxels; spanners and heightfields are a different story
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
@@ -72,6 +74,7 @@ AttributeRegistry::AttributeRegistry() :
     _voxelColorAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
     _voxelColorAttribute->setUserFacing(true);
     _voxelMaterialAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
+    _voxelHermiteAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
 }
 
 static QScriptValue qDebugFunction(QScriptContext* context, QScriptEngine* engine) {
@@ -1826,6 +1829,194 @@ bool VoxelMaterialAttribute::merge(void*& parent, void* children[], bool postRea
         }
     }
     *(VoxelMaterialDataPointer*)&parent = VoxelMaterialDataPointer();
+    return maxSize == 0;
+}
+
+VoxelHermiteData::VoxelHermiteData(const QVector<QRgb>& contents, int size) :
+    _contents(contents),
+    _size(size) {
+}
+
+VoxelHermiteData::VoxelHermiteData(Bitstream& in, int bytes) {
+    read(in, bytes);
+}
+
+VoxelHermiteData::VoxelHermiteData(Bitstream& in, int bytes, const VoxelHermiteDataPointer& reference) {
+    if (!reference) {
+        read(in, bytes);
+        return;
+    }
+    QMutexLocker locker(&reference->getEncodedDeltaMutex());
+    reference->setEncodedDelta(in.readAligned(bytes));
+    reference->setDeltaData(DataBlockPointer(this));
+    _contents = reference->getContents();
+    _size = reference->getSize();
+    
+    int offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ;
+    QVector<QRgb> delta = decodeVoxelColor(reference->getEncodedDelta(), offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ);
+    if (delta.isEmpty()) {
+        return;
+    }
+    if (offsetX == 0) {
+        _contents = delta;
+        _size = sizeX;
+        return;
+    }
+    int minX = offsetX - 1;
+    int minY = offsetY - 1;
+    int minZ = offsetZ - 1;
+    const QRgb* src = delta.constData();
+    int destStride = _size * EDGE_COUNT;
+    int destStride2 = _size * destStride;
+    QRgb* planeDest = _contents.data() + minZ * destStride2 + minY * destStride + minX * EDGE_COUNT;
+    int srcStride = sizeX * EDGE_COUNT;
+    int length = srcStride * sizeof(QRgb);
+    for (int z = 0; z < sizeZ; z++, planeDest += destStride2) {
+        QRgb* dest = planeDest;
+        for (int y = 0; y < sizeY; y++, src += srcStride, dest += destStride) {
+            memcpy(dest, src, length);
+        }
+    }
+}
+
+void VoxelHermiteData::write(Bitstream& out) {
+    QMutexLocker locker(&_encodedMutex);
+    if (_encoded.isEmpty()) {
+        _encoded = encodeVoxelColor(0, 0, 0, _size, _size, _size, _contents);
+    }
+    out << _encoded.size();
+    out.writeAligned(_encoded);
+}
+
+void VoxelHermiteData::writeDelta(Bitstream& out, const VoxelHermiteDataPointer& reference) {
+    if (!reference || reference->getSize() != _size) {
+        write(out);
+        return;
+    }
+    QMutexLocker locker(&reference->getEncodedDeltaMutex());
+    if (reference->getEncodedDelta().isEmpty() || reference->getDeltaData() != this) {
+        int minX = _size, minY = _size, minZ = _size;
+        int maxX = -1, maxY = -1, maxZ = -1;
+        const QRgb* src = _contents.constData();
+        const QRgb* ref = reference->getContents().constData();
+        for (int z = 0; z < _size; z++) {
+            bool differenceZ = false;
+            for (int y = 0; y < _size; y++) {
+                bool differenceY = false;
+                for (int x = 0; x < _size; x++) {
+                    if (*src++ != *ref++ || *src++ != *ref++ || *src++ != *ref++) {
+                        minX = qMin(minX, x);
+                        maxX = qMax(maxX, x);
+                        differenceY = differenceZ = true;
+                    }
+                }
+                if (differenceY) {
+                    minY = qMin(minY, y);
+                    maxY = qMax(maxY, y);
+                }
+            }
+            if (differenceZ) {
+                minZ = qMin(minZ, z);
+                maxZ = qMax(maxZ, z);
+            }
+        }
+        QVector<QRgb> delta;
+        int sizeX = 0, sizeY = 0, sizeZ = 0;
+        if (maxX >= minX) {
+            sizeX = maxX - minX + 1;
+            sizeY = maxY - minY + 1;
+            sizeZ = maxZ - minZ + 1;
+            delta = QVector<QRgb>(sizeX * sizeY * sizeZ, 0);
+            QRgb* dest = delta.data();
+            int srcStride = _size * EDGE_COUNT;
+            int srcStride2 = _size * srcStride;
+            const QRgb* planeSrc = _contents.constData() + minZ * srcStride2 + minY * srcStride + minX * EDGE_COUNT;
+            int destStride = sizeX * EDGE_COUNT;
+            int length = destStride * sizeof(QRgb);
+            for (int z = 0; z < sizeZ; z++, planeSrc += srcStride2) {
+                src = planeSrc;
+                for (int y = 0; y < sizeY; y++, src += srcStride, dest += destStride) {
+                    memcpy(dest, src, length);
+                }
+            }
+        }
+        reference->setEncodedDelta(encodeVoxelColor(minX + 1, minY + 1, minZ + 1, sizeX, sizeY, sizeZ, delta));
+        reference->setDeltaData(DataBlockPointer(this));
+    }
+    out << reference->getEncodedDelta().size();
+    out.writeAligned(reference->getEncodedDelta());
+}
+
+void VoxelHermiteData::read(Bitstream& in, int bytes) {
+    int offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ;
+    _contents = decodeVoxelColor(_encoded = in.readAligned(bytes), offsetX, offsetY, offsetZ, sizeX, sizeY, sizeZ);
+    _size = sizeX;
+}
+
+VoxelHermiteAttribute::VoxelHermiteAttribute(const QString& name) :
+    InlineAttribute<VoxelHermiteDataPointer>(name) {
+}
+
+void VoxelHermiteAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(VoxelHermiteDataPointer*)&value = VoxelHermiteDataPointer();
+    } else {
+        *(VoxelHermiteDataPointer*)&value = VoxelHermiteDataPointer(new VoxelHermiteData(in, size));
+    }
+}
+
+void VoxelHermiteAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    VoxelHermiteDataPointer data = decodeInline<VoxelHermiteDataPointer>(value);
+    if (data) {
+        data->write(out);
+    } else {
+        out << 0;
+    }
+}
+
+void VoxelHermiteAttribute::readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    int size;
+    in >> size;
+    if (size == 0) {
+        *(VoxelHermiteDataPointer*)&value = VoxelHermiteDataPointer(); 
+    } else {
+        *(VoxelHermiteDataPointer*)&value = VoxelHermiteDataPointer(new VoxelHermiteData(
+            in, size, decodeInline<VoxelHermiteDataPointer>(reference)));
+    }
+}
+
+void VoxelHermiteAttribute::writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const {
+    if (!isLeaf) {
+        return;
+    }
+    VoxelHermiteDataPointer data = decodeInline<VoxelHermiteDataPointer>(value);
+    if (data) {
+        data->writeDelta(out, decodeInline<VoxelHermiteDataPointer>(reference));
+    } else {
+        out << 0;
+    }
+}
+
+bool VoxelHermiteAttribute::merge(void*& parent, void* children[], bool postRead) const {
+    int maxSize = 0;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        VoxelHermiteDataPointer pointer = decodeInline<VoxelHermiteDataPointer>(children[i]);
+        if (pointer) {
+            maxSize = qMax(maxSize, pointer->getSize());
+        }
+    }
+    *(VoxelHermiteDataPointer*)&parent = VoxelHermiteDataPointer();
     return maxSize == 0;
 }
 

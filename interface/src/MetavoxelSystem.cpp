@@ -978,14 +978,51 @@ void HeightfieldPreview::render(const glm::vec3& translation, float scale) const
     glEnable(GL_BLEND);
 }
 
-VoxelBuffer::VoxelBuffer(const QVector<VoxelVertex>& vertices, const QVector<int>& indices,
+VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices,
         const QVector<SharedObjectPointer>& materials) :
     _vertices(vertices),
     _indices(indices),
+    _vertexCount(vertices.size()),
+    _indexCount(indices.size()),
+    _indexBuffer(QOpenGLBuffer::IndexBuffer),
     _materials(materials) {
 }
 
 void VoxelBuffer::render(bool cursor) {
+    if (!_vertexBuffer.isCreated()) {
+        _vertexBuffer.create();
+        _vertexBuffer.bind();
+        _vertexBuffer.allocate(_vertices.constData(), _vertices.size() * sizeof(VoxelPoint));
+        _vertices.clear();
+    
+        _indexBuffer.create();
+        _indexBuffer.bind();
+        _indexBuffer.allocate(_indices.constData(), _indices.size() * sizeof(int));
+        _indices.clear();
+    
+        if (!_materials.isEmpty()) {
+            _networkTextures.resize(_materials.size());
+            for (int i = 0; i < _materials.size(); i++) {
+                const SharedObjectPointer material = _materials.at(i);
+                if (material) {
+                    _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                        static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
+                }
+            }
+        }
+    } else {
+        _vertexBuffer.bind();
+        _indexBuffer.bind();
+    }
+    VoxelPoint* point = 0;
+    glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
+    glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelPoint), &point->color);
+    glNormalPointer(GL_BYTE, sizeof(VoxelPoint), &point->normal);
+    
+    glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
+    
+    _vertexBuffer.release();
+    _indexBuffer.release();
 }
 
 BufferDataAttribute::BufferDataAttribute(const QString& name) :
@@ -1506,8 +1543,9 @@ public:
 
 VoxelAugmentVisitor::VoxelAugmentVisitor(const MetavoxelLOD& lod) :
     MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
-        AttributeRegistry::getInstance()->getVoxelMaterialAttribute(), QVector<AttributePointer>() <<
-            Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), lod) {
+        AttributeRegistry::getInstance()->getVoxelMaterialAttribute() <<
+            AttributeRegistry::getInstance()->getVoxelHermiteAttribute(), QVector<AttributePointer>() <<
+                Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), lod) {
 }
 
 int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
@@ -1517,7 +1555,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
     VoxelBuffer* buffer = NULL;
     VoxelColorDataPointer color = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
     if (color) {
-        QVector<VoxelVertex> vertices;
+        QVector<VoxelPoint> vertices;
         QVector<int> indices;
         
         const QVector<QRgb>& contents = color->getContents();
@@ -1534,7 +1572,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         const int ALPHA_OFFSET = 24;
         const int MAX_ALPHA_TOTAL = EIGHT_BIT_MAXIMUM * 8;
         for (int z = 0; z < highest; z++) {
-            for (int y = 0; y < highest; z++) {
+            for (int y = 0; y < highest; y++) {
                 for (int x = 0; x < highest; x++, src++) {
                     int alpha0 = src[0] >> ALPHA_OFFSET;
                     int alpha1 = src[1] >> ALPHA_OFFSET;
