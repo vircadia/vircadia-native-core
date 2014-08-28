@@ -166,7 +166,9 @@ Player::Player(AvatarData* avatar) :
     _recording(new Recording()),
     _avatar(avatar),
     _audioThread(NULL),
-    _startingScale(1.0f)
+    _startingScale(1.0f),
+    _playFromCurrentPosition(true),
+    _loop(false)
 {
     _timer.invalidate();
     _options.setLoop(false);
@@ -216,7 +218,7 @@ float Player::getLeanForward() {
     return _recording->getFrame(_currentFrame).getLeanForward();
 }
 
-void Player::startPlaying(bool fromCurrentPosition) {
+void Player::startPlaying() {
     if (_recording && _recording->getFrameNumber() > 0) {
         qDebug() << "Recorder::startPlaying()";
         _currentFrame = 0;
@@ -233,7 +235,7 @@ void Player::startPlaying(bool fromCurrentPosition) {
         // Fake faceshift connection
         _avatar->setForceFaceshiftConnected(true);
         
-        if (fromCurrentPosition) {
+        if (_playFromCurrentPosition) {
             _startingPosition = _avatar->getPosition();
             _startingRotation = _avatar->getOrientation();
             _startingScale = _avatar->getTargetScale();
@@ -291,6 +293,10 @@ void Player::play() {
     if (_currentFrame < 0 || _currentFrame >= _recording->getFrameNumber() - 1) {
         // If it's the end of the recording, stop playing
         stopPlaying();
+        
+        if (_loop) {
+            startPlaying();
+        }
         return;
     }
     
@@ -323,6 +329,14 @@ void Player::play() {
     _options.setPosition(_avatar->getPosition());
     _options.setOrientation(_avatar->getOrientation());
     _injector->setOptions(_options);
+}
+
+void Player::setPlayFromCurrentLocation(bool playFromCurrentLocation) {
+    _playFromCurrentPosition = playFromCurrentLocation;
+}
+
+void Player::setLoop(bool loop) {
+    _loop = loop;
 }
 
 bool Player::computeCurrentFrame() {

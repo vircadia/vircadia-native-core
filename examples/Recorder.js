@@ -139,7 +139,9 @@ function moveUI() {
 function mousePressEvent(event) {
 	clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
-  if (recordIcon === toolBar.clicked(clickedOverlay)) {
+	print("Status: isPlaying=" + MyAvatar.isPlaying() + ", isRecording=" + MyAvatar.isRecording());
+
+  if (recordIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isPlaying()) {
   	if (!MyAvatar.isRecording()) {
   		MyAvatar.startRecording();
 			toolBar.setBack(COLOR_ON, ALPHA_ON);
@@ -148,14 +150,14 @@ function mousePressEvent(event) {
   		MyAvatar.loadLastRecording();
 			toolBar.setBack(COLOR_OFF, ALPHA_OFF);
   	}
-  } else if (playIcon === toolBar.clicked(clickedOverlay)) {
-  	if (!MyAvatar.isRecording()) {
-  		if (MyAvatar.isPlaying()) {
-  			MyAvatar.stopPlaying();
-  		} else {
-		  	MyAvatar.startPlaying(true);
-		  }
-  	}
+  } else if (playIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isRecording()) {
+		if (MyAvatar.isPlaying()) {
+			MyAvatar.stopPlaying();
+		} else {
+			MyAvatar.setPlayFromCurrentLocation(true);
+			MyAvatar.setPlayerLoop(true);
+	  	MyAvatar.startPlaying(true);
+	  }
   } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
   		recordingFile = Window.save("Save recording to file", ".", "*.rec");

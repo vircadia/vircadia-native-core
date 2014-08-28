@@ -97,6 +97,7 @@ private:
     QVector<qint32> _timestamps;
     QVector<RecordingFrame> _frames;
     
+    bool _stereo;
     Sound* _audio;
     
     friend class Recorder;
@@ -146,11 +147,14 @@ public:
     
     
 public slots:
-    void startPlaying(bool fromCurrentPosition = false);
+    void startPlaying();
     void stopPlaying();
     void loadFromFile(QString file);
     void loadRecording(RecordingPointer recording);
     void play();
+    
+    void setPlayFromCurrentLocation(bool playFromCurrentLocation);
+    void setLoop(bool loop);
     
 private:
     bool computeCurrentFrame();
@@ -168,6 +172,9 @@ private:
     glm::vec3 _startingPosition;
     glm::quat _startingRotation;
     float _startingScale;
+    
+    bool _playFromCurrentPosition;
+    bool _loop;
 };
 
 void writeRecordingToFile(RecordingPointer recording, QString file);
