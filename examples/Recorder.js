@@ -12,6 +12,8 @@
 Script.include("toolBars.js");
 
 var recordingFile = "recording.rec";
+var playFromCurrentLocation = true;
+var loop = true;
 
 var windowDimensions = Controller.getViewportDimensions();
 var TOOL_ICON_URL = "http://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/";
@@ -152,8 +154,8 @@ function mousePressEvent(event) {
 		if (MyAvatar.isPlaying()) {
 			MyAvatar.stopPlaying();
 		} else {
-			MyAvatar.setPlayFromCurrentLocation(true);
-			MyAvatar.setPlayerLoop(true);
+			MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
+			MyAvatar.setPlayerLoop(loop);
 	  	MyAvatar.startPlaying(true);
 	  }
   } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
@@ -167,8 +169,7 @@ function mousePressEvent(event) {
   	if (!MyAvatar.isRecording()) {
   		recordingFile = Window.browse("Load recorcding from file", ".", "*.rec");
 	  	if (recordingFile != "null") {
-	  	} else {
-				MyAvatar.loadRecording(recordingFile);
+	  		MyAvatar.loadRecording(recordingFile);
   		}
   	}
   } else {

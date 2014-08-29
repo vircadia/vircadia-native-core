@@ -515,9 +515,6 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
 RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename) {
     QElapsedTimer timer;
     timer.start();
-    if (!recording) {
-        recording.reset(new Recording());
-    }
     
     QByteArray byteArray;
     QUrl url(filename);
@@ -544,6 +541,11 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
         byteArray = file.readAll();
         file.close();
     }
+    
+    if (!recording) {
+        recording.reset(new Recording());
+    }
+    
     QDataStream fileStream(byteArray);
     
     fileStream >> recording->_timestamps;

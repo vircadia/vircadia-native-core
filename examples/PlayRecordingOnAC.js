@@ -19,6 +19,8 @@ Avatar.skeletonModelURL = "http://public.highfidelity.io/models/skeletons/Philip
 
 // Set position here if playFromCurrentLocation is true
 Avatar.position = { x:1, y: 1, z: 1 };
+Avatar.orientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
+Avatar.scale = 1.0;
 
 Agent.isAvatar = true;
     
