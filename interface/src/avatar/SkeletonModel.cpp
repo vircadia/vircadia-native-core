@@ -14,14 +14,11 @@
 
 #include <VerletCapsuleShape.h>
 #include <VerletSphereShape.h>
-#include <DistanceConstraint.h>
-#include <FixedConstraint.h>
 
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Menu.h"
-#include "MuscleConstraint.h"
 #include "SkeletonModel.h"
 #include "SkeletonRagdoll.h"
 
@@ -54,7 +51,8 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
     }
 }
 
-const float PALM_PRIORITY = 3.0f;
+const float PALM_PRIORITY = DEFAULT_PRIORITY;
+const float LEAN_PRIORITY = DEFAULT_PRIORITY;
 
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setTranslation(_owningAvatar->getPosition());
@@ -65,8 +63,14 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     
     Model::simulate(deltaTime, fullUpdate);
     
-    if (!(isActive() && _owningAvatar->isMyAvatar())) {
+    if (!isActive() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar
+    }
+    
+    MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+    if (myAvatar->isPlaying()) {
+        // Don't take inputs if playing back a recording.
+        return;
     }
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -227,7 +231,7 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
         JointState& parentState = _jointStates[parentJointIndex];
         parentState.setRotationInBindFrame(palmRotation, PALM_PRIORITY);
         // lock hand to forearm by slamming its rotation (in parent-frame) to identity
-        _jointStates[jointIndex].setRotationInConstrainedFrame(glm::quat());
+        _jointStates[jointIndex].setRotationInConstrainedFrame(glm::quat(), PALM_PRIORITY);
     } else {
         inverseKinematics(jointIndex, palmPosition, palmRotation, PALM_PRIORITY);
     }
@@ -240,7 +244,7 @@ void SkeletonModel::updateJointState(int index) {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         if (index == geometry.leanJointIndex) {
-            maybeUpdateLeanRotation(parentState, joint, state);
+            maybeUpdateLeanRotation(parentState, state);
         
         } else if (index == geometry.neckJointIndex) {
             maybeUpdateNeckRotation(parentState, joint, state);    
@@ -257,17 +261,18 @@ void SkeletonModel::updateJointState(int index) {
     }
 }
 
-void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, JointState& state) {
     if (!_owningAvatar->isMyAvatar() || Application::getInstance()->getPrioVR()->isActive()) {
         return;
     }
     // get the rotation axes in joint space and use them to adjust the rotation
-    glm::mat3 axes = glm::mat3_cast(glm::quat());
-    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() * glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
-        joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
-    state.setRotationInConstrainedFrame(glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), 
-        glm::normalize(inverse * axes[2])) * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), 
-        glm::normalize(inverse * axes[0])) * joint.rotation);
+    glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+    glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
+    glm::quat inverse = glm::inverse(parentState.getRotation() * state.getDefaultRotationInParentFrame());
+    state.setRotationInConstrainedFrame(
+              glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), inverse * zAxis) 
+            * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), inverse * xAxis) 
+            * state.getFBXJoint().rotation, LEAN_PRIORITY);
 }
 
 void SkeletonModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
@@ -573,6 +578,7 @@ SkeletonRagdoll* SkeletonModel::buildRagdoll() {
     if (!_ragdoll) {
         _ragdoll = new SkeletonRagdoll(this);
         if (_enableShapes) {
+            clearShapes();
             buildShapes();
         }
     }
@@ -597,6 +603,7 @@ void SkeletonModel::buildShapes() {
     if (!_ragdoll) {
         _ragdoll = new SkeletonRagdoll(this);
     }
+    _ragdoll->setRootIndex(geometry.rootJointIndex);
     _ragdoll->initPoints();
     QVector<VerletPoint>& points = _ragdoll->getPoints();
 
@@ -604,42 +611,45 @@ void SkeletonModel::buildShapes() {
 
     float uniformScale = extractUniformScale(_scale);
     const int numStates = _jointStates.size();
+    float totalMass = 0.0f;
     for (int i = 0; i < numStates; i++) {
         JointState& state = _jointStates[i];
         const FBXJoint& joint = state.getFBXJoint();
         float radius = uniformScale * joint.boneRadius;
         float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
         Shape::Type type = joint.shapeType;
-        if (i == 0 || (type == Shape::CAPSULE_SHAPE && halfHeight < EPSILON)) {
+        int parentIndex = joint.parentIndex;
+        if (parentIndex == -1 || radius < EPSILON) {
+            type = UNKNOWN_SHAPE;
+        } else if (type == CAPSULE_SHAPE && halfHeight < EPSILON) {
             // this shape is forced to be a sphere
-            type = Shape::SPHERE_SHAPE;
-        }
-        if (radius < EPSILON) {
-            type = Shape::UNKNOWN_SHAPE;
+            type = SPHERE_SHAPE;
         }
         Shape* shape = NULL;
-        int parentIndex = joint.parentIndex;
-        if (type == Shape::SPHERE_SHAPE) {
+        if (type == SPHERE_SHAPE) {
             shape = new VerletSphereShape(radius, &(points[i]));
             shape->setEntity(this);
-            points[i].setMass(massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume()));
-        } else if (type == Shape::CAPSULE_SHAPE) {
+            float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
+            points[i].setMass(mass);
+            totalMass += mass;
+        } else if (type == CAPSULE_SHAPE) {
             assert(parentIndex != -1);
             shape = new VerletCapsuleShape(radius, &(points[parentIndex]), &(points[i]));
             shape->setEntity(this);
-            points[i].setMass(massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume()));
+            float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
+            points[i].setMass(mass);
+            totalMass += mass;
         } 
-        if (parentIndex != -1) {
+        if (shape && parentIndex != -1) {
             // always disable collisions between joint and its parent
-            if (shape) {
-                disableCollisions(i, parentIndex);
-            }
-        } else {
-            // give the base joint a very large mass since it doesn't actually move
-            // in the local-frame simulation (it defines the origin)
-            points[i].setMass(VERY_BIG_MASS);
-        }
+            disableCollisions(i, parentIndex);
+        } 
         _shapes.push_back(shape);
+    }
+
+    // set the mass of the root
+    if (numStates > 0) {
+        points[_ragdoll->getRootIndex()].setMass(totalMass);
     }
 
     // This method moves the shapes to their default positions in Model frame.
@@ -721,7 +731,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         shapeExtents.reset();
         glm::vec3 localPosition = shape->getTranslation();
         int type = shape->getType();
-        if (type == Shape::CAPSULE_SHAPE) {
+        if (type == CAPSULE_SHAPE) {
             // add the two furthest surface points of the capsule
             CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
             glm::vec3 axis;
@@ -733,7 +743,7 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
             shapeExtents.addPoint(localPosition + axis);
             shapeExtents.addPoint(localPosition - axis);
             totalExtents.addExtents(shapeExtents);
-        } else if (type == Shape::SPHERE_SHAPE) {
+        } else if (type == SPHERE_SHAPE) {
             float radius = shape->getBoundingRadius();
             glm::vec3 axis = glm::vec3(radius);
             shapeExtents.addPoint(localPosition + axis);
@@ -837,13 +847,13 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
 
         glPushMatrix();
         // shapes are stored in simulation-frame but we want position to be model-relative
-        if (shape->getType() == Shape::SPHERE_SHAPE) { 
+        if (shape->getType() == SPHERE_SHAPE) { 
             glm::vec3 position = shape->getTranslation() - simulationTranslation;
             glTranslatef(position.x, position.y, position.z);
             // draw a grey sphere at shape position
             glColor4f(0.75f, 0.75f, 0.75f, alpha);
             glutSolidSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-        } else if (shape->getType() == Shape::CAPSULE_SHAPE) {
+        } else if (shape->getType() == CAPSULE_SHAPE) {
             CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
 
             // draw a blue sphere at the capsule endpoint                                         

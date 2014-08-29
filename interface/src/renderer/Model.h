@@ -118,6 +118,12 @@ public:
     /// \return whether or not the joint state is "valid" (that is, non-default)
     bool getVisibleJointState(int index, glm::quat& rotation) const;
     
+    /// Clear the joint states
+    void clearJointState(int index);
+    
+    /// Clear the joint animation priority
+    void clearJointAnimationPriority(int index);
+    
     /// Sets the joint state at the specified index.
     void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat(), float priority = 1.0f);
     

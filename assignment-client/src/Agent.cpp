@@ -33,12 +33,17 @@
 
 #include "Agent.h"
 
+static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
+
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
     _particleEditSender(),
     _entityEditSender(),
-    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 1, false, 1, 0, false),
+    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
+        InboundAudioStream::Settings(0, false, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, false,
+        DEFAULT_WINDOW_STARVE_THRESHOLD, DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES,
+        DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false)),
     _avatarHashMap()
 {
     // be the parent of the script engine so it gets moved when we do
@@ -148,7 +153,7 @@ void Agent::readPendingDatagrams() {
                     _voxelViewer.processDatagram(mutablePacket, sourceNode);
                 }
 
-            } else if (datagramPacketType == PacketTypeMixedAudio) {
+            } else if (datagramPacketType == PacketTypeMixedAudio || datagramPacketType == PacketTypeSilentAudioFrame) {
 
                 _receivedAudioStream.parseData(receivedPacket);
 

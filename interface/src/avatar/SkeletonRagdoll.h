@@ -33,7 +33,9 @@ public:
     virtual void initPoints();
     virtual void buildConstraints();
 
+protected:
     void updateMuscles();
+
 private:
     Model* _model;
     QVector<MuscleConstraint*> _muscleConstraints;

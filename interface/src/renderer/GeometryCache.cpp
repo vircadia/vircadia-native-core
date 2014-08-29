@@ -593,17 +593,20 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
             NetworkMeshPart networkPart;
             if (!part.diffuseTexture.filename.isEmpty()) {
                 networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(
-                    _textureBase.resolved(QUrl(part.diffuseTexture.filename)), false, mesh.isEye, part.diffuseTexture.content);
+                    _textureBase.resolved(QUrl(part.diffuseTexture.filename)), DEFAULT_TEXTURE,
+                    mesh.isEye, part.diffuseTexture.content);
                 networkPart.diffuseTexture->setLoadPriorities(_loadPriorities);
             }
             if (!part.normalTexture.filename.isEmpty()) {
                 networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(
-                    _textureBase.resolved(QUrl(part.normalTexture.filename)), true, false, part.normalTexture.content);
+                    _textureBase.resolved(QUrl(part.normalTexture.filename)), NORMAL_TEXTURE,
+                    false, part.normalTexture.content);
                 networkPart.normalTexture->setLoadPriorities(_loadPriorities);
             }
             if (!part.specularTexture.filename.isEmpty()) {
                 networkPart.specularTexture = Application::getInstance()->getTextureCache()->getTexture(
-                    _textureBase.resolved(QUrl(part.specularTexture.filename)), true, false, part.specularTexture.content);
+                    _textureBase.resolved(QUrl(part.specularTexture.filename)), SPECULAR_TEXTURE,
+                    false, part.specularTexture.content);
                 networkPart.specularTexture->setLoadPriorities(_loadPriorities);
             }
             networkMesh.parts.append(networkPart);

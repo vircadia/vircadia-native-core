@@ -54,7 +54,7 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBX
     state.setRotationInConstrainedFrame(glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getFinalRoll(), glm::normalize(inverse * axes[2])) 
         * glm::angleAxis(RADIANS_PER_DEGREE * _owningHead->getFinalYaw(), glm::normalize(inverse * axes[1])) 
         * glm::angleAxis(- RADIANS_PER_DEGREE * _owningHead->getFinalPitch(), glm::normalize(inverse * axes[0])) 
-        * joint.rotation);
+        * joint.rotation, DEFAULT_PRIORITY);
 }
 
 void FaceModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
@@ -69,7 +69,7 @@ void FaceModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJ
     glm::quat between = rotationBetween(front, lookAt);
     const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
     state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
-        joint.rotation);
+        joint.rotation, DEFAULT_PRIORITY);
 }
 
 void FaceModel::updateJointState(int index) {

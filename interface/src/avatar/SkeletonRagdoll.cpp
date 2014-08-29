@@ -36,8 +36,9 @@ void SkeletonRagdoll::stepForward(float deltaTime) {
 
 void SkeletonRagdoll::slamPointPositions() {
     QVector<JointState>& jointStates = _model->getJointStates();
-    int numStates = jointStates.size();
-    for (int i = 0; i < numStates; ++i) {
+    const int numPoints = _points.size();
+    assert(numPoints == jointStates.size());
+    for (int i = _rootIndex; i < numPoints; ++i) {
         _points[i].initPosition(jointStates.at(i).getPosition());
     }
 }
@@ -49,8 +50,7 @@ void SkeletonRagdoll::initPoints() {
 
     initTransform();
     // one point for each joint
-    QVector<JointState>& jointStates = _model->getJointStates();
-    int numStates = jointStates.size();
+    int numStates = _model->getJointStates().size();
     _points.fill(VerletPoint(), numStates);
     slamPointPositions();
 }
@@ -67,13 +67,10 @@ void SkeletonRagdoll::buildConstraints() {
     float minBone = FLT_MAX;
     float maxBone = -FLT_MAX;
     QMultiMap<int, int> families;
-    for (int i = 0; i < numPoints; ++i) {
+    for (int i = _rootIndex; i < numPoints; ++i) {
         const JointState& state = jointStates.at(i);
         int parentIndex = state.getParentIndex();
-        if (parentIndex == -1) {
-            FixedConstraint* anchor = new FixedConstraint(&_translationInSimulationFrame, &(_points[i]));
-            _fixedConstraints.push_back(anchor);
-        } else { 
+        if (parentIndex != -1) {
             DistanceConstraint* bone = new DistanceConstraint(&(_points[i]), &(_points[parentIndex]));
             bone->setDistance(state.getDistanceToParent());
             _boneConstraints.push_back(bone);
@@ -108,7 +105,7 @@ void SkeletonRagdoll::buildConstraints() {
     float MAX_STRENGTH = 0.6f;
     float MIN_STRENGTH = 0.05f;
     // each joint gets a MuscleConstraint to its parent
-    for (int i = 1; i < numPoints; ++i) {
+    for (int i = _rootIndex + 1; i < numPoints; ++i) {
         const JointState& state = jointStates.at(i);
         int p = state.getParentIndex();
         if (p == -1) {

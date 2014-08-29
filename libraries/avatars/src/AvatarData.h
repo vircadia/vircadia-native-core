@@ -49,6 +49,7 @@ typedef unsigned long long quint64;
 
 #include <Node.h>
 
+#include "Recorder.h"
 #include "Referential.h"
 #include "HeadData.h"
 #include "HandData.h"
@@ -210,7 +211,12 @@ public:
     Q_INVOKABLE void clearJointData(const QString& name);
     Q_INVOKABLE bool isJointDataValid(const QString& name) const;
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
-
+    
+    Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
+    Q_INVOKABLE virtual void setJointRotations(QVector<glm::quat> jointRotations);
+    
+    Q_INVOKABLE virtual void clearJointsData();
+    
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; } 
 
@@ -293,6 +299,16 @@ public slots:
     void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }
     bool hasReferential();
     
+    bool isPlaying();
+    qint64 playerElapsed();
+    qint64 playerLength();
+    void loadRecording(QString filename);
+    void startPlaying();
+    void setPlayFromCurrentLocation(bool playFromCurrentLocation);
+    void setPlayerLoop(bool loop);
+    void play();
+    void stopPlaying();
+    
 protected:
     QUuid _sessionUUID;
     glm::vec3 _position;
@@ -345,6 +361,8 @@ protected:
     
     QWeakPointer<Node> _owningAvatarMixer;
     QElapsedTimer _lastUpdateTimer;
+    
+    PlayerPointer _player;
     
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();

@@ -59,6 +59,13 @@ UnitTest.prototype.assertEquals = function(expected, actual, message) {
     }
 };
 
+UnitTest.prototype.assertContains = function (expected, actual, message) {
+    this.numAssertions++;
+    if (actual.indexOf(expected) == -1) {
+        throw new AssertionException(expected, actual, message);
+    }
+};
+
 UnitTest.prototype.assertHasProperty = function(property, actual, message) {
     this.numAssertions++;
     if (actual[property] === undefined) {

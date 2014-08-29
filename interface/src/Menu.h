@@ -23,6 +23,10 @@
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
 
+#ifdef Q_OS_MAC
+#include "SpeechRecognizer.h"
+#endif
+
 #include "location/LocationManager.h"
 #include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
@@ -85,10 +89,8 @@ public:
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
 
-    float getAudioJitterBufferFrames() const { return _audioJitterBufferFrames; }
-    void setAudioJitterBufferFrames(float audioJitterBufferSamples) { _audioJitterBufferFrames = audioJitterBufferSamples; }
-    int getMaxFramesOverDesired() const { return _maxFramesOverDesired; }
-    void setMaxFramesOverDesired(int maxFramesOverDesired) { _maxFramesOverDesired = maxFramesOverDesired; }
+    const InboundAudioStream::Settings& getReceivedAudioStreamSettings() const { return _receivedAudioStreamSettings; }
+    void setReceivedAudioStreamSettings(const InboundAudioStream::Settings& receivedAudioStreamSettings) { _receivedAudioStreamSettings = receivedAudioStreamSettings; }
     float getFieldOfView() const { return _fieldOfView; }
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; }
     float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
@@ -137,6 +139,10 @@ public:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
+#ifdef Q_OS_MAC
+    SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
+#endif
+
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
     void setMaxVoxelPacketsPerSecond(int maxVoxelPacketsPerSecond) { _maxVoxelPacketsPerSecond = maxVoxelPacketsPerSecond; }
@@ -169,7 +175,9 @@ signals:
 
 public slots:
 
+    void clearLoginDialogDisplayedFlag();
     void loginForCurrentDomain();
+    void showLoginForCurrentDomain();
     void bandwidthDetails();
     void octreeStatsDetails();
     void lodTools();
@@ -246,8 +254,6 @@ private:
 
     void updateFrustumRenderModeAction();
 
-    void addAvatarCollisionSubMenu(QMenu* overMenu);
-
     QAction* getActionFromName(const QString& menuName, QMenu* menu);
     QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
     QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
@@ -259,8 +265,7 @@ private:
 
 
     QHash<QString, QAction*> _actionHash;
-    int _audioJitterBufferFrames; /// number of extra samples to wait before starting audio playback
-    int _maxFramesOverDesired;
+    InboundAudioStream::Settings _receivedAudioStreamSettings;
     BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
     float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
@@ -274,6 +279,9 @@ private:
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     UserLocationsDialog* _userLocationsDialog;
+#ifdef Q_OS_MAC
+    SpeechRecognizer _speechRecognizer;
+#endif
     int _maxVoxels;
     float _voxelSizeScale;
     float _oculusUIAngularSize;
@@ -296,6 +304,7 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<LoginDialog> _loginDialog;
+    bool _hasLoginDialogDisplayed;
     QAction* _chatAction;
     QString _snapshotsLocation;
     QString _scriptsLocation;
@@ -342,25 +351,27 @@ namespace MenuOption {
     const QString AvatarsReceiveShadows = "Avatars Receive Shadows";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
+    const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BuckyBalls = "Bucky Balls";
     const QString CascadedShadows = "Cascaded";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
-    const QString CollideAsRagdoll = "Collide As Ragdoll";
-    const QString CollideWithAvatars = "Collide With Avatars";
+    const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
+    const QString CollideWithAvatars = "Collide With Other Avatars";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
+    const QString ControlWithSpeech = "Control With Speech";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableNackPackets = "Disable NACK Packets";
     const QString DisplayFrustum = "Display Frustum";
-    const QString DisplayHands = "Display Hands";
-    const QString DisplayHandTargets = "Display Hand Targets";
+    const QString DisplayHands = "Show Hand Info";
+    const QString DisplayHandTargets = "Show Hand Targets";
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
@@ -380,7 +391,6 @@ namespace MenuOption {
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
-    const QString FocusIndicators = "Focus Indicators";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
@@ -391,7 +401,6 @@ namespace MenuOption {
     const QString GoToDomain = "Go To Domain...";
     const QString GoTo = "Go To...";
     const QString GoToLocation = "Go To Location...";
-    const QString HandsCollideWithSelf = "Collide With Self";
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
@@ -401,7 +410,6 @@ namespace MenuOption {
     const QString Login = "Login";
     const QString Log = "Log";
     const QString Logout = "Logout";
-    const QString LookAtVectors = "Look-at Vectors";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
@@ -421,13 +429,15 @@ namespace MenuOption {
     const QString Pair = "Pair";
     const QString Particles = "Particles";
     const QString PasteToVoxel = "Paste to Voxel...";
-    const QString PipelineWarnings = "Show Render Pipeline Warnings";
+    const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
-    const QString RenderBoundingCollisionShapes = "Bounding Collision Shapes";
-    const QString RenderHeadCollisionShapes = "Head Collision Shapes";
-    const QString RenderSkeletonCollisionShapes = "Skeleton Collision Shapes";
+    const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
+    const QString RenderFocusIndicator = "Show Eye Focus";
+    const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
+    const QString RenderLookAtVectors = "Show Look-at Vectors";
+    const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
@@ -459,7 +469,7 @@ namespace MenuOption {
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString Voxels = "Voxels";
     const QString VoxelTextures = "Voxel Textures";
-    const QString WalletPrivateKey = "Wallet Private Key";
+    const QString WalletPrivateKey = "Wallet Private Key...";
 }
 
 void sendFakeEnterEvent();
