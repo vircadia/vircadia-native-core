@@ -1020,13 +1020,7 @@ void VoxelBuffer::render(bool cursor) {
     glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelPoint), &point->color);
     glNormalPointer(GL_BYTE, sizeof(VoxelPoint), &point->normal);
     
-    // glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
-    
-    glPointSize(3.0f);
-    
-    glDrawArrays(GL_POINTS, 0, _vertexCount);
-    
-    glPointSize(1.0f);
+    glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
     
     _vertexBuffer.release();
     _indexBuffer.release();
@@ -1575,7 +1569,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         int offset6 = area + size;
         int offset7 = area + size + 1;
         
-        const QRgb* src = contents.constData();
+        const QRgb* srcZ = contents.constData();
         
         int expanded = size + 1;
         QVector<int> lineIndices(expanded, -1);
@@ -1587,8 +1581,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         float scale = info.size / highest;
         const int ALPHA_OFFSET = 24;
         for (int z = 0; z < expanded; z++) {
+            const QRgb* srcY = srcZ;
             for (int y = 0; y < expanded; y++) {
                 int lastIndex;
+                const QRgb* src = srcY;
                 for (int x = 0; x < expanded; x++) {
                     int alpha0 = src[0] >> ALPHA_OFFSET;
                     int alpha1 = alpha0, alpha2 = alpha0, alpha4 = alpha0;
@@ -1626,12 +1622,8 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         possibleTotal += EIGHT_BIT_MAXIMUM;
                     }
                     
-                    bool generateQuad = (x != 0 && y != 0 && z != 0);
-                    if (generateQuad) {
+                    if (x != 0) {
                         src++;
-                    }
-                    if (z == 0) {
-                        qDebug() << "blerp" << x << y << z << alphaTotal << possibleTotal;
                     }
                     if (alphaTotal == 0 || alphaTotal == possibleTotal) {
                         continue; // no corners set/all corners set
@@ -1642,15 +1634,12 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     int index = vertices.size();
                     vertices.append(point);
                     
-                    if (generateQuad) {
+                    if (x != 0 && y != 0 && z != 0) {
                         if (alpha0 != alpha1) {
                             indices.append(index);
                             int index1 = lastLineIndices.at(x);
                             int index2 = lastPlaneIndices.at((y - 1) * expanded + x);
                             int index3 = lastPlaneIndices.at(y * expanded + x);
-                            if (index1 == -1 || index2 == -1 || index3 == -1) {
-                                qDebug() << index1 << index2 << index3 << x << y << z;
-                            }
                             if (alpha0 == 0) {
                                 indices.append(index3);
                                 indices.append(index2);
@@ -1667,9 +1656,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             int index1 = lastIndex;
                             int index2 = lastPlaneIndices.at(y * expanded + x - 1);
                             int index3 = lastPlaneIndices.at(y * expanded + x);
-                            if (index1 == -1 || index2 == -1 || index3 == -1) {
-                                qDebug() << index1 << index2 << index3 << x << y << z;
-                            }
                             if (alpha0 == 0) {
                                 indices.append(index1);
                                 indices.append(index2);
@@ -1686,9 +1672,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             int index1 = lastIndex;
                             int index2 = lastLineIndices.at(x - 1);
                             int index3 = lastLineIndices.at(x);
-                            if (index1 == -1 || index2 == -1 || index3 == -1) {
-                                qDebug() << index1 << index2 << index3 << x << y << z;
-                            }
                             if (alpha0 == 0) {
                                 indices.append(index3);
                                 indices.append(index2);
@@ -1705,8 +1688,16 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     planeIndices[y * expanded + x] = index;
                 }
                 lineIndices.swap(lastLineIndices);
+                
+                if (y != 0) {
+                    srcY += size;
+                }
             }
             planeIndices.swap(lastPlaneIndices);
+            
+            if (z != 0) {
+                srcZ += area;
+            }
         }
         
         buffer = new VoxelBuffer(vertices, indices, material->getMaterials());

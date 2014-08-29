@@ -729,34 +729,28 @@ int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
                 hermiteDestX[0] = 0x0;
                 if ((x == hermiteMinX || x == hermiteMaxX) && x != VOXEL_BLOCK_SIZE) {
                     const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
-                    if (qAlpha(color[0]) != qAlpha(color[1])) {
-                        if (x == hermiteMinX) {
-                            hermiteDestX[0] = qRgba(-NORMAL_MAX, 0, 0, (overlap.minimum.x - x) * EIGHT_BIT_MAXIMUM);
-                        } else {
-                            hermiteDestX[0] = qRgba(NORMAL_MAX, 0, 0, (overlap.maximum.x - x) * EIGHT_BIT_MAXIMUM);
-                        }
+                    int alpha0 = qAlpha(color[0]);
+                    if (alpha0 != qAlpha(color[1])) {
+                        hermiteDestX[0] = qRgba(alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, 0, 0,
+                            ((x == hermiteMinX ? overlap.minimum.x : overlap.maximum.x) - x) * EIGHT_BIT_MAXIMUM);
                     }
                 }
                 hermiteDestX[1] = 0x0;
                 if ((y == hermiteMinY || y == hermiteMaxY) && y != VOXEL_BLOCK_SIZE) {
                     const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
-                    if (qAlpha(color[0]) != qAlpha(color[VOXEL_BLOCK_SAMPLES])) {
-                        if (y == hermiteMinY) {
-                            hermiteDestX[1] = qRgba(0, -NORMAL_MAX, 0, (overlap.minimum.y - y) * EIGHT_BIT_MAXIMUM);
-                        } else {
-                            hermiteDestX[1] = qRgba(0, NORMAL_MAX, 0, (overlap.maximum.y - y) * EIGHT_BIT_MAXIMUM);
-                        }
+                    int alpha0 = qAlpha(color[0]);
+                    if (alpha0 != qAlpha(color[VOXEL_BLOCK_SAMPLES])) {
+                        hermiteDestX[1] = qRgba(0, alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, 0,
+                            ((y == hermiteMinY ? overlap.minimum.y : overlap.maximum.y) - y) * EIGHT_BIT_MAXIMUM);
                     }
                 }
                 hermiteDestX[2] = 0x0;
                 if ((z == hermiteMinZ || z == hermiteMaxZ) && z != VOXEL_BLOCK_SIZE) {
                     const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
-                    if (qAlpha(color[0]) != qAlpha(color[VOXEL_BLOCK_AREA])) {
-                        if (z == hermiteMinZ) {
-                            hermiteDestX[2] = qRgba(0, 0, -NORMAL_MAX, (overlap.minimum.z - z) * EIGHT_BIT_MAXIMUM);
-                        } else {
-                            hermiteDestX[2] = qRgba(0, 0, NORMAL_MAX, (overlap.maximum.z - z) * EIGHT_BIT_MAXIMUM);
-                        }
+                    int alpha0 = qAlpha(color[0]);
+                    if (alpha0 != qAlpha(color[VOXEL_BLOCK_AREA])) {
+                        hermiteDestX[2] = qRgba(0, 0, alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX,
+                            ((z == hermiteMinZ ? overlap.minimum.z : overlap.maximum.z) - z) * EIGHT_BIT_MAXIMUM);
                     }
                 }
             }
