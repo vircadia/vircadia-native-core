@@ -438,7 +438,7 @@ void Model::reset() {
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _jointStates.size(); i++) {
-        _jointStates[i].setRotationInConstrainedFrame(geometry.joints.at(i).rotation);
+        _jointStates[i].setRotationInConstrainedFrame(geometry.joints.at(i).rotation, 0.0f);
     }
 }
 
@@ -695,8 +695,7 @@ bool Model::getVisibleJointState(int index, glm::quat& rotation) const {
 void Model::clearJointState(int index) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
-        state.setRotationInConstrainedFrame(glm::quat());
-        state._animationPriority = 0.0f;
+        state.setRotationInConstrainedFrame(glm::quat(), 0.0f);
     }
 }
 
@@ -709,13 +708,10 @@ void Model::clearJointAnimationPriority(int index) {
 void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
-        if (priority >= state._animationPriority) {
-            if (valid) {
-                state.setRotationInConstrainedFrame(rotation);
-                state._animationPriority = priority;
-            } else {
-                state.restoreRotation(1.0f, priority);
-            }
+        if (valid) {
+            state.setRotationInConstrainedFrame(rotation, priority);
+        } else {
+            state.restoreRotation(1.0f, priority);
         }
     }
 }
@@ -1745,10 +1741,7 @@ void AnimationHandle::applyFrame(float frameIndex) {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) {
             JointState& state = _model->_jointStates[mapping];
-            if (_priority >= state._animationPriority) {
-                state.setRotationInConstrainedFrame(safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction));
-                state._animationPriority = _priority;
-            }
+            state.setRotationInConstrainedFrame(safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction), _priority);
         }
     }
 }

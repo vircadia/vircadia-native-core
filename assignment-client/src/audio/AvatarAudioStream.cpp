@@ -13,8 +13,8 @@
 
 #include "AvatarAudioStream.h"
 
-AvatarAudioStream::AvatarAudioStream(bool isStereo, bool dynamicJitterBuffer, int staticDesiredJitterBufferFrames, int maxFramesOverDesired) :
-    PositionalAudioStream(PositionalAudioStream::Microphone, isStereo, dynamicJitterBuffer, staticDesiredJitterBufferFrames, maxFramesOverDesired)
+AvatarAudioStream::AvatarAudioStream(bool isStereo, const InboundAudioStream::Settings& settings) :
+    PositionalAudioStream(PositionalAudioStream::Microphone, isStereo, settings)
 {
 }
 
@@ -38,26 +38,9 @@ int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& 
     // read the positional data
     readBytes += parsePositionalData(packetAfterSeqNum.mid(readBytes));
 
-    if (type == PacketTypeSilentAudioFrame) {
-        int16_t numSilentSamples;
-        memcpy(&numSilentSamples, packetAfterSeqNum.data() + readBytes, sizeof(int16_t));
-        readBytes += sizeof(int16_t);
-
-        numAudioSamples = numSilentSamples;
-    } else {
-        int numAudioBytes = packetAfterSeqNum.size() - readBytes;
-        numAudioSamples = numAudioBytes / sizeof(int16_t);
-    }
-    return readBytes;
-}
-
-int AvatarAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
-    int readBytes = 0;
-    if (type == PacketTypeSilentAudioFrame) {
-        writeDroppableSilentSamples(numAudioSamples);
-    } else {
-        // there is audio data to read
-        readBytes += _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
-    }
+    // calculate how many samples are in this packet
+    int numAudioBytes = packetAfterSeqNum.size() - readBytes;
+    numAudioSamples = numAudioBytes / sizeof(int16_t);
+    
     return readBytes;
 }
