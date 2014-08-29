@@ -145,6 +145,7 @@ protected:
 
 private:
 
+    TextureType _type;
     bool _translucent;
     QColor _averageColor;
 };

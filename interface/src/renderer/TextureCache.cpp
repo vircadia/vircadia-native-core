@@ -320,6 +320,7 @@ Texture::~Texture() {
 
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
     Resource(url, !content.isEmpty()),
+    _type(type),
     _translucent(false) {
     
     if (!url.isValid()) {
@@ -415,8 +416,12 @@ void ImageReader::run() {
                 blueTotal += qBlue(rgb);
             }
         }
+        QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
+        if (imageArea > 0) {
+            averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
+        }
         QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
-            Q_ARG(const QColor&, QColor(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea)));
+            Q_ARG(const QColor&, averageColor));
         return;
     }
     if (image.format() != QImage::Format_ARGB32) {
@@ -474,7 +479,13 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width(), image.height(), 0,
             GL_RGB, GL_UNSIGNED_BYTE, image.constBits());
     }
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    if (_type == SPLAT_TEXTURE) {
+        // generate mipmaps for splat textures
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    } else {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 

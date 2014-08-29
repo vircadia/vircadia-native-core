@@ -116,9 +116,16 @@ void PreferencesDialog::loadPreferences() {
     ui.faceshiftEyeDeflectionSider->setValue(menuInstance->getFaceshiftEyeDeflection() *
                                              ui.faceshiftEyeDeflectionSider->maximum());
     
-    ui.audioJitterSpin->setValue(menuInstance->getAudioJitterBufferFrames());
+    const InboundAudioStream::Settings& streamSettings = menuInstance->getReceivedAudioStreamSettings();
 
-    ui.maxFramesOverDesiredSpin->setValue(menuInstance->getMaxFramesOverDesired());
+    ui.dynamicJitterBuffersCheckBox->setChecked(streamSettings._dynamicJitterBuffers);
+    ui.staticDesiredJitterBufferFramesSpin->setValue(streamSettings._staticDesiredJitterBufferFrames);
+    ui.maxFramesOverDesiredSpin->setValue(streamSettings._maxFramesOverDesired);
+    ui.useStdevForJitterCalcCheckBox->setChecked(streamSettings._useStDevForJitterCalc);
+    ui.windowStarveThresholdSpin->setValue(streamSettings._windowStarveThreshold);
+    ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->setValue(streamSettings._windowSecondsForDesiredCalcOnTooManyStarves);
+    ui.windowSecondsForDesiredReductionSpin->setValue(streamSettings._windowSecondsForDesiredReduction);
+    ui.repetitionWithFadeCheckBox->setChecked(streamSettings._repetitionWithFade);
 
     ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
 
@@ -208,16 +215,18 @@ void PreferencesDialog::savePreferences() {
 
     Menu::getInstance()->setInvertSixenseButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
-    Menu::getInstance()->setAudioJitterBufferFrames(ui.audioJitterSpin->value());
-    if (Menu::getInstance()->getAudioJitterBufferFrames() != 0) {
-        Application::getInstance()->getAudio()->setDynamicJitterBuffers(false);
-        Application::getInstance()->getAudio()->setStaticDesiredJitterBufferFrames(Menu::getInstance()->getAudioJitterBufferFrames());
-    } else {
-        Application::getInstance()->getAudio()->setDynamicJitterBuffers(true);
-    }
+    InboundAudioStream::Settings streamSettings;
+    streamSettings._dynamicJitterBuffers = ui.dynamicJitterBuffersCheckBox->isChecked();
+    streamSettings._staticDesiredJitterBufferFrames = ui.staticDesiredJitterBufferFramesSpin->value();
+    streamSettings._maxFramesOverDesired = ui.maxFramesOverDesiredSpin->value();
+    streamSettings._useStDevForJitterCalc = ui.useStdevForJitterCalcCheckBox->isChecked();
+    streamSettings._windowStarveThreshold = ui.windowStarveThresholdSpin->value();
+    streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->value();
+    streamSettings._windowSecondsForDesiredReduction = ui.windowSecondsForDesiredReductionSpin->value();
+    streamSettings._repetitionWithFade = ui.repetitionWithFadeCheckBox->isChecked();
 
-    Menu::getInstance()->setMaxFramesOverDesired(ui.maxFramesOverDesiredSpin->value());
-    Application::getInstance()->getAudio()->setMaxFramesOverDesired(Menu::getInstance()->getMaxFramesOverDesired());
+    Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
+    Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);
 
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
                                          Application::getInstance()->getGLWidget()->height());

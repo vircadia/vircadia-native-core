@@ -1055,7 +1055,9 @@ void HeightfieldTextureData::read(Bitstream& in, int bytes) {
     in >> _textures;
 }
 
-HeightfieldTexture::HeightfieldTexture() {
+HeightfieldTexture::HeightfieldTexture() :
+    _scaleS(1.0f),
+    _scaleT(1.0f) {
 }
 
 HeightfieldAttribute::HeightfieldAttribute(const QString& name) :

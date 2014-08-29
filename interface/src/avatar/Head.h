@@ -95,6 +95,9 @@ public:
     void setDeltaRoll(float roll) { _deltaRoll = roll; }
     float getDeltaRoll() const { return _deltaRoll; }
     
+    virtual void setFinalYaw(float finalYaw);
+    virtual void setFinalPitch(float finalPitch);
+    virtual void setFinalRoll(float finalRoll);
     virtual float getFinalPitch() const;
     virtual float getFinalYaw() const;
     virtual float getFinalRoll() const;

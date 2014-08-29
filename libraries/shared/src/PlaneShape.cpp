@@ -15,7 +15,7 @@
 const glm::vec3 UNROTATED_NORMAL(0.0f, 1.0f, 0.0f);
 
 PlaneShape::PlaneShape(const glm::vec4& coefficients) :
-    Shape(Shape::PLANE_SHAPE) {
+    Shape(PLANE_SHAPE) {
     
     glm::vec3 normal = glm::vec3(coefficients);
     _translation = -normal * coefficients.w;

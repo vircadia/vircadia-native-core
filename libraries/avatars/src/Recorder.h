@@ -23,10 +23,10 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <AudioInjector.h>
-#include <AvatarData.h>
 #include <SharedUtil.h>
 #include <Sound.h>
 
+class AvatarData;
 class Recorder;
 class Recording;
 class Player;
@@ -97,6 +97,7 @@ private:
     QVector<qint32> _timestamps;
     QVector<RecordingFrame> _frames;
     
+    bool _stereo;
     Sound* _audio;
     
     friend class Recorder;
@@ -152,6 +153,9 @@ public slots:
     void loadRecording(RecordingPointer recording);
     void play();
     
+    void setPlayFromCurrentLocation(bool playFromCurrentLocation);
+    void setLoop(bool loop);
+    
 private:
     bool computeCurrentFrame();
     
@@ -164,6 +168,13 @@ private:
     
     AvatarData* _avatar;
     QThread* _audioThread;
+    
+    glm::vec3 _startingPosition;
+    glm::quat _startingRotation;
+    float _startingScale;
+    
+    bool _playFromCurrentPosition;
+    bool _loop;
 };
 
 void writeRecordingToFile(RecordingPointer recording, QString file);
