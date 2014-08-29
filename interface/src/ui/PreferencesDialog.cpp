@@ -30,6 +30,9 @@ PreferencesDialog::PreferencesDialog() :
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked,
             Application::getInstance(), &Application::loadDefaultScripts);
+    // move dialog to left side
+    move(0, 0);
+    setWindowState(Qt::WindowMaximized);
 }
 
 void PreferencesDialog::accept() {
