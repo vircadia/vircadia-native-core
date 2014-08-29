@@ -1,28 +1,28 @@
 // REQUIRED:
 
+    1) random crashes on moving (I think things going out of bounds???)
+        -- event with edit clamping, we seem to crash if we move an entity to the Y=0 plane
 
-
-    7) random crashes on moving (I think things going out of bounds???)
-
-    4) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
+    2) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
        doesn't include the extra exists bits will break something.
 
-    5) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
+    3) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
 
-    8) some jutter with moving entities
+    4) test animation again...
+    
+    5) PROP_VISIBLE
+
+    6) PROP_SCRIPT
+
+    7) some jutter with moving entities
             -- I think this might only happen with lots of models in an element or in view
                this may be related to issue 13 below
    
-    9) test animation again...
-    
-   10) What happens if the edit properties don't fit in a single message MTU???
-
-   11) EntityItemProperties::decodeEntityEditPacket() doesn't include PROP_SCRIPT
-
-   12) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
-
    13) Look into why non-changed octree cells are being resent when editing an entity
 
+   10) What happens if the edit properties don't fit in a single message MTU???
+
+   12) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
 
     
 // NICE TO DO:
