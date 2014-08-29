@@ -2835,7 +2835,6 @@ function handeMenuEvent(menuItem) {
             }
             array.push({ button: "Cancel" });
         
-            var propertyName = Window.form("Edit Properties", array);
             if (Window.form("Edit Properties", array)) {
                 var index = 0;
                 if (properties.type == "Model") {

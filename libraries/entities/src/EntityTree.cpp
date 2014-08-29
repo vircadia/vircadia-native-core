@@ -768,23 +768,33 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
             AACube oldCube = thisEntity->getAACube();
             thisEntity->update(now);
             AACube newCube = thisEntity->getAACube();
-
-            if (wantDebug) {
-                qDebug() << "EntityTree::update() thisEntity=" << thisEntity;
-                qDebug() << "   oldCube=" << oldCube;
-                qDebug() << "   newCube=" << newCube;
+            
+            // check to see if this movement has sent the entity outside of the domain.
+            AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), 1.0f);
+            if (!domainBounds.touches(newCube)) {
+                if (wantDebug) {
+                    qDebug() << "The entity " << thisEntity->getEntityItemID() << " moved outside of the domain. Delete it.";
                 }
-                
-            moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
-
-            // check to see if this entity is no longer moving
-            EntityItem::SimulationState newState = thisEntity->getSimulationState();
-            if (newState == EntityItem::Changing) {
-                entitiesBecomingChanging << thisEntity;
-            } else if (newState == EntityItem::Mortal) {
-                entitiesBecomingMortal << thisEntity;
-            } else if (newState == EntityItem::Static) {
+                entitiesToDelete << thisEntity->getEntityItemID();
                 entitiesBecomingStatic << thisEntity;
+            } else {
+                if (wantDebug) {
+                    qDebug() << "EntityTree::update() thisEntity=" << thisEntity;
+                    qDebug() << "   oldCube=" << oldCube;
+                    qDebug() << "   newCube=" << newCube;
+                    }
+                
+                moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
+
+                // check to see if this entity is no longer moving
+                EntityItem::SimulationState newState = thisEntity->getSimulationState();
+                if (newState == EntityItem::Changing) {
+                    entitiesBecomingChanging << thisEntity;
+                } else if (newState == EntityItem::Mortal) {
+                    entitiesBecomingMortal << thisEntity;
+                } else if (newState == EntityItem::Static) {
+                    entitiesBecomingStatic << thisEntity;
+                }
             }
         }
     }
