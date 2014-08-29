@@ -1,7 +1,6 @@
 // REQUIRED:
 
-    1) random crashes on moving (I think things going out of bounds???)
-        -- event with edit clamping, we seem to crash if we move an entity to the Y=0 plane
+    1) crash on rendering of element that flies off the domain???
 
     2) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
        doesn't include the extra exists bits will break something.
@@ -191,7 +190,16 @@
 // SOLVED -- 43) Moving models don't always move.. I think this relates to the render optimization... 
 //               need to make sure we re-simulate when a model is moving...
 // SOLVED -- 44) if velocity sends a model out of the domain - delete it
-// SOLVED -- 6) Don't allow models to be "edited" to be outside of domain. clamp them to the domain. - clamp it baby!!
+// SOLVED -- 45) Don't allow models to be "edited" to be outside of domain. clamp them to the domain. - clamp it baby!!
+// SOLVED -- 46) random crashes on moving -- 
+//        FIXED - bug in PossiblyCreateChildAt for clamped entities - new entity not added.
+//        FIXED - Assertion failed: (!_removeOld), function PreRecursion, file /Users/zappoman/Development/HiFi/hifi/libraries/entities/src/UpdateEntityOperator.cpp, line 234
+//            -- what appears to be happening is that the containing elements memory location is getting reused
+//            -- 1) the OLD containing element was found first,
+//            -- 2) the entity was removed
+//            -- 3) the containing element got pruned
+//            -- 4) the NEW branch is traversed and PossiblyCreateChildAt creates a new element -- THAT HAS SAME POINTER AS CONTAINING ELEMENT!!!!
+//            -- 5) the logic for recursedelement == _containingElement gets confused
 
 ---------------- properties -----------------
 Base properties...

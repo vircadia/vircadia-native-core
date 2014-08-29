@@ -24,6 +24,7 @@ private:
     EntityTree* _tree;
     EntityItem* _existingEntity;
     EntityTreeElement* _containingElement;
+    AACube _containingElementCube; // we temporarily store our cube here in case we need to delete the containing element
     EntityItemProperties _properties;
     EntityItemID _entityItemID;
     bool _foundOld;
@@ -34,8 +35,8 @@ private:
     AACube _oldEntityCube;
     AACube _newEntityCube;
 
-    AABox _oldEntityBox;
-    AABox _newEntityBox;
+    AABox _oldEntityBox; // clamped to domain
+    AABox _newEntityBox; // clamped to domain
 
     bool subTreeContainsOldEntity(OctreeElement* element);
     bool subTreeContainsNewEntity(OctreeElement* element);

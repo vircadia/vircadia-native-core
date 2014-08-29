@@ -124,6 +124,7 @@ public:
     OctreeElement* getChildAtIndex(int childIndex) const;
     void deleteChildAtIndex(int childIndex);
     OctreeElement* removeChildAtIndex(int childIndex);
+    bool isParentOf(OctreeElement* possibleChild) const;
 
     /// handles deletion of all descendants, returns false if delete not approved
     bool safeDeepDeleteChildAtIndex(int childIndex, int recursionCount = 0); 

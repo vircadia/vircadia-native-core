@@ -240,6 +240,22 @@ OctreeElement* OctreeElement::removeChildAtIndex(int childIndex) {
     return returnedChild;
 }
 
+bool OctreeElement::isParentOf(OctreeElement* possibleChild) const {
+    bool isParentOf = false;
+    if (possibleChild) {
+        for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
+            OctreeElement* childAt = getChildAtIndex(childIndex);
+
+            if (childAt == possibleChild) {
+                isParentOf = true;
+                break;
+            }
+        }
+    }
+    return isParentOf;
+}
+
+
 #ifdef HAS_AUDIT_CHILDREN
 void OctreeElement::auditChildren(const char* label) const {
     bool auditFailed = false;
