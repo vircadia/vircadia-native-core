@@ -624,6 +624,106 @@ glm::vec3 cubeNormals[3] = { glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 
 // hence the first pair is (1, 2) because the OTHER faces for xFace are (yFace, zFace) = (1, 2)
 int wallIndices[] = { 1, 2, 0, 2, 0, 1 };
 
+bool capsuleVsAACubeFace(const CapsuleShape* capsuleA, const AACubeShape* cubeB, int faceIndex, const glm::vec3& faceNormal, CollisionList& collisions) {
+    // we only fall in here when the capsuleAxis is nearly parallel to the face of a cube
+    glm::vec3 capsuleAxis; 
+    capsuleA->computeNormalizedAxis(capsuleAxis);
+    glm::vec3 cubeCenter = cubeB->getTranslation();
+
+    // Revisualize the capsule as a line segment between two points.  We'd like to collide the 
+    // capsule as two spheres located at the endpoints or where the line segment hits the boundary
+    // of the face.
+
+    // We raytrace forward into the four planes that neigbhor the face to find the boundary 
+    // points of the line segment.
+    glm::vec3 capsuleStart;
+    capsuleA->getStartPoint(capsuleStart);
+
+    // translate into cube-relative frame
+    capsuleStart -= cubeCenter;
+    float capsuleLength = 2.0f * capsuleA->getHalfHeight();
+    float halfCubeSide = 0.5f * cubeB->getScale();
+    float capsuleRadius = capsuleA->getRadius();
+
+    // preload distances with values that work for when the capsuleAxis runs parallel to neighbor face
+    float distances[] = {FLT_MAX, -FLT_MAX, FLT_MAX, -FLT_MAX, 0.0f};
+
+    // Loop over the directions that are NOT parallel to face (there are two of them).
+    // For each direction we'll raytrace against the positive and negative planes to find where 
+    // the axis passes through.
+    for (int i = 0; i < 2; ++i) {
+        int wallIndex = wallIndices[2 * faceIndex + i];
+        glm::vec3 wallNormal = cubeNormals[wallIndex];
+        // each direction has two walls: positive and negative
+        float axisDotWall = glm::dot(capsuleAxis, wallNormal);
+        if (fabsf(axisDotWall) > EPSILON) {
+            // formula for distance to intersection between line (P,p) and plane (V,n) is: (V-P)*n / p*n
+            distances[2 * i] = (halfCubeSide - glm::dot(capsuleStart, wallNormal)) / axisDotWall;
+            distances[2 * i + 1] = -(halfCubeSide + glm::dot(capsuleStart, wallNormal)) / axisDotWall;
+        }
+    }
+
+    // sort the distances from large to small
+    int j = 3;
+    while (j > 0) {
+        for (int i = 0; i <= j; ++i) {
+            if (distances[i] < distances[i+1]) {
+                // swap (using distances[4] as temp space)
+                distances[4] = distances[i];    
+                distances[i] = distances[i+1];
+                distances[i+1] = distances[4];
+            } 
+        }
+        --j;
+    }
+
+    // the capsule overlaps when the max of the mins is less than the min of the maxes
+    distances[0] = glm::min(capsuleLength, distances[1]); // maxDistance
+    distances[1] = glm::max(0.0f, distances[2]); // minDistance
+    bool hit = false;
+    if (distances[1] < distances[0]) {
+        // if we collide at all it will be at two points
+        for (int i = 0; i < 2; ++i) {
+            glm::vec3 sphereCenter = cubeCenter + capsuleStart + distances[i] * capsuleAxis;
+            // collide like a sphere at point0 with capsuleRadius
+            CollisionInfo* collision = sphereVsAACubeHelper(sphereCenter, capsuleRadius,
+                    cubeCenter, 2.0f * halfCubeSide, collisions);
+            if (collision) {
+                // we hit! so store back pointers to the shapes
+                collision->_shapeA = capsuleA;
+                collision->_shapeB = cubeB;
+                hit = true;
+            }
+        }
+        return hit;
+    } else if (distances[1] < capsuleLength + capsuleRadius ) {
+        // we might collide at the end cap
+        glm::vec3 sphereCenter = cubeCenter + capsuleStart + capsuleLength * capsuleAxis;
+        // collide like a sphere at point0 with capsuleRadius
+        CollisionInfo* collision = sphereVsAACubeHelper(sphereCenter, capsuleRadius,
+                cubeCenter, 2.0f * halfCubeSide, collisions);
+        if (collision) {
+            // we hit! so store back pointers to the shapes
+            collision->_shapeA = capsuleA;
+            collision->_shapeB = cubeB;
+            hit = true;
+        }
+    } else if (distances[0] > -capsuleLength) {
+        // we might collide at the start cap
+        glm::vec3 sphereCenter = cubeCenter + capsuleStart;
+        // collide like a sphere at point0 with capsuleRadius
+        CollisionInfo* collision = sphereVsAACubeHelper(sphereCenter, capsuleRadius,
+                cubeCenter, 2.0f * halfCubeSide, collisions);
+        if (collision) {
+            // we hit! so store back pointers to the shapes
+            collision->_shapeA = capsuleA;
+            collision->_shapeB = cubeB;
+            hit = true;
+        }
+    }
+    return hit;
+}
+
 bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
     const AACubeShape* cubeB = static_cast<const AACubeShape*>(shapeB);
@@ -661,10 +761,12 @@ bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& co
     }
 
     if (fabs(glm::dot(faceNormal, capsuleAxis)) < EPSILON) {
-        // TODO: Andrew to implement this special case 
-        // where capsule is perpendicular to the face that it hits
-        // (Make this its own function?  or implement it here?)
-        return false;
+        if (glm::dot(nearestApproach, faceNormal) > cubeB->getScale() + capsuleA->getRadius()) {
+            return false;
+        }
+        // we expect this case to be rare but complicated enough that we split it out 
+        // into its own helper function
+        return capsuleVsAACubeFace(capsuleA, cubeB, faceIndex, faceNormal, collisions);
     }
 
     // Revisualize the capsule as a startPoint and an axis that points toward the cube face.
