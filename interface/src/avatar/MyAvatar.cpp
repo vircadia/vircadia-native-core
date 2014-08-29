@@ -1486,7 +1486,6 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
 static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
-    /* TODO: Andrew to reimplement this
     const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
     float speed = glm::length(_velocity);
     if (speed > MAX_VOXEL_COLLISION_SPEED) {
@@ -1593,7 +1592,6 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
         //updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
     } 
     _trapDuration = isTrapped ? _trapDuration + deltaTime : 0.0f;
-    */
 }
 
 void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity, float damping) {

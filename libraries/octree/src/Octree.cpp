@@ -751,7 +751,6 @@ bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     return false;
 }
 
-/* TODO: Andrew to reimplement or purge this
 bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
     ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
 
@@ -765,14 +764,13 @@ bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
         return true; // recurse on children
     }
     if (element->hasContent()) {
-        if (ShapeCollider::collideShapeWithAACube(args->shape, cube.calcCenter(), cube.getScale(), args->collisions)) {
+        if (ShapeCollider::collideShapeWithAACubeLegacy(args->shape, cube.calcCenter(), cube.getScale(), args->collisions)) {
             args->found = true;
             return true;
         }
     }
     return false;
 }
-*/
 
 bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
                     glm::vec3& penetration, Octree::lockType lockType, bool* accurateResult) {
@@ -811,7 +809,6 @@ bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end
     return args.found;
 }
 
-/* TODO: Andrew to reimplement or purge this
 bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions, 
                     Octree::lockType lockType, bool* accurateResult) {
 
@@ -842,7 +839,6 @@ bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions,
     }
     return args.found;
 }
-*/
 
 class GetElementEnclosingArgs {
 public:

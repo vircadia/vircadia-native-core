@@ -35,6 +35,13 @@ namespace ShapeCollider {
     bool collideShapeWithShapes(const Shape* shapeA, const QVector<Shape*>& shapes, int startIndex, CollisionList& collisions);
     bool collideShapesWithShapes(const QVector<Shape*>& shapesA, const QVector<Shape*>& shapesB, CollisionList& collisions);
 
+    /// \param shapeA a pointer to a shape (cannot be NULL)
+    /// \param cubeCenter center of cube
+    /// \param cubeSide lenght of side of cube
+    /// \param collisions[out] average collision details
+    /// \return true if shapeA collides with axis aligned cube
+    bool collideShapeWithAACubeLegacy(const Shape* shapeA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
+
     /// \param sphereA pointer to first shape (cannot be NULL)
     /// \param sphereB pointer to second shape (cannot be NULL)
     /// \param[out] collisions where to append collision details
@@ -122,6 +129,20 @@ namespace ShapeCollider {
     /// \param[out] collisions where to append collision details
     /// \return true if shapes collide
     bool listVsList(const Shape* listA, const Shape* listB, CollisionList& collisions);
+
+    /// \param sphereA pointer to sphere (cannot be NULL)
+    /// \param cubeCenter center of cube
+    /// \param cubeSide lenght of side of cube
+    /// \param[out] collisions where to append collision details
+    /// \return true if sphereA collides with axis aligned cube
+    bool sphereVsAACubeLegacy(const SphereShape* sphereA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
+
+    /// \param capsuleA pointer to capsule (cannot be NULL)
+    /// \param cubeCenter center of cube
+    /// \param cubeSide lenght of side of cube
+    /// \param[out] collisions where to append collision details
+    /// \return true if capsuleA collides with axis aligned cube
+    bool capsuleVsAACubeLegacy(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
 
     /// \param shapes list of pointers to shapes (shape pointers may be NULL)
     /// \param startPoint beginning of ray
