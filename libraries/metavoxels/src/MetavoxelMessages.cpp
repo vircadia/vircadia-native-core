@@ -683,7 +683,7 @@ int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
     int sizeY = (int)overlap.maximum.y - minY + 1;
     int sizeZ = (int)overlap.maximum.z - minZ + 1;
     
-    QRgb rgb = _color.rgb();
+    QRgb rgb = _color.rgba();
     for (QRgb* destZ = colorContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
             *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA) {
         for (QRgb* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY; destY += VOXEL_BLOCK_SAMPLES) {

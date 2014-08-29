@@ -1014,14 +1014,15 @@ void VoxelBuffer::render(bool cursor) {
         _vertexBuffer.bind();
         _indexBuffer.bind();
     }
+    
     VoxelPoint* point = 0;
     glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
     glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelPoint), &point->color);
     glNormalPointer(GL_BYTE, sizeof(VoxelPoint), &point->normal);
     
-    //glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
+    // glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
     
-    glPointSize(5.0f);
+    glPointSize(3.0f);
     
     glDrawArrays(GL_POINTS, 0, _vertexCount);
     
@@ -1569,7 +1570,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         const QVector<QRgb>& contents = color->getContents();
         int size = color->getSize();
         int area = size * size;
-        int highest = size - 1;
         int offset3 = size + 1;
         int offset5 = area + 1;
         int offset6 = area + size;
@@ -1577,31 +1577,136 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         
         const QRgb* src = contents.constData();
         
+        int expanded = size + 1;
+        QVector<int> lineIndices(expanded, -1);
+        QVector<int> lastLineIndices(expanded, -1);
+        QVector<int> planeIndices(expanded * expanded, -1);
+        QVector<int> lastPlaneIndices(expanded * expanded, -1);
+        
+        float highest = size - 1.0f;
         float scale = info.size / highest;
         const int ALPHA_OFFSET = 24;
-        const int MAX_ALPHA_TOTAL = EIGHT_BIT_MAXIMUM * 8;
-        for (int z = 0; z < highest; z++) {
-            for (int y = 0; y < highest; y++) {
-                for (int x = 0; x < highest; x++, src++) {
+        for (int z = 0; z < expanded; z++) {
+            for (int y = 0; y < expanded; y++) {
+                int lastIndex;
+                for (int x = 0; x < expanded; x++) {
                     int alpha0 = src[0] >> ALPHA_OFFSET;
-                    int alpha1 = src[1] >> ALPHA_OFFSET;
-                    int alpha2 = src[size] >> ALPHA_OFFSET;
-                    int alpha3 = src[offset3] >> ALPHA_OFFSET;
-                    int alpha4 = src[area] >> ALPHA_OFFSET;
-                    int alpha5 = src[offset5] >> ALPHA_OFFSET;
-                    int alpha6 = src[offset6] >> ALPHA_OFFSET;
-                    int alpha7 = src[offset7] >> ALPHA_OFFSET;
-                    int alphaTotal = alpha0 + alpha1 + alpha2 + alpha3 + alpha4 + alpha5 + alpha6 + alpha7;
-                    if (alphaTotal == 0 || alphaTotal == MAX_ALPHA_TOTAL) {
+                    int alpha1 = alpha0, alpha2 = alpha0, alpha4 = alpha0;
+                    int alphaTotal = alpha0;
+                    int possibleTotal = EIGHT_BIT_MAXIMUM;
+                    if (x != 0 && x != size) {
+                        alphaTotal += (alpha1 = src[1] >> ALPHA_OFFSET);
+                        possibleTotal += EIGHT_BIT_MAXIMUM;
+                        
+                        if (y != 0 && y != size) {
+                            alphaTotal += (src[offset3] >> ALPHA_OFFSET);
+                            possibleTotal += EIGHT_BIT_MAXIMUM;
+                            
+                            if (z != 0 && z != size) {
+                                alphaTotal += (src[offset7] >> ALPHA_OFFSET);
+                                possibleTotal += EIGHT_BIT_MAXIMUM;
+                            }
+                        }
+                        if (z != 0 && z != size) {
+                            alphaTotal += (src[offset5] >> ALPHA_OFFSET);
+                            possibleTotal += EIGHT_BIT_MAXIMUM;
+                        }
+                    }
+                    if (y != 0 && y != size) {
+                        alphaTotal += (alpha2 = src[size] >> ALPHA_OFFSET);
+                        possibleTotal += EIGHT_BIT_MAXIMUM;
+                        
+                        if (z != 0 && z != size) {
+                            alphaTotal += (src[offset6] >> ALPHA_OFFSET);
+                            possibleTotal += EIGHT_BIT_MAXIMUM;
+                        }
+                    }
+                    if (z != 0 && z != size) {
+                        alphaTotal += (alpha4 = src[area] >> ALPHA_OFFSET);
+                        possibleTotal += EIGHT_BIT_MAXIMUM;
+                    }
+                    
+                    bool generateQuad = (x != 0 && y != 0 && z != 0);
+                    if (generateQuad) {
+                        src++;
+                    }
+                    if (z == 0) {
+                        qDebug() << "blerp" << x << y << z << alphaTotal << possibleTotal;
+                    }
+                    if (alphaTotal == 0 || alphaTotal == possibleTotal) {
                         continue; // no corners set/all corners set
                     }
-                    VoxelPoint point = { info.minimum + glm::vec3(x + 0.5f, y + 0.5f, z + 0.5f) * scale,
+                    VoxelPoint point = { info.minimum + glm::vec3(glm::clamp(x - 0.5f, 0.0f, highest),
+                        glm::clamp(y - 0.5f, 0.0f, highest), glm::clamp(z - 0.5f, 0.0f, highest)) * scale,
                         { 0, 0, 0 }, { 0, 127, 0} };
+                    int index = vertices.size();
                     vertices.append(point);
+                    
+                    if (generateQuad) {
+                        if (alpha0 != alpha1) {
+                            indices.append(index);
+                            int index1 = lastLineIndices.at(x);
+                            int index2 = lastPlaneIndices.at((y - 1) * expanded + x);
+                            int index3 = lastPlaneIndices.at(y * expanded + x);
+                            if (index1 == -1 || index2 == -1 || index3 == -1) {
+                                qDebug() << index1 << index2 << index3 << x << y << z;
+                            }
+                            if (alpha0 == 0) {
+                                indices.append(index3);
+                                indices.append(index2);
+                                indices.append(index1);
+                            } else {
+                                indices.append(index1);
+                                indices.append(index2);
+                                indices.append(index3);
+                            }
+                        }
+                        
+                        if (alpha0 != alpha2) {
+                            indices.append(index);
+                            int index1 = lastIndex;
+                            int index2 = lastPlaneIndices.at(y * expanded + x - 1);
+                            int index3 = lastPlaneIndices.at(y * expanded + x);
+                            if (index1 == -1 || index2 == -1 || index3 == -1) {
+                                qDebug() << index1 << index2 << index3 << x << y << z;
+                            }
+                            if (alpha0 == 0) {
+                                indices.append(index1);
+                                indices.append(index2);
+                                indices.append(index3);
+                            } else {
+                                indices.append(index3);
+                                indices.append(index2);
+                                indices.append(index1);
+                            }
+                        }
+                        
+                        if (alpha0 != alpha4) {
+                            indices.append(index);
+                            int index1 = lastIndex;
+                            int index2 = lastLineIndices.at(x - 1);
+                            int index3 = lastLineIndices.at(x);
+                            if (index1 == -1 || index2 == -1 || index3 == -1) {
+                                qDebug() << index1 << index2 << index3 << x << y << z;
+                            }
+                            if (alpha0 == 0) {
+                                indices.append(index3);
+                                indices.append(index2);
+                                indices.append(index1);
+                            } else {
+                                indices.append(index1);
+                                indices.append(index2);
+                                indices.append(index3);
+                            }
+                        }
+                    }
+                    lastIndex = index;
+                    lineIndices[x] = index;
+                    planeIndices[y * expanded + x] = index;
                 }
-                src++;
+                lineIndices.swap(lastLineIndices);
             }
-            src += size;
+            planeIndices.swap(lastPlaneIndices);
         }
         
         buffer = new VoxelBuffer(vertices, indices, material->getMaterials());
@@ -1628,6 +1733,13 @@ void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const 
     root = expandedPrevious.getRoot(heightfieldBufferAttribute);
     if (root) {
         data.setRoot(heightfieldBufferAttribute, root);
+        root->incrementReferenceCount();
+    }
+    const AttributePointer& voxelBufferAttribute =
+        Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute();
+    root = expandedPrevious.getRoot(voxelBufferAttribute);
+    if (root) {
+        data.setRoot(voxelBufferAttribute, root);
         root->incrementReferenceCount();
     }
     
@@ -1833,8 +1945,12 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     
+    glEnable(GL_CULL_FACE);
+    
     BufferRenderVisitor voxelRenderVisitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute());
     data.guide(voxelRenderVisitor);
+    
+    glDisable(GL_CULL_FACE);
     
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);

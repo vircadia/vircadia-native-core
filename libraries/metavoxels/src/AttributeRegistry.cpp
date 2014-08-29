@@ -1926,7 +1926,7 @@ void VoxelHermiteData::writeDelta(Bitstream& out, const VoxelHermiteDataPointer&
             sizeX = maxX - minX + 1;
             sizeY = maxY - minY + 1;
             sizeZ = maxZ - minZ + 1;
-            delta = QVector<QRgb>(sizeX * sizeY * sizeZ, 0);
+            delta = QVector<QRgb>(sizeX * sizeY * sizeZ * EDGE_COUNT, 0);
             QRgb* dest = delta.data();
             int srcStride = _size * EDGE_COUNT;
             int srcStride2 = _size * srcStride;
