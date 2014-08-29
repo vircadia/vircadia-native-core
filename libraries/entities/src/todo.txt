@@ -18,45 +18,31 @@
             -- I think this might only happen with lots of models in an element or in view
                this may be related to issue 13 below
    
-   13) Look into why non-changed octree cells are being resent when editing an entity
+    8) Look into why non-changed octree cells are being resent when editing an entity
+
+    9) Verify pruning logic...
+           The old code used the update loop to handle pruning elements from the tree - do we need this?
 
    10) What happens if the edit properties don't fit in a single message MTU???
 
-   12) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
-
-    
-// NICE TO DO:
-
-    D) update and verify all particle examples to use new entity features
-
-    Ac) implement support for requestedProperties in appendEntityData() that only include CHANGED properties for the viewer...
-    Az) visible???
-
-    P) unit tests?
-    Pa) OctreeTests::modelItemTests()...????
-
-    H) make the rotated model bounds work for other entity types?
-    I) maybe make "hasGeometry" be a property of EntityItem base class??
+   11) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
+        -- verify this happens in old code, if so... move to "nice to have"
 
 
-    J) handle subclass properties?
+// NICE TO HAVE:
+
+    1) EnterEntity/LeaveEntity JS messages
+
+    2) update and verify all particle examples to use new entity features
+
+    3) implement support for requestedProperties in appendEntityData() that only include CHANGED properties for the viewer...
+
+    4) unit tests?
+
+    5) make the rotated model bounds work for other entity types?
+
+    6) improve EntityItemProperties class to allow registration of new properties, and to be more generic
         
-        We use properties for addEntity(id, props) -
-            the result should be that the properties are not really understood by the tree, or element, but should be
-            storable, passable, and reusable by the subclass entity... so "setProperties()" should be virtual and handle
-            storage of any items contained in the properties
-            
-            getProperties() examples:
-                Application::exportModels()
-                EntityScriptingInterface::getEntityProperties()
-                EntityScriptingInterface::findRayIntersection/Blocking/Worker()
-
-            setProperties() examples:
-                EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties); /// ??????
-                UpdateEntityOperator - this seems like it should be able to be virtual and work well.
-                EntityTreeElement::addOrUpdateEntity() -- same use case as UpdateEntityOperator...
-
-
         basic properties features use getter/setter....
         all others use:
             set('propertyName', value)... but... we need to know the type of value 
@@ -66,80 +52,38 @@
 
             setFloatProperty('name', float value);
             float getFloatProperty('name');
-            
-    1) consider moving type to front of buffers to make construction easier
-    3) The moving/pruning logic...
-           The old code used the update loop to handle pruning entities from the
-           incorrect tree element when they no longer were the best fit
+    7) Consider making properties of the entities be registered... 
+        and handle their streaming in a more automatice fashion
+        DRY up the code, eliminate the common blocks for each differetn property
+        
+    8) add user properties
 
-    4) can render happen while update is occurring? will this result in flicker??
+    9) implement "Light" entity, "Fire" entity?
 
-    6) are we actually deleting the entities after deleteEntity???
-       Looks like the server is not actually deleting the items, and so they get resent into the scene.
-
-    10) What's wrong with this picture... we have 3 entities in our map but all have been deleted!!!
-            [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] EntityTree::debugDumpMap() -------------------------- 
-            [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 1 , creatorTokenID: 2 , isKnownID: true ] :  0x7fd71be05970 
-            [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 2 , creatorTokenID: 3 , isKnownID: true ] :  0x7fd71be05970 
-            [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] [ id: 0 , creatorTokenID: 1 , isKnownID: true ] :  0x7fd71be05970 
-            [DEBUG] [2014-07-28 21:40:52 -0700] [41554:24258] [entity-server] ----------------------------------------------------- 
-
-    11) assert in qBitArray
-
-         [DEBUG] [2014-07-28 21:49:15 -0700] [41950:24258] [entity-server] EntityTree::processEditPacketData().... 
-         [FATAL] [2014-07-28 21:49:15 -0700] [41950:24258] [entity-server] ASSERT: "uint(i) < uint(size())" in file /usr/local/Cellar/qt5/5.2.0/lib/QtCore.framework/Headers/qbitarray.h, line 122
-         Abort trap: 6
-
-    13b) add user properties
-    14) implement "Light" entity, "Fire" entity?
-
-
-    21) LOD - we've never supported LOD in model server other than not recursing into nodes that can't be seen.
-    21a) LOD - at higher level nodes with entities that are small, handle don't include small entities for LOD setting would not have sent them.
-    21b) LOD - generalized "re-averaging"?
+    10) LOD - we've never supported LOD in model server other than not recursing into nodes that can't be seen.
+    10a) LOD - at higher level nodes with entities that are small, handle don't include small entities for LOD setting would not have sent them.
+    10b) LOD - generalized "re-averaging"?
           how can we allow an entity to present itself to a higher level as an average?
                for models - we've talked about storing them as voxels...
                for models - if we had access to mesh, we could use numerous mesh LOD algorithms out there
 
-        
-       
-
-
-    23) xColor vs rbgColor????
-    24) get rid of EntityItem::expectedBytes()...
-
-
-    25) consider moving the EntityTypes static Maps to be inside a singleton instance of EntityTypes to ensure initialization order
-    26) Why can't we call REGISTER_ENTITY_TYPE() in BoxEntityType.cpp or the CPP of the implementation?
-    27) Consider making properties of the entities be registered... and handle their streaming in a more automatice fashion
-
-
-    28) crash on startup of client sometimes...
-
-    Thread 46 Crashed:: QThread
-    0   QtCore                        	0x000000010d189e47 QHashData::nextNode(QHashData::Node*) + 7
-    1   io.highfidelity.Interface     	0x000000010bce2189 QHash<QUuid, EditPacketBuffer>::iterator::operator++(int) + 41 (qhash.h:378)
-    2   io.highfidelity.Interface     	0x000000010bce109a OctreeEditPacketSender::releaseQueuedMessages() + 154 (OctreeEditPacketSender.cpp:306)
-    3   io.highfidelity.Interface     	0x000000010bf17bb3 ScriptEngine::run() + 2099 (ScriptEngine.cpp:433)
-    4   io.highfidelity.Interface     	0x000000010b97444e void QtPrivate::FunctionPointer<void (ScriptEngine::*)()>::call<void, void>(void (ScriptEngine::*)(), ScriptEngine*, void**) + 142 (qobjectdefs_impl.h:142)
-    5   io.highfidelity.Interface     	0x000000010b97432a QtPrivate::QSlotObject<void (ScriptEngine::*)(), void, void>::impl(int, QtPrivate::QSlotObjectBase*, QObject*, void**, bool*) + 202 (qobject_impl.h:150)
-    6   QtCore                        	0x000000010d34383b QMetaObject::activate(QObject*, int, int, void**) + 2139
-    7   QtCore                        	0x000000010d12aba5 QThreadPrivate::start(void*) + 309
-    8   libsystem_pthread.dylib       	0x00007fff8bb96899 _pthread_body + 138
-    9   libsystem_pthread.dylib       	0x00007fff8bb9672a _pthread_start + 137
-    10  libsystem_pthread.dylib       	0x00007fff8bb9afc9 thread_start + 13
-
-    X) multiple copies of entities in saved file??? --- may be fixed after implementing prune correctly
-        repro: launch an entity....
-        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID= QUuid("{00400000-4040-0000-0088-000000008007}") 
-        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType= 0 
-        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID= QUuid("{00400000-4040-0000-0088-000000008007}") 
-        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType= 0 
-        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID= QUuid("{00000f00-0000-065f-f827-000000000000}") 
-        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType= 0 
-        [DEBUG] [2014-08-12 14:28:31 -0700] [7188:323] [entity-server] EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID= QUuid("{00000f00-0000-065f-f827-000000000000}") 
-    
-
+    12) xColor vs rbgColor????
+    13) get rid of EntityItem::expectedBytes()...
+    14) consider moving the EntityTypes static Maps to be inside a singleton instance of EntityTypes to ensure initialization order
+    15) Why can't we call REGISTER_ENTITY_TYPE() in BoxEntityType.cpp or the CPP of the implementation?
+    16) crash on startup of client sometimes...
+        Thread 46 Crashed:: QThread
+        0   QtCore                        	0x000000010d189e47 QHashData::nextNode(QHashData::Node*) + 7
+        1   io.highfidelity.Interface     	0x000000010bce2189 QHash<QUuid, EditPacketBuffer>::iterator::operator++(int) + 41 (qhash.h:378)
+        2   io.highfidelity.Interface     	0x000000010bce109a OctreeEditPacketSender::releaseQueuedMessages() + 154 (OctreeEditPacketSender.cpp:306)
+        3   io.highfidelity.Interface     	0x000000010bf17bb3 ScriptEngine::run() + 2099 (ScriptEngine.cpp:433)
+        4   io.highfidelity.Interface     	0x000000010b97444e void QtPrivate::FunctionPointer<void (ScriptEngine::*)()>::call<void, void>(void (ScriptEngine::*)(), ScriptEngine*, void**) + 142 (qobjectdefs_impl.h:142)
+        5   io.highfidelity.Interface     	0x000000010b97432a QtPrivate::QSlotObject<void (ScriptEngine::*)(), void, void>::impl(int, QtPrivate::QSlotObjectBase*, QObject*, void**, bool*) + 202 (qobject_impl.h:150)
+        6   QtCore                        	0x000000010d34383b QMetaObject::activate(QObject*, int, int, void**) + 2139
+        7   QtCore                        	0x000000010d12aba5 QThreadPrivate::start(void*) + 309
+        8   libsystem_pthread.dylib       	0x00007fff8bb96899 _pthread_body + 138
+        9   libsystem_pthread.dylib       	0x00007fff8bb9672a _pthread_start + 137
+        10  libsystem_pthread.dylib       	0x00007fff8bb9afc9 thread_start + 13
 
 ===============
 
