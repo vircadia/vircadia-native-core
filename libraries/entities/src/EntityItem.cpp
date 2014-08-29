@@ -812,7 +812,8 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     }
     
     if (properties._positionChanged || forceCopy) {
-        setPosition(properties._position / (float) TREE_SCALE);
+        // clamp positions to the domain to prevent someone from moving an entity out of the domain
+        setPosition(glm::clamp(properties._position / (float) TREE_SCALE, 0.0f, 1.0f));
         somethingChanged = true;
     }
 

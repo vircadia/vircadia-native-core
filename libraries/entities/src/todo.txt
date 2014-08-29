@@ -1,14 +1,13 @@
 // REQUIRED:
 
 
+
+    7) random crashes on moving (I think things going out of bounds???)
+
     4) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
        doesn't include the extra exists bits will break something.
 
     5) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
-
-    6) Don't allow models to be "edited" to be outside of domain. clamp them to the domain.
-
-    7) random crashes on moving (I think things going out of bounds???)
 
     8) some jutter with moving entities
             -- I think this might only happen with lots of models in an element or in view
@@ -248,8 +247,7 @@
 // SOLVED -- 43) Moving models don't always move.. I think this relates to the render optimization... 
 //               need to make sure we re-simulate when a model is moving...
 // SOLVED -- 44) if velocity sends a model out of the domain - delete it
-
-
+// SOLVED -- 6) Don't allow models to be "edited" to be outside of domain. clamp them to the domain. - clamp it baby!!
 
 ---------------- properties -----------------
 Base properties...

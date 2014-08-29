@@ -118,8 +118,8 @@ public:
     const glm::quat& getRotation() const { return _rotation; }
 
     void setType(EntityTypes::EntityType type) { _type = type; }
-    /// set position in meter units
-    void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
+    /// set position in meter units, will be clamped to domain bounds
+    void setPosition(const glm::vec3& value) { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
     void setRadius(float value) { _radius = value; _radiusChanged = true; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; _rotationChanged = true; }
 

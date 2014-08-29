@@ -217,8 +217,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
             newPosition.y = y.toVariant().toFloat();
             newPosition.z = z.toVariant().toFloat();
             if (_defaultSettings || newPosition != _position) {
-                _position = newPosition;
-                _positionChanged = true;
+                setPosition(newPosition); // gives us automatic clamping
             }
         }
     }
