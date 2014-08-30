@@ -144,7 +144,8 @@ RayHeightfieldIntersectionVisitor::RayHeightfieldIntersectionVisitor(const glm::
     intersectionDistance(FLT_MAX) {
 }
 
-static const float EIGHT_BIT_MAXIMUM_RECIPROCAL = 1.0f / 255.0f;
+static const int EIGHT_BIT_MAXIMUM = 255;
+static const float EIGHT_BIT_MAXIMUM_RECIPROCAL = 1.0f / EIGHT_BIT_MAXIMUM;
 
 int RayHeightfieldIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
     if (!info.isLeaf) {
@@ -1267,8 +1268,6 @@ HeightfieldFetchVisitor::HeightfieldFetchVisitor(const MetavoxelLOD& lod, const 
     _intersections(intersections) {
 }
 
-const int EIGHT_BIT_MAXIMUM = 255;
-
 int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
     Box bounds = info.getBounds();
     const Box& heightBounds = _buffer->getHeightBounds();
@@ -1549,6 +1548,14 @@ VoxelAugmentVisitor::VoxelAugmentVisitor(const MetavoxelLOD& lod) :
                 Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), lod) {
 }
 
+class EdgeCrossing {
+public:
+    glm::vec3 point;
+    glm::vec3 normal;
+    QRgb color;
+    char material;
+};
+
 int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf) {
         return DEFAULT_ORDER;
@@ -1561,7 +1568,9 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
         
-        const QVector<QRgb>& contents = color->getContents();
+        const QVector<QRgb>& colorContents = color->getContents();
+        const QByteArray& materialContents = material->getContents();
+        const QVector<QRgb>& hermiteContents = hermite->getContents();
         int size = color->getSize();
         int area = size * size;
         int offset3 = size + 1;
@@ -1569,7 +1578,12 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         int offset6 = area + size;
         int offset7 = area + size + 1;
         
-        const QRgb* srcZ = contents.constData();
+        const QRgb* colorZ = colorContents.constData();
+        const QRgb* hermiteData = hermiteContents.constData();
+        int hermiteStride = hermite->getSize() * VoxelHermiteData::EDGE_COUNT;
+        int hermiteArea = hermiteStride * hermite->getSize();
+        
+        const char* materialData = materialContents.constData();
         
         int expanded = size + 1;
         QVector<int> lineIndices(expanded, -1);
@@ -1577,60 +1591,256 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         QVector<int> planeIndices(expanded * expanded, -1);
         QVector<int> lastPlaneIndices(expanded * expanded, -1);
         
+        const int EDGES_PER_CUBE = 12;
+        EdgeCrossing crossings[EDGES_PER_CUBE];
+        
         float highest = size - 1.0f;
         float scale = info.size / highest;
         const int ALPHA_OFFSET = 24;
         for (int z = 0; z < expanded; z++) {
-            const QRgb* srcY = srcZ;
+            const QRgb* colorY = colorZ;
             for (int y = 0; y < expanded; y++) {
                 int lastIndex;
-                const QRgb* src = srcY;
+                const QRgb* colorX = colorY;
                 for (int x = 0; x < expanded; x++) {
-                    int alpha0 = src[0] >> ALPHA_OFFSET;
+                    int alpha0 = colorX[0] >> ALPHA_OFFSET;
                     int alpha1 = alpha0, alpha2 = alpha0, alpha4 = alpha0;
                     int alphaTotal = alpha0;
                     int possibleTotal = EIGHT_BIT_MAXIMUM;
-                    if (x != 0 && x != size) {
-                        alphaTotal += (alpha1 = src[1] >> ALPHA_OFFSET);
-                        possibleTotal += EIGHT_BIT_MAXIMUM;
-                        
-                        if (y != 0 && y != size) {
-                            alphaTotal += (src[offset3] >> ALPHA_OFFSET);
-                            possibleTotal += EIGHT_BIT_MAXIMUM;
-                            
-                            if (z != 0 && z != size) {
-                                alphaTotal += (src[offset7] >> ALPHA_OFFSET);
-                                possibleTotal += EIGHT_BIT_MAXIMUM;
-                            }
-                        }
-                        if (z != 0 && z != size) {
-                            alphaTotal += (src[offset5] >> ALPHA_OFFSET);
-                            possibleTotal += EIGHT_BIT_MAXIMUM;
-                        }
-                    }
-                    if (y != 0 && y != size) {
-                        alphaTotal += (alpha2 = src[size] >> ALPHA_OFFSET);
-                        possibleTotal += EIGHT_BIT_MAXIMUM;
-                        
-                        if (z != 0 && z != size) {
-                            alphaTotal += (src[offset6] >> ALPHA_OFFSET);
-                            possibleTotal += EIGHT_BIT_MAXIMUM;
-                        }
-                    }
-                    if (z != 0 && z != size) {
-                        alphaTotal += (alpha4 = src[area] >> ALPHA_OFFSET);
+                    bool middleX = (x != 0 && x != size);
+                    bool middleY = (y != 0 && y != size);
+                    bool middleZ = (z != 0 && z != size);
+                    if (middleZ) {
+                        alphaTotal += (alpha4 = colorX[area] >> ALPHA_OFFSET);
                         possibleTotal += EIGHT_BIT_MAXIMUM;
                     }
                     
-                    if (x != 0) {
-                        src++;
+                    int alpha5 = alpha4, alpha6 = alpha4;
+                    if (middleY) {
+                        alphaTotal += (alpha2 = colorX[size] >> ALPHA_OFFSET);
+                        possibleTotal += EIGHT_BIT_MAXIMUM;
+                        
+                        if (middleZ) {
+                            alphaTotal += (alpha6 = colorX[offset6] >> ALPHA_OFFSET);
+                            possibleTotal += EIGHT_BIT_MAXIMUM;
+                        }
+                    }
+                    
+                    int alpha3 = alpha2, alpha7 = alpha6;
+                    if (middleX) {
+                        alphaTotal += (alpha1 = colorX[1] >> ALPHA_OFFSET);
+                        possibleTotal += EIGHT_BIT_MAXIMUM;
+                        
+                        if (middleY) {
+                            alphaTotal += (alpha3 = colorX[offset3] >> ALPHA_OFFSET);
+                            possibleTotal += EIGHT_BIT_MAXIMUM;
+                            
+                            if (middleZ) {
+                                alphaTotal += (alpha7 = colorX[offset7] >> ALPHA_OFFSET);
+                                possibleTotal += EIGHT_BIT_MAXIMUM;
+                            }
+                        }
+                        if (middleZ) {
+                            alphaTotal += (alpha5 = colorX[offset5] >> ALPHA_OFFSET);
+                            possibleTotal += EIGHT_BIT_MAXIMUM;
+                        }
                     }
                     if (alphaTotal == 0 || alphaTotal == possibleTotal) {
+                        if (x != 0) {
+                            colorX++;
+                        }
                         continue; // no corners set/all corners set
                     }
-                    VoxelPoint point = { info.minimum + glm::vec3(glm::clamp(x - 0.5f, 0.0f, highest),
-                        glm::clamp(y - 0.5f, 0.0f, highest), glm::clamp(z - 0.5f, 0.0f, highest)) * scale,
-                        { 0, 0, 0 }, { 0, 127, 0} };
+                    int clampedX = qMax(x - 1, 0), clampedY = qMax(y - 1, 0), clampedZ = qMax(z - 1, 0);
+                    const QRgb* hermiteBase = hermiteData + clampedZ * hermiteArea + clampedY * hermiteStride +
+                        clampedX * VoxelHermiteData::EDGE_COUNT;
+                    const char* materialBase = materialData + clampedZ * area + clampedY * size + clampedX;
+                    int crossingCount = 0;
+                    if (middleX) {
+                        if (alpha0 != alpha1) {
+                            QRgb hermite = hermiteBase[0];
+                            EdgeCrossing& crossing = crossings[crossingCount++];
+                            crossing.normal = unpackNormal(hermite);
+                            if (alpha0 == 0) {
+                                crossing.color = colorX[1];
+                                crossing.material = materialBase[1];
+                            } else {
+                                crossing.color = colorX[0];
+                                crossing.material = materialBase[0];
+                            }
+                            crossing.point = glm::vec3(qAlpha(hermite), 0.0f, 0.0f);
+                        }
+                        if (middleY) {
+                            if (alpha1 != alpha3) {
+                                QRgb hermite = hermiteBase[VoxelHermiteData::EDGE_COUNT + 1];
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.normal = unpackNormal(hermite);
+                                if (alpha1 == 0) {
+                                    crossing.color = colorX[offset3];
+                                    crossing.material = materialBase[offset3];
+                                } else {
+                                    crossing.color = colorX[1];
+                                    crossing.material = materialBase[1];
+                                }
+                                crossing.point = glm::vec3(EIGHT_BIT_MAXIMUM, qAlpha(hermite), 0.0f);
+                            }
+                            if (alpha2 != alpha3) {
+                                QRgb hermite = hermiteBase[hermiteStride];
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.normal = unpackNormal(hermite);
+                                if (alpha2 == 0) {
+                                    crossing.color = colorX[offset3];
+                                    crossing.material = materialBase[offset3];
+                                } else {
+                                    crossing.color = colorX[size];
+                                    crossing.material = materialBase[size];
+                                }
+                                crossing.point = glm::vec3(qAlpha(hermite), EIGHT_BIT_MAXIMUM, 0.0f);
+                            }
+                            if (middleZ) {
+                                if (alpha3 != alpha7) {
+                                    QRgb hermite = hermiteBase[hermiteStride + VoxelHermiteData::EDGE_COUNT + 2];
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    crossing.normal = unpackNormal(hermite);
+                                    if (alpha3 == 0) {
+                                        crossing.color = colorX[offset7];
+                                        crossing.material = materialBase[offset7];
+                                    } else {
+                                        crossing.color = colorX[offset3];
+                                        crossing.material = materialBase[offset3];
+                                    }
+                                    crossing.point = glm::vec3(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, qAlpha(hermite));
+                                }
+                                if (alpha5 != alpha7) {
+                                    QRgb hermite = hermiteBase[hermiteArea + VoxelHermiteData::EDGE_COUNT + 1];
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    crossing.normal = unpackNormal(hermite);
+                                    if (alpha5 == 0) {
+                                        crossing.color = colorX[offset7];
+                                        crossing.material = materialBase[offset7];
+                                    } else {
+                                        crossing.color = colorX[offset5];
+                                        crossing.material = materialBase[offset5];
+                                    }
+                                    crossing.point = glm::vec3(EIGHT_BIT_MAXIMUM, qAlpha(hermite), EIGHT_BIT_MAXIMUM);
+                                }
+                                if (alpha6 != alpha7) {
+                                    QRgb hermite = hermiteBase[hermiteArea + hermiteStride];
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    crossing.normal = unpackNormal(hermite);
+                                    if (alpha6 == 0) {
+                                        crossing.color = colorX[offset7];
+                                        crossing.material = materialBase[offset7];
+                                    } else {
+                                        crossing.color = colorX[offset6];
+                                        crossing.material = materialBase[offset6];
+                                    }
+                                    crossing.point = glm::vec3(qAlpha(hermite), EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
+                                }
+                            }
+                        }
+                        if (middleZ) {
+                            if (alpha1 != alpha5) {
+                                QRgb hermite = hermiteBase[VoxelHermiteData::EDGE_COUNT + 2];
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.normal = unpackNormal(hermite);
+                                if (alpha1 == 0) {
+                                    crossing.color = colorX[offset5];
+                                    crossing.material = materialBase[offset5];
+                                } else {
+                                    crossing.color = colorX[1];
+                                    crossing.material = materialBase[1];
+                                }
+                                crossing.point = glm::vec3(EIGHT_BIT_MAXIMUM, 0.0f, qAlpha(hermite));
+                            }
+                            if (alpha4 != alpha5) {
+                                QRgb hermite = hermiteBase[hermiteArea];
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.normal = unpackNormal(hermite);
+                                if (alpha4 == 0) {
+                                    crossing.color = colorX[offset5];
+                                    crossing.material = materialBase[offset5];
+                                } else {
+                                    crossing.color = colorX[area];
+                                    crossing.material = materialBase[area];
+                                }
+                                crossing.point = glm::vec3(qAlpha(hermite), 0.0f, EIGHT_BIT_MAXIMUM);
+                            }
+                        }
+                    }
+                    if (middleY) {
+                        if (alpha0 != alpha2) {
+                            QRgb hermite = hermiteBase[1];
+                            EdgeCrossing& crossing = crossings[crossingCount++];
+                            crossing.normal = unpackNormal(hermite);
+                            if (alpha0 == 0) {
+                                crossing.color = colorX[size];
+                                crossing.material = materialBase[size];
+                            } else {
+                                crossing.color = colorX[0];
+                                crossing.material = materialBase[0];
+                            }
+                            crossing.point = glm::vec3(0.0f, qAlpha(hermite), 0.0f);
+                        }
+                        if (middleZ) {
+                            if (alpha2 != alpha6) {
+                                QRgb hermite = hermiteBase[hermiteStride + 2];
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.normal = unpackNormal(hermite);
+                                if (alpha2 == 0) {
+                                    crossing.color = colorX[offset6];
+                                    crossing.material = materialBase[offset6];
+                                } else {
+                                    crossing.color = colorX[size];
+                                    crossing.material = materialBase[size];
+                                }
+                                crossing.point = glm::vec3(0.0f, EIGHT_BIT_MAXIMUM, qAlpha(hermite));
+                            }
+                            if (alpha4 != alpha6) {
+                                QRgb hermite = hermiteBase[hermiteArea + 1];
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.normal = unpackNormal(hermite);
+                                if (alpha4 == 0) {
+                                    crossing.color = colorX[offset6];
+                                    crossing.material = materialBase[offset6];
+                                } else {
+                                    crossing.color = colorX[area];
+                                    crossing.material = materialBase[area];
+                                }
+                                crossing.point = glm::vec3(0.0f, qAlpha(hermite), EIGHT_BIT_MAXIMUM);
+                            }
+                        }
+                    }
+                    if (middleZ && alpha0 != alpha4) {
+                        QRgb hermite = hermiteBase[2];
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.normal = unpackNormal(hermite);
+                        if (alpha0 == 0) {
+                            crossing.color = colorX[area];
+                            crossing.material = materialBase[area];
+                        } else {
+                            crossing.color = colorX[0];
+                            crossing.material = materialBase[0];
+                        }
+                        crossing.point = glm::vec3(0.0f, 0.0f, qAlpha(hermite));
+                    }
+                    glm::vec3 center;
+                    glm::vec3 normal;
+                    int red = 0, green = 0, blue = 0;
+                    for (int i = 0; i < crossingCount; i++) {
+                        const EdgeCrossing& crossing = crossings[i];
+                        center += crossing.point;
+                        normal += crossing.normal;
+                        red += qRed(crossing.color);
+                        green += qGreen(crossing.color);
+                        blue += qBlue(crossing.color);
+                    }
+                    normal = glm::normalize(normal);
+                    center /= crossingCount;
+                    VoxelPoint point = { info.minimum + (glm::vec3(clampedX, clampedY, clampedZ) +
+                        center * EIGHT_BIT_MAXIMUM_RECIPROCAL) * scale,
+                        { (quint8)(red / crossingCount), (quint8)(green / crossingCount), (quint8)(blue / crossingCount) },
+                        { (char)(normal.x * 127.0f), (char)(normal.y * 127.0f), (char)(normal.z * 127.0f) } };
                     int index = vertices.size();
                     vertices.append(point);
                     
@@ -1686,17 +1896,21 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     lastIndex = index;
                     lineIndices[x] = index;
                     planeIndices[y * expanded + x] = index;
+                    
+                    if (x != 0) {
+                        colorX++;
+                    }
                 }
                 lineIndices.swap(lastLineIndices);
                 
                 if (y != 0) {
-                    srcY += size;
+                    colorY += size;
                 }
             }
             planeIndices.swap(lastPlaneIndices);
             
             if (z != 0) {
-                srcZ += area;
+                colorZ += area;
             }
         }
         

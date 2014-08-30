@@ -219,7 +219,7 @@ class VoxelPoint {
 public:
     glm::vec3 vertex;
     quint8 color[3];
-    quint8 normal[3];
+    char normal[3];
 };
 
 /// Contains the information necessary to render a voxel block.
