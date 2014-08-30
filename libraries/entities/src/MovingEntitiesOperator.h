@@ -17,6 +17,7 @@ public:
     EntityItem* entity;
     AACube oldCube;
     AACube newCube;
+    AABox newBox;
     EntityTreeElement* oldContainingElement;
     bool oldFound;
     bool newFound;
@@ -33,10 +34,13 @@ inline bool operator==(const EntityToMoveDetails& a, const EntityToMoveDetails& 
 class MovingEntitiesOperator : public RecurseOctreeOperator {
 public:
     MovingEntitiesOperator(EntityTree* tree);
+    ~MovingEntitiesOperator();
+
     void addEntityToMoveList(EntityItem* entity, const AACube& oldCube, const AACube& newCube);
     virtual bool PreRecursion(OctreeElement* element);
     virtual bool PostRecursion(OctreeElement* element);
     virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex);
+    bool hasMovingEntities() const { return _entitiesToMove.size() > 0; }
 private:
     EntityTree* _tree;
     QSet<EntityToMoveDetails> _entitiesToMove;

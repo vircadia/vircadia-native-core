@@ -54,8 +54,6 @@ EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData, 
                                                                     EncodeBitstreamParams& params) const {
                      
-
-
     bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "EntityTreeElement::appendElementData()";
@@ -600,17 +598,8 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     return foundEntity;
 }
 
-bool EntityTreeElement::removeEntityItem(const EntityItem* entity) {
-    bool foundEntity = false;
-    uint16_t numberOfEntities = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntities; i++) {
-        if ((*_entityItems)[i] == entity) {
-            foundEntity = true;
-            _entityItems->removeAt(i);
-            break;
-        }
-    }
-    return foundEntity;
+bool EntityTreeElement::removeEntityItem(EntityItem* entity) {
+    return _entityItems->removeAll(entity) > 0;
 }
 
 
@@ -666,7 +655,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     EntityItem::SimulationState oldState = entityItem->getSimulationState();
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
                     EntityItem::SimulationState newState = entityItem->getSimulationState();
-                    _myTree->changeEntityState(entityItem, oldState, newState);
+                    if (oldState != newState) {
+                        _myTree->changeEntityState(entityItem, oldState, newState);
+                    }
                     bool bestFitAfter = bestFitEntityBounds(entityItem);
 
                     if (bestFitBefore != bestFitAfter) {
@@ -675,19 +666,20 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                             // This is the case where the entity existed, and is in some element in our tree...                    
                             if (currentContainingElement != this) {
                                 currentContainingElement->removeEntityItem(entityItem);
-                                this->addEntityItem(entityItem);
+                                addEntityItem(entityItem);
                                 _myTree->setContainingElement(entityItemID, this);
                             }
                         }
                     }
                 } else {
                     entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
-                    
                     if (entityItem) {
                         bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
                         addEntityItem(entityItem); // add this new entity to this elements entities
-                        _myTree->setContainingElement(entityItem->getEntityItemID(), this);
+                        _myTree->setContainingElement(entityItemID, this);
                         newEntity = true;
+                        EntityItem::SimulationState newState = entityItem->getSimulationState();
+                        _myTree->changeEntityState(entityItem, EntityItem::Static, newState);
                     }
                 }
                 // Move the buffer forward to read more entities

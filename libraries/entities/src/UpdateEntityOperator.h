@@ -16,6 +16,7 @@ class UpdateEntityOperator : public RecurseOctreeOperator {
 public:
     UpdateEntityOperator(EntityTree* tree, EntityTreeElement* containingElement, 
                             EntityItem* existingEntity, const EntityItemProperties& properties);
+    ~UpdateEntityOperator();
                             
     virtual bool PreRecursion(OctreeElement* element);
     virtual bool PostRecursion(OctreeElement* element);
@@ -30,6 +31,7 @@ private:
     bool _foundOld;
     bool _foundNew;
     bool _removeOld;
+    bool _dontMove;
     quint64 _changeTime;
 
     AACube _oldEntityCube;

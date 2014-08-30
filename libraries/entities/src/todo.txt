@@ -1,7 +1,5 @@
 // REQUIRED:
 
-    1) crash on rendering of element that flies off the domain???
-
     2) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
        doesn't include the extra exists bits will break something.
 
@@ -9,15 +7,12 @@
 
     4) test animation again...
     
-    5) PROP_VISIBLE
-
-    6) PROP_SCRIPT
-
     7) some jutter with moving entities
             -- I think this might only happen with lots of models in an element or in view
                this may be related to issue 13 below
    
-    8) Look into why non-changed octree cells are being resent when editing an entity
+    8) Look into why non-changed octree cells are being resent when editing an entity -- 
+            this is probably because we're marking the trees as dirty -- but we probably can not send entitys that haven't changed
 
     9) Verify pruning logic...
            The old code used the update loop to handle pruning elements from the tree - do we need this?
@@ -27,10 +22,22 @@
    11) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
         -- verify this happens in old code, if so... move to "nice to have"
 
+    12) Double check operators for these problems:
+         MovingEntitiesOperator has these issues:
+            - does the same pruning/reallocating issue as the old UpdateEntityOperator
+            - doesn't used clamped boxes for best fit tests... so could be problematic
 
 // NICE TO HAVE:
 
+
+    why is _entityItems a pointer? why not just make it a member of EntityTreeElement....
+    
     1) EnterEntity/LeaveEntity JS messages
+
+    2) PROP_VISIBLE
+
+    3) PROP_SCRIPT
+
 
     2) update and verify all particle examples to use new entity features
 
@@ -200,6 +207,13 @@
 //            -- 3) the containing element got pruned
 //            -- 4) the NEW branch is traversed and PossiblyCreateChildAt creates a new element -- THAT HAS SAME POINTER AS CONTAINING ELEMENT!!!!
 //            -- 5) the logic for recursedelement == _containingElement gets confused
+// SOLVED -- 47) crash on rendering of element that flies off the domain
+//        -- root cause was an UpdateEntityOperator that left two copies of the entity in the tree
+//           this was caused by the original element that the entity was in (according to the server)
+//           was not actually the best fit. it's not clear how this happened, but we can protect
+//           against it in the update operator if it does happen again. This made update operator more robust.
+// SOLVED -- 48) server and client definitley not adding entities to proper update lists on load... only on change...
+
 
 ---------------- properties -----------------
 Base properties...

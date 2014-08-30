@@ -31,6 +31,8 @@ class DeleteEntityOperator : public RecurseOctreeOperator {
 public:
     DeleteEntityOperator(EntityTree* tree);
     DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID);
+    ~DeleteEntityOperator();
+
     void addEntityIDToDeleteList(const EntityItemID& searchEntityID);
     virtual bool PreRecursion(OctreeElement* element);
     virtual bool PostRecursion(OctreeElement* element);

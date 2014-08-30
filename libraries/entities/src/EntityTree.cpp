@@ -694,16 +694,23 @@ void EntityTree::changeEntityState(EntityItem* const entity,
 void EntityTree::update() {
     // our new strategy should be to segregate entities into three classes:
     //   1) stationary things that are not changing - most models
-    //   2) stationary things that are animating - they can be touched linearly and they don't change the tree
+    //   2) mortal things - these are stationary but have a lifetime - then need to be checked, 
+    //      can be touched linearly, and won't change the tree
+    //   2) changing things - like things animating they can be touched linearly and they don't change the tree
     //   3) moving things - these need to scan the tree and update accordingly
-
+    // finally - all things that need to be deleted, can be handled on a single delete pass.
+    //
+    // TODO: theoretically we could combine the move and delete tree passes... 
     lockForWrite();
     quint64 now = usecTimestampNow();
     QSet<EntityItemID> entitiesToDelete;
     updateChangingEntities(now, entitiesToDelete);
     updateMovingEntities(now, entitiesToDelete);
     updateMortalEntities(now, entitiesToDelete);
-    deleteEntities(entitiesToDelete);
+
+    if (entitiesToDelete.size() > 0) {
+        deleteEntities(entitiesToDelete);
+    }
     unlock();
 }
 
@@ -749,66 +756,76 @@ void EntityTree::updateChangingEntities(quint64 now, QSet<EntityItemID>& entitie
 
 void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
     bool wantDebug = false;
-    MovingEntitiesOperator moveOperator(this);
     
-    QSet<EntityItem*> entitiesBecomingStatic;
-    QSet<EntityItem*> entitiesBecomingMortal;
-    QSet<EntityItem*> entitiesBecomingChanging;
+    if (_movingEntities.size() > 0) {
+        MovingEntitiesOperator moveOperator(this);
 
-    // TODO: switch these to iterators so we can remove items that get deleted
-    for (int i = 0; i < _movingEntities.size(); i++) {
-        EntityItem* thisEntity = _movingEntities[i];
+        QSet<EntityItem*> entitiesBecomingStatic;
+        QSet<EntityItem*> entitiesBecomingMortal;
+        QSet<EntityItem*> entitiesBecomingChanging;
 
-        // always check to see if the lifetime has expired, for immortal entities this is always false
-        if (thisEntity->lifetimeHasExpired()) {
-            qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
-            entitiesToDelete << thisEntity->getEntityItemID();
-            entitiesBecomingStatic << thisEntity;
-        } else {
-            AACube oldCube = thisEntity->getAACube();
-            thisEntity->update(now);
-            AACube newCube = thisEntity->getAACube();
-            
-            // check to see if this movement has sent the entity outside of the domain.
-            AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), 1.0f);
-            if (!domainBounds.touches(newCube)) {
-                if (wantDebug) {
-                    qDebug() << "The entity " << thisEntity->getEntityItemID() << " moved outside of the domain. Delete it.";
-                }
+        // TODO: switch these to iterators so we can remove items that get deleted
+        for (int i = 0; i < _movingEntities.size(); i++) {
+            EntityItem* thisEntity = _movingEntities[i];
+
+            // always check to see if the lifetime has expired, for immortal entities this is always false
+            if (thisEntity->lifetimeHasExpired()) {
+                qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
                 entitiesToDelete << thisEntity->getEntityItemID();
                 entitiesBecomingStatic << thisEntity;
             } else {
+                AACube oldCube = thisEntity->getAACube();
+                thisEntity->update(now);
+                AACube newCube = thisEntity->getAACube();
                 if (wantDebug) {
-                    qDebug() << "EntityTree::update() thisEntity=" << thisEntity;
-                    qDebug() << "   oldCube=" << oldCube;
-                    qDebug() << "   newCube=" << newCube;
+                    qDebug() << "MOVING entity " << thisEntity->getEntityItemID();
+                    qDebug() << "   oldCube:" << oldCube;
+                    qDebug() << "   newCube:" << newCube;
+                }
+        
+                // check to see if this movement has sent the entity outside of the domain.
+                AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), 1.0f);
+                if (!domainBounds.touches(newCube)) {
+                    if (wantDebug) {
+                        qDebug() << "The entity moved outside of the domain. Delete it.";
+                        qDebug() << "    entity=" << thisEntity;
+                        qDebug() << "    entityID=" << thisEntity->getEntityItemID();
                     }
-                
-                moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
-
-                // check to see if this entity is no longer moving
-                EntityItem::SimulationState newState = thisEntity->getSimulationState();
-                if (newState == EntityItem::Changing) {
-                    entitiesBecomingChanging << thisEntity;
-                } else if (newState == EntityItem::Mortal) {
-                    entitiesBecomingMortal << thisEntity;
-                } else if (newState == EntityItem::Static) {
+                    entitiesToDelete << thisEntity->getEntityItemID();
                     entitiesBecomingStatic << thisEntity;
+                } else {
+                    if (wantDebug) {
+                        qDebug() << "   ACTUALLY MOVING IT";
+                    }
+            
+                    moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
+
+                    // check to see if this entity is no longer moving
+                    EntityItem::SimulationState newState = thisEntity->getSimulationState();
+                    if (newState == EntityItem::Changing) {
+                        entitiesBecomingChanging << thisEntity;
+                    } else if (newState == EntityItem::Mortal) {
+                        entitiesBecomingMortal << thisEntity;
+                    } else if (newState == EntityItem::Static) {
+                        entitiesBecomingStatic << thisEntity;
+                    }
                 }
             }
         }
-    }
-    recurseTreeWithOperator(&moveOperator);
+        if (moveOperator.hasMovingEntities()) {
+            recurseTreeWithOperator(&moveOperator);
+        }
 
-    // change state for any entities that were moving but are now either static, mortal, or changing
-    foreach(EntityItem* entity, entitiesBecomingStatic) {
-        changeEntityState(entity, EntityItem::Moving, EntityItem::Static);
-    }
-    foreach(EntityItem* entity, entitiesBecomingMortal) {
-        changeEntityState(entity, EntityItem::Moving, EntityItem::Mortal);
-    }
-    foreach(EntityItem* entity, entitiesBecomingChanging) {
-        changeEntityState(entity, EntityItem::Moving, EntityItem::Changing);
+        // change state for any entities that were moving but are now either static, mortal, or changing
+        foreach(EntityItem* entity, entitiesBecomingStatic) {
+            changeEntityState(entity, EntityItem::Moving, EntityItem::Static);
+        }
+        foreach(EntityItem* entity, entitiesBecomingMortal) {
+            changeEntityState(entity, EntityItem::Moving, EntityItem::Mortal);
+        }
+        foreach(EntityItem* entity, entitiesBecomingChanging) {
+            changeEntityState(entity, EntityItem::Moving, EntityItem::Changing);
+        }
     }
 }
 
@@ -1196,6 +1213,7 @@ public:
 
 bool DebugOperator::PreRecursion(OctreeElement* element) {
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    qDebug() << "EntityTreeElement [" << entityTreeElement << "]";
     entityTreeElement->debugDump();
     return true;
 }

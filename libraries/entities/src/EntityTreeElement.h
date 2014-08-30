@@ -143,7 +143,7 @@ public:
 
     void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
     bool removeEntityWithEntityItemID(const EntityItemID& id);
-    bool removeEntityItem(const EntityItem* entity);
+    bool removeEntityItem(EntityItem* entity);
 
     bool containsEntityBounds(const EntityItem* entity) const;
     bool bestFitEntityBounds(const EntityItem* entity) const;
