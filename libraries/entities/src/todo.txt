@@ -3,15 +3,9 @@
     2) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
        doesn't include the extra exists bits will break something.
 
-    3) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
-        -- network - don't SEND small entities even if their spanner cell is visible
-
     7) some jutter with moving entities
             -- I think this might only happen with lots of models in an element or in view
-               this may be related to issue 13 below
-   
-    8) Look into why non-changed octree cells are being resent when editing an entity -- 
-            this is probably because we're marking the trees as dirty -- but we probably can not send entitys that haven't changed
+            -- test lots of entities with the new suppress mode
 
    10) What happens if the edit properties don't fit in a single message MTU???
 
@@ -33,6 +27,15 @@
         
 
 // NICE TO HAVE:
+
+    Z) Consider using client side "on the fly" billboard of entites to handle LOD
+        -- have routine to shoot views of an entity for 6 faces
+        -- store those images in the entity on the client
+        -- based on camera position pick "closest" face of model
+        -- as LOD drops use those images instead of rendering the model
+
+    3) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
+        -- network - don't SEND small entities even if their spanner cell is visible
 
     -- if animation is stopped, changing frame doesn't update the simulation
 
@@ -231,6 +234,9 @@
 //        FIXED -- animations are on different frames -- the data suggest they are the same frame number from a simulation perspective    
 // SOLVED -- 50) Verify pruning logic...
 // SOLVED -- 51) LOD for rendering - don't render small entities even if their spanner cell is visible
+// SOLVED -- 52) Look into why non-changed octree cells are being resent when editing an entity -- 
+//            this is probably because we're marking the trees as dirty -- but we probably can not send entitys that haven't changed
+//              Solution -- suppress sending of entities that haven't been edited since the last view frustum sent
 
 
 

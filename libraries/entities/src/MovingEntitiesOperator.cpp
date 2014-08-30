@@ -134,73 +134,83 @@ bool MovingEntitiesOperator::PreRecursion(OctreeElement* element) {
 
         // check against each of our search entities
         
-        qDebug() << "    --------- PROCESSING list of moving entities -----------";
+        if (wantDebug) { 
+            qDebug() << "    --------- PROCESSING list of moving entities -----------";
+        }
         foreach(const EntityToMoveDetails& details, _entitiesToMove) {
 
-            qDebug() << "    PROCESSING --- MOVING ENTITY";
-            qDebug() << "        entity=" << details.entity;
-            qDebug() << "        entityItemID=" << details.entity->getEntityItemID();
-            qDebug() << "        oldCube=" << details.oldCube;
-            qDebug() << "        newCube=" << details.newCube;
-            qDebug() << "        newBox=" << details.newBox;
-            qDebug() << "        oldContainingElement=" << details.oldContainingElement;
-            qDebug() << "        oldFound=" << details.oldFound;
-            qDebug() << "        newFound=" << details.newFound;
+            if (wantDebug) { 
+                qDebug() << "    PROCESSING --- MOVING ENTITY";
+                qDebug() << "        entity=" << details.entity;
+                qDebug() << "        entityItemID=" << details.entity->getEntityItemID();
+                qDebug() << "        oldCube=" << details.oldCube;
+                qDebug() << "        newCube=" << details.newCube;
+                qDebug() << "        newBox=" << details.newBox;
+                qDebug() << "        oldContainingElement=" << details.oldContainingElement;
+                qDebug() << "        oldFound=" << details.oldFound;
+                qDebug() << "        newFound=" << details.newFound;
 
-            if (!details.oldFound) {
-                qDebug() << "        THIS ENTITY'S OLD LOCATION HAS NOT BEEN FOUND... ";
-            }
+                if (!details.oldFound) {
+                    qDebug() << "        THIS ENTITY'S OLD LOCATION HAS NOT BEEN FOUND... ";
+                }
 
-            if (entityTreeElement == details.oldContainingElement) {
-                qDebug() << "        THIS ELEMENT IS THE ENTITY'S OLD LOCATION... ";
+                if (entityTreeElement == details.oldContainingElement) {
+                    qDebug() << "        THIS ELEMENT IS THE ENTITY'S OLD LOCATION... ";
+                }
+
             }
 
             // If this is one of the old elements we're looking for, then ask it to remove the old entity
             if (!details.oldFound && entityTreeElement == details.oldContainingElement) {
 
-                qDebug() << "        PROCESSING REMOVE ENTITY FROM OLD ELEMENT <<<<<<<<<<<<<";
+                if (wantDebug) { 
+                    qDebug() << "        PROCESSING REMOVE ENTITY FROM OLD ELEMENT <<<<<<<<<<<<<";
+                }
 
                 entityTreeElement->removeEntityItem(details.entity);
-                qDebug() << "removing entityItem from element... ";
-                qDebug() << "    entity=" << details.entity;
-                qDebug() << "    entityItemID=" << details.entity->getEntityItemID();
-                qDebug() << "    entityTreeElement=" << entityTreeElement;
-                qDebug() << "    element=" << element;
-                qDebug() << "    element->getAACube()=" << element->getAACube();
+                if (wantDebug) { 
+                    qDebug() << "removing entityItem from element... ";
+                    qDebug() << "    entity=" << details.entity;
+                    qDebug() << "    entityItemID=" << details.entity->getEntityItemID();
+                    qDebug() << "    entityTreeElement=" << entityTreeElement;
+                    qDebug() << "    element=" << element;
+                    qDebug() << "    element->getAACube()=" << element->getAACube();
+                }
 
                 _foundOldCount++;
                 //details.oldFound = true; // TODO: would be nice to add this optimization
             }
 
             // If this element is the best fit for the new bounds of this entity then add the entity to the element
-            bool bestFitCube = entityTreeElement->bestFitBounds(details.newCube);
-            bool bestFitBox = entityTreeElement->bestFitBounds(details.newBox);
-            qDebug() << "    bestFitCube=" << bestFitCube;
-            qDebug() << "    bestFitBox=" << bestFitBox;
-            if (bestFitCube != bestFitBox) {
-                qDebug() << "    WHOA!!!! bestFitCube != bestFitBox!!!!";
+            if (wantDebug) { 
+                bool bestFitCube = entityTreeElement->bestFitBounds(details.newCube);
+                bool bestFitBox = entityTreeElement->bestFitBounds(details.newBox);
+                qDebug() << "    bestFitCube=" << bestFitCube;
+                qDebug() << "    bestFitBox=" << bestFitBox;
+                if (bestFitCube != bestFitBox) {
+                    qDebug() << "    WHOA!!!! bestFitCube != bestFitBox!!!!";
+                }
+                if (!details.newFound) {
+                    qDebug() << "        THIS ENTITY'S NEW LOCATION HAS NOT BEEN FOUND... ";
+                }
+
+                if (entityTreeElement->bestFitBounds(details.newCube)) {
+                    qDebug() << "        THIS ELEMENT IS THE ENTITY'S BEST FIT NEW LOCATION... ";
+                }
             }
 
-            if (!details.newFound) {
-                qDebug() << "        THIS ENTITY'S NEW LOCATION HAS NOT BEEN FOUND... ";
-            }
-
-            if (entityTreeElement->bestFitBounds(details.newCube)) {
-                qDebug() << "        THIS ELEMENT IS THE ENTITY'S BEST FIT NEW LOCATION... ";
-            }
-            
             if (!details.newFound && entityTreeElement->bestFitBounds(details.newCube)) {
 
-                qDebug() << "        PROCESSING ADD ENTITY TO NEW ELEMENT <<<<<<<<<<<<<";
-
-
                 EntityItemID entityItemID = details.entity->getEntityItemID();
-                qDebug() << "adding entityItem to element...";
-                qDebug() << "    entity=" << details.entity;
-                qDebug() << "    entityItemID=" << entityItemID;
-                qDebug() << "    entityTreeElement=" << entityTreeElement;
-                qDebug() << "    element=" << element;
-                qDebug() << "    element->getAACube()=" << element->getAACube();
+                if (wantDebug) { 
+                    qDebug() << "        PROCESSING ADD ENTITY TO NEW ELEMENT <<<<<<<<<<<<<";
+                    qDebug() << "adding entityItem to element...";
+                    qDebug() << "    entity=" << details.entity;
+                    qDebug() << "    entityItemID=" << entityItemID;
+                    qDebug() << "    entityTreeElement=" << entityTreeElement;
+                    qDebug() << "    element=" << element;
+                    qDebug() << "    element->getAACube()=" << element->getAACube();
+                }
                 entityTreeElement->addEntityItem(details.entity);
                 _tree->setContainingElement(entityItemID, entityTreeElement);
                 
@@ -208,7 +218,9 @@ bool MovingEntitiesOperator::PreRecursion(OctreeElement* element) {
                 //details.newFound = true; // TODO: would be nice to add this optimization
             }
         }
-        qDebug() << "    --------- DONE PROCESSING list of moving entities -----------";
+        if (wantDebug) { 
+            qDebug() << "    --------- DONE PROCESSING list of moving entities -----------";
+        }
         
         // if we haven't found all of our search for entities, then keep looking
         keepSearching = (_foundOldCount < _lookingCount) || (_foundNewCount < _lookingCount);

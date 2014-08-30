@@ -59,6 +59,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         qDebug() << "EntityTreeElement::appendElementData()";
         qDebug() << "    getAACube()=" << getAACube();
         qDebug() << "    START OF ELEMENT packetData->uncompressed size:" << packetData->getUncompressedSize();
+        qDebug() << "    params.lastViewFrustumSent=" << params.lastViewFrustumSent;
     }
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
     
@@ -89,8 +90,24 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         EntityItem* entity = (*_entityItems)[i];
         bool includeThisEntity = true;
         
+        if (wantDebug) {
+            qDebug() << "params.forceSendScene=" << params.forceSendScene;
+            qDebug() << "entity->getLastEdited()=" << entity->getLastEdited();
+            qDebug() << "entity->getLastEdited() > params.lastViewFrustumSent=" 
+                        << (entity->getLastEdited() > params.lastViewFrustumSent);
+        }
+        
+        if (!params.forceSendScene && entity->getLastEdited() < params.lastViewFrustumSent) {
+            if (wantDebug) {
+                qDebug() << "NOT forceSendScene, and not changed since last sent SUPPRESSING this ENTITY" 
+                                << entity->getEntityItemID();
+            }
+            includeThisEntity = false;
+        }
+        
         if (hadElementExtraData) {
-            includeThisEntity = entityTreeElementExtraEncodeData->includedItems.contains(entity->getEntityItemID());
+            includeThisEntity = includeThisEntity && 
+                                    entityTreeElementExtraEncodeData->includedItems.contains(entity->getEntityItemID());
             if (wantDebug) {
                 qDebug() << "    hadElementExtraData=" << hadElementExtraData;
                 qDebug() << "    entity[" << i <<"].entityItemID=" << entity->getEntityItemID();
