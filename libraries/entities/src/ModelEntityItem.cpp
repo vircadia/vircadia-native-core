@@ -21,20 +21,18 @@ EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityI
     return new ModelEntityItem(entityID, properties);
 }
 
-// our non-pure virtual subclass for now...
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 { 
     _type = EntityTypes::Model;     
     setProperties(properties, true);
     _animationFrameIndex = 0.0f;
+    _lastAnimated = usecTimestampNow();
+    _jointMappingCompleted = false;
 }
 
 EntityItemProperties ModelEntityItem::getProperties() const {
-    //qDebug() << "ModelEntityItem::getProperties()... <<<<<<<<<<<<<<<<  <<<<<<<<<<<<<<<<<<<<<<<<<";
-
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
-
     properties._color = getXColor();
     properties._modelURL = getModelURL();
     properties._animationURL = getAnimationURL();
@@ -50,9 +48,6 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     properties._animationFPSChanged = false;
     properties._glowLevel = getGlowLevel();
     properties._glowLevelChanged = false;
-
-    //qDebug() << "ModelEntityItem::getProperties() getModelURL()=" << getModelURL();
-
     return properties;
 }
 
@@ -496,14 +491,24 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
 
 QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
     bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "ModelEntityItem::getAnimationFrame()....";
+    }
     QVector<glm::quat> frameData;
     if (hasAnimation() && _jointMappingCompleted) {
         Animation* myAnimation = getAnimation(_animationURL);
         QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
         int frameCount = frames.size();
 
+        if (wantDebug) {
+            qDebug() << "    (hasAnimation() && _jointMappingCompleted)";
+            qDebug() << "    myAnimation=" << myAnimation;
+            qDebug() << "    frameCount=" << frameCount;
+            qDebug() << "   _animationFrameIndex=" << _animationFrameIndex;
+        }
+
         if (frameCount > 0) {
-            int animationFrameIndex = (int)glm::floor(_animationFrameIndex) % frameCount;
+            int animationFrameIndex = (int)(glm::floor(_animationFrameIndex)) % frameCount;
 
             if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
                 if (wantDebug) {
@@ -516,9 +521,8 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
                 animationFrameIndex = 0;
             }
             
-            //qDebug() << "ModelEntityItem::getAnimationFrame().... _animationFrameIndex=" << _animationFrameIndex << "frameCount=" << frameCount << "animationFrameIndex=" << animationFrameIndex;
-
             QVector<glm::quat> rotations = frames[animationFrameIndex].rotations;
+
             frameData.resize(_jointMapping.size());
             for (int j = 0; j < _jointMapping.size(); j++) {
                 int rotationIndex = _jointMapping[j];
@@ -552,32 +556,37 @@ EntityItem::SimulationState ModelEntityItem::getSimulationState() const {
 }
 
 void ModelEntityItem::update(const quint64& updateTime) {
+    const bool wantDebugging = true;
+
     //_lastUpdated = updateTime;
-    //setShouldBeDeleted(getShouldBeDeleted());
 
     EntityItem::update(updateTime); // let our base class handle it's updates...
 
     quint64 now = updateTime; //usecTimestampNow();
     
-    //qDebug() << "ModelEntityItem::update() getAnimationIsPlaying()="<< getAnimationIsPlaying();
-
     // only advance the frame index if we're playing
     if (getAnimationIsPlaying()) {
 
-        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
-        
-        const bool wantDebugging = false;
         if (wantDebugging) {
-            qDebug() << "EntityItem::update() now=" << now;
-            qDebug() << "             updateTime=" << updateTime;
-            qDebug() << "          _lastAnimated=" << _lastAnimated;
-            qDebug() << "              deltaTime=" << deltaTime;
+            qDebug() << "ModelEntityItem::update()";
+            qDebug() << "                 ID="<< getEntityItemID();
+            qDebug() << " usecTimestampNow()=" << usecTimestampNow();
+            qDebug() << "                now=" << now;
+            qDebug() << "         updateTime=" << updateTime;
+            qDebug() << "      _lastAnimated=" << _lastAnimated;
         }
+
+        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
+
+        if (wantDebugging) {
+            qDebug() << "          deltaTime=" << deltaTime;
+        }
+
         _lastAnimated = now;
         _animationFrameIndex += deltaTime * _animationFPS;
 
         if (wantDebugging) {
-            qDebug() << "   _animationFrameIndex=" << _animationFrameIndex;
+            qDebug() << "_animationFrameIndex=" << _animationFrameIndex;
         }
 
     } else {

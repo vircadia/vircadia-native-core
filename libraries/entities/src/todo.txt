@@ -5,8 +5,6 @@
 
     3) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
 
-    4) test animation again...
-    
     7) some jutter with moving entities
             -- I think this might only happen with lots of models in an element or in view
                this may be related to issue 13 below
@@ -14,20 +12,28 @@
     8) Look into why non-changed octree cells are being resent when editing an entity -- 
             this is probably because we're marking the trees as dirty -- but we probably can not send entitys that haven't changed
 
-    9) Verify pruning logic...
-           The old code used the update loop to handle pruning elements from the tree - do we need this?
-
    10) What happens if the edit properties don't fit in a single message MTU???
-
-   11) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
-        -- verify this happens in old code, if so... move to "nice to have"
 
     12) Double check operators for these problems:
          MovingEntitiesOperator has these issues:
             - does the same pruning/reallocating issue as the old UpdateEntityOperator
             - doesn't used clamped boxes for best fit tests... so could be problematic
 
+        -- crash on shutdown while animating...
+                Thread 0 Crashed:: Dispatch queue: com.apple.main-thread
+                0   io.highfidelity.Interface     	0x000000010cf99a6a EntityTree::updateChangingEntities(unsigned long long, QSet<EntityItemID>&) + 202
+                1   io.highfidelity.Interface     	0x000000010cf998a6 EntityTree::update() + 70
+                2   io.highfidelity.Interface     	0x000000010cb64a3e EntityTreeRenderer::update() + 62
+                3   io.highfidelity.Interface     	0x000000010c9eb6ec Application::update(float) + 796
+                4   io.highfidelity.Interface     	0x000000010c9f5e26 Application::idle() + 550
+                5   io.highfidelity.Interface     	0x000000010c99f567 Application::qt_static_metacall(QObject*, QMetaObject::Call, int, void**) + 1655
+                6   QtCore                        	0x0000000112474a30 QMetaObject::activate(QObject*, int, int, void**) + 2640
+                7   QtCore                        	0x000000011246d5c1 QObject::event(QEvent*) + 49
+        
+
 // NICE TO HAVE:
+
+    -- if animation is stopped, changing frame doesn't update the simulation
 
 
     why is _entityItems a pointer? why not just make it a member of EntityTreeElement....
@@ -90,6 +96,11 @@
         8   libsystem_pthread.dylib       	0x00007fff8bb96899 _pthread_body + 138
         9   libsystem_pthread.dylib       	0x00007fff8bb9672a _pthread_start + 137
         10  libsystem_pthread.dylib       	0x00007fff8bb9afc9 thread_start + 13
+
+
+   11) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
+        -- verify this happens in old code, if so... move to "nice to have"
+
 
 ===============
 
@@ -213,6 +224,12 @@
 //           was not actually the best fit. it's not clear how this happened, but we can protect
 //           against it in the update operator if it does happen again. This made update operator more robust.
 // SOLVED -- 48) server and client definitley not adding entities to proper update lists on load... only on change...
+// SOLVED -- 49) test animation again...
+//        FIXED -- This looks like it was all related to members not being initialized...
+//        FIXED -- animations don't appear on all viewers
+//        FIXED -- animations are on different frames -- the data suggest they are the same frame number from a simulation perspective    
+// SOLVED -- 50) Verify pruning logic...
+
 
 
 ---------------- properties -----------------
