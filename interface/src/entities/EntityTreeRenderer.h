@@ -76,6 +76,10 @@ public:
     void deleteReleasedModels();
 private:
     QList<Model*> _releasedModels;
+
+    float distanceToCamera(const glm::vec3& center, const ViewFrustum& viewFrustum) const;
+    bool shouldRenderEntity(float largestDimension, float distanceToCamera) const;
+
 };
 
 #endif // hifi_EntityTreeRenderer_h

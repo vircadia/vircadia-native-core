@@ -37,6 +37,7 @@ public:
     const glm::vec3& getCorner() const { return _corner; }
     float getScale() const { return _scale; }
     glm::vec3 getDimensions() const { return glm::vec3(_scale,_scale,_scale); }
+    float getLargestDimension() const { return _scale; }
 
     glm::vec3 calcCenter() const;
     glm::vec3 calcTopFarLeft() const;

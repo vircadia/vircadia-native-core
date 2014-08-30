@@ -4,6 +4,7 @@
        doesn't include the extra exists bits will break something.
 
     3) Make sure LOD logic honors the LOD settings for entities in "spanners/parent" cells.
+        -- network - don't SEND small entities even if their spanner cell is visible
 
     7) some jutter with moving entities
             -- I think this might only happen with lots of models in an element or in view
@@ -229,6 +230,7 @@
 //        FIXED -- animations don't appear on all viewers
 //        FIXED -- animations are on different frames -- the data suggest they are the same frame number from a simulation perspective    
 // SOLVED -- 50) Verify pruning logic...
+// SOLVED -- 51) LOD for rendering - don't render small entities even if their spanner cell is visible
 
 
 

@@ -110,6 +110,101 @@ const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityI
     return result;
 }
 
+void renderElementProxy(EntityTreeElement* entityTreeElement) {
+    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter() * (float)TREE_SCALE;
+    float elementSize = entityTreeElement->getScale() * (float)TREE_SCALE;
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glPushMatrix();
+        glTranslatef(elementCenter.x, elementCenter.y, elementCenter.z);
+        glutWireCube(elementSize);
+    glPopMatrix();
+
+    bool displayElementChildProxies = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelElementChildProxies);
+
+    if (displayElementChildProxies) {
+        // draw the children
+        float halfSize = elementSize / 2.0f;
+        float quarterSize = elementSize / 4.0f;
+        glColor3f(1.0f, 1.0f, 0.0f);
+        glPushMatrix();
+            glTranslatef(elementCenter.x - quarterSize, elementCenter.y - quarterSize, elementCenter.z - quarterSize);
+            glutWireCube(halfSize);
+        glPopMatrix();
+
+        glColor3f(1.0f, 0.0f, 1.0f);
+        glPushMatrix();
+            glTranslatef(elementCenter.x + quarterSize, elementCenter.y - quarterSize, elementCenter.z - quarterSize);
+            glutWireCube(halfSize);
+        glPopMatrix();
+
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glPushMatrix();
+            glTranslatef(elementCenter.x - quarterSize, elementCenter.y + quarterSize, elementCenter.z - quarterSize);
+            glutWireCube(halfSize);
+        glPopMatrix();
+
+        glColor3f(0.0f, 0.0f, 1.0f);
+        glPushMatrix();
+            glTranslatef(elementCenter.x - quarterSize, elementCenter.y - quarterSize, elementCenter.z + quarterSize);
+            glutWireCube(halfSize);
+        glPopMatrix();
+
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glPushMatrix();
+            glTranslatef(elementCenter.x + quarterSize, elementCenter.y + quarterSize, elementCenter.z + quarterSize);
+            glutWireCube(halfSize);
+        glPopMatrix();
+
+        glColor3f(0.0f, 0.5f, 0.5f);
+        glPushMatrix();
+            glTranslatef(elementCenter.x - quarterSize, elementCenter.y + quarterSize, elementCenter.z + quarterSize);
+            glutWireCube(halfSize);
+        glPopMatrix();
+
+        glColor3f(0.5f, 0.0f, 0.0f);
+        glPushMatrix();
+            glTranslatef(elementCenter.x + quarterSize, elementCenter.y - quarterSize, elementCenter.z + quarterSize);
+            glutWireCube(halfSize);
+        glPopMatrix();
+
+        glColor3f(0.0f, 0.5f, 0.0f);
+        glPushMatrix();
+            glTranslatef(elementCenter.x + quarterSize, elementCenter.y + quarterSize, elementCenter.z - quarterSize);
+            glutWireCube(halfSize);
+        glPopMatrix();
+    }
+}
+
+float EntityTreeRenderer::distanceToCamera(const glm::vec3& center, const ViewFrustum& viewFrustum) const {
+    glm::vec3 temp = viewFrustum.getPosition() - center;
+    float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
+    return distanceToVoxelCenter;
+}
+
+// TODO: This could be optimized to be a table, or something that doesn't require recalculation on every 
+//       render call for every entity
+// TODO: This is essentially the same logic used to render voxels, but since models are more detailed then voxels
+//       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.
+bool EntityTreeRenderer::shouldRenderEntity(float largestDimension, float distanceToCamera) const {
+    const float voxelToModelRatio = 4.0f; // must be this many times closer to a model than a voxel to see it.
+    float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
+    int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+    
+    float scale = (float)TREE_SCALE;
+    float visibleDistanceAtScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, voxelSizeScale) / voxelToModelRatio;
+
+    while (scale > largestDimension) {
+        scale /= 2.0f;
+        visibleDistanceAtScale /= 2.0f;
+    }
+    
+    if (scale < largestDimension) {
+        visibleDistanceAtScale *= 2.0f;
+    }
+
+    return (distanceToCamera <= visibleDistanceAtScale);
+}
+
 void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
     bool wantDebug = false;
 
@@ -132,73 +227,13 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
 
     bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
     bool displayElementProxy = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelElementProxy);
-    bool displayElementChildProxies = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelElementChildProxies);
+
 
 
     if (!isShadowMode && displayElementProxy && numberOfEntities > 0) {
-        glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter() * (float)TREE_SCALE;
-        float elementSize = entityTreeElement->getScale() * (float)TREE_SCALE;
-        glColor3f(1.0f, 0.0f, 0.0f);
-        glPushMatrix();
-            glTranslatef(elementCenter.x, elementCenter.y, elementCenter.z);
-            glutWireCube(elementSize);
-        glPopMatrix();
-
-        if (displayElementChildProxies) {
-            // draw the children
-            float halfSize = elementSize / 2.0f;
-            float quarterSize = elementSize / 4.0f;
-            glColor3f(1.0f, 1.0f, 0.0f);
-            glPushMatrix();
-                glTranslatef(elementCenter.x - quarterSize, elementCenter.y - quarterSize, elementCenter.z - quarterSize);
-                glutWireCube(halfSize);
-            glPopMatrix();
-
-            glColor3f(1.0f, 0.0f, 1.0f);
-            glPushMatrix();
-                glTranslatef(elementCenter.x + quarterSize, elementCenter.y - quarterSize, elementCenter.z - quarterSize);
-                glutWireCube(halfSize);
-            glPopMatrix();
-
-            glColor3f(0.0f, 1.0f, 0.0f);
-            glPushMatrix();
-                glTranslatef(elementCenter.x - quarterSize, elementCenter.y + quarterSize, elementCenter.z - quarterSize);
-                glutWireCube(halfSize);
-            glPopMatrix();
-
-            glColor3f(0.0f, 0.0f, 1.0f);
-            glPushMatrix();
-                glTranslatef(elementCenter.x - quarterSize, elementCenter.y - quarterSize, elementCenter.z + quarterSize);
-                glutWireCube(halfSize);
-            glPopMatrix();
-
-            glColor3f(1.0f, 1.0f, 1.0f);
-            glPushMatrix();
-                glTranslatef(elementCenter.x + quarterSize, elementCenter.y + quarterSize, elementCenter.z + quarterSize);
-                glutWireCube(halfSize);
-            glPopMatrix();
-
-            glColor3f(0.0f, 0.5f, 0.5f);
-            glPushMatrix();
-                glTranslatef(elementCenter.x - quarterSize, elementCenter.y + quarterSize, elementCenter.z + quarterSize);
-                glutWireCube(halfSize);
-            glPopMatrix();
-
-            glColor3f(0.5f, 0.0f, 0.0f);
-            glPushMatrix();
-                glTranslatef(elementCenter.x + quarterSize, elementCenter.y - quarterSize, elementCenter.z + quarterSize);
-                glutWireCube(halfSize);
-            glPopMatrix();
-
-            glColor3f(0.0f, 0.5f, 0.0f);
-            glPushMatrix();
-                glTranslatef(elementCenter.x + quarterSize, elementCenter.y + quarterSize, elementCenter.z - quarterSize);
-                glutWireCube(halfSize);
-            glPopMatrix();
-        }
-
+        renderElementProxy(entityTreeElement);
     }
-
+    
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem* entityItem = entityItems[i];
         if (wantDebug) {
@@ -210,13 +245,16 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                      << "isBestFit=" << isBestFit;
         }
         
-        // render entityItem aspoints
+        // render entityItem 
         AACube entityCube = entityItem->getAACube();
         entityCube.scale(TREE_SCALE);
         
         // TODO: some entity types (like lights) might want to be rendered even
         // when they are outside of the view frustum...
-        if (args->_viewFrustum->cubeInFrustum(entityCube) != ViewFrustum::OUTSIDE) {
+        float distance = distanceToCamera(entityCube.calcCenter(), *args->_viewFrustum);
+        if (shouldRenderEntity(entityCube.getLargestDimension(), distance) &&
+                args->_viewFrustum->cubeInFrustum(entityCube) != ViewFrustum::OUTSIDE) {
+
             Glower* glower = NULL;
             if (entityItem->getGlowLevel() > 0.0f) {
                 glower = new Glower(entityItem->getGlowLevel());
@@ -231,7 +269,6 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
             if (glower) {
                 delete glower;
             }
-
         } else {
             args->_itemsOutOfView++;
         }
