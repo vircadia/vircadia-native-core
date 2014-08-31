@@ -38,8 +38,6 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     ui->stopAllButton->setIcon(QIcon(Application::resourcesPath() + "images/stop.svg"));
     ui->loadScriptButton->setIcon(QIcon(Application::resourcesPath() + "images/plus-white.svg"));
 
-    ui->recentlyLoadedScriptsArea->hide();
-
     ui->filterLineEdit->installEventFilter(this);
 
     connect(&_proxyModel, &QSortFilterProxyModel::modelReset,
@@ -52,10 +50,6 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
 
     connect(ui->filterLineEdit, &QLineEdit::textChanged, this, &RunningScriptsWidget::updateFileFilter);
     connect(ui->scriptListView, &QListView::doubleClicked, this, &RunningScriptsWidget::loadScriptFromList);
-
-    _recentlyLoadedScriptsTable = new ScriptsTableWidget(ui->recentlyLoadedScriptsTableWidget);
-    _recentlyLoadedScriptsTable->setColumnCount(1);
-    _recentlyLoadedScriptsTable->setColumnWidth(0, 265);
 
     connect(ui->reloadAllButton, &QPushButton::clicked,
             Application::getInstance(), &Application::reloadAllScripts);
@@ -200,7 +194,6 @@ void RunningScriptsWidget::keyPressEvent(QKeyEvent *keyEvent) {
 }
 
 void RunningScriptsWidget::scriptStopped(const QString& scriptName) {
-    // _recentlyLoadedScripts.prepend(scriptName);
 }
 
 void RunningScriptsWidget::allScriptsStopped() {
