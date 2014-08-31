@@ -139,8 +139,6 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         line->setFrameShape(QFrame::HLine);
         line->setStyleSheet("color: #E1E1E1; margin-left: 6px; margin-right: 6px;");
 
-        row->setStyleSheet("background: #f7f7f7;");
-
         ui->scrollAreaWidgetContents->layout()->addWidget(row);
         ui->scrollAreaWidgetContents->layout()->addWidget(line);
     }

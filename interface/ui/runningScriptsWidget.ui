@@ -13,14 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">* {
-	font-family: Helvetica, Arial, sans-serif;
-}
-#RunningScriptsWidget {
-	background: #f7f7f7; 
-}</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <property name="leftMargin">
     <number>20</number>
@@ -114,7 +106,6 @@ background: transparent;</string>
        <widget class="QLabel" name="currentlyRunningLabel">
         <property name="font">
          <font>
-          <family>Helvetica,Arial,sans-serif</family>
           <pointsize>-1</pointsize>
           <weight>75</weight>
           <italic>false</italic>
@@ -173,31 +164,6 @@ background: transparent;</string>
          </property>
          <item>
           <widget class="QPushButton" name="reloadAllButton">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>111</width>
-             <height>35</height>
-            </size>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="autoFillBackground">
-            <bool>false</bool>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">background: #0e7077;
-color: #fff;
-border-radius: 4px;
-font: bold 14px;
-padding-top: 3px;</string>
-           </property>
            <property name="text">
             <string>Reload all</string>
            </property>
@@ -205,28 +171,6 @@ padding-top: 3px;</string>
          </item>
          <item>
           <widget class="QPushButton" name="stopAllButton">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>111</width>
-             <height>35</height>
-            </size>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">background: #0e7077;
-color: #fff;
-border-radius: 4px;
-font: bold 14px;
-padding-top: 3px;</string>
-           </property>
            <property name="text">
             <string>Stop all</string>
            </property>
@@ -303,11 +247,6 @@ padding-top: 3px;</string>
         </property>
         <property name="layoutDirection">
          <enum>Qt::LeftToRight</enum>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">#runningScriptsList {
-	background: #f7f7f7; 
-}</string>
         </property>
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
@@ -459,9 +398,6 @@ font-size: 14px;</string>
        <height>300</height>
       </size>
      </property>
-     <property name="styleSheet">
-      <string notr="true"/>
-     </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <property name="spacing">
        <number>0</number>
@@ -522,28 +458,6 @@ font: bold 16px;</string>
          </item>
          <item>
           <widget class="QPushButton" name="loadScriptButton">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>111</width>
-             <height>35</height>
-            </size>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">background: #0e7077;
-color: #fff;
-border-radius: 4px;
-font: bold 14px;
-padding-top: 3px;</string>
-           </property>
            <property name="text">
             <string>Load script</string>
            </property>
