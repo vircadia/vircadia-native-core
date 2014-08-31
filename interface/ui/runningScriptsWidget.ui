@@ -42,11 +42,10 @@
        <widget class="QLabel" name="widgetTitle">
         <property name="styleSheet">
          <string notr="true">color: #0e7077;
-font-size: 20px;
-background: transparent;</string>
+font-size: 20px;</string>
         </property>
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18px;&quot;&gt;Running Scripts&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>Running Scripts</string>
         </property>
         <property name="margin">
          <number>0</number>
@@ -115,10 +114,10 @@ background: transparent;</string>
         <property name="styleSheet">
          <string notr="true">color: #0e7077;
 font: bold 16px;
-background: transparent;</string>
+</string>
         </property>
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Currently running&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>Currently Running</string>
         </property>
        </widget>
       </item>
@@ -147,9 +146,6 @@ background: transparent;</string>
          </sizepolicy>
         </property>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
-         <property name="spacing">
-          <number>24</number>
-         </property>
          <property name="leftMargin">
           <number>0</number>
          </property>
@@ -183,30 +179,14 @@ background: transparent;</string>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
-             <width>40</width>
-             <height>20</height>
+             <width>0</width>
+             <height>0</height>
             </size>
            </property>
           </spacer>
          </item>
         </layout>
        </widget>
-      </item>
-      <item>
-       <spacer name="verticalSpacer_4">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>8</height>
-         </size>
-        </property>
-       </spacer>
       </item>
       <item>
        <widget class="QLabel" name="noRunningScriptsLabel">
@@ -391,12 +371,6 @@ font: bold 16px;</string>
       </item>
       <item>
        <widget class="QLineEdit" name="filterLineEdit">
-        <property name="styleSheet">
-         <string notr="true">border: 1px solid rgb(128, 128, 128);
-border-radius: 2px;
-padding: 4px;
-background-color: white;</string>
-        </property>
         <property name="text">
          <string/>
         </property>
@@ -426,23 +400,6 @@ background-color: white;</string>
       </item>
       <item>
        <widget class="QListView" name="scriptListView">
-        <property name="styleSheet">
-         <string notr="true">QListView {
-	background: #f7f7f7; 
-	border: 1px solid rgb(128, 128, 128);
-	border-radius: 2px;
-}
-QListView::item {
-	padding-top: 2px;
-	padding-bottom: 2px;
-}</string>
-        </property>
-        <property name="frameShape">
-         <enum>QFrame::Box</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Plain</enum>
-        </property>
         <property name="verticalScrollBarPolicy">
          <enum>Qt::ScrollBarAlwaysOn</enum>
         </property>
