@@ -34,9 +34,9 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
 
     setAttribute(Qt::WA_DeleteOnClose, false);
 
-    ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
-    ui->stopAllButton->setIcon(QIcon(Application::resourcesPath() + "images/stop.svg"));
-    ui->loadScriptButton->setIcon(QIcon(Application::resourcesPath() + "images/plus-white.svg"));
+    //ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
+    //ui->stopAllButton->setIcon(QIcon(Application::resourcesPath() + "images/stop.svg"));
+    //ui->loadScriptButton->setIcon(QIcon(Application::resourcesPath() + "images/plus.svg"));
 
     ui->filterLineEdit->installEventFilter(this);
 
