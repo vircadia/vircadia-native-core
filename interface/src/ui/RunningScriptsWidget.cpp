@@ -156,9 +156,11 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
 
     const QRect parentGeometry = parentWidget()->geometry();
     int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
+    int menuBarHeight = Menu::getInstance()->geometry().height();
+    int topMargin = titleBarHeight + menuBarHeight;
 
-    setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y() + titleBarHeight,
-                size().width(), parentWidget()->height() - titleBarHeight);
+    setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y() + topMargin,
+                size().width(), parentWidget()->height() - topMargin);
 
     QWidget::showEvent(event);
 }
