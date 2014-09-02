@@ -93,9 +93,9 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool
         bool wantDebug = false;
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
-            int elapsed = now - _lastEdited;
+            int elapsed = now - getLastEdited();
             qDebug() << "ModelEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " _lastEdited=" << _lastEdited;
+                    "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties._lastEdited);
     }
@@ -141,8 +141,14 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         QString modelURLString((const char*)dataAt);
         dataAt += modelURLLength;
         bytesRead += modelURLLength;
+
+qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer().... EntityID: " << getEntityItemID() << " --- PROP_MODEL_URL:" << modelURLString;
+
         if (overwriteLocalData) {
             setModelURL(modelURLString);
+qDebug() << "    setModelURL(modelURLString)=" << getModelURL();
+        } else {
+qDebug() << "    WARNING >>>>>>>>>>> IGNORING NEW DATA!!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
         }
     }
     
@@ -223,11 +229,11 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
         _lastUpdated -= clockSkew;
 
         // _lastEdited
-        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
-        dataAt += sizeof(_lastEdited);
-        bytesRead += sizeof(_lastEdited);
-        _lastEdited -= clockSkew;
-        _created = _lastEdited; // NOTE: old models didn't have age or created time, assume their last edit was a create
+        memcpy(&_lastEditedRemote, dataAt, sizeof(_lastEditedRemote));
+        dataAt += sizeof(_lastEditedRemote);
+        bytesRead += sizeof(_lastEditedRemote);
+        _lastEditedRemote -= clockSkew;
+        _created = _lastEditedRemote; // NOTE: old models didn't have age or created time, assume their last edit was a create
         
         QString ageAsString = formatSecondsElapsed(getAge());
         qDebug() << "Loading old model file, _created = _lastEdited =" << _created 
@@ -320,7 +326,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
 
 
 void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                 EntityPropertyFlags& requestedProperties,
                                 EntityPropertyFlags& propertyFlags,
                                 EntityPropertyFlags& propertiesDidntFit,
@@ -350,6 +356,9 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
         LevelDetails propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendValue(getModelURL());
         if (successPropertyFits) {
+        
+qDebug() << "ModelEntityItem::appendSubclassData().... EntityID: " << getEntityItemID() << " --- PROP_MODEL_URL:" << getModelURL();
+
             propertyFlags |= PROP_MODEL_URL;
             propertiesDidntFit -= PROP_MODEL_URL;
             propertyCount++;

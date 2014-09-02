@@ -58,9 +58,9 @@ bool SphereEntityItem::setProperties(const EntityItemProperties& properties, boo
         bool wantDebug = false;
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
-            int elapsed = now - _lastEdited;
+            int elapsed = now - getLastEdited();
             qDebug() << "SphereEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " _lastEdited=" << _lastEdited;
+                    "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties.getLastEdited());
     }

@@ -1,7 +1,41 @@
 // REQUIRED:
 
-    2) Test file save load for case where two siblings have more than MTU amount of data. I wonder if the fact that file save
-       doesn't include the extra exists bits will break something.
+
+http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX#1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo#1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+-123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+
+
+    1) clock skew sometimes causes properties to get reject when sent from the server...
+    
+        -- this appears to be related to clock skew!!!
+        -- need to determine "when to deleted extra data" --             
+            
+            
+            
+        When encoding ----
+                if the parent node gets pulled from the bag first... things go ok
+                if the child node gets pulled first --
+                    and it encodes the grandchildren ---
+                THEN -- it seems like things break:
+                    1) the parent node will encode the children -- OK
+                    2) then will attempt to recurse into the children..
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
 
     7) some jutter with moving entities
             -- I think this might only happen with lots of models in an element or in view
@@ -14,19 +48,26 @@
             - does the same pruning/reallocating issue as the old UpdateEntityOperator
             - doesn't used clamped boxes for best fit tests... so could be problematic
 
-        -- crash on shutdown while animating...
-                Thread 0 Crashed:: Dispatch queue: com.apple.main-thread
-                0   io.highfidelity.Interface     	0x000000010cf99a6a EntityTree::updateChangingEntities(unsigned long long, QSet<EntityItemID>&) + 202
-                1   io.highfidelity.Interface     	0x000000010cf998a6 EntityTree::update() + 70
-                2   io.highfidelity.Interface     	0x000000010cb64a3e EntityTreeRenderer::update() + 62
-                3   io.highfidelity.Interface     	0x000000010c9eb6ec Application::update(float) + 796
-                4   io.highfidelity.Interface     	0x000000010c9f5e26 Application::idle() + 550
-                5   io.highfidelity.Interface     	0x000000010c99f567 Application::qt_static_metacall(QObject*, QMetaObject::Call, int, void**) + 1655
-                6   QtCore                        	0x0000000112474a30 QMetaObject::activate(QObject*, int, int, void**) + 2640
-                7   QtCore                        	0x000000011246d5c1 QObject::event(QEvent*) + 49
         
 
+
 // NICE TO HAVE:
+
+
+    1) clean up Octree::encodeTreeBitstreamRecursion() --
+            It would be nice to clean up this function to be shorter...
+                1015-1158 - helper functions "exit early helpers"
+                1200-1245 - helper function "sorted children"
+                1248-1376 - helper function "visible children" - 
+                            this handles LOD, occlusion, in view/was in view for child elements
+                            NOTE: this information could be cached for secondary passes of the element 
+                            in the same scene encode since they shouldn't change in same scene encode
+                    
+
+   11) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
+        -- verify this happens in old code, if so... move to "nice to have"
+        -- maybe this relates to having incoming packets waiting in the processing queue... they should be discarded on switching domains?
+        
 
     Z) Consider using client side "on the fly" billboard of entites to handle LOD
         -- have routine to shoot views of an entity for 6 faces
@@ -102,9 +143,17 @@
         10  libsystem_pthread.dylib       	0x00007fff8bb9afc9 thread_start + 13
 
 
-   11) quickly do some edits... then change domains... watch the entities continue to exist in new domain and move around.
-        -- verify this happens in old code, if so... move to "nice to have"
 
+        -- crash on shutdown while animating...??? 
+                Thread 0 Crashed:: Dispatch queue: com.apple.main-thread
+                0   io.highfidelity.Interface     	0x000000010cf99a6a EntityTree::updateChangingEntities(unsigned long long, QSet<EntityItemID>&) + 202
+                1   io.highfidelity.Interface     	0x000000010cf998a6 EntityTree::update() + 70
+                2   io.highfidelity.Interface     	0x000000010cb64a3e EntityTreeRenderer::update() + 62
+                3   io.highfidelity.Interface     	0x000000010c9eb6ec Application::update(float) + 796
+                4   io.highfidelity.Interface     	0x000000010c9f5e26 Application::idle() + 550
+                5   io.highfidelity.Interface     	0x000000010c99f567 Application::qt_static_metacall(QObject*, QMetaObject::Call, int, void**) + 1655
+                6   QtCore                        	0x0000000112474a30 QMetaObject::activate(QObject*, int, int, void**) + 2640
+                7   QtCore                        	0x000000011246d5c1 QObject::event(QEvent*) + 49
 
 ===============
 
@@ -237,6 +286,7 @@
 // SOLVED -- 52) Look into why non-changed octree cells are being resent when editing an entity -- 
 //            this is probably because we're marking the trees as dirty -- but we probably can not send entitys that haven't changed
 //              Solution -- suppress sending of entities that haven't been edited since the last view frustum sent
+// SOLVED -- 53) Test sibling cells
 
 
 

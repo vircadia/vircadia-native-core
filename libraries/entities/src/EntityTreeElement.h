@@ -38,8 +38,27 @@ public:
 
 class EntityTreeElementExtraEncodeData {
 public:
-    QMap<EntityItemID, EntityPropertyFlags> includedItems;
+    EntityTreeElementExtraEncodeData() : 
+        elementCompleted(false), 
+        entities() {
+            memset(childCompleted, 0, sizeof(childCompleted));
+        }
+    bool elementCompleted;
+    bool childCompleted[NUMBER_OF_CHILDREN];
+    QMap<EntityItemID, EntityPropertyFlags> entities;
 };
+
+inline QDebug operator<<(QDebug debug, const EntityTreeElementExtraEncodeData* data) {
+    debug << "{";
+    debug << " elementCompleted: " << data->elementCompleted << ", ";
+    debug << " childCompleted[]: ";
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        debug << " " << i << ":" << data->childCompleted[i] << ", ";
+    }
+    debug << " entities.size: " << data->entities.size() << "}";
+    return debug;
+}
+
 
 class SendModelsOperationArgs {
 public:
@@ -59,7 +78,7 @@ public:
     virtual ~EntityTreeElement();
 
     // type safe versions of OctreeElement methods
-    EntityTreeElement* getChildAtIndex(int index) { return (EntityTreeElement*)OctreeElement::getChildAtIndex(index); }
+    EntityTreeElement* getChildAtIndex(int index) const { return (EntityTreeElement*)OctreeElement::getChildAtIndex(index); }
 
     // methods you can and should override to implement your tree functionality
 
@@ -87,6 +106,14 @@ public:
 
     /// Override to indicate that this element requires a split before editing lower elements in the octree
     virtual bool requiresSplit() const { return false; }
+
+    virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const;
+    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) const;
+    virtual bool shouldIncludeChild(int childIndex, EncodeBitstreamParams& params) const;
+    virtual bool shouldRecurseSubtree(OctreeElement* parent, EncodeBitstreamParams& params, OctreeElementBag* bag) const;
+    virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const;
+    virtual void elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const;
+
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
     virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;

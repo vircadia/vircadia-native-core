@@ -61,9 +61,9 @@ bool BoxEntityItem::setProperties(const EntityItemProperties& properties, bool f
         bool wantDebug = false;
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
-            int elapsed = now - _lastEdited;
+            int elapsed = now - getLastEdited();
             qDebug() << "BoxEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " _lastEdited=" << _lastEdited;
+                    "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties._lastEdited);
     }

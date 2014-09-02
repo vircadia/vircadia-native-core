@@ -62,19 +62,21 @@ public:
     virtual void somethingChangedNotification() { }
 
     quint64 getLastUpdated() const { return _lastUpdated; } /// Last simulated time of this entity universal usecs
-    quint64 getLastEdited() const { return _lastEdited; } /// Last edited time of this entity universal usecs
-    void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; _lastUpdated = lastEdited; }
+
+     /// Last edited time of this entity universal usecs
+    quint64 getLastEdited() const { return std::max((_lastEditedRemote - _lastEditedRemoteClockSkew), _lastEditedLocal); }
+    void setLastEdited(quint64 lastEdited) { _lastEditedLocal = lastEdited; _lastEditedLocal = lastEdited; }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
-        { return (float)(usecTimestampNow() - _lastEdited) / (float)USECS_PER_SECOND; }
+        { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
         
     virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                                EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const;
+                                                EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                    EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -188,7 +190,10 @@ protected:
     uint32_t _creatorTokenID;
     bool _newlyCreated;
     quint64 _lastUpdated;
-    quint64 _lastEdited;
+    //quint64 _lastEdited;
+    quint64 _lastEditedLocal;
+    quint64 _lastEditedRemote;
+    quint64 _lastEditedRemoteClockSkew;
     quint64 _created;
 
     glm::vec3 _position;

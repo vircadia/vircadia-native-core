@@ -42,7 +42,9 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 
     // init values with defaults before calling setProperties
     //uint64_t now = usecTimestampNow();
-    _lastEdited = 0;
+    _lastEditedRemote = 0;
+    _lastEditedLocal = 0;
+    //_lastEdited = 0;
     _lastUpdated = 0;
     _created = 0; // TODO: when do we actually want to make this "now"
 
@@ -60,7 +62,9 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
     _type = EntityTypes::Unknown;
-    _lastEdited = 0;
+    _lastEditedRemote = 0;
+    _lastEditedLocal = 0;
+    //_lastEdited = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
     initFromEntityItemID(entityItemID);
@@ -84,7 +88,16 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 }
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                            EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData) const {
+                                            EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const {
+                                            
+                                            
+    const bool wantDebug = false;
+    
+    if (wantDebug) {
+        qDebug() << "EntityItem::appendEntityData()....";
+        qDebug() << "    entity=" << this;
+        qDebug() << "    entityItemID=" << getEntityItemID();
+    }
 
     // ALL this fits...
     //    object ID [16 bytes]
@@ -111,9 +124,42 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     EntityPropertyFlags propertiesDidntFit = requestedProperties;
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
-    // then our modelTreeElementExtraEncodeData should include data about which properties we need to append.
-    if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getEntityItemID())) {
-        requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
+    // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
+    if (entityTreeElementExtraEncodeData && wantDebug) {
+        qDebug() << "    entityTreeElementExtraEncodeData INCLUDED";
+    }
+
+
+    if (entityTreeElementExtraEncodeData && entityTreeElementExtraEncodeData->entities.contains(getEntityItemID())) {
+        requestedProperties = entityTreeElementExtraEncodeData->entities.value(getEntityItemID());
+        
+        if (wantDebug) {
+            qDebug() << "    entityTreeElementExtraEncodeData INCLUDED -AND- this entity is included";
+            qDebug() << "    --- requestedProperties ---";
+            qDebug() << "    PROP_MODEL_URL: " << requestedProperties.getHasProperty(PROP_MODEL_URL)<< " entity ID:" << getEntityItemID();
+            qDebug() << "    --- all requestedProperties ---";
+            
+            #define DEBUG_REQUESTED_PROPERTY(x) if (requestedProperties.getHasProperty(x)) { qDebug() << "    " #x; }
+
+            DEBUG_REQUESTED_PROPERTY(PROP_MODEL_URL);
+            DEBUG_REQUESTED_PROPERTY(PROP_PAGED_PROPERTY)
+            DEBUG_REQUESTED_PROPERTY(PROP_CUSTOM_PROPERTIES_INCLUDED);
+            DEBUG_REQUESTED_PROPERTY(PROP_POSITION);
+            DEBUG_REQUESTED_PROPERTY(PROP_RADIUS);
+            DEBUG_REQUESTED_PROPERTY(PROP_ROTATION);
+            DEBUG_REQUESTED_PROPERTY(PROP_MASS);
+            DEBUG_REQUESTED_PROPERTY(PROP_VELOCITY);
+            DEBUG_REQUESTED_PROPERTY(PROP_GRAVITY);
+            DEBUG_REQUESTED_PROPERTY(PROP_DAMPING);
+            DEBUG_REQUESTED_PROPERTY(PROP_LIFETIME);
+            DEBUG_REQUESTED_PROPERTY(PROP_SCRIPT);
+            DEBUG_REQUESTED_PROPERTY(PROP_COLOR);
+            DEBUG_REQUESTED_PROPERTY(PROP_ANIMATION_URL);
+            DEBUG_REQUESTED_PROPERTY(PROP_ANIMATION_FPS);
+            DEBUG_REQUESTED_PROPERTY(PROP_ANIMATION_FRAME_INDEX);
+            DEBUG_REQUESTED_PROPERTY(PROP_ANIMATION_PLAYING);
+        }
+        
     }
 
     LevelDetails modelLevel = packetData->startLevel();
@@ -320,16 +366,40 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
             propertiesDidntFit -= PROP_SCRIPT;
         }
 
-        appendSubclassData(packetData, params, modelTreeElementExtraEncodeData,
+        appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
                                 propertyFlags,
                                 propertiesDidntFit,
                                 propertyCount,
                                 appendState);
     }
-    
+
+#define DEBUG_PROPERTY(y, x) if (y.getHasProperty(x)) { qDebug() << "    " #x; }
+
     if (propertyCount > 0) {
         int endOfEntityItemData = packetData->getUncompressedByteOffset();
+
+        qDebug() << "Entity Properties THIS ROUND... entityID:" << getEntityItemID();
+
+        DEBUG_PROPERTY(propertyFlags, PROP_MODEL_URL);
+        DEBUG_PROPERTY(propertyFlags, PROP_PAGED_PROPERTY)
+        DEBUG_PROPERTY(propertyFlags, PROP_CUSTOM_PROPERTIES_INCLUDED);
+        DEBUG_PROPERTY(propertyFlags, PROP_POSITION);
+        DEBUG_PROPERTY(propertyFlags, PROP_RADIUS);
+        DEBUG_PROPERTY(propertyFlags, PROP_ROTATION);
+        DEBUG_PROPERTY(propertyFlags, PROP_MASS);
+        DEBUG_PROPERTY(propertyFlags, PROP_VELOCITY);
+        DEBUG_PROPERTY(propertyFlags, PROP_GRAVITY);
+        DEBUG_PROPERTY(propertyFlags, PROP_DAMPING);
+        DEBUG_PROPERTY(propertyFlags, PROP_LIFETIME);
+        DEBUG_PROPERTY(propertyFlags, PROP_SCRIPT);
+        DEBUG_PROPERTY(propertyFlags, PROP_COLOR);
+        DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_URL);
+        DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_FPS);
+        DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_FRAME_INDEX);
+        DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_PLAYING);
+
+
         
         encodedPropertyFlags = propertyFlags;
         int newPropertyFlagsLength = encodedPropertyFlags.length();
@@ -338,6 +408,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         
         // if the size of the PropertyFlags shrunk, we need to shift everything down to front of packet.
         if (newPropertyFlagsLength < oldPropertyFlagsLength) {
+        
+qDebug() << "PACKET SHIFTING!!! <<<<<<<<<<<<<<<< ";
+
             int oldSize = packetData->getUncompressedSize();
             const unsigned char* modelItemData = packetData->getUncompressedData(propertyFlagsOffset + oldPropertyFlagsLength);
             int modelItemDataLength = endOfEntityItemData - startOfEntityItemData;
@@ -359,7 +432,32 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     // If any part of the model items didn't fit, then the element is considered partial
     if (appendState != OctreeElement::COMPLETED) {
         // add this item into our list for the next appendElementData() pass
-        modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
+        
+        qDebug() << "Entity Partially encoded... entityID:" << getEntityItemID();
+
+        #define DEBUG_PROPERTY(y, x) if (y.getHasProperty(x)) { qDebug() << "    " #x; }
+
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_MODEL_URL);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_PAGED_PROPERTY)
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_CUSTOM_PROPERTIES_INCLUDED);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_POSITION);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_RADIUS);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_ROTATION);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_MASS);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_VELOCITY);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_GRAVITY);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_DAMPING);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_LIFETIME);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_SCRIPT);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_COLOR);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_URL);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_FPS);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_FRAME_INDEX);
+        DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_PLAYING);
+
+        entityTreeElementExtraEncodeData->entities.insert(getEntityItemID(), propertiesDidntFit);
+    } else {
+        qDebug() << "Entity COMPLETED... entityID:" << getEntityItemID();
     }
 
     return appendState;
@@ -448,34 +546,42 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
         
         quint64 lastEditedFromBuffer = 0;
+        quint64 lastEditedFromBufferAdjusted = 0;
 
         // TODO: we could make this encoded as a delta from _created
         // _lastEdited
         memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
         dataAt += sizeof(lastEditedFromBuffer);
         bytesRead += sizeof(lastEditedFromBuffer);
-        lastEditedFromBuffer -= clockSkew;
+
+        qDebug() << "data from server **************** ";
+        qDebug() << "      entityItemID=" << getEntityItemID();
+        qDebug() << "      now=" << usecTimestampNow();
+        qDebug() << "      getLastEdited();=" << getLastEdited();
+        qDebug() << "      _lastEditedRemote=" << _lastEditedRemote;
+        qDebug() << "      _lastEditedLocal=" << _lastEditedLocal;
+        qDebug() << "      lastEditedFromBuffer=" << lastEditedFromBuffer << " (BEFORE clockskew adjust)";
+        qDebug() << "      clockSkew=" << clockSkew;
+        lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
+        qDebug() << "      lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted << " (AFTER clockskew adjust)";
+
         
         // If we've changed our local tree more recently than the new data from this packet
         // then we will not be changing our values, instead we just read and skip the data
-        if (_lastEdited > lastEditedFromBuffer) {
+        if (_lastEditedLocal > lastEditedFromBufferAdjusted) {
             overwriteLocalData = false;
-            
-            if (wantDebug) {
-                qDebug() << "IGNORING old data from server!!! **************** _lastEdited=" << _lastEdited 
-                            << "lastEditedFromBuffer=" << lastEditedFromBuffer << "now=" << usecTimestampNow();
+            if (true || wantDebug) {
+                qDebug() << "IGNORING old data from server!!! ****************";
             }
         } else {
 
-            if (wantDebug) {
-                qDebug() << "USING NEW data from server!!! **************** OLD _lastEdited=" << _lastEdited 
-                            << "lastEditedFromBuffer=" << lastEditedFromBuffer << "now=" << usecTimestampNow();
+            if (true || wantDebug) {
+                qDebug() << "USING NEW data from server!!! ****************";
             }
 
-            _lastEdited = lastEditedFromBuffer;
-            
+            _lastEditedRemote = lastEditedFromBuffer;
+            _lastEditedRemoteClockSkew = clockSkew;
             somethingChangedNotification(); // notify derived classes that something has changed
-
         }
 
         // last updated is stored as ByteCountCoded delta from lastEdited
@@ -483,7 +589,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
         quint64 updateDelta = updateDeltaCoder;
         if (overwriteLocalData) {
-            _lastUpdated = _lastEdited + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
+            _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
         }
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += encodedUpdateDelta.size();
@@ -865,9 +971,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         bool wantDebug = false;
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
-            int elapsed = now - _lastEdited;
+            int elapsed = now - getLastEdited();
             qDebug() << "EntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " _lastEdited=" << _lastEdited;
+                    "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties._lastEdited);
     }
