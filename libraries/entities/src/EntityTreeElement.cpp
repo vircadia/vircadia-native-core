@@ -22,7 +22,6 @@ EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement()
 };
 
 EntityTreeElement::~EntityTreeElement() {
-    //qDebug() << "EntityTreeElement::~EntityTreeElement() this=" << this;
     _voxelMemoryUsage -= sizeof(EntityTreeElement);
     delete _entityItems;
     _entityItems = NULL;
@@ -69,44 +68,21 @@ void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) cons
 void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params) const { 
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
-
-    const bool wantDebug = false;
-    
     // Check to see if this element yet has encode data... if it doesn't create it
     if (!extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData = new EntityTreeElementExtraEncodeData();
-
         entityTreeElementExtraEncodeData->elementCompleted = (_entityItems->size() == 0);
-
-        if (wantDebug) {
-            qDebug() << "EntityTreeElement::initializeExtraEncodeData()... ";
-            qDebug() << "    element:" << getAACube();
-            qDebug() << "    elementCompleted:" << entityTreeElementExtraEncodeData->elementCompleted << "[ _entityItems->size()=" << _entityItems->size() <<" ]";
-            qDebug() << "    --- initialize this element's child element state ---";
-        }
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             EntityTreeElement* child = getChildAtIndex(i);
             if (!child) {
                 entityTreeElementExtraEncodeData->childCompleted[i] = true; // if no child exists, it is completed
-                if (wantDebug) {
-                    qDebug() << "    childCompleted[" << i <<"]= true -- completed";
-                }
             } else {
                 if (child->hasEntities()) {
                     entityTreeElementExtraEncodeData->childCompleted[i] = false; // HAS ENTITIES NEEDS ENCODING
-                    if (wantDebug) {
-                        qDebug() << "    childCompleted[" << i <<"] " << child->getAACube()  << "= false -- HAS ENTITIES NEEDS ENCODING";
-                    }
                 } else {
-                    entityTreeElementExtraEncodeData->childCompleted[i] = true; // if the child doesn't have enities, it is completed
-                    if (wantDebug) {
-                        qDebug() << "    childCompleted[" << i <<"] " << child->getAACube()  << "= true -- doesn't have entities";
-                    }
+                    entityTreeElementExtraEncodeData->childCompleted[i] = true; // child doesn't have enities, it is completed
                 }
             }
-        }
-        if (wantDebug) {
-            qDebug() << "    --- initialize this element's entities state ---";
         }
         for (uint16_t i = 0; i < _entityItems->size(); i++) {
             EntityItem* entity = (*_entityItems)[i];
@@ -114,7 +90,6 @@ void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params)
         }
         
         // TODO: some of these inserts might be redundant!!!
-        //qDebug() << " ADDING encode data (" << __LINE__ << ") for element " << getAACube() << " data=" << entityTreeElementExtraEncodeData;
         extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
     }
 }
@@ -142,41 +117,12 @@ bool EntityTreeElement::shouldIncludeChild(int childIndex, EncodeBitstreamParams
 void EntityTreeElement::updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const {
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
-
-    const bool wantDebug = false;
-    
-    if (wantDebug) {
-        qDebug() << "EntityTreeElement::updateEncodedData()... ";
-        qDebug() << "    element:" << getAACube();
-        qDebug() << "    child:" << childIndex << getChildAtIndex(childIndex)->getAACube();
-        switch(childAppendState) {
-            case OctreeElement::NONE:
-                qDebug() << "    childAppendState: NONE";
-            break;
-            case OctreeElement::PARTIAL:
-                qDebug() << "    childAppendState: PARTIAL";
-            break;
-            case OctreeElement::COMPLETED:
-                qDebug() << "    childAppendState: COMPLETED";
-            break;
-        }
-    }
-
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData 
                         = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
 
-                        
         if (childAppendState == OctreeElement::COMPLETED) {
             entityTreeElementExtraEncodeData->childCompleted[childIndex] = true;
-            if (wantDebug) {
-                qDebug() << "    SETTING childCompleted[" << childIndex << "] = true - " 
-                                        << getChildAtIndex(childIndex)->getAACube();
-            }
-        }
-        
-        if (wantDebug) {
-            qDebug() << "    encode data:" << entityTreeElementExtraEncodeData;
         }
     } else {
         assert(false); // this shouldn't happen!
@@ -187,7 +133,6 @@ void EntityTreeElement::updateEncodedData(int childIndex, AppendState childAppen
 
 
 void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const {
-    const bool wantDebug = false;
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     assert(extraEncodeData->contains(this));
@@ -207,17 +152,6 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
     //    1) it's ok for our child trees to not yet be fully encoded/complete... 
     //       SO LONG AS... the our child's node is in the bag ready for encoding
 
-    if (wantDebug) {
-        qDebug() << "------------------------------------------------------------------------------------";
-        qDebug() << "EntityTreeElement::elementEncodeComplete()...";
-        qDebug() << "    element=" << getAACube();
-        qDebug() << "    encode data (this):" << thisExtraEncodeData;
-        if (!thisExtraEncodeData->elementCompleted) {
-            qDebug() << "        ******* PROBABLY OK ---- WARNING ********* this element was not complete!!";
-            qDebug() << "            we really only care that our data is complete when we attempt to check our parent...";
-        }
-    }
-
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         EntityTreeElement* childElement = getChildAtIndex(i);
         if (childElement) {
@@ -230,66 +164,15 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
                 EntityTreeElementExtraEncodeData* childExtraEncodeData 
                                 = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(childElement));
                             
-                if (wantDebug) {
-                    // If the child element is not complete, then it should be in the bag for re-encoding
-                    if (!thisExtraEncodeData->childCompleted[i]) {
-                        if (bag->contains(childElement)) {
-                            qDebug() << "        GOOD this element's child["<< i << "] " 
-                                                << childElement->getAACube() << " was not complete, but it's in the bag!!";
-                        } else {
-                            qDebug() << "        ******* WARNING ********* this element's child["<< i << "] " 
-                                                << childElement->getAACube() << " was not complete, AND IT'S NOT IN THE BAG!!";
-                        }
-                    }
-            
-                    qDebug() << "    child[" << i <<"] has extra data";
-                    qDebug() << "        child:" << childElement->getAACube();
-                    qDebug() << "        encode data (child):" << childExtraEncodeData;
-                    // If we're completing THIS element then ALL of our child elements must have been able to add their element data
-                    if (childExtraEncodeData->elementCompleted) {
-                        qDebug() << "        GOOD this element's child["<< i << "] " 
-                                                << childElement->getAACube() << " element data was complete!!";
-                    } else {
-                        qDebug() << "        ******* WARNING ********* this element's child["<< i << "] " 
-                                                << childElement->getAACube() << " element data was NOT COMPLETE!!";
-                    }
-
-                }
-            
                 for (int ii = 0; ii < NUMBER_OF_CHILDREN; ii++) {
                     if (!childExtraEncodeData->childCompleted[ii]) {
-                        if (wantDebug) {
-                            OctreeElement* grandChild = childElement->getChildAtIndex(ii);
-                            if (bag->contains(childElement)) {
-                                qDebug() << "        GOOD this element's child["<< i << "]'s child["<< ii << "] " << grandChild->getAACube() 
-                                                        << " was not complete, but the child " << childElement->getAACube() 
-                                                        << " is in the bag!!";
-                            } else {
-                                qDebug() << "        ******* WARNING ********* this element's child["<< i 
-                                                        << "]'s child["<< ii << "] " << grandChild->getAACube() 
-                                                        << " was not complete, AND THE CHILD " << childElement->getAACube() 
-                                                        << " IS NOT IN THE BAG!!";
-                            }
-                        }
-                    
                         isThisChildReallyComplete = false;
                     }
                 }
 
                 if (isThisChildReallyComplete) {
-                    if (wantDebug) {
-                        qDebug() << "        REMOVE CHILD EXTRA DATA....";
-                        qDebug() << "        DELETING -- CHILD EXTRA DATA....";
-                        qDebug() << "        REMOVING encode data (" << __LINE__ << ") for element " 
-                                                        << childElement->getAACube() << " data=" << childExtraEncodeData;
-                    }
                     extraEncodeData->remove(childElement);
                     delete childExtraEncodeData;
-                }
-            } else {
-                if (wantDebug) {
-                    qDebug() << "******* WARNING ********* this element's child["<< i << "] " 
-                            << childElement->getAACube() << " didn't have extra encode data ------ UNEXPECTED!!!!!";
                 }
             }
         }
@@ -299,14 +182,6 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData, 
                                                                     EncodeBitstreamParams& params) const {
                      
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityTreeElement::appendElementData()";
-        qDebug() << "    getAACube()=" << getAACube();
-        qDebug() << "    START OF ELEMENT packetData->uncompressed size:" << packetData->getUncompressedSize();
-        qDebug() << "    params.lastViewFrustumSent=" << params.lastViewFrustumSent;
-    }
-
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
     
     // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
@@ -321,37 +196,17 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         entityTreeElementExtraEncodeData = new EntityTreeElementExtraEncodeData();
         entityTreeElementExtraEncodeData->elementCompleted = (_entityItems->size() == 0);
 
-        if (wantDebug) {
-            qDebug() << "EntityTreeElement::appendElementData()... ENCODE DATA MISSING, SETTING IT UP NOW ";
-            qDebug() << "    element:" << getAACube();
-            qDebug() << "    elementCompleted:" << entityTreeElementExtraEncodeData->elementCompleted 
-                                        << "[ _entityItems->size()=" << _entityItems->size() <<" ]";
-            qDebug() << "    --- initialize child elements state ---";
-        }
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             EntityTreeElement* child = getChildAtIndex(i);
             if (!child) {
                 entityTreeElementExtraEncodeData->childCompleted[i] = true; // if no child exists, it is completed
-                if (wantDebug) {
-                    qDebug() << "    childCompleted[" << i <<"]= true -- completed";
-                }
             } else {
                 if (child->hasEntities()) {
                     entityTreeElementExtraEncodeData->childCompleted[i] = false;
-                    if (wantDebug) {
-                        qDebug() << "    childCompleted[" << i <<"] " << child->getAACube() 
-                                                << "= false -- HAS ENTITIES NEEDS ENCODING";
-                    }
                 } else {
                     entityTreeElementExtraEncodeData->childCompleted[i] = true; // if the child doesn't have enities, it is completed
-                    if (wantDebug) {
-                        qDebug() << "    childCompleted[" << i <<"] " << child->getAACube()  << "= true -- doesn't have entities";
-                    }
                 }
             }
-        }
-        if (wantDebug) {
-            qDebug() << "    --- initialize this element's entities state ---";
         }
         for (uint16_t i = 0; i < _entityItems->size(); i++) {
             EntityItem* entity = (*_entityItems)[i];
@@ -363,20 +218,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     //assert(extraEncodeData->contains(this));
     //entityTreeElementExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
 
-
     LevelDetails elementLevel = packetData->startLevel();
-    if (wantDebug) {
-        qDebug() << "------------- elementLevel = packetData->startLevel() -------------";
-    }
 
     // write our entities out... first determine which of the entities are in view based on our params
     uint16_t numberOfEntities = 0;
     uint16_t actualNumberOfEntities = 0;
     QVector<uint16_t> indexesOfEntitiesToInclude;
-
-    if (wantDebug) {
-        qDebug() << "EntityTreeElement::appendElementData() _entityItems->size()=" << _entityItems->size();
-    }
 
     // It's possible that our element has been previous completed. In this case we'll simply not include any of our
     // entities for encoding. This is needed because we encode the element data at the "parent" level, and so we 
@@ -385,31 +232,13 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         for (uint16_t i = 0; i < _entityItems->size(); i++) {
             EntityItem* entity = (*_entityItems)[i];
             bool includeThisEntity = true;
-        
-            if (false && wantDebug) {
-                qDebug() << "params.forceSendScene=" << params.forceSendScene;
-                qDebug() << "entity->getLastEdited()=" << entity->getLastEdited();
-                qDebug() << "entity->getLastEdited() > params.lastViewFrustumSent=" 
-                            << (entity->getLastEdited() > params.lastViewFrustumSent);
-            }
-        
             if (!params.forceSendScene && entity->getLastEdited() < params.lastViewFrustumSent) {
-                if (false && wantDebug) {
-                    qDebug() << "NOT forceSendScene, and not changed since last sent SUPPRESSING this ENTITY" 
-                                    << entity->getEntityItemID();
-                }
                 includeThisEntity = false;
             }
         
             if (hadElementExtraData) {
                 includeThisEntity = includeThisEntity && 
                                         entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
-                if (wantDebug) {
-                    if (includeThisEntity) {
-                        qDebug() << "    entity[" << i <<"].entityItemID=" << entity->getEntityItemID();
-                        qDebug() << "    entity[" << i <<"].includeThisEntity=" << includeThisEntity;
-                    }
-                }
             }
         
             if (includeThisEntity && params.viewFrustum) {
@@ -417,10 +246,6 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 entityCube.scale(TREE_SCALE);
                 if (params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                     includeThisEntity = false; // out of view, don't include it
-                    if (wantDebug) {
-                        qDebug() << "    entity[" << i <<"] cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE "
-                                                                "includeThisEntity=" << includeThisEntity;
-                    }
                 }
             }
         
@@ -434,79 +259,27 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     int numberOfEntitiesOffset = packetData->getUncompressedByteOffset();
     bool successAppendEntityCount = packetData->appendValue(numberOfEntities);
 
-    if (wantDebug) {
-        qDebug() << "    numberOfEntities=" << numberOfEntities;
-        qDebug() << "    successAppendEntityCount=" << successAppendEntityCount;
-        qDebug() << "--- before child loop ---";
-        qDebug() << "    packetData->getUncompressedSize()=" << packetData->getUncompressedSize() << "line:" << __LINE__;
-        qDebug() << "    packetData->getReservedBytes()=" << packetData->getReservedBytes();
-    }
-    
     if (successAppendEntityCount) {
-    
-        if (wantDebug) {                                               
-            qDebug() << "EntityTreeElement::appendElementData()";
-            qDebug() << "    indexesOfEntitiesToInclude loop.... numberOfEntities=" << numberOfEntities;
-        }
-    
         foreach (uint16_t i, indexesOfEntitiesToInclude) {
             EntityItem* entity = (*_entityItems)[i];
 
-            if (wantDebug) {                                               
-                qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"].entityItemID=" << entity->getEntityItemID();
-            }
-            
             LevelDetails entityLevel = packetData->startLevel();
-
-            if (wantDebug) {
-                qDebug() << "--- BEFORE entity ---";
-                qDebug() << "    packetData->getUncompressedSize=" << packetData->getUncompressedSize() << "line:" << __LINE__;
-                qDebug() << "    packetData->getReservedBytes=" << packetData->getReservedBytes();
-            }
-            
             OctreeElement::AppendState appendEntityState = entity->appendEntityData(packetData, 
                                                                         params, entityTreeElementExtraEncodeData);
-
-            if (wantDebug) {
-                qDebug() << "--- AFTER entity ---";
-                qDebug() << "    packetData->getUncompressedSize=" << packetData->getUncompressedSize() << "line:" << __LINE__;
-                qDebug() << "    packetData->getReservedBytes=" << packetData->getReservedBytes();
-
-                switch(appendEntityState) {
-                    case OctreeElement::NONE:
-                        qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] DIDN'T FIT!!!";
-                    break;
-                    case OctreeElement::PARTIAL:
-                        qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] PARTIAL FIT!!!";
-                    break;
-                    case OctreeElement::COMPLETED:
-                        qDebug() << "    indexesOfEntitiesToInclude.... entity[" << i <<"] IT ALL FIT!!!";
-                    break;
-                }
-            }
 
             // If none of this entity data was able to be appended, then discard it
             // and don't include it in our entity count
             if (appendEntityState == OctreeElement::NONE) {
-                if (wantDebug) {
-                    qDebug() << "    calling discardLevel(entityLevel)...";
-                }
                 packetData->discardLevel(entityLevel);
             } else {
                 // If either ALL or some of it got appended, then end the level (commit it)
                 // and include the entity in our final count of entities
                 packetData->endLevel(entityLevel);
                 actualNumberOfEntities++;
-                if (wantDebug) {
-                    qDebug() << "    calling endLevel(entityLevel)...";
-                }
             }
             
             // If the entity item got completely appended, then we can remove it from the extra encode data
             if (appendEntityState == OctreeElement::COMPLETED) {
-                if (wantDebug) {
-                    qDebug() << "    since entity fit, removing it from entities...";
-                }
                 entityTreeElementExtraEncodeData->entities.remove(entity->getEntityItemID());
             }
 
@@ -514,9 +287,6 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
             // NOTE: if the entity item didn't fit or only partially fit, then the entity item should have
             // added itself to the extra encode data.
             if (appendEntityState != OctreeElement::COMPLETED) {
-                if (wantDebug) {
-                    qDebug() << "    entity not complete, element must be partial!!!!";
-                }
                 appendElementState = OctreeElement::PARTIAL;
             }
         }
@@ -525,31 +295,10 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         appendElementState = OctreeElement::NONE;
     }
 
-    if (wantDebug) {
-        qDebug() << "--- done with loop ---";
-        qDebug() << "    actualNumberOfEntities=" << actualNumberOfEntities;
-        qDebug() << "    numberOfEntities=" << numberOfEntities;
-        qDebug() << "    appendElementState=" << appendElementState;
-        switch(appendElementState) {
-            case OctreeElement::NONE:
-                qDebug() << "            OctreeElement::NONE";
-            break;
-            case OctreeElement::PARTIAL:
-                qDebug() << "            OctreeElement::PARTIAL";
-            break;
-            case OctreeElement::COMPLETED:
-                qDebug() << "            OctreeElement::COMPLETED";
-            break;
-        }
-    }
-        
     // If we were provided with extraEncodeData, and we allocated and/or got entityTreeElementExtraEncodeData
     // then we need to do some additional processing, namely make sure our extraEncodeData is up to date for
     // this octree element.
     if (extraEncodeData && entityTreeElementExtraEncodeData) {
-        if (wantDebug) {
-            qDebug() << "    handling extra encode data....";
-        }
 
         // After processing, if we are PARTIAL or COMPLETED then we need to re-include our extra data. 
         // Only our patent can remove our extra data in these cases and only after it knows that all of it's 
@@ -559,56 +308,11 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         if (appendElementState == OctreeElement::NONE) {
 
             if (!entityTreeElementExtraEncodeData->elementCompleted && entityTreeElementExtraEncodeData->entities.size() == 0) {
-                /*
-                if (wantDebug) {
-                    qDebug() << "    REMOVING OUR EXTRA DATA BECAUSE NOTHING FIT AND WE HAD NO PREVIOUS DATA....";
-                    qDebug() << "        for element:" << getAACube();
-                    qDebug() << "        elementCompleted=" << entityTreeElementExtraEncodeData->elementCompleted;
-                    qDebug() << "        entities.size()=" << entityTreeElementExtraEncodeData->entities.size();
-                    qDebug() << "        appendElementState=";
-                    switch(appendElementState) {
-                        case OctreeElement::NONE:
-                            qDebug() << "            OctreeElement::NONE";
-                        break;
-                        case OctreeElement::PARTIAL:
-                            qDebug() << "            OctreeElement::PARTIAL";
-                        break;
-                        case OctreeElement::COMPLETED:
-                            qDebug() << "            OctreeElement::COMPLETED";
-                        break;
-                    }
-                }
-
-                qDebug() << " --------- DO WE REALLY WANT TO DO THIS?????????????? --------------------";
-                qDebug() << " REMOVING encode data (" << __LINE__ << ") for element " << getAACube() << " data=" << entityTreeElementExtraEncodeData;
-                extraEncodeData->remove(this);
-                delete entityTreeElementExtraEncodeData;
-                */
-                
-                
+                // TODO: we used to delete the extra encode data here. But changing the logic around
+                // this is now a dead code branch. Clean this up!
             } else {
                 // TODO: some of these inserts might be redundant!!!
-                //qDebug() << " ADDING encode data (" << __LINE__ << ") for element " << getAACube() << " data=" << entityTreeElementExtraEncodeData;
                 extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
-
-                if (wantDebug) {
-                    qDebug() << "    RE INSERT OUR EXTRA DATA.... NOTHING FIT... BUT WE PREVIOUSLY STORED SOMETHING...";
-                    qDebug() << "        for element:" << getAACube();
-                    qDebug() << "        elementCompleted=" << entityTreeElementExtraEncodeData->elementCompleted;
-                    qDebug() << "        entities.size()=" << entityTreeElementExtraEncodeData->entities.size();
-                    qDebug() << "        appendElementState=";
-                    switch(appendElementState) {
-                        case OctreeElement::NONE:
-                            qDebug() << "            OctreeElement::NONE";
-                        break;
-                        case OctreeElement::PARTIAL:
-                            qDebug() << "            OctreeElement::PARTIAL";
-                        break;
-                        case OctreeElement::COMPLETED:
-                            qDebug() << "            OctreeElement::COMPLETED";
-                        break;
-                    }
-                }
             }
         } else {
         
@@ -616,35 +320,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
             if (!entityTreeElementExtraEncodeData->elementCompleted) {
                 // If all of our items have been encoded, then we are complete as an element.
                 if (entityTreeElementExtraEncodeData->entities.size() == 0) {
-                    if (wantDebug) {
-                        qDebug() << "    since our entities.size() is 0 --- we are assuming we're done <<<<<<<<<<<<<<<<<<";
-                    }
                     entityTreeElementExtraEncodeData->elementCompleted = true;
                 }
             }
 
             // TODO: some of these inserts might be redundant!!!
-            //qDebug() << " ADDING encode data (" << __LINE__ << ") for element " << getAACube() << " data=" << entityTreeElementExtraEncodeData;
             extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
-            if (wantDebug) {
-                qDebug() << "    RE INSERT OUR EXTRA DATA....";
-                qDebug() << "        for element:" << getAACube();
-                qDebug() << "        elementCompleted=" << entityTreeElementExtraEncodeData->elementCompleted;
-                qDebug() << "        entities.size()=" << entityTreeElementExtraEncodeData->entities.size();
-                qDebug() << "        appendElementState=";
-                switch(appendElementState) {
-                    case OctreeElement::NONE:
-                        qDebug() << "            OctreeElement::NONE";
-                    break;
-                    case OctreeElement::PARTIAL:
-                        qDebug() << "            OctreeElement::PARTIAL";
-                    break;
-                    case OctreeElement::COMPLETED:
-                        qDebug() << "            OctreeElement::COMPLETED";
-                    break;
-                }
-            }
-
         }
     }
 
@@ -656,9 +337,6 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (!noEntitiesFit && numberOfEntities != actualNumberOfEntities) {
         successUpdateEntityCount = packetData->updatePriorBytes(numberOfEntitiesOffset,
                                             (const unsigned char*)&actualNumberOfEntities, sizeof(actualNumberOfEntities));
-        if (wantDebug) {
-            qDebug() << "    UPDATE NUMER OF ENTITIES.... actualNumberOfEntities=" << actualNumberOfEntities;
-        }
     }
 
     // If we weren't able to update our entity count, or we couldn't fit any entities, then
@@ -666,41 +344,9 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (!successUpdateEntityCount || noEntitiesFit) {
         packetData->discardLevel(elementLevel);
         appendElementState = OctreeElement::NONE;
-        if (wantDebug) {
-            qDebug() << "    something went wrong...  discardLevel().... appendElementState = OctreeElement::NONE;";
-            qDebug() << "        successUpdateEntityCount=" << successUpdateEntityCount;
-            qDebug() << "        noEntitiesFit=" << noEntitiesFit;
-            if (extraEncodeData) {
-                qDebug() << "        do we still have extra data?? " << extraEncodeData->contains(this);
-            } else {
-                qDebug() << "        what happened to extraEncodeData??";
-            }
-        }
     } else {
         packetData->endLevel(elementLevel);
-        if (wantDebug) {
-            qDebug() << "    looks good  endLevel().... appendElementState=" << appendElementState;
-            qDebug() << "        successUpdateEntityCount=" << successUpdateEntityCount;
-            qDebug() << "        noEntitiesFit=" << noEntitiesFit;
-        }
     }
-
-    if (wantDebug) {
-        qDebug() << "END OF ELEMENT packetData->uncompressed size:" << packetData->getUncompressedSize();
-        qDebug() << "RETURNING appendElementState=";
-        switch(appendElementState) {
-            case OctreeElement::NONE:
-                qDebug() << "    OctreeElement::NONE";
-            break;
-            case OctreeElement::PARTIAL:
-                qDebug() << "    OctreeElement::PARTIAL";
-            break;
-            case OctreeElement::COMPLETED:
-                qDebug() << "    OctreeElement::COMPLETED";
-            break;
-        }
-    }
-    
     return appendElementState;
 }
 
@@ -743,54 +389,22 @@ bool EntityTreeElement::containsBounds(const glm::vec3& minPoint, const glm::vec
 }
 
 bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
-    bool wantDebug = false;
-
     glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
     glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
-
-    if (wantDebug) {
-        qDebug() << "        EntityTreeElement::bestFitBounds()";
-        qDebug() << "            minPoint=" << minPoint;
-        qDebug() << "            maxPoint=" << maxPoint;
-        qDebug() << "            clampedMin=" << clampedMin;
-        qDebug() << "            clampedMax=" << clampedMax;
-        qDebug() << "            _cube=" << _cube;
-    }
 
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
         int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
         int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
 
-        if (wantDebug) {
-            qDebug() << "            _cube.contains BOTH";
-            qDebug() << "            childForMinimumPoint=" << childForMinimumPoint;
-            qDebug() << "            childForMaximumPoint=" << childForMaximumPoint;
-        }
-        
         // if this is a really small box, then it's close enough!
         if (_cube.getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
-
-            if (wantDebug) {
-                qDebug() << "            (_cube.getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE).... RETURN TRUE";
-            }
-
             return true;
         }
         // If I contain both the minimum and maximum point, but two different children of mine
         // contain those points, then I am the best fit for that entity
         if (childForMinimumPoint != childForMaximumPoint) {
-            if (wantDebug) {
-                qDebug() << "            (childForMinimumPoint != childForMaximumPoint).... RETURN TRUE";
-            }
             return true;
         }
-    } else {
-        if (wantDebug) {
-            qDebug() << "            NOT _cube.contains BOTH";
-        }
-    }
-    if (wantDebug) {
-        qDebug() << "            RETURN FALSE....";
     }
     return false;
 }
@@ -909,17 +523,7 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
     return false;
 }
 
-
-// TODO: do we need to handle "killing" viewed entities as well???
 void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID) {
-    bool wantDebug = false;
-
-    if (wantDebug) {
-        qDebug() << "EntityTreeElement::updateEntityItemID()... LOOKING FOR entity: " <<
-                    "creatorTokenEntityID=" << creatorTokenEntityID <<
-                    "knownIDEntityID=" << knownIDEntityID;
-    }
-
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem* thisEntity = (*_entityItems)[i];
@@ -927,12 +531,6 @@ void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntit
         EntityItemID thisEntityID = thisEntity->getEntityItemID();
         
         if (thisEntityID == creatorTokenEntityID) {
-            if (wantDebug) {
-                qDebug() << "EntityTreeElement::updateEntityItemID()... FOUND IT entity: " <<
-                            "thisEntityID=" << thisEntityID <<
-                            "creatorTokenEntityID=" << creatorTokenEntityID <<
-                            "knownIDEntityID=" << knownIDEntityID;
-            }
             thisEntity->setID(knownIDEntityID.id);
         }
     }
@@ -1146,10 +744,6 @@ bool EntityTreeElement::pruneChildren() {
         
         // if my child is a leaf, but has no entities, then it's safe to delete my child
         if (child && child->isLeaf() && !child->hasEntities()) {
-            bool wantDebug = false;
-            if (wantDebug) {
-                qDebug() << "EntityTreeElement::pruneChildren()... WANT TO PRUNE!!!! childIndex=" << childIndex;
-            }
             deleteChildAtIndex(childIndex);
             somethingPruned = true;
         }

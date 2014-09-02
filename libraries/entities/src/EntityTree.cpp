@@ -162,38 +162,14 @@ void EntityTree::trackDeletedEntity(const EntityItemID& entityID) {
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityTree::deleteEntity().... entityID=" << entityID;
-        EntityTreeElement* containingElement = getContainingElement(entityID);
-        qDebug() << "EntityTree::deleteEntity().... BEFORE delete... containingElement=" << containingElement;
-    }
-    
     // NOTE: callers must lock the tree before using this method
-
-    // First, look for the existing entity in the tree..
     DeleteEntityOperator theOperator(this, entityID);
-
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
-
-    if (wantDebug) {
-        EntityTreeElement* containingElement = getContainingElement(entityID);
-        qDebug() << "EntityTree::deleteEntity().... after delete... containingElement=" << containingElement;
-    }
 }
 
 void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     // NOTE: callers must lock the tree before using this method
-    
-    const bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityTree::EntityTree::deleteEntities().... ";
-        qDebug() << "    entityIDs=" << entityIDs;
-        qDebug() << "    BEFORE map...";
-        debugDumpMap();
-    }
-    
     DeleteEntityOperator theOperator(this);
     foreach(const EntityItemID& entityID, entityIDs) {
         // tell our delete operator about this entityID
@@ -202,17 +178,6 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
 
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
-
-    if (wantDebug) {
-        foreach(const EntityItemID& entityID, entityIDs) {
-            EntityTreeElement* containingElement = getContainingElement(entityID);
-            qDebug() << "EntityTree::deleteEntities().... after delete... entityID=" << entityID 
-                        << "containingElement=" << containingElement;
-        }
-
-        qDebug() << "    AFTER map...";
-        debugDumpMap();
-    }
 }
 
 void EntityTree::removeEntityFromSimulationLists(const EntityItemID& entityID) {
@@ -299,68 +264,28 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     EntityItemID  creatorTokenVersion = searchEntityID.convertToCreatorTokenVersion();
     EntityItemID  knownIDVersion = searchEntityID.convertToKnownIDVersion();
 
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityTree::handleAddEntityResponse()..."; 
-        qDebug() << "    creatorTokenID=" << creatorTokenID;
-        qDebug() << "    entityID=" << entityID;
-        qDebug() << "    searchEntityID=" << searchEntityID;
-        qDebug() << "    creatorTokenVersion=" << creatorTokenVersion;
-        qDebug() << "    knownIDVersion=" << knownIDVersion;
-    }
-
     // First look for and find the "viewed version" of this entity... it's possible we got
     // the known ID version sent to us between us creating our local version, and getting this
     // remapping message. If this happened, we actually want to find and delete that version of
     // the entity.
     EntityTreeElement* knownIDVersionContainingElement = getContainingElement(knownIDVersion);
-
-    if (wantDebug) {
-        qDebug() << "    knownIDVersionContainingElement=" << knownIDVersionContainingElement;
-    }
-
     if (knownIDVersionContainingElement) {
         foundEntity = knownIDVersionContainingElement->getEntityWithEntityItemID(knownIDVersion);
-
-        if (wantDebug) {
-            qDebug() << "    foundEntity=" << foundEntity;
-        }
-
         if (foundEntity) {
             knownIDVersionContainingElement->removeEntityWithEntityItemID(knownIDVersion);
             setContainingElement(knownIDVersion, NULL);
-            
-            if (wantDebug) {
-                qDebug() << "    FOUND VIEWED VERSION, removing entity, resetting containing element";
-            }
         }
     }
 
     EntityTreeElement* creatorTokenContainingElement = getContainingElement(creatorTokenVersion);
-    if (wantDebug) {
-        qDebug() << "    creatorTokenContainingElement=" << creatorTokenContainingElement;
-    }
     if (creatorTokenContainingElement) {
         foundEntity = creatorTokenContainingElement->getEntityWithEntityItemID(creatorTokenVersion);
-        if (wantDebug) {
-            qDebug() << "    foundEntity=" << foundEntity;
-        }
         if (foundEntity) {
             creatorTokenContainingElement->updateEntityItemID(creatorTokenVersion, knownIDVersion);
             setContainingElement(creatorTokenVersion, NULL);
             setContainingElement(knownIDVersion, creatorTokenContainingElement);
-
-            if (wantDebug) {
-                qDebug() << "    FOUND CREATOR VERSION, updating entity ID and resetting containing element";
-            }
         }
     }
-    
-    if (wantDebug) {
-        qDebug() << "----MAP AFTER HANDLING RESPONSE----"; 
-        debugDumpMap();
-    }
-    
     unlock();
 }
 
@@ -487,15 +412,6 @@ void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*>& foundEnt
 
 EntityItem* EntityTree::findEntityByID(const QUuid& id) {
     EntityItemID entityID(id);
-
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityTree::findEntityByID()...";
-        qDebug() << "    id=" << id;
-        qDebug() << "    entityID=" << entityID;
-        qDebug() << "_entityToElementMap=" << _entityToElementMap;
-    }
-
     return findEntityByEntityItemID(entityID);
 }
 
@@ -525,40 +441,17 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
     // we handle these types of "edit" packets
     switch (packetType) {
         case PacketTypeEntityErase: {
-            const bool wantDebug = false;
-            if (wantDebug) {
-                qDebug() << "EntityTree::processEditPacketData().... ";
-                qDebug() << "    PacketTypeEntityErase ******";
-                qDebug() << "    packetLength=" << packetLength;
-                qDebug() << "    maxLength=" << maxLength;
-
-                QDebug debug = qDebug();
-                debug << "       edit data contents:";
-                outputBufferBits(editData, maxLength, &debug);
-            }
-
             QByteArray dataByteArray((const char*)editData, maxLength);
             processedBytes = processEraseMessageDetails(dataByteArray, senderNode);
             break;
         }
         
         case PacketTypeEntityAddOrEdit: {
-            const bool wantDebug = false;
-            
             EntityItemID entityItemID;
             EntityItemProperties properties;
             bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength,
                                                     processedBytes, entityItemID, properties);
 
-            if (wantDebug) {
-                qDebug() << "EntityTree::processEditPacketData().... ";
-                qDebug() << "    validEditPacket=" << validEditPacket;
-                qDebug() << "    processedBytes=" << processedBytes;
-                qDebug() << "    entityItemID=" << entityItemID;
-                qDebug() << "    BEFORE map...";
-                debugDumpMap();
-            }
-            
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
@@ -576,15 +469,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     }
                 } else {
                     // this is a new entity... assign a new entityID
-                    if (wantDebug) {
-                        qDebug() << "EntityTree::processEditPacketData() ... "
-                                        "BEFORE assignEntityID()... entityItemID=" << entityItemID;
-                    }
                     entityItemID = assignEntityID(entityItemID);
-                    if (wantDebug) {
-                        qDebug() << "EntityTree::processEditPacketData() ... "
-                                        "AFTER assignEntityID()... entityItemID=" << entityItemID;
-                    }
                     EntityItem* newEntity = addEntity(entityItemID, properties);
                     if (newEntity) {
                         notifyNewlyCreatedEntity(*newEntity, senderNode);
@@ -632,19 +517,6 @@ void EntityTree::removeNewlyCreatedHook(NewlyCreatedEntityHook* hook) {
 void EntityTree::changeEntityState(EntityItem* const entity, 
                         EntityItem::SimulationState oldState, EntityItem::SimulationState newState) {
 
-    bool wantDebug = false;
-    
-    if (wantDebug) {
-        qDebug() << "EntityTree::changeEntityState()....";
-        qDebug() << "     oldState:" << oldState;
-        qDebug() << "     newState:" << newState;
-
-        qDebug() << "EntityTree::changeEntityState() BEFORE....";
-        qDebug() << "     _changingEntities:" << _changingEntities;
-        qDebug() << "     _movingEntities:" << _movingEntities;
-        qDebug() << "     _mortalEntities:" << _mortalEntities;
-    }
-
     // TODO: can we short circuit this if the state isn't changing?
     switch (oldState) {
         case EntityItem::Changing:
@@ -680,15 +552,6 @@ void EntityTree::changeEntityState(EntityItem* const entity,
         default:
             break;
     }
-
-
-    if (wantDebug) {
-        qDebug() << "EntityTree::changeEntityState() AFTER....";
-        qDebug() << "     _changingEntities:" << _changingEntities;
-        qDebug() << "     _movingEntities:" << _movingEntities;
-        qDebug() << "     _mortalEntities:" << _mortalEntities;
-    }
-
 }
 
 void EntityTree::update() {
@@ -755,8 +618,6 @@ void EntityTree::updateChangingEntities(quint64 now, QSet<EntityItemID>& entitie
 }
 
 void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
-    bool wantDebug = false;
-    
     if (_movingEntities.size() > 0) {
         MovingEntitiesOperator moveOperator(this);
 
@@ -777,27 +638,13 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
                 AACube oldCube = thisEntity->getAACube();
                 thisEntity->update(now);
                 AACube newCube = thisEntity->getAACube();
-                if (wantDebug) {
-                    qDebug() << "MOVING entity " << thisEntity->getEntityItemID();
-                    qDebug() << "   oldCube:" << oldCube;
-                    qDebug() << "   newCube:" << newCube;
-                }
         
                 // check to see if this movement has sent the entity outside of the domain.
                 AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), 1.0f);
                 if (!domainBounds.touches(newCube)) {
-                    if (wantDebug) {
-                        qDebug() << "The entity moved outside of the domain. Delete it.";
-                        qDebug() << "    entity=" << thisEntity;
-                        qDebug() << "    entityID=" << thisEntity->getEntityItemID();
-                    }
                     entitiesToDelete << thisEntity->getEntityItemID();
                     entitiesBecomingStatic << thisEntity;
                 } else {
-                    if (wantDebug) {
-                        qDebug() << "   ACTUALLY MOVING IT";
-                    }
-            
                     moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
 
                     // check to see if this entity is no longer moving
@@ -877,9 +724,7 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
     _recentlyDeletedEntitiesLock.lockForRead();
     QMultiMap<quint64, QUuid>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
     while (iterator != _recentlyDeletedEntityItemIDs.constEnd()) {
-        //qDebug() << "considering... time/key:" << iterator.key();
         if (iterator.key() > sinceTime) {
-            //qDebug() << "YES newer... time/key:" << iterator.key();
             hasSomethingNewer = true;
         }
         ++iterator;
@@ -974,7 +819,6 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
 
 // called by the server when it knows all nodes have been sent deleted packets
 void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
-    //qDebug() << "forgetEntitiesDeletedBefore()";
     QSet<quint64> keysToRemove;
 
     _recentlyDeletedEntitiesLock.lockForWrite();
@@ -990,7 +834,6 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
     // Now run through the keysToRemove and remove them
     foreach (quint64 value, keysToRemove) {
-        //qDebug() << "removing the key, _recentlyDeletedEntityItemIDs.remove(value); time/key:" << value;
         _recentlyDeletedEntityItemIDs.remove(value);
     }
     
@@ -1000,11 +843,6 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-    const bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityTree::processEraseMessage()...";
-    }
-
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
     size_t packetLength = dataByteArray.size();
@@ -1027,12 +865,6 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
     dataAt += sizeof(numberOfIds);
     processedBytes += sizeof(numberOfIds);
 
-    if (wantDebug) {
-        qDebug() << "EntityTree::processEraseMessage().... numberOfIds=" << numberOfIds;
-        qDebug() << "EntityTree::processEraseMessage().... processedBytes=" << processedBytes;
-        qDebug() << "EntityTree::processEraseMessage().... packetLength=" << packetLength;
-    }
-
     if (numberOfIds > 0) {
         QSet<EntityItemID> entityItemIDsToDelete;
 
@@ -1050,12 +882,6 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
             
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
-            if (wantDebug) {
-                qDebug() << "EntityTree::processEraseMessage()... entityItemIDsToDelete << entityItemID=" << entityItemID;
-            }
-        }
-        if (wantDebug) {
-            qDebug() << "EntityTree::processEraseMessage()... deleteEntities(entityItemIDsToDelete)";
         }
         deleteEntities(entityItemIDsToDelete);
     }
@@ -1065,11 +891,6 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
 // This version skips over the header
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-    const bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityTree::processEraseMessageDetails()...";
-    }
-
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
     size_t packetLength = dataByteArray.size();
@@ -1079,12 +900,6 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
     memcpy(&numberOfIds, dataAt, sizeof(numberOfIds));
     dataAt += sizeof(numberOfIds);
     processedBytes += sizeof(numberOfIds);
-
-    if (wantDebug) {
-        qDebug() << "EntityTree::processEraseMessageDetails().... numberOfIds=" << numberOfIds;
-        qDebug() << "EntityTree::processEraseMessageDetails().... processedBytes=" << processedBytes;
-        qDebug() << "EntityTree::processEraseMessageDetails().... packetLength=" << packetLength;
-    }
 
     if (numberOfIds > 0) {
         QSet<EntityItemID> entityItemIDsToDelete;
@@ -1104,12 +919,6 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
-            if (wantDebug) {
-                qDebug() << "EntityTree::processEraseMessageDetails() entityItemIDsToDelete << entityItemID=" << entityItemID;
-            }
-        }
-        if (wantDebug) {
-            qDebug() << "EntityTree::processEraseMessageDetails()... deleteEntities(entityItemIDsToDelete)";
         }
         deleteEntities(entityItemIDsToDelete);
     }
@@ -1119,31 +928,17 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 
 
 EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
-    bool wantDebug = false;
-    
-    if (wantDebug) {
-        qDebug() << "EntityTree::getContainingElement() entityItemID=" << entityItemID;
-        debugDumpMap();
-    }
-
     // TODO: do we need to make this thread safe? Or is it acceptable as is
     if (_entityToElementMap.contains(entityItemID)) {
         return _entityToElementMap.value(entityItemID);
     } else if (entityItemID.creatorTokenID != UNKNOWN_ENTITY_TOKEN){
         // check the creator token version too...
-        if (wantDebug) {
-            qDebug() << "EntityTree::getContainingElement() checking the creator token...";
-        }
-        
         EntityItemID creatorTokenOnly;
         creatorTokenOnly.id = UNKNOWN_ENTITY_ID;
         creatorTokenOnly.creatorTokenID = entityItemID.creatorTokenID;
         creatorTokenOnly.isKnownID = false;
 
         if (_entityToElementMap.contains(entityItemID)) {
-            if (wantDebug) {
-                qDebug() << "EntityTree::getContainingElement() found as creator token...";
-            }
             return _entityToElementMap.value(entityItemID);
         }
 
@@ -1182,15 +977,6 @@ void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTr
         _entityToElementMap[storedEntityItemID] = element;
     } else {
         _entityToElementMap.remove(storedEntityItemID);
-    }
-
-    bool wantDebug = false;
-
-    if (wantDebug) {
-        qDebug() << "setContainingElement() entityItemID=" << entityItemID 
-                << "storedEntityItemID=" << storedEntityItemID << "element=" << element;
-        debugDumpMap();
-        //qDebug() << "AFTER _entityToElementMap=" << _entityToElementMap;
     }
 }
 

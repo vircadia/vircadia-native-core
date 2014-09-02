@@ -21,28 +21,10 @@ DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree, const EntityItemID&
     _foundCount(0),
     _lookingCount(0)
 {
-    bool wantDebug = false;
-
-    if (wantDebug) { 
-        qDebug() << "DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID).... ";
-        qDebug() << "    tree=" << tree;
-        qDebug() << "    _tree=" << tree;
-        qDebug() << "------------ DeleteEntityOperator -- BEFORE WE BEGIN: the tree[" << _tree << "] -------------";
-        _tree->dumpTree();
-        qDebug() << "------------ DeleteEntityOperator -- END the tree-------------";
-    }
     addEntityIDToDeleteList(searchEntityID);
 }
 
 DeleteEntityOperator::~DeleteEntityOperator() {
-    bool wantDebug = false;
-
-    if (wantDebug) { 
-        qDebug() << "~DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID).... ";
-        qDebug() << "------------ ~DeleteEntityOperator -- AFTER WE'RE DONE: the tree[" << _tree << "] -------------";
-        _tree->dumpTree();
-        qDebug() << "------------ ~DeleteEntityOperator -- END the tree-------------";
-    }
 }
 
 DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree) :
@@ -51,64 +33,25 @@ DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree) :
     _foundCount(0),
     _lookingCount(0)
 {
-    bool wantDebug = false;
-
-    if (wantDebug) { 
-        qDebug() << "DeleteEntityOperator(EntityTree* tree).... ";
-        qDebug() << "    tree=" << tree;
-        qDebug() << "    _tree=" << _tree;
-        qDebug() << "------------ DeleteEntityOperator -- BEFORE WE BEGIN: the tree[" << _tree << "] -------------";
-        _tree->dumpTree();
-        qDebug() << "------------ DeleteEntityOperator -- END the tree-------------";
-    }
 }
 
 void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEntityID) {
-    bool wantDebug = false;
-
-    if (wantDebug) { 
-        qDebug() << "DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEntityID).... ";
-        qDebug() << "    _tree=" << _tree;
-        qDebug() << "    searchEntityID=" << searchEntityID;
-    }
- 
     // check our tree, to determine if this entity is known
     EntityToDeleteDetails details;
     details.containingElement = _tree->getContainingElement(searchEntityID);
-
-    if (wantDebug) { 
-        qDebug() << "    details.containingElement=" << details.containingElement;
-    }
-
     if (details.containingElement) {
         details.entity = details.containingElement->getEntityWithEntityItemID(searchEntityID);
-
-        if (wantDebug) { 
-            qDebug() << "    details.entity=" << details.entity;
-        }
-
         if (!details.entity) {
             //assert(false);
             qDebug() << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldEntity!";
         } else {
             details.cube = details.containingElement->getAACube();
-
-            if (wantDebug) { 
-                qDebug() << "    details.cube=" << details.cube;
-            }
-
             _entitiesToDelete << details;
             _lookingCount++;
-            
-            
             _tree->trackDeletedEntity(searchEntityID);
             // before deleting any entity make sure to remove it from our Mortal, Changing, and Moving lists
             _tree->removeEntityFromSimulationLists(searchEntityID);
         }
-    }
-    
-    if (wantDebug) { 
-        qDebug() << "    _entitiesToDelete.size():" << _entitiesToDelete.size();
     }
 }
 
@@ -132,29 +75,6 @@ bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(OctreeElement* el
 }
 
 bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
-    bool wantDebug = false;
-
-    if (wantDebug) { 
-        qDebug() << "DeleteEntityOperator::PreRecursion().... ";
-        qDebug() << "    element=" << element;
-        qDebug() << "    element.AACube=" << element->getAACube();
-        qDebug() << "    _lookingCount=" << _lookingCount;
-        qDebug() << "    _foundCount=" << _foundCount;
-
-        qDebug() << "    --------- list of deleting entities -----------";
-        foreach(const EntityToDeleteDetails& details, _entitiesToDelete) {
-
-            qDebug() << "    ENTITY TO DELETE";
-            qDebug() << "        entity=" << details.entity;
-            qDebug() << "        entityItemID=" << details.entity->getEntityItemID();
-            qDebug() << "        cube=" << details.cube;
-            qDebug() << "        containingElement=" << details.containingElement;
-            qDebug() << "        containingElement->getAACube()=" << details.containingElement->getAACube();
-        }
-        qDebug() << "    --------- list of deleting entities -----------";
-    }
-
-
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
@@ -184,16 +104,6 @@ bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
                 _tree->setContainingElement(entityItemID, NULL); // update or id to element lookup
                 delete theEntity; // now actually delete the entity!
                 _foundCount++;
-
-                if (wantDebug) { 
-                    qDebug() << "DeleteEntityOperator::PreRecursion().... deleting entity:" << entityItemID;
-                    qDebug() << "    details.entity=" << details.entity;
-                    qDebug() << "    theEntity=" << theEntity;
-                    qDebug() << "    called entityTreeElement->removeEntityItem(theEntity)";
-                    qDebug() << "        removed=" << removed;
-                    qDebug() << "    called _tree->setContainingElement(entityItemID, NULL)";
-                    qDebug() << "    called delete theEntity";
-                }
             }
         }
         
@@ -205,27 +115,6 @@ bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
 }
 
 bool DeleteEntityOperator::PostRecursion(OctreeElement* element) {
-    bool wantDebug = false;
-
-    if (wantDebug) { 
-        qDebug() << "DeleteEntityOperator::PostRecursion().... ";
-        qDebug() << "    element=" << element;
-        qDebug() << "    element.AACube=" << element->getAACube();
-        qDebug() << "    _lookingCount=" << _lookingCount;
-        qDebug() << "    _foundCount=" << _foundCount;
-
-        qDebug() << "    --------- list of deleting entities -----------";
-        foreach(const EntityToDeleteDetails& details, _entitiesToDelete) {
-
-            qDebug() << "    DELETING ENTITY";
-            qDebug() << "        entity=" << details.entity;
-            qDebug() << "        entityItemID=" << details.entity->getEntityItemID();
-            qDebug() << "        cube=" << details.cube;
-            qDebug() << "        containingElement=" << details.containingElement;
-        }
-        qDebug() << "    --------- list of deleting entities -----------";
-    }
-
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old entity and one for the new entity.
@@ -236,14 +125,8 @@ bool DeleteEntityOperator::PostRecursion(OctreeElement* element) {
     if ((subTreeContainsSomeEntitiesToDelete(element))) {
         element->markWithChangedTime();
     }
-
-
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-    bool somethingPruned = entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
-    if (somethingPruned && wantDebug) {
-        qDebug() << "DeleteEntityOperator::PostRecursion() something pruned!!!";
-    }
-    
+    entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
     return keepSearching; // if we haven't yet found it, keep looking
 }
 

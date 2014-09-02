@@ -52,14 +52,6 @@ EntityTypes::EntityType EntityTypes::getEntityTypeFromName(const QString& name) 
 }
 
 bool EntityTypes::registerEntityType(EntityType entityType, const char* name, EntityTypeFactory factoryMethod) {
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityTypes::registerEntityType()";
-        qDebug() << "    entityType=" << entityType;
-        qDebug() << "    name=" << name;
-        qDebug() << "    factoryMethod=" << (void*)factoryMethod;
-    }
-    
     _typeToNameMap[entityType] = name;
     _nameToTypeMap[name] = entityType;
     if (!_factoriesInitialized) {
@@ -71,13 +63,6 @@ bool EntityTypes::registerEntityType(EntityType entityType, const char* name, En
 }
 
 EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties)";
-        qDebug() << "   entityType=" << entityType;
-        qDebug() << "   entityID=" << entityID;
-    }
-
     EntityItem* newEntityItem = NULL;
     EntityTypeFactory factory = NULL;
     if (entityType >= 0 && entityType <= LAST) {
@@ -100,16 +85,7 @@ EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const Entity
 EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
             ReadBitstreamToTreeParams& args) {
 
-    bool wantDebug = false;
-
-    //qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead)";
-    //qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... CALLED BUT NOT IMPLEMENTED!!!";
-    
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
-        if (wantDebug) {
-            qDebug() << "EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead).... OLD BITSTREAM!!!";
-        }
-
         EntityItemID tempEntityID;
         EntityItemProperties tempProperties;
         return constructEntityItem(Model, tempEntityID, tempProperties);
@@ -133,9 +109,6 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
         QUuid actualID = QUuid::fromRfc4122(encodedID);
         bytesRead += encodedID.size();
-        if (wantDebug) {
-            qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! actualID=" << actualID;
-        }
 
         // type
         QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
@@ -149,10 +122,6 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         EntityItemProperties tempProperties;
         tempProperties.setCreated(usecTimestampNow()); // this is temporary...
 
-        if (wantDebug) {
-            qDebug() << "EntityTypes::constructEntityItem(data, bytesToRead).... NEW BITSTREAM!!! entityType=" << entityType;
-        }
-        
         return constructEntityItem(entityType, tempEntityID, tempProperties);
     }
     

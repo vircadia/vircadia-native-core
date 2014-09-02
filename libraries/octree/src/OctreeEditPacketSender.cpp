@@ -45,7 +45,6 @@ OctreeEditPacketSender::~OctreeEditPacketSender() {
         _preServerPackets.erase(_preServerPackets.begin());
     }
     _pendingPacketsLock.unlock();
-    //qDebug("OctreeEditPacketSender::~OctreeEditPacketSender() [%p] destroyed... ", this);
 }
 
 
@@ -86,10 +85,6 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                                                size_t length, qint64 satoshiCost) {
 
     bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "OctreeEditPacketSender::queuePacketToNode() called on thread:" << QThread::currentThread();
-    }
-
     NodeList* nodeList = NodeList::getInstance();
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
@@ -107,10 +102,6 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                 // send packet
                 QByteArray packet(reinterpret_cast<const char*>(buffer), length);
 
-                if (wantDebug) {
-                    qDebug() << "OctreeEditPacketSender::queuePacketToNode().... calling queuePacketForSending().... "
-                                    "called on thread:" << QThread::currentThread();
-                }
                 queuePacketForSending(node, packet);
                 
                 if (hasDestinationWalletUUID() && satoshiCost > 0) {
@@ -226,11 +217,6 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, size_t le
 // NOTE: editPacketBuffer - is JUST the octcode/color and does not contain the packet header!
 void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned char* editPacketBuffer,
                                                     size_t length, qint64 satoshiCost) {
-                                                    
-    bool wantDebug = false;                                                    
-    if (wantDebug) {
-        qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage() called on thread:" << QThread::currentThread();
-    }
 
     if (!_shouldSend) {
         return; // bail early
@@ -284,42 +270,18 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
                 _serverJurisdictions->unlock();
             }
             if (isMyJurisdiction) {
-            
-                if (wantDebug) {
-                    qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... isMyJurisidiction....";
-                }
-
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeUUID];
                 packetBuffer._nodeUUID = nodeUUID;
 
                 // If we're switching type, then we send the last one and start over
                 if ((type != packetBuffer._currentType && packetBuffer._currentSize > 0) ||
                     (packetBuffer._currentSize + length >= _maxPacketSize)) {
-
-                    if (wantDebug) {
-                        qDebug() << "SWITCHING TYPE OR MAX PACKET SIZE...initializePacket()....";
-                        qDebug() << "    type=" << type;
-                        qDebug() << "    packetBuffer._currentType=" << packetBuffer._currentType;
-                        qDebug() << "    packetBuffer._currentSize=" << packetBuffer._currentSize;
-                        qDebug() << "    length=" << length;
-                        qDebug() << "    packetBuffer._currentSize + length=" << (packetBuffer._currentSize + length);
-                        qDebug() << "    _maxPacketSize=" << _maxPacketSize;
-                    }
-
                     releaseQueuedPacket(packetBuffer);
                     initializePacket(packetBuffer, type);
                 }
 
                 // If the buffer is empty and not correctly initialized for our type...
                 if (type != packetBuffer._currentType && packetBuffer._currentSize == 0) {
-
-                    if (wantDebug) {
-                        qDebug() << "SWITCHING TYPE EMPTY...initializePacket()....";
-                        qDebug() << "    type=" << type;
-                        qDebug() << "    packetBuffer._currentType=" << packetBuffer._currentType;
-                        qDebug() << "    packetBuffer._currentSize=" << packetBuffer._currentSize;
-                    }
-
                     initializePacket(packetBuffer, type);
                 }
 
@@ -328,40 +290,12 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
                 // We call this virtual function that allows our specific type of EditPacketSender to
                 // fixup the buffer for any clock skew
                 if (node->getClockSkewUsec() != 0) {
-
-
-                    if (wantDebug) {
-                        qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... adjustEditPacketForClockSkew()....";
-                        qDebug() << "       length=" << length;
-                        {
-                            qDebug() << "       BEFORE adjust edit data contents:";
-                            QDebug debug = qDebug();
-                            outputBufferBits(editPacketBuffer, length, &debug);
-                        }
-                    }
-
                     adjustEditPacketForClockSkew(type, editPacketBuffer, length, node->getClockSkewUsec());
-
-                    if (wantDebug) {
-                        qDebug() << "       AFTER adjust edit data contents:";
-                        QDebug debugA = qDebug();
-                        outputBufferBits(editPacketBuffer, length, &debugA);
-                    }
-                }
-
-                if (wantDebug) {
-                    qDebug() << "OctreeEditPacketSender::queueOctreeEditMessage()... memcpy(&packetBuffer...)....";
-                    qDebug() << "    BEFORE packetBuffer._currentSize=" << packetBuffer._currentSize;
                 }
 
                 memcpy(&packetBuffer._currentBuffer[packetBuffer._currentSize], editPacketBuffer, length);
                 packetBuffer._currentSize += length;
                 packetBuffer._satoshiCost += satoshiCost;
-
-                if (wantDebug) {
-                    qDebug() << "    AFTER packetBuffer._currentSize=" << packetBuffer._currentSize;
-                }
-
             }
         }
     }
@@ -371,8 +305,6 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
 }
 
 void OctreeEditPacketSender::releaseQueuedMessages() {
-
-
     // if we don't yet have jurisdictions then we can't actually release messages yet because we don't
     // know where to send them to. Instead, just remember this request and when we eventually get jurisdictions
     // call release again at that time.
@@ -388,13 +320,8 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
 }
 
 void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) {
-    bool wantDebug = false;
     _releaseQueuedPacketMutex.lock();
     if (packetBuffer._currentSize > 0 && packetBuffer._currentType != PacketTypeUnknown) {
-        if (wantDebug) {
-            qDebug() << "OctreeEditPacketSender::releaseQueuedPacket().... has something to do.... "
-                        "and was called on thread:" << QThread::currentThread();
-        }
         queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0],
                           packetBuffer._currentSize, packetBuffer._satoshiCost);
         packetBuffer._currentSize = 0;

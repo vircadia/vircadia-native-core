@@ -20,7 +20,6 @@
 
 
 EntityItem* SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    qDebug() << "SphereEntityItem::factory(const EntityItemID& entityItemID, const EntityItemProperties& properties)...";
     return new SphereEntityItem(entityID, properties);
 }
 

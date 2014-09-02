@@ -44,31 +44,10 @@ void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityI
     if (!_shouldSend) {
         return; // bail early
     }
-
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityEditPacketSender::queueEraseEntityMessage() entityItemID=" << entityItemID;
-    }
-
     // use MAX_PACKET_SIZE since it's static and guaranteed to be larger than _maxPacketSize
     static unsigned char bufferOut[MAX_PACKET_SIZE];
     size_t sizeOut = 0;
-
-    if (wantDebug) {
-        qDebug() << "    _maxPacketSize=" << _maxPacketSize;
-    }
-
     if (EntityItemProperties::encodeEraseEntityMessage(entityItemID, &bufferOut[0], _maxPacketSize, sizeOut)) {
-
-        if (wantDebug) {
-            qDebug() << "   encodeEraseEntityMessage()... sizeOut=" << sizeOut;
-            {
-                QDebug debug = qDebug();
-                debug << "       edit data contents:";
-                outputBufferBits(&bufferOut[0], sizeOut, &debug);
-            }
-        }
-
         queueOctreeEditMessage(PacketTypeEntityErase, bufferOut, sizeOut);
     }
 }

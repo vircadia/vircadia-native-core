@@ -142,13 +142,8 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         dataAt += modelURLLength;
         bytesRead += modelURLLength;
 
-//qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer().... EntityID: " << getEntityItemID() << " --- PROP_MODEL_URL:" << modelURLString;
-
         if (overwriteLocalData) {
             setModelURL(modelURLString);
-//qDebug() << "    setModelURL(modelURLString)=" << getModelURL();
-        } else {
-//qDebug() << "    WARNING >>>>>>>>>>> IGNORING NEW DATA!!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
         }
     }
     
@@ -220,7 +215,6 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
         dataAt += sizeof(oldID);
         bytesRead += sizeof(oldID);
         _id = QUuid::createUuid();
-        //qDebug() << "ModelEntityItem::oldVersionReadEntityDataFromBuffer()... oldID=" << oldID << "new _id=" << _id;
 
         // _lastUpdated
         memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
@@ -356,9 +350,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
         LevelDetails propertyLevel = packetData->startLevel();
         successPropertyFits = packetData->appendValue(getModelURL());
         if (successPropertyFits) {
-        
-//qDebug() << "ModelEntityItem::appendSubclassData().... EntityID: " << getEntityItemID() << " --- PROP_MODEL_URL:" << getModelURL();
-
             propertyFlags |= PROP_MODEL_URL;
             propertiesDidntFit -= PROP_MODEL_URL;
             propertyCount++;
@@ -370,8 +361,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     } else {
         propertiesDidntFit -= PROP_MODEL_URL;
     }
-
-    //qDebug() << "ModelEntityItem::appendEntityData()... modelURL=" << getModelURL();
 
     // PROP_ANIMATION_URL
     if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
@@ -499,34 +488,16 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
 }
 
 QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "ModelEntityItem::getAnimationFrame()....";
-    }
     QVector<glm::quat> frameData;
     if (hasAnimation() && _jointMappingCompleted) {
         Animation* myAnimation = getAnimation(_animationURL);
         QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
         int frameCount = frames.size();
 
-        if (wantDebug) {
-            qDebug() << "    (hasAnimation() && _jointMappingCompleted)";
-            qDebug() << "    myAnimation=" << myAnimation;
-            qDebug() << "    frameCount=" << frameCount;
-            qDebug() << "   _animationFrameIndex=" << _animationFrameIndex;
-        }
-
         if (frameCount > 0) {
             int animationFrameIndex = (int)(glm::floor(_animationFrameIndex)) % frameCount;
 
             if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
-                if (wantDebug) {
-                    qDebug() << "ModelEntityItem::getAnimationFrame()....";
-                    qDebug() << "   frame index out of bounds....";
-                    qDebug() << "   _animationFrameIndex=" << _animationFrameIndex;
-                    qDebug() << "   frameCount=" << frameCount;
-                    qDebug() << "   animationFrameIndex=" << animationFrameIndex;
-                }
                 animationFrameIndex = 0;
             }
             
@@ -565,39 +536,15 @@ EntityItem::SimulationState ModelEntityItem::getSimulationState() const {
 }
 
 void ModelEntityItem::update(const quint64& updateTime) {
-    const bool wantDebugging = true;
-
-    //_lastUpdated = updateTime;
-
     EntityItem::update(updateTime); // let our base class handle it's updates...
 
-    quint64 now = updateTime; //usecTimestampNow();
+    quint64 now = updateTime;
     
     // only advance the frame index if we're playing
     if (getAnimationIsPlaying()) {
-
-        if (wantDebugging) {
-            qDebug() << "ModelEntityItem::update()";
-            qDebug() << "                 ID="<< getEntityItemID();
-            qDebug() << " usecTimestampNow()=" << usecTimestampNow();
-            qDebug() << "                now=" << now;
-            qDebug() << "         updateTime=" << updateTime;
-            qDebug() << "      _lastAnimated=" << _lastAnimated;
-        }
-
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
-
-        if (wantDebugging) {
-            qDebug() << "          deltaTime=" << deltaTime;
-        }
-
         _lastAnimated = now;
         _animationFrameIndex += deltaTime * _animationFPS;
-
-        if (wantDebugging) {
-            qDebug() << "_animationFrameIndex=" << _animationFrameIndex;
-        }
-
     } else {
         _lastAnimated = now;
     }

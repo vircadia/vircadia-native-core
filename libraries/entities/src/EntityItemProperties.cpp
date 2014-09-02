@@ -824,13 +824,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         int  finalizedSize = packetData.getFinalizedSize();
         memcpy(bufferOut, finalizedData, finalizedSize);
         sizeOut = finalizedSize;
-        
-        bool wantDebug = false;
-        if (wantDebug) {
-            qDebug() << "encodeEntityEditMessageDetails().... ";
-            outputBufferBits(finalizedData, finalizedSize);
-        }
-        
     } else {
         packetData.discardSubTree();
         sizeOut = 0;
@@ -858,11 +851,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
                         EntityItemID& entityID, EntityItemProperties& properties) {
     bool valid = false;
 
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityItemProperties::decodeEntityEditPacket() bytesToRead=" << bytesToRead;
-    }
-
     const unsigned char* dataAt = data;
     processedBytes = 0;
 
@@ -870,10 +858,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     // actually use it, we do need to skip it and read to the actual data we care about.
     int octets = numberOfThreeBitSectionsInCode(data);
     int bytesToReadOfOctcode = bytesRequiredForCodeLength(octets);
-
-    if (wantDebug) {
-        qDebug() << "EntityItemProperties::decodeEntityEditPacket() bytesToReadOfOctcode=" << bytesToReadOfOctcode;
-    }
 
     // we don't actually do anything with this octcode...
     dataAt += bytesToReadOfOctcode;
@@ -898,13 +882,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     dataAt += encodedID.size();
     processedBytes += encodedID.size();
 
-    if (wantDebug) {
-        qDebug() << "EntityItemProperties::decodeEntityEditPacket() editID=" << editID;
-    }
-
     bool isNewEntityItem = (editID == NEW_ENTITY);
-
-    //qDebug() << "EntityItemProperties::decodeEntityEditPacket() isNewEntityItem=" << isNewEntityItem;
 
     if (isNewEntityItem) {
         // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
@@ -1011,7 +989,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         dataAt += sizeof(value);
         processedBytes += sizeof(value);
         properties.setVelocity(value);
-        //qDebug() << "EntityItemProperties::decodeEntityEditPacket() PROP_VELOCITY value=" << value;
     }
 
     // PROP_GRAVITY,
@@ -1120,11 +1097,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityItemID, 
                                             unsigned char* outputBuffer, size_t maxLength, size_t& outputLength) {
 
-    const bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityItemProperties::encodeEraseEntityMessage()";
-    }
-
     unsigned char* copyAt = outputBuffer;
 
     uint16_t numberOfIds = 1; // only one entity ID in this message
@@ -1132,34 +1104,12 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     copyAt += sizeof(numberOfIds);
     outputLength = sizeof(numberOfIds);
 
-    if (wantDebug) {
-        qDebug() << "   numberOfIds=" << numberOfIds;
-    }
-    
     QUuid entityID = entityItemID.id;                
     QByteArray encodedEntityID = entityID.toRfc4122();
-
-    if (wantDebug) {
-        QDebug debugA = qDebug();
-        debugA << "       encodedEntityID contents:";
-        outputBufferBits((unsigned char*)encodedEntityID.constData(), encodedEntityID.size(), &debugA);
-    }
 
     memcpy(copyAt, encodedEntityID.constData(), NUM_BYTES_RFC4122_UUID);
     copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
-
-    if (wantDebug) {
-        qDebug() << "   entityID=" << entityID;
-        qDebug() << "   outputLength=" << outputLength;
-        qDebug() << "   NUM_BYTES_RFC4122_UUID=" << NUM_BYTES_RFC4122_UUID;
-        qDebug() << "   encodedEntityID.size()=" << encodedEntityID.size();
-        {
-            QDebug debug = qDebug();
-            debug << "       edit data contents:";
-            outputBufferBits(outputBuffer, outputLength, &debug);
-        }
-    }
 
     return true;
 }

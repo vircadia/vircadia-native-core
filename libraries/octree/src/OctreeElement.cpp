@@ -204,7 +204,6 @@ void OctreeElement::calculateAACube() {
 void OctreeElement::deleteChildAtIndex(int childIndex) {
     OctreeElement* childAt = getChildAtIndex(childIndex);
     if (childAt) {
-        //qDebug("deleteChildAtIndex()... about to call delete childAt=%p",childAt);
         delete childAt;
         setChildAtIndex(childIndex, NULL);
         _isDirty = true;

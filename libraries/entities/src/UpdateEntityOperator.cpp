@@ -33,25 +33,11 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     _oldEntityCube(),
     _newEntityCube()
 {
-    bool wantDebug = false;
-    
     // caller must have verified existence of containingElement and oldEntity
     assert(_containingElement && _existingEntity);
 
     _oldEntityCube = _existingEntity->getAACube();
     _oldEntityBox = _oldEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
-    
-    if (wantDebug) {
-        qDebug() << "UpdateEntityOperator....";
-        qDebug() << "    _existingEntity=" << _existingEntity;
-        qDebug() << "    _entityItemID=" << _entityItemID;
-        qDebug() << "    _containingElement=" << _containingElement;
-        qDebug() << "    _containingElement->getAACube()=" << _containingElement->getAACube();
-        qDebug() << "    _oldEntityCube=" << _oldEntityCube;
-        qDebug() << "    _oldEntityBox=" << _oldEntityBox;
-        qDebug() << "    _existingEntity->getPosition()=" << _existingEntity->getPosition() * (float)TREE_SCALE << "in meters";
-        qDebug() << "    _existingEntity->getRadius()=" << _existingEntity->getRadius() * (float)TREE_SCALE << "in meters";
-    }
     
     // If the new properties has position OR radius changes, but not both, we need to
     // get the old property value and set it in our properties in order for our bounds
@@ -76,65 +62,25 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
         oldElementBestFit = _containingElement->bestFitBounds(_oldEntityBox);
     }
     
-    if (wantDebug) {
-        qDebug() << "    _properties.containsBoundsProperties()=" << _properties.containsBoundsProperties();
-        qDebug() << "    oldElementBestFit=" << oldElementBestFit;
-    }
-    
     // For some reason we've seen a case where the original containing element isn't a best fit for the old properties
     // in this case we want to move it, even if the properties haven't changed.
     if (!_properties.containsBoundsProperties() && !oldElementBestFit) {
         _newEntityCube = _oldEntityCube;
         _removeOld = true; // our properties are going to move us, so remember this for later processing
-        if (wantDebug) {
-            qDebug() << "    old element is NOT the best element even though props not changing <<<<<";
-        }
     } else if (!_properties.containsBoundsProperties() || oldElementBestFit) {
         _foundOld = true;
         _newEntityCube = _oldEntityCube;
         _dontMove = true;
-        if (wantDebug) {
-            qDebug() << "    old element is best element <<<<<";
-        }
     } else {
         _newEntityCube = _properties.getAACubeTreeUnits();
         _removeOld = true; // our properties are going to move us, so remember this for later processing
-        if (wantDebug) {
-            qDebug() << "    we need new element <<<<<";
-        }
     }
 
     _newEntityBox = _newEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
-    
-    if (wantDebug) {
-        qDebug() << "    _properties.getPosition()=" << _properties.getPosition() << "in meters";
-        qDebug() << "    _properties.getRadius()=" << _properties.getRadius() << "in meters";
-        qDebug() << "    _removeOld=" << _removeOld;
-        qDebug() << "    _newEntityCube=" << _newEntityCube;
-        qDebug() << "    _newEntityBox=" << _newEntityBox;
-        qDebug() << "    _removeOld=" << _removeOld;
-        qDebug() << "    _containingElement->bestFitBounds(_properties)=" << _containingElement->bestFitBounds(_properties);
-        qDebug() << "    _containingElement->bestFitBounds(_oldEntityCube)=" << _containingElement->bestFitBounds(_oldEntityCube);
-        qDebug() << "    _containingElement->bestFitBounds(_oldEntityBox)=" << _containingElement->bestFitBounds(_oldEntityBox);
-        qDebug() << "    _containingElement->bestFitBounds(_newEntityCube)=" << _containingElement->bestFitBounds(_newEntityCube);
-        qDebug() << "    _containingElement->bestFitBounds(_newEntityBox)=" << _containingElement->bestFitBounds(_newEntityBox);
-
-        qDebug() << "------------ UpdateEntityOperator -- BEFORE WE BEGIN: the tree[" << _tree << "] -------------";
-        _tree->dumpTree();
-        qDebug() << "------------ UpdateEntityOperator -- END the tree-------------";
-    }
 }
 
 
 UpdateEntityOperator::~UpdateEntityOperator() {
-    bool wantDebug = false;
-    
-    if (wantDebug) {
-        qDebug() << "~UpdateEntityOperator().... ";
-        qDebug() << "------------ ~UpdateEntityOperator -- AFTER WE'RE DONE: the tree[" << _tree << "] -------------";
-        _tree->dumpTree();
-        qDebug() << "------------ ~UpdateEntityOperator -- END the tree-------------";
-    }
 }
 
 
@@ -176,8 +122,6 @@ bool UpdateEntityOperator::subTreeContainsNewEntity(OctreeElement* element) {
 
 
 bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
-    bool wantDebug = false;
-    
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
@@ -194,69 +138,25 @@ bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
     bool subtreeContainsOld = subTreeContainsOldEntity(element);
     bool subtreeContainsNew = subTreeContainsNewEntity(element);
 
-    if (wantDebug) {
-        qDebug() << "UpdateEntityOperator::PreRecursion()....";    
-        qDebug() << "    entityTreeElement=" << entityTreeElement;
-        qDebug() << "    entityTreeElement->getAACube()=" << entityTreeElement->getAACube();
-
-        qDebug() << "    _foundOld=" << _foundOld;    
-        qDebug() << "    _foundNew=" << _foundNew;
-        qDebug() << "    _removeOld=" << _removeOld;
-
-        qDebug() << "    _containingElement=" << _containingElement;
-        qDebug() << "    _containingElementCube=" << _containingElementCube;
-
-        qDebug() << "    _oldEntityCube=" << _oldEntityCube;
-        qDebug() << "    _oldEntityBox=" << _oldEntityBox;
-        qDebug() << "    subtreeContainsOld=" << subtreeContainsOld;
-
-        qDebug() << "    _newEntityCube=" << _newEntityCube;
-        qDebug() << "    _newEntityBox=" << _newEntityBox;
-        qDebug() << "    subtreeContainsNew=" << subtreeContainsNew;
-    }
-    
     // If we haven't yet found the old entity, and this subTreeContains our old
     // entity, then we need to keep searching.
     if (!_foundOld && subtreeContainsOld) {
     
-        if (wantDebug) {
-            qDebug() << "    OLD BRANCH....";
-            qDebug() << "        _dontMove=" << _dontMove;
-            qDebug() << "        _removeOld=" << _removeOld;
-            qDebug() << "        entityTreeElement == _containingElement=" << (entityTreeElement == _containingElement);
-            qDebug() << "        entityTreeElement->bestFitBounds(_newEntityBox)=" << entityTreeElement->bestFitBounds(_newEntityBox);
-            qDebug() << "        _containingElement->bestFitBounds(_newEntityBox)=" << _containingElement->bestFitBounds(_newEntityBox);
-        }
-
-
         // If this is the element we're looking for, then ask it to remove the old entity
         // and we can stop searching.
         if (entityTreeElement == _containingElement) {
 
-            if (wantDebug) {
-                qDebug() << "    OLD BRANCH.... CONTAINING ELEMENT";
-            }
-        
             // If the containgElement IS NOT the best fit for the new entity properties
             // then we need to remove it, and the updateEntity below will store it in the
             // correct element.
             if (_removeOld) {
                 entityTreeElement->removeEntityItem(_existingEntity); // NOTE: only removes the entity, doesn't delete it
 
-                if (wantDebug) {
-                    qDebug() << "    OLD BRANCH.... REMOVE ENTITY.... entityTreeElement->removeEntityItem(_existingEntity);";
-                }
-                
                 // If we haven't yet found the new location, then we need to 
                 // make sure to remove our entity to element map, because for
                 // now we're not in that map
                 if (!_foundNew) {
                     _tree->setContainingElement(_entityItemID, NULL);
-
-                    if (wantDebug) {
-                        qDebug() << "    OLD BRANCH.... CLEAR CONTAINING ELEMENT... _tree->setContainingElement(_entityItemID, NULL);";
-                    }
-
                 }
             }
             _foundOld = true;
@@ -270,57 +170,20 @@ bool UpdateEntityOperator::PreRecursion(OctreeElement* element) {
     // entity, then we need to keep searching.
     if (!_foundNew && subtreeContainsNew) {
 
-        if (wantDebug) {
-            qDebug() << "    NEW BRANCH....";
-            qDebug() << "        _dontMove=" << _dontMove;
-            qDebug() << "        _removeOld=" << _removeOld;
-            qDebug() << "        entityTreeElement == _containingElement=" << (entityTreeElement == _containingElement);
-            qDebug() << "        entityTreeElement->bestFitBounds(_newEntityBox)=" << entityTreeElement->bestFitBounds(_newEntityBox);
-            qDebug() << "        _containingElement->bestFitBounds(_newEntityBox)=" << _containingElement->bestFitBounds(_newEntityBox);
-        }
-    
-
         // If this element is the best fit for the new entity properties, then add/or update it
         if (entityTreeElement->bestFitBounds(_newEntityBox)) {
 
-            if (wantDebug) {
-                qDebug() << "    NEW BRANCH.... BEST FIT";
-                qDebug() << "        _dontMove=" << _dontMove;
-                qDebug() << "        _removeOld=" << _removeOld;
-                qDebug() << "        entityTreeElement == _containingElement=" << (entityTreeElement == _containingElement);
-            }
-
             // if we are the existing containing element, then we can just do the update of the entity properties
-            
             if (entityTreeElement == _containingElement) {
                 assert(!_removeOld); // We shouldn't be in a remove old case and also be the new best fit
 
                 // set the entity properties and mark our element as changed.
                 _existingEntity->setProperties(_properties);
-
-                if (wantDebug) {
-                    qDebug() << "    NEW BRANCH.... BEST FIT AND CONTAINING.... NEW=OLD CASE";
-                }
-
             } else {
                 // otherwise, this is an add case.
-
-                if (wantDebug) {
-                    qDebug() << "UpdateEntityOperator()... UPDATING EXISTING ENTITY -- PLACE IN NEW ELEMENT";
-                    qDebug() << "    element=" << entityTreeElement;
-                    qDebug() << "    element cube=" << entityTreeElement->getAACube();
-                    qDebug() << "    existingEntity=" << _existingEntity;
-                    qDebug() << "    entityItemID=" << _entityItemID;
-                }
-
                 entityTreeElement->addEntityItem(_existingEntity);
                 _existingEntity->setProperties(_properties); // still need to update the properties!
                 _tree->setContainingElement(_entityItemID, entityTreeElement);
-
-                if (wantDebug) {
-                    qDebug() << "    NEW BRANCH.... ADD ENTITY";
-                    qDebug() << "    NEW BRANCH.... SET CONTAINING";
-                }
             }
             _foundNew = true; // we found the new item!
         } else {
@@ -340,30 +203,6 @@ bool UpdateEntityOperator::PostRecursion(OctreeElement* element) {
     bool subtreeContainsOld = subTreeContainsOldEntity(element);
     bool subtreeContainsNew = subTreeContainsNewEntity(element);
 
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "UpdateEntityOperator::PostRecursion()...";
-        qDebug() << "    element=" << element;
-        qDebug() << "    element->getAACube()=" << element->getAACube();
-
-        qDebug() << "    subtreeContainsOld=" << subtreeContainsOld;
-        qDebug() << "    subtreeContainsNew=" << subtreeContainsNew;
-
-        qDebug() << "    _foundOld=" << _foundOld;    
-        qDebug() << "    _foundNew=" << _foundNew;
-        qDebug() << "    _removeOld=" << _removeOld;
-        qDebug() << "    keepSearching=" << keepSearching;
-
-        qDebug() << "    _containingElement=" << _containingElement;
-        qDebug() << "    _containingElementCube=" << _containingElementCube;
-
-        qDebug() << "    _properties.getPosition()=" << _properties.getPosition() << "in meters";
-        qDebug() << "    _properties.getRadius()=" << _properties.getRadius() << "in meters";
-        qDebug() << "    _newEntityCube=" << _newEntityCube;
-        qDebug() << "    _newEntityBox=" << _newEntityBox;
-    }
-
-
     // As we unwind, if we're in either of these two paths, we mark our element
     // as dirty.
     if ((_foundOld && subtreeContainsOld) ||
@@ -381,10 +220,7 @@ bool UpdateEntityOperator::PostRecursion(OctreeElement* element) {
     // 3) we are removing the old, this subtree contains the old, but this element isn't a direct parent of _containingElement
     if (!_removeOld || !subtreeContainsOld || !element->isParentOf(_containingElement)) {
         EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-        bool somethingPruned = entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
-        if (somethingPruned && wantDebug) {
-            qDebug() << "UpdateEntityOperator::PostRecursion() something pruned!!!";
-        }
+        entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
     }
     
     return keepSearching; // if we haven't yet found it, keep looking
@@ -395,34 +231,6 @@ OctreeElement* UpdateEntityOperator::PossiblyCreateChildAt(OctreeElement* elemen
     // We only care if this happens while still searching for the new entity location.
     // Check to see if 
     if (!_foundNew) {
-
-        bool wantDebug = false;
-        if (wantDebug) {
-            qDebug() << "UpdateEntityOperator::PossiblyCreateChildAt()...";
-            qDebug() << "    element=" << element;
-            qDebug() << "    element->getAACube()=" << element->getAACube();
-            qDebug() << "    childIndex=" << childIndex;
-
-            bool subtreeContainsOld = subTreeContainsOldEntity(element);
-            bool subtreeContainsNew = subTreeContainsNewEntity(element);
-
-            qDebug() << "    subtreeContainsOld=" << subtreeContainsOld;
-            qDebug() << "    subtreeContainsNew=" << subtreeContainsNew;
-
-            qDebug() << "    _foundOld=" << _foundOld;    
-            qDebug() << "    _foundNew=" << _foundNew;
-            qDebug() << "    _removeOld=" << _removeOld;
-
-            qDebug() << "    _containingElement=" << _containingElement;
-            qDebug() << "    _containingElementCube=" << _containingElementCube;
-
-            qDebug() << "    _properties.getPosition()=" << _properties.getPosition() << "in meters";
-            qDebug() << "    _properties.getRadius()=" << _properties.getRadius() << "in meters";
-            qDebug() << "    _newEntityCube=" << _newEntityCube;
-            qDebug() << "    _newEntityBox=" << _newEntityBox;
-        }
-
-
         float childElementScale = element->getScale() / 2.0f; // all of our children will be half our scale
         
         // Note: because the entity's bounds might have been clamped to the domain. We want to check if the
@@ -430,33 +238,12 @@ OctreeElement* UpdateEntityOperator::PossiblyCreateChildAt(OctreeElement* elemen
         // bounds of the element would hang outside of the child elements cells.
         bool entityWouldFitInChild = _newEntityBox.getLargestDimension() <= childElementScale;
 
-        if (wantDebug) {
-            qDebug() << "    childElementScale=" << childElementScale;
-            qDebug() << "    _newEntityBox.getLargestDimension()=" << _newEntityBox.getLargestDimension();
-            qDebug() << "    entityWouldFitInChild=" << entityWouldFitInChild;
-        }
-
-        
         // if the scale of our desired cube is smaller than our children, then consider making a child
         if (entityWouldFitInChild) {
             int indexOfChildContainingNewEntity = element->getMyChildContaining(_newEntityBox);
 
-            if (wantDebug) {
-                qDebug() << "    indexOfChildContainingNewEntity=" << indexOfChildContainingNewEntity;
-            }
-
             if (childIndex == indexOfChildContainingNewEntity) {
                 return element->addChildAtIndex(childIndex);;
-            }
-        } else {
-            // NOTE: This can happen for good reason. Consider the case where we are recursing BACK UP
-            // from the old location of clamped placement and the new location is "less clamped".
-            // Say the old location was clamped in all three dimensions so its largest clamped dimension was
-            // half the actual entity dimension. But the NEW clamped dimension is only clamped on 
-            // one or two axis. In this case we'll travel back up through cells that are smaller
-            // than our desired cell size.
-            if (wantDebug) {
-                qDebug() << "    cell too small to be interesting";
             }
         }
     }

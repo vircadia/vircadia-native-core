@@ -304,7 +304,6 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
             // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
             // subtree/element, because it shouldn't actually exist in the tree.
             if (!oneAtBit(childrenInTreeMask, i) && destinationElement->getChildAtIndex(i)) {
-                //qDebug() << "Octree::readElementData()... pruning our tree for child i=" << i;
                 destinationElement->safeDeepDeleteChildAtIndex(i);
                 _isDirty = true; // by definition!
             }
@@ -952,7 +951,6 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
     // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...
     if (!roomForOctalCode) {
         bag.insert(element);
-//qDebug() << "params.stopReason = EncodeBitstreamParams::DIDNT_FIT --- line:" << __LINE__;
         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
         return bytesWritten;
     }
@@ -1013,15 +1011,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
     // The append state of this level/element.
     OctreeElement::AppendState elementAppendState = OctreeElement::COMPLETED; // assume the best
-    if (wantDebug && element != _rootElement) {
-        qDebug() << "TOP OF Octree::encodeTreeBitstreamRecursion().... elementAppendState = OctreeElement::COMPLETED ----";
-        if (element) {
-            qDebug() << "    element=" << element->getAACube();
-            element->debugExtraEncodeData(params);
-        } else {
-            qDebug() << "    element=NULL";
-        }
-    }
 
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
@@ -1030,7 +1019,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     if (!element) {
         qDebug("WARNING! encodeTreeBitstreamRecursion() called with element=NULL");
         params.stopReason = EncodeBitstreamParams::NULL_NODE;
-        //qDebug() << "encodeTreeBitstreamRecursion() --- returning from line: " << __LINE__;
         return bytesAtThisLevel;
     }
 
@@ -1042,7 +1030,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     // If we've reached our max Search Level, then stop searching.
     if (currentEncodeLevel >= params.maxEncodeLevel) {
         params.stopReason = EncodeBitstreamParams::TOO_DEEP;
-        //qDebug() << "encodeTreeBitstreamRecursion() --- returning from line: " << __LINE__;
         return bytesAtThisLevel;
     }
 
@@ -1052,7 +1039,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // but once we're in our own jurisdiction, then we need to make sure we're not below it.
         if (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(element->getOctalCode(), CHECK_NODE_ONLY)) {
             params.stopReason = EncodeBitstreamParams::OUT_OF_JURISDICTION;
-            //qDebug() << "encodeTreeBitstreamRecursion() --- returning from line: " << __LINE__;
             return bytesAtThisLevel;
         }
     }
@@ -1071,7 +1057,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 params.stats->skippedDistance(element);
             }
             params.stopReason = EncodeBitstreamParams::LOD_SKIP;
-            //qDebug() << "encodeTreeBitstreamRecursion() --- returning from line: " << __LINE__;
             return bytesAtThisLevel;
         }
 
@@ -1090,7 +1075,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 params.stats->skippedOutOfView(element);
             }
             params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
-            //qDebug() << "encodeTreeBitstreamRecursion() --- returning from line: " << __LINE__;
             return bytesAtThisLevel;
         }
 
@@ -1131,7 +1115,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 params.stats->skippedWasInView(element);
             }
             params.stopReason = EncodeBitstreamParams::WAS_IN_VIEW;
-            //qDebug() << "encodeTreeBitstreamRecursion() --- returning from line: " << __LINE__;
             return bytesAtThisLevel;
         }
 
@@ -1143,11 +1126,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 params.stats->skippedNoChange(element);
             }
             params.stopReason = EncodeBitstreamParams::NO_CHANGE;
-            if (wantDebug) {
-                if (element != _rootElement) {
-                    qDebug() << "encodeTreeBitstreamRecursion() --- returning from line: " << __LINE__;
-                }
-            }
             return bytesAtThisLevel;
         }
 
@@ -1168,7 +1146,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                         params.stats->skippedOccluded(element);
                     }
                     params.stopReason = EncodeBitstreamParams::OCCLUDED;
-                    //qDebug() << "encodeTreeBitstreamRecursion() --- returning from line: " << __LINE__;
                     return bytesAtThisLevel;
                 }
             } else {
@@ -1201,24 +1178,15 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     // minimum bytes needed for root data and reserve those also
     if (element == _rootElement && rootElementHasData()) {
         requiredBytes += minimumRequiredRootDataBytes();
-        if (wantDebug) {
-            qDebug() << "Reserving at least " << minimumRequiredRootDataBytes() << " additional bytes for root data <<<<<<<<<<";
-        }
-    }
-    if (wantDebug) {
-        qDebug() << "Reserving total of " << requiredBytes <<" bytes for this elements data <<<<<<<<<<<<<<";
     }
      
     bool continueThisLevel = packetData->reserveBytes(requiredBytes);
 
     // If we can't reserve our minimum bytes then we can discard this level and return as if none of this level fits
     if (!continueThisLevel) {
-        //qDebug() << "    .....COULDN'T RESERVE MINIMUM BYTES.....";
         packetData->discardLevel(thisLevelKey);
-        //qDebug() << "params.stopReason = EncodeBitstreamParams::DIDNT_FIT --- line:" << __LINE__;
         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
         bag.insert(element);
-        //qDebug() << "encodeTreeBitstreamRecursion() --- returning from line: " << __LINE__;
         return bytesAtThisLevel;
     }
 
@@ -1446,7 +1414,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     // to be completed.
                     LevelDetails childDataLevelKey = packetData->startLevel();
                     
-//qDebug() << "Octree::encodeTreeBitstreamRecursion().... calling childElement->appendElementData()... child:" << childElement->getAACube();
                     OctreeElement::AppendState childAppendState = childElement->appendElementData(packetData, params);
                     
                     // allow our tree subclass to do any additional bookkeeping it needs to do with encoded data state
@@ -1461,27 +1428,15 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                         actualChildrenDataBits += (1 << (7 - i));
                         continueThisLevel = packetData->endLevel(childDataLevelKey);
                     } else {
-                        if (wantDebug) {
-                            qDebug() << "(childAppendState == OctreeElement::NONE) ... consider this element PARTIAL *************************************************";
-                            qDebug() << "    childElement=" << childElement->getAACube();
-                        }
                         packetData->discardLevel(childDataLevelKey);
                         elementAppendState = OctreeElement::PARTIAL;
                         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
-//qDebug() << "Octree::encodeTreeBitstreamRecursion().... at least one child didn't fit elementAppendState = OctreeElement::PARTIAL ----";
-//qDebug() << "params.stopReason = EncodeBitstreamParams::DIDNT_FIT --- line:" << __LINE__;
                     }
 
                     // If this child was partially appended, then consider this element to be partially appended
                     if (childAppendState == OctreeElement::PARTIAL) {
-                        if (wantDebug) {
-                            qDebug() << "(childAppendState == OctreeElement::PARTIAL) ... consider this element PARTIAL";
-                            qDebug() << "    childElement=" << childElement->getAACube();
-                        }
                         elementAppendState = OctreeElement::PARTIAL;
                         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
-//qDebug() << "Octree::encodeTreeBitstreamRecursion().... at least one child WAS PARTIAL elementAppendState = OctreeElement::PARTIAL ----";
-//qDebug() << "params.stopReason = EncodeBitstreamParams::DIDNT_FIT --- line:" << __LINE__;
                     }
                     
                     int bytesAfterChild = packetData->getUncompressedSize();
@@ -1492,25 +1447,14 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     if (params.stats && (childAppendState != OctreeElement::NONE)) {
                         params.stats->colorSent(childElement);
                     }
-                } else {
-                    if (wantDebug) {
-                        qDebug() << "Octree::encodeTreeBitstreamRecursion().... DIDN'T ATTEMPT TO appendElementData() for child[" << i << "]";
-                        if (childElement) {
-                            qDebug() << "    childElement=" << childElement->getAACube();
-                        } else {
-                            qDebug() << "    childElement=NULL";
-                        }
-                    }
                 }
             }
         }
     }
     
     if (!continueThisLevel) {
-        qDebug() << "******* WARNING UNEXPECTED CASE ***********************************************************";
-        qDebug() << "reached end of child element data loop with continueThisLevel=FALSE....";
-        qDebug() << "This is not expected!!!!";
-        qDebug() << "*******************************************************************************************";
+        qDebug() << "WARNING UNEXPECTED CASE: reached end of child element data loop with continueThisLevel=FALSE";
+        qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
     }
 
     if (actualChildrenDataBits != childrenDataBits) {
@@ -1518,10 +1462,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         continueThisLevel = packetData->updatePriorBitMask(childDataBitsPlaceHolder, actualChildrenDataBits);
 
         if (!continueThisLevel) {
-            qDebug() << "******* WARNING UNEXPECTED CASE ***********************************************************";
-            qDebug() << "Failed to update childDataBitsPlaceHolder -- continueThisLevel=FALSE....";
-            qDebug() << "This is not expected!!!!";
-            qDebug() << "*******************************************************************************************";
+            qDebug() << "WARNING UNEXPECTED CASE: Failed to update childDataBitsPlaceHolder";
+            qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
         }
     }
 
@@ -1536,10 +1478,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 params.stats->existsBitsWritten();
             }
         } else {
-            qDebug() << "******* WARNING UNEXPECTED CASE ***********************************************************";
-            qDebug() << "Failed to append childrenExistInTreeBits -- continueThisLevel=FALSE....";
-            qDebug() << "This is not expected!!!!";
-            qDebug() << "*******************************************************************************************";
+            qDebug() << "WARNING UNEXPECTED CASE: Failed to append childrenExistInTreeBits";
+            qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
         }
     }
 
@@ -1553,10 +1493,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 params.stats->existsInPacketBitsWritten();
             }
         } else {
-            qDebug() << "******* WARNING UNEXPECTED CASE ***********************************************************";
-            qDebug() << "Failed to append childrenExistInPacketBits -- continueThisLevel=FALSE....";
-            qDebug() << "This is not expected!!!!";
-            qDebug() << "*******************************************************************************************";
+            qDebug() << "WARNING UNEXPECTED CASE: Failed to append childrenExistInPacketBits";
+            qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
         }
     }
 
@@ -1665,10 +1603,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     // repair the child exists mask
                     continueThisLevel = packetData->updatePriorBitMask(childExistsPlaceHolder, childrenExistInPacketBits);
                     if (!continueThisLevel) {
-                        qDebug() << "******* WARNING UNEXPECTED CASE ***********************************************************";
-                        qDebug() << "Failed to update childExistsPlaceHolder -- continueThisLevel=FALSE....";
-                        qDebug() << "This is not expected!!!!";
-                        qDebug() << "*******************************************************************************************";
+                        qDebug() << "WARNING UNEXPECTED CASE: Failed to update childExistsPlaceHolder";
+                        qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
                     }
 
                     // If this is the last of the child exists bits, then we're actually be rolling out the entire tree
@@ -1677,7 +1613,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     }
 
                     if (!continueThisLevel) {
-                        if (true || wantDebug) {
+                        if (wantDebug) {
                             qDebug() << "    WARNING line:" << __LINE__;
                             qDebug() << "       breaking the child recursion loop with continueThisLevel=false!!!";
                             qDebug() << "       AFTER attempting to updatePriorBitMask() for empty sub tree....";
@@ -1713,10 +1649,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
             // now that all slices are back in the correct order, copy them to the correct output buffer
             continueThisLevel = packetData->updatePriorBytes(firstRecursiveSliceOffset, &tempReshuffleBuffer[0], allSlicesSize);
             if (!continueThisLevel) {
-                qDebug() << "******* WARNING UNEXPECTED CASE ***********************************************************";
-                qDebug() << "Failed to update recursive slice!!! -- continueThisLevel=FALSE....";
-                qDebug() << "This is not expected!!!!";
-                qDebug() << "*******************************************************************************************";
+                qDebug() << "WARNING UNEXPECTED CASE: Failed to update recursive slice!!!";
+                qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
             }
         }
     } // end keepDiggingDeeper
@@ -1728,7 +1662,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         int bytesBeforeChild = packetData->getUncompressedSize();
 
         // release the bytes we reserved...
-        //qDebug() << "RELEASING previously reserved " << minimumRequiredRootDataBytes() << " bytes for root -- line:" << __LINE__;
         packetData->releaseReservedBytes(minimumRequiredRootDataBytes());
 
         LevelDetails rootDataLevelKey = packetData->startLevel();
@@ -1764,10 +1697,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         }
 
         if (!continueThisLevel) {
-            qDebug() << "******* WARNING UNEXPECTED CASE ***********************************************************";
-            qDebug() << "Something failed in packing ROOT data -- continueThisLevel=FALSE....";
-            qDebug() << "This is not expected!!!!";
-            qDebug() << "*******************************************************************************************";
+            qDebug() << "WARNING UNEXPECTED CASE: Something failed in packing ROOT data";
+            qDebug() << "This is not expected!!!! -- continueThisLevel=FALSE....";
         }
 
     }
@@ -1778,21 +1709,17 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         continueThisLevel = packetData->endLevel(thisLevelKey);
     } else {
         packetData->discardLevel(thisLevelKey);
-        qDebug() << "******* WARNING UNEXPECTED CASE ***********************************************************";
-        qDebug() << "Something failed in attempting to pack this element -- continueThisLevel=FALSE....";
-        qDebug() << "This is not expected!!!!";
-        qDebug() << "*******************************************************************************************";
+        qDebug() << "WARNING UNEXPECTED CASE: Something failed in attempting to pack this element";
+        qDebug() << "This is not expected!!!! -- continueThisLevel=FALSE....";
     }
 
     // This happens if the element could not be written at all. In the case of Octree's that support partial
     // element data, continueThisLevel will be true. So this only happens if the full element needs to be
     // added back to the element bag.
     if (!continueThisLevel) {
-        qDebug() << "******* WARNING UNEXPECTED CASE ***********************************************************";
-        qDebug() << "Something failed in attempting to pack this element -- continueThisLevel=FALSE....";
-        qDebug() << "IS THIS EVER EXPECTED????";
+        qDebug() << "WARNING UNEXPECTED CASE - Something failed in attempting to pack this element";
+        qDebug() << "IS THIS EVER EXPECTED???? -- continueThisLevel=FALSE...." ;
         qDebug() << "   calling bag.insert(element);.....";
-        qDebug() << "*******************************************************************************************";
 
         bag.insert(element);
 
@@ -1802,7 +1729,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         }
 
         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
-//qDebug() << "params.stopReason = EncodeBitstreamParams::DIDNT_FIT --- line:" << __LINE__;
         bytesAtThisLevel = 0; // didn't fit
     } else {
     
@@ -1812,31 +1738,15 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // and assume that the appendElementData() has stored any required state data
         // in the params extraEncodeData
         if (elementAppendState == OctreeElement::PARTIAL) {
-            if (wantDebug) {
-                qDebug() << "(elementAppendState == OctreeElement::PARTIAL) ...";
-                qDebug() << "    RE INSERT THIS(parent) element into bag";
-                qDebug() << "    element:" << element->getAACube();
-            }
-
             bag.insert(element);
         }
     }
     
     // If our element is completed let the element know so it can do any cleanup it of extra  wants
     if (elementAppendState == OctreeElement::COMPLETED) {
-        if (wantDebug) {
-            qDebug() << "*********************************************************************************************************";
-            qDebug() << "(elementAppendState == OctreeElement::COMPLETED)";
-            qDebug() << "     calling element->elementEncodeComplete(params)";
-            qDebug() << "     element=" << element->getAACube();
-        }
         element->elementEncodeComplete(params, &bag);
-        if (wantDebug) {
-            qDebug() << "*********************************************************************************************************";
-        }
     }
 
-    //qDebug() << "encodeTreeBitstreamRecursion() --- returning from line: " << __LINE__;
     return bytesAtThisLevel;
 }
 
@@ -2023,18 +1933,12 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
         params.extraEncodeData = &extraEncodeData;
 
         while (!elementBag.isEmpty()) {
-            //qDebug() << "WRITING SVO ---- START LOOP ---------------";
             OctreeElement* subTree = elementBag.extract();
-            //qDebug() << "WRITING SVO subTree=" << subTree->getAACube();
             
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             bytesWritten = encodeTreeBitstream(subTree, &packetData, elementBag, params);
             unlock();
 
-            //qDebug() << "WRITING SVO subTree=" << subTree->getAACube() << " bytesWritten=" << bytesWritten;
-            //qDebug() << "WRITING SVO subTree=" << subTree->getAACube() << " params.stopReason=" << params.getStopReason();
-            //qDebug() << "WRITING SVO subTree=" << subTree->getAACube() << " packetData.hasContent()=" << packetData.hasContent();
-            
             // if the subTree couldn't fit, and so we should reset the packet and reinsert the element in our bag and try again
             if (bytesWritten == 0 && (params.stopReason == EncodeBitstreamParams::DIDNT_FIT)) {
                 if (packetData.hasContent()) {
@@ -2045,16 +1949,13 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
                         file.write((const char*)&bufferSize, sizeof(bufferSize));
                     }
                     file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
-                    //qDebug() << "WRITING SVO actually writing to the file bufferSize:" << packetData.getFinalizedSize();
                     lastPacketWritten = true;
                 }
                 packetData.reset(); // is there a better way to do this? could we fit more?
-                //qDebug() << "WRITING SVO INSERT SUBTREE FOR ANOTHER GO ... subTree=" << subTree->getAACube();
                 elementBag.insert(subTree);
             } else {
                 lastPacketWritten = false;
             }
-            //qDebug() << "WRITING SVO ---- END LOOP ---------------";
         }
 
         if (!lastPacketWritten) {
@@ -2065,10 +1966,8 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
                 file.write((const char*)&bufferSize, sizeof(bufferSize));
             }
             file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
-            //qDebug() << "WRITING SVO actually writing to the file bufferSize:" << packetData.getFinalizedSize();
         }
     }
-    //qDebug() << "WRITING SVO CLOSING FILE";
     file.close();
 }
 

@@ -125,41 +125,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
-    if (entityTreeElementExtraEncodeData && wantDebug) {
-        qDebug() << "    entityTreeElementExtraEncodeData INCLUDED";
-    }
-
-
     if (entityTreeElementExtraEncodeData && entityTreeElementExtraEncodeData->entities.contains(getEntityItemID())) {
         requestedProperties = entityTreeElementExtraEncodeData->entities.value(getEntityItemID());
-        
-        if (wantDebug) {
-            qDebug() << "    entityTreeElementExtraEncodeData INCLUDED -AND- this entity is included";
-            qDebug() << "    --- requestedProperties ---";
-            qDebug() << "    PROP_MODEL_URL: " << requestedProperties.getHasProperty(PROP_MODEL_URL)<< " entity ID:" << getEntityItemID();
-            qDebug() << "    --- all requestedProperties ---";
-            
-            #define DEBUG_REQUESTED_PROPERTY(x) if (requestedProperties.getHasProperty(x)) { qDebug() << "    " #x; }
-
-            DEBUG_REQUESTED_PROPERTY(PROP_MODEL_URL);
-            DEBUG_REQUESTED_PROPERTY(PROP_PAGED_PROPERTY)
-            DEBUG_REQUESTED_PROPERTY(PROP_CUSTOM_PROPERTIES_INCLUDED);
-            DEBUG_REQUESTED_PROPERTY(PROP_POSITION);
-            DEBUG_REQUESTED_PROPERTY(PROP_RADIUS);
-            DEBUG_REQUESTED_PROPERTY(PROP_ROTATION);
-            DEBUG_REQUESTED_PROPERTY(PROP_MASS);
-            DEBUG_REQUESTED_PROPERTY(PROP_VELOCITY);
-            DEBUG_REQUESTED_PROPERTY(PROP_GRAVITY);
-            DEBUG_REQUESTED_PROPERTY(PROP_DAMPING);
-            DEBUG_REQUESTED_PROPERTY(PROP_LIFETIME);
-            DEBUG_REQUESTED_PROPERTY(PROP_SCRIPT);
-            DEBUG_REQUESTED_PROPERTY(PROP_COLOR);
-            DEBUG_REQUESTED_PROPERTY(PROP_ANIMATION_URL);
-            DEBUG_REQUESTED_PROPERTY(PROP_ANIMATION_FPS);
-            DEBUG_REQUESTED_PROPERTY(PROP_ANIMATION_FRAME_INDEX);
-            DEBUG_REQUESTED_PROPERTY(PROP_ANIMATION_PLAYING);
-        }
-        
     }
 
     LevelDetails modelLevel = packetData->startLevel();
@@ -374,33 +341,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
                                 appendState);
     }
 
-#define DEBUG_PROPERTY(y, x) if (y.getHasProperty(x)) { qDebug() << "    " #x; }
-
     if (propertyCount > 0) {
         int endOfEntityItemData = packetData->getUncompressedByteOffset();
-
-        if (wantDebug) {
-            qDebug() << "Entity Properties THIS ROUND... entityID:" << getEntityItemID();
-            DEBUG_PROPERTY(propertyFlags, PROP_MODEL_URL);
-            DEBUG_PROPERTY(propertyFlags, PROP_PAGED_PROPERTY)
-            DEBUG_PROPERTY(propertyFlags, PROP_CUSTOM_PROPERTIES_INCLUDED);
-            DEBUG_PROPERTY(propertyFlags, PROP_POSITION);
-            DEBUG_PROPERTY(propertyFlags, PROP_RADIUS);
-            DEBUG_PROPERTY(propertyFlags, PROP_ROTATION);
-            DEBUG_PROPERTY(propertyFlags, PROP_MASS);
-            DEBUG_PROPERTY(propertyFlags, PROP_VELOCITY);
-            DEBUG_PROPERTY(propertyFlags, PROP_GRAVITY);
-            DEBUG_PROPERTY(propertyFlags, PROP_DAMPING);
-            DEBUG_PROPERTY(propertyFlags, PROP_LIFETIME);
-            DEBUG_PROPERTY(propertyFlags, PROP_SCRIPT);
-            DEBUG_PROPERTY(propertyFlags, PROP_COLOR);
-            DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_URL);
-            DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_FPS);
-            DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_FRAME_INDEX);
-            DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_PLAYING);
-        }
-
-        
         encodedPropertyFlags = propertyFlags;
         int newPropertyFlagsLength = encodedPropertyFlags.length();
         packetData->updatePriorBytes(propertyFlagsOffset, 
@@ -408,9 +350,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         
         // if the size of the PropertyFlags shrunk, we need to shift everything down to front of packet.
         if (newPropertyFlagsLength < oldPropertyFlagsLength) {
-        
-            //qDebug() << "PACKET SHIFTING!!! <<<<<<<<<<<<<<<< ";
-
             int oldSize = packetData->getUncompressedSize();
             const unsigned char* modelItemData = packetData->getUncompressedData(propertyFlagsOffset + oldPropertyFlagsLength);
             int modelItemDataLength = endOfEntityItemData - startOfEntityItemData;
@@ -432,31 +371,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     // If any part of the model items didn't fit, then the element is considered partial
     if (appendState != OctreeElement::COMPLETED) {
         // add this item into our list for the next appendElementData() pass
-        
-        if (wantDebug) {
-            qDebug() << "Entity Partially encoded... entityID:" << getEntityItemID();
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_MODEL_URL);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_PAGED_PROPERTY)
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_CUSTOM_PROPERTIES_INCLUDED);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_POSITION);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_RADIUS);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_ROTATION);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_MASS);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_VELOCITY);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_GRAVITY);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_DAMPING);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_LIFETIME);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_SCRIPT);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_COLOR);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_URL);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_FPS);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_FRAME_INDEX);
-            DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_PLAYING);
-        }
-        
         entityTreeElementExtraEncodeData->entities.insert(getEntityItemID(), propertiesDidntFit);
-    } else {
-        //qDebug() << "Entity COMPLETED... entityID:" << getEntityItemID();
     }
 
     return appendState;
@@ -827,42 +742,16 @@ void EntityItem::update(const quint64& updateTime) {
 }
 
 EntityItem::SimulationState EntityItem::getSimulationState() const {
-    bool wantDebug = false;
-    
-    if (wantDebug) {
-        qDebug() << "EntityItem::getSimulationState()... ";
-        qDebug() << "    hasVelocity()=" << hasVelocity();
-        qDebug() << "    getVelocity()=" << getVelocity();
-        qDebug() << "    hasGravity()=" << hasGravity();
-        qDebug() << "    isRestingOnSurface()=" << isRestingOnSurface();
-        qDebug() << "    isMortal()=" << isMortal();
-    }
     if (hasVelocity() || (hasGravity() && !isRestingOnSurface())) {
-        if (wantDebug) {
-            qDebug() << "    return EntityItem::Moving;";
-        }
         return EntityItem::Moving;
     }
     if (isMortal()) {
-        if (wantDebug) {
-            qDebug() << "    return EntityItem::Mortal;";
-        }
         return EntityItem::Mortal;
-    }
-    if (wantDebug) {
-        qDebug() << "    return EntityItem::Static;";
     }
     return EntityItem::Static;
 }
 
 bool EntityItem::lifetimeHasExpired() const { 
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "EntityItem::lifetimeHasExpired()...";
-        qDebug() << "    isMortal()=" << isMortal();
-        qDebug() << "    getAge()=" << getAge();
-        qDebug() << "    getLifetime()=" << getLifetime();
-    }
     return isMortal() && (getAge() > getLifetime()); 
 }
 

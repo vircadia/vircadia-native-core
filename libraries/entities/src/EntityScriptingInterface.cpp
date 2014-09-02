@@ -57,11 +57,6 @@ EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
         // found it!
         entityID.id = actualID.id;
         entityID.isKnownID = true;
-        bool wantDebug = false;
-        if (wantDebug) {
-            qDebug() << "EntityScriptingInterface::identifyEntity() ...found it... isKnownID=" << entityID.isKnownID 
-                            << "id=" << entityID.id << "creatorTokenID=" << entityID.creatorTokenID;
-        }
     }
     return entityID;
 }
@@ -137,15 +132,6 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     if (actualID.id != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID.id;
         entityID.isKnownID = true;
-
-        bool wantDebug = false;
-        if (wantDebug) {
-            qDebug() << "EntityScriptingInterface::deleteEntity()... " 
-                        << "isKnownID=" << entityID.isKnownID 
-                        << "id=" << entityID.id 
-                        << "creatorTokenID=" << entityID.creatorTokenID;
-        }
-
         getEntityPacketSender()->queueEraseEntityMessage(entityID);
     }
 
@@ -167,11 +153,6 @@ EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center
         if (closestEntity) {
             result.id = closestEntity->getID();
             result.isKnownID = true;
-            bool wantDebug = false;
-            if (wantDebug) {
-                qDebug() << "EntityScriptingInterface::findClosestEntity()... isKnownID=" << result.isKnownID 
-                            << "id=" << result.id << "creatorTokenID=" << result.creatorTokenID;
-            }
         }
     }
     return result;
