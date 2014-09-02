@@ -37,6 +37,9 @@ public:
     void goToPlace(QString placeName);
     void goToOrientation(QString orientation);
     bool goToDestination(QString destination);
+    
+public slots:
+    void handleAddressLookupError(QNetworkReply::NetworkError networkError, const QString& errorString);
 
 private:
     void replaceLastOccurrence(const QChar search, const QChar replace, QString& string);
