@@ -1050,8 +1050,8 @@ void DefaultMetavoxelRendererImplementation::init() {
         _baseHeightfieldProgram.bind();
         _baseHeightfieldProgram.setUniformValue("heightMap", 0);
         _baseHeightfieldProgram.setUniformValue("diffuseMap", 1);
-        _baseHeightScaleLocation = _heightfieldProgram.uniformLocation("heightScale");
-        _baseColorScaleLocation = _heightfieldProgram.uniformLocation("colorScale");
+        _baseHeightScaleLocation = _baseHeightfieldProgram.uniformLocation("heightScale");
+        _baseColorScaleLocation = _baseHeightfieldProgram.uniformLocation("colorScale");
         _baseHeightfieldProgram.release();
         
         _splatHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
