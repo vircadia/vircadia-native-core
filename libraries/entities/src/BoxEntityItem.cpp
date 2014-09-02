@@ -77,16 +77,7 @@ int BoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    // PROP_COLOR
-    if (propertyFlags.getHasProperty(PROP_COLOR)) {
-        rgbColor color;
-        if (overwriteLocalData) {
-            memcpy(_color, dataAt, sizeof(_color));
-        }
-        dataAt += sizeof(color);
-        bytesRead += sizeof(color);
-    }
-
+    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
 
     return bytesRead;
 }

@@ -365,112 +365,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
 
-
-
-        // PROP_POSITION
-        if (propertyFlags.getHasProperty(PROP_POSITION)) {
-            glm::vec3 positionFromBuffer;
-            memcpy(&positionFromBuffer, dataAt, sizeof(positionFromBuffer));
-            dataAt += sizeof(positionFromBuffer);
-            bytesRead += sizeof(positionFromBuffer);
-            if (overwriteLocalData) {
-                _position = positionFromBuffer;
-            }
-        }
-        
-        // PROP_RADIUS
-        if (propertyFlags.getHasProperty(PROP_RADIUS)) {
-            float radiusFromBuffer;
-            memcpy(&radiusFromBuffer, dataAt, sizeof(radiusFromBuffer));
-            dataAt += sizeof(radiusFromBuffer);
-            bytesRead += sizeof(radiusFromBuffer);
-            if (overwriteLocalData) {
-                _radius = radiusFromBuffer;
-            }
-        }
-
-        // PROP_ROTATION
-        if (propertyFlags.getHasProperty(PROP_ROTATION)) {
-            glm::quat rotation;
-            int bytes = unpackOrientationQuatFromBytes(dataAt, rotation);
-            dataAt += bytes;
-            bytesRead += bytes;
-            if (overwriteLocalData) {
-                _rotation = rotation;
-            }
-        }
-
-        // PROP_MASS,
-        if (propertyFlags.getHasProperty(PROP_MASS)) {
-            float value;
-            memcpy(&value, dataAt, sizeof(value));
-            dataAt += sizeof(value);
-            bytesRead += sizeof(value);
-            if (overwriteLocalData) {
-                _mass = value;
-            }
-        }
-
-        // PROP_VELOCITY,
-        if (propertyFlags.getHasProperty(PROP_VELOCITY)) {
-            glm::vec3 value;
-            memcpy(&value, dataAt, sizeof(value));
-            dataAt += sizeof(value);
-            bytesRead += sizeof(value);
-            if (overwriteLocalData) {
-                _velocity = value;
-            }
-        }
-
-        // PROP_GRAVITY,
-        if (propertyFlags.getHasProperty(PROP_GRAVITY)) {
-            glm::vec3 value;
-            memcpy(&value, dataAt, sizeof(value));
-            dataAt += sizeof(value);
-            bytesRead += sizeof(value);
-            if (overwriteLocalData) {
-                _gravity = value;
-            }
-        }
-
-        // PROP_DAMPING,
-        if (propertyFlags.getHasProperty(PROP_DAMPING)) {
-
-            float value;
-            memcpy(&value, dataAt, sizeof(value));
-            dataAt += sizeof(value);
-            bytesRead += sizeof(value);
-
-            if (overwriteLocalData) {
-                _damping = value;
-            }
-        }
-
-        // PROP_LIFETIME,
-        if (propertyFlags.getHasProperty(PROP_LIFETIME)) {
-            float value;
-            memcpy(&value, dataAt, sizeof(value));
-            dataAt += sizeof(value);
-            bytesRead += sizeof(value);
-            if (overwriteLocalData) {
-                _lifetime = value;
-            }
-        }
-
-        // PROP_SCRIPT,
-        if (propertyFlags.getHasProperty(PROP_SCRIPT)) {
-            // TODO: fix to new format...
-            uint16_t length;
-            memcpy(&length, dataAt, sizeof(length));
-            dataAt += sizeof(length);
-            bytesRead += sizeof(length);
-            QString value((const char*)dataAt);
-            dataAt += length;
-            bytesRead += length;
-            if (overwriteLocalData) {
-                setScript(value);
-            }
-        }
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, _position);
+        READ_ENTITY_PROPERTY(PROP_RADIUS, float, _radius);
+        READ_ENTITY_PROPERTY_QUAT(PROP_ROTATION, _rotation);
+        READ_ENTITY_PROPERTY(PROP_MASS, float, _mass);
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, _velocity);
+        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, _gravity);
+        READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
+        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, _lifetime);
+        READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript);
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 

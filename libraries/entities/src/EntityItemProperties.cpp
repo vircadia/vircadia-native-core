@@ -719,147 +719,22 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     EntityPropertyFlags propertyFlags = encodedPropertyFlags;
     dataAt += propertyFlags.getEncodedLength();
     processedBytes += propertyFlags.getEncodedLength();
-    
-    // PROP_POSITION
-    if (propertyFlags.getHasProperty(PROP_POSITION)) {
-        glm::vec3 position;
-        memcpy(&position, dataAt, sizeof(position));
-        dataAt += sizeof(position);
-        processedBytes += sizeof(position);
-        properties.setPosition(position);
-    }
-    
-    // PROP_RADIUS
-    if (propertyFlags.getHasProperty(PROP_RADIUS)) {
-        float radius;
-        memcpy(&radius, dataAt, sizeof(radius));
-        dataAt += sizeof(radius);
-        processedBytes += sizeof(radius);
-        properties.setRadius(radius);
-    }
 
-    // PROP_ROTATION
-    if (propertyFlags.getHasProperty(PROP_ROTATION)) {
-        glm::quat rotation;
-        int bytes = unpackOrientationQuatFromBytes(dataAt, rotation);
-        dataAt += bytes;
-        processedBytes += bytes;
-        properties.setRotation(rotation);
-    }
-
-    // PROP_MASS,
-    if (propertyFlags.getHasProperty(PROP_MASS)) {
-        float value;
-        memcpy(&value, dataAt, sizeof(value));
-        dataAt += sizeof(value);
-        processedBytes += sizeof(value);
-        properties.setMass(value);
-    }
-
-    // PROP_VELOCITY,
-    if (propertyFlags.getHasProperty(PROP_VELOCITY)) {
-        glm::vec3 value;
-        memcpy(&value, dataAt, sizeof(value));
-        dataAt += sizeof(value);
-        processedBytes += sizeof(value);
-        properties.setVelocity(value);
-    }
-
-    // PROP_GRAVITY,
-    if (propertyFlags.getHasProperty(PROP_GRAVITY)) {
-        glm::vec3 value;
-        memcpy(&value, dataAt, sizeof(value));
-        dataAt += sizeof(value);
-        processedBytes += sizeof(value);
-        properties.setGravity(value);
-    }
-
-    // PROP_DAMPING,
-    if (propertyFlags.getHasProperty(PROP_DAMPING)) {
-        float value;
-        memcpy(&value, dataAt, sizeof(value));
-        dataAt += sizeof(value);
-        processedBytes += sizeof(value);
-        properties.setDamping(value);
-    }
-
-    // PROP_LIFETIME,
-    if (propertyFlags.getHasProperty(PROP_LIFETIME)) {
-        float value;
-        memcpy(&value, dataAt, sizeof(value));
-        dataAt += sizeof(value);
-        processedBytes += sizeof(value);
-        properties.setLifetime(value);
-    }
-    
-
-    // PROP_SCRIPT
-    //     script would go here...
-    
-    
-    // PROP_COLOR
-    if (propertyFlags.getHasProperty(PROP_COLOR)) {
-        xColor color;
-        memcpy(&color, dataAt, sizeof(color));
-        dataAt += sizeof(color);
-        processedBytes += sizeof(color);
-        properties.setColor(color);
-    }
-
-    // PROP_MODEL_URL
-    if (propertyFlags.getHasProperty(PROP_MODEL_URL)) {
-    
-        // TODO: fix to new format...
-        uint16_t modelURLbytesToRead;
-        memcpy(&modelURLbytesToRead, dataAt, sizeof(modelURLbytesToRead));
-        dataAt += sizeof(modelURLbytesToRead);
-        processedBytes += sizeof(modelURLbytesToRead);
-        QString modelURLString((const char*)dataAt);
-        dataAt += modelURLbytesToRead;
-        processedBytes += modelURLbytesToRead;
-
-        properties.setModelURL(modelURLString);
-    }
-
-    // PROP_ANIMATION_URL
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
-        // animationURL
-        uint16_t animationURLbytesToRead;
-        memcpy(&animationURLbytesToRead, dataAt, sizeof(animationURLbytesToRead));
-        dataAt += sizeof(animationURLbytesToRead);
-        processedBytes += sizeof(animationURLbytesToRead);
-        QString animationURLString((const char*)dataAt);
-        dataAt += animationURLbytesToRead;
-        processedBytes += animationURLbytesToRead;
-        properties.setAnimationURL(animationURLString);
-    }        
-
-    // PROP_ANIMATION_FPS
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
-        float animationFPS;
-        memcpy(&animationFPS, dataAt, sizeof(animationFPS));
-        dataAt += sizeof(animationFPS);
-        processedBytes += sizeof(animationFPS);
-        properties.setAnimationFPS(animationFPS);
-    }
-
-    // PROP_ANIMATION_FRAME_INDEX
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-        float animationFrameIndex; // we keep this as a float and round to int only when we need the exact index
-        memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
-        dataAt += sizeof(animationFrameIndex);
-        processedBytes += sizeof(animationFrameIndex);
-        properties.setAnimationFrameIndex(animationFrameIndex);
-    }
-
-    // PROP_ANIMATION_PLAYING
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-        bool animationIsPlaying;
-        memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
-        dataAt += sizeof(animationIsPlaying);
-        processedBytes += sizeof(animationIsPlaying);
-        properties.setAnimationIsPlaying(animationIsPlaying);
-    }
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS, float, setRadius);
+    READ_ENTITY_PROPERTY_QUAT_TO_PROPERTIES(PROP_ROTATION, setRotation);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MASS, float, setMass);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, glm::vec3, setGravity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
+    //READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript); // not yet supported by edit messages...
+    READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_COLOR, setColor);
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MODEL_URL, setModelURL);
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_URL, setAnimationURL);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
 
     return valid;
 }

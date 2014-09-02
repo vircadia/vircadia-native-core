@@ -121,79 +121,12 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    // PROP_COLOR
-    if (propertyFlags.getHasProperty(PROP_COLOR)) {
-        rgbColor color;
-        if (overwriteLocalData) {
-            memcpy(_color, dataAt, sizeof(_color));
-        }
-        dataAt += sizeof(color);
-        bytesRead += sizeof(color);
-    }
-
-    // PROP_MODEL_URL
-    if (propertyFlags.getHasProperty(PROP_MODEL_URL)) {
-        // TODO: fix to new format...
-        uint16_t modelURLLength;
-        memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
-        dataAt += sizeof(modelURLLength);
-        bytesRead += sizeof(modelURLLength);
-        QString modelURLString((const char*)dataAt);
-        dataAt += modelURLLength;
-        bytesRead += modelURLLength;
-
-        if (overwriteLocalData) {
-            setModelURL(modelURLString);
-        }
-    }
-    
-    // PROP_ANIMATION_URL
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_URL)) {
-        // animationURL
-        uint16_t animationURLLength;
-        memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
-        dataAt += sizeof(animationURLLength);
-        bytesRead += sizeof(animationURLLength);
-        QString animationURLString((const char*)dataAt);
-        dataAt += animationURLLength;
-        bytesRead += animationURLLength;
-        if (overwriteLocalData) {
-            setAnimationURL(animationURLString);
-        }
-    }        
-
-    // PROP_ANIMATION_FPS
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
-        float animationFPS;
-        memcpy(&animationFPS, dataAt, sizeof(animationFPS));
-        dataAt += sizeof(animationFPS);
-        bytesRead += sizeof(animationFPS);
-        if (overwriteLocalData) {
-            _animationFPS = animationFPS;
-        }
-    }
-
-    // PROP_ANIMATION_FRAME_INDEX
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-        float animationFrameIndex;
-        memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
-        dataAt += sizeof(animationFrameIndex);
-        bytesRead += sizeof(animationFrameIndex);
-        if (overwriteLocalData) {
-            _animationFrameIndex = animationFrameIndex;
-        }
-    }
-
-    // PROP_ANIMATION_PLAYING
-    if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-        bool animationIsPlaying;
-        memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
-        dataAt += sizeof(animationIsPlaying);
-        bytesRead += sizeof(animationIsPlaying);
-        if (overwriteLocalData) {
-            _animationIsPlaying = animationIsPlaying;
-        }
-    }
+    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
+    READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
+    READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, _animationFPS);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, _animationFrameIndex);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, _animationIsPlaying);
 
     return bytesRead;
 }
