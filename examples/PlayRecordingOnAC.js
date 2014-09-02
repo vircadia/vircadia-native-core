@@ -34,7 +34,7 @@ function update(event) {
   }
   if (count == 0) {
     Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
-    Avatar.setLoop(loop);
+    Avatar.setPlayerLoop(loop);
     Avatar.startPlaying();
     Avatar.play();
     Vec3.print("Playing from ", Avatar.position);
