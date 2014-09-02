@@ -82,8 +82,7 @@ const int CONSOLE_HEIGHT = 200;
 
 Menu::Menu() :
     _actionHash(),
-    _audioJitterBufferFrames(0),
-    _maxFramesOverDesired(0),
+    _receivedAudioStreamSettings(),
     _bandwidthDialog(NULL),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
     _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
@@ -115,6 +114,7 @@ Menu::Menu() :
     _loginAction(NULL),
     _preferencesDialog(NULL),
     _loginDialog(NULL),
+    _hasLoginDialogDisplayed(false),
     _snapshotsLocation(),
     _scriptsLocation(),
     _walletPrivateKey()
@@ -680,8 +680,15 @@ void Menu::loadSettings(QSettings* settings) {
         lockedSettings = true;
     }
 
-    _audioJitterBufferFrames = loadSetting(settings, "audioJitterBufferFrames", 0);
-    _maxFramesOverDesired = loadSetting(settings, "maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
+    _receivedAudioStreamSettings._dynamicJitterBuffers = settings->value("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS).toBool();
+    _receivedAudioStreamSettings._maxFramesOverDesired = settings->value("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED).toInt();
+    _receivedAudioStreamSettings._staticDesiredJitterBufferFrames = settings->value("staticDesiredJitterBufferFrames", DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES).toInt();
+    _receivedAudioStreamSettings._useStDevForJitterCalc = settings->value("useStDevForJitterCalc", DEFAULT_USE_STDEV_FOR_JITTER_CALC).toBool();
+    _receivedAudioStreamSettings._windowStarveThreshold = settings->value("windowStarveThreshold", DEFAULT_WINDOW_STARVE_THRESHOLD).toInt();
+    _receivedAudioStreamSettings._windowSecondsForDesiredCalcOnTooManyStarves = settings->value("windowSecondsForDesiredCalcOnTooManyStarves", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES).toInt();
+    _receivedAudioStreamSettings._windowSecondsForDesiredReduction = settings->value("windowSecondsForDesiredReduction", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION).toInt();
+    _receivedAudioStreamSettings._repetitionWithFade = settings->value("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE).toBool();
+    
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
@@ -735,8 +742,15 @@ void Menu::saveSettings(QSettings* settings) {
         lockedSettings = true;
     }
 
-    settings->setValue("audioJitterBufferFrames", _audioJitterBufferFrames);
-    settings->setValue("maxFramesOverDesired", _maxFramesOverDesired);
+    settings->setValue("dynamicJitterBuffers", _receivedAudioStreamSettings._dynamicJitterBuffers);
+    settings->setValue("maxFramesOverDesired", _receivedAudioStreamSettings._maxFramesOverDesired);
+    settings->setValue("staticDesiredJitterBufferFrames", _receivedAudioStreamSettings._staticDesiredJitterBufferFrames);
+    settings->setValue("useStDevForJitterCalc", _receivedAudioStreamSettings._useStDevForJitterCalc);
+    settings->setValue("windowStarveThreshold", _receivedAudioStreamSettings._windowStarveThreshold);
+    settings->setValue("windowSecondsForDesiredCalcOnTooManyStarves", _receivedAudioStreamSettings._windowSecondsForDesiredCalcOnTooManyStarves);
+    settings->setValue("windowSecondsForDesiredReduction", _receivedAudioStreamSettings._windowSecondsForDesiredReduction);
+    settings->setValue("repetitionWithFade", _receivedAudioStreamSettings._repetitionWithFade);
+
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("maxVoxels", _maxVoxels);
@@ -1039,12 +1053,24 @@ void sendFakeEnterEvent() {
 
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
+void Menu::clearLoginDialogDisplayedFlag() {
+    // Needed for domains that don't require login.
+    _hasLoginDialogDisplayed = false;
+}
+
 void Menu::loginForCurrentDomain() {
-    if (!_loginDialog) {
+    if (!_loginDialog && !_hasLoginDialogDisplayed) {
         _loginDialog = new LoginDialog(Application::getInstance()->getWindow());
         _loginDialog->show();
         _loginDialog->resizeAndPosition(false);
     }
+
+    _hasLoginDialogDisplayed = true;
+}
+
+void Menu::showLoginForCurrentDomain() {
+    _hasLoginDialogDisplayed = false;
+    loginForCurrentDomain();
 }
 
 void Menu::editPreferences() {
@@ -1391,7 +1417,7 @@ void Menu::toggleLoginMenuItem() {
         // change the menu item to login
         _loginAction->setText("Login");
 
-        connect(_loginAction, &QAction::triggered, this, &Menu::loginForCurrentDomain);
+        connect(_loginAction, &QAction::triggered, this, &Menu::showLoginForCurrentDomain);
     }
 }
 

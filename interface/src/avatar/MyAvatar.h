@@ -176,15 +176,7 @@ public slots:
     void startRecording();
     void stopRecording();
     void saveRecording(QString filename);
-    
-    bool isPlaying();
-    qint64 playerElapsed();
-    qint64 playerLength();
-    void loadRecording(QString filename);
     void loadLastRecording();
-    void startPlaying();
-    void stopPlaying();
-    
     
 signals:
     void transformChanged();
@@ -224,7 +216,6 @@ private:
     PhysicsSimulation _physicsSimulation;
 
     RecorderPointer _recorder;
-    PlayerPointer _player;
     
 	// private methods
     float computeDistanceToFloor(const glm::vec3& startPoint);

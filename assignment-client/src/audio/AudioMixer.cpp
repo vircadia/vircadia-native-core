@@ -69,11 +69,11 @@ void attachNewNodeDataToNode(Node *newNode) {
     }
 }
 
-bool AudioMixer::_useDynamicJitterBuffers = false;
-int AudioMixer::_staticDesiredJitterBufferFrames = 0;
-int AudioMixer::_maxFramesOverDesired = 0;
+InboundAudioStream::Settings AudioMixer::_streamSettings;
 
 bool AudioMixer::_printStreamStats = false;
+
+bool AudioMixer::_enableFilter = false;
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
@@ -85,7 +85,12 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _sumMixes(0),
     _sourceUnattenuatedZone(NULL),
     _listenerUnattenuatedZone(NULL),
-    _lastSendAudioStreamStatsTime(usecTimestampNow())
+    _lastPerSecondCallbackTime(usecTimestampNow()),
+    _sendAudioStreamStats(false),
+    _datagramsReadPerCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
+    _timeSpentPerCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
+    _timeSpentPerHashMatchCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
+    _readPendingCallsPerSecondStats(1, READ_DATAGRAMS_STATS_WINDOW_SECONDS)
 {
     
 }
@@ -99,15 +104,44 @@ const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
 const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
 
-void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
+int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
                                                           AvatarAudioStream* listeningNodeStream) {
+    // If repetition with fade is enabled:
+    // If streamToAdd could not provide a frame (it was starved), then we'll mix its previously-mixed frame
+    // This is preferable to not mixing it at all since that's equivalent to inserting silence.
+    // Basically, we'll repeat that last frame until it has a frame to mix.  Depending on how many times
+    // we've repeated that frame in a row, we'll gradually fade that repeated frame into silence.
+    // This improves the perceived quality of the audio slightly.
+
+    float repeatedFrameFadeFactor = 1.0f;
+
+    if (!streamToAdd->lastPopSucceeded()) {
+        if (_streamSettings._repetitionWithFade && !streamToAdd->getLastPopOutput().isNull()) {
+            // reptition with fade is enabled, and we do have a valid previous frame to repeat.
+            // calculate its fade factor, which depends on how many times it's already been repeated.
+            repeatedFrameFadeFactor = calculateRepeatedFrameFadeFactor(streamToAdd->getConsecutiveNotMixedCount() - 1);
+            if (repeatedFrameFadeFactor == 0.0f) {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
+
+    // at this point, we know streamToAdd's last pop output is valid
+
+    // if the frame we're about to mix is silent, bail
+    if (streamToAdd->getLastPopOutputLoudness() == 0.0f) {
+        return 0;
+    }
+
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
     int numSamplesDelay = 0;
     float weakChannelAmplitudeRatio = 1.0f;
     
     bool shouldAttenuate = (streamToAdd != listeningNodeStream);
-    
+
     if (shouldAttenuate) {
         
         // if the two stream pointers do not match then these are different streams
@@ -122,7 +156,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
         if (streamToAdd->getLastPopOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
             // according to mixer performance we have decided this does not get to be mixed in
             // bail out
-            return;
+            return 0;
         }
         
         ++_sumMixes;
@@ -222,12 +256,13 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
         int delayedChannelIndex = 0;
         
         const int SINGLE_STEREO_OFFSET = 2;
+        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
         
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
             
             // setup the int16_t variables for the two sample sets
-            correctStreamSample[0] = streamPopOutput[s / 2] * attenuationCoefficient;
-            correctStreamSample[1] = streamPopOutput[(s / 2) + 1] * attenuationCoefficient;
+            correctStreamSample[0] = streamPopOutput[s / 2] * attenuationAndFade;
+            correctStreamSample[1] = streamPopOutput[(s / 2) + 1] * attenuationAndFade;
             
             delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
             
@@ -243,7 +278,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
         if (numSamplesDelay > 0) {
             // if there was a sample delay for this stream, we need to pull samples prior to the popped output
             // to stick at the beginning
-            float attenuationAndWeakChannelRatio = attenuationCoefficient * weakChannelAmplitudeRatio;
+            float attenuationAndWeakChannelRatioAndFade = attenuationCoefficient * weakChannelAmplitudeRatio * repeatedFrameFadeFactor;
             AudioRingBuffer::ConstIterator delayStreamPopOutput = streamPopOutput - numSamplesDelay;
 
             // TODO: delayStreamPopOutput may be inside the last frame written if the ringbuffer is completely full
@@ -251,7 +286,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
             
             for (int i = 0; i < numSamplesDelay; i++) {
                 int parentIndex = i * 2;
-                _clientSamples[parentIndex + delayedChannelOffset] += *delayStreamPopOutput * attenuationAndWeakChannelRatio;
+                _clientSamples[parentIndex + delayedChannelOffset] += *delayStreamPopOutput * attenuationAndWeakChannelRatioAndFade;
                 ++delayStreamPopOutput;
             }
         }
@@ -262,41 +297,82 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream*
             attenuationCoefficient = 1.0f;
         }
 
+        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
+
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
-            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationCoefficient),
+            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationAndFade),
                                             MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
     }
+
+    if (_enableFilter && shouldAttenuate) {
+        
+        glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
+        if (relativePosition.z < 0) {  // if the source is behind us      
+            AudioFilterHSF1s& penumbraFilter = streamToAdd->getFilter();
+
+            // calculate penumbra angle
+            float headPenumbraAngle = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                 glm::normalize(relativePosition));
+            
+            if (relativePosition.x < 0) {
+                headPenumbraAngle *= -1.0f;  // [-pi/2,+pi/2]
+            }
+            
+            const float SQUARE_ROOT_OF_TWO_OVER_TWO = 0.71f;  // half power
+            const float ONE_OVER_TWO_PI = 1.0f / TWO_PI;
+            const float FILTER_CUTOFF_FREQUENCY_HZ = 4000.0f;
+            
+            // calculate the updated gain, frequency and slope.  this will be tuned over time.
+            const float penumbraFilterGainL = (-1.0f * ONE_OVER_TWO_PI * headPenumbraAngle) + SQUARE_ROOT_OF_TWO_OVER_TWO;
+            const float penumbraFilterGainR = (+1.0f * ONE_OVER_TWO_PI * headPenumbraAngle) + SQUARE_ROOT_OF_TWO_OVER_TWO;
+            const float penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
+            const float penumbraFilterSlope = SQUARE_ROOT_OF_TWO_OVER_TWO; // constant slope
+            
+            qDebug() << "penumbra gainL=" 
+                        << penumbraFilterGainL
+                        << "penumbra gainR="
+                        << penumbraFilterGainR
+                        << "penumbraAngle="
+                        << headPenumbraAngle;
+
+            // set the gain on both filter channels
+            penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
+            penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
+            
+            penumbraFilter.render(_clientSamples, _clientSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
+        }
+    }
+
+    return 1;
 }
 
-void AudioMixer::prepareMixForListeningNode(Node* node) {
+int AudioMixer::prepareMixForListeningNode(Node* node) {
     AvatarAudioStream* nodeAudioStream = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioStream();
-
+    
     // zero out the client mix for this node
     memset(_clientSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
 
     // loop through all other nodes that have sufficient audio to mix
+    int streamsMixed = 0;
     foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
         if (otherNode->getLinkedData()) {
-
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
 
             const QHash<QUuid, PositionalAudioStream*>& otherNodeAudioStreams = otherNodeClientData->getAudioStreams();
             QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
-            for (i = otherNodeAudioStreams.begin(); i != otherNodeAudioStreams.constEnd(); i++) {
+            for (i = otherNodeAudioStreams.constBegin(); i != otherNodeAudioStreams.constEnd(); i++) {
                 PositionalAudioStream* otherNodeStream = i.value();
-
-                if ((*otherNode != *node || otherNodeStream->shouldLoopbackForNode())
-                    && otherNodeStream->lastPopSucceeded()
-                    && otherNodeStream->getLastPopOutputTrailingLoudness() > 0.0f) {
-
-                    addStreamToMixForListeningNodeWithStream(otherNodeStream, nodeAudioStream);
+                
+                if (*otherNode != *node || otherNodeStream->shouldLoopbackForNode()) {
+                    streamsMixed += addStreamToMixForListeningNodeWithStream(otherNodeStream, nodeAudioStream);
                 }
             }
         }
     }
+    return streamsMixed;
 }
 
 void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
@@ -332,7 +408,7 @@ void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const Hif
 void AudioMixer::sendStatsPacket() {
     static QJsonObject statsObject;
     
-    statsObject["useDynamicJitterBuffers"] = _useDynamicJitterBuffers;
+    statsObject["useDynamicJitterBuffers"] = _streamSettings._dynamicJitterBuffers;
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
@@ -358,9 +434,42 @@ void AudioMixer::sendStatsPacket() {
     int sizeOfStats = 0;
     int TOO_BIG_FOR_MTU = 1200; // some extra space for JSONification
     
+    QString property = "readPendingDatagram_calls_stats";
+    QString value = getReadPendingDatagramsCallsPerSecondsStatsString();
+    statsObject2[qPrintable(property)] = value;
+    somethingToSend = true;
+    sizeOfStats += property.size() + value.size();
+
+    property = "readPendingDatagram_packets_per_call_stats";
+    value = getReadPendingDatagramsPacketsPerCallStatsString();
+    statsObject2[qPrintable(property)] = value;
+    somethingToSend = true;
+    sizeOfStats += property.size() + value.size();
+
+    property = "readPendingDatagram_packets_time_per_call_stats";
+    value = getReadPendingDatagramsTimeStatsString();
+    statsObject2[qPrintable(property)] = value;
+    somethingToSend = true;
+    sizeOfStats += property.size() + value.size();
+
+    property = "readPendingDatagram_hashmatch_time_per_call_stats";
+    value = getReadPendingDatagramsHashMatchTimeStatsString();
+    statsObject2[qPrintable(property)] = value;
+    somethingToSend = true;
+    sizeOfStats += property.size() + value.size();
+    
     NodeList* nodeList = NodeList::getInstance();
     int clientNumber = 0;
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+
+        // if we're too large, send the packet
+        if (sizeOfStats > TOO_BIG_FOR_MTU) {
+            nodeList->sendStatsToDomainServer(statsObject2);
+            sizeOfStats = 0;
+            statsObject2 = QJsonObject(); // clear it
+            somethingToSend = false;
+        }
+
         clientNumber++;
         AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
@@ -369,14 +478,6 @@ void AudioMixer::sendStatsPacket() {
             statsObject2[qPrintable(property)] = value;
             somethingToSend = true;
             sizeOfStats += property.size() + value.size();
-        }
-        
-        // if we're too large, send the packet
-        if (sizeOfStats > TOO_BIG_FOR_MTU) {
-            nodeList->sendStatsToDomainServer(statsObject2);
-            sizeOfStats = 0;
-            statsObject2 = QJsonObject(); // clear it
-            somethingToSend = false;
         }
     }
 
@@ -448,41 +549,81 @@ void AudioMixer::run() {
     
     if (settingsObject.contains(AUDIO_GROUP_KEY)) {
         QJsonObject audioGroupObject = settingsObject[AUDIO_GROUP_KEY].toObject();
-        
+
         // check the payload to see if we have asked for dynamicJitterBuffer support
         const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "A-dynamic-jitter-buffer";
-        bool shouldUseDynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
-        if (shouldUseDynamicJitterBuffers) {
+        _streamSettings._dynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
+        if (_streamSettings._dynamicJitterBuffers) {
             qDebug() << "Enable dynamic jitter buffers.";
-            _useDynamicJitterBuffers = true;
         } else {
             qDebug() << "Dynamic jitter buffers disabled.";
-            _useDynamicJitterBuffers = false;
         }
-
+        
         bool ok;
-
-        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "B-desired-jitter-buffer-frames";
-        _staticDesiredJitterBufferFrames = audioGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
+        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "B-static-desired-jitter-buffer-frames";
+        _streamSettings._staticDesiredJitterBufferFrames = audioGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
         if (!ok) {
-            _staticDesiredJitterBufferFrames = DEFAULT_DESIRED_JITTER_BUFFER_FRAMES;
+            _streamSettings._staticDesiredJitterBufferFrames = DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES;
         }
-        qDebug() << "Static desired jitter buffer frames:" << _staticDesiredJitterBufferFrames;
+        qDebug() << "Static desired jitter buffer frames:" << _streamSettings._staticDesiredJitterBufferFrames;
 
         const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "C-max-frames-over-desired";
-        _maxFramesOverDesired = audioGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
+        _streamSettings._maxFramesOverDesired = audioGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
         if (!ok) {
-            _maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
+            _streamSettings._maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
         }
-        qDebug() << "Max frames over desired:" << _maxFramesOverDesired;
+        qDebug() << "Max frames over desired:" << _streamSettings._maxFramesOverDesired;
+        
+        const QString USE_STDEV_FOR_DESIRED_CALC_JSON_KEY = "D-use-stdev-for-desired-calc";
+        _streamSettings._useStDevForJitterCalc = audioGroupObject[USE_STDEV_FOR_DESIRED_CALC_JSON_KEY].toBool();
+        if (_streamSettings._useStDevForJitterCalc) {
+            qDebug() << "Using Philip's stdev method for jitter calc if dynamic jitter buffers enabled";
+        } else {
+            qDebug() << "Using Fred's max-gap method for jitter calc if dynamic jitter buffers enabled";
+        }
 
-        const QString PRINT_STREAM_STATS_JSON_KEY = "H-print-stream-stats";
+        const QString WINDOW_STARVE_THRESHOLD_JSON_KEY = "E-window-starve-threshold";
+        _streamSettings._windowStarveThreshold = audioGroupObject[WINDOW_STARVE_THRESHOLD_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowStarveThreshold = DEFAULT_WINDOW_STARVE_THRESHOLD;
+        }
+        qDebug() << "Window A starve threshold:" << _streamSettings._windowStarveThreshold;
+
+        const QString WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY = "F-window-seconds-for-desired-calc-on-too-many-starves";
+        _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = audioGroupObject[WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES;
+        }
+        qDebug() << "Window A length:" << _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves << "seconds";
+
+        const QString WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY = "G-window-seconds-for-desired-reduction";
+        _streamSettings._windowSecondsForDesiredReduction = audioGroupObject[WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowSecondsForDesiredReduction = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION;
+        }
+        qDebug() << "Window B length:" << _streamSettings._windowSecondsForDesiredReduction << "seconds";
+
+        const QString REPETITION_WITH_FADE_JSON_KEY = "H-repetition-with-fade";
+        _streamSettings._repetitionWithFade = audioGroupObject[REPETITION_WITH_FADE_JSON_KEY].toBool();
+        if (_streamSettings._repetitionWithFade) {
+            qDebug() << "Repetition with fade enabled";
+        } else {
+            qDebug() << "Repetition with fade disabled";
+        }
+        
+        const QString PRINT_STREAM_STATS_JSON_KEY = "I-print-stream-stats";
         _printStreamStats = audioGroupObject[PRINT_STREAM_STATS_JSON_KEY].toBool();
         if (_printStreamStats) {
             qDebug() << "Stream stats will be printed to stdout";
         }
 
-        const QString UNATTENUATED_ZONE_KEY = "D-unattenuated-zone";
+        const QString FILTER_KEY = "J-enable-filter";
+        _enableFilter = audioGroupObject[FILTER_KEY].toBool();
+        if (_enableFilter) {
+            qDebug() << "Filter enabled";
+        }
+        
+        const QString UNATTENUATED_ZONE_KEY = "Z-unattenuated-zone";
 
         QString unattenuatedZoneString = audioGroupObject[UNATTENUATED_ZONE_KEY].toString();
         if (!unattenuatedZoneString.isEmpty()) {
@@ -510,9 +651,8 @@ void AudioMixer::run() {
     int nextFrame = 0;
     QElapsedTimer timer;
     timer.start();
-    
-    char* clientMixBuffer = new char[NETWORK_BUFFER_LENGTH_BYTES_STEREO + sizeof(quint16)
-                                     + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio)];
+
+    char clientMixBuffer[MAX_PACKET_SIZE];
     
     int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
     
@@ -571,15 +711,13 @@ void AudioMixer::run() {
         if (!hasRatioChanged) {
             ++framesSinceCutoffEvent;
         }
-        
-        bool sendAudioStreamStats = false;
-        quint64 now = usecTimestampNow();
-        if (now - _lastSendAudioStreamStatsTime > TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS) {
-            _lastSendAudioStreamStatsTime = now;
-            sendAudioStreamStats = true;
-        }
 
-        bool streamStatsPrinted = false;
+        quint64 now = usecTimestampNow();
+        if (now - _lastPerSecondCallbackTime > USECS_PER_SECOND) {
+            perSecondActions();
+            _lastPerSecondCallbackTime = now;
+        }
+        
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
@@ -592,42 +730,51 @@ void AudioMixer::run() {
                 if (node->getType() == NodeType::Agent && node->getActiveSocket()
                     && nodeData->getAvatarAudioStream()) {
 
-                    prepareMixForListeningNode(node.data());
+                    int streamsMixed = prepareMixForListeningNode(node.data());
 
-                    // pack header
-                    int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
-                    char* dataAt = clientMixBuffer + numBytesPacketHeader;
+                    char* dataAt;
+                    if (streamsMixed > 0) {
+                        // pack header
+                        int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
+                        dataAt = clientMixBuffer + numBytesPacketHeader;
 
-                    // pack sequence number
-                    quint16 sequence = nodeData->getOutgoingSequenceNumber();
-                    memcpy(dataAt, &sequence, sizeof(quint16));
-                    dataAt += sizeof(quint16);
+                        // pack sequence number
+                        quint16 sequence = nodeData->getOutgoingSequenceNumber();
+                        memcpy(dataAt, &sequence, sizeof(quint16));
+                        dataAt += sizeof(quint16);
 
-                    // pack mixed audio samples
-                    memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                    dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+                        // pack mixed audio samples
+                        memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                        dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+                    } else {
+                        // pack header
+                        int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
+                        dataAt = clientMixBuffer + numBytesPacketHeader;
+
+                        // pack sequence number
+                        quint16 sequence = nodeData->getOutgoingSequenceNumber();
+                        memcpy(dataAt, &sequence, sizeof(quint16));
+                        dataAt += sizeof(quint16);
+
+                        // pack number of silent audio samples
+                        quint16 numSilentSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+                        memcpy(dataAt, &numSilentSamples, sizeof(quint16));
+                        dataAt += sizeof(quint16);
+                    }
 
                     // send mixed audio packet
                     nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
                     // send an audio stream stats packet if it's time
-                    if (sendAudioStreamStats) {
+                    if (_sendAudioStreamStats) {
                         nodeData->sendAudioStreamStatsPackets(node);
-                        
-                        if (_printStreamStats) {
-                            printf("\nStats for agent %s:\n", node->getUUID().toString().toLatin1().data());
-                            nodeData->printUpstreamDownstreamStats();
-                            streamStatsPrinted = true;
-                        }
+                        _sendAudioStreamStats = false;
                     }
 
                     ++_sumListeners;
                 }
             }
-        }
-        if (streamStatsPrinted) {
-            printf("\n----------------------------------------------------------------\n");
         }
         
         ++_numStatFrames;
@@ -644,6 +791,90 @@ void AudioMixer::run() {
             usleep(usecToSleep);
         }
     }
-    
-    delete[] clientMixBuffer;
+}
+
+void AudioMixer::perSecondActions() {
+    _sendAudioStreamStats = true;
+
+    int callsLastSecond = _datagramsReadPerCallStats.getCurrentIntervalSamples();
+    _readPendingCallsPerSecondStats.update(callsLastSecond);
+
+    if (_printStreamStats) {
+
+        printf("\n================================================================================\n\n");
+
+        printf("            readPendingDatagram() calls per second | avg: %.2f, avg_30s: %.2f, last_second: %d\n",
+            _readPendingCallsPerSecondStats.getAverage(),
+            _readPendingCallsPerSecondStats.getWindowAverage(),
+            callsLastSecond);
+
+        printf("                           Datagrams read per call | avg: %.2f, avg_30s: %.2f, last_second: %.2f\n",
+            _datagramsReadPerCallStats.getAverage(),
+            _datagramsReadPerCallStats.getWindowAverage(),
+            _datagramsReadPerCallStats.getCurrentIntervalAverage());
+
+        printf("        Usecs spent per readPendingDatagram() call | avg: %.2f, avg_30s: %.2f, last_second: %.2f\n",
+            _timeSpentPerCallStats.getAverage(),
+            _timeSpentPerCallStats.getWindowAverage(),
+            _timeSpentPerCallStats.getCurrentIntervalAverage());
+
+        printf("  Usecs spent per packetVersionAndHashMatch() call | avg: %.2f, avg_30s: %.2f, last_second: %.2f\n",
+            _timeSpentPerHashMatchCallStats.getAverage(),
+            _timeSpentPerHashMatchCallStats.getWindowAverage(),
+            _timeSpentPerHashMatchCallStats.getCurrentIntervalAverage());
+
+        double WINDOW_LENGTH_USECS = READ_DATAGRAMS_STATS_WINDOW_SECONDS * USECS_PER_SECOND;
+
+        printf("       %% time spent in readPendingDatagram() calls | avg_30s: %.6f%%, last_second: %.6f%%\n",
+            _timeSpentPerCallStats.getWindowSum() / WINDOW_LENGTH_USECS * 100.0,
+            _timeSpentPerCallStats.getCurrentIntervalSum() / USECS_PER_SECOND * 100.0);
+
+        printf("%% time spent in packetVersionAndHashMatch() calls: | avg_30s: %.6f%%, last_second: %.6f%%\n",
+            _timeSpentPerHashMatchCallStats.getWindowSum() / WINDOW_LENGTH_USECS * 100.0,
+            _timeSpentPerHashMatchCallStats.getCurrentIntervalSum() / USECS_PER_SECOND * 100.0);
+
+        foreach(const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+            if (node->getLinkedData()) {
+                AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
+
+                if (node->getType() == NodeType::Agent && node->getActiveSocket()) {
+                    printf("\nStats for agent %s --------------------------------\n",
+                        node->getUUID().toString().toLatin1().data());
+                    nodeData->printUpstreamDownstreamStats();
+                }
+            }
+        }
+    }
+
+    _datagramsReadPerCallStats.currentIntervalComplete();
+    _timeSpentPerCallStats.currentIntervalComplete();
+    _timeSpentPerHashMatchCallStats.currentIntervalComplete();
+}
+
+QString AudioMixer::getReadPendingDatagramsCallsPerSecondsStatsString() const {
+    QString result = "calls_per_sec_avg_30s: " + QString::number(_readPendingCallsPerSecondStats.getWindowAverage(), 'f', 2)
+        + " calls_last_sec: " + QString::number(_readPendingCallsPerSecondStats.getLastCompleteIntervalStats().getSum() + 0.5, 'f', 0);
+    return result;
+}
+
+QString AudioMixer::getReadPendingDatagramsPacketsPerCallStatsString() const {
+    QString result = "pkts_per_call_avg_30s: " + QString::number(_datagramsReadPerCallStats.getWindowAverage(), 'f', 2)
+        + " pkts_per_call_avg_1s: " + QString::number(_datagramsReadPerCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2);
+    return result;
+}
+
+QString AudioMixer::getReadPendingDatagramsTimeStatsString() const {
+    QString result = "usecs_per_call_avg_30s: " + QString::number(_timeSpentPerCallStats.getWindowAverage(), 'f', 2)
+        + " usecs_per_call_avg_1s: " + QString::number(_timeSpentPerCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
+        + " prct_time_in_call_30s: " + QString::number(_timeSpentPerCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0, 'f', 6) + "%"
+        + " prct_time_in_call_1s: " + QString::number(_timeSpentPerCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0, 'f', 6) + "%";
+    return result;
+}
+
+QString AudioMixer::getReadPendingDatagramsHashMatchTimeStatsString() const {
+    QString result = "usecs_per_hashmatch_avg_30s: " + QString::number(_timeSpentPerHashMatchCallStats.getWindowAverage(), 'f', 2)
+        + " usecs_per_hashmatch_avg_1s: " + QString::number(_timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
+        + " prct_time_in_hashmatch_30s: " + QString::number(_timeSpentPerHashMatchCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0, 'f', 6) + "%"
+        + " prct_time_in_hashmatch_1s: " + QString::number(_timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0, 'f', 6) + "%";
+    return result;
 }

@@ -16,6 +16,7 @@ int main(int argc, char** argv) {
     MovingMinMaxAvgTests::runAllTests();
     MovingPercentileTests::runAllTests();
     AngularConstraintTests::runAllTests();
+    printf("tests complete, press enter to exit\n");
     getchar();
     return 0;
 }

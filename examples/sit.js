@@ -269,8 +269,7 @@ function update(deltaTime){
     }
 
     var locationChanged = false;
-    if (location.hostname != oldHost) {
-        print("Changed domain");
+    if (location.hostname != oldHost || !location.isConnected) {
         for (model in models) {
             removeIndicators(models[model]);
         }

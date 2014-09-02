@@ -10,11 +10,14 @@
 //
 
 #include <GLMHelpers.h>
+#include <NetworkAccessManager.h>
 
+#include <QEventLoop>
 #include <QFile>
 #include <QMetaObject>
 #include <QObject>
 
+#include "AvatarData.h"
 #include "Recorder.h"
 
 void RecordingFrame::setBlendshapeCoefficients(QVector<float> blendshapeCoefficients) {
@@ -54,6 +57,25 @@ Recording::Recording() : _audio(NULL) {
 
 Recording::~Recording() {
     delete _audio;
+}
+
+int Recording::getLength() const {
+    if (_timestamps.isEmpty()) {
+        return 0;
+    }
+    return _timestamps.last();
+}
+
+qint32 Recording::getFrameTimestamp(int i) const {
+    if (i >= _timestamps.size()) {
+        return getLength();
+    }
+    return _timestamps[i];
+}
+
+const RecordingFrame& Recording::getFrame(int i) const {
+    assert(i < _timestamps.size());
+    return _frames[i];
 }
 
 void Recording::addFrame(int timestamp, RecordingFrame &frame) {
@@ -164,7 +186,10 @@ void Recorder::record(char* samples, int size) {
 Player::Player(AvatarData* avatar) :
     _recording(new Recording()),
     _avatar(avatar),
-    _audioThread(NULL)
+    _audioThread(NULL),
+    _startingScale(1.0f),
+    _playFromCurrentPosition(true),
+    _loop(false)
 {
     _timer.invalidate();
     _options.setLoop(false);
@@ -228,6 +253,19 @@ void Player::startPlaying() {
         _audioThread->start();
         QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
         
+        // Fake faceshift connection
+        _avatar->setForceFaceshiftConnected(true);
+        
+        if (_playFromCurrentPosition) {
+            _startingPosition = _avatar->getPosition();
+            _startingRotation = _avatar->getOrientation();
+            _startingScale = _avatar->getTargetScale();
+        } else {
+            _startingPosition = _recording->getFrame(0).getTranslation();
+            _startingRotation = _recording->getFrame(0).getRotation();
+            _startingScale = _recording->getFrame(0).getScale();
+        }
+        
         _timer.start();
     }
 }
@@ -251,6 +289,10 @@ void Player::stopPlaying() {
                      _audioThread, &QThread::deleteLater);
     _injector.clear();
     _audioThread = NULL;
+    
+    // Turn off fake faceshift connection
+    _avatar->setForceFaceshiftConnected(false);
+    
     qDebug() << "Recorder::stopPlaying()";
 }
 
@@ -269,34 +311,53 @@ void Player::loadRecording(RecordingPointer recording) {
 
 void Player::play() {
     computeCurrentFrame();
-    if (_currentFrame < 0 || _currentFrame >= _recording->getFrameNumber() - 1) {
+    if (_currentFrame < 0 || (_currentFrame >= _recording->getFrameNumber() - 1)) {
         // If it's the end of the recording, stop playing
         stopPlaying();
+        
+        if (_loop) {
+            startPlaying();
+        }
         return;
     }
     
     if (_currentFrame == 0) {
-        _avatar->setPosition(_recording->getFrame(_currentFrame).getTranslation());
-        _avatar->setOrientation(_recording->getFrame(_currentFrame).getRotation());
-        _avatar->setTargetScale(_recording->getFrame(_currentFrame).getScale());
-        _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
-        HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
+        // Don't play frame 0
+        // only meant to store absolute values
+        return;
+    }
+    
+    _avatar->setPosition(_startingPosition +
+                         glm::inverse(_recording->getFrame(0).getRotation()) * _startingRotation *
+                         _recording->getFrame(_currentFrame).getTranslation());
+    _avatar->setOrientation(_startingRotation *
+                            _recording->getFrame(_currentFrame).getRotation());
+    _avatar->setTargetScale(_startingScale *
+                            _recording->getFrame(_currentFrame).getScale());
+    _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
+    
+    HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
+    if (head) {
         head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
-    } else {
-        _avatar->setPosition(_recording->getFrame(0).getTranslation() +
-                             _recording->getFrame(_currentFrame).getTranslation());
-        _avatar->setOrientation(_recording->getFrame(0).getRotation() *
-                                _recording->getFrame(_currentFrame).getRotation());
-        _avatar->setTargetScale(_recording->getFrame(0).getScale() *
-                                _recording->getFrame(_currentFrame).getScale());
-        _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
-        HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
-        head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
+        head->setLeanSideways(_recording->getFrame(_currentFrame).getLeanSideways());
+        head->setLeanForward(_recording->getFrame(_currentFrame).getLeanForward());
+        glm::vec3 eulers = glm::degrees(safeEulerAngles(_recording->getFrame(_currentFrame).getHeadRotation()));
+        head->setFinalPitch(eulers.x);
+        head->setFinalYaw(eulers.y);
+        head->setFinalRoll(eulers.z);
     }
     
     _options.setPosition(_avatar->getPosition());
     _options.setOrientation(_avatar->getOrientation());
     _injector->setOptions(_options);
+}
+
+void Player::setPlayFromCurrentLocation(bool playFromCurrentLocation) {
+    _playFromCurrentPosition = playFromCurrentLocation;
+}
+
+void Player::setLoop(bool loop) {
+    _loop = loop;
 }
 
 bool Player::computeCurrentFrame() {
@@ -452,18 +513,40 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
 }
 
 RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename) {
-    qDebug() << "Reading recording from " << filename << ".";
+    QElapsedTimer timer;
+    timer.start();
+    
+    QByteArray byteArray;
+    QUrl url(filename);
+    if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
+        qDebug() << "Downloading recording at" << url;
+        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+        QEventLoop loop;
+        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+        loop.exec();
+        if (reply->error() != QNetworkReply::NoError) {
+            qDebug() << "Error while downloading recording: " << reply->error();
+            reply->deleteLater();
+            return recording;
+        }
+        byteArray = reply->readAll();
+        reply->deleteLater();
+    } else {
+        qDebug() << "Reading recording from " << filename << ".";
+        QFile file(filename);
+        if (!file.open(QIODevice::ReadOnly)){
+            return recording;
+        }
+        byteArray = file.readAll();
+        file.close();
+    }
+    
     if (!recording) {
         recording.reset(new Recording());
     }
     
-    QElapsedTimer timer;
-    QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly)){
-        return recording;
-    }
-    timer.start();
-    QDataStream fileStream(&file);
+    QDataStream fileStream(byteArray);
     
     fileStream >> recording->_timestamps;
     RecordingFrame baseFrame;
@@ -563,7 +646,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     recording->addAudioPacket(audioArray);
     
     
-    qDebug() << "Read " << file.size()  << " bytes in " << timer.elapsed() << " ms.";
+    qDebug() << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
     return recording;
 }
 

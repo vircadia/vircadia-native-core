@@ -547,7 +547,7 @@ void Model::setJointStates(QVector<JointState> states) {
         if (distance > radius) {
             radius = distance;
         }
-        _jointStates[i].updateConstraint();
+        _jointStates[i].buildConstraint();
     }
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].slaveVisibleTransform();
@@ -708,12 +708,10 @@ void Model::clearJointAnimationPriority(int index) {
 void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
-        if (priority >= state._animationPriority) {
-            if (valid) {
-                state.setRotationInConstrainedFrame(rotation, priority);
-            } else {
-                state.restoreRotation(1.0f, priority);
-            }
+        if (valid) {
+            state.setRotationInConstrainedFrame(rotation, priority);
+        } else {
+            state.restoreRotation(1.0f, priority);
         }
     }
 }
@@ -1196,7 +1194,7 @@ void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm:
             }
 
             // Apply the rotation, but use mixRotationDelta() which blends a bit of the default pose
-            // at in the process.  This provides stability to the IK solution for most models.
+            // in the process.  This provides stability to the IK solution for most models.
             glm::quat oldNextRotation = nextState.getRotation();
             float mixFactor = 0.03f;
             nextState.mixRotationDelta(deltaRotation, mixFactor, priority);
