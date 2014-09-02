@@ -22,6 +22,7 @@
 #include "Application.h"
 #include "Menu.h"
 #include "ScriptsModel.h"
+#include "UIUtil.h"
 
 RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     QWidget(parent, Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint |
@@ -154,7 +155,10 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
     }
 
     const QRect parentGeometry = parentWidget()->geometry();
-    setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y(), size().width(), parentWidget()->height());
+    int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
+
+    setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y() + titleBarHeight,
+                size().width(), parentWidget()->height() - titleBarHeight);
 
     QWidget::showEvent(event);
 }
