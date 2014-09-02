@@ -433,7 +433,8 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
 bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
 
-    OctreePacketData packetData(false, sizeIn); // create a packetData object to add out packet details too.
+    OctreePacketData ourDataPacket(false, sizeIn); // create a packetData object to add out packet details too.
+    OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
 
     bool success = true; // assume the best
     OctreeElement::AppendState appendState = OctreeElement::COMPLETED; // assume the best
@@ -449,7 +450,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
     float rootScale = 0.5f;
     unsigned char* octcode = pointToOctalCode(rootPosition.x, rootPosition.y, rootPosition.z, rootScale);
 
-    success = packetData.startSubTree(octcode);
+    success = packetData->startSubTree(octcode);
     delete[] octcode;
     
     // assuming we have rome to fit our octalCode, proceed...
@@ -493,36 +494,36 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         //    requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
         //}
 
-        LevelDetails entityLevel = packetData.startLevel();
+        LevelDetails entityLevel = packetData->startLevel();
 
         // Last Edited quint64 always first, before any other details, which allows us easy access to adjusting this
         // timestamp for clock skew
         quint64 lastEdited = properties.getLastEdited();
-        bool successLastEditedFits = packetData.appendValue(lastEdited);
+        bool successLastEditedFits = packetData->appendValue(lastEdited);
 
-        bool successIDFits = packetData.appendValue(encodedID);
+        bool successIDFits = packetData->appendValue(encodedID);
         if (isNewEntityItem && successIDFits) {
-            successIDFits = packetData.appendValue(encodedToken);
+            successIDFits = packetData->appendValue(encodedToken);
         }
-        bool successTypeFits = packetData.appendValue(encodedType);
+        bool successTypeFits = packetData->appendValue(encodedType);
 
         // NOTE: We intentionally do not send "created" times in edit messages. This is because:
         //   1) if the edit is to an existing entity, the created time can not be changed
         //   2) if the edit is to a new entity, the created time is the last edited time
 
         // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
-        bool successLastUpdatedFits = packetData.appendValue(encodedUpdateDelta);
+        bool successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
     
-        int propertyFlagsOffset = packetData.getUncompressedByteOffset();
+        int propertyFlagsOffset = packetData->getUncompressedByteOffset();
         QByteArray encodedPropertyFlags = propertyFlags;
         int oldPropertyFlagsLength = encodedPropertyFlags.length();
-        bool successPropertyFlagsFits = packetData.appendValue(encodedPropertyFlags);
+        bool successPropertyFlagsFits = packetData->appendValue(encodedPropertyFlags);
         int propertyCount = 0;
 
         bool headerFits = successIDFits && successTypeFits && successLastEditedFits
                                   && successLastUpdatedFits && successPropertyFlagsFits;
 
-        int startOfEntityItemData = packetData.getUncompressedByteOffset();
+        int startOfEntityItemData = packetData->getUncompressedByteOffset();
 
         if (headerFits) {
             bool successPropertyFits;
@@ -533,276 +534,49 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
             //      PROP_VISIBLE,
 
-            // PROP_POSITION
-            if (requestedProperties.getHasProperty(PROP_POSITION)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendPosition(properties.getPosition());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_POSITION;
-                    propertiesDidntFit -= PROP_POSITION;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_POSITION;
-            }
-
-            // PROP_RADIUS
-            if (requestedProperties.getHasProperty(PROP_RADIUS)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getRadius());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_RADIUS;
-                    propertiesDidntFit -= PROP_RADIUS;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_RADIUS;
-            }
-
-            // PROP_ROTATION
-            if (requestedProperties.getHasProperty(PROP_ROTATION)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getRotation());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_ROTATION;
-                    propertiesDidntFit -= PROP_ROTATION;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_ROTATION;
-            }
-
-            // PROP_MASS,
-            if (requestedProperties.getHasProperty(PROP_MASS)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getMass());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_MASS;
-                    propertiesDidntFit -= PROP_MASS;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_MASS;
-            }
-
-            // PROP_VELOCITY,
-            if (requestedProperties.getHasProperty(PROP_VELOCITY)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getVelocity());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_VELOCITY;
-                    propertiesDidntFit -= PROP_VELOCITY;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_VELOCITY;
-            }
-
-            // PROP_GRAVITY,
-            if (requestedProperties.getHasProperty(PROP_GRAVITY)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getGravity());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_GRAVITY;
-                    propertiesDidntFit -= PROP_GRAVITY;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_GRAVITY;
-            }
-
-            // PROP_DAMPING,
-            if (requestedProperties.getHasProperty(PROP_DAMPING)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getDamping());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_DAMPING;
-                    propertiesDidntFit -= PROP_DAMPING;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_DAMPING;
-            }
-
-            // PROP_LIFETIME,
-            if (requestedProperties.getHasProperty(PROP_LIFETIME)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getLifetime());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_LIFETIME;
-                    propertiesDidntFit -= PROP_LIFETIME;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_LIFETIME;
-            }
-            
-
-            // PROP_SCRIPT
-            //     script would go here...
-
-
-            // PROP_COLOR
-            if (requestedProperties.getHasProperty(PROP_COLOR)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendColor(properties.getColor());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_COLOR;
-                    propertiesDidntFit -= PROP_COLOR;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_COLOR;
-            }
-
-            // PROP_MODEL_URL
-            if (requestedProperties.getHasProperty(PROP_MODEL_URL)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getModelURL());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_MODEL_URL;
-                    propertiesDidntFit -= PROP_MODEL_URL;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_MODEL_URL;
-            }
-
-            // PROP_ANIMATION_URL
-            if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getAnimationURL());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_ANIMATION_URL;
-                    propertiesDidntFit -= PROP_ANIMATION_URL;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_ANIMATION_URL;
-            }
-
-            // PROP_ANIMATION_FPS
-            if (requestedProperties.getHasProperty(PROP_ANIMATION_FPS)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getAnimationFPS());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_ANIMATION_FPS;
-                    propertiesDidntFit -= PROP_ANIMATION_FPS;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_ANIMATION_FPS;
-            }
-
-            // PROP_ANIMATION_FRAME_INDEX
-            if (requestedProperties.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getAnimationFrameIndex());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_ANIMATION_FRAME_INDEX;
-                    propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
-            }
-
-            // PROP_ANIMATION_PLAYING
-            if (requestedProperties.getHasProperty(PROP_ANIMATION_PLAYING)) {
-                LevelDetails propertyLevel = packetData.startLevel();
-                successPropertyFits = packetData.appendValue(properties.getAnimationIsPlaying());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_ANIMATION_PLAYING;
-                    propertiesDidntFit -= PROP_ANIMATION_PLAYING;
-                    propertyCount++;
-                    packetData.endLevel(propertyLevel);
-                } else {
-                    packetData.discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_ANIMATION_PLAYING;
-            }
+            APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, properties.getPosition());
+            APPEND_ENTITY_PROPERTY(PROP_RADIUS, appendValue, properties.getRadius());
+            APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, properties.getRotation());
+            APPEND_ENTITY_PROPERTY(PROP_MASS, appendValue, properties.getMass());
+            APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, properties.getVelocity());
+            APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, properties.getGravity());
+            APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, properties.getDamping());
+            APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, properties.getLifetime());
+            //APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, properties.getScript());  // not supported by edit messages
+            APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, properties.getColor());
+            APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, properties.getModelURL());
+            APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, properties.getAnimationURL());
+            APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, properties.getAnimationFPS());
+            APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, properties.getAnimationFrameIndex());
+            APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, properties.getAnimationIsPlaying());
         }
         if (propertyCount > 0) {
-            int endOfEntityItemData = packetData.getUncompressedByteOffset();
+            int endOfEntityItemData = packetData->getUncompressedByteOffset();
         
             encodedPropertyFlags = propertyFlags;
             int newPropertyFlagsLength = encodedPropertyFlags.length();
-            packetData.updatePriorBytes(propertyFlagsOffset, 
+            packetData->updatePriorBytes(propertyFlagsOffset, 
                     (const unsigned char*)encodedPropertyFlags.constData(), encodedPropertyFlags.length());
         
             // if the size of the PropertyFlags shrunk, we need to shift everything down to front of packet.
             if (newPropertyFlagsLength < oldPropertyFlagsLength) {
-                int oldSize = packetData.getUncompressedSize();
+                int oldSize = packetData->getUncompressedSize();
 
-                const unsigned char* modelItemData = packetData.getUncompressedData(propertyFlagsOffset + oldPropertyFlagsLength);
+                const unsigned char* modelItemData = packetData->getUncompressedData(propertyFlagsOffset + oldPropertyFlagsLength);
                 int modelItemDataLength = endOfEntityItemData - startOfEntityItemData;
                 int newEntityItemDataStart = propertyFlagsOffset + newPropertyFlagsLength;
-                packetData.updatePriorBytes(newEntityItemDataStart, modelItemData, modelItemDataLength);
+                packetData->updatePriorBytes(newEntityItemDataStart, modelItemData, modelItemDataLength);
 
                 int newSize = oldSize - (oldPropertyFlagsLength - newPropertyFlagsLength);
-                packetData.setUncompressedSize(newSize);
+                packetData->setUncompressedSize(newSize);
 
             } else {
                 assert(newPropertyFlagsLength == oldPropertyFlagsLength); // should not have grown
             }
        
-            packetData.endLevel(entityLevel);
+            packetData->endLevel(entityLevel);
         } else {
-            packetData.discardLevel(entityLevel);
+            packetData->discardLevel(entityLevel);
             appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
         }
     
@@ -819,13 +593,13 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
     }
     
     if (success) {
-        packetData.endSubTree();
-        const unsigned char* finalizedData = packetData.getFinalizedData();
-        int  finalizedSize = packetData.getFinalizedSize();
+        packetData->endSubTree();
+        const unsigned char* finalizedData = packetData->getFinalizedData();
+        int  finalizedSize = packetData->getFinalizedSize();
         memcpy(bufferOut, finalizedData, finalizedSize);
         sizeOut = finalizedSize;
     } else {
-        packetData.discardSubTree();
+        packetData->discardSubTree();
         sizeOut = 0;
     }
     return success;

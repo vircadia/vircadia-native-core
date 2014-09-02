@@ -328,108 +328,12 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     bool successPropertyFits = true;
 
-    // PROP_COLOR
-    if (requestedProperties.getHasProperty(PROP_COLOR)) {
-        LevelDetails propertyLevel = packetData->startLevel();
-        successPropertyFits = packetData->appendColor(getColor());
-        if (successPropertyFits) {
-            propertyFlags |= PROP_COLOR;
-            propertiesDidntFit -= PROP_COLOR;
-            propertyCount++;
-            packetData->endLevel(propertyLevel);
-        } else {
-            packetData->discardLevel(propertyLevel);
-            appendState = OctreeElement::PARTIAL;
-        }
-    } else {
-        propertiesDidntFit -= PROP_COLOR;
-    }
-
-    // PROP_MODEL_URL
-    if (requestedProperties.getHasProperty(PROP_MODEL_URL)) {
-        LevelDetails propertyLevel = packetData->startLevel();
-        successPropertyFits = packetData->appendValue(getModelURL());
-        if (successPropertyFits) {
-            propertyFlags |= PROP_MODEL_URL;
-            propertiesDidntFit -= PROP_MODEL_URL;
-            propertyCount++;
-            packetData->endLevel(propertyLevel);
-        } else {
-            packetData->discardLevel(propertyLevel);
-            appendState = OctreeElement::PARTIAL;
-        }
-    } else {
-        propertiesDidntFit -= PROP_MODEL_URL;
-    }
-
-    // PROP_ANIMATION_URL
-    if (requestedProperties.getHasProperty(PROP_ANIMATION_URL)) {
-        LevelDetails propertyLevel = packetData->startLevel();
-        successPropertyFits = packetData->appendValue(getAnimationURL());
-        if (successPropertyFits) {
-            propertyFlags |= PROP_ANIMATION_URL;
-            propertiesDidntFit -= PROP_ANIMATION_URL;
-            propertyCount++;
-            packetData->endLevel(propertyLevel);
-        } else {
-            packetData->discardLevel(propertyLevel);
-            appendState = OctreeElement::PARTIAL;
-        }
-    } else {
-        propertiesDidntFit -= PROP_ANIMATION_URL;
-    }
-
-    // PROP_ANIMATION_FPS
-    if (requestedProperties.getHasProperty(PROP_ANIMATION_FPS)) {
-        LevelDetails propertyLevel = packetData->startLevel();
-        successPropertyFits = packetData->appendValue(getAnimationFPS());
-        if (successPropertyFits) {
-            propertyFlags |= PROP_ANIMATION_FPS;
-            propertiesDidntFit -= PROP_ANIMATION_FPS;
-            propertyCount++;
-            packetData->endLevel(propertyLevel);
-        } else {
-            packetData->discardLevel(propertyLevel);
-            appendState = OctreeElement::PARTIAL;
-        }
-    } else {
-        propertiesDidntFit -= PROP_ANIMATION_FPS;
-    }
-
-    // PROP_ANIMATION_FRAME_INDEX
-    if (requestedProperties.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
-        LevelDetails propertyLevel = packetData->startLevel();
-        successPropertyFits = packetData->appendValue(getAnimationFrameIndex());
-        if (successPropertyFits) {
-            propertyFlags |= PROP_ANIMATION_FRAME_INDEX;
-            propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
-            propertyCount++;
-            packetData->endLevel(propertyLevel);
-        } else {
-            packetData->discardLevel(propertyLevel);
-            appendState = OctreeElement::PARTIAL;
-        }
-    } else {
-        propertiesDidntFit -= PROP_ANIMATION_FRAME_INDEX;
-    }
-
-    // PROP_ANIMATION_PLAYING
-    if (requestedProperties.getHasProperty(PROP_ANIMATION_PLAYING)) {
-        LevelDetails propertyLevel = packetData->startLevel();
-        successPropertyFits = packetData->appendValue(getAnimationIsPlaying());
-        if (successPropertyFits) {
-            propertyFlags |= PROP_ANIMATION_PLAYING;
-            propertiesDidntFit -= PROP_ANIMATION_PLAYING;
-            propertyCount++;
-            packetData->endLevel(propertyLevel);
-        } else {
-            packetData->discardLevel(propertyLevel);
-            appendState = OctreeElement::PARTIAL;
-        }
-    } else {
-        propertiesDidntFit -= PROP_ANIMATION_PLAYING;
-    }
-
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, getModelURL());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, getAnimationURL());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, getAnimationFPS());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, getAnimationIsPlaying());
 }
 
 

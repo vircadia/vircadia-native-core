@@ -208,4 +208,6 @@ protected:
     QString _script;
 };
 
+
+
 #endif // hifi_EntityItem_h

@@ -257,5 +257,23 @@ Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties);
 
+// This macro is used in a couple of methods for appending data into an entity property stream
+#define APPEND_ENTITY_PROPERTY(P,O,V) \
+        if (requestedProperties.getHasProperty(P)) {                \
+            LevelDetails propertyLevel = packetData->startLevel();  \
+            successPropertyFits = packetData->O(V);                 \
+            if (successPropertyFits) {                              \
+                propertyFlags |= P;                                 \
+                propertiesDidntFit -= P;                            \
+                propertyCount++;                                    \
+                packetData->endLevel(propertyLevel);                \
+            } else {                                                \
+                packetData->discardLevel(propertyLevel);            \
+                appendState = OctreeElement::PARTIAL;               \
+            }                                                       \
+        } else {                                                    \
+            propertiesDidntFit -= P;                                \
+        }
+
 
 #endif // hifi_EntityItemProperties_h

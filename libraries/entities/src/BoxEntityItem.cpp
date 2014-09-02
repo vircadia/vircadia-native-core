@@ -109,21 +109,5 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 
     bool successPropertyFits = true;
 
-    // PROP_COLOR
-    if (requestedProperties.getHasProperty(PROP_COLOR)) {
-        LevelDetails propertyLevel = packetData->startLevel();
-        successPropertyFits = packetData->appendColor(getColor());
-        if (successPropertyFits) {
-            propertyFlags |= PROP_COLOR;
-            propertiesDidntFit -= PROP_COLOR;
-            propertyCount++;
-            packetData->endLevel(propertyLevel);
-        } else {
-            packetData->discardLevel(propertyLevel);
-            appendState = OctreeElement::PARTIAL;
-        }
-    } else {
-        propertiesDidntFit -= PROP_COLOR;
-    }
-
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
