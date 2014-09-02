@@ -1116,7 +1116,7 @@ var toolBar = (function () {
         browseModelsButton,
         loadURLMenuItem,
         loadFileMenuItem,
-        menuItemWidth = 90,
+        menuItemWidth = 125,
         menuItemOffset,
         menuItemHeight,
         menuItemMargin = 5,

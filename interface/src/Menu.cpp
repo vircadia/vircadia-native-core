@@ -114,6 +114,7 @@ Menu::Menu() :
     _loginAction(NULL),
     _preferencesDialog(NULL),
     _loginDialog(NULL),
+    _hasLoginDialogDisplayed(false),
     _snapshotsLocation(),
     _scriptsLocation(),
     _walletPrivateKey()
@@ -1052,12 +1053,24 @@ void sendFakeEnterEvent() {
 
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
+void Menu::clearLoginDialogDisplayedFlag() {
+    // Needed for domains that don't require login.
+    _hasLoginDialogDisplayed = false;
+}
+
 void Menu::loginForCurrentDomain() {
-    if (!_loginDialog) {
+    if (!_loginDialog && !_hasLoginDialogDisplayed) {
         _loginDialog = new LoginDialog(Application::getInstance()->getWindow());
         _loginDialog->show();
         _loginDialog->resizeAndPosition(false);
     }
+
+    _hasLoginDialogDisplayed = true;
+}
+
+void Menu::showLoginForCurrentDomain() {
+    _hasLoginDialogDisplayed = false;
+    loginForCurrentDomain();
 }
 
 void Menu::editPreferences() {
@@ -1404,7 +1417,7 @@ void Menu::toggleLoginMenuItem() {
         // change the menu item to login
         _loginAction->setText("Login");
 
-        connect(_loginAction, &QAction::triggered, this, &Menu::loginForCurrentDomain);
+        connect(_loginAction, &QAction::triggered, this, &Menu::showLoginForCurrentDomain);
     }
 }
 
