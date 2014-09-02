@@ -12,6 +12,8 @@
 Script.include("toolBars.js");
 
 var recordingFile = "recording.rec";
+var playFromCurrentLocation = true;
+var loop = true;
 
 var windowDimensions = Controller.getViewportDimensions();
 var TOOL_ICON_URL = "http://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/";
@@ -139,8 +141,6 @@ function moveUI() {
 function mousePressEvent(event) {
 	clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
-	print("Status: isPlaying=" + MyAvatar.isPlaying() + ", isRecording=" + MyAvatar.isRecording());
-
   if (recordIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isPlaying()) {
   	if (!MyAvatar.isRecording()) {
   		MyAvatar.startRecording();
@@ -154,19 +154,23 @@ function mousePressEvent(event) {
 		if (MyAvatar.isPlaying()) {
 			MyAvatar.stopPlaying();
 		} else {
-			MyAvatar.setPlayFromCurrentLocation(true);
-			MyAvatar.setPlayerLoop(true);
+			MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
+			MyAvatar.setPlayerLoop(loop);
 	  	MyAvatar.startPlaying(true);
 	  }
   } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
   		recordingFile = Window.save("Save recording to file", ".", "*.rec");
-	  	MyAvatar.saveRecording(recordingFile);
+  		if (recordingFile != null) {
+				MyAvatar.saveRecording(recordingFile);
+  		}
 	  }
   } else if (loadIcon === toolBar.clicked(clickedOverlay)) {
   	if (!MyAvatar.isRecording()) {
   		recordingFile = Window.browse("Load recorcding from file", ".", "*.rec");
-	  	MyAvatar.loadRecording(recordingFile);
+	  	if (recordingFile != "null") {
+	  		MyAvatar.loadRecording(recordingFile);
+  		}
   	}
   } else {
 
