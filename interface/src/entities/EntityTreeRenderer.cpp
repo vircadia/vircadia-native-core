@@ -66,21 +66,8 @@ void EntityTreeRenderer::update() {
 }
 
 void EntityTreeRenderer::render(RenderMode renderMode) {
-
-    bool wantDebug = false;
-
-    if (wantDebug) { 
-        qDebug() << "------------ EntityTreeRenderer::render() -- BEFORE WE BEGIN: the tree[" << _tree << "] -------------";
-        static_cast<EntityTree*>(_tree)->dumpTree();
-        qDebug() << "------------ EntityTreeRenderer::render() -- END the tree-------------";
-    }
-
     OctreeRenderer::render(renderMode);
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
-
-    if (wantDebug) { 
-        qDebug() << "------------ DONE EntityTreeRenderer::render() -------------";
-    }
 }
 
 const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem* entityItem) {
@@ -206,15 +193,6 @@ bool EntityTreeRenderer::shouldRenderEntity(float largestDimension, float distan
 }
 
 void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
-    bool wantDebug = false;
-
-    if (wantDebug) { 
-        qDebug() << "EntityTreeRenderer::renderElement()...";
-        qDebug() << "    element=" << element;
-        qDebug() << "    element->getAACube()=" << element->getAACube();
-    }
-
-    //PerformanceTimer perfTimer("renderElement");
     args->_elementsTouched++;
     // actually render it here...
     // we need to iterate the actual entityItems of the element
@@ -236,15 +214,6 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem* entityItem = entityItems[i];
-        if (wantDebug) {
-            bool isBestFit = entityTreeElement->bestFitEntityBounds(entityItem);
-            qDebug() << "EntityTreeRenderer::renderElement() "
-                     << "entityTreeElement=" << entityTreeElement 
-                     << "entityItems[" << i << "]=" << entityItem
-                     << "ID=" << entityItem->getEntityItemID()
-                     << "isBestFit=" << isBestFit;
-        }
-        
         // render entityItem 
         AACube entityCube = entityItem->getAACube();
         entityCube.scale(TREE_SCALE);
@@ -258,12 +227,6 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
             Glower* glower = NULL;
             if (entityItem->getGlowLevel() > 0.0f) {
                 glower = new Glower(entityItem->getGlowLevel());
-            }
-            if (wantDebug) { 
-                qDebug() << "    EntityTreeRenderer about to render entity...";
-                qDebug() << "        element=" << element;
-                qDebug() << "        entityItem=" << entityItem;
-                qDebug() << "        entityItem->getEntityItemID()=" << entityItem->getEntityItemID();
             }
             entityItem->render(args);
             if (glower) {

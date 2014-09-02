@@ -90,15 +90,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
                                             EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const {
                                             
-                                            
-    const bool wantDebug = false;
-    
-    if (wantDebug) {
-        qDebug() << "EntityItem::appendEntityData()....";
-        qDebug() << "    entity=" << this;
-        qDebug() << "    entityItemID=" << getEntityItemID();
-    }
-
     // ALL this fits...
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]
