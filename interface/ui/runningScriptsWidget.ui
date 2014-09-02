@@ -175,13 +175,13 @@ font: bold 16px;
         </property>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <property name="leftMargin">
-          <number>0</number>
+          <number>6</number>
          </property>
          <property name="topMargin">
           <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>0</number>
+          <number>6</number>
          </property>
          <property name="bottomMargin">
           <number>0</number>
@@ -360,13 +360,13 @@ font: bold 16px;
           <number>6</number>
          </property>
          <property name="topMargin">
-          <number>0</number>
+          <number>6</number>
          </property>
          <property name="rightMargin">
           <number>6</number>
          </property>
          <property name="bottomMargin">
-          <number>0</number>
+          <number>6</number>
          </property>
          <item>
           <widget class="QLabel" name="label">
