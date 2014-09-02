@@ -110,7 +110,6 @@ public:
     virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const;
     virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) const;
     virtual bool shouldIncludeChild(int childIndex, EncodeBitstreamParams& params) const;
-    virtual bool shouldRecurseSubtree(OctreeElement* parent, EncodeBitstreamParams& params, OctreeElementBag* bag) const;
     virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const;
     virtual void elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const;
 

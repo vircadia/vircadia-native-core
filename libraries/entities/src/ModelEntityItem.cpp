@@ -142,13 +142,13 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         dataAt += modelURLLength;
         bytesRead += modelURLLength;
 
-qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer().... EntityID: " << getEntityItemID() << " --- PROP_MODEL_URL:" << modelURLString;
+//qDebug() << "ModelEntityItem::readEntitySubclassDataFromBuffer().... EntityID: " << getEntityItemID() << " --- PROP_MODEL_URL:" << modelURLString;
 
         if (overwriteLocalData) {
             setModelURL(modelURLString);
-qDebug() << "    setModelURL(modelURLString)=" << getModelURL();
+//qDebug() << "    setModelURL(modelURLString)=" << getModelURL();
         } else {
-qDebug() << "    WARNING >>>>>>>>>>> IGNORING NEW DATA!!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+//qDebug() << "    WARNING >>>>>>>>>>> IGNORING NEW DATA!!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
         }
     }
     
@@ -357,7 +357,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
         successPropertyFits = packetData->appendValue(getModelURL());
         if (successPropertyFits) {
         
-qDebug() << "ModelEntityItem::appendSubclassData().... EntityID: " << getEntityItemID() << " --- PROP_MODEL_URL:" << getModelURL();
+//qDebug() << "ModelEntityItem::appendSubclassData().... EntityID: " << getEntityItemID() << " --- PROP_MODEL_URL:" << getModelURL();
 
             propertyFlags |= PROP_MODEL_URL;
             propertiesDidntFit -= PROP_MODEL_URL;

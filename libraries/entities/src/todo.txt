@@ -10,16 +10,10 @@ http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-lar
     
         -- this appears to be related to clock skew!!!
         -- need to determine "when to deleted extra data" --             
+
+    2) edits not being sent???            
             
             
-            
-        When encoding ----
-                if the parent node gets pulled from the bag first... things go ok
-                if the child node gets pulled first --
-                    and it encodes the grandchildren ---
-                THEN -- it seems like things break:
-                    1) the parent node will encode the children -- OK
-                    2) then will attempt to recurse into the children..
             
             
             

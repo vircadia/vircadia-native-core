@@ -379,26 +379,26 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     if (propertyCount > 0) {
         int endOfEntityItemData = packetData->getUncompressedByteOffset();
 
-        qDebug() << "Entity Properties THIS ROUND... entityID:" << getEntityItemID();
-
-        DEBUG_PROPERTY(propertyFlags, PROP_MODEL_URL);
-        DEBUG_PROPERTY(propertyFlags, PROP_PAGED_PROPERTY)
-        DEBUG_PROPERTY(propertyFlags, PROP_CUSTOM_PROPERTIES_INCLUDED);
-        DEBUG_PROPERTY(propertyFlags, PROP_POSITION);
-        DEBUG_PROPERTY(propertyFlags, PROP_RADIUS);
-        DEBUG_PROPERTY(propertyFlags, PROP_ROTATION);
-        DEBUG_PROPERTY(propertyFlags, PROP_MASS);
-        DEBUG_PROPERTY(propertyFlags, PROP_VELOCITY);
-        DEBUG_PROPERTY(propertyFlags, PROP_GRAVITY);
-        DEBUG_PROPERTY(propertyFlags, PROP_DAMPING);
-        DEBUG_PROPERTY(propertyFlags, PROP_LIFETIME);
-        DEBUG_PROPERTY(propertyFlags, PROP_SCRIPT);
-        DEBUG_PROPERTY(propertyFlags, PROP_COLOR);
-        DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_URL);
-        DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_FPS);
-        DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_FRAME_INDEX);
-        DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_PLAYING);
-
+        if (wantDebug) {
+            qDebug() << "Entity Properties THIS ROUND... entityID:" << getEntityItemID();
+            DEBUG_PROPERTY(propertyFlags, PROP_MODEL_URL);
+            DEBUG_PROPERTY(propertyFlags, PROP_PAGED_PROPERTY)
+            DEBUG_PROPERTY(propertyFlags, PROP_CUSTOM_PROPERTIES_INCLUDED);
+            DEBUG_PROPERTY(propertyFlags, PROP_POSITION);
+            DEBUG_PROPERTY(propertyFlags, PROP_RADIUS);
+            DEBUG_PROPERTY(propertyFlags, PROP_ROTATION);
+            DEBUG_PROPERTY(propertyFlags, PROP_MASS);
+            DEBUG_PROPERTY(propertyFlags, PROP_VELOCITY);
+            DEBUG_PROPERTY(propertyFlags, PROP_GRAVITY);
+            DEBUG_PROPERTY(propertyFlags, PROP_DAMPING);
+            DEBUG_PROPERTY(propertyFlags, PROP_LIFETIME);
+            DEBUG_PROPERTY(propertyFlags, PROP_SCRIPT);
+            DEBUG_PROPERTY(propertyFlags, PROP_COLOR);
+            DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_URL);
+            DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_FPS);
+            DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_FRAME_INDEX);
+            DEBUG_PROPERTY(propertyFlags, PROP_ANIMATION_PLAYING);
+        }
 
         
         encodedPropertyFlags = propertyFlags;
@@ -409,7 +409,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         // if the size of the PropertyFlags shrunk, we need to shift everything down to front of packet.
         if (newPropertyFlagsLength < oldPropertyFlagsLength) {
         
-qDebug() << "PACKET SHIFTING!!! <<<<<<<<<<<<<<<< ";
+            //qDebug() << "PACKET SHIFTING!!! <<<<<<<<<<<<<<<< ";
 
             int oldSize = packetData->getUncompressedSize();
             const unsigned char* modelItemData = packetData->getUncompressedData(propertyFlagsOffset + oldPropertyFlagsLength);
@@ -433,31 +433,30 @@ qDebug() << "PACKET SHIFTING!!! <<<<<<<<<<<<<<<< ";
     if (appendState != OctreeElement::COMPLETED) {
         // add this item into our list for the next appendElementData() pass
         
-        qDebug() << "Entity Partially encoded... entityID:" << getEntityItemID();
-
-        #define DEBUG_PROPERTY(y, x) if (y.getHasProperty(x)) { qDebug() << "    " #x; }
-
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_MODEL_URL);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_PAGED_PROPERTY)
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_CUSTOM_PROPERTIES_INCLUDED);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_POSITION);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_RADIUS);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_ROTATION);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_MASS);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_VELOCITY);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_GRAVITY);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_DAMPING);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_LIFETIME);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_SCRIPT);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_COLOR);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_URL);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_FPS);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_FRAME_INDEX);
-        DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_PLAYING);
-
+        if (wantDebug) {
+            qDebug() << "Entity Partially encoded... entityID:" << getEntityItemID();
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_MODEL_URL);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_PAGED_PROPERTY)
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_CUSTOM_PROPERTIES_INCLUDED);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_POSITION);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_RADIUS);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_ROTATION);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_MASS);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_VELOCITY);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_GRAVITY);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_DAMPING);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_LIFETIME);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_SCRIPT);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_COLOR);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_URL);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_FPS);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_FRAME_INDEX);
+            DEBUG_PROPERTY(propertiesDidntFit, PROP_ANIMATION_PLAYING);
+        }
+        
         entityTreeElementExtraEncodeData->entities.insert(getEntityItemID(), propertiesDidntFit);
     } else {
-        qDebug() << "Entity COMPLETED... entityID:" << getEntityItemID();
+        //qDebug() << "Entity COMPLETED... entityID:" << getEntityItemID();
     }
 
     return appendState;
@@ -553,29 +552,31 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
         dataAt += sizeof(lastEditedFromBuffer);
         bytesRead += sizeof(lastEditedFromBuffer);
-
-        qDebug() << "data from server **************** ";
-        qDebug() << "      entityItemID=" << getEntityItemID();
-        qDebug() << "      now=" << usecTimestampNow();
-        qDebug() << "      getLastEdited();=" << getLastEdited();
-        qDebug() << "      _lastEditedRemote=" << _lastEditedRemote;
-        qDebug() << "      _lastEditedLocal=" << _lastEditedLocal;
-        qDebug() << "      lastEditedFromBuffer=" << lastEditedFromBuffer << " (BEFORE clockskew adjust)";
-        qDebug() << "      clockSkew=" << clockSkew;
         lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
-        qDebug() << "      lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted << " (AFTER clockskew adjust)";
+
+        if (wantDebug) {
+            qDebug() << "data from server **************** ";
+            qDebug() << "      entityItemID=" << getEntityItemID();
+            qDebug() << "      now=" << usecTimestampNow();
+            qDebug() << "      getLastEdited();=" << getLastEdited();
+            qDebug() << "      _lastEditedRemote=" << _lastEditedRemote;
+            qDebug() << "      _lastEditedLocal=" << _lastEditedLocal;
+            qDebug() << "      lastEditedFromBuffer=" << lastEditedFromBuffer << " (BEFORE clockskew adjust)";
+            qDebug() << "      clockSkew=" << clockSkew;
+            qDebug() << "      lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted << " (AFTER clockskew adjust)";
+        }
 
         
         // If we've changed our local tree more recently than the new data from this packet
         // then we will not be changing our values, instead we just read and skip the data
         if (_lastEditedLocal > lastEditedFromBufferAdjusted) {
             overwriteLocalData = false;
-            if (true || wantDebug) {
+            if (wantDebug) {
                 qDebug() << "IGNORING old data from server!!! ****************";
             }
         } else {
 
-            if (true || wantDebug) {
+            if (wantDebug) {
                 qDebug() << "USING NEW data from server!!! ****************";
             }
 
