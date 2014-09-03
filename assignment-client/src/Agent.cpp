@@ -244,20 +244,17 @@ void Agent::run() {
 
     _scriptEngine.registerGlobalObject("VoxelViewer", &_voxelViewer);
     // connect the VoxelViewer and the VoxelScriptingInterface to each other
-    JurisdictionListener* voxelJL = _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener();
-    _voxelViewer.setJurisdictionListener(voxelJL);
+    _voxelViewer.setJurisdictionListener(_scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener());
     _voxelViewer.init();
     _scriptEngine.getVoxelsScriptingInterface()->setVoxelTree(_voxelViewer.getTree());
     
     _scriptEngine.registerGlobalObject("ParticleViewer", &_particleViewer);
-    JurisdictionListener* particleJL = _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener();
-    _particleViewer.setJurisdictionListener(particleJL);
+    _particleViewer.setJurisdictionListener(_scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener());
     _particleViewer.init();
     _scriptEngine.getParticlesScriptingInterface()->setParticleTree(_particleViewer.getTree());
 
     _scriptEngine.registerGlobalObject("EntityViewer", &_entityViewer);
-    JurisdictionListener* modelJL = _scriptEngine.getEntityScriptingInterface()->getJurisdictionListener();
-    _entityViewer.setJurisdictionListener(modelJL);
+    _entityViewer.setJurisdictionListener(_scriptEngine.getEntityScriptingInterface()->getJurisdictionListener());
     _entityViewer.init();
     _scriptEngine.getEntityScriptingInterface()->setEntityTree(_entityViewer.getTree());
 

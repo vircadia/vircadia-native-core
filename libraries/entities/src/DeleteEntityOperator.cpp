@@ -100,7 +100,7 @@ bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
             if (entityTreeElement == details.containingElement) {
                 EntityItemID entityItemID = details.entity->getEntityItemID();
                 EntityItem* theEntity = entityTreeElement->getEntityWithEntityItemID(entityItemID); // find the actual entity
-                bool removed = entityTreeElement->removeEntityItem(theEntity); // remove it from the element
+                entityTreeElement->removeEntityItem(theEntity); // remove it from the element
                 _tree->setContainingElement(entityItemID, NULL); // update or id to element lookup
                 delete theEntity; // now actually delete the entity!
                 _foundCount++;

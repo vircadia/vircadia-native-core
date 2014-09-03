@@ -43,7 +43,7 @@ public:
 
     void update();
 
-    EntityTree* getTree() { return (EntityTree*)_tree; }
+    EntityTree* getTree() { return static_cast<EntityTree*>(_tree); }
 
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 

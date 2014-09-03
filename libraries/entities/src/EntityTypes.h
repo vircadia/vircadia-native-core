@@ -63,7 +63,8 @@ private:
 /// returns a newly constructed (heap allocated) instance of your type. e.g. The following prototype:
 //        static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 #define REGISTER_ENTITY_TYPE_WITH_FACTORY(x,y) static bool x##Registration = \
-            EntityTypes::registerEntityType(EntityTypes::x, #x, y);
+            EntityTypes::registerEntityType(EntityTypes::x, #x, y); \
+            assert(x##Registration);
 
 
 #endif // hifi_EntityTypes_h
