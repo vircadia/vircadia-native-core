@@ -16,11 +16,11 @@
 
 class AACubeShape : public Shape {
 public:
-    AACubeShape() : Shape(AACUBE_SHAPE), _scale(1.0f) {}
+    AACubeShape() : Shape(AACUBE_SHAPE), _scale(1.0f) { }
     AACubeShape(float scale) : Shape(AACUBE_SHAPE), _scale(scale) { }
     AACubeShape(float scale, const glm::vec3& position) : Shape(AACUBE_SHAPE, position), _scale(scale) { }
 
-    virtual ~AACubeShape() {}
+    virtual ~AACubeShape() { }
 
     float getScale() const { return _scale; }
     void setScale(float scale) { _scale = scale; }
