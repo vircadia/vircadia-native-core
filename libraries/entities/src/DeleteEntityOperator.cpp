@@ -74,7 +74,7 @@ bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(OctreeElement* el
     return containsEntity;
 }
 
-bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
+bool DeleteEntityOperator::preRecursion(OctreeElement* element) {
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
@@ -114,7 +114,7 @@ bool DeleteEntityOperator::PreRecursion(OctreeElement* element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool DeleteEntityOperator::PostRecursion(OctreeElement* element) {
+bool DeleteEntityOperator::postRecursion(OctreeElement* element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old entity and one for the new entity.

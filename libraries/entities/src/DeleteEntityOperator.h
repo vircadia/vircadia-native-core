@@ -34,8 +34,8 @@ public:
     ~DeleteEntityOperator();
 
     void addEntityIDToDeleteList(const EntityItemID& searchEntityID);
-    virtual bool PreRecursion(OctreeElement* element);
-    virtual bool PostRecursion(OctreeElement* element);
+    virtual bool preRecursion(OctreeElement* element);
+    virtual bool postRecursion(OctreeElement* element);
 private:
     EntityTree* _tree;
     QSet<EntityToDeleteDetails> _entitiesToDelete;

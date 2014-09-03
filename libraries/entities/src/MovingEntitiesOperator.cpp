@@ -67,7 +67,7 @@ bool MovingEntitiesOperator::shouldRecurseSubTree(OctreeElement* element) {
     return containsEntity;
 }
 
-bool MovingEntitiesOperator::PreRecursion(OctreeElement* element) {
+bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
@@ -111,7 +111,7 @@ bool MovingEntitiesOperator::PreRecursion(OctreeElement* element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool MovingEntitiesOperator::PostRecursion(OctreeElement* element) {
+bool MovingEntitiesOperator::postRecursion(OctreeElement* element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old entity and one for the new entity.
@@ -129,7 +129,7 @@ bool MovingEntitiesOperator::PostRecursion(OctreeElement* element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-OctreeElement* MovingEntitiesOperator::PossiblyCreateChildAt(OctreeElement* element, int childIndex) {
+OctreeElement* MovingEntitiesOperator::possiblyCreateChildAt(OctreeElement* element, int childIndex) {
     // If we're getting called, it's because there was no child element at this index while recursing.
     // We only care if this happens while still searching for the new entity locations.
     if (_foundNewCount < _lookingCount) {

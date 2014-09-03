@@ -18,9 +18,9 @@ public:
                             EntityItem* existingEntity, const EntityItemProperties& properties);
     ~UpdateEntityOperator();
                             
-    virtual bool PreRecursion(OctreeElement* element);
-    virtual bool PostRecursion(OctreeElement* element);
-    virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex);
+    virtual bool preRecursion(OctreeElement* element);
+    virtual bool postRecursion(OctreeElement* element);
+    virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex);
 private:
     EntityTree* _tree;
     EntityItem* _existingEntity;

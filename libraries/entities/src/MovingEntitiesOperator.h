@@ -37,9 +37,9 @@ public:
     ~MovingEntitiesOperator();
 
     void addEntityToMoveList(EntityItem* entity, const AACube& oldCube, const AACube& newCube);
-    virtual bool PreRecursion(OctreeElement* element);
-    virtual bool PostRecursion(OctreeElement* element);
-    virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex);
+    virtual bool preRecursion(OctreeElement* element);
+    virtual bool postRecursion(OctreeElement* element);
+    virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex);
     bool hasMovingEntities() const { return _entitiesToMove.size() > 0; }
 private:
     EntityTree* _tree;

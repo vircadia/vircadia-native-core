@@ -39,9 +39,9 @@ class Shape;
 /// derive from this class to use the Octree::recurseTreeWithOperator() method
 class RecurseOctreeOperator {
 public:
-    virtual bool PreRecursion(OctreeElement* element) = 0;
-    virtual bool PostRecursion(OctreeElement* element) = 0;
-    virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex) { return NULL; }
+    virtual bool preRecursion(OctreeElement* element) = 0;
+    virtual bool postRecursion(OctreeElement* element) = 0;
+    virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex) { return NULL; }
 };
 
 // Callback function, for recuseTreeWithOperation

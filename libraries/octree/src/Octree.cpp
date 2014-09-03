@@ -155,14 +155,14 @@ bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOpe
         return false;
     }
 
-    if (operatorObject->PreRecursion(element)) {
+    if (operatorObject->preRecursion(element)) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             OctreeElement* child = element->getChildAtIndex(i);
             
             // If there is no child at that location, the Operator may want to create a child at that location.
             // So give the operator a chance to do so....
             if (!child) {
-                child = operatorObject->PossiblyCreateChildAt(element, i);
+                child = operatorObject->possiblyCreateChildAt(element, i);
             }
             
             if (child) {
@@ -173,7 +173,7 @@ bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOpe
         }
     }
     
-    return operatorObject->PostRecursion(element);
+    return operatorObject->postRecursion(element);
 }
 
 

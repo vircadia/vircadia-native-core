@@ -16,9 +16,9 @@ class AddEntityOperator : public RecurseOctreeOperator {
 public:
     AddEntityOperator(EntityTree* tree, EntityItem* newEntity);
                             
-    virtual bool PreRecursion(OctreeElement* element);
-    virtual bool PostRecursion(OctreeElement* element);
-    virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex);
+    virtual bool preRecursion(OctreeElement* element);
+    virtual bool postRecursion(OctreeElement* element);
+    virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex);
 private:
     EntityTree* _tree;
     EntityItem* _newEntity;

@@ -1008,12 +1008,11 @@ void EntityTree::debugDumpMap() {
 
 class DebugOperator : public RecurseOctreeOperator {
 public:
-    virtual bool PreRecursion(OctreeElement* element);
-    virtual bool PostRecursion(OctreeElement* element) { return true; };
-    virtual OctreeElement* PossiblyCreateChildAt(OctreeElement* element, int childIndex) { return NULL; }
+    virtual bool preRecursion(OctreeElement* element);
+    virtual bool postRecursion(OctreeElement* element) { return true; }
 };
 
-bool DebugOperator::PreRecursion(OctreeElement* element) {
+bool DebugOperator::preRecursion(OctreeElement* element) {
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     qDebug() << "EntityTreeElement [" << entityTreeElement << "]";
     entityTreeElement->debugDump();
