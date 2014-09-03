@@ -190,7 +190,9 @@ protected:
     uint32_t _creatorTokenID;
     bool _newlyCreated;
     quint64 _lastUpdated;
-    quint64 _lastEdited;
+    quint64 _lastEdited; // this is the last official local or remote edit time
+    quint64 _lastEditedFromRemote; // this is the last time we received and edit from the server
+    quint64 _lastEditedFromRemoteInRemoteTime; // time in server time space the last time we received and edit from the server
     quint64 _created;
 
     glm::vec3 _position;

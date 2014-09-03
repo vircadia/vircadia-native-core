@@ -43,6 +43,9 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     // init values with defaults before calling setProperties
     //uint64_t now = usecTimestampNow();
     _lastEdited = 0;
+    _lastEditedFromRemote = 0;
+    _lastEditedFromRemoteInRemoteTime = 0;
+    
     _lastUpdated = 0;
     _created = 0; // TODO: when do we actually want to make this "now"
 
@@ -61,6 +64,8 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
     _type = EntityTypes::Unknown;
     _lastEdited = 0;
+    _lastEditedFromRemote = 0;
+    _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
     initFromEntityItemID(entityItemID);
@@ -247,7 +252,7 @@ int EntityItem::expectedBytes() {
 
 
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-    bool wantDebug = false;
+    bool wantDebug = true;
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
     
@@ -317,6 +322,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qDebug() << "    ago=" << editedAgo << "seconds - " << agoAsString;
         }
         
+        quint64 now = usecTimestampNow();
         quint64 lastEditedFromBuffer = 0;
         quint64 lastEditedFromBufferAdjusted = 0;
 
@@ -326,21 +332,44 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += sizeof(lastEditedFromBuffer);
         bytesRead += sizeof(lastEditedFromBuffer);
         lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
+        
+        bool fromSameServerEdit = (lastEditedFromBuffer == _lastEditedFromRemoteInRemoteTime);
 
         if (wantDebug) {
             qDebug() << "data from server **************** ";
             qDebug() << "      entityItemID=" << getEntityItemID();
-            qDebug() << "      now=" << usecTimestampNow();
-            qDebug() << "      getLastEdited();=" << getLastEdited();
+            qDebug() << "      now=" << now;
+            qDebug() << "      getLastEdited()=" << getLastEdited();
             qDebug() << "      lastEditedFromBuffer=" << lastEditedFromBuffer << " (BEFORE clockskew adjust)";
             qDebug() << "      clockSkew=" << clockSkew;
             qDebug() << "      lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted << " (AFTER clockskew adjust)";
+            qDebug() << "      _lastEditedFromRemote=" << _lastEditedFromRemote 
+                                        << " (our local time the last server edit we accepted)";
+            qDebug() << "      _lastEditedFromRemoteInRemoteTime=" << _lastEditedFromRemoteInRemoteTime 
+                                        << " (remote time the last server edit we accepted)";
+            qDebug() << "      fromSameServerEdit=" << fromSameServerEdit;
         }
 
+        bool ignoreServerPacket = false; // assume we're use this server packet
         
-        // If we've changed our local tree more recently than the new data from this packet
-        // then we will not be changing our values, instead we just read and skip the data
-        if (_lastEdited > lastEditedFromBufferAdjusted) {
+        // If this packet is from the same server edit as the last packet we accepted from the server
+        // we probably want to use it.
+        if (fromSameServerEdit) {
+            // If this is from the same sever packet, then check against any local changes since we got
+            // the most recent packet from this server time
+            if (_lastEdited > _lastEditedFromRemote) {
+                ignoreServerPacket = true;
+            }
+        } else {
+            // If this isn't from the same sever packet, then honor our skew adjusted times...
+            // If we've changed our local tree more recently than the new data from this packet
+            // then we will not be changing our values, instead we just read and skip the data
+            if (_lastEdited > lastEditedFromBufferAdjusted) {
+                ignoreServerPacket = true;
+            }
+        }
+        
+        if (ignoreServerPacket) {
             overwriteLocalData = false;
             if (wantDebug) {
                 qDebug() << "IGNORING old data from server!!! ****************";
@@ -352,6 +381,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
 
             _lastEdited = lastEditedFromBufferAdjusted;
+            _lastEditedFromRemote = now;
+            _lastEditedFromRemoteInRemoteTime = lastEditedFromBuffer;
+            
             somethingChangedNotification(); // notify derived classes that something has changed
         }
 
