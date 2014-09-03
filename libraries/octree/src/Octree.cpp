@@ -764,7 +764,7 @@ bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
         return true; // recurse on children
     }
     if (element->hasContent()) {
-        if (ShapeCollider::collideShapeWithAACube(args->shape, cube.calcCenter(), cube.getScale(), args->collisions)) {
+        if (ShapeCollider::collideShapeWithAACubeLegacy(args->shape, cube.calcCenter(), cube.getScale(), args->collisions)) {
             args->found = true;
             return true;
         }
