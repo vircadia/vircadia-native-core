@@ -16,6 +16,8 @@
 #include "PreferencesDialog.h"
 #include "UserActivityLogger.h"
 
+const int PREFERENCES_HEIGHT_PADDING = 20;
+
 PreferencesDialog::PreferencesDialog() :
     QDialog(Application::getInstance()->getWindow()) {
         
@@ -31,8 +33,8 @@ PreferencesDialog::PreferencesDialog() :
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked,
             Application::getInstance(), &Application::loadDefaultScripts);
     // move dialog to left side
-    move(0, 0);
-    setWindowState(Qt::WindowMaximized);
+    move(parentWidget()->geometry().topLeft());
+    setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 }
 
 void PreferencesDialog::accept() {
