@@ -21,6 +21,7 @@
 #include <AccountManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
+#include <LogUtils.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
@@ -48,15 +49,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _settingsManager()
 {
 
-#ifdef Q_OS_WIN
-    // Windows applications buffer stdout/err hard when not run from a terminal,
-    // making a domain server run from the Stack Manager application not flush
-    // log messages.
-    // This will disable the buffering.  If this becomes a performance issue,
-    // an alternative is to call fflush(...) periodically.
-    setbuf(stdout, NULL);
-    setbuf(stderr, NULL);
-#endif
+    LogUtils::init();
 
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");

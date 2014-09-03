@@ -17,6 +17,7 @@
 #include <Assignment.h>
 #include <HifiConfigVariantMap.h>
 #include <Logging.h>
+#include <LogUtils.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -39,16 +40,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
     _shutdownEventListener(this)
 {
-
-#ifdef Q_OS_WIN
-    // Windows applications buffer stdout/err hard when not run from a terminal,
-    // making assignment clients run from the Stack Manager application not flush
-    // log messages.
-    // This will disable the buffering.  If this becomes a performance issue,
-    // an alternative is to call fflush(...) periodically.
-    setbuf(stdout, NULL);
-    setbuf(stderr, NULL);
-#endif
+    LogUtils::init();
 
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
