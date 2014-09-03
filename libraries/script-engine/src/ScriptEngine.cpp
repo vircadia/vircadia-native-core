@@ -186,6 +186,13 @@ void ScriptEngine::setIsAvatar(bool isAvatar) {
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
         _avatarBillboardTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
     }
+    
+    if (!_isAvatar) {
+        delete _avatarIdentityTimer;
+        _avatarIdentityTimer = NULL;
+        delete _avatarBillboardTimer;
+        _avatarBillboardTimer = NULL;
+    }
 }
 
 void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectName) {

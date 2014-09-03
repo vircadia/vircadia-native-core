@@ -127,7 +127,7 @@ Tool.IMAGE_HEIGHT = 50;
 Tool.IMAGE_WIDTH = 50;
 
 ToolBar = function(x, y, direction) {
-    this.tools = [];
+    this.tools = new Array();
     this.x = x;
     this.y = y;
     this.width = 0;
@@ -161,8 +161,24 @@ ToolBar = function(x, y, direction) {
             });
         }
         
-        this.tools[this.tools.length] = new Tool(properties, selectable, selected);
+        this.tools.push(new Tool(properties, selectable, selected));
         return ((this.tools.length) - 1);
+    }
+
+    this.removeLastTool = function() {
+        this.tools.pop().cleanup();
+
+        if (direction == ToolBar.HORIZONTAL) {
+            this.width -= Tool.IMAGE_WIDTH + ToolBar.SPACING;
+        } else {
+            this.height -= Tool.IMAGE_HEIGHT + ToolBar.SPACING;
+        }
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, {
+                width: this.width + 2 * ToolBar.SPACING,
+                height: this.height + 2 * ToolBar.SPACING
+            });
+        }
     }
     
     this.move = function(x, y) {
