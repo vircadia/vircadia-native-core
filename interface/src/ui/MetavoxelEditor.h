@@ -455,4 +455,75 @@ private:
     QSharedPointer<NetworkTexture> _texture;
 };
 
+/// Base class for tools based on a sphere brush.
+class SphereTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    SphereTool(MetavoxelEditor* editor, const QString& name);
+    
+    virtual void render();
+
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+    
+protected:
+
+    virtual QColor getColor() = 0;
+    
+    virtual void applyValue(const glm::vec3& position, float radius) = 0;
+    
+    QFormLayout* _form;
+    QDoubleSpinBox* _radius;
+    
+    glm::vec3 _position;
+};
+
+/// Allows setting voxel colors by moving a sphere around.
+class VoxelColorSphereTool : public SphereTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelColorSphereTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+
+protected:
+
+    virtual QColor getColor();
+    
+    virtual void applyValue(const glm::vec3& position, float radius);
+    
+private:
+    
+    QColorEditor* _color;
+};
+
+/// Allows setting voxel materials by moving a sphere around.
+class VoxelMaterialSphereTool : public SphereTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelMaterialSphereTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+
+protected:
+
+    virtual QColor getColor();
+    
+    virtual void applyValue(const glm::vec3& position, float radius);
+    
+private slots:
+    
+    void updateTexture();
+    
+private:
+    
+    SharedObjectEditor* _materialEditor;
+    QSharedPointer<NetworkTexture> _texture;
+};
+
 #endif // hifi_MetavoxelEditor_h

@@ -416,6 +416,9 @@ public:
 /// Packs a normal into an RGB value.
 QRgb packNormal(const glm::vec3& normal);
 
+/// Packs a normal (plus extra alpha value) into an RGBA value.
+QRgb packNormal(const glm::vec3& normal, int alpha);
+
 /// Unpacks a normal from an RGB value.
 glm::vec3 unpackNormal(QRgb value);
 

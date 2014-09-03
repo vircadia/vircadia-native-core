@@ -126,6 +126,8 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new EraseHeightfieldTool(this));
     addTool(new VoxelColorBoxTool(this));
     addTool(new VoxelMaterialBoxTool(this));
+    addTool(new VoxelColorSphereTool(this));
+    addTool(new VoxelMaterialSphereTool(this));
     
     updateAttributes();
     
@@ -1279,6 +1281,113 @@ void VoxelMaterialBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3&
 }
 
 void VoxelMaterialBoxTool::updateTexture() {
+    MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
+    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
+}
+
+SphereTool::SphereTool(MetavoxelEditor* editor, const QString& name) :
+    MetavoxelTool(editor, name, false, true) {
+    
+    QWidget* widget = new QWidget();
+    widget->setLayout(_form = new QFormLayout());
+    layout()->addWidget(widget);
+    
+    _form->addRow("Radius:", _radius = new QDoubleSpinBox());
+    _radius->setSingleStep(0.01);
+    _radius->setMaximum(FLT_MAX);
+    _radius->setValue(1.0);
+}
+
+void SphereTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
+    glm::quat rotation = _editor->getGridRotation();
+    glm::quat inverseRotation = glm::inverse(rotation);
+    glm::vec3 rayOrigin = inverseRotation * Application::getInstance()->getMouseRayOrigin();
+    glm::vec3 rayDirection = inverseRotation * Application::getInstance()->getMouseRayDirection();
+    float position = _editor->getGridPosition();
+    if (glm::abs(rayDirection.z) < EPSILON) {
+        return;
+    }
+    float distance = (position - rayOrigin.z) / rayDirection.z;
+    _position = Application::getInstance()->getMouseRayOrigin() +
+        Application::getInstance()->getMouseRayDirection() * distance;
+    
+    glPushMatrix();
+    glTranslatef(_position.x, _position.y, _position.z);
+    
+    const float CURSOR_ALPHA = 0.5f;
+    QColor color = getColor();
+    glColor4f(color.redF(), color.greenF(), color.blueF(), CURSOR_ALPHA);
+    
+    glEnable(GL_CULL_FACE);
+    
+    glutSolidSphere(_radius->value(), 10, 10);
+    
+    glDisable(GL_CULL_FACE);
+    
+    glPopMatrix();
+}
+
+bool SphereTool::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::Wheel) {
+        float angle = static_cast<QWheelEvent*>(event)->angleDelta().y();
+        const float ANGLE_SCALE = 1.0f / 1000.0f;
+        _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
+        return true;
+    
+    } else if (event->type() == QEvent::MouseButtonPress) {
+        applyValue(_position, _radius->value());
+        return true;
+    }
+    return false;
+}
+
+VoxelColorSphereTool::VoxelColorSphereTool(MetavoxelEditor* editor) :
+    SphereTool(editor, "Set Voxel Color (Sphere)") {
+    
+    _form->addRow("Color:", _color = new QColorEditor(this));
+}
+
+bool VoxelColorSphereTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("VoxelColorAttribute");
+}
+
+QColor VoxelColorSphereTool::getColor() {
+    return _color->getColor();
+}
+
+void VoxelColorSphereTool::applyValue(const glm::vec3& position, float radius) {
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelColorSphereEdit(position, radius,
+        _editor->getGridSpacing(), _color->getColor())) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+VoxelMaterialSphereTool::VoxelMaterialSphereTool(MetavoxelEditor* editor) :
+    SphereTool(editor, "Set Voxel Material (Sphere)") {
+    
+    _form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
+    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialSphereTool::updateTexture);
+}
+
+bool VoxelMaterialSphereTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("VoxelColorAttribute");
+}
+
+QColor VoxelMaterialSphereTool::getColor() {
+    return _texture ? _texture->getAverageColor() : QColor();
+}
+
+void VoxelMaterialSphereTool::applyValue(const glm::vec3& position, float radius) {
+    SharedObjectPointer material = _materialEditor->getObject();
+    _materialEditor->detachObject();
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSphereEdit(position, radius,
+        _editor->getGridSpacing(), material, _texture ? _texture->getAverageColor() : QColor())) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+void VoxelMaterialSphereTool::updateTexture() {
     MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
     _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
 }

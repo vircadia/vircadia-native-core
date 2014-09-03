@@ -296,4 +296,43 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(VoxelMaterialBoxEdit)
 
+/// An edit that sets the color of voxels within a sphere to a value.
+class VoxelColorSphereEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+
+    STREAM glm::vec3 center;
+    STREAM float radius;
+    STREAM float granularity;
+    STREAM QColor color;
+    
+    VoxelColorSphereEdit(const glm::vec3& center = glm::vec3(), float radius = 0.0f,
+        float granularity = 0.0f, const QColor& color = QColor());
+    
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(VoxelColorSphereEdit)
+
+/// An edit that sets the materials of voxels within a sphere to a value.
+class VoxelMaterialSphereEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+
+    STREAM glm::vec3 center;
+    STREAM float radius;
+    STREAM float granularity;
+    STREAM SharedObjectPointer material;
+    STREAM QColor averageColor;
+    
+    VoxelMaterialSphereEdit(const glm::vec3& center = glm::vec3(), float radius = 0.0f, float granularity = 0.0f,
+        const SharedObjectPointer& material = SharedObjectPointer(), const QColor& averageColor = QColor());
+    
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(VoxelMaterialSphereEdit)
+
 #endif // hifi_MetavoxelMessages_h

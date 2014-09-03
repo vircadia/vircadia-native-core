@@ -406,6 +406,10 @@ QRgb packNormal(const glm::vec3& normal) {
     return qRgb((char)(normal.x * CHAR_SCALE), (char)(normal.y * CHAR_SCALE), (char)(normal.z * CHAR_SCALE));
 }
 
+QRgb packNormal(const glm::vec3& normal, int alpha) {
+    return qRgba((char)(normal.x * CHAR_SCALE), (char)(normal.y * CHAR_SCALE), (char)(normal.z * CHAR_SCALE), alpha);
+}
+
 glm::vec3 unpackNormal(QRgb value) {
     return glm::vec3((char)qRed(value) * INVERSE_CHAR_SCALE, (char)qGreen(value) * INVERSE_CHAR_SCALE,
         (char)qBlue(value) * INVERSE_CHAR_SCALE);

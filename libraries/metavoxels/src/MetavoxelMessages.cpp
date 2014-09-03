@@ -814,3 +814,267 @@ void VoxelMaterialBoxEdit::apply(MetavoxelData& data, const WeakSharedObjectHash
     VoxelMaterialBoxEditVisitor visitor(region, granularity, material, averageColor);
     data.guide(visitor);
 }
+
+VoxelColorSphereEdit::VoxelColorSphereEdit(const glm::vec3& center, float radius, float granularity, const QColor& color) :
+    center(center),
+    radius(radius),
+    granularity(granularity),
+    color(color) {
+}
+    
+class VoxelMaterialSphereEditVisitor : public MetavoxelVisitor {
+public:
+    
+    VoxelMaterialSphereEditVisitor(const glm::vec3& center, float radius, const Box& bounds, float granularity,
+        const SharedObjectPointer& material, const QColor& color);
+
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    glm::vec3 _center;
+    float _radius;
+    Box _bounds;
+    float _granularity;
+    SharedObjectPointer _material;
+    QColor _color;
+    float _blockSize;
+};
+
+VoxelMaterialSphereEditVisitor::VoxelMaterialSphereEditVisitor(const glm::vec3& center, float radius, const Box& bounds,
+        float granularity, const SharedObjectPointer& material, const QColor& color) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
+        AttributeRegistry::getInstance()->getVoxelHermiteAttribute() <<
+        AttributeRegistry::getInstance()->getVoxelMaterialAttribute(), QVector<AttributePointer>() <<
+            AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
+                AttributeRegistry::getInstance()->getVoxelHermiteAttribute() <<
+                AttributeRegistry::getInstance()->getVoxelMaterialAttribute()),
+    _center(center),
+    _radius(radius),
+    _bounds(bounds),
+    _granularity(granularity),
+    _material(material),
+    _color(color),
+    _blockSize(granularity * VOXEL_BLOCK_SIZE) {
+}
+
+int VoxelMaterialSphereEditVisitor::visit(MetavoxelInfo& info) {
+    Box bounds = info.getBounds();
+    if (!bounds.intersects(_bounds)) {
+        return STOP_RECURSION;
+    }
+    if (info.size > _blockSize) {
+        return DEFAULT_ORDER;
+    }
+    VoxelColorDataPointer colorPointer = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
+    QVector<QRgb> colorContents = (colorPointer && colorPointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
+        colorPointer->getContents() : QVector<QRgb>(VOXEL_BLOCK_VOLUME);
+    
+    Box overlap = info.getBounds().getIntersection(_bounds);
+    float scale = VOXEL_BLOCK_SIZE / info.size;
+    overlap.minimum = (overlap.minimum - info.minimum) * scale;
+    overlap.maximum = (overlap.maximum - info.minimum) * scale;
+    int minX = glm::ceil(overlap.minimum.x);
+    int minY = glm::ceil(overlap.minimum.y);
+    int minZ = glm::ceil(overlap.minimum.z);
+    int sizeX = (int)overlap.maximum.x - minX + 1;
+    int sizeY = (int)overlap.maximum.y - minY + 1;
+    int sizeZ = (int)overlap.maximum.z - minZ + 1;
+    
+    glm::vec3 relativeCenter = (_center - info.minimum) * scale;
+    float relativeRadius = _radius * scale;
+    float relativeRadiusSquared = relativeRadius * relativeRadius;
+    
+    QRgb rgb = _color.rgba();
+    glm::vec3 position(0.0f, 0.0f, minZ);
+    for (QRgb* destZ = colorContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
+            *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z++) {
+        position.y = minY;
+        for (QRgb* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY;
+                destY += VOXEL_BLOCK_SAMPLES, position.y++) {
+            position.x = minX;
+            for (QRgb* destX = destY, *endX = destX + sizeX; destX != endX; destX++, position.x++) {
+                if (glm::distance(relativeCenter, position) <= relativeRadius) { 
+                    *destX = rgb;
+                }
+            }
+        }
+    }
+    
+    VoxelColorDataPointer newColorPointer(new VoxelColorData(colorContents, VOXEL_BLOCK_SAMPLES));
+    info.outputValues[0] = AttributeValue(info.inputValues.at(0).getAttribute(),
+        encodeInline<VoxelColorDataPointer>(newColorPointer));
+    
+    VoxelHermiteDataPointer hermitePointer = info.inputValues.at(1).getInlineValue<VoxelHermiteDataPointer>();
+    QVector<QRgb> hermiteContents = (hermitePointer && hermitePointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
+        hermitePointer->getContents() : QVector<QRgb>(VOXEL_BLOCK_VOLUME * VoxelHermiteData::EDGE_COUNT);
+    int hermiteArea = VOXEL_BLOCK_AREA * VoxelHermiteData::EDGE_COUNT;
+    int hermiteSamples = VOXEL_BLOCK_SAMPLES * VoxelHermiteData::EDGE_COUNT;
+    
+    int hermiteMinX = minX, hermiteMinY = minY, hermiteMinZ = minZ;
+    int hermiteSizeX = sizeX, hermiteSizeY = sizeY, hermiteSizeZ = sizeZ;
+    if (minX > 0) {
+        hermiteMinX--;
+        hermiteSizeX++;
+    }
+    if (minY > 0) {
+        hermiteMinY--;
+        hermiteSizeY++;
+    }
+    if (minZ > 0) {
+        hermiteMinZ--;
+        hermiteSizeZ++;
+    }
+    QRgb* hermiteDestZ = hermiteContents.data() + hermiteMinZ * hermiteArea + hermiteMinY * hermiteSamples +
+        hermiteMinX * VoxelHermiteData::EDGE_COUNT;
+    for (int z = hermiteMinZ, hermiteMaxZ = z + hermiteSizeZ - 1; z <= hermiteMaxZ; z++, hermiteDestZ += hermiteArea) {
+        QRgb* hermiteDestY = hermiteDestZ;
+        for (int y = hermiteMinY, hermiteMaxY = y + hermiteSizeY - 1; y <= hermiteMaxY; y++, hermiteDestY += hermiteSamples) {
+            QRgb* hermiteDestX = hermiteDestY;
+            for (int x = hermiteMinX, hermiteMaxX = x + hermiteSizeX - 1; x <= hermiteMaxX; x++,
+                    hermiteDestX += VoxelHermiteData::EDGE_COUNT) {
+                hermiteDestX[0] = 0x0;
+                glm::vec3 offset(x - relativeCenter.x, y - relativeCenter.y, z - relativeCenter.z);
+                if (x != VOXEL_BLOCK_SIZE) {
+                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    int alpha0 = qAlpha(color[0]);
+                    if (alpha0 != qAlpha(color[1])) {
+                        float radicand = relativeRadiusSquared - offset.y * offset.y - offset.z * offset.z;
+                        float parameter = 0.5f;
+                        if (radicand >= 0.0f) {
+                            float root = glm::sqrt(radicand);
+                            parameter = -offset.x - root;
+                            if (parameter < 0.0f || parameter > 1.0f) {
+                                parameter = glm::clamp(-offset.x + root, 0.0f, 1.0f);
+                            }
+                        }
+                        glm::vec3 normal = offset + glm::vec3(parameter, 0.0f, 0.0f);
+                        float length = glm::length(normal);
+                        if (length > EPSILON) {
+                            normal /= length;
+                        } else {
+                            normal = glm::vec3(0.0f, 1.0f, 0.0f);
+                        }
+                        hermiteDestX[0] = packNormal(normal, parameter * EIGHT_BIT_MAXIMUM);
+                    }
+                }
+                hermiteDestX[1] = 0x0;
+                if (y != VOXEL_BLOCK_SIZE) {
+                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    int alpha0 = qAlpha(color[0]);
+                    if (alpha0 != qAlpha(color[VOXEL_BLOCK_SAMPLES])) {
+                        float radicand = relativeRadiusSquared - offset.x * offset.x - offset.z * offset.z;
+                        float parameter = 0.5f;
+                        if (radicand >= 0.0f) {
+                            float root = glm::sqrt(radicand);
+                            parameter = -offset.y - root;
+                            if (parameter < 0.0f || parameter > 1.0f) {
+                                parameter = glm::clamp(-offset.y + root, 0.0f, 1.0f);
+                            }
+                        }
+                        glm::vec3 normal = offset + glm::vec3(parameter, 0.0f, 0.0f);
+                        float length = glm::length(normal);
+                        if (length > EPSILON) {
+                            normal /= length;
+                        } else {
+                            normal = glm::vec3(1.0f, 0.0f, 0.0f);
+                        }
+                        hermiteDestX[1] = packNormal(normal, parameter * EIGHT_BIT_MAXIMUM);
+                    }
+                }
+                hermiteDestX[2] = 0x0;
+                if (z != VOXEL_BLOCK_SIZE) {
+                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    int alpha0 = qAlpha(color[0]);
+                    if (alpha0 != qAlpha(color[VOXEL_BLOCK_AREA])) {
+                        float radicand = relativeRadiusSquared - offset.x * offset.x - offset.y * offset.y;
+                        float parameter = 0.5f;
+                        if (radicand >= 0.0f) {
+                            float root = glm::sqrt(radicand);
+                            parameter = -offset.z - root;
+                            if (parameter < 0.0f || parameter > 1.0f) {
+                                parameter = glm::clamp(-offset.z + root, 0.0f, 1.0f);
+                            }
+                        }
+                        glm::vec3 normal = offset + glm::vec3(parameter, 0.0f, 0.0f);
+                        float length = glm::length(normal);
+                        if (length > EPSILON) {
+                            normal /= length;
+                        } else {
+                            normal = glm::vec3(1.0f, 0.0f, 0.0f);
+                        }
+                        hermiteDestX[2] = packNormal(normal, parameter * EIGHT_BIT_MAXIMUM);
+                    }
+                }
+            }
+        }
+    } 
+    
+    VoxelHermiteDataPointer newHermitePointer(new VoxelHermiteData(hermiteContents, VOXEL_BLOCK_SAMPLES));
+    info.outputValues[1] = AttributeValue(info.inputValues.at(1).getAttribute(),
+        encodeInline<VoxelHermiteDataPointer>(newHermitePointer));
+    
+    VoxelMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<VoxelMaterialDataPointer>();
+    QByteArray materialContents;
+    QVector<SharedObjectPointer> materials;
+    if (materialPointer && materialPointer->getSize() == VOXEL_BLOCK_SAMPLES) {
+        materialContents = materialPointer->getContents();
+        materials = materialPointer->getMaterials();
+        
+    } else {
+        materialContents = QByteArray(VOXEL_BLOCK_VOLUME, 0);
+    }
+    
+    uchar materialIndex = getMaterialIndex(_material, materials, materialContents);
+    position.z = minZ;
+    for (uchar* destZ = (uchar*)materialContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
+            *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z++) {
+        position.y = minY;
+        for (uchar* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY;
+                destY += VOXEL_BLOCK_SAMPLES, position.y++) {
+            position.x = minX;
+            for (uchar* destX = destY, *endX = destX + sizeX; destX != endX; destX++, position.x++) {
+                if (glm::distance(relativeCenter, position) <= relativeRadius) { 
+                    *destX = materialIndex;
+                }   
+            }
+        }
+    }
+    
+    clearUnusedMaterials(materials, materialContents);
+    VoxelMaterialDataPointer newMaterialPointer(new VoxelMaterialData(materialContents, VOXEL_BLOCK_SAMPLES, materials));
+    info.outputValues[2] = AttributeValue(_inputs.at(2), encodeInline<VoxelMaterialDataPointer>(newMaterialPointer));
+    
+    return STOP_RECURSION;
+}
+
+void VoxelColorSphereEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    // expand to fit the entire edit
+    glm::vec3 extents(radius, radius, radius);
+    Box bounds(center - extents, center + extents);
+    while (!data.getBounds().contains(bounds)) {
+        data.expand();
+    }
+    VoxelMaterialSphereEditVisitor visitor(center, radius, bounds, granularity, SharedObjectPointer(), color);
+    data.guide(visitor);
+}
+ 
+VoxelMaterialSphereEdit::VoxelMaterialSphereEdit(const glm::vec3& center, float radius, float granularity,
+        const SharedObjectPointer& material, const QColor& averageColor) :
+    center(center),
+    radius(radius),
+    granularity(granularity),
+    material(material),
+    averageColor(averageColor) {
+}
+    
+void VoxelMaterialSphereEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    // expand to fit the entire edit
+    glm::vec3 extents(radius, radius, radius);
+    Box bounds(center - extents, center + extents);
+    while (!data.getBounds().contains(bounds)) {
+        data.expand();
+    }
+    VoxelMaterialSphereEditVisitor visitor(center, radius, bounds, granularity, material, averageColor);
+    data.guide(visitor);
+}
