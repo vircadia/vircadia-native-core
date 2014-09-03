@@ -131,8 +131,7 @@ OctreeElement* MovingEntitiesOperator::PossiblyCreateChildAt(OctreeElement* elem
     
         // check against each of our entities
         foreach(const EntityToMoveDetails& details, _entitiesToMove) {
-            EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-            
+
             // if the scale of our desired cube is smaller than our children, then consider making a child
             if (details.newBox.getLargestDimension() <= childElementScale) {
 
