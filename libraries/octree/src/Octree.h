@@ -242,7 +242,7 @@ public:
     /// method and return true.
     virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const { return false; }
 
-    virtual void update() { }; // nothing to do by default
+    virtual void update() { } // nothing to do by default
 
     OctreeElement* getRoot() { return _rootElement; }
 

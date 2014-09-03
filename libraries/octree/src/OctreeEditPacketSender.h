@@ -82,7 +82,7 @@ public:
     // you must override these...
     virtual char getMyNodeType() const = 0;
     virtual void adjustEditPacketForClockSkew(PacketType type, 
-                        unsigned char* editPacketBuffer, size_t length, int clockSkew) { };
+                        unsigned char* editPacketBuffer, size_t length, int clockSkew) { }
     
     bool hasDestinationWalletUUID() const { return !_destinationWalletUUID.isNull(); }
     void setDestinationWalletUUID(const QUuid& destinationWalletUUID) { _destinationWalletUUID = destinationWalletUUID; }
