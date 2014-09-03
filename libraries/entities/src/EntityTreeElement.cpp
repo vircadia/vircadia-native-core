@@ -447,13 +447,15 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
 
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
+        
+        // If our child would be smaller than our smallest reasonable element, then we are the best fit.
+        float childScale = _cube.getScale() / 2.0f;
+        if (childScale <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+            return true;
+        }
         int childForMinimumPoint = getMyChildContainingPoint(clampedMin);
         int childForMaximumPoint = getMyChildContainingPoint(clampedMax);
 
-        // if this is a really small box, then it's close enough!
-        if (_cube.getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
-            return true;
-        }
         // If I contain both the minimum and maximum point, but two different children of mine
         // contain those points, then I am the best fit for that entity
         if (childForMinimumPoint != childForMaximumPoint) {
