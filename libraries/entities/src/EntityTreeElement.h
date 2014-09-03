@@ -40,10 +40,12 @@ class EntityTreeElementExtraEncodeData {
 public:
     EntityTreeElementExtraEncodeData() : 
         elementCompleted(false), 
+        subtreeCompleted(false),
         entities() {
             memset(childCompleted, 0, sizeof(childCompleted));
         }
     bool elementCompleted;
+    bool subtreeCompleted;
     bool childCompleted[NUMBER_OF_CHILDREN];
     QMap<EntityItemID, EntityPropertyFlags> entities;
 };
@@ -51,6 +53,7 @@ public:
 inline QDebug operator<<(QDebug debug, const EntityTreeElementExtraEncodeData* data) {
     debug << "{";
     debug << " elementCompleted: " << data->elementCompleted << ", ";
+    debug << " subtreeCompleted: " << data->subtreeCompleted << ", ";
     debug << " childCompleted[]: ";
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         debug << " " << i << ":" << data->childCompleted[i] << ", ";
@@ -109,9 +112,12 @@ public:
 
     virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const;
     virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) const;
-    virtual bool shouldIncludeChild(int childIndex, EncodeBitstreamParams& params) const;
+    virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const;
+    virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const;
     virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const;
     virtual void elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const;
+
+    bool alreadyFullyEncoded(EncodeBitstreamParams& params) const;
 
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.

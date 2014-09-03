@@ -235,6 +235,7 @@ public:
     virtual bool rootElementHasData() const { return false; }
     virtual int minimumRequiredRootDataBytes() const { return 0; }
     virtual bool suppressEmptySubtrees() const { return true; }
+    virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const { }
     
     /// some versions of the SVO file will include breaks with buffer lengths between each buffer chunk in the SVO
     /// file. If the Octree subclass expects this for this particular version of the file, it should override this
@@ -275,7 +276,7 @@ public:
 
     int encodeTreeBitstream(OctreeElement* element, OctreePacketData* packetData, OctreeElementBag& bag,
                             EncodeBitstreamParams& params) ;
-
+                            
     bool isDirty() const { return _isDirty; }
     void clearDirtyBit() { _isDirty = false; }
     void setDirtyBit() { _isDirty = true; }

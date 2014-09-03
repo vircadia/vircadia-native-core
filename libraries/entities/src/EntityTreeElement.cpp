@@ -94,7 +94,7 @@ void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params)
     }
 }
 
-bool EntityTreeElement::shouldIncludeChild(int childIndex, EncodeBitstreamParams& params) const { 
+bool EntityTreeElement::shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const { 
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
 
@@ -111,6 +111,30 @@ bool EntityTreeElement::shouldIncludeChild(int childIndex, EncodeBitstreamParams
     // I'm not sure this should ever happen, since we should have the extra encode data if we're considering
     // the child data for this element
     assert(false);
+    return false;
+}
+
+bool EntityTreeElement::shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const { 
+    EntityTreeElement* childElement = getChildAtIndex(childIndex);
+    if (childElement->alreadyFullyEncoded(params)) {
+        return false;
+    }
+    
+    return true; // if we don't know otherwise than recurse!
+}
+
+bool EntityTreeElement::alreadyFullyEncoded(EncodeBitstreamParams& params) const { 
+    OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
+    assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
+
+    if (extraEncodeData->contains(this)) {
+        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData 
+                        = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+
+        // If we know that ALL subtrees below us have already been recursed, then we don't 
+        // need to recurse this child.
+        return entityTreeElementExtraEncodeData->subtreeCompleted;
+    }
     return false;
 }
 
@@ -133,6 +157,12 @@ void EntityTreeElement::updateEncodedData(int childIndex, AppendState childAppen
 
 
 void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const {
+    const bool wantDebug = false;
+    
+    if (wantDebug) {
+        qDebug() << "EntityTreeElement::elementEncodeComplete() element:" << getAACube();
+    }
+
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     assert(extraEncodeData->contains(this));
@@ -152,10 +182,10 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
     //    1) it's ok for our child trees to not yet be fully encoded/complete... 
     //       SO LONG AS... the our child's node is in the bag ready for encoding
 
+    bool someChildTreeNotComplete = false;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         EntityTreeElement* childElement = getChildAtIndex(i);
         if (childElement) {
-            bool isThisChildReallyComplete = thisExtraEncodeData->childCompleted[i];
 
             // why would this ever fail???
             // If we've encoding this element before... but we're coming back a second time in an attempt to
@@ -163,18 +193,42 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
             if (extraEncodeData->contains(childElement)) {
                 EntityTreeElementExtraEncodeData* childExtraEncodeData 
                                 = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(childElement));
-                            
-                for (int ii = 0; ii < NUMBER_OF_CHILDREN; ii++) {
-                    if (!childExtraEncodeData->childCompleted[ii]) {
-                        isThisChildReallyComplete = false;
+                                
+                if (wantDebug) {
+                    qDebug() << "checking child: " << childElement->getAACube();
+                    qDebug() << "    childElement->isLeaf():" << childElement->isLeaf();
+                    qDebug() << "    childExtraEncodeData->elementCompleted:" << childExtraEncodeData->elementCompleted;
+                    qDebug() << "    childExtraEncodeData->subtreeCompleted:" << childExtraEncodeData->subtreeCompleted;
+                }
+                
+                if (childElement->isLeaf() && childExtraEncodeData->elementCompleted) {
+                    if (wantDebug) {
+                        qDebug() << "    CHILD IS LEAF -- AND CHILD ELEMENT DATA COMPLETED!!!";
                     }
+                    childExtraEncodeData->subtreeCompleted = true;
                 }
 
-                if (isThisChildReallyComplete) {
-                    extraEncodeData->remove(childElement);
-                    delete childExtraEncodeData;
+                if (!childExtraEncodeData->elementCompleted || !childExtraEncodeData->subtreeCompleted) {
+                    someChildTreeNotComplete = true;
                 }
             }
+        }
+    }
+
+    if (wantDebug) {
+        qDebug() << "for this element: " << getAACube();
+        qDebug() << "    WAS elementCompleted:" << thisExtraEncodeData->elementCompleted;
+        qDebug() << "    WAS subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
+    }
+    
+    thisExtraEncodeData->subtreeCompleted = !someChildTreeNotComplete;
+
+    if (wantDebug) {
+        qDebug() << "    NOW elementCompleted:" << thisExtraEncodeData->elementCompleted;
+        qDebug() << "    NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
+    
+        if (thisExtraEncodeData->subtreeCompleted) {
+            qDebug() << "    YEAH!!!!! >>>>>>>>>>>>>> NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
         }
     }
 }

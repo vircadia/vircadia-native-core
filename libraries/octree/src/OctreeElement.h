@@ -93,7 +93,8 @@ public:
 
     virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const { }
     virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) const { }
-    virtual bool shouldIncludeChild(int childIndex, EncodeBitstreamParams& params) const { return true; }
+    virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const { return true; }
+    virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const { return true; }
     
     virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const { }
     virtual void elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const { }

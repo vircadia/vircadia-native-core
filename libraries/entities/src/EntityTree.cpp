@@ -516,6 +516,14 @@ void EntityTree::removeNewlyCreatedHook(NewlyCreatedEntityHook* hook) {
 }
 
 
+void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const {
+    foreach(void* extraData, *extraEncodeData) {
+        EntityTreeElementExtraEncodeData* thisExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>(extraData);
+        delete thisExtraEncodeData;
+    }
+    extraEncodeData->clear();
+}
+
 void EntityTree::changeEntityState(EntityItem* const entity, 
                         EntityItem::SimulationState oldState, EntityItem::SimulationState newState) {
 

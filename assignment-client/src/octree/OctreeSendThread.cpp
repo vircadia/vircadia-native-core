@@ -349,6 +349,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // track completed scenes and send out the stats packet accordingly
         nodeData->stats.sceneCompleted();
         nodeData->setLastRootTimestamp(_myServer->getOctree()->getRoot()->getLastChanged());
+        _myServer->getOctree()->releaseSceneEncodeData(&nodeData->extraEncodeData);
 
         // TODO: add these to stats page
         //::endSceneSleepTime = _usleepTime;

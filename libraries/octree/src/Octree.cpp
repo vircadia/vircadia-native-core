@@ -1401,7 +1401,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 // the childrenDataBits were set up by the in view/LOD logic, it may contain children that we've already
                 // processed and sent the data bits for. Let our tree subclass determine if it really wants to send the
                 // data for this child at this point
-                if (childElement && element->shouldIncludeChild(i, params)) {
+                if (childElement && element->shouldIncludeChildData(i, params)) {
                 
                     int bytesBeforeChild = packetData->getUncompressedSize();
                     
@@ -1553,8 +1553,15 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 // recursing, by returning TRUE in recurseChildrenWithData().
 
                 if (recurseChildrenWithData() || !params.viewFrustum || !oneAtBit(childrenDataBits, originalIndex)) {
-                    childTreeBytesOut = encodeTreeBitstreamRecursion(childElement, packetData, bag, params,
-                                                                            thisLevel, nodeLocationThisView);
+
+                    // Allow the datatype a chance to determine if it really wants to recurse this tree. Usually this
+                    // will be true. But if the tree has already been encoded, we will skip this.
+                    if (element->shouldRecurseChildTree(originalIndex, params)) {
+                        childTreeBytesOut = encodeTreeBitstreamRecursion(childElement, packetData, bag, params,
+                                                                                thisLevel, nodeLocationThisView);
+                    } else {
+                        childTreeBytesOut = 0;
+                    }
                 }
 
                 // remember this for reshuffling
@@ -1964,6 +1971,8 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
             }
             file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
         }
+        
+        releaseSceneEncodeData(&extraEncodeData);
     }
     file.close();
 }

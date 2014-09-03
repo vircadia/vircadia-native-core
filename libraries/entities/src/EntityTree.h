@@ -66,6 +66,7 @@ public:
     // the root at least needs to store the number of entities in the packet/buffer
     virtual int minimumRequiredRootDataBytes() const { return sizeof(uint16_t); }
     virtual bool suppressEmptySubtrees() const { return false; }
+    virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const;
  
     virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const 
                     { return thisVersion >= VERSION_ENTITIES_HAS_FILE_BREAKS; }
