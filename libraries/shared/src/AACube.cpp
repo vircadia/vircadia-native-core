@@ -314,6 +314,13 @@ bool AACube::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end
     return true;
 }
 
+bool AACube::operator<(const AACube& otherCube) const {
+    return (_corner.x < otherCube._corner.x
+            || (_corner.x == otherCube._corner.x && (_corner.y < otherCube._corner.y
+            || (_corner.y == otherCube._corner.y && (_corner.z < otherCube._corner.z
+            || _scale < otherCube._scale)))));
+}
+
 glm::vec3 AACube::getClosestPointOnFace(const glm::vec3& point, BoxFace face) const {
     switch (face) {
         case MIN_X_FACE:
