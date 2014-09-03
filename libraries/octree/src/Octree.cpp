@@ -19,6 +19,7 @@
 #include <fstream> // to load voxels from file
 
 #include <QDebug>
+#include <QVector>
 
 #include <GeometryUtil.h>
 #include <OctalCode.h>
@@ -730,6 +731,12 @@ public:
     bool found;
 };
 
+class ContentArgs {
+public:
+    AACube cube;
+    CubeList* cubes;
+};
+
 bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
@@ -768,6 +775,25 @@ bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
             args->found = true;
             return true;
         }
+    }
+    return false;
+}
+
+bool findContentInCubeOp(OctreeElement* element, void* extraData) {
+    ContentArgs* args = static_cast<ContentArgs*>(extraData);
+
+    // coarse check against bounds
+    AACube cube = element->getAACube();
+    cube.scale(TREE_SCALE);
+    if (!cube.touches(args->cube)) {
+        return false;
+    }
+    if (!element->isLeaf()) {
+        return true; // recurse on children
+    }
+    if (element->hasContent()) {
+        args->cubes->push_back(cube);
+        return true;
     }
     return false;
 }
@@ -838,6 +864,16 @@ bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions,
         *accurateResult = true; // if user asked to accuracy or result, let them know this is accurate
     }
     return args.found;
+}
+
+bool Octree::findContentInCube(const AACube& cube, CubeList& cubes) {
+    if (!tryLockForRead()) {
+        return false;
+    }
+    ContentArgs args = { cube, &cubes };
+    recurseTreeWithOperation(findContentInCubeOp, &args);
+    unlock();
+    return true;
 }
 
 class GetElementEnclosingArgs {

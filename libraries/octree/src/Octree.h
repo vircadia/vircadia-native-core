@@ -35,6 +35,7 @@ class Shape;
 
 #include <QObject>
 #include <QReadWriteLock>
+#include <QVector>
 
 /// derive from this class to use the Octree::recurseTreeWithOperator() method
 class RecurseOctreeOperator {
@@ -46,6 +47,7 @@ public:
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseOctreeOperation)(OctreeElement* element, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
+typedef QVector<AACube> CubeList;
 
 const bool NO_EXISTS_BITS         = false;
 const bool WANT_EXISTS_BITS       = true;
@@ -279,6 +281,8 @@ public:
 
     bool findShapeCollisions(const Shape* shape, CollisionList& collisions, 
                                     Octree::lockType = Octree::TryLock, bool* accurateResult = NULL);
+
+    bool findContentInCube(const AACube& cube, CubeList& cubes);
 
     OctreeElement* getElementEnclosingPoint(const glm::vec3& point, 
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
