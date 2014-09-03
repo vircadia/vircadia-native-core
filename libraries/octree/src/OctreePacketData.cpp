@@ -104,7 +104,7 @@ bool OctreePacketData::reserveBytes(int numberOfBytes) {
 }
 
 bool OctreePacketData::releaseReservedBitMask() {
-    return reserveBytes(sizeof(unsigned char));
+    return releaseReservedBytes(sizeof(unsigned char));
 }
 
 bool OctreePacketData::releaseReservedBytes(int numberOfBytes) {
