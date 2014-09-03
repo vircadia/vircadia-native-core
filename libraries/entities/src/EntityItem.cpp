@@ -252,7 +252,7 @@ int EntityItem::expectedBytes() {
 
 
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-    bool wantDebug = true;
+    bool wantDebug = false;
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
     

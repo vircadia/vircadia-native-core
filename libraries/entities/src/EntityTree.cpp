@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <PerfStat.h>
+
 #include "EntityTree.h"
 
 #include "AddEntityOperator.h"
@@ -618,48 +620,54 @@ void EntityTree::updateChangingEntities(quint64 now, QSet<EntityItemID>& entitie
 }
 
 void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
+    PerformanceTimer perfTimer("updateMovingEntities");
     if (_movingEntities.size() > 0) {
         MovingEntitiesOperator moveOperator(this);
 
         QSet<EntityItem*> entitiesBecomingStatic;
         QSet<EntityItem*> entitiesBecomingMortal;
         QSet<EntityItem*> entitiesBecomingChanging;
-
-        // TODO: switch these to iterators so we can remove items that get deleted
-        for (int i = 0; i < _movingEntities.size(); i++) {
-            EntityItem* thisEntity = _movingEntities[i];
-
-            // always check to see if the lifetime has expired, for immortal entities this is always false
-            if (thisEntity->lifetimeHasExpired()) {
-                qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
-                entitiesToDelete << thisEntity->getEntityItemID();
-                entitiesBecomingStatic << thisEntity;
-            } else {
-                AACube oldCube = thisEntity->getAACube();
-                thisEntity->update(now);
-                AACube newCube = thisEntity->getAACube();
         
-                // check to see if this movement has sent the entity outside of the domain.
-                AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), 1.0f);
-                if (!domainBounds.touches(newCube)) {
+        {
+            PerformanceTimer perfTimer("_movingEntities");
+
+            // TODO: switch these to iterators so we can remove items that get deleted
+            for (int i = 0; i < _movingEntities.size(); i++) {
+                EntityItem* thisEntity = _movingEntities[i];
+
+                // always check to see if the lifetime has expired, for immortal entities this is always false
+                if (thisEntity->lifetimeHasExpired()) {
+                    qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
                     entitiesToDelete << thisEntity->getEntityItemID();
                     entitiesBecomingStatic << thisEntity;
                 } else {
-                    moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
-
-                    // check to see if this entity is no longer moving
-                    EntityItem::SimulationState newState = thisEntity->getSimulationState();
-                    if (newState == EntityItem::Changing) {
-                        entitiesBecomingChanging << thisEntity;
-                    } else if (newState == EntityItem::Mortal) {
-                        entitiesBecomingMortal << thisEntity;
-                    } else if (newState == EntityItem::Static) {
+                    AACube oldCube = thisEntity->getAACube();
+                    thisEntity->update(now);
+                    AACube newCube = thisEntity->getAACube();
+                    
+                    // check to see if this movement has sent the entity outside of the domain.
+                    AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), 1.0f);
+                    if (!domainBounds.touches(newCube)) {
+                        entitiesToDelete << thisEntity->getEntityItemID();
                         entitiesBecomingStatic << thisEntity;
+                    } else {
+                        moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
+
+                        // check to see if this entity is no longer moving
+                        EntityItem::SimulationState newState = thisEntity->getSimulationState();
+                        if (newState == EntityItem::Changing) {
+                            entitiesBecomingChanging << thisEntity;
+                        } else if (newState == EntityItem::Mortal) {
+                            entitiesBecomingMortal << thisEntity;
+                        } else if (newState == EntityItem::Static) {
+                            entitiesBecomingStatic << thisEntity;
+                        }
                     }
                 }
             }
         }
         if (moveOperator.hasMovingEntities()) {
+            PerformanceTimer perfTimer("recurseTreeWithOperator");
             recurseTreeWithOperator(&moveOperator);
         }
 

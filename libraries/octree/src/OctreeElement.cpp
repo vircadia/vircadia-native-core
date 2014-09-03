@@ -1517,15 +1517,18 @@ int OctreeElement::getMyChildContaining(const AACube& cube) const {
     glm::vec3 cubeCornerMinimum = glm::clamp(cube.getCorner(), 0.0f, 1.0f);
     glm::vec3 cubeCornerMaximum = glm::clamp(cube.calcTopFarLeft(), 0.0f, 1.0f);
 
-    int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);
-    int childIndexCubeMaximum = getMyChildContainingPoint(cubeCornerMaximum);
+    if (_cube.contains(cubeCornerMinimum) && _cube.contains(cubeCornerMaximum)) {
+        int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);
+        int childIndexCubeMaximum = getMyChildContainingPoint(cubeCornerMaximum);
 
-    // If the minimum and maximum corners of the cube are in two different children's cubes, then we are the containing element
-    if (childIndexCubeMinimum != childIndexCubeMaximum) {
-        return CHILD_UNKNOWN;
-    }
+        // If the minimum and maximum corners of the cube are in two different children's cubes, then we are the containing element
+        if (childIndexCubeMinimum != childIndexCubeMaximum) {
+            return CHILD_UNKNOWN;
+        }
     
-    return childIndexCubeMinimum; // either would do, they are the same
+        return childIndexCubeMinimum; // either would do, they are the same
+    }
+    return CHILD_UNKNOWN; // since cube is not contained in our element, it can't be in one of our children
 }
 
 int OctreeElement::getMyChildContaining(const AABox& box) const {
@@ -1542,20 +1545,29 @@ int OctreeElement::getMyChildContaining(const AABox& box) const {
     glm::vec3 cubeCornerMinimum = box.getCorner();
     glm::vec3 cubeCornerMaximum = box.calcTopFarLeft();
 
-    int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);
-    int childIndexCubeMaximum = getMyChildContainingPoint(cubeCornerMaximum);
+    if (_cube.contains(cubeCornerMinimum) && _cube.contains(cubeCornerMaximum)) {
+        int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);
+        int childIndexCubeMaximum = getMyChildContainingPoint(cubeCornerMaximum);
 
-    // If the minimum and maximum corners of the cube are in two different children's cubes, then we are the containing element
-    if (childIndexCubeMinimum != childIndexCubeMaximum) {
-        return CHILD_UNKNOWN;
+        // If the minimum and maximum corners of the cube are in two different children's cubes, 
+        // then we are the containing element
+        if (childIndexCubeMinimum != childIndexCubeMaximum) {
+            return CHILD_UNKNOWN;
+        }
+        return childIndexCubeMinimum; // either would do, they are the same
     }
-    
-    return childIndexCubeMinimum; // either would do, they are the same
+    return CHILD_UNKNOWN; // since box is not contained in our element, it can't be in one of our children
 }
 
 int OctreeElement::getMyChildContainingPoint(const glm::vec3& point) const {
     glm::vec3 ourCenter = _cube.calcCenter();
     int childIndex = CHILD_UNKNOWN;
+    
+    // since point is not contained in our element, it can't be in one of our children
+    if (!_cube.contains(point)) {
+        return CHILD_UNKNOWN;
+    }
+    
     // left half
     if (point.x > ourCenter.x) {
         if (point.y > ourCenter.y) {

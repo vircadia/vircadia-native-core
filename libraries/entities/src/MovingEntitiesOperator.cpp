@@ -29,17 +29,24 @@ MovingEntitiesOperator::~MovingEntitiesOperator() {
 
 
 void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACube& oldCube, const AACube& newCube) {
-    // check our tree, to determine if this entity is known
-    EntityToMoveDetails details;
-    details.oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
-    details.entity = entity;
-    details.oldFound = false;
-    details.newFound = false;
-    details.oldCube = oldCube;
-    details.newCube = newCube;
-    details.newBox = newCube.clamp(0.0f, 1.0f);
-    _entitiesToMove << details;
-    _lookingCount++;
+    EntityTreeElement* oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
+    AABox newBox = newCube.clamp(0.0f, 1.0f);
+
+    // If the original containing element is the best fit for the requested newCube locations then
+    // we don't actually need to add the entity for moving and we can short circuit all this work
+    if (!oldContainingElement->bestFitBounds(newBox)) {
+        // check our tree, to determine if this entity is known
+        EntityToMoveDetails details;
+        details.oldContainingElement = oldContainingElement;
+        details.entity = entity;
+        details.oldFound = false;
+        details.newFound = false;
+        details.oldCube = oldCube;
+        details.newCube = newCube;
+        details.newBox = newBox;
+        _entitiesToMove << details;
+        _lookingCount++;
+    }
 }
 
 // does this entity tree element contain the old entity
@@ -142,8 +149,7 @@ OctreeElement* MovingEntitiesOperator::PossiblyCreateChildAt(OctreeElement* elem
                 // because if we need this branch for any one entity then it doesn't matter if it's
                 // needed for more entities.
                 if (childIndex == indexOfChildContainingNewEntity) {
-                    OctreeElement* newChild = element->addChildAtIndex(childIndex);
-                    return newChild;
+                    return element->addChildAtIndex(childIndex);
                 }
             }
         }
