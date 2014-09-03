@@ -36,7 +36,8 @@ int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
 AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
-    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
+    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
+    _shutdownEventListener(this)
 {
 
 #ifdef Q_OS_WIN
@@ -54,7 +55,8 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     setApplicationName("assignment-client");
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
-    installNativeEventFilter(this);
+    installNativeEventFilter(&_shutdownEventListener);
+    connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
 
     // set the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
@@ -119,20 +121,6 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
             this, &AssignmentClient::handleAuthenticationRequest);
     
     NetworkAccessManager::getInstance();
-}
-
-bool AssignmentClient::nativeEventFilter(const QByteArray &eventType, void* msg, long* result) {
-#ifdef Q_OS_WIN
-    if (eventType == "windows_generic_MSG") {
-        MSG* message = (MSG*)msg;
-        if (message->message == WM_CLOSE) {
-            qDebug() << "Received WM_CLOSE message, closing";
-            quit();
-            return false;
-        }
-    }
-#endif
-    return true;
 }
 
 void AssignmentClient::sendAssignmentRequest() {

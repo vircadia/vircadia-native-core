@@ -15,14 +15,14 @@
 #include <QtCore/QCoreApplication>
 #include <QAbstractNativeEventFilter>
 
+#include "ShutdownEventListener.h"
 #include "ThreadedAssignment.h"
 
-class AssignmentClient : public QCoreApplication, public QAbstractNativeEventFilter {
+class AssignmentClient : public QCoreApplication {
     Q_OBJECT
 public:
     AssignmentClient(int &argc, char **argv);
     static const SharedAssignmentPointer& getCurrentAssignment() { return _currentAssignment; }
-    virtual bool nativeEventFilter(const QByteArray& eventType, void* message, long* result);
 
 private slots:
     void sendAssignmentRequest();
@@ -33,6 +33,7 @@ private slots:
 private:
     Assignment _requestAssignment;
     static SharedAssignmentPointer _currentAssignment;
+    ShutdownEventListener _shutdownEventListener;
     QString _assignmentServerHostname;
 };
 

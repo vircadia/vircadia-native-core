@@ -31,6 +31,7 @@
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
+    _shutdownEventListener(this),
     _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _httpsManager(NULL),
     _allAssignments(),
@@ -62,7 +63,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
-    installNativeEventFilter(this);
+    installNativeEventFilter(&_shutdownEventListener);
+    connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
     
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
