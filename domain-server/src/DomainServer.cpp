@@ -393,7 +393,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 const QString ALLOWED_ROLES_CONFIG_KEY = "allowed-roles";
 
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
-    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
+    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
     << NodeType::MetavoxelServer;
 
 void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {

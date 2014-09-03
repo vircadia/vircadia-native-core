@@ -64,7 +64,6 @@ CoverageMapV2::CoverageMapV2(BoundingBox boundingBox, bool isRoot, bool isCovere
 { 
     _mapCount++;
     init(); 
-    //qDebug("CoverageMapV2 created... _mapCount=%d\n",_mapCount);
 };
 
 CoverageMapV2::~CoverageMapV2() {

@@ -61,22 +61,21 @@ void DatagramProcessor::processDatagrams() {
                     Particle::handleAddParticleResponse(incomingPacket);
                     application->getParticles()->getTree()->handleAddParticleResponse(incomingPacket);
                     break;
-                case PacketTypeModelAddResponse:
+                case PacketTypeEntityAddResponse:
                     // this will keep creatorTokenIDs to IDs mapped correctly
-                    ModelItem::handleAddModelResponse(incomingPacket);
-                    application->getModels()->getTree()->handleAddModelResponse(incomingPacket);
+                    EntityItemID::handleAddEntityResponse(incomingPacket);
+                    application->getEntities()->getTree()->handleAddEntityResponse(incomingPacket);
                     break;
                 case PacketTypeParticleData:
                 case PacketTypeParticleErase:
-                case PacketTypeModelData:
-                case PacketTypeModelErase:
+                case PacketTypeEntityData:
+                case PacketTypeEntityErase:
                 case PacketTypeVoxelData:
                 case PacketTypeVoxelErase:
                 case PacketTypeOctreeStats:
                 case PacketTypeEnvironmentData: {
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                             "Application::networkReceive()... _octreeProcessor.queueReceivedPacket()");
-                    
                     bool wantExtraDebugging = application->getLogger()->extraDebugging();
                     if (wantExtraDebugging && packetTypeForPacket(incomingPacket) == PacketTypeVoxelData) {
                         int numBytesPacketHeader = numBytesForPacketHeader(incomingPacket);
@@ -89,7 +88,7 @@ void DatagramProcessor::processDatagrams() {
                         OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
                         int flightTime = arrivedAt - sentAt;
                         
-                        qDebug("got PacketType_VOXEL_DATA, sequence:%d flightTime:%d", sequence, flightTime);
+                        qDebug("got an Octree data or erase message, sequence:%d flightTime:%d", sequence, flightTime);
                     }
                     
                     SharedNodePointer matchedNode = NodeList::getInstance()->sendingNodeForPacket(incomingPacket);
@@ -159,9 +158,9 @@ void DatagramProcessor::processDatagrams() {
                         application->_particleEditSender.processNackPacket(incomingPacket);
                     }
                     break;
-                case PacketTypeModelEditNack:
+                case PacketTypeEntityEditNack:
                     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
-                        application->_modelEditSender.processNackPacket(incomingPacket);
+                        application->_entityEditSender.processNackPacket(incomingPacket);
                     }
                     break;
                 default:

@@ -75,10 +75,10 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeParticleErase:
             return 1;
-        case PacketTypeModelData:
+        case PacketTypeEntityData:
+            return VERSION_ENTITIES_SUPPORT_SPLIT_MTU;
+        case PacketTypeEntityErase:
             return 2;
-        case PacketTypeModelErase:
-            return 1;
         case PacketTypeAudioStreamStats:
             return 1;
         case PacketTypeMetavoxelData:
