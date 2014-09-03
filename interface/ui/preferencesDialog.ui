@@ -2251,5 +2251,18 @@
   </widget>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>cancelButton</sender>
+   <signal>clicked()</signal>
+   <receiver>PreferencesDialog</receiver>
+   <slot>close()</slot>
+  </connection>
+  <connection>
+   <sender>defaultButton</sender>
+   <signal>clicked()</signal>
+   <receiver>PreferencesDialog</receiver>
+   <slot>accept()</slot>
+  </connection>
+ </connections>
 </ui>
