@@ -121,11 +121,11 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     PerformanceTimer perfTimer("model->render");
                     _model->render(alpha, modelRenderMode);
                 } else {
-                    // if we couldn't get a model, then just draw a sphere
+                    // if we couldn't get a model, then just draw a cube
                     glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
                     glPushMatrix();
                         glTranslatef(position.x, position.y, position.z);
-                        glutSolidSphere(radius, 15, 15);
+                        glutWireCube(size);
                     glPopMatrix();
                 }
                 
@@ -175,20 +175,20 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 
                 }
             } else {
-                // if we couldn't get a model, then just draw a sphere
+                // if we couldn't get a model, then just draw a cube
                 glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
                 glPushMatrix();
                     glTranslatef(position.x, position.y, position.z);
-                    glutSolidSphere(radius, 15, 15);
+                    glutWireCube(size);
                 glPopMatrix();
             }
         }
         glPopMatrix();
     } else {
-        glColor3f(1.0f, 0.0f, 0.0f);
+        glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        glutSolidSphere(radius, 15, 15);
+        glutWireCube(size);
         glPopMatrix();
     }
 }
