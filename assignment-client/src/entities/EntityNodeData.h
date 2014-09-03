@@ -20,7 +20,7 @@ class EntityNodeData : public OctreeQueryNode {
 public:
     EntityNodeData() :
         OctreeQueryNode(),
-        _lastDeletedEntitiesSentAt(0) {  };
+        _lastDeletedEntitiesSentAt(0) { }
 
     virtual PacketType getMyPacketType() const { return PacketTypeEntityData; }
 

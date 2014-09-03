@@ -37,7 +37,7 @@ public:
         _model(NULL),
         _needsInitialSimulation(true),
         _needsModelReload(true),
-        _myRenderer(NULL) { };
+        _myRenderer(NULL) { }
 
     virtual ~RenderableModelEntityItem();
 

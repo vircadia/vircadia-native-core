@@ -31,7 +31,7 @@ public:
 
     RenderableBoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         BoxEntityItem(entityItemID, properties)
-        { };
+        { }
 
     virtual void render(RenderArgs* args);
 };

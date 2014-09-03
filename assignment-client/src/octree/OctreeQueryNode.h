@@ -85,7 +85,7 @@ public:
         return (getCurrentPacketIsColor() == getWantColor() && getCurrentPacketIsCompressed() == getWantCompression());
     }
 
-    bool hasLodChanged() const { return _lodChanged; };
+    bool hasLodChanged() const { return _lodChanged; }
     
     OctreeSceneStats stats;
     

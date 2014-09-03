@@ -31,7 +31,7 @@ public:
 
     RenderableSphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         SphereEntityItem(entityItemID, properties)
-        { };
+        { }
 
     virtual void render(RenderArgs* args);
 };

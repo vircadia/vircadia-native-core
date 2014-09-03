@@ -34,7 +34,7 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
         _myRenderer->releaseModel(_model);
         _model = NULL;
     }
-};
+}
 
 bool RenderableModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     QString oldModelURL = getModelURL();
