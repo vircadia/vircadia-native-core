@@ -12,11 +12,7 @@
 #ifndef hifi_OctreeConstants_h
 #define hifi_OctreeConstants_h
 
-#include <limits.h>
-#include <stdint.h>
-#include <OctalCode.h>
-#include <NodeList.h>
-#include <PacketHeaders.h>
+#include <QtGlobal> // for quint64
 #include <glm/glm.hpp>
 
 // this is where the coordinate system is represented

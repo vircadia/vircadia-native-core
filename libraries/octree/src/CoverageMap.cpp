@@ -66,7 +66,6 @@ CoverageMap::CoverageMap(BoundingBox boundingBox, bool isRoot, bool managePolygo
 { 
     _mapCount++;
     init(); 
-    //qDebug("CoverageMap created... _mapCount=%d\n",_mapCount);
 };
 
 CoverageMap::~CoverageMap() {
@@ -189,17 +188,12 @@ CoverageMapStorageResult CoverageMap::checkMap(OctreeProjectedPolygon* polygon, 
 
     if (_isRoot) {
         _checkMapRootCalls++;
-
-        //qDebug("CoverageMap::checkMap()... storeIt=%s\n", debug::valueOf(storeIt));
-        //polygon->printDebugDetails();
-
     }
 
     // short circuit: we don't handle polygons that aren't all in view, so, if the polygon in question is
     // not in view, then we just discard it with a DOESNT_FIT, this saves us time checking values later.
     if (!polygon->getAllInView()) {
         _notAllInView++;
-        //qDebug("CoverageMap2::checkMap()... V2_OCCLUDED\n");
         return DOESNT_FIT;
     }
 
@@ -288,27 +282,21 @@ CoverageMapStorageResult CoverageMap::checkMap(OctreeProjectedPolygon* polygon, 
         // any of our child bounding boxes, so we should add it here.
         if (storeIt) {
             if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
-                //qDebug("storing polygon of area: %f\n",polygon->getBoundingBox().area());
                 if (storeIn->getPolygonCount() < MAX_POLYGONS_PER_REGION) {
                     storeIn->storeInArray(polygon);
-                    //qDebug("CoverageMap2::checkMap()... STORED\n");
                     return STORED;
                 } else {
                     CoverageRegion::_regionFullSkips++;
-                    //qDebug("CoverageMap2::checkMap()... NOT_STORED\n");
                     return NOT_STORED;
                 }
             } else {
                 CoverageRegion::_tooSmallSkips++;
-                //qDebug("CoverageMap2::checkMap()... NOT_STORED\n");
                 return NOT_STORED;
             }
         } else {
-            //qDebug("CoverageMap2::checkMap()... NOT_STORED\n");
             return NOT_STORED;
         }
     }
-    //qDebug("CoverageMap2::checkMap()... DOESNT_FIT\n");
     return DOESNT_FIT;
 }
 
@@ -391,7 +379,6 @@ void CoverageRegion::growPolygonArray() {
     _polygonDistances = newDistances;
     _polygonSizes     = newSizes;
     _polygonArraySize = _polygonArraySize + DEFAULT_GROW_SIZE;
-    //qDebug("CoverageMap::growPolygonArray() _polygonArraySize=%d...\n",_polygonArraySize);
 }
 
 const char* CoverageRegion::getRegionName() const {
@@ -435,8 +422,6 @@ bool CoverageRegion::mergeItemsInArray(OctreeProjectedPolygon* seed, bool seedIn
                                                        _polygonCount, _polygonArraySize);
                 _totalPolygons--;
             }
-        
-            //qDebug("_polygonCount=%d\n",_polygonCount);
         
             // clean up
             if (_managePolygons) {
@@ -485,7 +470,6 @@ void CoverageRegion::storeInArray(OctreeProjectedPolygon* polygon) {
         // insertion point in this array, and shift the array accordingly
         float area = polygon->getBoundingBox().area();
         float reverseArea = 4.0f - area;
-        //qDebug("store by size area=%f reverse area=%f\n", area, reverseArea);
         _polygonCount = insertIntoSortedArrays((void*)polygon, reverseArea, IGNORED,
                                                (void**)_polygons, _polygonSizes, IGNORED_ADDRESS,
                                                _polygonCount, _polygonArraySize);
@@ -498,10 +482,6 @@ void CoverageRegion::storeInArray(OctreeProjectedPolygon* polygon) {
     // Debugging and Optimization Tuning code.
     if (_polygonCount > _maxPolygonsUsed) {
         _maxPolygonsUsed = _polygonCount;
-        //qDebug("CoverageRegion new _maxPolygonsUsed reached=%d region=%s\n",_maxPolygonsUsed, getRegionName());
-        //_myBoundingBox.printDebugDetails("map._myBoundingBox");
-    } else {
-        //qDebug("CoverageRegion::storeInArray() _polygonCount=%d region=%s\n",_polygonCount, getRegionName());
     }
 }
 

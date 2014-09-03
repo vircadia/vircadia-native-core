@@ -1,0 +1,398 @@
+//
+//  ModelEntityItem.cpp
+//  libraries/entities/src
+//
+//  Created by Brad Hefta-Gaub on 12/4/13.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#include <ByteCountCoding.h>
+#include <GLMHelpers.h>
+
+#include "EntityTree.h"
+#include "EntityTreeElement.h"
+#include "ModelEntityItem.h"
+
+
+EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return new ModelEntityItem(entityID, properties);
+}
+
+ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+        EntityItem(entityItemID, properties) 
+{ 
+    _type = EntityTypes::Model;     
+    setProperties(properties, true);
+    _animationFrameIndex = 0.0f;
+    _lastAnimated = usecTimestampNow();
+    _jointMappingCompleted = false;
+    _color[0] = _color[1] = _color[2] = 0;
+}
+
+EntityItemProperties ModelEntityItem::getProperties() const {
+    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+    properties._color = getXColor();
+    properties._modelURL = getModelURL();
+    properties._animationURL = getAnimationURL();
+    properties._animationIsPlaying = getAnimationIsPlaying();
+    properties._animationFrameIndex = getAnimationFrameIndex();
+    properties._animationFPS = getAnimationFPS();
+    properties._sittingPoints = getSittingPoints(); // sitting support
+    properties._colorChanged = false;
+    properties._modelURLChanged = false;
+    properties._animationURLChanged = false;
+    properties._animationIsPlayingChanged = false;
+    properties._animationFrameIndexChanged = false;
+    properties._animationFPSChanged = false;
+    properties._glowLevel = getGlowLevel();
+    properties._glowLevelChanged = false;
+    return properties;
+}
+
+bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+    bool somethingChanged = false;
+    somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+    if (properties._colorChanged || forceCopy) {
+        setColor(properties._color);
+        somethingChanged = true;
+    }
+
+    if (properties._modelURLChanged || forceCopy) {
+        setModelURL(properties._modelURL);
+        somethingChanged = true;
+    }
+
+    if (properties._animationURLChanged || forceCopy) {
+        setAnimationURL(properties._animationURL);
+        somethingChanged = true;
+    }
+
+    if (properties._animationIsPlayingChanged || forceCopy) {
+        setAnimationIsPlaying(properties._animationIsPlaying);
+        somethingChanged = true;
+    }
+
+    if (properties._animationFrameIndexChanged || forceCopy) {
+        setAnimationFrameIndex(properties._animationFrameIndex);
+        somethingChanged = true;
+    }
+    
+    if (properties._animationFPSChanged || forceCopy) {
+        setAnimationFPS(properties._animationFPS);
+        somethingChanged = true;
+    }
+    
+    if (properties._glowLevelChanged || forceCopy) {
+        setGlowLevel(properties._glowLevel);
+        somethingChanged = true;
+    }
+
+    if (somethingChanged) {
+        bool wantDebug = false;
+        if (wantDebug) {
+            uint64_t now = usecTimestampNow();
+            int elapsed = now - getLastEdited();
+            qDebug() << "ModelEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+                    "now=" << now << " getLastEdited()=" << getLastEdited();
+        }
+        setLastEdited(properties._lastEdited);
+    }
+    
+    return somethingChanged;
+}
+
+
+
+int ModelEntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
+        return oldVersionReadEntityDataFromBuffer(data, bytesLeftToRead, args);
+    }
+    
+    // let our base class do most of the work... it will call us back for our porition...
+    return EntityItem::readEntityDataFromBuffer(data, bytesLeftToRead, args);
+}
+
+int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+                                                ReadBitstreamToTreeParams& args,
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+    
+    int bytesRead = 0;
+    const unsigned char* dataAt = data;
+
+    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
+    READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
+    READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, _animationFPS);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, _animationFrameIndex);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, _animationIsPlaying);
+
+    return bytesRead;
+}
+
+int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+
+    int bytesRead = 0;
+    if (bytesLeftToRead >= expectedBytes()) {
+        int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
+
+        const unsigned char* dataAt = data;
+
+        // id
+        // this old bitstream format had 32bit IDs. They are obsolete and need to be replaced with our new UUID
+        // format. We can simply read and ignore the old ID since they should not be repeated. This code should only
+        // run on loading from an old file.
+        quint32 oldID;
+        memcpy(&oldID, dataAt, sizeof(oldID));
+        dataAt += sizeof(oldID);
+        bytesRead += sizeof(oldID);
+        _id = QUuid::createUuid();
+
+        // _lastUpdated
+        memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
+        dataAt += sizeof(_lastUpdated);
+        bytesRead += sizeof(_lastUpdated);
+        _lastUpdated -= clockSkew;
+
+        // _lastEdited
+        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
+        dataAt += sizeof(_lastEdited);
+        bytesRead += sizeof(_lastEdited);
+        _lastEdited -= clockSkew;
+        _created = _lastEdited; // NOTE: old models didn't have age or created time, assume their last edit was a create
+        
+        QString ageAsString = formatSecondsElapsed(getAge());
+        qDebug() << "Loading old model file, _created = _lastEdited =" << _created 
+                        << " age=" << getAge() << "seconds - " << ageAsString;
+
+        // radius
+        memcpy(&_radius, dataAt, sizeof(_radius));
+        dataAt += sizeof(_radius);
+        bytesRead += sizeof(_radius);
+
+        // position
+        memcpy(&_position, dataAt, sizeof(_position));
+        dataAt += sizeof(_position);
+        bytesRead += sizeof(_position);
+
+        // color
+        memcpy(&_color, dataAt, sizeof(_color));
+        dataAt += sizeof(_color);
+        bytesRead += sizeof(_color);
+
+        // TODO: how to handle this? Presumable, this would only ever be true if the model file was saved with
+        // a model being in a shouldBeDeleted state. Which seems unlikely. But if it happens, maybe we should delete the entity after loading?
+        // shouldBeDeleted
+        bool shouldBeDeleted = false;
+        memcpy(&shouldBeDeleted, dataAt, sizeof(shouldBeDeleted));
+        dataAt += sizeof(shouldBeDeleted);
+        bytesRead += sizeof(shouldBeDeleted);
+        if (shouldBeDeleted) {
+            qDebug() << "UNEXPECTED - read shouldBeDeleted=TRUE from an old format file";
+        }
+
+        // modelURL
+        uint16_t modelURLLength;
+        memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
+        dataAt += sizeof(modelURLLength);
+        bytesRead += sizeof(modelURLLength);
+        QString modelURLString((const char*)dataAt);
+        setModelURL(modelURLString);
+        dataAt += modelURLLength;
+        bytesRead += modelURLLength;
+
+        // rotation
+        int bytes = unpackOrientationQuatFromBytes(dataAt, _rotation);
+        dataAt += bytes;
+        bytesRead += bytes;
+
+        if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ANIMATION) {
+            // animationURL
+            uint16_t animationURLLength;
+            memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
+            dataAt += sizeof(animationURLLength);
+            bytesRead += sizeof(animationURLLength);
+            QString animationURLString((const char*)dataAt);
+            setAnimationURL(animationURLString);
+            dataAt += animationURLLength;
+            bytesRead += animationURLLength;
+
+            // animationIsPlaying
+            memcpy(&_animationIsPlaying, dataAt, sizeof(_animationIsPlaying));
+            dataAt += sizeof(_animationIsPlaying);
+            bytesRead += sizeof(_animationIsPlaying);
+
+            // animationFrameIndex
+            memcpy(&_animationFrameIndex, dataAt, sizeof(_animationFrameIndex));
+            dataAt += sizeof(_animationFrameIndex);
+            bytesRead += sizeof(_animationFrameIndex);
+
+            // animationFPS
+            memcpy(&_animationFPS, dataAt, sizeof(_animationFPS));
+            dataAt += sizeof(_animationFPS);
+            bytesRead += sizeof(_animationFPS);
+        }
+    }
+    return bytesRead;
+}
+
+
+// TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
+    EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
+
+    requestedProperties += PROP_MODEL_URL;
+    requestedProperties += PROP_ANIMATION_URL;
+    requestedProperties += PROP_ANIMATION_FPS;
+    requestedProperties += PROP_ANIMATION_FRAME_INDEX;
+    requestedProperties += PROP_ANIMATION_PLAYING;
+    
+    return requestedProperties;
+}
+
+
+void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+                                EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
+                                EntityPropertyFlags& requestedProperties,
+                                EntityPropertyFlags& propertyFlags,
+                                EntityPropertyFlags& propertiesDidntFit,
+                                int& propertyCount, OctreeElement::AppendState& appendState) const {
+
+    bool successPropertyFits = true;
+
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, getModelURL());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, getAnimationURL());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, getAnimationFPS());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, getAnimationIsPlaying());
+}
+
+
+QMap<QString, AnimationPointer> ModelEntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
+AnimationCache ModelEntityItem::_animationCache;
+
+// This class/instance will cleanup the animations once unloaded.
+class EntityAnimationsBookkeeper {
+public:
+    ~EntityAnimationsBookkeeper() {
+        ModelEntityItem::cleanupLoadedAnimations();
+    }
+};
+
+EntityAnimationsBookkeeper modelAnimationsBookkeeperInstance;
+
+void ModelEntityItem::cleanupLoadedAnimations() {
+    foreach(AnimationPointer animation, _loadedAnimations) {
+        animation.clear();
+    }
+    _loadedAnimations.clear();
+}
+
+Animation* ModelEntityItem::getAnimation(const QString& url) {
+    AnimationPointer animation;
+    
+    // if we don't already have this model then create it and initialize it
+    if (_loadedAnimations.find(url) == _loadedAnimations.end()) {
+        animation = _animationCache.getAnimation(url);
+        _loadedAnimations[url] = animation;
+    } else {
+        animation = _loadedAnimations[url];
+    }
+    return animation.data();
+}
+
+void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
+    // if we don't have animation, or we're already joint mapped then bail early
+    if (!hasAnimation() || _jointMappingCompleted) {
+        return;
+    }
+
+    Animation* myAnimation = getAnimation(_animationURL);
+    
+    if (!_jointMappingCompleted) {
+        QStringList animationJointNames = myAnimation->getJointNames();
+
+        if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
+            _jointMapping.resize(modelJointNames.size());
+            for (int i = 0; i < modelJointNames.size(); i++) {
+                _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
+            }
+            _jointMappingCompleted = true;
+        }
+    }
+}
+
+QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
+    QVector<glm::quat> frameData;
+    if (hasAnimation() && _jointMappingCompleted) {
+        Animation* myAnimation = getAnimation(_animationURL);
+        QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
+        int frameCount = frames.size();
+
+        if (frameCount > 0) {
+            int animationFrameIndex = (int)(glm::floor(_animationFrameIndex)) % frameCount;
+
+            if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
+                animationFrameIndex = 0;
+            }
+            
+            QVector<glm::quat> rotations = frames[animationFrameIndex].rotations;
+
+            frameData.resize(_jointMapping.size());
+            for (int j = 0; j < _jointMapping.size(); j++) {
+                int rotationIndex = _jointMapping[j];
+                if (rotationIndex != -1 && rotationIndex < rotations.size()) {
+                    frameData[j] = rotations[rotationIndex];
+                }
+            }
+        }
+    }
+    return frameData;
+}
+
+bool ModelEntityItem::isAnimatingSomething() const { 
+    return getAnimationIsPlaying() && 
+            getAnimationFPS() != 0.0f &&
+            !getAnimationURL().isEmpty();
+}
+
+EntityItem::SimulationState ModelEntityItem::getSimulationState() const {
+    EntityItem::SimulationState baseClassState = EntityItem::getSimulationState();
+    
+    // if the base class is static, then consider our animation state, and upgrade to changing if
+    // we are animating. If the base class has a higher simulation state than static, then
+    // use the base class state.
+    if (baseClassState == EntityItem::Static) {
+        if (isAnimatingSomething()) {
+            return EntityItem::Changing;
+        }
+    }
+    return baseClassState;
+}
+
+void ModelEntityItem::update(const quint64& updateTime) {
+    EntityItem::update(updateTime); // let our base class handle it's updates...
+
+    quint64 now = updateTime;
+    
+    // only advance the frame index if we're playing
+    if (getAnimationIsPlaying()) {
+        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
+        _lastAnimated = now;
+        _animationFrameIndex += deltaTime * _animationFPS;
+    } else {
+        _lastAnimated = now;
+    }
+}
+
+void ModelEntityItem::debugDump() const {
+    qDebug() << "ModelEntityItem id:" << getEntityItemID();
+    qDebug() << "    edited ago:" << getEditedAgo();
+    qDebug() << "    position:" << getPosition() * (float)TREE_SCALE;
+    qDebug() << "    radius:" << getRadius() * (float)TREE_SCALE;
+    qDebug() << "    model URL:" << getModelURL();
+}
+

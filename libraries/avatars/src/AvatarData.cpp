@@ -649,11 +649,15 @@ void AvatarData::startPlaying() {
 }
 
 void AvatarData::setPlayFromCurrentLocation(bool playFromCurrentLocation) {
-    _player->setPlayFromCurrentLocation(playFromCurrentLocation);
+    if (_player) {
+        _player->setPlayFromCurrentLocation(playFromCurrentLocation);
+    }
 }
 
 void AvatarData::setPlayerLoop(bool loop) {
-    _player->setLoop(loop);
+    if (_player) {
+        _player->setLoop(loop);
+    }
 }
 
 void AvatarData::play() {
