@@ -976,11 +976,9 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
 
     // if includeColor and childBytesWritten == 2, then it can only mean that the lower level trees don't exist or for some
     // reason couldn't be written... so reset them here... This isn't true for the non-color included case
-    if (suppressEmptySubtrees()) {
-        if (params.includeColor && childBytesWritten == 2) {
-            childBytesWritten = 0;
-            //params.stopReason = EncodeBitstreamParams::UNKNOWN; // possibly should be DIDNT_FIT...
-        }
+    if (suppressEmptySubtrees() && params.includeColor && childBytesWritten == 2) {
+        childBytesWritten = 0;
+        //params.stopReason = EncodeBitstreamParams::UNKNOWN; // possibly should be DIDNT_FIT...
     }
 
     // if we wrote child bytes, then return our result of all bytes written
@@ -1579,7 +1577,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 // so, if the child returns 2 bytes out, we can actually consider that an empty tree also!!
                 //
                 // we can make this act like no bytes out, by just resetting the bytes out in this case
-                if (params.includeColor && !params.includeExistsBits && childTreeBytesOut == 2) {
+                if (suppressEmptySubtrees() && params.includeColor && !params.includeExistsBits && childTreeBytesOut == 2) {
                     childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
 
                 }
@@ -1929,13 +1927,12 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
         int bytesWritten = 0;
         bool lastPacketWritten = false;
 
-        EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-        params.extraEncodeData = &extraEncodeData;
-
         while (!elementBag.isEmpty()) {
             OctreeElement* subTree = elementBag.extract();
             
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
+            EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
+            params.extraEncodeData = &extraEncodeData;
             bytesWritten = encodeTreeBitstream(subTree, &packetData, elementBag, params);
             unlock();
 
