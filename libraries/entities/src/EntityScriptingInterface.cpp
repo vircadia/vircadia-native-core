@@ -217,7 +217,7 @@ RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
     distance(0),
     face()
 { 
-};
+}
 
 QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, const RayToEntityIntersectionResult& value) {
     QScriptValue obj = engine->newObject();
