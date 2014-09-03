@@ -64,10 +64,6 @@ EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
 EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID entityID) {
     EntityItemProperties results;
     EntityItemID identity = identifyEntity(entityID);
-    if (!identity.isKnownID) {
-        results.setIsUnknownID();
-        return results;
-    }
     if (_entityTree) {
         _entityTree->lockForRead();
         EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(identity));

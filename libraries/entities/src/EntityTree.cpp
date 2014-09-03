@@ -953,11 +953,9 @@ EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityIt
         creatorTokenOnly.id = UNKNOWN_ENTITY_ID;
         creatorTokenOnly.creatorTokenID = entityItemID.creatorTokenID;
         creatorTokenOnly.isKnownID = false;
-
-        if (_entityToElementMap.contains(entityItemID)) {
-            return _entityToElementMap.value(entityItemID);
+        if (_entityToElementMap.contains(creatorTokenOnly)) {
+            return _entityToElementMap.value(creatorTokenOnly);
         }
-
     }
     return NULL;
 }
