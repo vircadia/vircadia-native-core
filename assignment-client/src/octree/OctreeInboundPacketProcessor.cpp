@@ -103,17 +103,37 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
         quint64 processTime = 0;
         quint64 lockWaitTime = 0;
 
-        if (_myServer->wantsDebugReceiving()) {
+        if (debugProcessPacket || _myServer->wantsDebugReceiving()) {
             qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount
                     << " command from client receivedBytes=" << packet.size()
                     << " sequence=" << sequence << " transitTime=" << transitTime << " usecs";
         }
+        
+        if (debugProcessPacket) {
+            qDebug() << "    numBytesPacketHeader=" << numBytesPacketHeader;
+            qDebug() << "    sizeof(sequence)=" << sizeof(sequence);
+            qDebug() << "    sizeof(sentAt)=" << sizeof(sentAt);
+        }
+        
         int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
+
+        if (debugProcessPacket) {
+            qDebug() << "    atByte=" << atByte;
+            qDebug() << "    packet.size()=" << packet.size();
+            if (atByte >= packet.size()) {
+                qDebug() << "    ----- UNEXPECTED ---- got a packet without any edit details!!!! --------";
+            }
+        }
+        
+
         unsigned char* editData = (unsigned char*)&packetData[atByte];
         while (atByte < packet.size()) {
+        
             int maxSize = packet.size() - atByte;
 
             if (debugProcessPacket) {
+                qDebug() << " --- inside while loop ---";
+                qDebug() << "    maxSize=" << maxSize;
                 qDebug("OctreeInboundPacketProcessor::processPacket() %c "
                        "packetData=%p packetLength=%d voxelData=%p atByte=%d maxSize=%d",
                         packetType, packetData, packet.size(), editData, atByte, maxSize);
@@ -126,6 +146,12 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                                                                                   reinterpret_cast<const unsigned char*>(packet.data()),
                                                                                   packet.size(),
                                                                                   editData, maxSize, sendingNode);
+
+            if (debugProcessPacket) {
+                qDebug() << "OctreeInboundPacketProcessor::processPacket() after processEditPacketData()..."
+                                << "editDataBytesRead=" << editDataBytesRead;
+            }
+
             _myServer->getOctree()->unlock();
             quint64 endProcess = usecTimestampNow();
 
@@ -138,6 +164,13 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
             // skip to next voxel edit record in the packet
             editData += editDataBytesRead;
             atByte += editDataBytesRead;
+
+            if (debugProcessPacket) {
+                qDebug() << "    editDataBytesRead=" << editDataBytesRead;
+                qDebug() << "    AFTER processEditPacketData atByte=" << atByte;
+                qDebug() << "    AFTER processEditPacketData packet.size()=" << packet.size();
+            }
+
         }
 
         if (debugProcessPacket) {

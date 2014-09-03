@@ -81,7 +81,8 @@ public:
 
     // you must override these...
     virtual char getMyNodeType() const = 0;
-    virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew) { };
+    virtual void adjustEditPacketForClockSkew(PacketType type, 
+                        unsigned char* editPacketBuffer, size_t length, int clockSkew) { }
     
     bool hasDestinationWalletUUID() const { return !_destinationWalletUUID.isNull(); }
     void setDestinationWalletUUID(const QUuid& destinationWalletUUID) { _destinationWalletUUID = destinationWalletUUID; }
@@ -112,6 +113,7 @@ protected:
     int _maxPendingMessages;
     bool _releaseQueuedMessagesPending;
     QMutex _pendingPacketsLock;
+    QMutex _packetsQueueLock; // don't let different threads release the queue while another thread is writing to it
     QVector<EditPacketBuffer*> _preServerPackets; // these will get packed into other larger packets
     QVector<EditPacketBuffer*> _preServerSingleMessagePackets; // these will go out as is
 

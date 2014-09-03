@@ -12,21 +12,21 @@
 #ifndef hifi_LocalModelsOverlay_h
 #define hifi_LocalModelsOverlay_h
 
-#include "models/ModelTreeRenderer.h"
+#include "entities/EntityTreeRenderer.h"
 
 #include "Volume3DOverlay.h"
 
 class LocalModelsOverlay : public Volume3DOverlay {
     Q_OBJECT
 public:
-    LocalModelsOverlay(ModelTreeRenderer* modelTreeRenderer);
+    LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer);
     ~LocalModelsOverlay();
     
     virtual void update(float deltatime);
     virtual void render();
 
 private:
-    ModelTreeRenderer *_modelTreeRenderer;
+    EntityTreeRenderer* _entityTreeRenderer;
 };
 
 #endif // hifi_LocalModelsOverlay_h

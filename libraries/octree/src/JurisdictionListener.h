@@ -34,7 +34,7 @@ public:
     
     virtual bool process();
 
-    NodeToJurisdictionMap* getJurisdictions() { return &_jurisdictions; };
+    NodeToJurisdictionMap* getJurisdictions() { return &_jurisdictions; }
 
 
     NodeType_t getNodeType() const { return _nodeType; }

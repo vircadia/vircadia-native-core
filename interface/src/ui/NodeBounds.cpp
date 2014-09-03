@@ -5,7 +5,7 @@
 //  Created by Ryan Huffman on 05/14/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This class draws a border around the different Voxel, Model, and Particle nodes on the current domain,
+//  This class draws a border around the different Voxel, Entity, and Particle nodes on the current domain,
 //  and a semi-transparent cube around the currently mouse-overed node.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -20,20 +20,20 @@
 NodeBounds::NodeBounds(QObject* parent) :
     QObject(parent),
     _showVoxelNodes(false),
-    _showModelNodes(false),
+    _showEntityNodes(false),
     _showParticleNodes(false),
     _overlayText() {
 
 }
 
 void NodeBounds::draw() {
-    if (!(_showVoxelNodes || _showModelNodes || _showParticleNodes)) {
+    if (!(_showVoxelNodes || _showEntityNodes || _showParticleNodes)) {
         _overlayText[0] = '\0';
         return;
     }
 
     NodeToJurisdictionMap& voxelServerJurisdictions = Application::getInstance()->getVoxelServerJurisdictions();
-    NodeToJurisdictionMap& modelServerJurisdictions = Application::getInstance()->getModelServerJurisdictions();
+    NodeToJurisdictionMap& entityServerJurisdictions = Application::getInstance()->getEntityServerJurisdictions();
     NodeToJurisdictionMap& particleServerJurisdictions = Application::getInstance()->getParticleServerJurisdictions();
     NodeToJurisdictionMap* serverJurisdictions;
 
@@ -61,8 +61,8 @@ void NodeBounds::draw() {
 
         if (nodeType == NodeType::VoxelServer && _showVoxelNodes) {
             serverJurisdictions = &voxelServerJurisdictions;
-        } else if (nodeType == NodeType::ModelServer && _showModelNodes) {
-            serverJurisdictions = &modelServerJurisdictions;
+        } else if (nodeType == NodeType::EntityServer && _showEntityNodes) {
+            serverJurisdictions = &entityServerJurisdictions;
         } else if (nodeType == NodeType::ParticleServer && _showParticleNodes) {
             serverJurisdictions = &particleServerJurisdictions;
         } else {
@@ -89,7 +89,7 @@ void NodeBounds::draw() {
                     + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);
 
                 const float VOXEL_NODE_SCALE = 1.00f;
-                const float MODEL_NODE_SCALE = 0.99f;
+                const float ENTITY_NODE_SCALE = 0.99f;
                 const float PARTICLE_NODE_SCALE = 0.98f;
 
                 float scaleFactor = rootDetails.s * TREE_SCALE;
@@ -101,8 +101,8 @@ void NodeBounds::draw() {
                 // Scale different node types slightly differently because it's common for them to overlap.
                 if (nodeType == NodeType::VoxelServer) {
                     scaleFactor *= VOXEL_NODE_SCALE;
-                } else if (nodeType == NodeType::ModelServer) {
-                    scaleFactor *= MODEL_NODE_SCALE;
+                } else if (nodeType == NodeType::EntityServer) {
+                    scaleFactor *= ENTITY_NODE_SCALE;
                 } else {
                     scaleFactor *= PARTICLE_NODE_SCALE;
                 }
@@ -216,7 +216,7 @@ void NodeBounds::drawNodeBorder(const glm::vec3& center, float scale, float red,
 void NodeBounds::getColorForNodeType(NodeType_t nodeType, float& red, float& green, float& blue) {
     red = nodeType == NodeType::VoxelServer ? 1.0 : 0.0;
     green = nodeType == NodeType::ParticleServer ? 1.0 : 0.0;
-    blue = nodeType == NodeType::ModelServer ? 1.0 : 0.0;
+    blue = nodeType == NodeType::EntityServer ? 1.0 : 0.0;
 }
 
 void NodeBounds::drawOverlay() {

@@ -61,15 +61,15 @@ enum PacketType {
     PacketTypeDomainConnectRequest,
     PacketTypeDomainServerRequireDTLS,
     PacketTypeNodeJsonStats,
-    PacketTypeModelQuery,
-    PacketTypeModelData, // 41
-    PacketTypeModelAddOrEdit,
-    PacketTypeModelErase,
-    PacketTypeModelAddResponse,
+    PacketTypeEntityQuery,
+    PacketTypeEntityData, // 41
+    PacketTypeEntityAddOrEdit,
+    PacketTypeEntityErase,
+    PacketTypeEntityAddResponse,
     PacketTypeOctreeDataNack, // 45
     PacketTypeVoxelEditNack,
     PacketTypeParticleEditNack,
-    PacketTypeModelEditNack,
+    PacketTypeEntityEditNack, // 48
     PacketTypeSignedTransactionPayment
 };
 
@@ -79,8 +79,8 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
     << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainOAuthRequest
     << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
-    << PacketTypeNodeJsonStats << PacketTypeVoxelQuery << PacketTypeParticleQuery << PacketTypeModelQuery
-    << PacketTypeOctreeDataNack << PacketTypeVoxelEditNack << PacketTypeParticleEditNack << PacketTypeModelEditNack;
+    << PacketTypeNodeJsonStats << PacketTypeVoxelQuery << PacketTypeParticleQuery << PacketTypeEntityQuery
+    << PacketTypeOctreeDataNack << PacketTypeVoxelEditNack << PacketTypeParticleEditNack << PacketTypeEntityEditNack;
 
 const int NUM_BYTES_MD5_HASH = 16;
 const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
@@ -111,5 +111,10 @@ PacketType packetTypeForPacket(const char* packet);
 
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
+
+const PacketVersion VERSION_ENTITIES_HAVE_ANIMATION = 1;
+const PacketVersion VERSION_ROOT_ELEMENT_HAS_DATA = 2;
+const PacketVersion VERSION_ENTITIES_SUPPORT_SPLIT_MTU = 3;
+const PacketVersion VERSION_ENTITIES_HAS_FILE_BREAKS = VERSION_ENTITIES_SUPPORT_SPLIT_MTU;
 
 #endif // hifi_PacketHeaders_h

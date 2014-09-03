@@ -52,9 +52,9 @@
 
 #include <AccountManager.h>
 #include <AudioInjector.h>
+#include <EntityScriptingInterface.h>
 #include <LocalVoxelsList.h>
 #include <Logging.h>
-#include <ModelsScriptingInterface.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -141,8 +141,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
-        _modelClipboardRenderer(),
-        _modelClipboard(),
+        _entityClipboardRenderer(),
+        _entityClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
@@ -303,13 +303,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
+                                                 << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
                                                  << NodeType::MetavoxelServer);
 
     // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
     connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
     connect(&_particleEditSender, &ParticleEditPacketSender::packetSent, this, &Application::packetSent);
-    connect(&_modelEditSender, &ModelEditPacketSender::packetSent, this, &Application::packetSent);
+    connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
@@ -352,7 +352,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // Tell our voxel edit sender about our known jurisdictions
     _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
     _particleEditSender.setServerJurisdictions(&_particleServerJurisdictions);
-    _modelEditSender.setServerJurisdictions(&_modelServerJurisdictions);
+    _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
 
     Particle::setVoxelEditPacketSender(&_voxelEditSender);
     Particle::setParticleEditPacketSender(&_particleEditSender);
@@ -364,7 +364,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move a particle around in your hand
     _particleEditSender.setPacketsPerSecond(3000); // super high!!
-    _modelEditSender.setPacketsPerSecond(3000); // super high!!
+    _entityEditSender.setPacketsPerSecond(3000); // super high!!
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
@@ -454,7 +454,7 @@ Application::~Application() {
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
-    _modelEditSender.terminate();
+    _entityEditSender.terminate();
 
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
@@ -549,7 +549,7 @@ void Application::initializeGL() {
     _voxelEditSender.initialize(_enableProcessVoxelsThread);
     _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
     _particleEditSender.initialize(_enableProcessVoxelsThread);
-    _modelEditSender.initialize(_enableProcessVoxelsThread);
+    _entityEditSender.initialize(_enableProcessVoxelsThread);
 
     if (_enableProcessVoxelsThread) {
         qDebug("Voxel parsing thread created.");
@@ -801,7 +801,7 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
                 break;
             case NodeType::VoxelServer:
             case NodeType::ParticleServer:
-            case NodeType::ModelServer:
+            case NodeType::EntityServer:
                 channel = BandwidthMeter::VOXELS;
                 break;
             default:
@@ -1339,7 +1339,7 @@ void Application::dropEvent(QDropEvent *event) {
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet()
-                               << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
+                               << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
                                << NodeType::MetavoxelServer);
 }
@@ -1523,22 +1523,21 @@ struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
 };
 
-bool Application::exportModels(const QString& filename, float x, float y, float z, float scale) {
-    QVector<ModelItem*> models;
-    _models.getTree()->findModelsInCube(AACube(glm::vec3(x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), models);
-    if (models.size() > 0) {
+bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
+    QVector<EntityItem*> entities;
+    _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
+                                y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), entities);
+
+    if (entities.size() > 0) {
         glm::vec3 root(x, y, z);
-        ModelTree exportTree;
+        EntityTree exportTree;
 
-        for (int i = 0; i < models.size(); i++) {
-            ModelItemProperties properties;
-            ModelItemID id = models.at(i)->getModelItemID();
-            id.isKnownID = false;
-            properties.copyFromNewModelItem(*models.at(i));
+        for (int i = 0; i < entities.size(); i++) {
+            EntityItemProperties properties = entities.at(i)->getProperties();
+            EntityItemID id = entities.at(i)->getEntityItemID();
             properties.setPosition(properties.getPosition() - root);
-            exportTree.addModel(id, properties);
+            exportTree.addEntity(id, properties);
         }
-
         exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
     } else {
         qDebug() << "No models were selected";
@@ -1631,17 +1630,17 @@ void Application::importVoxels() {
     emit importDone();
 }
 
-bool Application::importModels(const QString& filename) {
-    _modelClipboard.eraseAllOctreeElements();
-    bool success = _modelClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
+bool Application::importEntities(const QString& filename) {
+    _entityClipboard.eraseAllOctreeElements();
+    bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
     if (success) {
-        _modelClipboard.reaverageOctreeElements();
+        _entityClipboard.reaverageOctreeElements();
     }
     return success;
 }
 
-void Application::pasteModels(float x, float y, float z) {
-    _modelClipboard.sendModels(&_modelEditSender, x, y, z);
+void Application::pasteEntities(float x, float y, float z) {
+    _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
@@ -1797,12 +1796,12 @@ void Application::init() {
     _particles.init();
     _particles.setViewFrustum(getViewFrustum());
 
-    _models.init();
-    _models.setViewFrustum(getViewFrustum());
+    _entities.init();
+    _entities.setViewFrustum(getViewFrustum());
 
-    _modelClipboardRenderer.init();
-    _modelClipboardRenderer.setViewFrustum(getViewFrustum());
-    _modelClipboardRenderer.setTree(&_modelClipboard);
+    _entityClipboardRenderer.init();
+    _entityClipboardRenderer.setViewFrustum(getViewFrustum());
+    _entityClipboardRenderer.setTree(&_entityClipboard);
 
     _metavoxels.init();
 
@@ -2032,7 +2031,7 @@ void Application::updateThreads(float deltaTime) {
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
-        _modelEditSender.threadRoutine();
+        _entityEditSender.threadRoutine();
     }
 }
 
@@ -2165,8 +2164,8 @@ void Application::update(float deltaTime) {
     }
 
     {
-        PerformanceTimer perfTimer("models");
-        _models.update(); // update the models...
+        PerformanceTimer perfTimer("entities");
+        _entities.update(); // update the models...
     }
 
     {
@@ -2210,9 +2209,16 @@ void Application::update(float deltaTime) {
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
-            queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
-            queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
-            queryOctree(NodeType::ModelServer, PacketTypeModelQuery, _modelServerJurisdictions);
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+                queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
+            }
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
+                queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
+            }
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+                queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
+            }
             _lastQueriedViewFrustum = _viewFrustum;
         }
     }
@@ -2268,7 +2274,7 @@ int Application::sendNackPackets() {
         if (node->getActiveSocket() &&
             ( node->getType() == NodeType::VoxelServer
             || node->getType() == NodeType::ParticleServer
-            || node->getType() == NodeType::ModelServer)
+            || node->getType() == NodeType::EntityServer)
             ) {
 
             QUuid nodeUUID = node->getUUID();
@@ -2335,13 +2341,7 @@ int Application::sendNackPackets() {
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
-    // if voxels are disabled, then don't send this at all...
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-        return;
-    }
-
     //qDebug() << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
-
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
@@ -2659,9 +2659,20 @@ void Application::updateShadowMap() {
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
-        _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
-        _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
-        _models.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        {
+            PerformanceTimer perfTimer("avatarManager");
+            _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("particles");
+            _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("entities");
+            _entities.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
 
@@ -2858,10 +2869,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // render models...
         if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
-            PerformanceTimer perfTimer("models");
+            PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... models...");
-            _models.render();
+                "Application::displaySide() ... entities...");
+            _entities.render();
         }
 
         // render the ambient occlusion effect if enabled
@@ -3385,7 +3396,7 @@ void Application::domainChanged(const QString& domainHostname) {
     _particles.clear();
 
     // reset the model renderer
-    _models.clear();
+    _entities.clear();
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
@@ -3424,7 +3435,7 @@ void Application::nodeKilled(SharedNodePointer node) {
 
     _voxelEditSender.nodeKilled(node);
     _particleEditSender.nodeKilled(node);
-    _modelEditSender.nodeKilled(node);
+    _entityEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(&_audio, "audioMixerKilled");
@@ -3504,16 +3515,16 @@ void Application::nodeKilled(SharedNodePointer node) {
         }
         _octreeSceneStatsLock.unlock();
 
-    } else if (node->getType() == NodeType::ModelServer) {
+    } else if (node->getType() == NodeType::EntityServer) {
 
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
-        _modelServerJurisdictions.lockForRead();
-        if (_modelServerJurisdictions.find(nodeUUID) != _modelServerJurisdictions.end()) {
-            unsigned char* rootCode = _modelServerJurisdictions[nodeUUID].getRootOctalCode();
+        _entityServerJurisdictions.lockForRead();
+        if (_entityServerJurisdictions.find(nodeUUID) != _entityServerJurisdictions.end()) {
+            unsigned char* rootCode = _entityServerJurisdictions[nodeUUID].getRootOctalCode();
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
-            _modelServerJurisdictions.unlock();
+            _entityServerJurisdictions.unlock();
 
             qDebug("model server going away...... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
@@ -3530,10 +3541,10 @@ void Application::nodeKilled(SharedNodePointer node) {
             }
 
             // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
-            _modelServerJurisdictions.lockForWrite();
-            _modelServerJurisdictions.erase(_modelServerJurisdictions.find(nodeUUID));
+            _entityServerJurisdictions.lockForWrite();
+            _entityServerJurisdictions.erase(_entityServerJurisdictions.find(nodeUUID));
         }
-        _modelServerJurisdictions.unlock();
+        _entityServerJurisdictions.unlock();
 
         // also clean up scene stats for that server
         _octreeSceneStatsLock.lockForWrite();
@@ -3599,8 +3610,8 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
             jurisdiction = &_particleServerJurisdictions;
             serverType = "Particle";
         } else {
-            jurisdiction = &_modelServerJurisdictions;
-            serverType = "Model";
+            jurisdiction = &_entityServerJurisdictions;
+            serverType = "Entity";
         }
 
         jurisdiction->lockForRead();
@@ -3709,8 +3720,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
 
-    scriptEngine->getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
-    scriptEngine->getModelsScriptingInterface()->setModelTree(_models.getTree());
+    scriptEngine->getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
+    scriptEngine->getEntityScriptingInterface()->setEntityTree(_entities.getTree());
 
     // model has some custom types
     Model::registerMetaTypes(scriptEngine);
