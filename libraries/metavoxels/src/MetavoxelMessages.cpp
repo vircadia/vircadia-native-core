@@ -726,6 +726,7 @@ int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
             QRgb* hermiteDestX = hermiteDestY;
             for (int x = hermiteMinX, hermiteMaxX = x + hermiteSizeX - 1; x <= hermiteMaxX; x++,
                     hermiteDestX += VoxelHermiteData::EDGE_COUNT) {
+                // internal edges are set to zero; border edges (when non-terminal) are set to the intersection values
                 hermiteDestX[0] = 0x0;
                 if ((x == hermiteMinX || x == hermiteMaxX) && x != VOXEL_BLOCK_SIZE) {
                     const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
@@ -933,6 +934,8 @@ int VoxelMaterialSphereEditVisitor::visit(MetavoxelInfo& info) {
             QRgb* hermiteDestX = hermiteDestY;
             for (int x = hermiteMinX, hermiteMaxX = x + hermiteSizeX - 1; x <= hermiteMaxX; x++,
                     hermiteDestX += VoxelHermiteData::EDGE_COUNT) {
+                // at each intersected non-terminal edge, we check for a transition and, if one is detected, we assign the
+                // crossing and normal values based on intersection with the sphere
                 hermiteDestX[0] = 0x0;
                 glm::vec3 offset(x - relativeCenter.x, y - relativeCenter.y, z - relativeCenter.z);
                 if (x != VOXEL_BLOCK_SIZE) {

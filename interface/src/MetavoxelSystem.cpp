@@ -1570,11 +1570,17 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
         
+        // see http://www.frankpetterson.com/publications/dualcontour/dualcontour.pdf for a description of the
+        // dual contour algorithm for generating meshes from voxel data using Hermite-tagged edges
         const QVector<QRgb>& colorContents = color->getContents();
         const QByteArray& materialContents = material->getContents();
         const QVector<QRgb>& hermiteContents = hermite->getContents();
         int size = color->getSize();
         int area = size * size;
+        
+        // number variables such as offset3 and alpha0 in this function correspond to cube corners, where the x, y, and z
+        // components are represented as bits in the 0, 1, and 2 position, respectively; hence, alpha0 is the value at
+        // the minimum x, y, and z corner and alpha7 is the value at the maximum x, y, and z
         int offset3 = size + 1;
         int offset5 = area + 1;
         int offset6 = area + size;
@@ -1587,6 +1593,8 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         
         const char* materialData = materialContents.constData();
         
+        // as we scan down the cube generating vertices between grid points, we remember the indices of the last
+        // (element, line, section--x, y, z) so that we can connect generated vertices as quads
         int expanded = size + 1;
         QVector<int> lineIndices(expanded, -1);
         QVector<int> lastLineIndices(expanded, -1);
@@ -1609,6 +1617,9 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     int alpha1 = alpha0, alpha2 = alpha0, alpha4 = alpha0;
                     int alphaTotal = alpha0;
                     int possibleTotal = EIGHT_BIT_MAXIMUM;
+                    
+                    // cubes on the edge are two-dimensional: this ensures that their vertices will be shared between
+                    // neighboring blocks, which share only one layer of points
                     bool middleX = (x != 0 && x != size);
                     bool middleY = (y != 0 && y != size);
                     bool middleZ = (z != 0 && z != size);
@@ -1653,6 +1664,8 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         }
                         continue; // no corners set/all corners set
                     }
+                    // the terrifying conditional code that follows checks each cube edge for a crossing, gathering
+                    // its properties (color, material, normal) if one is present; as before, boundary edges are excluded
                     int clampedX = qMax(x - 1, 0), clampedY = qMax(y - 1, 0), clampedZ = qMax(z - 1, 0);
                     const QRgb* hermiteBase = hermiteData + clampedZ * hermiteArea + clampedY * hermiteStride +
                         clampedX * VoxelHermiteData::EDGE_COUNT;
@@ -1826,6 +1839,8 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         }
                         crossing.point = glm::vec3(0.0f, 0.0f, qAlpha(hermite));
                     }
+                    // at present, we simply average the properties of each crossing as opposed to finding the vertex that
+                    // minimizes the quadratic error function as described in the reference paper
                     glm::vec3 center;
                     glm::vec3 normal;
                     const int MAX_MATERIALS_PER_VERTEX = 4;
@@ -1840,6 +1855,9 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         red += qRed(crossing.color);
                         green += qGreen(crossing.color);
                         blue += qBlue(crossing.color);
+                        
+                        // when assigning a material, search for its presence and, if not found,
+                        // place it in the first empty slot
                         if (crossing.material != 0) {
                             for (int j = 0; j < MAX_MATERIALS_PER_VERTEX; j++) {
                                 if (materials[j] == crossing.material) {
@@ -1871,17 +1889,19 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     int index = vertices.size();
                     vertices.append(point);
                     
+                    // the first x, y, and z are repeated for the boundary edge; past that, we consider generating
+                    // quads for each edge that includes a transition, using indices of previously generated vertices
                     if (x != 0 && y != 0 && z != 0) {
                         if (alpha0 != alpha1) {
                             indices.append(index);
                             int index1 = lastLineIndices.at(x);
                             int index2 = lastPlaneIndices.at((y - 1) * expanded + x);
                             int index3 = lastPlaneIndices.at(y * expanded + x);
-                            if (alpha0 == 0) {
+                            if (alpha0 == 0) { // quad faces negative x
                                 indices.append(index3);
                                 indices.append(index2);
                                 indices.append(index1);
-                            } else {
+                            } else { // quad faces positive x
                                 indices.append(index1);
                                 indices.append(index2);
                                 indices.append(index3);
@@ -1893,11 +1913,11 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             int index1 = lastIndex;
                             int index2 = lastPlaneIndices.at(y * expanded + x - 1);
                             int index3 = lastPlaneIndices.at(y * expanded + x);
-                            if (alpha0 == 0) {
+                            if (alpha0 == 0) { // quad faces negative y
                                 indices.append(index1);
                                 indices.append(index2);
                                 indices.append(index3);
-                            } else {
+                            } else { // quad faces positive y
                                 indices.append(index3);
                                 indices.append(index2);
                                 indices.append(index1);
@@ -1909,11 +1929,11 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             int index1 = lastIndex;
                             int index2 = lastLineIndices.at(x - 1);
                             int index3 = lastLineIndices.at(x);
-                            if (alpha0 == 0) {
+                            if (alpha0 == 0) { // quad faces negative z
                                 indices.append(index3);
                                 indices.append(index2);
                                 indices.append(index1);
-                            } else {
+                            } else { // quad faces positive z
                                 indices.append(index1);
                                 indices.append(index2);
                                 indices.append(index3);
