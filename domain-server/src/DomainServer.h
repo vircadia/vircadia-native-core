@@ -35,15 +35,13 @@
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
-class DomainServer : public QCoreApplication, public HTTPSRequestHandler, public QAbstractNativeEventFilter {
+class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url);
-
-    bool nativeEventFilter(const QByteArray &eventType, void* msg, long* result);
     
     void exit(int retCode = 0);
     

@@ -75,20 +75,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 }
 
-bool DomainServer::nativeEventFilter(const QByteArray &eventType, void* msg, long* result) {
-#ifdef Q_OS_WIN
-    if (eventType == "windows_generic_MSG") {
-        MSG* message = (MSG*)msg;
-        if (message->message == WM_CLOSE) {
-            qDebug() << "Received WM_CLOSE message, closing";
-            quit();
-            return false;
-        }
-    }
-#endif
-    return true;
-}
-
 bool DomainServer::optionallyReadX509KeyAndCertificate() {
     const QString X509_CERTIFICATE_OPTION = "cert";
     const QString X509_PRIVATE_KEY_OPTION = "key";
