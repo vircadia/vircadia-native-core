@@ -242,13 +242,6 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(this);
 
-    /**
-    qScriptRegisterMetaType(this, ModelItemPropertiesToScriptValue, ModelItemPropertiesFromScriptValue);
-    qScriptRegisterMetaType(this, ModelItemIDtoScriptValue, ModelItemIDfromScriptValue);
-    qScriptRegisterMetaType(this, RayToModelIntersectionResultToScriptValue, RayToModelIntersectionResultFromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<ModelItemID> >(this);
-    **/
-
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
     qScriptRegisterMetaType(this, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
