@@ -1897,7 +1897,12 @@ void MyAvatar::resetSize() {
 
 void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
     QJsonObject locationObject = jsonObject["data"].toObject()["address"].toObject();
-    goToLocationFromAddress(locationObject);
+    bool isOnline = jsonObject["data"].toObject()["online"].toBool();
+    if (isOnline ) {
+        goToLocationFromAddress(locationObject);
+    } else {
+        QMessageBox::warning(Application::getInstance()->getWindow(), "", "The user is not online.");
+    }
 }
 
 void MyAvatar::goToLocationFromAddress(const QJsonObject& locationObject) {

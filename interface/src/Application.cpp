@@ -3349,8 +3349,6 @@ void Application::updateLocationInServer() {
 
     if (accountManager.isLoggedIn()) {
 
-        static QJsonObject lastLocationObject;
-
         // construct a QJsonObject given the user's current address information
         QJsonObject updatedLocationObject;
 
@@ -3361,14 +3359,9 @@ void Application::updateLocationInServer() {
 
         updatedLocationObject.insert("address", addressObject);
 
-        if (updatedLocationObject != lastLocationObject) {
-
-            accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
-                                                JSONCallbackParameters(), QJsonDocument(updatedLocationObject).toJson());
-
-            lastLocationObject = updatedLocationObject;
-        }
-    }
+        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
+                                            JSONCallbackParameters(), QJsonDocument(updatedLocationObject).toJson());
+     }
 }
 
 void Application::domainChanged(const QString& domainHostname) {
