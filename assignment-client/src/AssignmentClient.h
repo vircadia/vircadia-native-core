@@ -13,7 +13,6 @@
 #define hifi_AssignmentClient_h
 
 #include <QtCore/QCoreApplication>
-#include <QAbstractNativeEventFilter>
 
 #include "ShutdownEventListener.h"
 #include "ThreadedAssignment.h"

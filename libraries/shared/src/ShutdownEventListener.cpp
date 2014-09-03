@@ -11,6 +11,10 @@
 
 #include "ShutdownEventListener.h"
 
+#ifdef Q_OS_WIN
+#include <Windows.h>
+#endif
+
 ShutdownEventListener::ShutdownEventListener(QObject* parent) : QObject(parent) {
 }
 
