@@ -64,8 +64,8 @@ public:
     quint64 getLastUpdated() const { return _lastUpdated; } /// Last simulated time of this entity universal usecs
 
      /// Last edited time of this entity universal usecs
-    quint64 getLastEdited() const { return std::max((_lastEditedRemote - _lastEditedRemoteClockSkew), _lastEditedLocal); }
-    void setLastEdited(quint64 lastEdited) { _lastEditedLocal = lastEdited; _lastEditedLocal = lastEdited; }
+    quint64 getLastEdited() const { return _lastEdited; }
+    void setLastEdited(quint64 lastEdited) {  _lastEdited = _lastUpdated = lastEdited;  }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
 
@@ -190,10 +190,7 @@ protected:
     uint32_t _creatorTokenID;
     bool _newlyCreated;
     quint64 _lastUpdated;
-    //quint64 _lastEdited;
-    quint64 _lastEditedLocal;
-    quint64 _lastEditedRemote;
-    quint64 _lastEditedRemoteClockSkew;
+    quint64 _lastEdited;
     quint64 _created;
 
     glm::vec3 _position;

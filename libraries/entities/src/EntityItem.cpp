@@ -42,9 +42,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 
     // init values with defaults before calling setProperties
     //uint64_t now = usecTimestampNow();
-    _lastEditedRemote = 0;
-    _lastEditedLocal = 0;
-    //_lastEdited = 0;
+    _lastEdited = 0;
     _lastUpdated = 0;
     _created = 0; // TODO: when do we actually want to make this "now"
 
@@ -62,9 +60,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
     _type = EntityTypes::Unknown;
-    _lastEditedRemote = 0;
-    _lastEditedLocal = 0;
-    //_lastEdited = 0;
+    _lastEdited = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
     initFromEntityItemID(entityItemID);
@@ -120,10 +116,18 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         requestedProperties = entityTreeElementExtraEncodeData->entities.value(getEntityItemID());
     }
 
-    LevelDetails modelLevel = packetData->startLevel();
+    LevelDetails entityLevel = packetData->startLevel();
 
     quint64 lastEdited = getLastEdited();
-    
+
+    const bool wantDebug = false;
+    if (wantDebug) {
+        float editedAgo = getEditedAgo();
+        QString agoAsString = formatSecondsElapsed(editedAgo);
+        qDebug() << "Writing entity " << getEntityItemID() << " to buffer, lastEdited =" << lastEdited 
+                        << " ago=" << editedAgo << "seconds - " << agoAsString;
+    }
+
     bool successIDFits = false;
     bool successTypeFits = false;
     bool successCreatedFits = false;
@@ -210,9 +214,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
             assert(newPropertyFlagsLength == oldPropertyFlagsLength); // should not have grown
         }
        
-        packetData->endLevel(modelLevel);
+        packetData->endLevel(entityLevel);
     } else {
-        packetData->discardLevel(modelLevel);
+        packetData->discardLevel(entityLevel);
         appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
     }
     
@@ -302,9 +306,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         _created = createdFromBuffer; // TODO: do we ever want to discard this???
 
         if (wantDebug) {
+            quint64 lastEdited = getLastEdited();
+            float editedAgo = getEditedAgo();
+            QString agoAsString = formatSecondsElapsed(editedAgo);
             QString ageAsString = formatSecondsElapsed(getAge());
-            qDebug() << "Loading entity " << getEntityItemID() << " from buffer, _created =" << _created 
-                            << " age=" << getAge() << "seconds - " << ageAsString;
+            qDebug() << "Loading entity " << getEntityItemID() << " from buffer...";
+            qDebug() << "    _created =" << _created;
+            qDebug() << "    age=" << getAge() << "seconds - " << ageAsString;
+            qDebug() << "    lastEdited =" << lastEdited;
+            qDebug() << "    ago=" << editedAgo << "seconds - " << agoAsString;
         }
         
         quint64 lastEditedFromBuffer = 0;
@@ -322,8 +332,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qDebug() << "      entityItemID=" << getEntityItemID();
             qDebug() << "      now=" << usecTimestampNow();
             qDebug() << "      getLastEdited();=" << getLastEdited();
-            qDebug() << "      _lastEditedRemote=" << _lastEditedRemote;
-            qDebug() << "      _lastEditedLocal=" << _lastEditedLocal;
             qDebug() << "      lastEditedFromBuffer=" << lastEditedFromBuffer << " (BEFORE clockskew adjust)";
             qDebug() << "      clockSkew=" << clockSkew;
             qDebug() << "      lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted << " (AFTER clockskew adjust)";
@@ -332,7 +340,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         
         // If we've changed our local tree more recently than the new data from this packet
         // then we will not be changing our values, instead we just read and skip the data
-        if (_lastEditedLocal > lastEditedFromBufferAdjusted) {
+        if (_lastEdited > lastEditedFromBufferAdjusted) {
             overwriteLocalData = false;
             if (wantDebug) {
                 qDebug() << "IGNORING old data from server!!! ****************";
@@ -343,8 +351,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 qDebug() << "USING NEW data from server!!! ****************";
             }
 
-            _lastEditedRemote = lastEditedFromBuffer;
-            _lastEditedRemoteClockSkew = clockSkew;
+            _lastEdited = lastEditedFromBufferAdjusted;
             somethingChangedNotification(); // notify derived classes that something has changed
         }
 
@@ -354,6 +361,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         quint64 updateDelta = updateDeltaCoder;
         if (overwriteLocalData) {
             _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
+            if (wantDebug) {
+                qDebug() << "_lastUpdated=" << _lastUpdated;
+                qDebug() << "_lastEdited=" << _lastEdited;
+                qDebug() << "lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted;
+            }
         }
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += encodedUpdateDelta.size();
@@ -417,7 +429,16 @@ bool EntityItem::isRestingOnSurface() const {
 
 void EntityItem::update(const quint64& updateTime) {
     bool wantDebug = false;
+
     float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
+
+    if (wantDebug) {
+        qDebug() << "********** EntityItem::update()";
+        qDebug() << "    updateTime=" << updateTime;
+        qDebug() << "    _lastUpdated=" << _lastUpdated;
+        qDebug() << "    timeElapsed=" << timeElapsed;
+    }
+
     _lastUpdated = updateTime;
 
     if (wantDebug) {

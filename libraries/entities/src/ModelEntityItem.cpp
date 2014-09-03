@@ -29,6 +29,7 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
     _animationFrameIndex = 0.0f;
     _lastAnimated = usecTimestampNow();
     _jointMappingCompleted = false;
+    _color[0] = _color[1] = _color[2] = 0;
 }
 
 EntityItemProperties ModelEntityItem::getProperties() const {
@@ -156,11 +157,11 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
         _lastUpdated -= clockSkew;
 
         // _lastEdited
-        memcpy(&_lastEditedRemote, dataAt, sizeof(_lastEditedRemote));
-        dataAt += sizeof(_lastEditedRemote);
-        bytesRead += sizeof(_lastEditedRemote);
-        _lastEditedRemote -= clockSkew;
-        _created = _lastEditedRemote; // NOTE: old models didn't have age or created time, assume their last edit was a create
+        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
+        dataAt += sizeof(_lastEdited);
+        bytesRead += sizeof(_lastEdited);
+        _lastEdited -= clockSkew;
+        _created = _lastEdited; // NOTE: old models didn't have age or created time, assume their last edit was a create
         
         QString ageAsString = formatSecondsElapsed(getAge());
         qDebug() << "Loading old model file, _created = _lastEdited =" << _created 
