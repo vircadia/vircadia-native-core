@@ -14,7 +14,7 @@
 
 #include "UIUtil.h"
 
-int UIUtil::getWindowTitleBarHeight(QWidget *window) {
+int UIUtil::getWindowTitleBarHeight(const QWidget* window) {
     QStyleOptionTitleBar options;
     options.titleBarState = 1;
     options.titleBarFlags = Qt::Window;

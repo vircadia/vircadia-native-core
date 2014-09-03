@@ -17,7 +17,7 @@
 
 class UIUtil {
 public:
-    static int getWindowTitleBarHeight(QWidget *window);
+    static int getWindowTitleBarHeight(const QWidget* window);
 
 };
 
