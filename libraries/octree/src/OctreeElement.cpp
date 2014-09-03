@@ -240,18 +240,15 @@ OctreeElement* OctreeElement::removeChildAtIndex(int childIndex) {
 }
 
 bool OctreeElement::isParentOf(OctreeElement* possibleChild) const {
-    bool isParentOf = false;
     if (possibleChild) {
         for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
             OctreeElement* childAt = getChildAtIndex(childIndex);
-
             if (childAt == possibleChild) {
-                isParentOf = true;
-                break;
+                return true;
             }
         }
     }
-    return isParentOf;
+    return false;
 }
 
 
