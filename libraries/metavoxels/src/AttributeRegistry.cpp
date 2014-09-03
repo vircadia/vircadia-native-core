@@ -1907,8 +1907,8 @@ void VoxelHermiteData::writeDelta(Bitstream& out, const VoxelHermiteDataPointer&
             bool differenceZ = false;
             for (int y = 0; y < _size; y++) {
                 bool differenceY = false;
-                for (int x = 0; x < _size; x++) {
-                    if (*src++ != *ref++ || *src++ != *ref++ || *src++ != *ref++) {
+                for (int x = 0; x < _size; x++, src += EDGE_COUNT, ref += EDGE_COUNT) {
+                    if (src[0] != ref[0] || src[1] != ref[1] || src[2] != ref[2]) {
                         minX = qMin(minX, x);
                         maxX = qMax(maxX, x);
                         differenceY = differenceZ = true;

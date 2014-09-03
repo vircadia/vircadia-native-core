@@ -1828,6 +1828,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     }
                     glm::vec3 center;
                     glm::vec3 normal;
+                    const int MAX_MATERIALS_PER_VERTEX = 4;
+                    quint8 materials[4];
+                    glm::vec4 materialWeights;
+                    float totalWeight = 0.0f;
                     int red = 0, green = 0, blue = 0;
                     for (int i = 0; i < crossingCount; i++) {
                         const EdgeCrossing& crossing = crossings[i];
@@ -1836,13 +1840,34 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         red += qRed(crossing.color);
                         green += qGreen(crossing.color);
                         blue += qBlue(crossing.color);
+                        if (crossing.material != 0) {
+                            for (int j = 0; j < MAX_MATERIALS_PER_VERTEX; j++) {
+                                if (materials[j] == crossing.material) {
+                                    materialWeights[j] += 1.0f;
+                                    totalWeight += 1.0f;
+                                    break;
+                                    
+                                } else if (materials[j] == 0.0f) {
+                                    materials[j] = crossing.material;
+                                    materialWeights[j] = 1.0f;
+                                    totalWeight += 1.0f;
+                                    break;
+                                }
+                            }
+                        }
                     }
                     normal = glm::normalize(normal);
                     center /= crossingCount;
+                    if (totalWeight > 0.0f) {
+                        materialWeights *= (EIGHT_BIT_MAXIMUM / totalWeight);
+                    }
                     VoxelPoint point = { info.minimum + (glm::vec3(clampedX, clampedY, clampedZ) +
                         center * EIGHT_BIT_MAXIMUM_RECIPROCAL) * scale,
                         { (quint8)(red / crossingCount), (quint8)(green / crossingCount), (quint8)(blue / crossingCount) },
-                        { (char)(normal.x * 127.0f), (char)(normal.y * 127.0f), (char)(normal.z * 127.0f) } };
+                        { (char)(normal.x * 127.0f), (char)(normal.y * 127.0f), (char)(normal.z * 127.0f) },
+                        { materials[0], materials[1], materials[2], materials[3] },
+                        { (quint8)materialWeights[0], (quint8)materialWeights[1], (quint8)materialWeights[2],
+                            (quint8)materialWeights[3] } };
                     int index = vertices.size();
                     vertices.append(point);
                     
