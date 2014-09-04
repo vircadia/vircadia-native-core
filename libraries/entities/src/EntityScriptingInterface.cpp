@@ -1,6 +1,6 @@
 //
 //  EntityScriptingInterface.cpp
-//  libraries/models/src
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -19,7 +19,6 @@ EntityScriptingInterface::EntityScriptingInterface() :
 {
 }
 
-
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
         EntityItemID entityID, const EntityItemProperties& properties) {
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
@@ -35,7 +34,7 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
     // queue the packet
     queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
 
-    // If we have a local model tree set, then also update it.
+    // If we have a local entity tree set, then also update it.
     if (_entityTree) {
         _entityTree->lockForWrite();
         _entityTree->addEntity(id, properties);
@@ -93,20 +92,20 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
 EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const EntityItemProperties& properties) {
     EntityItemID actualID = entityID;
     
-    // if the model is unknown, attempt to look it up
+    // if the entity is unknown, attempt to look it up
     if (!entityID.isKnownID) {
         actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
     }
 
-    // if at this point, we know the id, send the update to the model server
+    // if at this point, we know the id, send the update to the entity server
     if (actualID.id != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID.id;
         entityID.isKnownID = true;
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
     
-    // If we have a local model tree set, then also update it. We can do this even if we don't know
-    // the actual id, because we can edit out local models just with creatorTokenID
+    // If we have a local entity tree set, then also update it. We can do this even if we don't know
+    // the actual id, because we can edit out local entities just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
         _entityTree->updateEntity(entityID, properties);
@@ -119,19 +118,19 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
 
     EntityItemID actualID = entityID;
     
-    // if the model is unknown, attempt to look it up
+    // if the entity is unknown, attempt to look it up
     if (!entityID.isKnownID) {
         actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
     }
 
-    // if at this point, we know the id, send the update to the model server
+    // if at this point, we know the id, send the update to the entity server
     if (actualID.id != UNKNOWN_ENTITY_ID) {
         entityID.id = actualID.id;
         entityID.isKnownID = true;
         getEntityPacketSender()->queueEraseEntityMessage(entityID);
     }
 
-    // If we have a local model tree set, then also update it.
+    // If we have a local entity tree set, then also update it.
     if (_entityTree) {
         _entityTree->lockForWrite();
         _entityTree->deleteEntity(entityID);
@@ -167,12 +166,12 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
     QVector<EntityItemID> result;
     if (_entityTree) {
         _entityTree->lockForRead();
-        QVector<const EntityItem*> models;
-        _entityTree->findEntities(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, models);
+        QVector<const EntityItem*> entities;
+        _entityTree->findEntities(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, entities);
         _entityTree->unlock();
 
-        foreach (const EntityItem* model, models) {
-            EntityItemID thisEntityItemID(model->getID(), UNKNOWN_ENTITY_TOKEN, true);
+        foreach (const EntityItem* entity, entities) {
+            EntityItemID thisEntityItemID(entity->getID(), UNKNOWN_ENTITY_TOKEN, true);
             result << thisEntityItemID;
         }
     }
@@ -219,11 +218,11 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
     QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
     obj.setProperty("accurate", value.accurate);
-    QScriptValue modelItemValue = EntityItemIDtoScriptValue(engine, value.entityID);
-    obj.setProperty("entityID", modelItemValue);
+    QScriptValue entityItemValue = EntityItemIDtoScriptValue(engine, value.entityID);
+    obj.setProperty("entityID", entityItemValue);
 
-    QScriptValue modelPropertiesValue = EntityItemPropertiesToScriptValue(engine, value.properties);
-    obj.setProperty("properties", modelPropertiesValue);
+    QScriptValue propertiesValue = EntityItemPropertiesToScriptValue(engine, value.properties);
+    obj.setProperty("properties", propertiesValue);
 
     obj.setProperty("distance", value.distance);
 
@@ -262,13 +261,13 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
 void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, RayToEntityIntersectionResult& value) {
     value.intersects = object.property("intersects").toVariant().toBool();
     value.accurate = object.property("accurate").toVariant().toBool();
-    QScriptValue modelIDValue = object.property("entityID");
-    if (modelIDValue.isValid()) {
-        EntityItemIDfromScriptValue(modelIDValue, value.entityID);
+    QScriptValue entityIDValue = object.property("entityID");
+    if (entityIDValue.isValid()) {
+        EntityItemIDfromScriptValue(entityIDValue, value.entityID);
     }
-    QScriptValue modelPropertiesValue = object.property("properties");
-    if (modelPropertiesValue.isValid()) {
-        EntityItemPropertiesFromScriptValue(modelPropertiesValue, value.properties);
+    QScriptValue entityPropertiesValue = object.property("properties");
+    if (entityPropertiesValue.isValid()) {
+        EntityItemPropertiesFromScriptValue(entityPropertiesValue, value.properties);
     }
     value.distance = object.property("distance").toVariant().toFloat();
 
