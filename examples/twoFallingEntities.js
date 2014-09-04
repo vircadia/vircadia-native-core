@@ -1,5 +1,5 @@
 //
-//  Testing.js 
+//  twoFallingEntities.js 
 //  
 //  Creates a red 0.2 meter diameter ball right in front of your avatar that lives for 60 seconds
 // 

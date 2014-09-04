@@ -3,9 +3,10 @@
 // 
 //
 // Created by Adrian McCarlie on August 2, 2014
+// Modified by Brad Hefta-Gaub to use Entities on Sept. 3, 2014
 // Copyright 2014 High Fidelity, Inc.
 //
-// This sample script creates a swarm of  butterfly Entities that fly around the avatar.
+// This sample script creates a swarm of  butterfly entities that fly around the avatar.
 //
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,7 +18,6 @@ function getRandomFloat(min, max) {
 }
 
 // Multiply vector by scalar
-
 function vScalarMult(v, s) {
     var rval = { x: v.x * s, y: v.y * s, z: v.z * s };
     return rval;
@@ -56,7 +56,7 @@ var	roll = 0.0;	//experimental
 var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll);//experimental
 	
 // This is our butterfly object
-function defineButterfly (entityID,  targetPosition ) {
+function defineButterfly(entityID, targetPosition) {
     this.entityID = entityID;
     this.previousFlapOffset = 0;
     this.targetPosition = targetPosition;
@@ -66,7 +66,7 @@ function defineButterfly (entityID,  targetPosition ) {
 // Array of butterflies
 var butterflies = [];
 var numButterflies = 20;
-function addButterfly( ){
+function addButterfly() {
     // Decide the size of butterfly 
     var color = { red: 100, green: 100, blue: 100 };
     var size = 0;
@@ -102,29 +102,22 @@ function addButterfly( ){
 		//animationURL: "http://business.ozblog.me/objects/butterfly/newButterfly6.fbx",
 		//animationIsPlaying: true,
 		modelURL: "http://business.ozblog.me/objects/butterfly/newButterfly6.fbx"
-
     };
     properties.position.z = properties.position.z+1;
     butterflies.push(new defineButterfly(Entities.addEntity(properties), properties.position));
-
 }
-
-
 
 // Generate the butterflies
 for (var i = 0; i < numButterflies; i++) {
     addButterfly();
-	
 }
 
 // Main update function
 function updateButterflies(deltaTime) {
-
     // Check to see if we've been running long enough that our butterflies are dead
     var nowTimeInSeconds = new Date().getTime() / 1000;
     if ((nowTimeInSeconds - startTimeInSeconds) >= lifeTime) {
-
-      //  print("our butterflies are dying, stop our script");
+        //  print("our butterflies are dying, stop our script");
         Script.stop();
         return;
     }
@@ -177,7 +170,6 @@ function updateButterflies(deltaTime) {
             if (butterflies[i].moving == false) {
                 if (Math.random() < CHANCE_OF_MOVING) {
                     var targetPosition = Vec3.sum(randVector(-range, range), myPosition);
-
                     if (targetPosition.x < 0) {
                         targetPosition.x = 0;
                     }
@@ -196,13 +188,10 @@ function updateButterflies(deltaTime) {
                     if (targetPosition.z > TREE_SCALE) {
                         targetPosition.z = TREE_SCALE;
                     }
-                    
                     butterflies[i].targetPosition = targetPosition;
- 
                     butterflies[i].moving = true;
                 }
             }
-
 			  
             // If we are moving, move towards the target
             if (butterflies[i].moving) {	
@@ -216,28 +205,22 @@ function updateButterflies(deltaTime) {
 				properties.velocity.y = holding ;
 			
 			
-          // 	If we are near the target, we should get a new target
+                // If we are near the target, we should get a new target
                 if (Vec3.length(Vec3.subtract(properties.position, butterflies[i].targetPosition)) < (properties.radius / 1.0)) {
                     butterflies[i].moving = false;
                 }
-			
 				
 				var yawRads = Math.atan2(properties.velocity.z, properties.velocity.x); 
 				yawRads = yawRads + Math.PI / 2.0;
 				var	newOrientation = Quat.fromPitchYawRollRadians(0.0, yawRads, 0.0);
 				properties.rotation = newOrientation;
-						
-				
 			}
-				          
-        
+
             // Use a cosine wave offset to make it look like its flapping.
             var offset = Math.cos(nowTimeInSeconds * BUTTERFLY_FLAP_SPEED) * (properties.radius);
             properties.position.y = properties.position.y + (offset - butterflies[i].previousFlapOffset);
             // Change position relative to previous offset.
             butterflies[i].previousFlapOffset = offset;
-						
-
             Entities.editEntity(entityID, properties);
         }
     }
