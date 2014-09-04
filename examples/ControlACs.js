@@ -77,7 +77,7 @@ function setupToolBars() {
                                            }, true, true));
         
 		playIcon[i] = toolBars[i].addTool({
-                                          imageURL: TOOL_ICON_URL + "play-pause.svg",
+                                          imageURL: TOOL_ICON_URL + "play.svg",
                                           subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
                                           width: Tool.IMAGE_WIDTH,
                                           height: Tool.IMAGE_HEIGHT,

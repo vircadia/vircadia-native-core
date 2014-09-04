@@ -59,16 +59,15 @@ function setupToolBar() {
                                  visible: true
                                  }, true, !MyAvatar.isRecording());
     
+    var playLoopWidthFactor = 1.65;
     playIcon = toolBar.addTool({
                                imageURL: TOOL_ICON_URL + "play-pause.svg",
-                               subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-                               width: Tool.IMAGE_WIDTH,
+                               width: playLoopWidthFactor * Tool.IMAGE_WIDTH,
                                height: Tool.IMAGE_HEIGHT,
                                alpha: (MyAvatar.isRecording() || MyAvatar.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
                                visible: true
                                }, false);
     
-    var playLoopWidthFactor = 1.65;
     playLoopIcon = toolBar.addTool({
                                    imageURL: TOOL_ICON_URL + "play-and-loop.svg",
                                    subImage: { x: 0, y: 0, width: playLoopWidthFactor * Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
