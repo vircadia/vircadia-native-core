@@ -28,6 +28,7 @@ class QScrollArea;
 class QSpinBox;
 
 class MetavoxelTool;
+class SharedObjectEditor;
 class Vec3Editor;
 
 /// Allows editing metavoxels.
@@ -311,6 +312,8 @@ public:
     
     HeightfieldBrushTool(MetavoxelEditor* editor, const QString& name);
     
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+     
     virtual void render();
 
     virtual bool eventFilter(QObject* watched, QEvent* event);
@@ -357,6 +360,28 @@ protected:
 private:
     
     QColorEditor* _color;
+};
+
+/// Allows texturing parts of the heightfield.
+class HeightfieldTextureBrushTool : public HeightfieldBrushTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldTextureBrushTool(MetavoxelEditor* editor);
+
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+
+private slots:
+    
+    void updateTexture();
+    
+private:
+    
+    SharedObjectEditor* _textureEditor;
+    QSharedPointer<NetworkTexture> _texture;
 };
 
 #endif // hifi_MetavoxelEditor_h

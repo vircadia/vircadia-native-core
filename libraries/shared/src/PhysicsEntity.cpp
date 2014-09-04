@@ -12,8 +12,10 @@
 #include "PhysicsEntity.h"
 
 #include "PhysicsSimulation.h"
+#include "PlaneShape.h"
 #include "Shape.h"
 #include "ShapeCollider.h"
+#include "SphereShape.h"
 
 PhysicsEntity::PhysicsEntity() : 
     _translation(0.0f), 

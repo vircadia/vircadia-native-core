@@ -85,9 +85,13 @@ void LocationManager::goTo(QString destination) {
     if (!goToDestination(destination)) {
         destination = QString(QUrl::toPercentEncoding(destination));
         UserActivityLogger::getInstance().wentTo(OTHER_DESTINATION_TYPE, destination);
+        
         JSONCallbackParameters callbackParams;
         callbackParams.jsonCallbackReceiver = this;
         callbackParams.jsonCallbackMethod = "goToAddressFromResponse";
+        callbackParams.errorCallbackReceiver = this;
+        callbackParams.errorCallbackMethod = "handleAddressLookupError";
+        
         AccountManager::getInstance().authenticatedRequest(GET_ADDRESSES.arg(destination),
                                                            QNetworkAccessManager::GetOperation,
                                                            callbackParams);
@@ -96,21 +100,17 @@ void LocationManager::goTo(QString destination) {
 
 void LocationManager::goToAddressFromResponse(const QJsonObject& responseData) {
     QJsonValue status = responseData["status"];
-    qDebug() << responseData;
-    if (!status.isUndefined() && status.toString() == "success") {
-        const QJsonObject& data = responseData["data"].toObject();
-        const QJsonValue& userObject = data["user"];
-        const QJsonValue& placeObject = data["place"];
-
-        if (!placeObject.isUndefined() && !userObject.isUndefined()) {
-            emit multipleDestinationsFound(userObject.toObject(), placeObject.toObject());
-        } else if (placeObject.isUndefined()) {
-            Application::getInstance()->getAvatar()->goToLocationFromAddress(userObject.toObject()["address"].toObject());
-        } else {
-            Application::getInstance()->getAvatar()->goToLocationFromAddress(placeObject.toObject()["address"].toObject());
-        }
+    
+    const QJsonObject& data = responseData["data"].toObject();
+    const QJsonValue& userObject = data["user"];
+    const QJsonValue& placeObject = data["place"];
+    
+    if (!placeObject.isUndefined() && !userObject.isUndefined()) {
+        emit multipleDestinationsFound(userObject.toObject(), placeObject.toObject());
+    } else if (placeObject.isUndefined()) {
+        Application::getInstance()->getAvatar()->goToLocationFromAddress(userObject.toObject()["address"].toObject());
     } else {
-        QMessageBox::warning(Application::getInstance()->getWindow(), "", "That user or location could not be found.");
+        Application::getInstance()->getAvatar()->goToLocationFromAddress(placeObject.toObject()["address"].toObject());
     }
 }
 
@@ -118,6 +118,8 @@ void LocationManager::goToUser(QString userName) {
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
     callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "handleAddressLookupError";
 
     userName = QString(QUrl::toPercentEncoding(userName));
     AccountManager::getInstance().authenticatedRequest(GET_USER_ADDRESS.arg(userName),
@@ -129,6 +131,8 @@ void LocationManager::goToPlace(QString placeName) {
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
     callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "handleAddressLookupError";
 
     placeName = QString(QUrl::toPercentEncoding(placeName));
     AccountManager::getInstance().authenticatedRequest(GET_PLACE_ADDRESS.arg(placeName),
@@ -210,6 +214,19 @@ bool LocationManager::goToDestination(QString destination) {
 
     // no coordinates were parsed
     return false;
+}
+
+void LocationManager::handleAddressLookupError(QNetworkReply::NetworkError networkError,
+                                               const QString& errorString) {
+    QString messageBoxString;
+    
+    if (networkError == QNetworkReply::ContentNotFoundError) {
+        messageBoxString = "That address could not be found.";
+    } else {
+        messageBoxString = errorString;
+    }
+    
+    QMessageBox::warning(Application::getInstance()->getWindow(), "", messageBoxString);
 }
 
 void LocationManager::replaceLastOccurrence(const QChar search, const QChar replace, QString& string) {

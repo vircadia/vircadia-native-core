@@ -854,7 +854,8 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     const int MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
     const int MIN_RESONABLE_FLIGHT_TIME = 0;
     if (flightTime > MAX_RESONABLE_FLIGHT_TIME || flightTime < MIN_RESONABLE_FLIGHT_TIME) {
-        qDebug() << "ignoring unreasonable packet... flightTime:" << flightTime;
+        qDebug() << "ignoring unreasonable packet... flightTime:" << flightTime
+                    << " nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";;
         return; // ignore any packets that are unreasonable
     }
     

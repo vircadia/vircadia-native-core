@@ -57,8 +57,6 @@ void AudioInjector::injectAudio() {
             
         }
         
-        NodeList* nodeList = NodeList::getInstance();
-        
         // setup the packet for injected audio
         QByteArray injectAudioPacket = byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
         QDataStream packetStream(&injectAudioPacket, QIODevice::Append);
@@ -122,6 +120,7 @@ void AudioInjector::injectAudio() {
             memcpy(injectAudioPacket.data() + numPreAudioDataBytes, soundByteArray.data() + currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
+            NodeList* nodeList = NodeList::getInstance();
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
             
             // send off this audio packet

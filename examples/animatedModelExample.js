@@ -21,6 +21,7 @@ var roll = 0.0;
 var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll)
 
 var originalProperties = {
+    type: "Model",
     position: { x: MyAvatar.position.x,
                 y: MyAvatar.position.y,
                 z: MyAvatar.position.z },
@@ -32,13 +33,13 @@ var originalProperties = {
              blue: 0 },
 
     modelURL: "http://www.fungibleinsight.com/faces/beta.fst",
-    modelRotation: rotation,
+    rotation: rotation,
     animationURL: "http://www.fungibleinsight.com/faces/gangnam_style_2.fbx",
     animationIsPlaying: true,
 };
 
-var modelID = Models.addModel(originalProperties);
-print("Models.addModel()... modelID.creatorTokenID = " + modelID.creatorTokenID);
+var modelID = Entities.addEntity(originalProperties);
+print("Entities.addEntity()... modelID.creatorTokenID = " + modelID.creatorTokenID);
 
 var isPlaying = true;
 var playPauseEveryWhile = 360;
@@ -48,6 +49,7 @@ var resetFrameEveryWhile = 600;
 
 function moveModel(deltaTime) {
     var somethingChanged = false;
+    print("count= " + count);
     if (count % playPauseEveryWhile == 0) {
         isPlaying = !isPlaying;
         print("isPlaying=" + isPlaying);
@@ -56,11 +58,11 @@ function moveModel(deltaTime) {
 
     if (count % adjustFPSEveryWhile == 0) {
         if (animationFPS == 30) {
-            animationFPS = 30;
-        } else if (animationFPS == 10) {
             animationFPS = 10;
-        } else if (animationFPS == 60) {
+        } else if (animationFPS == 10) {
             animationFPS = 60;
+        } else if (animationFPS == 60) {
+            animationFPS = 30;
         }
         print("animationFPS=" + animationFPS);
         isPlaying = true;
@@ -78,7 +80,7 @@ function moveModel(deltaTime) {
         // delete it...
         if (count == moveUntil) {
             print("calling Models.deleteModel()");
-            Models.deleteModel(modelID);
+            Entities.deleteEntity(modelID);
         }
 
         // stop it...
@@ -107,7 +109,7 @@ function moveModel(deltaTime) {
             resetFrame = false;
         }
 
-        Models.editModel(modelID, newProperties);
+        Entities.editEntity(modelID, newProperties);
     }
 }
 

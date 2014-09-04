@@ -108,7 +108,8 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
         "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
         "         othersReplyTime: " << othersReplyTime << "\n" <<
         "    othersExprectedReply: " << othersExprectedReply << "\n" <<
-        "               clockSkew: " << clockSkew;
+        "               clockSkew: " << clockSkew  << "\n" <<
+        "       average clockSkew: " << sendingNode->getClockSkewUsec();
     }
 }
 

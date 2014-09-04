@@ -6,7 +6,7 @@ include_glm()
 
 # link in the shared libraries
 link_hifi_libraries( 
-  audio avatars octree voxels fbx particles models metavoxels 
+  audio avatars octree voxels fbx particles entities metavoxels 
   networking animation shared script-engine embedded-webserver
 )
 

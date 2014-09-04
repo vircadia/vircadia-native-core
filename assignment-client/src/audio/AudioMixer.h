@@ -21,7 +21,8 @@ class AvatarAudioStream;
 
 const int SAMPLE_PHASE_DELAY_AT_90 = 20;
 
-const quint64 TOO_LONG_SINCE_LAST_SEND_AUDIO_STREAM_STATS = 1 * USECS_PER_SECOND;
+const int READ_DATAGRAMS_STATS_WINDOW_SECONDS = 30;
+
 
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
 class AudioMixer : public ThreadedAssignment {
@@ -38,21 +39,26 @@ public slots:
     
     void sendStatsPacket();
 
-    static bool getUseDynamicJitterBuffers() { return _useDynamicJitterBuffers; }
-    static int getStaticDesiredJitterBufferFrames() { return _staticDesiredJitterBufferFrames; }
-    static int getMaxFramesOverDesired() { return _maxFramesOverDesired; }
-
+    static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }
+    
 private:
     /// adds one stream to the mix for a listening node
-    void addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
+    int addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
                                                   AvatarAudioStream* listeningNodeStream);
     
     /// prepares and sends a mix to one Node
-    void prepareMixForListeningNode(Node* node);
+    int prepareMixForListeningNode(Node* node);
     
     // client samples capacity is larger than what will be sent to optimize mixing
     // we are MMX adding 4 samples at a time so we need client samples to have an extra 4
     int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
+
+    void perSecondActions();
+
+    QString getReadPendingDatagramsCallsPerSecondsStatsString() const;
+    QString getReadPendingDatagramsPacketsPerCallStatsString() const;
+    QString getReadPendingDatagramsTimeStatsString() const;
+    QString getReadPendingDatagramsHashMatchTimeStatsString() const;
     
     float _trailingSleepRatio;
     float _minAudibilityThreshold;
@@ -63,13 +69,21 @@ private:
     AABox* _sourceUnattenuatedZone;
     AABox* _listenerUnattenuatedZone;
 
-    static bool _useDynamicJitterBuffers;
-    static int _staticDesiredJitterBufferFrames;
-    static int _maxFramesOverDesired;
+    static InboundAudioStream::Settings _streamSettings;
 
     static bool _printStreamStats;
+    static bool _enableFilter;
+    
+    quint64 _lastPerSecondCallbackTime;
 
-    quint64 _lastSendAudioStreamStatsTime;
+    bool _sendAudioStreamStats;
+
+    // stats
+    MovingMinMaxAvg<int> _datagramsReadPerCallStats;     // update with # of datagrams read for each readPendingDatagrams call
+    MovingMinMaxAvg<quint64> _timeSpentPerCallStats;     // update with usecs spent inside each readPendingDatagrams call
+    MovingMinMaxAvg<quint64> _timeSpentPerHashMatchCallStats; // update with usecs spent inside each packetVersionAndHashMatch call
+
+    MovingMinMaxAvg<int> _readPendingCallsPerSecondStats;     // update with # of readPendingDatagrams calls in the last second
 };
 
 #endif // hifi_AudioMixer_h

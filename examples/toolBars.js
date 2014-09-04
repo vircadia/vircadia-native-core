@@ -127,28 +127,58 @@ Tool.IMAGE_HEIGHT = 50;
 Tool.IMAGE_WIDTH = 50;
 
 ToolBar = function(x, y, direction) {
-    this.tools = [];
+    this.tools = new Array();
     this.x = x;
     this.y = y;
     this.width = 0;
     this.height = 0;
-    
+    this.back = this.back = Overlays.addOverlay("text", {
+                    backgroundColor: { red: 255, green: 255, blue: 255 },
+                    x: this.x,
+                    y: this.y,
+                    width: this.width,
+                    height: this.height,
+                    alpha: 1.0,
+                    visible: false
+                });
     
     this.addTool = function(properties, selectable, selected) {
         if (direction == ToolBar.HORIZONTAL) {
             properties.x = this.x + this.width;
             properties.y = this.y;
             this.width += properties.width + ToolBar.SPACING;
-            this.height += Math.max(properties.height, this.height);
+            this.height = Math.max(properties.height, this.height);
         } else {
             properties.x = this.x;
             properties.y = this.y + this.height;
             this.width = Math.max(properties.width, this.width);
             this.height += properties.height + ToolBar.SPACING;
         }
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, {
+                width: this.width + 2 * ToolBar.SPACING,
+                height: this.height + 2 * ToolBar.SPACING
+            });
+        }
         
-        this.tools[this.tools.length] = new Tool(properties, selectable, selected);
+        this.tools.push(new Tool(properties, selectable, selected));
         return ((this.tools.length) - 1);
+    }
+
+    this.removeLastTool = function() {
+        this.tools.pop().cleanup();
+
+        if (direction == ToolBar.HORIZONTAL) {
+            this.width -= Tool.IMAGE_WIDTH + ToolBar.SPACING;
+        } else {
+            this.height -= Tool.IMAGE_HEIGHT + ToolBar.SPACING;
+        }
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, {
+                width: this.width + 2 * ToolBar.SPACING,
+                height: this.height + 2 * ToolBar.SPACING
+            });
+        }
     }
     
     this.move = function(x, y) {
@@ -159,17 +189,47 @@ ToolBar = function(x, y, direction) {
         for(var tool in this.tools) {
             this.tools[tool].move(this.tools[tool].x() + dx, this.tools[tool].y() + dy);
         }
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, {
+                x: x - ToolBar.SPACING,
+                y: y - ToolBar.SPACING
+            });
+        }
     }
     
-    this.setAlpha = function(alpha) {
-        for(var tool in this.tools) {
+    this.setAlpha = function(alpha, tool) {
+        if(typeof(tool) === 'undefined') {
+            for(var tool in this.tools) {
+                this.tools[tool].setAlpha(alpha);
+            }
+            if (this.back != null) {
+                Overlays.editOverlay(this.back, { alpha: alpha});
+            }
+        } else {
             this.tools[tool].setAlpha(alpha);
+        }
+    }
+
+    this.setBack = function(color, alpha) {
+        if (color == null) {
+            Overlays.editOverlay(this.back, {
+                visible: false 
+            });
+        } else {
+            Overlays.editOverlay(this.back, {
+                visible: true,
+                backgroundColor: color,
+                alpha: alpha
+            })
         }
     }
     
     this.show = function(doShow) {
         for(var tool in this.tools) {
             this.tools[tool].show(doShow);
+        }
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, { visible: doShow});
         }
     }
     
@@ -200,6 +260,11 @@ ToolBar = function(x, y, direction) {
             delete this.tools[tool];
         }
         
+        if (this.back != null) {
+            Overlays.deleteOverlay(this.back);
+            this.back = null;
+        }
+
         this.tools = [];
         this.x = x;
         this.y = y;

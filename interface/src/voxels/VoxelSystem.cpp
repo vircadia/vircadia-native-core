@@ -86,7 +86,6 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
 
     VoxelTreeElement::addDeleteHook(this);
     VoxelTreeElement::addUpdateHook(this);
-    _abandonedVBOSlots = 0;
     _falseColorizeBySource = false;
     _dataSourceUUID = QUuid();
     _voxelServerCount = 0;
@@ -229,7 +228,6 @@ void VoxelSystem::clearFreeBufferIndexes() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "clearFreeBufferIndexes()");
     _voxelsInWriteArrays = 0; // reset our VBO
-    _abandonedVBOSlots = 0;
 
     // clear out freeIndexes
     {
@@ -668,10 +666,6 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         _voxelsUpdated = newTreeToArrays(_tree->getRoot());
         _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
 
-        if (_writeRenderFullVBO) {
-            _abandonedVBOSlots = 0; // reset the count of our abandoned slots, why is this here and not earlier????
-        }
-
         _writeRenderFullVBO = false;
     } else {
         _voxelsUpdated = 0;
@@ -792,7 +786,6 @@ bool VoxelSystem::recreateVoxelGeometryInViewOperation(OctreeElement* element, v
 }
 
 
-// TODO: does cleanupRemovedVoxels() ever get called?
 // TODO: other than cleanupRemovedVoxels() is there anyplace we attempt to detect too many abandoned slots???
 void VoxelSystem::recreateVoxelGeometryInView() {
 
@@ -858,37 +851,6 @@ void VoxelSystem::checkForCulling() {
     if (forceFullFrustum) {
         quint64 endViewCulling = usecTimestampNow();
         _lastViewCullingElapsed = (endViewCulling - start) / 1000;
-    }
-
-    // Once we call cleanupRemovedVoxels() we do need to rebuild our VBOs (if anything was actually removed). So,
-    // we should consider putting this someplace else... as this might be able to occur less frequently, and save us on
-    // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
-    cleanupRemovedVoxels();
-}
-
-void VoxelSystem::cleanupRemovedVoxels() {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "cleanupRemovedVoxels()");
-    // This handles cleanup of voxels that were culled as part of our regular out of view culling operation
-    if (!_removedVoxels.isEmpty()) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
-            qDebug() << "cleanupRemovedVoxels().. _removedVoxels=" << _removedVoxels.count();
-        }
-        while (!_removedVoxels.isEmpty()) {
-            delete _removedVoxels.extract();
-        }
-        _writeRenderFullVBO = true; // if we remove voxels, we must update our full VBOs
-    }
-
-    // we also might have VBO slots that have been abandoned, if too many of our VBO slots
-    // are abandonded we want to rerender our full VBOs
-    const float TOO_MANY_ABANDONED_RATIO = 0.5f;
-    if (!_usePrimitiveRenderer && !_writeRenderFullVBO && 
-        (_abandonedVBOSlots > (_voxelsInWriteArrays * TOO_MANY_ABANDONED_RATIO))) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
-            qDebug() << "cleanupRemovedVoxels().. _abandonedVBOSlots ["
-                << _abandonedVBOSlots << "] > TOO_MANY_ABANDONED_RATIO";
-        }
-        _writeRenderFullVBO = true;
     }
 }
 
@@ -1212,9 +1174,6 @@ void VoxelSystem::init() {
     // VBO for the verticesArray
     _initialMemoryUsageGPU = getFreeMemoryGPU();
     initVoxelMemory();
-
-    // our own _removedVoxels doesn't need to be notified of voxel deletes
-    VoxelTreeElement::removeDeleteHook(&_removedVoxels);
 
 }
 

@@ -11,35 +11,53 @@
 
 #include "MixedProcessedAudioStream.h"
 
-MixedProcessedAudioStream ::MixedProcessedAudioStream (int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, int maxFramesOverDesired, bool useStDevForJitterCalc)
-    : InboundAudioStream(numFrameSamples, numFramesCapacity, dynamicJitterBuffers, staticDesiredJitterBufferFrames, maxFramesOverDesired, useStDevForJitterCalc)
+static const int STEREO_FACTOR = 2;
+
+MixedProcessedAudioStream::MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings)
+    : InboundAudioStream(numFrameSamples, numFramesCapacity, settings)
 {
 }
 
 void MixedProcessedAudioStream::outputFormatChanged(int outputFormatChannelCountTimesSampleRate) {
     _outputFormatChannelsTimesSampleRate = outputFormatChannelCountTimesSampleRate;
-    int deviceOutputFrameSize = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormatChannelsTimesSampleRate / SAMPLE_RATE;
+    int deviceOutputFrameSize = networkToDeviceSamples(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
     _ringBuffer.resizeForFrameSize(deviceOutputFrameSize);
 }
 
-int MixedProcessedAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
-    // mixed audio packets do not have any info between the seq num and the audio data.
-    int numNetworkSamples = packetAfterSeqNum.size() / sizeof(int16_t);
+int MixedProcessedAudioStream::writeDroppableSilentSamples(int silentSamples) {
+    
+    int deviceSilentSamplesWritten = InboundAudioStream::writeDroppableSilentSamples(networkToDeviceSamples(silentSamples));
+    
+    emit addedSilence(deviceToNetworkSamples(deviceSilentSamplesWritten) / STEREO_FACTOR);
 
-    // since numAudioSamples is used to know how many samples to add for each dropped packet before this one,
-    // we want to set it to the number of device audio samples since this stream contains device audio samples, not network samples.
-    const int STEREO_DIVIDER = 2;
-    numAudioSamples = numNetworkSamples * _outputFormatChannelsTimesSampleRate / (STEREO_DIVIDER * SAMPLE_RATE);
-
-    return 0;
+    return deviceSilentSamplesWritten;
 }
 
-int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
+int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int samples) {
+
+    int deviceSamplesWritten = InboundAudioStream::writeLastFrameRepeatedWithFade(networkToDeviceSamples(samples));
+
+    emit addedLastFrameRepeatedWithFade(deviceToNetworkSamples(deviceSamplesWritten) / STEREO_FACTOR);
+    
+    return deviceSamplesWritten;
+}
+
+int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples) {
+
+    emit addedStereoSamples(packetAfterStreamProperties);
 
     QByteArray outputBuffer;
     emit processSamples(packetAfterStreamProperties, outputBuffer);
-    
-    _ringBuffer.writeData(outputBuffer.data(), outputBuffer.size());
 
+    _ringBuffer.writeData(outputBuffer.data(), outputBuffer.size());
+    
     return packetAfterStreamProperties.size();
+}
+
+int MixedProcessedAudioStream::networkToDeviceSamples(int networkSamples) {
+    return (quint64)networkSamples * (quint64)_outputFormatChannelsTimesSampleRate / (quint64)(STEREO_FACTOR * SAMPLE_RATE);
+}
+
+int MixedProcessedAudioStream::deviceToNetworkSamples(int deviceSamples) {
+    return (quint64)deviceSamples * (quint64)(STEREO_FACTOR * SAMPLE_RATE) / (quint64)_outputFormatChannelsTimesSampleRate;
 }
