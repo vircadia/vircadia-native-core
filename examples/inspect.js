@@ -205,7 +205,7 @@ function mousePressEvent(event) {
         // Compute trajectories related values
         var pickRay = Camera.computePickRay(mouseLastX, mouseLastY);
         var voxelIntersection = Voxels.findRayIntersection(pickRay);
-        var modelIntersection = Models.findRayIntersection(pickRay);
+        var modelIntersection = Entities.findRayIntersection(pickRay);
         
         position = Camera.getPosition();
         
@@ -218,7 +218,7 @@ function mousePressEvent(event) {
         
         if (modelIntersection.intersects && modelIntersection.accurate) {
             distance = modelIntersection.distance;
-            center = modelIntersection.modelProperties.position;
+            center = modelIntersection.properties.position;
             string = "Inspecting model";
         }
         
