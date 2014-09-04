@@ -1488,10 +1488,10 @@ static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-        // compute the bounding cube around avatar
-        float radius = 2.0f * getBoundingRadius();
-        glm::vec3 corner = getPosition() - glm::vec3(radius);
-        AACube boundingCube(corner, 2.0f * radius);
+        // We use a multiple of the avatar's boundingRadius as the size of the cube of interest.
+        float cubeScale = 4.0f * getBoundingRadius();
+        glm::vec3 corner = getPosition() - glm::vec3(0.5f * cubeScale);
+        AACube boundingCube(corner, cubeScale);
 
         // query the VoxelTree for cubes that touch avatar's boundingCube
         CubeList cubes;
