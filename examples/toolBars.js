@@ -61,11 +61,10 @@ Overlay2D = function(properties, overlay) { // overlay is an optionnal variable
     }
     
     this.clicked = function(clickedOverlay) {
-        return (overlay == clickedOverlay ? true : false);
+        return overlay === clickedOverlay;
     }
     
     this.cleanup = function() {
-        print("Cleanup");
         Overlays.deleteOverlay(overlay);
     }
 }
@@ -112,9 +111,9 @@ Tool = function(properties, selectable, selected) { // selectable and selected a
     this.select(selected);
     
     this.baseClicked = this.clicked;
-    this.clicked = function(clickedOverlay) {
+    this.clicked = function(clickedOverlay, update) {
         if (this.baseClicked(clickedOverlay)) {
-            if (selectable) {
+            if (selectable && update) {
                 this.toggle();
             }
             return true;
@@ -141,6 +140,7 @@ ToolBar = function(x, y, direction) {
                     alpha: 1.0,
                     visible: false
                 });
+    this.spacing = [];
     
     this.addTool = function(properties, selectable, selected) {
         if (direction == ToolBar.HORIZONTAL) {
@@ -154,15 +154,55 @@ ToolBar = function(x, y, direction) {
             this.width = Math.max(properties.width, this.width);
             this.height += properties.height + ToolBar.SPACING;
         }
+        
         if (this.back != null) {
             Overlays.editOverlay(this.back, {
-                width: this.width + 2 * ToolBar.SPACING,
-                height: this.height + 2 * ToolBar.SPACING
+                                 width: this.width +
+                                 ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
+                                 height: this.height +
+                                 ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
             });
         }
         
         this.tools.push(new Tool(properties, selectable, selected));
         return ((this.tools.length) - 1);
+    }
+    
+    this.addSpacing = function(size) {
+        if (direction == ToolBar.HORIZONTAL) {
+            this.width += size;
+        } else {
+            this.height += size;
+        }
+        this.spacing[this.tools.length] = size;
+        
+        return (this.tools.length);
+    }
+    
+    this.changeSpacing = function(size, id) {
+        if (this.spacing[id] === null) {
+            this.spacing[id] = 0;
+        }
+        var diff = size - this.spacing[id];
+        this.spacing[id] = size;
+        
+        var dx = (direction == ToolBar.HORIZONTAL) ? diff : 0;
+        var dy = (direction == ToolBar.VERTICAL) ? diff : 0;
+        this.width += dx;
+        this.height += dy;
+        
+        for(i = id; i < this.tools.length; i++) {
+            this.tools[i].move(this.tools[i].x() + dx,
+                               this.tools[i].y() + dy);
+        }
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, {
+                                 width: this.width +
+                                 ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
+                                 height: this.height +
+                                 ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
+                                 });
+        }
     }
 
     this.removeLastTool = function() {
@@ -209,18 +249,22 @@ ToolBar = function(x, y, direction) {
             this.tools[tool].setAlpha(alpha);
         }
     }
-
+    
     this.setBack = function(color, alpha) {
         if (color == null) {
             Overlays.editOverlay(this.back, {
-                visible: false 
-            });
+                                 visible: false
+                                 });
         } else {
             Overlays.editOverlay(this.back, {
-                visible: true,
-                backgroundColor: color,
-                alpha: alpha
-            })
+                                 width: this.width +
+                                 ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
+                                 height: this.height +
+                                 ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
+                                 visible: true,
+                                 backgroundColor: color,
+                                 alpha: alpha
+                                 });
         }
     }
     
@@ -233,9 +277,13 @@ ToolBar = function(x, y, direction) {
         }
     }
     
-    this.clicked = function(clickedOverlay) {
+    this.clicked = function(clickedOverlay, update) {
+        if(typeof(update) === 'undefined') {
+            update = true;
+        }
+        
         for(var tool in this.tools) {
-            if (this.tools[tool].visible() && this.tools[tool].clicked(clickedOverlay)) {
+            if (this.tools[tool].visible() && this.tools[tool].clicked(clickedOverlay, update)) {
                 return parseInt(tool);
             }
         }
