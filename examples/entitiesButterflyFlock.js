@@ -48,12 +48,22 @@ var CHANCE_OF_MOVING = 0.9;
 var BUTTERFLY_GRAVITY = 0;//-0.06;
 var BUTTERFLY_FLAP_SPEED = 1.0;
 var BUTTERFLY_VELOCITY = 0.55;
-var myPosition = MyAvatar.position;
+var DISTANCE_IN_FRONT_OF_ME = 1.5;
+var DISTANCE_ABOVE_ME = 1.5;
+var flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
+                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
+                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
+        
 
-var	pitch = 0.0;//experimental
-var	yaw = 0.0;//experimental
-var	roll = 0.0;	//experimental
-var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll);//experimental
+// set these pitch, yaw, roll to the needed values to orient the model as you want it
+var	pitchInDegrees = 270.0;
+var	yawInDegrees = 0.0;
+var	rollInDegrees = 0.0;
+var	pitchInRadians = pitchInDegrees / 180.0 * Math.PI;
+var	yawInRadians = yawInDegrees / 180.0 * Math.PI;
+var	rollInRadians = rollInDegrees / 180.0 * Math.PI;
+
+var rotation = Quat.fromPitchYawRollDegrees(pitchInDegrees, yawInDegrees, rollInDegrees);//experimental
 	
 // This is our butterfly object
 function defineButterfly(entityID, targetPosition) {
@@ -84,24 +94,23 @@ function addButterfly() {
         size = 0.8;
     }
 	
-	myPosition = MyAvatar.position;	
-    //	if ( frame < numButterflies){
-    //	 myPosition = {x: myPosition.x, y: myPosition.y, z: myPosition.z };
-    //	}
+    flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
+                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
+                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
 	
     var properties = {
         type: "Model",
         lifetime: lifeTime,
-        position: Vec3.sum(randVector(-range, range), myPosition),
+        position: Vec3.sum(randVector(-range, range), flockPosition),
         velocity: { x: 0, y: 0.0, z: 0 },
         gravity: { x: 0, y: 1.0, z: 0 },
 		damping: 0.1,
         radius : size,
         color: color,
 		rotation: rotation,
-		//animationURL: "http://business.ozblog.me/objects/butterfly/newButterfly6.fbx",
-		//animationIsPlaying: true,
-		modelURL: "http://business.ozblog.me/objects/butterfly/newButterfly6.fbx"
+		animationURL: "http://business.ozblog.me/objects/butterfly/newButterfly2.fbx",
+		animationIsPlaying: true,
+		modelURL: "http://business.ozblog.me/objects/butterfly/newButterfly2.fbx"
     };
     properties.position.z = properties.position.z+1;
     butterflies.push(new defineButterfly(Entities.addEntity(properties), properties.position));
@@ -125,14 +134,16 @@ function updateButterflies(deltaTime) {
     frame++;
     // Only update every third frame
     if ((frame % 3) == 0) {
-        myPosition = MyAvatar.position;
+        flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
+                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
+                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
         
         // Update all the butterflies
         for (var i = 0; i < numButterflies; i++) {
             entityID = butterflies[i].entityID;
             var properties = Entities.getEntityProperties(entityID);
 			
-    		if (properties.position.y > myPosition.y + getRandomFloat(0.0,0.3)){ //0.3  //ceiling
+    		if (properties.position.y > flockPosition.y + getRandomFloat(0.0,0.3)){ //0.3  //ceiling
                 properties.gravity.y = - 3.0;
                 properties.damping.y = 1.0;
                 properties.velocity.y = 0;
@@ -152,7 +163,7 @@ function updateButterflies(deltaTime) {
                 properties.velocity.z = properties.velocity.z;
 			}
 			
-			if (properties.position.y < myPosition.y - getRandomFloat(0.0,0.3)) { //-0.3   // floor
+			if (properties.position.y < flockPosition.y - getRandomFloat(0.0,0.3)) { //-0.3   // floor
                 properties.velocity.y = 0.9;
                 properties.gravity.y = - 4.0;
                 properties.velocity.x = properties.velocity.x;
@@ -169,7 +180,7 @@ function updateButterflies(deltaTime) {
             // Begin movement by getting a target
             if (butterflies[i].moving == false) {
                 if (Math.random() < CHANCE_OF_MOVING) {
-                    var targetPosition = Vec3.sum(randVector(-range, range), myPosition);
+                    var targetPosition = Vec3.sum(randVector(-range, range), flockPosition);
                     if (targetPosition.x < 0) {
                         targetPosition.x = 0;
                     }
@@ -212,7 +223,7 @@ function updateButterflies(deltaTime) {
 				
 				var yawRads = Math.atan2(properties.velocity.z, properties.velocity.x); 
 				yawRads = yawRads + Math.PI / 2.0;
-				var	newOrientation = Quat.fromPitchYawRollRadians(0.0, yawRads, 0.0);
+				var	newOrientation = Quat.fromPitchYawRollRadians(pitchInRadians, yawRads, rollInRadians);
 				properties.rotation = newOrientation;
 			}
 
