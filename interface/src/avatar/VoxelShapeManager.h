@@ -12,6 +12,8 @@
 #ifndef hifi_VoxelShapeManager_h
 #define hifi_VoxelShapeManager_h
 
+#include <QHash>
+
 #include <AACube.h>
 #include <PhysicsEntity.h>
 #include <Octree.h>
@@ -22,10 +24,11 @@ class AACubeShape;
 
 class VoxelInfo{
 public:
-    bool operator<(const VoxelInfo& otherVoxel) const { return _cube < otherVoxel._cube; }
     AACube _cube;
     AACubeShape* _shape;
 };
+
+typedef QHash<quint64, VoxelInfo> VoxelPool;
 
 class VoxelShapeManager : public PhysicsEntity {
 public:
@@ -42,7 +45,7 @@ public:
 
 private:
     glm::vec3 _lastSimulationTranslation;
-    QVector<VoxelInfo> _voxels;
+    VoxelPool _voxels;
 };
 
 #endif // hifi_VoxelShapeManager_h

@@ -33,9 +33,9 @@ class Shape;
 
 #include <CollisionInfo.h>
 
+#include <QHash>
 #include <QObject>
 #include <QReadWriteLock>
-#include <QVector>
 
 /// derive from this class to use the Octree::recurseTreeWithOperator() method
 class RecurseOctreeOperator {
@@ -48,7 +48,7 @@ public:
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseOctreeOperation)(OctreeElement* element, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
-typedef QVector<AACube> CubeList;
+typedef QHash<quint64, AACube> CubeList;
 
 const bool NO_EXISTS_BITS         = false;
 const bool WANT_EXISTS_BITS       = true;
