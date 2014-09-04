@@ -759,7 +759,9 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     float capsuleRadius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
     _boundingShape.setRadius(capsuleRadius);
     _boundingShape.setHalfHeight(0.5f * diagonal.y - capsuleRadius);
-    _boundingShapeLocalOffset = 0.5f * (totalExtents.maximum + totalExtents.minimum);
+
+    glm::vec3 rootPosition = _jointStates[geometry.rootJointIndex].getPosition();
+    _boundingShapeLocalOffset = 0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition;
     _boundingRadius = 0.5f * glm::length(diagonal);
 }
 
