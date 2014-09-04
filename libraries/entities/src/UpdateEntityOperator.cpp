@@ -183,6 +183,7 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
                 if (_removeOld) {
                     qDebug() << "UNEXPECTED - UpdateEntityOperator - "
                                 "we thought we needed to removeOld, but the old entity is our best fit.";
+                    _removeOld = false;
                 }
 
                 // set the entity properties and mark our element as changed.
