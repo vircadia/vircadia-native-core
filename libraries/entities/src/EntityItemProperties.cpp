@@ -596,8 +596,14 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         packetData->endSubTree();
         const unsigned char* finalizedData = packetData->getFinalizedData();
         int  finalizedSize = packetData->getFinalizedSize();
-        memcpy(bufferOut, finalizedData, finalizedSize);
-        sizeOut = finalizedSize;
+        if (finalizedSize <= sizeIn) {
+            memcpy(bufferOut, finalizedData, finalizedSize);
+            sizeOut = finalizedSize;
+        } else {
+            qDebug() << "ERROR - encoded edit message doesn't fit in output buffer.";
+            sizeOut = 0;
+            success = false;
+        }
     } else {
         packetData->discardSubTree();
         sizeOut = 0;
@@ -747,8 +753,13 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
                                             unsigned char* outputBuffer, size_t maxLength, size_t& outputLength) {
 
     unsigned char* copyAt = outputBuffer;
-
     uint16_t numberOfIds = 1; // only one entity ID in this message
+
+    if (maxLength < sizeof(numberOfIds) + NUM_BYTES_RFC4122_UUID) {
+        qDebug() << "ERROR - encodeEraseEntityMessage() called with buffer that is too small!";
+        outputLength = 0;
+        return false;
+    }
     memcpy(copyAt, &numberOfIds, sizeof(numberOfIds));
     copyAt += sizeof(numberOfIds);
     outputLength = sizeof(numberOfIds);

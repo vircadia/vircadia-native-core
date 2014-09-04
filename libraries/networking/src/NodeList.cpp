@@ -343,6 +343,10 @@ void NodeList::sendDomainServerCheckIn() {
         PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
         
+        if (!_domainHandler.isConnected()) {
+            qDebug() << "Sending connect request to domain-server at" << _domainHandler.getHostname();
+        }
+        
         // construct the DS check in packet
         QUuid packetUUID = _sessionUUID;
         
