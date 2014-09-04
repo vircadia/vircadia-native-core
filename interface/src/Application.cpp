@@ -3856,14 +3856,17 @@ void Application::manageRunningScriptsWidgetVisibility(bool shown) {
 }
 
 void Application::toggleRunningScriptsWidget() {
-    if (_runningScriptsWidgetWasVisible) {
-        _runningScriptsWidget->hide();
-        _runningScriptsWidgetWasVisible = false;
+    if (_runningScriptsWidget->isVisible()) {
+        if (_runningScriptsWidget->hasFocus()) {
+            _runningScriptsWidget->hide();
+        } else {
+            _runningScriptsWidget->raise();
+            setActiveWindow(_runningScriptsWidget);
+            _runningScriptsWidget->setFocus();
+        }
     } else {
-        _runningScriptsWidget->setBoundary(QRect(_window->geometry().topLeft(),
-                                                 _window->size()));
         _runningScriptsWidget->show();
-        _runningScriptsWidgetWasVisible = true;
+        _runningScriptsWidget->setFocus();
     }
 }
 

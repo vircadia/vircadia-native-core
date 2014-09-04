@@ -175,7 +175,16 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
 
             // if we are the existing containing element, then we can just do the update of the entity properties
             if (entityTreeElement == _containingElement) {
-                assert(!_removeOld); // We shouldn't be in a remove old case and also be the new best fit
+            
+                // TODO: We shouldn't be in a remove old case and also be the new best fit. This indicates that
+                // we have some kind of a logic error in this operator. But, it can handle it properly by setting
+                // the new properties for the entity and moving on. Still going to output a warning that if we
+                // see consistently we will want to address this.
+                if (_removeOld) {
+                    qDebug() << "UNEXPECTED - UpdateEntityOperator - "
+                                "we thought we needed to removeOld, but the old entity is our best fit.";
+                    _removeOld = false;
+                }
 
                 // set the entity properties and mark our element as changed.
                 _existingEntity->setProperties(_properties);

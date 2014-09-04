@@ -22,9 +22,11 @@
 #include "Application.h"
 #include "Menu.h"
 #include "ScriptsModel.h"
+#include "UIUtil.h"
 
 RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
-    FramelessDialog(parent, 0, POSITION_LEFT),
+    QWidget(parent, Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint |
+            Qt::WindowCloseButtonHint),
     ui(new Ui::RunningScriptsWidget),
     _signalMapper(this),
     _proxyModel(this),
@@ -32,15 +34,6 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     ui->setupUi(this);
 
     setAttribute(Qt::WA_DeleteOnClose, false);
-
-    setAllowResize(false);
-
-    ui->hideWidgetButton->setIcon(QIcon(Application::resourcesPath() + "images/close.svg"));
-    ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
-    ui->stopAllButton->setIcon(QIcon(Application::resourcesPath() + "images/stop.svg"));
-    ui->loadScriptButton->setIcon(QIcon(Application::resourcesPath() + "images/plus-white.svg"));
-
-    ui->recentlyLoadedScriptsArea->hide();
 
     ui->filterLineEdit->installEventFilter(this);
 
@@ -55,12 +48,6 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     connect(ui->filterLineEdit, &QLineEdit::textChanged, this, &RunningScriptsWidget::updateFileFilter);
     connect(ui->scriptListView, &QListView::doubleClicked, this, &RunningScriptsWidget::loadScriptFromList);
 
-    _recentlyLoadedScriptsTable = new ScriptsTableWidget(ui->recentlyLoadedScriptsTableWidget);
-    _recentlyLoadedScriptsTable->setColumnCount(1);
-    _recentlyLoadedScriptsTable->setColumnWidth(0, 265);
-
-    connect(ui->hideWidgetButton, &QPushButton::clicked,
-            Application::getInstance(), &Application::toggleRunningScriptsWidget);
     connect(ui->reloadAllButton, &QPushButton::clicked,
             Application::getInstance(), &Application::reloadAllScripts);
     connect(ui->stopAllButton, &QPushButton::clicked,
@@ -163,7 +150,15 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
         ui->filterLineEdit->setFocus();
     }
 
-    FramelessDialog::showEvent(event);
+    const QRect parentGeometry = parentWidget()->geometry();
+    int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
+    int menuBarHeight = Menu::getInstance()->geometry().height();
+    int topMargin = titleBarHeight + menuBarHeight;
+
+    setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y() + topMargin,
+                size().width(), parentWidget()->height() - topMargin);
+
+    QWidget::showEvent(event);
 }
 
 void RunningScriptsWidget::selectFirstInList() {
@@ -189,19 +184,18 @@ bool RunningScriptsWidget::eventFilter(QObject* sender, QEvent* event) {
         return false;
     }
 
-    return FramelessDialog::eventFilter(sender, event);
+    return QWidget::eventFilter(sender, event);
 }
 
 void RunningScriptsWidget::keyPressEvent(QKeyEvent *keyEvent) {
     if (keyEvent->key() == Qt::Key_Escape) {
         return;
     } else {
-        FramelessDialog::keyPressEvent(keyEvent);
+        QWidget::keyPressEvent(keyEvent);
     }
 }
 
 void RunningScriptsWidget::scriptStopped(const QString& scriptName) {
-    // _recentlyLoadedScripts.prepend(scriptName);
 }
 
 void RunningScriptsWidget::allScriptsStopped() {
