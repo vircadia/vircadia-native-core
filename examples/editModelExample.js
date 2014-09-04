@@ -21,11 +21,11 @@ var roll = 180.0;
 var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll)
 
 var originalProperties = {
-    position: { x: 10,
-                y: 0,
-                z: 0 },
+    position: { x: 2.0,
+                y: 2.0,
+                z: 0.5 },
 
-    radius : 0.1,
+    radius : 0.25,
 
     color: { red: 0,
              green: 255,
@@ -38,21 +38,21 @@ var originalProperties = {
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
     //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
     
-    modelRotation: rotation
+    rotation: rotation
 };
 
-var positionDelta = { x: 0, y: 0, z: 0 };
+var positionDelta = { x: 0.002, y: 0.002, z: 0.0 };
 
 
-var modelID = Models.addModel(originalProperties);
+var entityID = Entities.addEntity(originalProperties);
 
-function moveModel(deltaTime) {
+function moveEntity(deltaTime) {
     if (count >= moveUntil) {
 
         // delete it...
         if (count == moveUntil) {
-            print("calling Models.deleteModel()");
-            Models.deleteModel(modelID);
+            print("calling Entities.deleteEntity()");
+            Entities.deleteEntity(entityID);
         }
 
         // stop it...
@@ -68,7 +68,7 @@ function moveModel(deltaTime) {
     //print("count =" + count);
     count++;
 
-    //print("modelID.creatorTokenID = " + modelID.creatorTokenID);
+    //print("entityID.creatorTokenID = " + entityID.creatorTokenID);
 
     var newProperties = {
         position: {
@@ -76,18 +76,16 @@ function moveModel(deltaTime) {
                 y: originalProperties.position.y + (count * positionDelta.y),
                 z: originalProperties.position.z + (count * positionDelta.z)
         },
-        radius : 0.25,
-
     };
 
 
-    //print("modelID = " + modelID);
+    //print("entityID = " + entityID);
     //print("newProperties.position = " + newProperties.position.x + "," + newProperties.position.y+ "," + newProperties.position.z);
 
-    Models.editModel(modelID, newProperties);
+    Entities.editEntity(entityID, newProperties);
 }
 
 
 // register the call back so it fires before each data send
-Script.update.connect(moveModel);
+Script.update.connect(moveEntity);
 

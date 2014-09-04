@@ -13,8 +13,8 @@
 #define hifi_AABoxCubeTests_h
 
 namespace AABoxCubeTests {
-    void AABoxCubeTests();
-    void runAllTests(); 
+    void AABoxCubeTests(bool verbose);
+    void runAllTests(bool verbose); 
 }
 
 #endif // hifi_AABoxCubeTests_h

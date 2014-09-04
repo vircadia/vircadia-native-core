@@ -571,3 +571,23 @@ QString formatUsecTime(float usecs, int prec) {
     }
     return result;
 }
+
+QString formatSecondsElapsed(float seconds) {
+    QString result;
+
+    const float SECONDS_IN_DAY = 60.0f * 60.0f * 24.0f;        
+    if (seconds > SECONDS_IN_DAY) {
+        float days = floor(seconds / SECONDS_IN_DAY);
+        float rest = seconds - (days * SECONDS_IN_DAY);
+        result = QString::number((int)days);
+        if (days > 1.0f) {
+            result += " days ";
+        } else {
+            result += " day ";
+        }
+        result += QDateTime::fromTime_t(rest).toUTC().toString("h 'hours' m 'minutes' s 'seconds'");
+    } else {
+        result = QDateTime::fromTime_t(seconds).toUTC().toString("h 'hours' m 'minutes' s 'seconds'");
+    }
+    return result;
+}

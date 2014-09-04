@@ -18,20 +18,20 @@
 #include "SharedUtil.h" 
 
 
-CapsuleShape::CapsuleShape() : Shape(Shape::CAPSULE_SHAPE), _radius(0.0f), _halfHeight(0.0f) {}
+CapsuleShape::CapsuleShape() : Shape(CAPSULE_SHAPE), _radius(0.0f), _halfHeight(0.0f) {}
 
-CapsuleShape::CapsuleShape(float radius, float halfHeight) : Shape(Shape::CAPSULE_SHAPE),
+CapsuleShape::CapsuleShape(float radius, float halfHeight) : Shape(CAPSULE_SHAPE),
     _radius(radius), _halfHeight(halfHeight) {
     updateBoundingRadius();
 }
 
 CapsuleShape::CapsuleShape(float radius, float halfHeight, const glm::vec3& position, const glm::quat& rotation) : 
-    Shape(Shape::CAPSULE_SHAPE, position, rotation), _radius(radius), _halfHeight(halfHeight) {
+    Shape(CAPSULE_SHAPE, position, rotation), _radius(radius), _halfHeight(halfHeight) {
     updateBoundingRadius();
 }
 
 CapsuleShape::CapsuleShape(float radius, const glm::vec3& startPoint, const glm::vec3& endPoint) :
-    Shape(Shape::CAPSULE_SHAPE), _radius(radius), _halfHeight(0.0f) {
+    Shape(CAPSULE_SHAPE), _radius(radius), _halfHeight(0.0f) {
     setEndPoints(startPoint, endPoint);
 }
 

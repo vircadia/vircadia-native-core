@@ -64,7 +64,7 @@ bool BoundingBox::contains(const BoundingBox& box) const {
                 (box.corner.x + box.size.x <= corner.x + size.x) &&
                 (box.corner.y + box.size.y <= corner.y + size.y)
             );
-};
+}
 
 bool BoundingBox::contains(const glm::vec2& point) const {
     return ( _set &&
@@ -73,7 +73,7 @@ bool BoundingBox::contains(const glm::vec2& point) const {
                 (point.x < corner.x + size.x) &&
                 (point.y < corner.y + size.y)
             );
-};
+}
 
 void BoundingBox::explandToInclude(const BoundingBox& box) {
     if (!_set) {
@@ -133,7 +133,7 @@ void OctreeProjectedPolygon::setVertex(int vertex, const glm::vec2& point) {
         _minY = point.y;
     }
     
-};
+}
 
 // can be optimized with new pointInside()
 bool OctreeProjectedPolygon::occludes(const OctreeProjectedPolygon& occludee, bool checkAllInView) const {

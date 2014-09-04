@@ -880,21 +880,23 @@ void HeightfieldBuffer::render(bool cursor) {
             DefaultMetavoxelRendererImplementation::getShadowLightHeightfieldProgram().bind();
             DefaultMetavoxelRendererImplementation::getShadowLightHeightfieldProgram().setUniformValue(
                 DefaultMetavoxelRendererImplementation::getShadowLightHeightScaleLocation(), 1.0f / _heightSize);
-                
+            glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+            DefaultMetavoxelRendererImplementation::getShadowMapHeightfieldProgram().bind();
+                        
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
             DefaultMetavoxelRendererImplementation::getCascadedShadowLightHeightfieldProgram().bind();
             DefaultMetavoxelRendererImplementation::getCascadedShadowLightHeightfieldProgram().setUniformValue(
                 DefaultMetavoxelRendererImplementation::getCascadedShadowLightHeightScaleLocation(), 1.0f / _heightSize);
-                
+            glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+            DefaultMetavoxelRendererImplementation::getCascadedShadowMapHeightfieldProgram().bind();
+                    
         } else {
             DefaultMetavoxelRendererImplementation::getLightHeightfieldProgram().bind();
             DefaultMetavoxelRendererImplementation::getLightHeightfieldProgram().setUniformValue(
-                DefaultMetavoxelRendererImplementation::getBaseHeightScaleLocation(), 1.0f / _heightSize);
+                DefaultMetavoxelRendererImplementation::getLightHeightScaleLocation(), 1.0f / _heightSize);
+            glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+            DefaultMetavoxelRendererImplementation::getHeightfieldProgram().bind();    
         }
-        
-        glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
-    
-        DefaultMetavoxelRendererImplementation::getHeightfieldProgram().bind();
         
         glDisable(GL_POLYGON_OFFSET_FILL);
         glDisable(GL_BLEND);
@@ -1050,8 +1052,8 @@ void DefaultMetavoxelRendererImplementation::init() {
         _baseHeightfieldProgram.bind();
         _baseHeightfieldProgram.setUniformValue("heightMap", 0);
         _baseHeightfieldProgram.setUniformValue("diffuseMap", 1);
-        _baseHeightScaleLocation = _heightfieldProgram.uniformLocation("heightScale");
-        _baseColorScaleLocation = _heightfieldProgram.uniformLocation("colorScale");
+        _baseHeightScaleLocation = _baseHeightfieldProgram.uniformLocation("heightScale");
+        _baseColorScaleLocation = _baseHeightfieldProgram.uniformLocation("colorScale");
         _baseHeightfieldProgram.release();
         
         _splatHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +

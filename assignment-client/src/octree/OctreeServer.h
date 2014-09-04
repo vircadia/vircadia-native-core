@@ -71,7 +71,7 @@ public:
     virtual PacketType getMyEditNackType() const = 0;
 
     // subclass may implement these method
-    virtual void beforeRun() { };
+    virtual void beforeRun() { }
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node) { return false; }
     virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) { return 0; }
 
