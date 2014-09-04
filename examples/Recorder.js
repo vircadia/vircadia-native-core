@@ -57,7 +57,7 @@ function setupToolBar() {
                                  height: Tool.IMAGE_HEIGHT,
                                  alpha: MyAvatar.isPlaying() ? ALPHA_OFF : ALPHA_ON,
                                  visible: true
-                                 }, true, MyAvatar.isRecording());
+                                 }, true, !MyAvatar.isRecording());
     
     playIcon = toolBar.addTool({
                                imageURL: TOOL_ICON_URL + "play-pause.svg",
@@ -166,12 +166,14 @@ function mousePressEvent(event) {
     if (recordIcon === toolBar.clicked(clickedOverlay, false) && !MyAvatar.isPlaying()) {
         if (!MyAvatar.isRecording()) {
             MyAvatar.startRecording();
+            toolBar.selectTool(recordIcon, false);
             toolBar.setAlpha(ALPHA_OFF, playIcon);
             toolBar.setAlpha(ALPHA_OFF, playLoopIcon);
             toolBar.setAlpha(ALPHA_OFF, saveIcon);
             toolBar.setAlpha(ALPHA_OFF, loadIcon);
         } else {
             MyAvatar.stopRecording();
+            toolBar.selectTool(recordIcon, true );
             MyAvatar.loadLastRecording();
             toolBar.setAlpha(ALPHA_ON, playIcon);
             toolBar.setAlpha(ALPHA_ON, playLoopIcon);
@@ -184,7 +186,7 @@ function mousePressEvent(event) {
             toolBar.setAlpha(ALPHA_ON, recordIcon);
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
-        } else {
+        } else if (MyAvatar.playerLength() > 0) {
             MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
             MyAvatar.setPlayerLoop(false);
             MyAvatar.startPlaying();
@@ -199,7 +201,7 @@ function mousePressEvent(event) {
             toolBar.setAlpha(ALPHA_ON, recordIcon);
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
-        } else {
+        } else if (MyAvatar.playerLength() > 0) {
             MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
             MyAvatar.setPlayerLoop(true);
             MyAvatar.startPlaying();
@@ -219,6 +221,11 @@ function mousePressEvent(event) {
             recordingFile = Window.browse("Load recorcding from file", ".", "*.rec");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
                 MyAvatar.loadRecording(recordingFile);
+            }
+            if (MyAvatar.playerLength() > 0) {
+                toolBar.setAlpha(ALPHA_ON, playIcon);
+                toolBar.setAlpha(ALPHA_ON, playLoopIcon);
+                toolBar.setAlpha(ALPHA_ON, saveIcon);
             }
         }
     } else {

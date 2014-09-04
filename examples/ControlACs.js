@@ -74,7 +74,7 @@ function setupToolBars() {
                                            height: Tool.IMAGE_HEIGHT,
                                            alpha: ALPHA_ON,
                                            visible: true
-                                           }, true, false));
+                                           }, true, true));
         
 		playIcon[i] = toolBars[i].addTool({
                                           imageURL: TOOL_ICON_URL + "play-pause.svg",
@@ -122,16 +122,16 @@ function setupToolBars() {
 
 function sendCommand(id, action) {
 	if (action === SHOW) {
-		toolBars[id].selectTool(onOffIcon[id], true);
+		toolBars[id].selectTool(onOffIcon[id], false);
         toolBars[id].setAlpha(ALPHA_ON, playIcon[id]);
         toolBars[id].setAlpha(ALPHA_ON, playLoopIcon[id]);
         toolBars[id].setAlpha(ALPHA_ON, stopIcon[id]);
 	} else if (action === HIDE) {
-		toolBars[id].selectTool(onOffIcon[id], false);
+		toolBars[id].selectTool(onOffIcon[id], true);
         toolBars[id].setAlpha(ALPHA_OFF, playIcon[id]);
         toolBars[id].setAlpha(ALPHA_OFF, playLoopIcon[id]);
         toolBars[id].setAlpha(ALPHA_OFF, stopIcon[id]);
-	} else if (!toolBars[id].toolSelected(onOffIcon[id])) {
+	} else if (toolBars[id].toolSelected(onOffIcon[id])) {
         return;
     }
 	
@@ -153,41 +153,41 @@ function sendCommand(id, action) {
 
 function mousePressEvent(event) {
 	clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
-
+    
 	// Check master control
 	var i = toolBars.length - 1;
-	if (onOffIcon[i] === toolBars[i].clicked(clickedOverlay)) {
-  	if (toolBars[i].toolSelected(onOffIcon[i])) {
-	  	sendCommand(i, SHOW);
-  	} else {
-	  	sendCommand(i, HIDE);
-  	}
-  } else if (playIcon[i] === toolBars[i].clicked(clickedOverlay)) {
-  	sendCommand(i, PLAY);
-  } else if (playLoopIcon[i] === toolBars[i].clicked(clickedOverlay)) {
-  	sendCommand(i, PLAY_LOOP);
-  } else if (stopIcon[i] === toolBars[i].clicked(clickedOverlay)) {
-  	sendCommand(i, STOP);
-  } else {
-  	// Check individual controls
+	if (onOffIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+        if (toolBars[i].toolSelected(onOffIcon[i])) {
+            sendCommand(i, SHOW);
+        } else {
+            sendCommand(i, HIDE);
+        }
+    } else if (playIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+        sendCommand(i, PLAY);
+    } else if (playLoopIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+        sendCommand(i, PLAY_LOOP);
+    } else if (stopIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+        sendCommand(i, STOP);
+    } else {
+        // Check individual controls
 		for (i = 0; i < NUM_AC; i++) {
-			if (onOffIcon[i] === toolBars[i].clicked(clickedOverlay)) {
-		  	if (toolBars[i].toolSelected(onOffIcon[i])) {
-			  	sendCommand(i, SHOW);
-		  	} else {
-			  	sendCommand(i, HIDE);
-		  	}
-		  } else if (playIcon[i] === toolBars[i].clicked(clickedOverlay)) {
-		  	sendCommand(i, PLAY);
-		  } else if (playLoopIcon[i] === toolBars[i].clicked(clickedOverlay)) {
-		  	sendCommand(i, PLAY_LOOP);
-		  } else if (stopIcon[i] === toolBars[i].clicked(clickedOverlay)) {
-		  	sendCommand(i, STOP);
-		  } else {
-
-		  }
+			if (onOffIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+                if (toolBars[i].toolSelected(onOffIcon[i], false)) {
+                    sendCommand(i, SHOW);
+                } else {
+                    sendCommand(i, HIDE);
+                }
+            } else if (playIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+                sendCommand(i, PLAY);
+            } else if (playLoopIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+                sendCommand(i, PLAY_LOOP);
+            } else if (stopIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+                sendCommand(i, STOP);
+            } else {
+                
+            }
 		}
-  }
+    }
 }
 
 function moveUI() {
