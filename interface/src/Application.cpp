@@ -3932,6 +3932,7 @@ void Application::setPreviousScriptLocation(const QString& previousScriptLocatio
     _previousScriptLocation = previousScriptLocation;
     QMutexLocker locker(&_settingsMutex);
     _settings->setValue("LastScriptLocation", _previousScriptLocation);
+    bumpSettings();
 }
 
 void Application::loadDialog() {
