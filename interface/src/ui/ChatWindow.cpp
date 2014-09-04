@@ -110,6 +110,7 @@ ChatWindow::~ChatWindow() {
 void ChatWindow::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Escape) {
         Application::getInstance()->getWindow()->activateWindow();
+        hide();
     } else {
         QWidget::keyPressEvent(event);
     }
