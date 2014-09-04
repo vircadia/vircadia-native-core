@@ -34,7 +34,7 @@
      <x>0</x>
      <y>0</y>
      <width>500</width>
-     <height>481</height>
+     <height>491</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -61,7 +61,7 @@
       <x>0</x>
       <y>0</y>
       <width>500</width>
-      <height>1347</height>
+      <height>1386</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -127,7 +127,7 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>30</height>
+         <height>28</height>
         </size>
        </property>
        <property name="font">
@@ -349,7 +349,7 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>35</height>
+         <height>40</height>
         </size>
        </property>
        <property name="font">
@@ -619,7 +619,7 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>30</height>
+         <height>40</height>
         </size>
        </property>
        <property name="font">
@@ -684,19 +684,6 @@
       </widget>
      </item>
      <item>
-      <spacer name="verticalSpacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>0</width>
-         <height>35</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
       <widget class="QLabel" name="avatarTitleLabel">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -707,7 +694,7 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>35</height>
+         <height>40</height>
         </size>
        </property>
        <property name="font">
@@ -1750,15 +1737,15 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>33</height>
+         <height>40</height>
         </size>
        </property>
        <property name="font">
         <font>
          <family>Arial</family>
          <pointsize>18</pointsize>
-         <weight>50</weight>
-         <bold>false</bold>
+         <weight>75</weight>
+         <bold>true</bold>
         </font>
        </property>
        <property name="styleSheet">
@@ -1932,15 +1919,15 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>33</height>
+         <height>40</height>
         </size>
        </property>
        <property name="font">
         <font>
          <family>Arial</family>
          <pointsize>18</pointsize>
-         <weight>50</weight>
-         <bold>false</bold>
+         <weight>75</weight>
+         <bold>true</bold>
         </font>
        </property>
        <property name="styleSheet">
@@ -2044,15 +2031,15 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>33</height>
+         <height>40</height>
         </size>
        </property>
        <property name="font">
         <font>
          <family>Arial</family>
          <pointsize>18</pointsize>
-         <weight>50</weight>
-         <bold>false</bold>
+         <weight>75</weight>
+         <bold>true</bold>
         </font>
        </property>
        <property name="styleSheet">
@@ -2257,12 +2244,32 @@
    <signal>clicked()</signal>
    <receiver>PreferencesDialog</receiver>
    <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
   </connection>
   <connection>
    <sender>defaultButton</sender>
    <signal>clicked()</signal>
    <receiver>PreferencesDialog</receiver>
    <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
   </connection>
  </connections>
 </ui>
