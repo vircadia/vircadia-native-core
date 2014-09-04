@@ -1456,7 +1456,9 @@ void Menu::showChat() {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
         }
+        _chatWindow->raise();
         _chatWindow->activateWindow();
+        _chatWindow->setFocus();
     } else {
         Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
     }
@@ -1468,6 +1470,9 @@ void Menu::toggleChat() {
     if (!_chatAction->isEnabled() && _chatWindow && AccountManager::getInstance().isLoggedIn()) {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
+            _chatWindow->raise();
+            _chatWindow->activateWindow();
+            _chatWindow->setFocus();
         } else {
             _chatWindow->hide();
         }

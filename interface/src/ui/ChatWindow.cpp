@@ -18,12 +18,13 @@
 #include <QTimer>
 
 #include "Application.h"
+#include "ChatMessageArea.h"
 #include "FlowLayout.h"
 #include "qtimespan.h"
-#include "ui_chatWindow.h"
+#include "UIUtil.h"
 #include "XmppClient.h"
-#include "ChatMessageArea.h"
 
+#include "ui_chatWindow.h"
 #include "ChatWindow.h"
 
 
@@ -120,10 +121,13 @@ void ChatWindow::showEvent(QShowEvent* event) {
     if (!event->spontaneous()) {
         ui->messagePlainTextEdit->setFocus();
     }
-
     const QRect parentGeometry = parentWidget()->geometry();
-    setGeometry(parentGeometry.topRight().x() - size().width(), parentGeometry.topRight().y(),
-                size().width(), parentWidget()->height());
+    int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
+    int menuBarHeight = Menu::getInstance()->geometry().height();
+    int topMargin = titleBarHeight + menuBarHeight;
+
+    setGeometry(parentGeometry.topRight().x() - size().width() + 1, parentGeometry.topRight().y() + topMargin,
+                size().width(), parentWidget()->height() - topMargin);
 
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
