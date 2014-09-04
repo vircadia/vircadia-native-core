@@ -10,6 +10,7 @@
 //
 
 #include <QColor>
+#include <QUuid>
 
 #include "RegisteredMetaTypes.h"
 
@@ -30,6 +31,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, qColorToScriptValue, qColorFromScriptValue);
     qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
+    qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
 }
 
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4) {
@@ -160,5 +162,16 @@ QScriptValue collisionToScriptValue(QScriptEngine* engine, const CollisionInfo& 
 
 void collisionFromScriptValue(const QScriptValue &object, CollisionInfo& collision) {
     // TODO: implement this when we know what it means to accept collision events from JS
+}
+
+QScriptValue quuidToScriptValue(QScriptEngine* engine, const QUuid& uuid) {
+    QScriptValue obj(uuid.toString());
+    return obj;
+}
+
+void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid) {
+    QString uuidAsString = object.toVariant().toString();
+    QUuid fromString(uuidAsString);
+    uuid = fromString;
 }
 

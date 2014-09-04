@@ -41,7 +41,7 @@ configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVe
 
 # grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels particles models)
+foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels particles entities)
   file(GLOB_RECURSE SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)
@@ -101,7 +101,7 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree voxels fbx metavoxels networking particles models avatars audio animation script-engine)
+link_hifi_libraries(shared octree voxels fbx metavoxels networking particles entities avatars audio animation script-engine)
 
 # find any optional and required libraries
 find_package(ZLIB REQUIRED)

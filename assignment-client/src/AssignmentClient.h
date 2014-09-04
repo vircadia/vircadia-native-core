@@ -14,6 +14,7 @@
 
 #include <QtCore/QCoreApplication>
 
+#include "ShutdownEventListener.h"
 #include "ThreadedAssignment.h"
 
 class AssignmentClient : public QCoreApplication {
@@ -21,6 +22,7 @@ class AssignmentClient : public QCoreApplication {
 public:
     AssignmentClient(int &argc, char **argv);
     static const SharedAssignmentPointer& getCurrentAssignment() { return _currentAssignment; }
+
 private slots:
     void sendAssignmentRequest();
     void readPendingDatagrams();
@@ -30,6 +32,7 @@ private slots:
 private:
     Assignment _requestAssignment;
     static SharedAssignmentPointer _currentAssignment;
+    ShutdownEventListener _shutdownEventListener;
     QString _assignmentServerHostname;
 };
 

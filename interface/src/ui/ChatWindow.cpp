@@ -124,6 +124,10 @@ void ChatWindow::showEvent(QShowEvent* event) {
         ui->messagePlainTextEdit->setFocus();
     }
 
+    Application::processEvents();
+
+    scrollToBottom();
+
 #ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     if (xmppClient.isConnected()) {

@@ -42,16 +42,16 @@ function mouseMoveEvent(event) {
         print("voxelAt.red/green/blue=" + voxelAt.red + ", " + voxelAt.green + ", " + voxelAt.blue);
     }
 
-    intersection = Models.findRayIntersection(pickRay);
+    intersection = Entities.findRayIntersection(pickRay);
     if (!intersection.accurate) {
-        print(">>> NOTE: intersection not accurate. will try calling Models.findRayIntersectionBlocking()");
-        intersection = Models.findRayIntersectionBlocking(pickRay);
+        print(">>> NOTE: intersection not accurate. will try calling Entities.findRayIntersectionBlocking()");
+        intersection = Entities.findRayIntersectionBlocking(pickRay);
         print(">>> AFTER BLOCKING CALL intersection.accurate=" + intersection.accurate);
     }
     
     if (intersection.intersects) {
-        print("intersection modelID.id=" + intersection.modelID.id);
-        print("intersection modelProperties.modelURL=" + intersection.modelProperties.modelURL);
+        print("intersection entityID.id=" + intersection.entityID.id);
+        print("intersection properties.modelURL=" + intersection.properties.modelURL);
         print("intersection face=" + intersection.face);
         print("intersection distance=" + intersection.distance);
         print("intersection intersection.x/y/z=" + intersection.intersection.x + ", " 
