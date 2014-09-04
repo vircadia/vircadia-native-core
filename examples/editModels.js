@@ -2828,7 +2828,7 @@ function handeMenuEvent(menuItem) {
 
             array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
             
-            if (properties.type == "Box") {
+            if (properties.type == "Box" || properties.type == "Sphere") {
                 array.push({ label: "Red:", value: properties.color.red });
                 array.push({ label: "Green:", value: properties.color.green });
                 array.push({ label: "Blue:", value: properties.color.blue });
