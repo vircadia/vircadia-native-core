@@ -589,8 +589,6 @@ void Application::paintGL() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
-    const bool glowEnabled = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
-
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     if (OculusManager::isConnected()) {
@@ -665,16 +663,11 @@ void Application::paintGL() {
         updateShadowMap();
     }
 
-    //If we aren't using the glow shader, we have to clear the color and depth buffer
-    if (!glowEnabled) {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    } else if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected()) {
         //Clear the color buffer to ensure that there isnt any residual color
         //Left over from when OR was not connected.
         glClear(GL_COLOR_BUFFER_BIT);
-    }
-
-    if (OculusManager::isConnected()) {
+        
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
             OculusManager::display(whichCamera.getRotation(), whichCamera.getPosition(), whichCamera);
@@ -687,9 +680,7 @@ void Application::paintGL() {
         TV3DManager::display(whichCamera);
 
     } else {
-        if (glowEnabled) {
-            _glowEffect.prepare();
-        }
+        _glowEffect.prepare();
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -697,9 +688,7 @@ void Application::paintGL() {
         displaySide(whichCamera);
         glPopMatrix();
 
-        if (glowEnabled) {
-            _glowEffect.render();
-        }
+        _glowEffect.render();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);
