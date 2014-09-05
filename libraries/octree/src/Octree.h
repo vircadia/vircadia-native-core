@@ -238,6 +238,7 @@ public:
     virtual int minimumRequiredRootDataBytes() const { return 0; }
     virtual bool suppressEmptySubtrees() const { return true; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const { }
+    virtual bool mustIncludeAllChildData() const { return true; }
     
     /// some versions of the SVO file will include breaks with buffer lengths between each buffer chunk in the SVO
     /// file. If the Octree subclass expects this for this particular version of the file, it should override this
@@ -352,6 +353,7 @@ public:
     bool getIsClient() const { return !_isServer; } /// Is this a client based tree. Allows guards for certain operations
     void setIsClient(bool isClient) { _isServer = !isClient; }
     
+    virtual void dumpTree() { };
 
 signals:
     void importSize(float x, float y, float z);

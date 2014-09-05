@@ -370,7 +370,7 @@ Menu::Menu() :
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, "None", 0, true));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
-    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::AvatarsReceiveShadows, 0, true));
+    addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::AvatarsReceiveShadows, 0, true);
 
         
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
@@ -386,6 +386,7 @@ Menu::Menu() :
                                   0,
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, 0, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* avatarDebugMenu = developerMenu->addMenu("Avatar");

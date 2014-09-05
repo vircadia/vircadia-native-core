@@ -73,6 +73,13 @@ OctreeElement::AppendState VoxelTreeElement::appendElementData(OctreePacketData*
 int VoxelTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
     const int BYTES_PER_COLOR = 3;
+    
+    if (bytesLeftToRead < BYTES_PER_COLOR) {
+        qDebug() << "UNEXPECTED: readElementDataFromBuffer() only had " << bytesLeftToRead << " bytes. "
+                        "Not enough for meaningful data.";
+        return bytesLeftToRead;
+    }
+    
 
     // pull the color for this child
     nodeColor newColor = { 128, 128, 128, 1};
