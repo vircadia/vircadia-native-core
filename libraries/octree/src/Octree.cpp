@@ -242,7 +242,7 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
     // give this destination element the child mask from the packet
     const unsigned char ALL_CHILDREN_ASSUMED_TO_EXIST = 0xFF;
     
-    if (bytesLeftToRead < sizeof(unsigned char)) {
+    if ((size_t)bytesLeftToRead < sizeof(unsigned char)) {
         qDebug() << "UNEXPECTED: readElementData() only had " << bytesLeftToRead << " bytes. Not enough for meaningful data.";
         return bytesAvailable; // assume we read the entire buffer...
     }
@@ -1865,7 +1865,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
 bool Octree::readFromSVOFile(const char* fileName) {
     bool fileOk = false;
-    bool hasBufferBreaks = false;
 
     PacketVersion gotVersion = 0;
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
