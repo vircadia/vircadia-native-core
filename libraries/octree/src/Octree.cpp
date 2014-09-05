@@ -1562,14 +1562,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     if (continueThisLevel && actualChildrenDataBits != childrenDataBits) {
         // repair the child data mask
         continueThisLevel = packetData->updatePriorBitMask(childDataBitsPlaceHolder, actualChildrenDataBits);
-
-        qDebug() << "UPDATED child data bits for element " << element->getAACube()
-                        << " was:" << childrenDataBits
-                        << " now:" << actualChildrenDataBits
-                        << " params.stopReason:" << params.getStopReason()
-                        << " elementAppendState:" << elementAppendState
-                        << " bytesAtThisLevel:" << bytesAtThisLevel;
-
         if (!continueThisLevel) {
             qDebug() << "WARNING UNEXPECTED CASE: Failed to update childDataBitsPlaceHolder";
             qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
