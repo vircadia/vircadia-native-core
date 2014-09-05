@@ -246,6 +246,13 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
         return bytesAvailable; // assume we read the entire buffer...
     }
     
+    if (destinationElement->getScale() < SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+        qDebug() << "UNEXPECTED: readElementData() destination element is unreasonably small [" 
+                << destinationElement->getScale() * (float)TREE_SCALE << " meters] "
+                << " Discarding " << bytesAvailable << " remaining bytes.";
+        return bytesAvailable; // assume we read the entire buffer...
+    }
+    
     unsigned char colorInPacketMask = *nodeData;
     bytesRead += sizeof(colorInPacketMask);
     bytesLeftToRead -= sizeof(colorInPacketMask);
@@ -366,7 +373,12 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
         OctreeElement* bitstreamRootElement = nodeForOctalCode(args.destinationElement, (unsigned char *)bitstreamAt, NULL);
 
         int numberOfThreeBitSectionsInStream = numberOfThreeBitSectionsInCode(bitstreamAt, bufferSizeBytes);
-        int octalCodeBytesInStream = bytesRequiredForCodeLength(numberOfThreeBitSectionsInStream);
+        
+        if (numberOfThreeBitSectionsInStream == OVERFLOWED_OCTCODE_BUFFER) {
+            qDebug() << "UNEXPECTED: parsing of the octal code would overflow the buffer. This buffer is corrupt. Returning.";
+            return;
+        }
+        
         int numberOfThreeBitSectionsFromNode = numberOfThreeBitSectionsInCode(bitstreamRootElement->getOctalCode());
 
         if (numberOfThreeBitSectionsInStream != numberOfThreeBitSectionsFromNode) {
@@ -384,7 +396,7 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
             }
         }
 
-        int octalCodeBytes = octalCodeBytesInStream;
+        int octalCodeBytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInStream);
 
         int theseBytesRead = 0;
         theseBytesRead += octalCodeBytes;

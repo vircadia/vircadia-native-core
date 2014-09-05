@@ -57,6 +57,8 @@ public:
                     const unsigned char* editData, int maxLength, const SharedNodePointer& node);
     virtual bool recurseChildrenWithData() const { return false; }
 
+    virtual void dumpTree();
+
 private:
     // helper functions for nudgeSubTree
     void recurseNodeForNudge(VoxelTreeElement* element, RecurseOctreeOperation operation, void* extraData);

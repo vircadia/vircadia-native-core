@@ -11,10 +11,9 @@
 
 #include <algorithm>
 
-#include <QtCore/QDebug>
+#include <QDebug>
 #include <QImage>
 #include <QRgb>
-
 
 #include "VoxelTree.h"
 #include "Tags.h"
@@ -567,3 +566,26 @@ int VoxelTree::processEditPacketData(PacketType packetType, const unsigned char*
             return 0;
     }
 }
+
+class VoxelTreeDebugOperator : public RecurseOctreeOperator {
+public:
+    virtual bool preRecursion(OctreeElement* element);
+    virtual bool postRecursion(OctreeElement* element) { return true; }
+};
+
+bool VoxelTreeDebugOperator::preRecursion(OctreeElement* element) {
+    VoxelTreeElement* treeElement = static_cast<VoxelTreeElement*>(element);
+    qDebug() << "VoxelTreeElement [" << treeElement << ":" << treeElement->getAACube() << "]";
+    qDebug() << "    isLeaf:" << treeElement->isLeaf();
+    qDebug() << "    color:" << treeElement->getColor()[0] << ", "
+                             << treeElement->getColor()[1] << ", " 
+                             << treeElement->getColor()[2];
+    return true;
+}
+
+void VoxelTree::dumpTree() {
+    // First, look for the existing entity in the tree..
+    VoxelTreeDebugOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+}
+
