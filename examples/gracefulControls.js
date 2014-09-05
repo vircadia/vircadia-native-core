@@ -30,7 +30,7 @@ var BRAKE_PARAMETERS = {
     DRAG_COEFFICIENT: 4.9,
     MAX_SPEED: DEFAULT_PARAMETERS.MAX_SPEED,
     MAX_LOOK_SPEED: Math.PI * 2,
-    ACCELERATION: 15,
+    ACCELERATION: 0,
 
     MOUSE_YAW_SCALE: -0.125,
     MOUSE_PITCH_SCALE: -0.125,
@@ -49,7 +49,8 @@ var KEY_LEFT = "a";
 var KEY_RIGHT = "d";
 var KEY_UP = "e";
 var KEY_DOWN = "c";
-var CAPTURED_KEYS = [KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN];
+var KEY_ENABLE = "SPACE";
+var CAPTURED_KEYS = [KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_ENABLE];
 
 // Global Variables
 var keys = {};
@@ -68,7 +69,7 @@ var pitchSpeed = 0;
 function keyPressEvent(event) {
     if (event.text == "ESC") {
         disable();
-    } else if (event.text == "SPACE") {
+    } else if (event.text == KEY_ENABLE) {
         if (Window.hasFocus()) {
             enable();
         }
@@ -88,7 +89,6 @@ function keyReleaseEvent(event) {
 
 function update(dt) {
     var maxMove = 3.0 * dt;
-    // print("Pos: " + yawFromMouse + ", " + pitchFromMouse);
     var targetVelocity = { x: 0, y: 0, z: 0 };
     var targetVelocityVertical = 0;
     var acceleration = movementParameters.ACCELERATION;
