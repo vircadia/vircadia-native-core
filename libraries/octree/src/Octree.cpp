@@ -247,7 +247,7 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
         return bytesAvailable; // assume we read the entire buffer...
     }
     
-    if (destinationElement->getScale() < SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
+    if (destinationElement->getScale() < SCALE_AT_DANGEROUSLY_DEEP_RECURSION) {
         qDebug() << "UNEXPECTED: readElementData() destination element is unreasonably small [" 
                 << destinationElement->getScale() * (float)TREE_SCALE << " meters] "
                 << " Discarding " << bytesAvailable << " remaining bytes.";
@@ -1893,11 +1893,24 @@ bool Octree::readFromSVOFile(const char* fileName) {
             // if so, read the first byte of the file and see if it matches the expected version code
             PacketType gotType;
             memcpy(&gotType, dataAt, sizeof(gotType));
+
+            dataAt += sizeof(expectedType);
+            dataLength -= sizeof(expectedType);
+            gotVersion = *dataAt;
+            
+            // NOTE: SPECIAL CASE for old voxel svo files. The old voxel SVO files didn't have header
+            // details. They started with the the octalcode for the root. Which was always 00 which matches PacketTypeUnknown
+            unsigned char* firstByteAt = (unsigned char*)&fileHeader;
+            unsigned char firstByteValue = *firstByteAt;
+            if (expectedType == PacketTypeVoxelData && firstByteValue == 0) {
+                gotType = PacketTypeVoxelData;
+                gotVersion = 0;
+                qDebug() << "Detected OLD Voxels format.";
+                headerLength = 0; // old format files don't have headers
+                file.seekg( 0, std::ios::beg ); // rewind to the beginning so old logic will work
+            }
             
             if (gotType == expectedType) {
-                dataAt += sizeof(expectedType);
-                dataLength -= sizeof(expectedType);
-                gotVersion = *dataAt;
                 if (canProcessVersion(gotVersion)) {
                     dataAt += sizeof(gotVersion);
                     dataLength -= sizeof(gotVersion);
@@ -1911,7 +1924,8 @@ bool Octree::readFromSVOFile(const char* fileName) {
                                 versionForPacketType(expectedDataPacketType()), gotVersion);
                 }
             } else {
-                qDebug("SVO file type mismatch. Expected: %c Got: %c", expectedType, gotType);
+                qDebug() << "SVO file type mismatch. Expected: " << nameForPacketType(expectedType) 
+                            << " Got: " << nameForPacketType(gotType);
             }
 
         } else {
@@ -2008,8 +2022,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
             // if so, read the first byte of the file and see if it matches the expected version code
             file.write(reinterpret_cast<char*>(&expectedType), sizeof(expectedType));
             file.write(&expectedVersion, sizeof(expectedVersion));
-
-            qDebug("SVO file type: %c version: %d", expectedType, expectedVersion);
+            qDebug() << "SVO file type: " << nameForPacketType(expectedType) << " version: " << (int)expectedVersion;
 
             hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
         }

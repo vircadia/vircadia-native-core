@@ -51,11 +51,27 @@ public:
 
     void readCodeColorBufferToTree(const unsigned char* codeColorBuffer, bool destructive = false);
 
+
+    virtual bool getWantSVOfileVersions() const { return true; }
+    virtual bool canProcessVersion(PacketVersion thisVersion) const { 
+                    return thisVersion == 0 || thisVersion == versionForPacketType(expectedDataPacketType()); }
+    virtual PacketVersion expectedVersion() const { return versionForPacketType(expectedDataPacketType()); }
+
     virtual PacketType expectedDataPacketType() const { return PacketTypeVoxelData; }
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& node);
     virtual bool recurseChildrenWithData() const { return false; }
+
+    /// some versions of the SVO file will include breaks with buffer lengths between each buffer chunk in the SVO
+    /// file. If the Octree subclass expects this for this particular version of the file, it should override this
+    /// method and return true.
+    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const { 
+        if (thisVersion == 0) {
+            return false; // old versions didn't have buffer breaks
+        }
+        return true; 
+    }
 
     virtual void dumpTree();
 
