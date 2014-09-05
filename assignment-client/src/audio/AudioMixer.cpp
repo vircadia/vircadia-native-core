@@ -319,15 +319,15 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
                                                           glm::normalize(rotatedSourcePosition),
                                                           glm::vec3(0.0f, 1.0f, 0.0f));
         
-        // if the source is in the range [-pi/2,+pi/2] (e.g, -Z from the listener's perspective
-        if (bearingRelativeAngleToSource <= -PI_OVER_TWO || bearingRelativeAngleToSource >= PI_OVER_TWO)
+        // if the source is in the range (-pi/2,+pi/2) (e.g, -Z from the listener's perspective
+        if (bearingRelativeAngleToSource < -PI_OVER_TWO || bearingRelativeAngleToSource > PI_OVER_TWO)
         {
             AudioFilterHSF1s& penumbraFilter = streamToAdd->getFilter();
 
             const float FULL_POWER = 1.0f;
             const float SQUARE_ROOT_OF_TWO_OVER_TWO = 0.71f;
             const float HALF_POWER = SQUARE_ROOT_OF_TWO_OVER_TWO;
-            const float QUARTER_POWER = /*HALF_POWER * */HALF_POWER;
+            const float QUARTER_POWER = HALF_POWER * HALF_POWER;
             
             const float ONE_OVER_TWO_PI = 1.0f / TWO_PI;
             const float FILTER_CUTOFF_FREQUENCY_HZ = 1000.0f;
@@ -341,11 +341,11 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
                 ((+1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource - PI)) + HALF_POWER);
                 
             const float penumbraFilterGainR = (bearingRelativeAngleToSource <= -PI_OVER_TWO) ?
-                ((-1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource + PI_OVER_TWO)) + QUARTER_POWER) :
+                ((-1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource + PI_OVER_TWO)) + HALF_POWER) :
                 ((-1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource - PI)) + HALF_POWER);
             
             float distanceBetween = glm::length(relativePosition);
-
+#if 0
             qDebug() << "avatar=" 
                      << listeningNodeStream 
                      << "gainL=" 
@@ -356,7 +356,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
                      << bearingRelativeAngleToSource
                      << "dist="
                      << distanceBetween;
-
+#endif
             // set the gain on both filter channels
             penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
             penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
