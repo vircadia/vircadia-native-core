@@ -19,7 +19,6 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
-#include <QAbstractNativeEventFilter>
 
 #include <Assignment.h>
 #include <HTTPSConnection.h>
@@ -27,7 +26,6 @@
 
 #include "DomainServerSettingsManager.h"
 #include "DomainServerWebSessionData.h"
-#include "ShutdownEventListener.h"
 #include "WalletTransaction.h"
 
 #include "PendingAssignedNodeData.h"
@@ -99,8 +97,6 @@ private:
     
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
-
-    ShutdownEventListener _shutdownEventListener;
     
     HTTPManager _httpManager;
     HTTPSManager* _httpsManager;

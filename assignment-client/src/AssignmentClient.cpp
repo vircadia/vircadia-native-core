@@ -17,7 +17,6 @@
 #include <Assignment.h>
 #include <HifiConfigVariantMap.h>
 #include <Logging.h>
-#include <LogUtils.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -37,18 +36,12 @@ int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
 AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
-    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
-    _shutdownEventListener(this)
+    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
-    LogUtils::init();
-
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("assignment-client");
     QSettings::setDefaultFormat(QSettings::IniFormat);
-
-    installNativeEventFilter(&_shutdownEventListener);
-    connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
 
     // set the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
