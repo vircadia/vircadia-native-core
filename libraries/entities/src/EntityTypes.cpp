@@ -24,7 +24,7 @@
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
 QMap<QString, EntityTypes::EntityType> EntityTypes::_nameToTypeMap;
-EntityTypeFactory EntityTypes::_factories[EntityTypes::LAST];
+EntityTypeFactory EntityTypes::_factories[EntityTypes::LAST + 1];
 bool EntityTypes::_factoriesInitialized = false;
 
 const QString ENTITY_TYPE_NAME_UNKNOWN = "Unknown";
@@ -58,8 +58,11 @@ bool EntityTypes::registerEntityType(EntityType entityType, const char* name, En
         memset(&_factories,0,sizeof(_factories));
         _factoriesInitialized = true;
     }
-    _factories[entityType] = factoryMethod;
-    return true;
+    if (entityType >= 0 && entityType <= LAST) {
+        _factories[entityType] = factoryMethod;
+        return true;
+    }
+    return false;
 }
 
 EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {

@@ -2862,7 +2862,7 @@ function handeMenuEvent(menuItem) {
                 properties.gravity.z = array[index++].value;
                 properties.lifetime = array[index++].value; // give ourselves that many more seconds
 
-                if (properties.type == "Box") {
+                if (properties.type == "Box" || properties.type == "Sphere") {
                     properties.color.red = array[index++].value;
                     properties.color.green = array[index++].value;
                     properties.color.blue = array[index++].value;

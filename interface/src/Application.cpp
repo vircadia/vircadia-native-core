@@ -1315,7 +1315,7 @@ void Application::dropEvent(QDropEvent *event) {
     const QMimeData *mimeData = event->mimeData();
     foreach (QUrl url, mimeData->urls()) {
         if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
-            snapshotPath = url.url().remove("file://");
+            snapshotPath = url.toLocalFile();
             break;
         }
     }
@@ -3932,6 +3932,7 @@ void Application::setPreviousScriptLocation(const QString& previousScriptLocatio
     _previousScriptLocation = previousScriptLocation;
     QMutexLocker locker(&_settingsMutex);
     _settings->setValue("LastScriptLocation", _previousScriptLocation);
+    bumpSettings();
 }
 
 void Application::loadDialog() {

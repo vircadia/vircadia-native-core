@@ -50,8 +50,6 @@ public:
     EntityItemID convertToCreatorTokenVersion() const;
 
     // these methods allow you to create models, and later edit them.
-    //static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
-
     static EntityItemID getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
     static void handleAddEntityResponse(const QByteArray& packet);
