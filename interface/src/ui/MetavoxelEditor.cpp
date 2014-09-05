@@ -971,11 +971,9 @@ ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
     connect(_height, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectHeightFile);
     _form->addRow("Color:", _color = new QPushButton());
     connect(_color, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectColorFile);
-}
-
-void ImportHeightfieldTool::render() {
-    HeightfieldTool::render();
-    _preview.render(_translation->getValue(), _translation->getSingleStep());
+    
+    connect(Application::getInstance()->getMetavoxels(), &MetavoxelSystem::rendering,
+        this, &ImportHeightfieldTool::renderPreview);
 }
 
 void ImportHeightfieldTool::apply() {
@@ -1082,6 +1080,12 @@ void ImportHeightfieldTool::updatePreview() {
         }
     }
     _preview.setBuffers(buffers);
+}
+
+void ImportHeightfieldTool::renderPreview() {
+    if (isVisible()) {
+        _preview.render(_translation->getValue(), _translation->getSingleStep());
+    }
 }
 
 EraseHeightfieldTool::EraseHeightfieldTool(MetavoxelEditor* editor) :

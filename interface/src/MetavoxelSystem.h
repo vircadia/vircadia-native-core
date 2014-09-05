@@ -52,6 +52,12 @@ public:
 
     Q_INVOKABLE void deleteTextures(int heightID, int colorID, int textureID);
 
+    void noteNeedToLight() { _needToLight = true; }
+
+signals:
+
+    void rendering();
+
 protected:
 
     virtual MetavoxelClient* createClient(const SharedNodePointer& node);
@@ -60,6 +66,18 @@ private:
     
     void guideToAugmented(MetavoxelVisitor& visitor, bool render = false);
     
+    class LightLocations {
+    public:
+        int shadowDistances;
+        int shadowScale;
+        int near;
+        int depthScale;
+        int depthTexCoordOffset;
+        int depthTexCoordScale;
+    };
+    
+    static void loadLightProgram(const char* name, ProgramObject& program, LightLocations& locations);
+    
     AttributePointer _pointBufferAttribute;
     AttributePointer _heightfieldBufferAttribute;
     AttributePointer _voxelBufferAttribute;
@@ -67,6 +85,14 @@ private:
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
     Frustum _frustum;
+    bool _needToLight;
+    
+    ProgramObject _directionalLight;
+    LightLocations _directionalLightLocations;
+    ProgramObject _directionalLightShadowMap;
+    LightLocations _directionalLightShadowMapLocations;
+    ProgramObject _directionalLightCascadedShadowMap;
+    LightLocations _directionalLightCascadedShadowMapLocations;
 };
 
 /// Describes contents of a point in a point buffer.
@@ -266,41 +292,32 @@ public:
     
     static void init();
 
-    static ProgramObject& getHeightfieldProgram() { return _heightfieldProgram; }
-    static int getHeightScaleLocation() { return _heightScaleLocation; }
-    static int getColorScaleLocation() { return _colorScaleLocation; }
-    
-    static ProgramObject& getShadowMapHeightfieldProgram() { return _shadowMapHeightfieldProgram; }
-    static int getShadowMapHeightScaleLocation() { return _shadowMapHeightScaleLocation; }
-    static int getShadowMapColorScaleLocation() { return _shadowMapColorScaleLocation; }
-    
-    static ProgramObject& getCascadedShadowMapHeightfieldProgram() { return _cascadedShadowMapHeightfieldProgram; }
-    static int getCascadedShadowMapHeightScaleLocation() { return _cascadedShadowMapHeightScaleLocation; }
-    static int getCascadedShadowMapColorScaleLocation() { return _cascadedShadowMapColorScaleLocation; }
-    
     static ProgramObject& getBaseHeightfieldProgram() { return _baseHeightfieldProgram; }
     static int getBaseHeightScaleLocation() { return _baseHeightScaleLocation; }
     static int getBaseColorScaleLocation() { return _baseColorScaleLocation; }
     
+    class SplatLocations {
+    public:
+        int heightScale;
+        int textureScale;
+        int splatTextureOffset;
+        int splatTextureScalesS;
+        int splatTextureScalesT;
+        int textureValueMinima;
+        int textureValueMaxima;
+        int materials;
+        int materialWeights;
+    };
+    
     static ProgramObject& getSplatHeightfieldProgram() { return _splatHeightfieldProgram; }
-    static int getSplatHeightScaleLocation() { return _splatHeightScaleLocation; }
-    static int getSplatTextureScaleLocation() { return _splatTextureScaleLocation; }
-    static int getSplatTextureOffsetLocation() { return _splatTextureOffsetLocation; }
-    static int getSplatTextureScalesSLocation() { return _splatTextureScalesSLocation; }
-    static int getSplatTextureScalesTLocation() { return _splatTextureScalesTLocation; }
-    static int getSplatTextureValueMinimaLocation() { return _splatTextureValueMinimaLocation; }
-    static int getSplatTextureValueMaximaLocation() { return _splatTextureValueMaximaLocation; }
-    
-    static ProgramObject& getLightHeightfieldProgram() { return _lightHeightfieldProgram; }
-    static int getLightHeightScaleLocation() { return _lightHeightScaleLocation; }
-    
-    static ProgramObject& getShadowLightHeightfieldProgram() { return _shadowLightHeightfieldProgram; }
-    static int getShadowLightHeightScaleLocation() { return _shadowLightHeightScaleLocation; }
-    
-    static ProgramObject& getCascadedShadowLightHeightfieldProgram() { return _cascadedShadowLightHeightfieldProgram; }
-    static int getCascadedShadowLightHeightScaleLocation() { return _cascadedShadowLightHeightScaleLocation; }
+    static const SplatLocations& getSplatHeightfieldLocations() { return _splatHeightfieldLocations; }
     
     static ProgramObject& getHeightfieldCursorProgram() { return _heightfieldCursorProgram; }
+    
+    static ProgramObject& getBaseVoxelProgram() { return _baseVoxelProgram; }
+    
+    static ProgramObject& getSplatVoxelProgram() { return _splatVoxelProgram; }
+    static const SplatLocations& getSplatVoxelLocations() { return _splatVoxelLocations; }
     
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
@@ -310,27 +327,18 @@ public:
 
 private:
 
+    static void loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations);
+    
     static ProgramObject _pointProgram;
     static int _pointScaleLocation;
-    
-    static ProgramObject _heightfieldProgram;
-    static int _heightScaleLocation;
-    static int _colorScaleLocation;
-    
-    static ProgramObject _shadowMapHeightfieldProgram;
-    static int _shadowMapHeightScaleLocation;
-    static int _shadowMapColorScaleLocation;
-    
-    static ProgramObject _cascadedShadowMapHeightfieldProgram;
-    static int _cascadedShadowMapHeightScaleLocation;
-    static int _cascadedShadowMapColorScaleLocation;
-    static int _shadowDistancesLocation;
     
     static ProgramObject _baseHeightfieldProgram;
     static int _baseHeightScaleLocation;
     static int _baseColorScaleLocation;
     
     static ProgramObject _splatHeightfieldProgram;
+    static SplatLocations _splatHeightfieldLocations;
+    
     static int _splatHeightScaleLocation;
     static int _splatTextureScaleLocation;
     static int _splatTextureOffsetLocation;
@@ -339,17 +347,11 @@ private:
     static int _splatTextureValueMinimaLocation;
     static int _splatTextureValueMaximaLocation;
     
-    static ProgramObject _lightHeightfieldProgram;
-    static int _lightHeightScaleLocation;
-    
-    static ProgramObject _shadowLightHeightfieldProgram;
-    static int _shadowLightHeightScaleLocation;
-    
-    static ProgramObject _cascadedShadowLightHeightfieldProgram;
-    static int _cascadedShadowLightHeightScaleLocation;
-    static int _shadowLightDistancesLocation;
-    
     static ProgramObject _heightfieldCursorProgram;
+    
+    static ProgramObject _baseVoxelProgram;
+    static ProgramObject _splatVoxelProgram;
+    static SplatLocations _splatVoxelLocations;
 };
 
 /// Base class for spanner renderers; provides clipping.

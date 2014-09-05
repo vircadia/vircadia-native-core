@@ -283,8 +283,6 @@ public:
     
     ImportHeightfieldTool(MetavoxelEditor* editor);
     
-    virtual void render();
-
 protected:
 
     virtual void apply();
@@ -294,6 +292,7 @@ private slots:
     void selectHeightFile();
     void selectColorFile();
     void updatePreview();
+    void renderPreview();
     
 private:
 

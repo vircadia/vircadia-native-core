@@ -61,6 +61,9 @@ public:
     /// Returns the ID of the primary framebuffer object's depth texture.  This contains the Z buffer used in rendering.
     GLuint getPrimaryDepthTextureID();
     
+    /// Returns the ID of the primary framebuffer object's normal texture.
+    GLuint getPrimaryNormalTextureID();
+    
     /// Returns a pointer to the secondary framebuffer object, used as an additional render target when performing full
     /// screen effects.
     QOpenGLFramebufferObject* getSecondaryFramebufferObject();
@@ -95,6 +98,7 @@ private:
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
     
     GLuint _primaryDepthTextureID;
+    GLuint _primaryNormalTextureID;
     QOpenGLFramebufferObject* _primaryFramebufferObject;
     QOpenGLFramebufferObject* _secondaryFramebufferObject;
     QOpenGLFramebufferObject* _tertiaryFramebufferObject;
