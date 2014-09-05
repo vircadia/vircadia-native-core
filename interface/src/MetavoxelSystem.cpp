@@ -1073,6 +1073,8 @@ void HeightfieldBuffer::render(bool cursor) {
 QHash<int, HeightfieldBuffer::BufferPair> HeightfieldBuffer::_bufferPairs;
 
 void HeightfieldPreview::render(const glm::vec3& translation, float scale) const {
+    glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+    
     glDisable(GL_BLEND);
     glEnable(GL_CULL_FACE);
     glEnable(GL_ALPHA_TEST);
@@ -1103,6 +1105,8 @@ void HeightfieldPreview::render(const glm::vec3& translation, float scale) const
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
+    
+    glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
 }
 
 VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices,
