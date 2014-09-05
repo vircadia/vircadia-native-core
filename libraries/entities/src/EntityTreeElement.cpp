@@ -721,9 +721,17 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
         if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
             for (uint16_t i = 0; i < numberOfEntities; i++) {
                 int bytesForThisEntity = 0;
-                EntityItemID entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
-                EntityItem* entityItem = _myTree->findEntityByEntityItemID(entityItemID);
+                EntityItemID entityItemID;
+                EntityItem* entityItem = NULL;
                 bool newEntity = false;
+
+                // Old model files don't have UUIDs in them. So we don't want to try to read those IDs from the stream.
+                // Since this can only happen on loading an old file, we can safely treat these as new entity cases,
+                // which will correctly handle the case of creating models and letting them parse the old format.
+                if (args.bitstreamVersion >= VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
+                    entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
+                    entityItem = _myTree->findEntityByEntityItemID(entityItemID);
+                }
                 
                 // If the item already exists in our tree, we want do the following...
                 // 1) allow the existing item to read from the databuffer
@@ -758,6 +766,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     if (entityItem) {
                         bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
                         addEntityItem(entityItem); // add this new entity to this elements entities
+                        entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
                         newEntity = true;
                         EntityItem::SimulationState newState = entityItem->getSimulationState();

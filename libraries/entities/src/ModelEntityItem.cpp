@@ -165,7 +165,8 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
         
         QString ageAsString = formatSecondsElapsed(getAge());
         qDebug() << "Loading old model file, _created = _lastEdited =" << _created 
-                        << " age=" << getAge() << "seconds - " << ageAsString;
+                        << " age=" << getAge() << "seconds - " << ageAsString
+                        << "old ID=" << oldID << "new ID=" << _id;
 
         // radius
         memcpy(&_radius, dataAt, sizeof(_radius));

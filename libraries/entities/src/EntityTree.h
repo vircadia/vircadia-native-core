@@ -67,7 +67,8 @@ public:
     virtual int minimumRequiredRootDataBytes() const { return sizeof(uint16_t); }
     virtual bool suppressEmptySubtrees() const { return false; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const;
- 
+    virtual bool mustIncludeAllChildData() const { return false; }
+
     virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const 
                     { return thisVersion >= VERSION_ENTITIES_HAS_FILE_BREAKS; }
                     
@@ -126,7 +127,7 @@ public:
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void resetContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
-    void dumpTree();
+    virtual void dumpTree();
 
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
