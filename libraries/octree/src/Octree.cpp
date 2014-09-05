@@ -1829,9 +1829,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     // added back to the element bag.
     if (!continueThisLevel) {
         if (!mustIncludeAllChildData()) {
-            qDebug() << "WARNING UNEXPECTED CASE - Something failed in attempting to pack this element";
-            qDebug() << "IS THIS EVER EXPECTED???? -- continueThisLevel=FALSE...." ;
-            qDebug() << "   calling bag.insert(element);.....";
+            qDebug() << "WARNING UNEXPECTED CASE - Something failed in attempting to pack this element.";
+            qDebug() << "   If the datatype requires all child data, then this might happen. Otherwise" ;
+            qDebug() << "   this is an unexpected case and we should research a potential logic error." ;
         }
 
         bag.insert(element);
