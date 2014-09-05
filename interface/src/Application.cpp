@@ -2809,6 +2809,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         _stars.render(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(), whichCamera.getNearClip(), alpha);
     }
 
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+
     // draw the sky dome
     if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
         PerformanceTimer perfTimer("atmosphere");
@@ -2946,6 +2950,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceTimer perfTimer("3dOverlays");
             _overlays.render3D();
         }
+    }
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 }
 
