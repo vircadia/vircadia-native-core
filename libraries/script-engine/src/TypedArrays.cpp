@@ -50,7 +50,7 @@ QScriptValue TypedArray::newInstance(QScriptValue array) {
     if (array.property(ARRAY_LENGTH_HANDLE).isValid()) {
         quint32 length = array.property(ARRAY_LENGTH_HANDLE).toInt32();
         QScriptValue newArray = newInstance(length);
-        for (int i = 0; i < length; ++i) {
+        for (quint32 i = 0; i < length; ++i) {
             QScriptValue value = array.property(QString::number(i));
             setProperty(newArray, engine()->toStringHandle(QString::number(i)),
                         i * _bytesPerElement, (value.isNumber()) ? value : QScriptValue(0));
@@ -119,7 +119,7 @@ QScriptValue TypedArray::construct(QScriptContext* context, QScriptEngine* engin
                     return QScriptValue();
                 }
                 if (lengthArg.toInt32() < 0 ||
-                    byteOffsetArg.toInt32() + lengthArg.toInt32() * cls->_bytesPerElement > arrayBuffer->size()) {
+                    byteOffsetArg.toInt32() + lengthArg.toInt32() * (qint32)(cls->_bytesPerElement) > arrayBuffer->size()) {
                     engine->evaluate("throw \"RangeError: byteLength out of range\"");
                     return QScriptValue();
                 }
@@ -155,7 +155,7 @@ QScriptClass::QueryFlags TypedArray::queryProperty(const QScriptValue& object,
     quint32 byteOffset = object.data().property(_byteOffsetName).toInt32();
     quint32 length = object.data().property(_lengthName).toInt32();
     bool ok = false;
-    int pos = name.toArrayIndex(&ok);
+    quint32 pos = name.toArrayIndex(&ok);
     
     // Check that name is a valid index and arrayBuffer exists
     if (ok && pos >= 0 && pos < length) {
