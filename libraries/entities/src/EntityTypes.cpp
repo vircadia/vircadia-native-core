@@ -65,7 +65,9 @@ bool EntityTypes::registerEntityType(EntityType entityType, const char* name, En
     return false;
 }
 
-EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID,
+                                                    const EntityItemProperties& properties) {
+                            
     EntityItem* newEntityItem = NULL;
     EntityTypeFactory factory = NULL;
     if (entityType >= 0 && entityType <= LAST) {

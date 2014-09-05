@@ -467,7 +467,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     if (existingEntity) {
                         updateEntity(entityItemID, properties);
                     } else {
-                        qDebug() << "User attempted to edit an unknown entity.";
+                        qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
                     }
                 } else {
                     // this is a new entity... assign a new entityID
