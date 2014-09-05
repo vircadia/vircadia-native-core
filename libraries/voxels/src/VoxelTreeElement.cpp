@@ -66,20 +66,7 @@ void VoxelTreeElement::splitChildren() {
 }
 
 OctreeElement::AppendState VoxelTreeElement::appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const {
-
-    OctreeElement::AppendState appendState = packetData->appendColor(getColor()) ? OctreeElement::COMPLETED : OctreeElement::NONE;
-    
-    /*
-    if (appendState == OctreeElement::COMPLETED) {
-        qDebug() << "WROTE color for element " << getAACube() << " color: " 
-                        << getColor()[0] << ", "
-                        << getColor()[1] << ", "
-                        << getColor()[2];
-    } else {
-        qDebug() << "COULD NOT WRITE color for element " << getAACube();
-    }
-    */
-    return appendState;
+    return packetData->appendColor(getColor()) ? OctreeElement::COMPLETED : OctreeElement::NONE;
 }
 
 
