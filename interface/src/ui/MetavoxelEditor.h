@@ -18,6 +18,7 @@
 #include "MetavoxelSystem.h"
 #include "renderer/ProgramObject.h"
 
+class QColorEditor;
 class QComboBox;
 class QDoubleSpinBox;
 class QGroupBox;
@@ -27,6 +28,7 @@ class QScrollArea;
 class QSpinBox;
 
 class MetavoxelTool;
+class SharedObjectEditor;
 class Vec3Editor;
 
 /// Allows editing metavoxels.
@@ -55,6 +57,7 @@ private slots:
     void deleteSelectedAttribute();
     void centerGridPosition();
     void alignGridPosition();
+    void updateAttributes(const QString& select = QString());
     void updateTool();
     
     void simulate(float deltaTime);
@@ -63,11 +66,11 @@ private slots:
 private:
     
     void addTool(MetavoxelTool* tool);
-    void updateAttributes(const QString& select = QString());    
     MetavoxelTool* getActiveTool() const;
     
     QListWidget* _attributes;
     QPushButton* _deleteAttribute;
+    QCheckBox* _showAll;
     
     QComboBox* _gridPlane;
     QDoubleSpinBox* _gridSpacing;
@@ -88,9 +91,11 @@ class MetavoxelTool : public QWidget {
 
 public:
 
-    MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true);
+    MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true, bool userFacing = true);
     
     bool getUsesValue() const { return _usesValue; }
+    
+    bool isUserFacing() const { return _userFacing; }
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
     
@@ -103,24 +108,30 @@ protected:
     
     MetavoxelEditor* _editor;
     bool _usesValue;
+    bool _userFacing;
 };
 
-/// Allows setting the value of a region by dragging out a box.
-class BoxSetTool : public MetavoxelTool {
+/// Base class for tools that allow dragging out a 3D box.
+class BoxTool : public MetavoxelTool {
     Q_OBJECT
 
 public:
     
-    BoxSetTool(MetavoxelEditor* editor);
-
+    BoxTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true, bool userFacing = true);
+    
     virtual void render();
 
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
+protected:
+
+    virtual QColor getColor() = 0;
+    
+    virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum) = 0; 
+
 private:
     
     void resetState();
-    void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
     
     enum State { HOVERING_STATE, DRAGGING_STATE, RAISING_STATE };
     
@@ -130,6 +141,21 @@ private:
     glm::vec2 _startPosition; ///< the first corner of the selection base
     glm::vec2 _endPosition; ///< the second corner of the selection base
     float _height; ///< the selection height
+};
+
+/// Allows setting the value of a region by dragging out a box.
+class BoxSetTool : public BoxTool {
+    Q_OBJECT
+
+public:
+    
+    BoxSetTool(MetavoxelEditor* editor);
+
+protected:
+    
+    virtual QColor getColor();
+    
+    virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
 };
 
 /// Allows setting the value across the entire space.
@@ -257,8 +283,6 @@ public:
     
     ImportHeightfieldTool(MetavoxelEditor* editor);
     
-    virtual void render();
-
 protected:
 
     virtual void apply();
@@ -268,6 +292,7 @@ private slots:
     void selectHeightFile();
     void selectColorFile();
     void updatePreview();
+    void renderPreview();
     
 private:
 
@@ -282,7 +307,7 @@ private:
     HeightfieldPreview _preview;
 };
 
-// Allows clearing heighfield blocks.
+/// Allows clearing heighfield blocks.
 class EraseHeightfieldTool : public HeightfieldTool {
     Q_OBJECT
 
@@ -300,6 +325,204 @@ private:
     
     QSpinBox* _width;
     QSpinBox* _length;
+};
+
+/// Base class for tools that allow painting on heightfields.
+class HeightfieldBrushTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldBrushTool(MetavoxelEditor* editor, const QString& name);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+     
+    virtual void render();
+
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+    
+protected:
+    
+    virtual QVariant createEdit(bool alternate) = 0;
+    
+    QFormLayout* _form;
+    QDoubleSpinBox* _radius;
+    
+    glm::vec3 _position;
+};
+
+/// Allows raising or lowering parts of the heightfield.
+class HeightfieldHeightBrushTool : public HeightfieldBrushTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldHeightBrushTool(MetavoxelEditor* editor);
+    
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+    
+private:
+    
+    QDoubleSpinBox* _height;
+};
+
+/// Allows coloring parts of the heightfield.
+class HeightfieldColorBrushTool : public HeightfieldBrushTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldColorBrushTool(MetavoxelEditor* editor);
+
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+    
+private:
+    
+    QColorEditor* _color;
+};
+
+/// Allows texturing parts of the heightfield.
+class HeightfieldMaterialBrushTool : public HeightfieldBrushTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldMaterialBrushTool(MetavoxelEditor* editor);
+
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+
+private slots:
+    
+    void updateTexture();
+    
+private:
+    
+    SharedObjectEditor* _materialEditor;
+    QSharedPointer<NetworkTexture> _texture;
+};
+
+/// Allows setting voxel colors by dragging out a box.
+class VoxelColorBoxTool : public BoxTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelColorBoxTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+    
+protected:
+    
+    virtual QColor getColor();
+    
+    virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
+
+private:
+    
+    QColorEditor* _color;
+};
+
+/// Allows setting voxel materials by dragging out a box.
+class VoxelMaterialBoxTool : public BoxTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelMaterialBoxTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+    
+protected:
+    
+    virtual QColor getColor();
+    
+    virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
+
+private slots:
+    
+    void updateTexture();
+    
+private:
+    
+    SharedObjectEditor* _materialEditor;
+    QSharedPointer<NetworkTexture> _texture;
+};
+
+/// Base class for tools based on a sphere brush.
+class SphereTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    SphereTool(MetavoxelEditor* editor, const QString& name);
+    
+    virtual void render();
+
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+    
+protected:
+
+    virtual QColor getColor() = 0;
+    
+    virtual void applyValue(const glm::vec3& position, float radius) = 0;
+    
+    QFormLayout* _form;
+    QDoubleSpinBox* _radius;
+    
+    glm::vec3 _position;
+};
+
+/// Allows setting voxel colors by moving a sphere around.
+class VoxelColorSphereTool : public SphereTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelColorSphereTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+
+protected:
+
+    virtual QColor getColor();
+    
+    virtual void applyValue(const glm::vec3& position, float radius);
+    
+private:
+    
+    QColorEditor* _color;
+};
+
+/// Allows setting voxel materials by moving a sphere around.
+class VoxelMaterialSphereTool : public SphereTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelMaterialSphereTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+
+protected:
+
+    virtual QColor getColor();
+    
+    virtual void applyValue(const glm::vec3& position, float radius);
+    
+private slots:
+    
+    void updateTexture();
+    
+private:
+    
+    SharedObjectEditor* _materialEditor;
+    QSharedPointer<NetworkTexture> _texture;
 };
 
 #endif // hifi_MetavoxelEditor_h

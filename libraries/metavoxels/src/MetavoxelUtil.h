@@ -44,11 +44,17 @@ public:
     
     explicit Box(const glm::vec3& minimum = glm::vec3(), const glm::vec3& maximum = glm::vec3());
     
+    void add(const Box& other);
+    
     bool contains(const glm::vec3& point) const;
     
     bool contains(const Box& other) const;
     
     bool intersects(const Box& other) const;
+    
+    Box getIntersection(const Box& other) const;
+    
+    bool isEmpty() const;
     
     float getLongestSide() const { return qMax(qMax(maximum.x - minimum.x, maximum.y - minimum.y), maximum.z - minimum.z); }
     
@@ -137,6 +143,8 @@ class QColorEditor : public QWidget {
 public:
     
     QColorEditor(QWidget* parent);
+
+    const QColor& getColor() const { return _color; }
 
 signals:
 

@@ -27,6 +27,8 @@ public:
 
     PhysicsSimulation();
     ~PhysicsSimulation();
+    
+    void clear();
 
     void setTranslation(const glm::vec3& translation) { _translation = translation; }
     const glm::vec3& getTranslation() const { return _translation; }
@@ -39,6 +41,7 @@ public:
 
     void removeEntity(PhysicsEntity* entity);
     void removeShapes(const PhysicsEntity* entity);
+    void removeShape(const Shape* shape);
 
     /// \return true if doll was added to or is already in the list
     bool addRagdoll(Ragdoll* doll);
@@ -52,12 +55,14 @@ public:
     void stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec);
 
 protected:
-    void moveRagdolls(float deltaTime);
-    void computeCollisions();
-    void resolveCollisions();
+    void integrate(float deltaTime);
 
-    void buildContactConstraints();
-    void enforceContactConstraints();
+    /// \return true if main ragdoll collides with other avatar
+    bool computeCollisions();
+
+    void resolveCollisions();
+    void enforceContacts();
+    void applyContactFriction();
     void updateContacts();
     void pruneContacts();
 

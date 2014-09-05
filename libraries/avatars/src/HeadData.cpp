@@ -11,12 +11,12 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <FBXReader.h>
+#include <GLMHelpers.h>
 #include <OctreeConstants.h>
 
 #include "AvatarData.h"
 #include "HeadData.h"
-
-#include "../fbx/src/FBXReader.h"
 
 HeadData::HeadData(AvatarData* owningAvatar) :
     _baseYaw(0.0f),

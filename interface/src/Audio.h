@@ -17,8 +17,11 @@
 
 #include "InterfaceConfig.h"
 #include "AudioStreamStats.h"
+#include "Recorder.h"
 #include "RingBufferHistory.h"
 #include "MovingMinMaxAvg.h"
+#include "AudioFilter.h"
+#include "AudioFilterBank.h"
 
 #include <QAudio>
 #include <QAudioInput>
@@ -48,14 +51,14 @@ public:
 
     class AudioOutputIODevice : public QIODevice {
     public:
-        AudioOutputIODevice(Audio& parent) : _parent(parent) {};
+        AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream) : _receivedAudioStream(receivedAudioStream) {};
 
         void start() { open(QIODevice::ReadOnly); }
         void stop() { close(); }
         qint64	readData(char * data, qint64 maxSize);
         qint64	writeData(const char * data, qint64 maxSize) { return 0; }
     private:
-        Audio& _parent;
+        MixedProcessedAudioStream& _receivedAudioStream;
     };
 
 
@@ -71,10 +74,7 @@ public:
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
     virtual void startDrumSound(float volume, float frequency, float duration, float decay);
 
-    void setDynamicJitterBuffers(bool dynamicJitterBuffers) { _receivedAudioStream.setDynamicJitterBuffers(dynamicJitterBuffers); }
-    void setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames) { _receivedAudioStream.setStaticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames); }
-
-    void setMaxFramesOverDesired(int maxFramesOverDesired) { _receivedAudioStream.setMaxFramesOverDesired(maxFramesOverDesired); }
+    void setReceivedAudioStreamSettings(const InboundAudioStream::Settings& settings) { _receivedAudioStream.setSettings(settings); }
 
     int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
     
@@ -101,6 +101,8 @@ public:
 
     float getAudioOutputMsecsUnplayed() const;
     float getAudioOutputAverageMsecsUnplayed() const { return (float)_audioOutputMsecsUnplayedStats.getWindowAverage(); }
+    
+    void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
 
 public slots:
     void start();
@@ -108,7 +110,6 @@ public slots:
     void addReceivedAudioToStream(const QByteArray& audioByteArray);
     void parseAudioStreamStatsPacket(const QByteArray& packet);
     void addSpatialAudioToBuffer(unsigned int sampleTime, const QByteArray& spatialAudio, unsigned int numSamples);
-    void processReceivedAudioStreamSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void handleAudioInput();
     void reset();
     void resetStats();
@@ -125,7 +126,16 @@ public slots:
     void selectAudioScopeFiveFrames();
     void selectAudioScopeTwentyFrames();
     void selectAudioScopeFiftyFrames();
-    
+    void addStereoSilenceToScope(int silentSamplesPerChannel);
+    void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
+    void addStereoSamplesToScope(const QByteArray& samples);
+    void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
+    void toggleAudioFilter();
+    void selectAudioFilterFlat();
+    void selectAudioFilterTrebleCut();
+    void selectAudioFilterBassCut();
+    void selectAudioFilterSmiley();
+
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
     void sendDownstreamAudioStatsPacket();
@@ -246,18 +256,19 @@ private:
     void reallocateScope(int frames);
 
     // Audio scope methods for data acquisition
-    void addBufferToScope(
-        QByteArray* byteArray, unsigned int frameOffset, const int16_t* source, unsigned int sourceChannel, unsigned int sourceNumberOfChannels);
+    int addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamples,
+        unsigned int sourceChannel, unsigned int sourceNumberOfChannels, float fade = 1.0f);
+    int addSilenceToScope(QByteArray* byteArray, int frameOffset, int silentSamples);
 
     // Audio scope methods for rendering
     void renderBackground(const float* color, int x, int y, int width, int height);
     void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
-    void renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray);
+    void renderLineStrip(const float* color, int x, int  y, int n, int offset, const QByteArray* byteArray);
 
     // audio stats methods for rendering
     void renderAudioStreamStats(const AudioStreamStats& streamStats, int horizontalOffset, int& verticalOffset,
         float scale, float rotation, int font, const float* color, bool isDownstreamStats = false);
-
+    
     // Audio scope data
     static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
     static const unsigned int DEFAULT_FRAMES_PER_SCOPE = 5;
@@ -270,10 +281,16 @@ private:
     int _scopeOutputOffset;
     int _framesPerScope;
     int _samplesPerScope;
+
+    // Multi-band parametric EQ
+    bool                _peqEnabled;
+    AudioFilterPEQ3m    _peq;
+
     QMutex _guard;
     QByteArray* _scopeInput;
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
+    QByteArray _scopeLastFrame;
 #ifdef _WIN32
     static const unsigned int STATS_WIDTH = 1500;
 #else
@@ -297,6 +314,8 @@ private:
     MovingMinMaxAvg<quint64> _packetSentTimeGaps;
 
     AudioOutputIODevice _audioOutputIODevice;
+    
+    WeakRecorderPointer _recorder;
 };
 
 

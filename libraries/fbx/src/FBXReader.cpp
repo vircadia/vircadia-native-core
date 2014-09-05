@@ -23,9 +23,9 @@
 #include <glm/gtx/transform.hpp>
 
 #include <GeometryUtil.h>
+#include <GLMHelpers.h>
 #include <OctalCode.h>
 #include <Shape.h>
-#include <SharedUtil.h>
 
 #include <VoxelTree.h>
 
@@ -1503,7 +1503,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = model.name;
         joint.shapePosition = glm::vec3(0.f);
-        joint.shapeType = Shape::UNKNOWN_SHAPE;
+        joint.shapeType = UNKNOWN_SHAPE;
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size());
         
@@ -1848,10 +1848,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         if (collideLikeCapsule) {
             joint.shapeRotation = rotationBetween(defaultCapsuleAxis, jointShapeInfo.boneBegin);
             joint.shapePosition = 0.5f * jointShapeInfo.boneBegin;
-            joint.shapeType = Shape::CAPSULE_SHAPE;
+            joint.shapeType = CAPSULE_SHAPE;
         } else {
             // collide the joint like a sphere
-            joint.shapeType = Shape::SPHERE_SHAPE;
+            joint.shapeType = SPHERE_SHAPE;
             if (jointShapeInfo.numVertices > 0) {
                 jointShapeInfo.averageVertex /= (float)jointShapeInfo.numVertices;
                 joint.shapePosition = jointShapeInfo.averageVertex;
@@ -1872,7 +1872,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 // The shape is further from both joint endpoints than the endpoints are from each other
                 // which probably means the model has a bad transform somewhere.  We disable this shape
                 // by setting its type to UNKNOWN_SHAPE.
-                joint.shapeType = Shape::UNKNOWN_SHAPE;
+                joint.shapeType = UNKNOWN_SHAPE;
             }
         }
     }

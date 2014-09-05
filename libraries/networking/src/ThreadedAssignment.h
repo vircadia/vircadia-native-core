@@ -20,6 +20,7 @@ class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
     ThreadedAssignment(const QByteArray& packet);
+    
     void setFinished(bool isFinished);
     virtual void aboutToFinish() { };
     void addPacketStatsAndSendStatsPacket(QJsonObject& statsObject);
@@ -29,15 +30,18 @@ public slots:
     virtual void run() = 0;
     virtual void readPendingDatagrams() = 0;
     virtual void sendStatsPacket();
-
+signals:
+    void finished();
+    
 protected:
     bool readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr);
     void commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats = true);
     bool _isFinished;
+    QThread* _datagramProcessingThread;
+    
 private slots:
     void checkInWithDomainServerOrExit();
-signals:
-    void finished();
+
 };
 
 typedef QSharedPointer<ThreadedAssignment> SharedAssignmentPointer;

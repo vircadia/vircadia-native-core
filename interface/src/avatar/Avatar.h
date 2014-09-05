@@ -23,6 +23,7 @@
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
+#include "Recorder.h"
 #include "SkeletonModel.h"
 #include "world.h"
 
@@ -90,7 +91,7 @@ public:
     const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
-    const glm::vec3& getVelocity() const { return _velocity; }
+    Q_INVOKABLE const glm::vec3& getVelocity() const { return _velocity; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
@@ -121,6 +122,7 @@ public:
 
     virtual bool isMyAvatar() { return false; }
     
+    virtual QVector<glm::quat> getJointRotations() const;
     virtual glm::quat getJointRotation(int index) const;
     virtual int getJointIndex(const QString& name) const;
     virtual QStringList getJointNames() const;
@@ -150,9 +152,9 @@ public:
     Q_INVOKABLE glm::quat getJointCombinedRotation(int index) const;
     Q_INVOKABLE glm::quat getJointCombinedRotation(const QString& name) const;
     
-    glm::vec3 getAcceleration() const { return _acceleration; }
-    glm::vec3 getAngularVelocity() const { return _angularVelocity; }
-    glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
+    Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
+    Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
+    Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
     
 
     /// Scales a world space position vector relative to the avatar position and scale
@@ -220,8 +222,6 @@ private:
     void renderBillboard();
     
     float getBillboardSize() const;
-    
-    
 };
 
 #endif // hifi_Avatar_h

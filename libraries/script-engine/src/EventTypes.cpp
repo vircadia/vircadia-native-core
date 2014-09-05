@@ -78,6 +78,8 @@ KeyEvent::KeyEvent(const QKeyEvent& event) {
         text = "LEFT";
     } else if (key == Qt::Key_Right) {
         text = "RIGHT";
+    } else if (key == Qt::Key_Space) {
+        text = "SPACE";
     } else if (key == Qt::Key_Escape) {
         text = "ESC";
     } else if (key == Qt::Key_Tab) {
@@ -220,6 +222,8 @@ void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event) {
             } else if (event.text.toUpper() == "RIGHT") {
                 event.key = Qt::Key_Right;
                 event.isKeypad = true;
+            } else if (event.text.toUpper() == "SPACE") {
+                event.key = Qt::Key_Space;
             } else if (event.text.toUpper() == "ESC") {
                 event.key = Qt::Key_Escape;
             } else if (event.text.toUpper() == "TAB") {

@@ -61,11 +61,10 @@ Overlay2D = function(properties, overlay) { // overlay is an optionnal variable
     }
     
     this.clicked = function(clickedOverlay) {
-        return (overlay == clickedOverlay ? true : false);
+        return overlay === clickedOverlay;
     }
     
     this.cleanup = function() {
-        print("Cleanup");
         Overlays.deleteOverlay(overlay);
     }
 }
@@ -112,9 +111,9 @@ Tool = function(properties, selectable, selected) { // selectable and selected a
     this.select(selected);
     
     this.baseClicked = this.clicked;
-    this.clicked = function(clickedOverlay) {
+    this.clicked = function(clickedOverlay, update) {
         if (this.baseClicked(clickedOverlay)) {
-            if (selectable) {
+            if (selectable && update) {
                 this.toggle();
             }
             return true;
@@ -127,19 +126,28 @@ Tool.IMAGE_HEIGHT = 50;
 Tool.IMAGE_WIDTH = 50;
 
 ToolBar = function(x, y, direction) {
-    this.tools = [];
+    this.tools = new Array();
     this.x = x;
     this.y = y;
     this.width = 0;
     this.height = 0;
-    
+    this.back = this.back = Overlays.addOverlay("text", {
+                    backgroundColor: { red: 255, green: 255, blue: 255 },
+                    x: this.x,
+                    y: this.y,
+                    width: this.width,
+                    height: this.height,
+                    alpha: 1.0,
+                    visible: false
+                });
+    this.spacing = [];
     
     this.addTool = function(properties, selectable, selected) {
         if (direction == ToolBar.HORIZONTAL) {
             properties.x = this.x + this.width;
             properties.y = this.y;
             this.width += properties.width + ToolBar.SPACING;
-            this.height += Math.max(properties.height, this.height);
+            this.height = Math.max(properties.height, this.height);
         } else {
             properties.x = this.x;
             properties.y = this.y + this.height;
@@ -147,8 +155,70 @@ ToolBar = function(x, y, direction) {
             this.height += properties.height + ToolBar.SPACING;
         }
         
-        this.tools[this.tools.length] = new Tool(properties, selectable, selected);
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, {
+                                 width: this.width +
+                                 ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
+                                 height: this.height +
+                                 ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
+            });
+        }
+        
+        this.tools.push(new Tool(properties, selectable, selected));
         return ((this.tools.length) - 1);
+    }
+    
+    this.addSpacing = function(size) {
+        if (direction == ToolBar.HORIZONTAL) {
+            this.width += size;
+        } else {
+            this.height += size;
+        }
+        this.spacing[this.tools.length] = size;
+        
+        return (this.tools.length);
+    }
+    
+    this.changeSpacing = function(size, id) {
+        if (this.spacing[id] === null) {
+            this.spacing[id] = 0;
+        }
+        var diff = size - this.spacing[id];
+        this.spacing[id] = size;
+        
+        var dx = (direction == ToolBar.HORIZONTAL) ? diff : 0;
+        var dy = (direction == ToolBar.VERTICAL) ? diff : 0;
+        this.width += dx;
+        this.height += dy;
+        
+        for(i = id; i < this.tools.length; i++) {
+            this.tools[i].move(this.tools[i].x() + dx,
+                               this.tools[i].y() + dy);
+        }
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, {
+                                 width: this.width +
+                                 ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
+                                 height: this.height +
+                                 ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
+                                 });
+        }
+    }
+
+    this.removeLastTool = function() {
+        this.tools.pop().cleanup();
+
+        if (direction == ToolBar.HORIZONTAL) {
+            this.width -= Tool.IMAGE_WIDTH + ToolBar.SPACING;
+        } else {
+            this.height -= Tool.IMAGE_HEIGHT + ToolBar.SPACING;
+        }
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, {
+                width: this.width + 2 * ToolBar.SPACING,
+                height: this.height + 2 * ToolBar.SPACING
+            });
+        }
     }
     
     this.move = function(x, y) {
@@ -159,11 +229,42 @@ ToolBar = function(x, y, direction) {
         for(var tool in this.tools) {
             this.tools[tool].move(this.tools[tool].x() + dx, this.tools[tool].y() + dy);
         }
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, {
+                x: x - ToolBar.SPACING,
+                y: y - ToolBar.SPACING
+            });
+        }
     }
     
-    this.setAlpha = function(alpha) {
-        for(var tool in this.tools) {
+    this.setAlpha = function(alpha, tool) {
+        if(typeof(tool) === 'undefined') {
+            for(var tool in this.tools) {
+                this.tools[tool].setAlpha(alpha);
+            }
+            if (this.back != null) {
+                Overlays.editOverlay(this.back, { alpha: alpha});
+            }
+        } else {
             this.tools[tool].setAlpha(alpha);
+        }
+    }
+    
+    this.setBack = function(color, alpha) {
+        if (color == null) {
+            Overlays.editOverlay(this.back, {
+                                 visible: false
+                                 });
+        } else {
+            Overlays.editOverlay(this.back, {
+                                 width: this.width +
+                                 ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
+                                 height: this.height +
+                                 ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
+                                 visible: true,
+                                 backgroundColor: color,
+                                 alpha: alpha
+                                 });
         }
     }
     
@@ -171,11 +272,18 @@ ToolBar = function(x, y, direction) {
         for(var tool in this.tools) {
             this.tools[tool].show(doShow);
         }
+        if (this.back != null) {
+            Overlays.editOverlay(this.back, { visible: doShow});
+        }
     }
     
-    this.clicked = function(clickedOverlay) {
+    this.clicked = function(clickedOverlay, update) {
+        if(typeof(update) === 'undefined') {
+            update = true;
+        }
+        
         for(var tool in this.tools) {
-            if (this.tools[tool].visible() && this.tools[tool].clicked(clickedOverlay)) {
+            if (this.tools[tool].visible() && this.tools[tool].clicked(clickedOverlay, update)) {
                 return parseInt(tool);
             }
         }
@@ -186,12 +294,25 @@ ToolBar = function(x, y, direction) {
         return this.tools.length;
     }
     
+    this.selectTool = function (tool, select) {
+        this.tools[tool].select(select);
+    }
+
+    this.toolSelected = function (tool) {
+        return this.tools[tool].selected();
+    }
+
     this.cleanup = function() {
         for(var tool in this.tools) {
             this.tools[tool].cleanup();
             delete this.tools[tool];
         }
         
+        if (this.back != null) {
+            Overlays.deleteOverlay(this.back);
+            this.back = null;
+        }
+
         this.tools = [];
         this.x = x;
         this.y = y;

@@ -88,11 +88,13 @@ bool RearMirrorTools::mousePressEvent(int x, int y) {
         
         if (_headZoomIconRect.contains(x, y)) {
             _zoomLevel = HEAD;
+            Application::getInstance()->bumpSettings();
             return true;
         }
         
         if (_bodyZoomIconRect.contains(x, y)) {
             _zoomLevel = BODY;
+            Application::getInstance()->bumpSettings();
             return true;
         }
 

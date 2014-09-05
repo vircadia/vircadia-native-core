@@ -66,12 +66,15 @@ MetavoxelEditor::MetavoxelEditor() :
     attributeLayout->addLayout(attributeButtonLayout);
 
     QPushButton* newAttribute = new QPushButton("New...");
-    attributeButtonLayout->addWidget(newAttribute);
+    attributeButtonLayout->addWidget(newAttribute, 1);
     connect(newAttribute, SIGNAL(clicked()), SLOT(createNewAttribute()));
 
-    attributeButtonLayout->addWidget(_deleteAttribute = new QPushButton("Delete"));
+    attributeButtonLayout->addWidget(_deleteAttribute = new QPushButton("Delete"), 1);
     _deleteAttribute->setEnabled(false);
     connect(_deleteAttribute, SIGNAL(clicked()), SLOT(deleteSelectedAttribute()));
+
+    attributeButtonLayout->addWidget(_showAll = new QCheckBox("Show All"));
+    connect(_showAll, SIGNAL(clicked()), SLOT(updateAttributes()));
 
     QFormLayout* formLayout = new QFormLayout();
     topLayout->addLayout(formLayout);
@@ -116,8 +119,15 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new RemoveSpannerTool(this));
     addTool(new ClearSpannersTool(this));
     addTool(new SetSpannerTool(this));
+    addTool(new HeightfieldHeightBrushTool(this));
+    addTool(new HeightfieldColorBrushTool(this));
+    addTool(new HeightfieldMaterialBrushTool(this));
     addTool(new ImportHeightfieldTool(this));
     addTool(new EraseHeightfieldTool(this));
+    addTool(new VoxelColorBoxTool(this));
+    addTool(new VoxelMaterialBoxTool(this));
+    addTool(new VoxelColorSphereTool(this));
+    addTool(new VoxelMaterialSphereTool(this));
     
     updateAttributes();
     
@@ -197,7 +207,7 @@ void MetavoxelEditor::selectedAttributeChanged() {
     
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(selected);
     foreach (MetavoxelTool* tool, _tools) {
-        if (tool->appliesTo(attribute)) {
+        if (tool->appliesTo(attribute) && (tool->isUserFacing() || _showAll->isChecked())) {
             _toolBox->addItem(tool->objectName(), QVariant::fromValue(tool));
         }
     }
@@ -211,6 +221,7 @@ void MetavoxelEditor::selectedAttributeChanged() {
         editor->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
         _valueArea->setWidget(editor);
     }
+    updateTool();
 }
 
 void MetavoxelEditor::createNewAttribute() {
@@ -266,6 +277,35 @@ void MetavoxelEditor::alignGridPosition() {
     double step = getGridSpacing();
     _gridPosition->setSingleStep(step);
     _gridPosition->setValue(step * floor(_gridPosition->value() / step));
+}
+
+void MetavoxelEditor::updateAttributes(const QString& select) {
+    // remember the selection in order to preserve it
+    QString selected = select.isNull() ? getSelectedAttribute() : select;
+    _attributes->clear();
+    
+    // sort the names for consistent ordering
+    QList<QString> names;
+    if (_showAll->isChecked()) {
+        names = AttributeRegistry::getInstance()->getAttributes().keys();
+    
+    } else {
+        foreach (const AttributePointer& attribute, AttributeRegistry::getInstance()->getAttributes()) {
+            if (attribute->isUserFacing()) {
+                names.append(attribute->getName());
+            }
+        }
+    }
+    qSort(names);
+    
+    foreach (const QString& name, names) {
+        QListWidgetItem* item = new QListWidgetItem(name);
+        _attributes->addItem(item);
+        if (name == selected || selected.isNull()) {
+            item->setSelected(true);
+            selected = name;
+        }
+    }
 }
 
 void MetavoxelEditor::updateTool() {
@@ -332,25 +372,6 @@ void MetavoxelEditor::addTool(MetavoxelTool* tool) {
     layout()->addWidget(tool);
 }
 
-void MetavoxelEditor::updateAttributes(const QString& select) {
-    // remember the selection in order to preserve it
-    QString selected = select.isNull() ? getSelectedAttribute() : select;
-    _attributes->clear();
-    
-    // sort the names for consistent ordering
-    QList<QString> names = AttributeRegistry::getInstance()->getAttributes().keys();
-    qSort(names);
-    
-    foreach (const QString& name, names) {
-        QListWidgetItem* item = new QListWidgetItem(name);
-        _attributes->addItem(item);
-        if (name == selected || selected.isNull()) {
-            item->setSelected(true);
-            selected = name;
-        }
-    }
-}
-
 MetavoxelTool* MetavoxelEditor::getActiveTool() const {
     int index = _toolBox->currentIndex();
     return (index == -1) ? NULL : static_cast<MetavoxelTool*>(_toolBox->itemData(index).value<QObject*>());
@@ -358,9 +379,10 @@ MetavoxelTool* MetavoxelEditor::getActiveTool() const {
 
 ProgramObject MetavoxelEditor::_gridProgram;
 
-MetavoxelTool::MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue) :
+MetavoxelTool::MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue, bool userFacing) :
     _editor(editor),
-    _usesValue(usesValue) {
+    _usesValue(usesValue),
+    _userFacing(userFacing) {
     
     QVBoxLayout* layout = new QVBoxLayout();
     setLayout(layout);
@@ -382,13 +404,13 @@ void MetavoxelTool::render() {
     // nothing by default
 }
 
-BoxSetTool::BoxSetTool(MetavoxelEditor* editor) :
-    MetavoxelTool(editor, "Set Value (Box)") {
+BoxTool::BoxTool(MetavoxelEditor* editor, const QString& name, bool usesValue, bool userFacing) :
+    MetavoxelTool(editor, name, usesValue, userFacing) {
     
     resetState();
 }
 
-void BoxSetTool::render() {
+void BoxTool::render() {
     if (Application::getInstance()->isMouseHidden()) {
         resetState();
         return;
@@ -454,7 +476,7 @@ void BoxSetTool::render() {
         glTranslatef(0.5f, 0.5f, 0.5f);
         if (_state != HOVERING_STATE) {
             const float BOX_ALPHA = 0.25f;
-            QColor color = _editor->getValue().value<QColor>();
+            QColor color = getColor();
             if (color.isValid()) {
                 glColor4f(color.redF(), color.greenF(), color.blueF(), BOX_ALPHA);
             } else {
@@ -473,7 +495,7 @@ void BoxSetTool::render() {
     glPopMatrix();
 }
 
-bool BoxSetTool::eventFilter(QObject* watched, QEvent* event) {
+bool BoxTool::eventFilter(QObject* watched, QEvent* event) {
     switch (_state) {
         case HOVERING_STATE:
             if (event->type() == QEvent::MouseButtonPress && _startPosition != INVALID_VECTOR) {
@@ -512,10 +534,18 @@ bool BoxSetTool::eventFilter(QObject* watched, QEvent* event) {
     return false;
 }
 
-void BoxSetTool::resetState() {
+void BoxTool::resetState() {
     _state = HOVERING_STATE;
     _startPosition = INVALID_VECTOR;
     _height = 0.0f;
+}
+
+BoxSetTool::BoxSetTool(MetavoxelEditor* editor) :
+    BoxTool(editor, "Set Value (Box)", true, false) {
+}
+
+QColor BoxSetTool::getColor() {
+    return _editor->getValue().value<QColor>();
 }
 
 void BoxSetTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
@@ -530,7 +560,7 @@ void BoxSetTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) 
 }
 
 GlobalSetTool::GlobalSetTool(MetavoxelEditor* editor) :
-    MetavoxelTool(editor, "Set Value (Global)") {
+    MetavoxelTool(editor, "Set Value (Global)", true, false) {
     
     QPushButton* button = new QPushButton("Apply");
     layout()->addWidget(button);
@@ -941,11 +971,9 @@ ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
     connect(_height, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectHeightFile);
     _form->addRow("Color:", _color = new QPushButton());
     connect(_color, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectColorFile);
-}
-
-void ImportHeightfieldTool::render() {
-    HeightfieldTool::render();
-    _preview.render(_translation->getValue(), _translation->getSingleStep());
+    
+    connect(Application::getInstance()->getMetavoxels(), &MetavoxelSystem::rendering,
+        this, &ImportHeightfieldTool::renderPreview);
 }
 
 void ImportHeightfieldTool::apply() {
@@ -954,14 +982,29 @@ void ImportHeightfieldTool::apply() {
         HeightfieldBuffer* buffer = static_cast<HeightfieldBuffer*>(bufferData.data());
         MetavoxelData data;
         data.setSize(scale);
-        HeightfieldDataPointer heightPointer(new HeightfieldData(buffer->getHeight()));
+        
+        QByteArray height = buffer->getUnextendedHeight();
+        HeightfieldHeightDataPointer heightPointer(new HeightfieldHeightData(height));
         data.setRoot(AttributeRegistry::getInstance()->getHeightfieldAttribute(), new MetavoxelNode(AttributeValue(
             AttributeRegistry::getInstance()->getHeightfieldAttribute(), encodeInline(heightPointer))));
-        if (!buffer->getColor().isEmpty()) {
-            HeightfieldDataPointer colorPointer(new HeightfieldData(buffer->getColor()));
-            data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
-                AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
+        
+        QByteArray color;
+        if (buffer->getColor().isEmpty()) {
+            const int WHITE_VALUE = 0xFF;
+            color = QByteArray(height.size() * DataBlock::COLOR_BYTES, WHITE_VALUE);
+        } else {
+            color = buffer->getUnextendedColor();
         }
+        HeightfieldColorDataPointer colorPointer(new HeightfieldColorData(color));
+        data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
+            AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
+        
+        int size = glm::sqrt(height.size()) + HeightfieldBuffer::SHARED_EDGE; 
+        QByteArray material(size * size, 0);
+        HeightfieldMaterialDataPointer materialPointer(new HeightfieldMaterialData(material));
+        data.setRoot(AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), new MetavoxelNode(AttributeValue(
+            AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), encodeInline(materialPointer))));
+        
         MetavoxelEditMessage message = { QVariant::fromValue(SetDataEdit(
             _translation->getValue() + buffer->getTranslation() * scale, data)) };
         Application::getInstance()->getMetavoxels()->applyEdit(message, true);
@@ -1001,38 +1044,48 @@ void ImportHeightfieldTool::updatePreview() {
     if (_heightImage.width() > 0 && _heightImage.height() > 0) {
         float z = 0.0f;
         int blockSize = pow(2.0, _blockSize->value());
-        int blockAdvancement = blockSize - 1;
-        for (int i = 0; i < _heightImage.height(); i += blockAdvancement, z++) {
+        int heightSize = blockSize + HeightfieldBuffer::HEIGHT_EXTENSION;
+        int colorSize = blockSize + HeightfieldBuffer::SHARED_EDGE;
+        for (int i = 0; i < _heightImage.height(); i += blockSize, z++) {
             float x = 0.0f;
-            for (int j = 0; j < _heightImage.width(); j += blockAdvancement, x++) {
-                QByteArray height(blockSize * blockSize, 0);
-                int rows = qMin(blockSize, _heightImage.height() - i);
-                int columns = qMin(blockSize, _heightImage.width() - j);
-                const int BYTES_PER_COLOR = 3;
+            for (int j = 0; j < _heightImage.width(); j += blockSize, x++) {
+                QByteArray height(heightSize * heightSize, 0);
+                int extendedI = qMax(i - HeightfieldBuffer::HEIGHT_BORDER, 0);
+                int extendedJ = qMax(j - HeightfieldBuffer::HEIGHT_BORDER, 0);
+                int offsetY = extendedI - i + HeightfieldBuffer::HEIGHT_BORDER;
+                int offsetX = extendedJ - j + HeightfieldBuffer::HEIGHT_BORDER;
+                int rows = qMin(heightSize - offsetY, _heightImage.height() - extendedI);
+                int columns = qMin(heightSize - offsetX, _heightImage.width() - extendedJ);
                 for (int y = 0; y < rows; y++) {
-                    uchar* src = _heightImage.scanLine(i + y) + j * BYTES_PER_COLOR;
-                    char* dest = height.data() + y * blockSize;
+                    uchar* src = _heightImage.scanLine(extendedI + y) + extendedJ * DataBlock::COLOR_BYTES;
+                    char* dest = height.data() + (y + offsetY) * heightSize + offsetX;
                     for (int x = 0; x < columns; x++) {
                         *dest++ = *src;
-                        src += BYTES_PER_COLOR;
+                        src += DataBlock::COLOR_BYTES;
                     }
                 }
-                
                 QByteArray color;
                 if (!_colorImage.isNull()) {
-                    color = QByteArray(blockSize * blockSize * BYTES_PER_COLOR, 0);
-                    rows = qMax(0, qMin(blockSize, _colorImage.height() - i));
-                    columns = qMax(0, qMin(blockSize, _colorImage.width() - j));
+                    color = QByteArray(colorSize * colorSize * DataBlock::COLOR_BYTES, 0);
+                    rows = qMax(0, qMin(colorSize, _colorImage.height() - i));
+                    columns = qMax(0, qMin(colorSize, _colorImage.width() - j));
                     for (int y = 0; y < rows; y++) {
-                        memcpy(color.data() + y * blockSize * BYTES_PER_COLOR,
-                            _colorImage.scanLine(i + y) + j * BYTES_PER_COLOR, columns * BYTES_PER_COLOR);
+                        memcpy(color.data() + y * colorSize * DataBlock::COLOR_BYTES,
+                            _colorImage.scanLine(i + y) + j * DataBlock::COLOR_BYTES,
+                            columns * DataBlock::COLOR_BYTES);
                     }
                 }
-                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color, false)));
+                buffers.append(BufferDataPointer(new HeightfieldBuffer(glm::vec3(x, 0.0f, z), 1.0f, height, color)));
             }
         }
     }
     _preview.setBuffers(buffers);
+}
+
+void ImportHeightfieldTool::renderPreview() {
+    if (isVisible()) {
+        _preview.render(_translation->getValue(), _translation->getSingleStep());
+    }
 }
 
 EraseHeightfieldTool::EraseHeightfieldTool(MetavoxelEditor* editor) :
@@ -1079,4 +1132,266 @@ void EraseHeightfieldTool::apply() {
     edit.value = OwnedAttributeValue(AttributeRegistry::getInstance()->getHeightfieldColorAttribute());
     message.edit = QVariant::fromValue(edit);
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QString& name) :
+    MetavoxelTool(editor, name, false) {
+    
+    QWidget* widget = new QWidget();
+    widget->setLayout(_form = new QFormLayout());
+    layout()->addWidget(widget);
+    
+    _form->addRow("Radius:", _radius = new QDoubleSpinBox());
+    _radius->setSingleStep(0.01);
+    _radius->setMaximum(FLT_MAX);
+    _radius->setValue(1.0);
+}
+
+bool HeightfieldBrushTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("HeightfieldAttribute");
+}
+
+void HeightfieldBrushTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
+    
+    // find the intersection with the heightfield
+    glm::vec3 origin = Application::getInstance()->getMouseRayOrigin();
+    glm::vec3 direction = Application::getInstance()->getMouseRayDirection();
+    
+    float distance;
+    if (!Application::getInstance()->getMetavoxels()->findFirstRayHeightfieldIntersection(origin, direction, distance)) {
+        return;
+    }
+    Application::getInstance()->getMetavoxels()->renderHeightfieldCursor(
+        _position = origin + distance * direction, _radius->value());
+}
+
+bool HeightfieldBrushTool::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::Wheel) {
+        float angle = static_cast<QWheelEvent*>(event)->angleDelta().y();
+        const float ANGLE_SCALE = 1.0f / 1000.0f;
+        _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
+        return true;
+    
+    } else if (event->type() == QEvent::MouseButtonPress) {
+        MetavoxelEditMessage message = { createEdit(static_cast<QMouseEvent*>(event)->button() == Qt::RightButton) };
+        Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+        return true;
+    }
+    return false;
+}
+
+HeightfieldHeightBrushTool::HeightfieldHeightBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Height Brush") {
+    
+    _form->addRow("Height:", _height = new QDoubleSpinBox());
+    _height->setMinimum(-FLT_MAX);
+    _height->setMaximum(FLT_MAX);
+    _height->setValue(1.0);
+}
+
+QVariant HeightfieldHeightBrushTool::createEdit(bool alternate) {
+    return QVariant::fromValue(PaintHeightfieldHeightEdit(_position, _radius->value(),
+        alternate ? -_height->value() : _height->value()));
+}
+
+HeightfieldColorBrushTool::HeightfieldColorBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Color Brush") {
+    
+    _form->addRow("Color:", _color = new QColorEditor(this));
+}
+
+QVariant HeightfieldColorBrushTool::createEdit(bool alternate) {
+    return QVariant::fromValue(PaintHeightfieldColorEdit(_position, _radius->value(),
+        alternate ? QColor() : _color->getColor()));
+}
+
+HeightfieldMaterialBrushTool::HeightfieldMaterialBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Material Brush") {
+    
+    _form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
+    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &HeightfieldMaterialBrushTool::updateTexture);
+}
+
+QVariant HeightfieldMaterialBrushTool::createEdit(bool alternate) {
+    if (alternate) {
+        return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), SharedObjectPointer(), QColor()));
+    } else {
+        SharedObjectPointer material = _materialEditor->getObject();
+        _materialEditor->detachObject();
+        return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), material,
+            _texture ? _texture->getAverageColor() : QColor()));
+    }   
+}
+
+void HeightfieldMaterialBrushTool::updateTexture() {
+    MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
+    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
+}
+
+VoxelColorBoxTool::VoxelColorBoxTool(MetavoxelEditor* editor) :
+    BoxTool(editor, "Set Voxel Color (Box)", false) {
+    
+    QWidget* widget = new QWidget();
+    QFormLayout* form = new QFormLayout();
+    widget->setLayout(form);
+    layout()->addWidget(widget);
+    
+    form->addRow("Color:", _color = new QColorEditor(this));
+}
+
+bool VoxelColorBoxTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("VoxelColorAttribute");
+}
+
+QColor VoxelColorBoxTool::getColor() {
+    return _color->getColor();
+}
+
+void VoxelColorBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelColorBoxEdit(Box(minimum, maximum),
+        _editor->getGridSpacing(), _color->getColor())) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+VoxelMaterialBoxTool::VoxelMaterialBoxTool(MetavoxelEditor* editor) :
+    BoxTool(editor, "Set Voxel Material (Box)", false) {
+    
+    QWidget* widget = new QWidget();
+    QFormLayout* form = new QFormLayout();
+    widget->setLayout(form);
+    layout()->addWidget(widget);
+    
+    form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
+    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialBoxTool::updateTexture);
+}
+
+bool VoxelMaterialBoxTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("VoxelColorAttribute");
+}
+
+QColor VoxelMaterialBoxTool::getColor() {
+    return _texture ? _texture->getAverageColor() : QColor();
+}
+
+void VoxelMaterialBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
+    SharedObjectPointer material = _materialEditor->getObject();
+    _materialEditor->detachObject();
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialBoxEdit(Box(minimum, maximum),
+        _editor->getGridSpacing(), material, _texture ? _texture->getAverageColor() : QColor())) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+void VoxelMaterialBoxTool::updateTexture() {
+    MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
+    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
+}
+
+SphereTool::SphereTool(MetavoxelEditor* editor, const QString& name) :
+    MetavoxelTool(editor, name, false, true) {
+    
+    QWidget* widget = new QWidget();
+    widget->setLayout(_form = new QFormLayout());
+    layout()->addWidget(widget);
+    
+    _form->addRow("Radius:", _radius = new QDoubleSpinBox());
+    _radius->setSingleStep(0.01);
+    _radius->setMaximum(FLT_MAX);
+    _radius->setValue(1.0);
+}
+
+void SphereTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
+    glm::quat rotation = _editor->getGridRotation();
+    glm::quat inverseRotation = glm::inverse(rotation);
+    glm::vec3 rayOrigin = inverseRotation * Application::getInstance()->getMouseRayOrigin();
+    glm::vec3 rayDirection = inverseRotation * Application::getInstance()->getMouseRayDirection();
+    float position = _editor->getGridPosition();
+    if (glm::abs(rayDirection.z) < EPSILON) {
+        return;
+    }
+    float distance = (position - rayOrigin.z) / rayDirection.z;
+    _position = Application::getInstance()->getMouseRayOrigin() +
+        Application::getInstance()->getMouseRayDirection() * distance;
+    
+    glPushMatrix();
+    glTranslatef(_position.x, _position.y, _position.z);
+    
+    const float CURSOR_ALPHA = 0.5f;
+    QColor color = getColor();
+    glColor4f(color.redF(), color.greenF(), color.blueF(), CURSOR_ALPHA);
+    
+    glEnable(GL_CULL_FACE);
+    
+    glutSolidSphere(_radius->value(), 10, 10);
+    
+    glDisable(GL_CULL_FACE);
+    
+    glPopMatrix();
+}
+
+bool SphereTool::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::Wheel) {
+        float angle = static_cast<QWheelEvent*>(event)->angleDelta().y();
+        const float ANGLE_SCALE = 1.0f / 1000.0f;
+        _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
+        return true;
+    
+    } else if (event->type() == QEvent::MouseButtonPress) {
+        applyValue(_position, _radius->value());
+        return true;
+    }
+    return false;
+}
+
+VoxelColorSphereTool::VoxelColorSphereTool(MetavoxelEditor* editor) :
+    SphereTool(editor, "Set Voxel Color (Sphere)") {
+    
+    _form->addRow("Color:", _color = new QColorEditor(this));
+}
+
+bool VoxelColorSphereTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("VoxelColorAttribute");
+}
+
+QColor VoxelColorSphereTool::getColor() {
+    return _color->getColor();
+}
+
+void VoxelColorSphereTool::applyValue(const glm::vec3& position, float radius) {
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelColorSphereEdit(position, radius,
+        _editor->getGridSpacing(), _color->getColor())) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+VoxelMaterialSphereTool::VoxelMaterialSphereTool(MetavoxelEditor* editor) :
+    SphereTool(editor, "Set Voxel Material (Sphere)") {
+    
+    _form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
+    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialSphereTool::updateTexture);
+}
+
+bool VoxelMaterialSphereTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("VoxelColorAttribute");
+}
+
+QColor VoxelMaterialSphereTool::getColor() {
+    return _texture ? _texture->getAverageColor() : QColor();
+}
+
+void VoxelMaterialSphereTool::applyValue(const glm::vec3& position, float radius) {
+    SharedObjectPointer material = _materialEditor->getObject();
+    _materialEditor->detachObject();
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSphereEdit(position, radius,
+        _editor->getGridSpacing(), material, _texture ? _texture->getAverageColor() : QColor())) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+void VoxelMaterialSphereTool::updateTexture() {
+    MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
+    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
 }

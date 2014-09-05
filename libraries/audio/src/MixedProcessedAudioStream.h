@@ -14,21 +14,32 @@
 
 #include "InboundAudioStream.h"
 
+class Audio;
+
 class MixedProcessedAudioStream  : public InboundAudioStream {
     Q_OBJECT
 public:
-    MixedProcessedAudioStream (int numFrameSamples, int numFramesCapacity, bool dynamicJitterBuffers, int staticDesiredJitterBufferFrames, int maxFramesOverDesired, bool useStDevForJitterCalc);
+    MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings);
 
 signals:
     
+    void addedSilence(int silentSamplesPerChannel);
+    void addedLastFrameRepeatedWithFade(int samplesPerChannel);
+    void addedStereoSamples(const QByteArray& samples);
+
     void processSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
 
 public:
     void outputFormatChanged(int outputFormatChannelCountTimesSampleRate);
 
 protected:
-    int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
-    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
+    int writeDroppableSilentSamples(int silentSamples);
+    int writeLastFrameRepeatedWithFade(int samples);
+    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
+
+private:
+    int networkToDeviceSamples(int networkSamples);
+    int deviceToNetworkSamples(int deviceSamples);
 
 private:
     int _outputFormatChannelsTimesSampleRate;

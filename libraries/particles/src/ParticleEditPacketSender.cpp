@@ -38,7 +38,8 @@ void ParticleEditPacketSender::sendEditParticleMessage(PacketType type, Particle
     }
 }
 
-void ParticleEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
+void ParticleEditPacketSender::adjustEditPacketForClockSkew(PacketType type,
+                                        unsigned char* codeColorBuffer, size_t length, int clockSkew) {
     Particle::adjustEditPacketForClockSkew(codeColorBuffer, length, clockSkew);
 }
 

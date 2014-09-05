@@ -22,6 +22,8 @@ class Sound : public QObject {
 public:
     Sound(const QUrl& sampleURL, QObject* parent = NULL);
     Sound(float volume, float frequency, float duration, float decay, QObject* parent = NULL);
+    Sound(const QByteArray byteArray, QObject* parent = NULL);
+    void append(const QByteArray byteArray);
     
     bool hasDownloaded() const { return _hasDownloaded; }
     

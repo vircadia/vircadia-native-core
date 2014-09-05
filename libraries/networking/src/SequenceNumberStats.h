@@ -31,6 +31,18 @@ public:
         _expectedReceived(0)
     {}
 
+    PacketStreamStats operator-(const PacketStreamStats& rhs) const {
+        PacketStreamStats diff;
+        diff._received = _received - rhs._received;
+        diff._unreasonable = _unreasonable - rhs._unreasonable;
+        diff._early = _early - rhs._early;
+        diff._late = _late - rhs._late;
+        diff._lost = _lost - rhs._lost;
+        diff._recovered = _recovered - rhs._recovered;
+        diff._expectedReceived = _expectedReceived - rhs._expectedReceived;
+        return diff;
+    }
+
     float getLostRate() const { return (float)_lost / _expectedReceived; }
 
     quint32 _received;
@@ -76,6 +88,7 @@ public:
 
     const PacketStreamStats& getStats() const { return _stats; }
     PacketStreamStats getStatsForHistoryWindow() const;
+    PacketStreamStats getStatsForLastHistoryInterval() const;
     const QSet<quint16>& getMissingSet() const { return _missingSet; }
 
 private:

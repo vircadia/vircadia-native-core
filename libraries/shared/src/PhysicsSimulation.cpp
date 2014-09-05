@@ -16,8 +16,9 @@
 #include "PerfStat.h"
 #include "PhysicsEntity.h"
 #include "Ragdoll.h"
-#include "SharedUtil.h"
+#include "Shape.h"
 #include "ShapeCollider.h"
+#include "SharedUtil.h"
 
 int MAX_DOLLS_PER_SIMULATION = 16;
 int MAX_ENTITIES_PER_SIMULATION = 64;
@@ -29,6 +30,10 @@ PhysicsSimulation::PhysicsSimulation() : _translation(0.0f), _frameCount(0), _en
 }
 
 PhysicsSimulation::~PhysicsSimulation() {
+    clear();
+}
+
+void PhysicsSimulation::clear() {
     // entities have a backpointer to this simulator that must be cleaned up
     int numEntities = _otherEntities.size();
     for (int i = 0; i < numEntities; ++i) {
@@ -42,17 +47,20 @@ PhysicsSimulation::~PhysicsSimulation() {
     // but Ragdolls do not
     _ragdoll = NULL;
     _otherRagdolls.clear();
+
+    // contacts have backpointers to shapes so we clear them
+    _contacts.clear();
 }
 
 void PhysicsSimulation::setRagdoll(Ragdoll* ragdoll) { 
     if (_ragdoll != ragdoll) {
         if (_ragdoll) {
-            _ragdoll->_ragdollSimulation = NULL;
+            _ragdoll->_simulation = NULL;
         }
         _ragdoll = ragdoll;
         if (_ragdoll) {
-            assert(!(_ragdoll->_ragdollSimulation));
-            _ragdoll->_ragdollSimulation = this;
+            assert(!(_ragdoll->_simulation));
+            _ragdoll->_simulation = this;
         }
     }
 }
@@ -133,6 +141,18 @@ void PhysicsSimulation::removeShapes(const PhysicsEntity* entity) {
     }
 }
 
+void PhysicsSimulation::removeShape(const Shape* shape) {
+    // remove data structures with pointers to shape
+    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
+    while (itr != _contacts.end()) {
+        if (shape == itr.value().getShapeA() || shape == itr.value().getShapeB()) {
+            itr = _contacts.erase(itr);
+        } else {
+            ++itr;
+        }
+    }
+}
+
 const float OTHER_RAGDOLL_MASS_SCALE = 10.0f;
 
 bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
@@ -144,7 +164,7 @@ bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
         // list is full
         return false;
     }
-    if (doll->_ragdollSimulation == this) {
+    if (doll->_simulation == this) {
         for (int i = 0; i < numDolls; ++i) {
             if (doll == _otherRagdolls[i]) {
                 // already in list
@@ -153,8 +173,8 @@ bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
         }
     }
     // add to list
-    assert(!(doll->_ragdollSimulation));
-    doll->_ragdollSimulation = this;
+    assert(!(doll->_simulation));
+    doll->_simulation = this;
     _otherRagdolls.push_back(doll);
 
     // set the massScale of otherRagdolls artificially high
@@ -163,10 +183,10 @@ bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
 }
 
 void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
-    int numDolls = _otherRagdolls.size();
-    if (doll->_ragdollSimulation != this) {
+    if (!doll || doll->_simulation != this) {
         return;
     }
+    int numDolls = _otherRagdolls.size();
     for (int i = 0; i < numDolls; ++i) {
         if (doll == _otherRagdolls[i]) {
             if (i == numDolls - 1) {
@@ -178,7 +198,7 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
                 _otherRagdolls.pop_back();
                 _otherRagdolls[i] = lastDoll;
             }
-            doll->_ragdollSimulation = NULL;
+            doll->_simulation = NULL;
             doll->setMassScale(1.0f);
             break;
         }
@@ -194,50 +214,63 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
     quint64 startTime = now;
     quint64 expiry = startTime + maxUsec;
 
-    moveRagdolls(deltaTime);
-    buildContactConstraints();
+    integrate(deltaTime);
+    enforceContacts();
     int numDolls = _otherRagdolls.size();
     {
         PerformanceTimer perfTimer("enforce");
-        _ragdoll->enforceRagdollConstraints();
+        _ragdoll->enforceConstraints();
         for (int i = 0; i < numDolls; ++i) {
-            _otherRagdolls[i]->enforceRagdollConstraints();
+            _otherRagdolls[i]->enforceConstraints();
         }
     }
 
+    bool collidedWithOtherRagdoll = false;
     int iterations = 0;
     float error = 0.0f;
     do {
-        computeCollisions();
+        collidedWithOtherRagdoll = computeCollisions() || collidedWithOtherRagdoll;
         updateContacts();
         resolveCollisions();
 
         { // enforce constraints
             PerformanceTimer perfTimer("enforce");
-            error = _ragdoll->enforceRagdollConstraints();
+            error = _ragdoll->enforceConstraints();
             for (int i = 0; i < numDolls; ++i) {
-                error = glm::max(error, _otherRagdolls[i]->enforceRagdollConstraints());
+                error = glm::max(error, _otherRagdolls[i]->enforceConstraints());
             }
         }
-        enforceContactConstraints();
+        applyContactFriction();
         ++iterations;
 
         now = usecTimestampNow();
     } while (_collisions.size() != 0 && (iterations < maxIterations) && (error > minError) && (now < expiry));
 
+    // the collisions may have moved the main ragdoll from the simulation center
+    // so we remove this offset (potentially storing it as movement of the Ragdoll owner)
+    _ragdoll->removeRootOffset(collidedWithOtherRagdoll);
+
+    // also remove any offsets from the other ragdolls
+    for (int i = 0; i < numDolls; ++i) {
+        _otherRagdolls[i]->removeRootOffset(false);
+    }
     pruneContacts();
 }
 
-void PhysicsSimulation::moveRagdolls(float deltaTime) {
+void PhysicsSimulation::integrate(float deltaTime) {
     PerformanceTimer perfTimer("integrate");
-    _ragdoll->stepRagdollForward(deltaTime);
+    int numEntities = _otherEntities.size();
+    for (int i = 0; i < numEntities; ++i) {
+        _otherEntities[i]->stepForward(deltaTime);
+    }
+    _ragdoll->stepForward(deltaTime);
     int numDolls = _otherRagdolls.size();
     for (int i = 0; i < numDolls; ++i) {
-        _otherRagdolls[i]->stepRagdollForward(deltaTime);
+        _otherRagdolls[i]->stepForward(deltaTime);
     }
 }
 
-void PhysicsSimulation::computeCollisions() {
+bool PhysicsSimulation::computeCollisions() {
     PerformanceTimer perfTimer("collide");
     _collisions.clear();
 
@@ -258,11 +291,13 @@ void PhysicsSimulation::computeCollisions() {
     }
 
     // collide main ragdoll with others
+    bool otherCollisions = false;
     int numEntities = _otherEntities.size();
     for (int i = 0; i < numEntities; ++i) {
         const QVector<Shape*> otherShapes = _otherEntities.at(i)->getShapes();
-        ShapeCollider::collideShapesWithShapes(shapes, otherShapes, _collisions);
+        otherCollisions = ShapeCollider::collideShapesWithShapes(shapes, otherShapes, _collisions) || otherCollisions;
     }
+    return otherCollisions;
 }
 
 void PhysicsSimulation::resolveCollisions() {
@@ -288,20 +323,20 @@ void PhysicsSimulation::resolveCollisions() {
     }
 }
 
-void PhysicsSimulation::buildContactConstraints() {
-    PerformanceTimer perfTimer("contacts");
-    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
-    while (itr != _contacts.end()) {
-        itr.value().buildConstraints();
-        ++itr;
-    }
-}
-
-void PhysicsSimulation::enforceContactConstraints() {
+void PhysicsSimulation::enforceContacts() {
     PerformanceTimer perfTimer("contacts");
     QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
     while (itr != _contacts.end()) {
         itr.value().enforce();
+        ++itr;
+    }
+}
+
+void PhysicsSimulation::applyContactFriction() {
+    PerformanceTimer perfTimer("contacts");
+    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
+    while (itr != _contacts.end()) {
+        itr.value().applyFriction();
         ++itr;
     }
 }

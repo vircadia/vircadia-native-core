@@ -27,7 +27,6 @@ AudioInjector::AudioInjector(QObject* parent) :
     _options(),
     _shouldStop(false)
 {
-    
 }
 
 AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
@@ -35,7 +34,10 @@ AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorO
     _options(injectorOptions),
     _shouldStop(false)
 {
-    
+}
+
+void AudioInjector::setOptions(AudioInjectorOptions& options) {
+    _options = options;
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
@@ -55,8 +57,6 @@ void AudioInjector::injectAudio() {
             
         }
         
-        NodeList* nodeList = NodeList::getInstance();
-        
         // setup the packet for injected audio
         QByteArray injectAudioPacket = byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
         QDataStream packetStream(&injectAudioPacket, QIODevice::Append);
@@ -73,9 +73,11 @@ void AudioInjector::injectAudio() {
         packetStream << loopbackFlag;
         
         // pack the position for injected audio
+        int positionOptionOffset = injectAudioPacket.size();
         packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getPosition()), sizeof(_options.getPosition()));
         
         // pack our orientation for injected audio
+        int orientationOptionOffset = injectAudioPacket.size();
         packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getOrientation()), sizeof(_options.getOrientation()));
         
         // pack zero for radius
@@ -101,6 +103,12 @@ void AudioInjector::injectAudio() {
             
             int bytesToCopy = std::min(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
                                        soundByteArray.size() - currentSendPosition);
+            memcpy(injectAudioPacket.data() + positionOptionOffset,
+                   &_options.getPosition(),
+                   sizeof(_options.getPosition()));
+            memcpy(injectAudioPacket.data() + orientationOptionOffset,
+                   &_options.getOrientation(),
+                   sizeof(_options.getOrientation()));
             
             // resize the QByteArray to the right size
             injectAudioPacket.resize(numPreAudioDataBytes + bytesToCopy);
@@ -112,6 +120,7 @@ void AudioInjector::injectAudio() {
             memcpy(injectAudioPacket.data() + numPreAudioDataBytes, soundByteArray.data() + currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
+            NodeList* nodeList = NodeList::getInstance();
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
             
             // send off this audio packet

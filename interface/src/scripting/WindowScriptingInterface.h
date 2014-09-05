@@ -47,9 +47,12 @@ private slots:
     QScriptValue showBrowse(const QString& title, const QString& directory, const QString& nameFilter,
                             QFileDialog::AcceptMode acceptMode = QFileDialog::AcceptOpen);
     QScriptValue showS3Browse(const QString& nameFilter);
+    void chooseDirectory();
     
 private:
     WindowScriptingInterface();
+
+    QString jsRegExp2QtRegExp(QString string);
 };
 
 #endif // hifi_WindowScriptingInterface_h

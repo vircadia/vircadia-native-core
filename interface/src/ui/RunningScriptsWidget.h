@@ -25,8 +25,7 @@ namespace Ui {
     class RunningScriptsWidget;
 }
 
-class RunningScriptsWidget : public FramelessDialog
-{
+class RunningScriptsWidget : public QWidget {
     Q_OBJECT
 public:
     explicit RunningScriptsWidget(QWidget* parent = NULL);

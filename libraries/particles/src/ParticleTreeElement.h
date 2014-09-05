@@ -76,7 +76,7 @@ public:
     virtual bool requiresSplit() const { return false; }
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual bool appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
+    virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const;
 
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
@@ -114,7 +114,7 @@ public:
     /// finds all particles that touch a box
     /// \param box the query box
     /// \param particles[out] vector of non-const Particle*
-    void getParticlesForUpdate(const AACube& box, QVector<Particle*>& foundParticles);
+    void getParticles(const AACube& box, QVector<Particle*>& foundParticles);
 
     const Particle* getParticleWithID(uint32_t id) const;
 

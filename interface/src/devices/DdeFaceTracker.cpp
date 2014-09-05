@@ -178,6 +178,31 @@ float rescaleCoef(float ddeCoef) {
     return (ddeCoef - DDE_MIN_RANGE) / (DDE_MAX_RANGE - DDE_MIN_RANGE);
 }
 
+const int MIN = 0;
+const int AVG = 1;
+const int MAX = 2;
+const float LONG_TERM_AVERAGE = 0.999f;
+
+
+void resetCoefficient(float * coefficient, float currentValue) {
+    coefficient[MIN] = coefficient[MAX] = coefficient[AVG] = currentValue;
+}
+
+float updateAndGetCoefficient(float * coefficient, float currentValue, bool scaleToRange = false) {
+    coefficient[MIN] = (currentValue < coefficient[MIN]) ? currentValue : coefficient[MIN];
+    coefficient[MAX] = (currentValue > coefficient[MAX]) ? currentValue : coefficient[MAX];
+    coefficient[AVG] = LONG_TERM_AVERAGE * coefficient[AVG] + (1.f - LONG_TERM_AVERAGE) * currentValue;
+    if (coefficient[MAX] > coefficient[MIN]) {
+        if (scaleToRange) {
+            return glm::clamp((currentValue - coefficient[AVG]) / (coefficient[MAX] - coefficient[MIN]), 0.0f, 1.0f);
+        } else {
+            return glm::clamp(currentValue - coefficient[AVG], 0.0f, 1.0f);
+        }
+    } else {
+        return 0.0f;
+    }
+}
+
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     if(buffer.size() > MIN_PACKET_SIZE) {
         Packet packet;
@@ -189,14 +214,17 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         memcpy(&translation, packet.translation, sizeof(packet.translation));
         glm::quat rotation;
         memcpy(&rotation, &packet.rotation, sizeof(packet.rotation));
-        if (_reset) {
+        if (_reset || (_lastReceiveTimestamp == 0)) {
             memcpy(&_referenceTranslation, &translation, sizeof(glm::vec3));
             memcpy(&_referenceRotation, &rotation, sizeof(glm::quat));
+            
+            resetCoefficient(_rightEye, packet.expressions[0]);
+            resetCoefficient(_leftEye, packet.expressions[1]);
             _reset = false;
         }
 
         // Compute relative translation
-        float LEAN_DAMPING_FACTOR = 40;
+        float LEAN_DAMPING_FACTOR = 200.0f;
         translation -= _referenceTranslation;
         translation /= LEAN_DAMPING_FACTOR;
         translation.x *= -1;
@@ -208,10 +236,17 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _headTranslation = translation;
         _headRotation = rotation;
         
+        if (_lastReceiveTimestamp == 0) {
+            //  On first packet, reset coefficients
+        }
+        
         // Set blendshapes
-        float BLINK_MAGNIFIER = 2.0f;
-        _blendshapeCoefficients[_leftBlinkIndex] = rescaleCoef(packet.expressions[1]) * BLINK_MAGNIFIER;
-        _blendshapeCoefficients[_rightBlinkIndex] = rescaleCoef(packet.expressions[0]) * BLINK_MAGNIFIER;
+        float EYE_MAGNIFIER = 4.0f;
+        float rightEye = glm::clamp((updateAndGetCoefficient(_rightEye, packet.expressions[0])) * EYE_MAGNIFIER, 0.0f, 1.0f);
+        _blendshapeCoefficients[_rightBlinkIndex] = rightEye;
+        float leftEye = glm::clamp((updateAndGetCoefficient(_leftEye, packet.expressions[1])) * EYE_MAGNIFIER, 0.0f, 1.0f);
+        _blendshapeCoefficients[_leftBlinkIndex] = leftEye;
+
         
         float leftBrow = 1.0f - rescaleCoef(packet.expressions[14]);
         if (leftBrow < 0.5f) {
@@ -233,9 +268,9 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         float JAW_OPEN_MAGNIFIER = 1.4f;
         _blendshapeCoefficients[_jawOpenIndex] = rescaleCoef(packet.expressions[21]) * JAW_OPEN_MAGNIFIER;
         
-        
-        _blendshapeCoefficients[_mouthSmileLeftIndex] = rescaleCoef(packet.expressions[24]);
-        _blendshapeCoefficients[_mouthSmileRightIndex] = rescaleCoef(packet.expressions[23]);
+        float SMILE_MULTIPLIER = 2.0f;
+        _blendshapeCoefficients[_mouthSmileLeftIndex] = glm::clamp(packet.expressions[24] * SMILE_MULTIPLIER, 0.0f, 1.0f);
+        _blendshapeCoefficients[_mouthSmileRightIndex] = glm::clamp(packet.expressions[23] * SMILE_MULTIPLIER, 0.0f, 1.0f);
         
         
     } else {

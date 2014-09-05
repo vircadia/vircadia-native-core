@@ -10,7 +10,7 @@
 //
 
 #include "CaraFaceTracker.h"
-#include <SharedUtil.h>
+#include <GLMHelpers.h>
 
 //qt
 #include <QJsonDocument>
@@ -389,7 +389,6 @@ void CaraFaceTracker::decodePacket(const QByteArray& buffer) {
         if (theta > EPSILON) {
             float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
             const float AVERAGE_CARA_FRAME_TIME = 0.04f;
-            const float ANGULAR_VELOCITY_MIN = 1.2f;
             const float YAW_STANDARD_DEV_DEG = 2.5f;
 
             _headAngularVelocity = theta / AVERAGE_CARA_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;

@@ -35,6 +35,7 @@
 #include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
+#include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
@@ -78,20 +79,23 @@ MyAvatar::MyAvatar() :
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
-    _physicsSimulation()
+    _physicsSimulation(),
+    _voxelShapeManager()
 {
+    ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-    _skeletonModel.setEnableShapes(true);
-    // The skeleton is both a PhysicsEntity and Ragdoll, so we add it to the simulation once for each type.
     _physicsSimulation.setEntity(&_skeletonModel);
-    _physicsSimulation.setRagdoll(&_skeletonModel);
+
+    _skeletonModel.setEnableShapes(true);
+    Ragdoll* ragdoll = _skeletonModel.buildRagdoll();
+    _physicsSimulation.setRagdoll(ragdoll);
+    _physicsSimulation.addEntity(&_voxelShapeManager);
 }
 
 MyAvatar::~MyAvatar() {
-    _physicsSimulation.setRagdoll(NULL);
-    _physicsSimulation.setEntity(NULL);
+    _physicsSimulation.clear();
     _lookAtTargetAvatar.clear();
 }
 
@@ -135,6 +139,12 @@ void MyAvatar::update(float deltaTime) {
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
+    
+    // Play back recording
+    if (_player && _player->isPlaying()) {
+        _player->play();
+    }
+    
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
@@ -147,7 +157,7 @@ void MyAvatar::simulate(float deltaTime) {
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
     }
-
+    
     {
         PerformanceTimer perfTimer("hand");
         // update avatar skeleton and simulate hand and head
@@ -205,12 +215,21 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("ragdoll");
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-            const float minError = 0.01f;
-            const float maxIterations = 10;
-            const quint64 maxUsec = 2000;
+        Ragdoll* ragdoll = _skeletonModel.getRagdoll();
+        if (ragdoll && Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+            const float minError = 0.00001f;
+            const float maxIterations = 3;
+            const quint64 maxUsec = 4000;
             _physicsSimulation.setTranslation(_position);
             _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
+
+            // harvest any displacement of the Ragdoll that is a result of collisions
+            glm::vec3 ragdollDisplacement = ragdoll->getAndClearAccumulatedMovement();
+            const float MAX_RAGDOLL_DISPLACEMENT_2 = 1.0f;
+            float length2 = glm::length2(ragdollDisplacement);
+            if (length2 > EPSILON && length2 < MAX_RAGDOLL_DISPLACEMENT_2) {
+                setPosition(getPosition() + ragdollDisplacement);
+            }
         } else {
             _skeletonModel.moveShapesTowardJoints(1.0f);
         }
@@ -242,6 +261,11 @@ void MyAvatar::simulate(float deltaTime) {
         }
     }
 
+    // Record avatars movements.
+    if (_recorder && _recorder->isRecording()) {
+        _recorder->record();
+    }
+    
     // consider updating our billboard
     maybeUpdateBillboard();
 }
@@ -249,12 +273,22 @@ void MyAvatar::simulate(float deltaTime) {
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
-
+    
+    if (isPlaying() && !OculusManager::isConnected()) {
+        return;
+    }
+    
     if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
         estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
         estimatedRotation.x *= -1.0f;
         estimatedRotation.z *= -1.0f;
 
+    } else if (OculusManager::isConnected()) {
+        estimatedPosition = OculusManager::getRelativePosition();
+        estimatedPosition.x *= -1.0f;
+        
+        const float OCULUS_LEAN_SCALE = 0.05f;
+        estimatedPosition /= OCULUS_LEAN_SCALE;
     } else {
         FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
         if (tracker) {
@@ -286,7 +320,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
     Head* head = getHead();
-    if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected() || isPlaying()) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
     } else {
@@ -303,7 +337,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setLeanForward(eulers.x);
         return;
     }
-
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
@@ -452,8 +485,8 @@ void MyAvatar::clearReferential() {
     changeReferential(NULL);
 }
 
-bool MyAvatar::setModelReferential(int id) {
-    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+bool MyAvatar::setModelReferential(const QUuid& id) {
+    EntityTree* tree = Application::getInstance()->getEntities()->getTree();
     changeReferential(new ModelReferential(id, tree, this));
     if (_referential->isValid()) {
         return true;
@@ -463,8 +496,8 @@ bool MyAvatar::setModelReferential(int id) {
     }
 }
 
-bool MyAvatar::setJointReferential(int id, int jointIndex) {
-    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
+    EntityTree* tree = Application::getInstance()->getEntities()->getTree();
     changeReferential(new JointReferential(jointIndex, id, tree, this));
     if (!_referential->isValid()) {
         return true;
@@ -472,6 +505,89 @@ bool MyAvatar::setJointReferential(int id, int jointIndex) {
         changeReferential(NULL);
         return false;
     }
+}
+
+bool MyAvatar::isRecording() {
+    if (!_recorder) {
+        return false;
+    }
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        QMetaObject::invokeMethod(this, "isRecording", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(bool, result));
+        return result;
+    }
+    return _recorder && _recorder->isRecording();
+}
+
+qint64 MyAvatar::recorderElapsed() {
+    if (!_recorder) {
+        return 0;
+    }
+    if (QThread::currentThread() != thread()) {
+        qint64 result;
+        QMetaObject::invokeMethod(this, "recorderElapsed", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(qint64, result));
+        return result;
+    }
+    return _recorder->elapsed();
+}
+
+void MyAvatar::startRecording() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "startRecording", Qt::BlockingQueuedConnection);
+        return;
+    }
+    if (!_recorder) {
+        _recorder = RecorderPointer(new Recorder(this));
+    }
+    Application::getInstance()->getAudio()->setRecorder(_recorder);
+    _recorder->startRecording();
+    
+}
+
+void MyAvatar::stopRecording() {
+    if (!_recorder) {
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopRecording", Qt::BlockingQueuedConnection);
+        return;
+    }
+    if (_recorder) {
+        _recorder->stopRecording();
+    }
+}
+
+void MyAvatar::saveRecording(QString filename) {
+    if (!_recorder) {
+        qDebug() << "There is no recording to save";
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "saveRecording", Qt::BlockingQueuedConnection,
+                                  Q_ARG(QString, filename));
+        return;
+    }
+    if (_recorder) {
+        _recorder->saveToFile(filename);
+    }
+}
+
+void MyAvatar::loadLastRecording() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadLastRecording", Qt::BlockingQueuedConnection);
+        return;
+    }
+    if (!_recorder) {
+        qDebug() << "There is no recording to load";
+        return;
+    }
+    if (!_player) {
+        _player = PlayerPointer(new Player(this));
+    }
+    
+    _player->loadRecording(_recorder->getRecording());
 }
 
 void MyAvatar::setLocalGravity(glm::vec3 gravity) {
@@ -854,19 +970,39 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
-const float JOINT_PRIORITY = 2.0f;
+const float SCRIPT_PRIORITY = DEFAULT_PRIORITY + 1.0f;
+const float RECORDER_PRIORITY = SCRIPT_PRIORITY + 1.0f;
+
+void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
+    int numStates = glm::min(_skeletonModel.getJointStateCount(), jointRotations.size());
+    for (int i = 0; i < numStates; ++i) {
+        // HACK: ATM only Recorder calls setJointRotations() so we hardcode its priority here
+        _skeletonModel.setJointState(i, true, jointRotations[i], RECORDER_PRIORITY);
+    }
+}
 
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
-    Avatar::setJointData(index, rotation);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, true, rotation, JOINT_PRIORITY);
+        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+        _skeletonModel.setJointState(index, true, rotation, SCRIPT_PRIORITY);
     }
 }
 
 void MyAvatar::clearJointData(int index) {
-    Avatar::clearJointData(index);
     if (QThread::currentThread() == thread()) {
-        _skeletonModel.setJointState(index, false, glm::quat(), JOINT_PRIORITY);
+        // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
+        _skeletonModel.setJointState(index, false, glm::quat(), 0.0f);
+    }
+}
+
+void MyAvatar::clearJointsData() {
+    clearJointAnimationPriorities();
+}
+
+void MyAvatar::clearJointAnimationPriorities() {
+    int numStates = _skeletonModel.getJointStateCount();
+    for (int i = 0; i < numStates; ++i) {
+        _skeletonModel.clearJointAnimationPriority(i);
     }
 }
 
@@ -1351,112 +1487,125 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
 static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
-    const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
-    float speed = glm::length(_velocity);
-    if (speed > MAX_VOXEL_COLLISION_SPEED) {
-        // don't even bother to try to collide against voxles when moving very fast
-        _trapDuration = 0.0f;
-        return;
-    }
-    bool isTrapped = false;
-    myCollisions.clear();
-    const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
-    if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions, Octree::TryLock)) {
-        const float VOXEL_ELASTICITY = 0.0f;
-        const float VOXEL_DAMPING = 0.0f;
-        float capsuleRadius = boundingShape.getRadius();
-        float capsuleHalfHeight = boundingShape.getHalfHeight();
-        const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
-        const float MIN_STEP_HEIGHT = 0.0f;
-        glm::vec3 footBase = boundingShape.getTranslation() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
-        float highestStep = 0.0f;
-        float lowestStep = MAX_STEP_HEIGHT;
-        glm::vec3 floorPoint;
-        glm::vec3 stepPenetration(0.0f);
-        glm::vec3 totalPenetration(0.0f);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        // We use a multiple of the avatar's boundingRadius as the size of the cube of interest.
+        float cubeScale = 4.0f * getBoundingRadius();
+        glm::vec3 corner = getPosition() - glm::vec3(0.5f * cubeScale);
+        AACube boundingCube(corner, cubeScale);
 
-        for (int i = 0; i < myCollisions.size(); ++i) {
-            CollisionInfo* collision = myCollisions[i];
-            glm::vec3 cubeCenter = collision->_vecData;
-            float cubeSide = collision->_floatData;
-            float verticalDepth = glm::dot(collision->_penetration, _worldUpDirection);
-            float horizontalDepth = glm::length(collision->_penetration - verticalDepth * _worldUpDirection);
-            const float MAX_TRAP_PERIOD = 0.125f;
-            if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
-                isTrapped = true;
-                if (_trapDuration > MAX_TRAP_PERIOD) {
-                    float distance = glm::dot(boundingShape.getTranslation() - cubeCenter, _worldUpDirection);
-                    if (distance < 0.0f) {
-                        distance = fabsf(distance) + 0.5f * cubeSide;
-                    }
-                    distance += capsuleRadius + capsuleHalfHeight;
-                    totalPenetration = addPenetrations(totalPenetration, - distance * _worldUpDirection);
-                    continue;
-                }
-            } else if (_trapDuration > MAX_TRAP_PERIOD) {
-                // we're trapped, ignore this collision
-                continue;
-            }
-            totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
-            if (glm::dot(collision->_penetration, _velocity) >= 0.0f) {
-                glm::vec3 cubeTop = cubeCenter + (0.5f * cubeSide) * _worldUpDirection;
-                float stepHeight = glm::dot(_worldUpDirection, cubeTop - footBase);
-                if (stepHeight > highestStep) {
-                    highestStep = stepHeight;
-                    stepPenetration = collision->_penetration;
-                }
-                if (stepHeight < lowestStep) {
-                    lowestStep = stepHeight;
-                    floorPoint = collision->_contactPoint - collision->_penetration;
-                }
-            }
+        // query the VoxelTree for cubes that touch avatar's boundingCube
+        CubeList cubes;
+        if (Application::getInstance()->getVoxelTree()->findContentInCube(boundingCube, cubes)) {
+            _voxelShapeManager.updateVoxels(cubes);
         }
-        if (lowestStep < MAX_STEP_HEIGHT) {
-            _lastFloorContactPoint = floorPoint;
-        }
-
-        float penetrationLength = glm::length(totalPenetration);
-        if (penetrationLength < EPSILON) {
+    } else {
+        const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
+        float speed = glm::length(_velocity);
+        if (speed > MAX_VOXEL_COLLISION_SPEED) {
+            // don't even bother to try to collide against voxles when moving very fast
             _trapDuration = 0.0f;
             return;
         }
-        float verticalPenetration = glm::dot(totalPenetration, _worldUpDirection);
-        if (highestStep > MIN_STEP_HEIGHT && highestStep < MAX_STEP_HEIGHT && verticalPenetration <= 0.0f) {
-            // we're colliding against an edge
-            glm::vec3 targetVelocity = _motorVelocity;
-            if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
-                // rotate _motorVelocity into world frame
-                glm::quat rotation = getHead()->getCameraOrientation();
-                targetVelocity = rotation * _motorVelocity;
-            }
-            if (_wasPushing && glm::dot(targetVelocity, totalPenetration) > EPSILON) {
-                // we're puhing into the edge, so we want to lift
-
-                // remove unhelpful horizontal component of the step's penetration
-                totalPenetration -= stepPenetration - (glm::dot(stepPenetration, _worldUpDirection) * _worldUpDirection);
-
-                // further adjust penetration to help lift
-                float liftSpeed = glm::max(MAX_WALKING_SPEED, speed);
-                float thisStep = glm::min(liftSpeed * deltaTime, highestStep);
-                float extraStep = glm::dot(totalPenetration, _worldUpDirection) + thisStep;
-                if (extraStep > 0.0f) {
-                    totalPenetration -= extraStep * _worldUpDirection;
+        bool isTrapped = false;
+        myCollisions.clear();
+        const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
+        if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions, Octree::TryLock)) {
+            const float VOXEL_ELASTICITY = 0.0f;
+            const float VOXEL_DAMPING = 0.0f;
+            float capsuleRadius = boundingShape.getRadius();
+            float capsuleHalfHeight = boundingShape.getHalfHeight();
+            const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
+            const float MIN_STEP_HEIGHT = 0.0f;
+            glm::vec3 footBase = boundingShape.getTranslation() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
+            float highestStep = 0.0f;
+            float lowestStep = MAX_STEP_HEIGHT;
+            glm::vec3 floorPoint;
+            glm::vec3 stepPenetration(0.0f);
+            glm::vec3 totalPenetration(0.0f);
+    
+            for (int i = 0; i < myCollisions.size(); ++i) {
+                CollisionInfo* collision = myCollisions[i];
+                glm::vec3 cubeCenter = collision->_vecData;
+                float cubeSide = collision->_floatData;
+                float verticalDepth = glm::dot(collision->_penetration, _worldUpDirection);
+                float horizontalDepth = glm::length(collision->_penetration - verticalDepth * _worldUpDirection);
+                const float MAX_TRAP_PERIOD = 0.125f;
+                if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
+                    isTrapped = true;
+                    if (_trapDuration > MAX_TRAP_PERIOD) {
+                        float distance = glm::dot(boundingShape.getTranslation() - cubeCenter, _worldUpDirection);
+                        if (distance < 0.0f) {
+                            distance = fabsf(distance) + 0.5f * cubeSide;
+                        }
+                        distance += capsuleRadius + capsuleHalfHeight;
+                        totalPenetration = addPenetrations(totalPenetration, - distance * _worldUpDirection);
+                        continue;
+                    }
+                } else if (_trapDuration > MAX_TRAP_PERIOD) {
+                    // we're trapped, ignore this collision
+                    continue;
                 }
-
-                _position -= totalPenetration;
+                totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
+                if (glm::dot(collision->_penetration, _velocity) >= 0.0f) {
+                    glm::vec3 cubeTop = cubeCenter + (0.5f * cubeSide) * _worldUpDirection;
+                    float stepHeight = glm::dot(_worldUpDirection, cubeTop - footBase);
+                    if (stepHeight > highestStep) {
+                        highestStep = stepHeight;
+                        stepPenetration = collision->_penetration;
+                    }
+                    if (stepHeight < lowestStep) {
+                        lowestStep = stepHeight;
+                        floorPoint = collision->_contactPoint - collision->_penetration;
+                    }
+                }
+            }
+            if (lowestStep < MAX_STEP_HEIGHT) {
+                _lastFloorContactPoint = floorPoint;
+            }
+    
+            float penetrationLength = glm::length(totalPenetration);
+            if (penetrationLength < EPSILON) {
+                _trapDuration = 0.0f;
+                return;
+            }
+            float verticalPenetration = glm::dot(totalPenetration, _worldUpDirection);
+            if (highestStep > MIN_STEP_HEIGHT && highestStep < MAX_STEP_HEIGHT && verticalPenetration <= 0.0f) {
+                // we're colliding against an edge
+                glm::vec3 targetVelocity = _motorVelocity;
+                if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
+                    // rotate _motorVelocity into world frame
+                    glm::quat rotation = getHead()->getCameraOrientation();
+                    targetVelocity = rotation * _motorVelocity;
+                }
+                if (_wasPushing && glm::dot(targetVelocity, totalPenetration) > EPSILON) {
+                    // we're puhing into the edge, so we want to lift
+    
+                    // remove unhelpful horizontal component of the step's penetration
+                    totalPenetration -= stepPenetration - (glm::dot(stepPenetration, _worldUpDirection) * _worldUpDirection);
+    
+                    // further adjust penetration to help lift
+                    float liftSpeed = glm::max(MAX_WALKING_SPEED, speed);
+                    float thisStep = glm::min(liftSpeed * deltaTime, highestStep);
+                    float extraStep = glm::dot(totalPenetration, _worldUpDirection) + thisStep;
+                    if (extraStep > 0.0f) {
+                        totalPenetration -= extraStep * _worldUpDirection;
+                    }
+    
+                    _position -= totalPenetration;
+                } else {
+                    // we're not pushing into the edge, so let the avatar fall
+                    applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+                }
             } else {
-                // we're not pushing into the edge, so let the avatar fall
                 applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
             }
-        } else {
-            applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-        }
-
-        // Don't make a collision sound against voxlels by default -- too annoying when walking
-        //const float VOXEL_COLLISION_FREQUENCY = 0.5f;
-        //updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
-    } 
-    _trapDuration = isTrapped ? _trapDuration + deltaTime : 0.0f;
+    
+            // Don't make a collision sound against voxlels by default -- too annoying when walking
+            //const float VOXEL_COLLISION_FREQUENCY = 0.5f;
+            //updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
+        } 
+        _trapDuration = isTrapped ? _trapDuration + deltaTime : 0.0f;
+    }
 }
 
 void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity, float damping) {
@@ -1598,10 +1747,10 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 if (simulation != &(_physicsSimulation)) {
                     skeleton->setEnableShapes(true);
                     _physicsSimulation.addEntity(skeleton);
-                    _physicsSimulation.addRagdoll(skeleton);
+                    _physicsSimulation.addRagdoll(skeleton->getRagdoll());
                 }
             } else if (simulation == &(_physicsSimulation)) {
-                _physicsSimulation.removeRagdoll(skeleton);
+                _physicsSimulation.removeRagdoll(skeleton->getRagdoll());
                 _physicsSimulation.removeEntity(skeleton);
                 skeleton->setEnableShapes(false);
             }
@@ -1761,11 +1910,12 @@ void MyAvatar::resetSize() {
 }
 
 void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
-    if (jsonObject["status"].toString() == "success") {
-        QJsonObject locationObject = jsonObject["data"].toObject()["address"].toObject();
+    QJsonObject locationObject = jsonObject["data"].toObject()["address"].toObject();
+    bool isOnline = jsonObject["data"].toObject()["online"].toBool();
+    if (isOnline ) {
         goToLocationFromAddress(locationObject);
     } else {
-        QMessageBox::warning(Application::getInstance()->getWindow(), "", "That user or location could not be found.");
+        QMessageBox::warning(Application::getInstance()->getWindow(), "", "The user is not online.");
     }
 }
 
@@ -1820,6 +1970,9 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
         menu->setIsOptionChecked(MenuOption::CollideWithVoxels, true);
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+    }
+    if (!(_collisionGroups | COLLISION_GROUP_VOXELS)) {
+        _voxelShapeManager.clearShapes();
     }
 }
 

@@ -96,7 +96,9 @@ Currently building on Windows has been tested using the following compilers:
 
 #####Windows SDK 7.1
 
-Whichever version of Visual Studio you use, first install [Microsoft Windows SDK for Windows 7 and .NET Framework 4](http://www.microsoft.com/en-us/download/details.aspx?id=8279).
+Whichever version of Visual Studio you use, you will need [Microsoft Windows SDK for Windows 7 and .NET Framework 4](http://www.microsoft.com/en-us/download/details.aspx?id=8279).
+
+NOTE: If using Visual Studio C++ 2010 Express, you need to follow a specific install order. See below before installing the Windows SDK.
 
 ######Windows 8.1
 You may have already downloaded the Windows 8 SDK (e.g. if you have previously installed Visual Studio 2013).  If so, change CMAKE_PREFIX_PATH in %HIFI_DIR%\CMakeLists.txt to point to the Windows 8 SDK binaries. The default path is `C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86`
@@ -108,6 +110,14 @@ Visual Studio C++ 2010 Express can be downloaded [here](http://www.visualstudio.
 The following patches/service packs are also required:
 * [VS2010 SP1](http://www.microsoft.com/en-us/download/details.aspx?id=23691)
 * [VS2010 SP1 Compiler Update](http://www.microsoft.com/en-us/download/details.aspx?id=4422)
+
+IMPORTANT: Use the following install order:
+Visual Studio C++ 2010 Express
+Windows SDK 7.1
+VS2010 SP1
+VS2010 SP1 Compiler Update
+
+If you get an error while installing the VS2010 SP1 Compiler update saying that you don't have the Windows SDK installed, then uninstall all of the above and start again in the correct order.
 
 Some of the build instructions will ask you to start a Visual Studio Command Prompt. You should have a shortcut in your Start menu called "Open Visual Studio Command Prompt (2010)" which will do so.
 

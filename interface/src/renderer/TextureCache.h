@@ -23,6 +23,10 @@ class QOpenGLFramebufferObject;
 
 class NetworkTexture;
 
+typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
+
+enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, SPLAT_TEXTURE };
+
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache {
     Q_OBJECT
@@ -47,7 +51,7 @@ public:
     GLuint getBlueTextureID();
 
     /// Loads a texture from the specified URL.
-    QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool normalMap = false, bool dilatable = false,
+    NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
         const QByteArray& content = QByteArray());
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
@@ -56,6 +60,9 @@ public:
     
     /// Returns the ID of the primary framebuffer object's depth texture.  This contains the Z buffer used in rendering.
     GLuint getPrimaryDepthTextureID();
+    
+    /// Returns the ID of the primary framebuffer object's normal texture.
+    GLuint getPrimaryNormalTextureID();
     
     /// Returns a pointer to the secondary framebuffer object, used as an additional render target when performing full
     /// screen effects.
@@ -91,6 +98,7 @@ private:
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
     
     GLuint _primaryDepthTextureID;
+    GLuint _primaryNormalTextureID;
     QOpenGLFramebufferObject* _primaryFramebufferObject;
     QOpenGLFramebufferObject* _secondaryFramebufferObject;
     QOpenGLFramebufferObject* _tertiaryFramebufferObject;
@@ -121,24 +129,29 @@ class NetworkTexture : public Resource, public Texture {
 
 public:
     
-    NetworkTexture(const QUrl& url, bool normalMap, const QByteArray& content);
+    NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content);
 
     /// Checks whether it "looks like" this texture is translucent
     /// (majority of pixels neither fully opaque or fully transparent).
     bool isTranslucent() const { return _translucent; }
+
+    /// Returns the lazily-computed average texture color.
+    const QColor& getAverageColor() const { return _averageColor; }
 
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
-    Q_INVOKABLE void setImage(const QImage& image, bool translucent);
+    Q_INVOKABLE void setImage(const QImage& image, bool translucent, const QColor& averageColor);
 
     virtual void imageLoaded(const QImage& image);
 
 private:
 
+    TextureType _type;
     bool _translucent;
+    QColor _averageColor;
 };
 
 /// Caches derived, dilated textures.

@@ -82,8 +82,7 @@ const int CONSOLE_HEIGHT = 200;
 
 Menu::Menu() :
     _actionHash(),
-    _audioJitterBufferFrames(0),
-    _maxFramesOverDesired(0),
+    _receivedAudioStreamSettings(),
     _bandwidthDialog(NULL),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
     _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
@@ -94,6 +93,9 @@ Menu::Menu() :
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
     _userLocationsDialog(NULL),
+#ifdef Q_OS_MAC
+    _speechRecognizer(),
+#endif
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
@@ -112,6 +114,7 @@ Menu::Menu() :
     _loginAction(NULL),
     _preferencesDialog(NULL),
     _loginDialog(NULL),
+    _hasLoginDialogDisplayed(false),
     _snapshotsLocation(),
     _scriptsLocation(),
     _walletPrivateKey()
@@ -221,18 +224,15 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0, this, SLOT(editAttachments()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::Animations, 0, this, SLOT(editAnimations()));
 
-    addDisabledActionAndSeparator(editMenu, "Physics");
-    QObject* avatar = appInstance->getAvatar();
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false,
-            avatar, SLOT(updateMotionBehaviorsFromMenu()));
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::StandOnNearbyFloors, 0, true,
-            avatar, SLOT(updateMotionBehaviorsFromMenu()));
-
-    addAvatarCollisionSubMenu(editMenu);
-
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S, this, SLOT(showScriptEditor()));
+
+#ifdef Q_OS_MAC
+    QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ControlWithSpeech,
+            Qt::CTRL | Qt::SHIFT | Qt::Key_C, _speechRecognizer.getEnabled(), &_speechRecognizer, SLOT(setEnabled(bool)));
+    connect(&_speechRecognizer, SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
+#endif
 
 #ifdef HAVE_QXMPP
     _chatAction = addActionToQMenuAndActionHash(toolsMenu,
@@ -256,6 +256,45 @@ Menu::Menu() :
             Qt::CTRL | Qt::ALT | Qt::Key_J,
             this,
             SLOT(toggleConsole()));
+
+    QMenu* avatarMenu = addMenu("Avatar");
+
+    QMenu* avatarSizeMenu = avatarMenu->addMenu("Size");
+    addActionToQMenuAndActionHash(avatarSizeMenu,
+                                  MenuOption::IncreaseAvatarSize,
+                                  Qt::Key_Plus,
+                                  appInstance->getAvatar(),
+                                  SLOT(increaseSize()));
+    addActionToQMenuAndActionHash(avatarSizeMenu,
+                                  MenuOption::DecreaseAvatarSize,
+                                  Qt::Key_Minus,
+                                  appInstance->getAvatar(),
+                                  SLOT(decreaseSize()));
+    addActionToQMenuAndActionHash(avatarSizeMenu,
+                                  MenuOption::ResetAvatarSize,
+                                  Qt::Key_Equal,
+                                  appInstance->getAvatar(),
+                                  SLOT(resetSize()));
+
+    QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ChatCircling, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::GlowWhenSpeaking, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false,
+            avatar, SLOT(updateMotionBehaviorsFromMenu()));
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::StandOnNearbyFloors, 0, true,
+            avatar, SLOT(updateMotionBehaviorsFromMenu()));
+
+    QMenu* collisionsMenu = avatarMenu->addMenu("Collide With...");
+    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll);
+    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithAvatars,
+            0, true, avatar, SLOT(updateCollisionGroups()));
+    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithVoxels,
+            0, false, avatar, SLOT(updateCollisionGroups()));
+    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithParticles,
+            0, true, avatar, SLOT(updateCollisionGroups()));
+    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithEnvironment,
+            0, false, avatar, SLOT(updateCollisionGroups()));
 
     QMenu* viewMenu = addMenu("View");
 
@@ -304,25 +343,6 @@ Menu::Menu() :
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_3, false,
                                            &nodeBounds, SLOT(setShowParticleNodes(bool)));
 
-
-    QMenu* avatarSizeMenu = viewMenu->addMenu("Avatar Size");
-
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-                                  MenuOption::IncreaseAvatarSize,
-                                  Qt::Key_Plus,
-                                  appInstance->getAvatar(),
-                                  SLOT(increaseSize()));
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-                                  MenuOption::DecreaseAvatarSize,
-                                  Qt::Key_Minus,
-                                  appInstance->getAvatar(),
-                                  SLOT(decreaseSize()));
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-                                  MenuOption::ResetAvatarSize,
-                                  Qt::Key_Equal,
-                                  appInstance->getAvatar(),
-                                  SLOT(resetSize()));
-
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MoveWithLean, 0, false);
@@ -338,111 +358,97 @@ Menu::Menu() :
 
     QMenu* developerMenu = addMenu("Developer");
 
-    QMenu* renderOptionsMenu = developerMenu->addMenu("Rendering Options");
-
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
+    QMenu* renderOptionsMenu = developerMenu->addMenu("Render");
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, Qt::SHIFT | Qt::Key_A, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Avatars, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Models, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
+    
+    QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
+    QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
+    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, "None", 0, true));
+    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
+    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
+    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::AvatarsReceiveShadows, 0, true));
 
+        
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu,
+                                           MenuOption::Voxels,
+                                           Qt::SHIFT | Qt::Key_V,
+                                           true,
+                                           appInstance,
+                                           SLOT(setRenderVoxels(bool)));
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true);
     addActionToQMenuAndActionHash(renderOptionsMenu,
                                   MenuOption::GlowMode,
                                   0,
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
-
-    QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
-    QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
-    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, "None", 0, true));
-    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
-    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
-
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, false);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::StringHair, 0, false);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
-    QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
-
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu,
-                                           MenuOption::Voxels,
-                                           Qt::SHIFT | Qt::Key_V,
-                                           true,
-                                           appInstance,
-                                           SLOT(setRenderVoxels(bool)));
-
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DisableAutoAdjustLOD);
-
-    QMenu* modelOptionsMenu = developerMenu->addMenu("Model Options");
-    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::Models, 0, true);
-    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelBounds, 0, false);
-    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelElementProxy, 0, false);
-    addCheckableActionToQMenuAndActionHash(modelOptionsMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
-
-    QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
-
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::AvatarsReceiveShadows, 0, true);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderSkeletonCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderHeadCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::RenderBoundingCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollideAsRagdoll);
-
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
+    QMenu* avatarDebugMenu = developerMenu->addMenu("Avatar");
 #ifdef HAVE_FACESHIFT
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
                                            MenuOption::Faceshift,
                                            0,
                                            true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
 #endif
-    
 #ifdef HAVE_FACEPLUS
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Faceplus, 0, true,
-        appInstance->getFaceplus(), SLOT(updateEnabled()));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Faceplus, 0, true,
+            appInstance->getFaceplus(), SLOT(updateEnabled()));
 #endif
-
 #ifdef HAVE_VISAGE
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Visage, 0, false,
-        appInstance->getVisage(), SLOT(updateEnabled()));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Visage, 0, false,
+            appInstance->getVisage(), SLOT(updateEnabled()));
 #endif
 
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::GlowWhenSpeaking, 0, true);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::FocusIndicators, 0, false);
-
-    QMenu* sixenseOptionsMenu = developerMenu->addMenu("Sixense Options");
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLasers, 0, true);
-
-    QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
-
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu,
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderHeadCollisionShapes);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
+    
+    QMenu* modelDebugMenu = developerMenu->addMenu("Models");
+    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelBounds, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
+    
+    QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DisableAutoAdjustLOD);
+    
+    QMenu* handOptionsMenu = developerMenu->addMenu("Hands");
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
+    
+    QMenu* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::FilterSixense,
                                            0,
                                            true,
                                            appInstance->getSixenseManager(),
                                            SLOT(setFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu,
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::LowVelocityFilter,
                                            0,
                                            true,
                                            appInstance,
                                            SLOT(setLowVelocityFilter(bool)));
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLasers, 0, false);
 
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandsCollideWithSelf, 0, false);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, true);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
-    
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisableNackPackets, 0, false);
-    addCheckableActionToQMenuAndActionHash(developerMenu,
+    QMenu* networkMenu = developerMenu->addMenu("Network");
+    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false);
+    addCheckableActionToQMenuAndActionHash(networkMenu,
                                            MenuOption::DisableActivityLogger,
                                            0,
                                            false,
@@ -451,9 +457,7 @@ Menu::Menu() :
     
     addActionToQMenuAndActionHash(developerMenu, MenuOption::WalletPrivateKey, 0, this, SLOT(changePrivateKey()));
 
-    addDisabledActionAndSeparator(developerMenu, "Testing");
-
-    QMenu* timingMenu = developerMenu->addMenu("Timing and Statistics Tools");
+    QMenu* timingMenu = developerMenu->addMenu("Timing and Stats");
     QMenu* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayTimingDetails, 0, true);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandUpdateTiming, 0, false);
@@ -465,8 +469,10 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, this, SLOT(runTests()));
+    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
+    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
 
-    QMenu* frustumMenu = developerMenu->addMenu("View Frustum Debugging Tools");
+    QMenu* frustumMenu = developerMenu->addMenu("View Frustum");
     addCheckableActionToQMenuAndActionHash(frustumMenu, MenuOption::DisplayFrustum, Qt::SHIFT | Qt::Key_F);
     addActionToQMenuAndActionHash(frustumMenu,
                                   MenuOption::FrustumRenderMode,
@@ -476,16 +482,54 @@ Menu::Menu() :
     updateFrustumRenderModeAction();
 
 
-    QMenu* renderDebugMenu = developerMenu->addMenu("Render Debugging Tools");
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings);
-
-    QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
+    QMenu* audioDebugMenu = developerMenu->addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
                                            true,
                                            appInstance->getAudio(),
                                            SLOT(toggleAudioNoiseReduction()));
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioFilter,
+                                           0,
+                                           false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleAudioFilter()));
+
+    QMenu* audioFilterMenu = audioDebugMenu->addMenu("Audio Filter");
+    addDisabledActionAndSeparator(audioFilterMenu, "Filter Response");
+    {
+        QAction *flat = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterFlat,
+                                                                        0,
+                                                                        true,
+                                                                        appInstance->getAudio(),
+                                                                        SLOT(selectAudioFilterFlat()));
+
+        QAction *trebleCut = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterTrebleCut,
+                                                                        0,
+                                                                        false,
+                                                                        appInstance->getAudio(),
+                                                                        SLOT(selectAudioFilterTrebleCut()));
+
+        QAction *bassCut = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterBassCut,
+                                                                        0,
+                                                                        false,
+                                                                        appInstance->getAudio(),
+                                                                        SLOT(selectAudioFilterBassCut()));
+
+        QAction *smiley = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterSmiley,
+                                                                        0,
+                                                                        false,
+                                                                        appInstance->getAudio(),
+                                                                        SLOT(selectAudioFilterSmiley()));
+
+
+        QActionGroup* audioFilterGroup = new QActionGroup(audioFilterMenu);
+        audioFilterGroup->addAction(flat);
+        audioFilterGroup->addAction(trebleCut);
+        audioFilterGroup->addAction(bassCut);
+        audioFilterGroup->addAction(smiley);
+    }
+
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::StereoAudio, 0, false,
@@ -515,7 +559,7 @@ Menu::Menu() :
                                            appInstance->getAudio(),
                                            SLOT(toggleScopePause()));
 
-    QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope Options");
+    QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
     {
         QAction *fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,
@@ -606,12 +650,16 @@ Menu::Menu() :
                                             appInstance->getAudio(),
                                             SLOT(toggleStatsShowInjectedStreams()));
 
+    connect(appInstance->getAudio(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+
+    QMenu* experimentalOptionsMenu = developerMenu->addMenu("Experimental");
+    addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::BuckyBalls, 0, false);
+    addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::StringHair, 0, false);
+
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
                 this,
                 SLOT(pasteToVoxel()));
-
-    connect(appInstance->getAudio(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
@@ -632,8 +680,15 @@ void Menu::loadSettings(QSettings* settings) {
         lockedSettings = true;
     }
 
-    _audioJitterBufferFrames = loadSetting(settings, "audioJitterBufferFrames", 0);
-    _maxFramesOverDesired = loadSetting(settings, "maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
+    _receivedAudioStreamSettings._dynamicJitterBuffers = settings->value("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS).toBool();
+    _receivedAudioStreamSettings._maxFramesOverDesired = settings->value("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED).toInt();
+    _receivedAudioStreamSettings._staticDesiredJitterBufferFrames = settings->value("staticDesiredJitterBufferFrames", DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES).toInt();
+    _receivedAudioStreamSettings._useStDevForJitterCalc = settings->value("useStDevForJitterCalc", DEFAULT_USE_STDEV_FOR_JITTER_CALC).toBool();
+    _receivedAudioStreamSettings._windowStarveThreshold = settings->value("windowStarveThreshold", DEFAULT_WINDOW_STARVE_THRESHOLD).toInt();
+    _receivedAudioStreamSettings._windowSecondsForDesiredCalcOnTooManyStarves = settings->value("windowSecondsForDesiredCalcOnTooManyStarves", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES).toInt();
+    _receivedAudioStreamSettings._windowSecondsForDesiredReduction = settings->value("windowSecondsForDesiredReduction", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION).toInt();
+    _receivedAudioStreamSettings._repetitionWithFade = settings->value("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE).toBool();
+    
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
@@ -650,6 +705,10 @@ void Menu::loadSettings(QSettings* settings) {
                                          QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
     setScriptsLocation(settings->value("scriptsLocation", QString()).toString());
 
+#ifdef Q_OS_MAC
+    _speechRecognizer.setEnabled(settings->value("speechRecognitionEnabled", false).toBool());
+#endif
+
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
     _viewFrustumOffset.yaw = loadSetting(settings, "viewFrustumOffsetYaw", 0.0f);
@@ -665,6 +724,9 @@ void Menu::loadSettings(QSettings* settings) {
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->updateWindowTitle();
     NodeList::getInstance()->loadData(settings);
+
+    // notify that a settings has changed
+    connect(&NodeList::getInstance()->getDomainHandler(), &DomainHandler::hostnameChanged, this, &Menu::bumpSettings);
 
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
@@ -683,8 +745,15 @@ void Menu::saveSettings(QSettings* settings) {
         lockedSettings = true;
     }
 
-    settings->setValue("audioJitterBufferFrames", _audioJitterBufferFrames);
-    settings->setValue("maxFramesOverDesired", _maxFramesOverDesired);
+    settings->setValue("dynamicJitterBuffers", _receivedAudioStreamSettings._dynamicJitterBuffers);
+    settings->setValue("maxFramesOverDesired", _receivedAudioStreamSettings._maxFramesOverDesired);
+    settings->setValue("staticDesiredJitterBufferFrames", _receivedAudioStreamSettings._staticDesiredJitterBufferFrames);
+    settings->setValue("useStDevForJitterCalc", _receivedAudioStreamSettings._useStDevForJitterCalc);
+    settings->setValue("windowStarveThreshold", _receivedAudioStreamSettings._windowStarveThreshold);
+    settings->setValue("windowSecondsForDesiredCalcOnTooManyStarves", _receivedAudioStreamSettings._windowSecondsForDesiredCalcOnTooManyStarves);
+    settings->setValue("windowSecondsForDesiredReduction", _receivedAudioStreamSettings._windowSecondsForDesiredReduction);
+    settings->setValue("repetitionWithFade", _receivedAudioStreamSettings._repetitionWithFade);
+
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("maxVoxels", _maxVoxels);
@@ -697,6 +766,9 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->setValue("scriptsLocation", _scriptsLocation);
+#ifdef Q_OS_MAC
+    settings->setValue("speechRecognitionEnabled", _speechRecognizer.getEnabled());
+#endif
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
     settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
@@ -825,6 +897,8 @@ void Menu::handleViewFrustumOffsetKeyModifier(int key) {
         default:
             break;
     }
+
+    bumpSettings();
 }
 
 void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, int menuItemLocation) {
@@ -931,7 +1005,7 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                         QAction::NoRole, menuItemLocation);
     action->setCheckable(true);
     action->setChecked(checked);
-    connect(action, SIGNAL(changed()), Application::getInstance(), SLOT(bumpSettings()));
+    connect(action, SIGNAL(changed()), this, SLOT(bumpSettings()));
 
     return action;
 }
@@ -973,6 +1047,10 @@ void Menu::aboutApp() {
     InfoView::forcedShow();
 }
 
+void Menu::bumpSettings() {
+    Application::getInstance()->bumpSettings();
+}
+
 void sendFakeEnterEvent() {
     QPoint lastCursorPosition = QCursor::pos();
     QGLWidget* glWidget = Application::getInstance()->getGLWidget();
@@ -984,12 +1062,24 @@ void sendFakeEnterEvent() {
 
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
+void Menu::clearLoginDialogDisplayedFlag() {
+    // Needed for domains that don't require login.
+    _hasLoginDialogDisplayed = false;
+}
+
 void Menu::loginForCurrentDomain() {
-    if (!_loginDialog) {
+    if (!_loginDialog && !_hasLoginDialogDisplayed) {
         _loginDialog = new LoginDialog(Application::getInstance()->getWindow());
         _loginDialog->show();
         _loginDialog->resizeAndPosition(false);
     }
+
+    _hasLoginDialogDisplayed = true;
+}
+
+void Menu::showLoginForCurrentDomain() {
+    _hasLoginDialogDisplayed = false;
+    loginForCurrentDomain();
 }
 
 void Menu::editPreferences() {
@@ -1034,6 +1124,8 @@ void Menu::changePrivateKey() {
         // pull the private key from the dialog
         _walletPrivateKey = privateKeyDialog.textValue().toUtf8();
     }
+
+    bumpSettings();
     
     sendFakeEnterEvent();
 }
@@ -1111,8 +1203,8 @@ void Menu::goTo() {
 }
 
 bool Menu::goToURL(QString location) {
-    if (location.startsWith(CUSTOM_URL_SCHEME + "//")) {
-        QStringList urlParts = location.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
+    if (location.startsWith(CUSTOM_URL_SCHEME + "/")) {
+        QStringList urlParts = location.remove(0, CUSTOM_URL_SCHEME.length()).split('/', QString::SkipEmptyParts);
 
         if (urlParts.count() > 1) {
             // if url has 2 or more parts, the first one is domain name
@@ -1336,7 +1428,7 @@ void Menu::toggleLoginMenuItem() {
         // change the menu item to login
         _loginAction->setText("Login");
 
-        connect(_loginAction, &QAction::triggered, this, &Menu::loginForCurrentDomain);
+        connect(_loginAction, &QAction::triggered, this, &Menu::showLoginForCurrentDomain);
     }
 }
 
@@ -1415,7 +1507,9 @@ void Menu::toggleConsole() {
 
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
-    muteAction->setChecked(Application::getInstance()->getAudio()->getMuted());
+    if (muteAction) {
+        muteAction->setChecked(Application::getInstance()->getAudio()->getMuted());
+    }
 }
 
 void Menu::bandwidthDetailsClosed() {
@@ -1554,10 +1648,12 @@ void Menu::resetLODAdjust() {
 
 void Menu::setVoxelSizeScale(float sizeScale) {
     _voxelSizeScale = sizeScale;
+    bumpSettings();
 }
 
 void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
+    bumpSettings();
 }
 
 void Menu::lodTools() {
@@ -1587,43 +1683,29 @@ void Menu::runTests() {
 
 void Menu::updateFrustumRenderModeAction() {
     QAction* frustumRenderModeAction = _actionHash.value(MenuOption::FrustumRenderMode);
-    switch (_frustumDrawMode) {
-        default:
-        case FRUSTUM_DRAW_MODE_ALL:
-            frustumRenderModeAction->setText("Render Mode - All");
-            break;
-        case FRUSTUM_DRAW_MODE_VECTORS:
-            frustumRenderModeAction->setText("Render Mode - Vectors");
-            break;
-        case FRUSTUM_DRAW_MODE_PLANES:
-            frustumRenderModeAction->setText("Render Mode - Planes");
-            break;
-        case FRUSTUM_DRAW_MODE_NEAR_PLANE:
-            frustumRenderModeAction->setText("Render Mode - Near");
-            break;
-        case FRUSTUM_DRAW_MODE_FAR_PLANE:
-            frustumRenderModeAction->setText("Render Mode - Far");
-            break;
-        case FRUSTUM_DRAW_MODE_KEYHOLE:
-            frustumRenderModeAction->setText("Render Mode - Keyhole");
-            break;
+    if (frustumRenderModeAction) {
+        switch (_frustumDrawMode) {
+            default:
+            case FRUSTUM_DRAW_MODE_ALL:
+                frustumRenderModeAction->setText("Render Mode - All");
+                break;
+            case FRUSTUM_DRAW_MODE_VECTORS:
+                frustumRenderModeAction->setText("Render Mode - Vectors");
+                break;
+            case FRUSTUM_DRAW_MODE_PLANES:
+                frustumRenderModeAction->setText("Render Mode - Planes");
+                break;
+            case FRUSTUM_DRAW_MODE_NEAR_PLANE:
+                frustumRenderModeAction->setText("Render Mode - Near");
+                break;
+            case FRUSTUM_DRAW_MODE_FAR_PLANE:
+                frustumRenderModeAction->setText("Render Mode - Far");
+                break;
+            case FRUSTUM_DRAW_MODE_KEYHOLE:
+                frustumRenderModeAction->setText("Render Mode - Keyhole");
+                break;
+        }
     }
-}
-
-void Menu::addAvatarCollisionSubMenu(QMenu* overMenu) {
-    // add avatar collisions subMenu to overMenu
-    QMenu* subMenu = overMenu->addMenu("Collision Options");
-
-    Application* appInstance = Application::getInstance();
-    QObject* avatar = appInstance->getAvatar();
-    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithEnvironment,
-            0, false, avatar, SLOT(updateCollisionGroups()));
-    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithAvatars,
-            0, true, avatar, SLOT(updateCollisionGroups()));
-    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithVoxels,
-            0, false, avatar, SLOT(updateCollisionGroups()));
-    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithParticles,
-            0, true, avatar, SLOT(updateCollisionGroups()));
 }
 
 QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {
@@ -1845,10 +1927,9 @@ void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
 };
 
 bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
-    QMenu* menuObj = getMenu(menu);
     QAction* menuItemAction = _actionHash.value(menuitem);
-    if (menuObj && menuItemAction) {
-        return true;
+    if (menuItemAction) {
+        return (getMenu(menu) != NULL);
     }
     return false;
 };
@@ -1862,5 +1943,6 @@ QString Menu::getSnapshotsLocation() const {
 
 void Menu::setScriptsLocation(const QString& scriptsLocation) {
     _scriptsLocation = scriptsLocation;
+    bumpSettings();
     emit scriptLocationChanged(scriptsLocation);
 }

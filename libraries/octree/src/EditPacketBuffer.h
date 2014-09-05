@@ -21,13 +21,13 @@
 class EditPacketBuffer {
 public:
     EditPacketBuffer();
-    EditPacketBuffer(PacketType type, unsigned char* codeColorBuffer, ssize_t length,
+    EditPacketBuffer(PacketType type, unsigned char* codeColorBuffer, size_t length,
                      qint64 satoshiCost = 0, const QUuid nodeUUID = QUuid());
     
     QUuid _nodeUUID;
     PacketType _currentType;
     unsigned char _currentBuffer[MAX_PACKET_SIZE];
-    ssize_t _currentSize;
+    size_t _currentSize;
     qint64 _satoshiCost;
 };
 

@@ -30,7 +30,7 @@
 #include <QUndoStack>
 #include <QSystemTrayIcon>
 
-#include <ModelEditPacketSender.h>
+#include <EntityEditPacketSender.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -65,7 +65,7 @@
 #include "devices/Visage.h"
 #include "devices/CaraFaceTracker.h"
 #include "devices/DdeFaceTracker.h"
-#include "models/ModelTreeRenderer.h"
+#include "entities/EntityTreeRenderer.h"
 #include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
@@ -87,6 +87,7 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
+#include "ui/VoxelImportDialog.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
 #include "voxels/VoxelImporter.h"
@@ -193,17 +194,18 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
+    VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelSystem* getVoxels() { return &_voxels; }
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
-    ModelTreeRenderer* getModels() { return &_models; }
+    EntityTreeRenderer* getEntities() { return &_entities; }
     bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
-    ModelTree* getModelClipboard() { return &_modelClipboard; }
-    ModelTreeRenderer* getModelClipboardRenderer() { return &_modelClipboardRenderer; }
+    EntityTree* getEntityClipboard() { return &_entityClipboard; }
+    EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     Environment* getEnvironment() { return &_environment; }
     bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return _mouseHidden; }
@@ -289,7 +291,7 @@ public:
     glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
-    NodeToJurisdictionMap& getModelServerJurisdictions() { return _modelServerJurisdictions; }
+    NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
     void skipVersion(QString latestVersion);
@@ -321,9 +323,9 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
 
-    void pasteModels(float x, float y, float z);
-    bool exportModels(const QString& filename, float x, float y, float z, float scale);
-    bool importModels(const QString& filename);
+    void pasteEntities(float x, float y, float z);
+    bool exportEntities(const QString& filename, float x, float y, float z, float scale);
+    bool importEntities(const QString& filename);
 
     void importVoxels(); // doesn't include source voxel because it goes to clipboard
     void cutVoxels(const VoxelDetail& sourceVoxel);
@@ -465,7 +467,8 @@ private:
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
-    VoxelImporter* _voxelImporter;
+    VoxelImportDialog* _voxelImportDialog;
+    VoxelImporter _voxelImporter;
     bool _importSucceded;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
@@ -473,9 +476,9 @@ private:
     ParticleTreeRenderer _particles;
     ParticleCollisionSystem _particleCollisionSystem;
 
-    ModelTreeRenderer _models;
-    ModelTreeRenderer _modelClipboardRenderer;
-    ModelTree _modelClipboard;
+    EntityTreeRenderer _entities;
+    EntityTreeRenderer _entityClipboardRenderer;
+    EntityTree _entityClipboard;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
@@ -564,7 +567,7 @@ private:
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
-    ModelEditPacketSender _modelEditSender;
+    EntityEditPacketSender _entityEditSender;
 
     int _packetsPerSecond;
     int _bytesPerSecond;
@@ -577,7 +580,7 @@ private:
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
-    NodeToJurisdictionMap _modelServerJurisdictions;
+    NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     QReadWriteLock _octreeSceneStatsLock;
 

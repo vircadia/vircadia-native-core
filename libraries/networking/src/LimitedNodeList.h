@@ -123,7 +123,7 @@ protected:
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
 
     
-    void changeSendSocketBufferSize(int numSendBytes);
+    void changeSocketBufferSizes(int numBytes);
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;
