@@ -182,8 +182,20 @@ function scriptEnding() {
 function enable() {
     if (!enabled) {
         enabled = true;
-        lastX = Window.getCursorPositionX();
-        lastY = Window.getCursorPositionY();
+
+        // Reset mouse position
+        var newX = Window.innerWidth / 2;
+        var newY = Window.innerHeight / 2;
+        Window.setCursorPosition(newX, newY);
+        lastX = newX;
+        lastY = newY;
+
+        // Reset movement variables
+        yawFromMouse = 0;
+        pitchFromMouse = 0;
+        yawSpeed = 0;
+        pitchSpeed = 0;
+
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
             Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
         }
