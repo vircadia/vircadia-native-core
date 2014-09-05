@@ -70,7 +70,7 @@ private:
     public:
         int shadowDistances;
         int shadowScale;
-        int near;
+        int nearLocation;
         int depthScale;
         int depthTexCoordOffset;
         int depthTexCoordScale;

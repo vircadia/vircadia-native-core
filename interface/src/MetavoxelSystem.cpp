@@ -207,7 +207,7 @@ void MetavoxelSystem::render() {
         glm::vec4 nearClipPlane, farClipPlane;
         Application::getInstance()->computeOffAxisFrustum(
             left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-        program->setUniformValue(locations->near, nearVal);
+        program->setUniformValue(locations->nearLocation, nearVal);
         program->setUniformValue(locations->depthScale, (farVal - nearVal) / farVal);
         float nearScale = -1.0f / nearVal;
         program->setUniformValue(locations->depthTexCoordOffset, left * nearScale, bottom * nearScale);
@@ -630,7 +630,7 @@ void MetavoxelSystem::loadLightProgram(const char* name, ProgramObject& program,
     program.setUniformValue("shadowMap", 3);
     locations.shadowDistances = program.uniformLocation("shadowDistances");
     locations.shadowScale = program.uniformLocation("shadowScale");
-    locations.near = program.uniformLocation("near");
+    locations.nearLocation = program.uniformLocation("near");
     locations.depthScale = program.uniformLocation("depthScale");
     locations.depthTexCoordOffset = program.uniformLocation("depthTexCoordOffset");
     locations.depthTexCoordScale = program.uniformLocation("depthTexCoordScale");
