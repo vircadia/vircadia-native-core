@@ -204,6 +204,7 @@ void Avatar::simulate(float deltaTime) {
         _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
 
+    _position += _velocity * deltaTime;
     measureMotionDerivatives(deltaTime);
 }
 
