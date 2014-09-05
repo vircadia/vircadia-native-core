@@ -18,6 +18,7 @@
 
 #include <QReadWriteLock>
 
+#include <OctalCode.h>
 #include <SharedUtil.h>
 
 #include "AACube.h"
@@ -27,6 +28,7 @@
 class EncodeBitstreamParams;
 class Octree;
 class OctreeElement;
+class OctreeElementBag;
 class OctreeElementDeleteHook;
 class OctreePacketData;
 class ReadBitstreamToTreeParams;
@@ -86,8 +88,20 @@ public:
     /// Override to indicate that this element requires a split before editing lower elements in the octree
     virtual bool requiresSplit() const { return false; }
 
+    /// The state of the call to appendElementData
+    typedef enum { COMPLETED, PARTIAL, NONE } AppendState;
+
+    virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const { }
+    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) const { }
+    virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const { return true; }
+    virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const { return true; }
+    
+    virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const { }
+    virtual void elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const { }
+
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual bool appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const { return true; }
+    virtual AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const 
+                                { return COMPLETED; }
     
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
@@ -119,6 +133,7 @@ public:
     OctreeElement* getChildAtIndex(int childIndex) const;
     void deleteChildAtIndex(int childIndex);
     OctreeElement* removeChildAtIndex(int childIndex);
+    bool isParentOf(OctreeElement* possibleChild) const;
 
     /// handles deletion of all descendants, returns false if delete not approved
     bool safeDeepDeleteChildAtIndex(int childIndex, int recursionCount = 0); 
@@ -232,6 +247,9 @@ public:
 
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
     OctreeElement* getOrCreateChildElementContaining(const AACube& box);
+    OctreeElement* getOrCreateChildElementContaining(const AABox& box);
+    int getMyChildContaining(const AACube& cube) const;
+    int getMyChildContaining(const AABox& box) const;
     int getMyChildContainingPoint(const glm::vec3& point) const;
 
 protected:

@@ -133,14 +133,14 @@ void ClipboardScriptingInterface::nudgeVoxel(float x, float y, float z, float s,
 }
 
 
-bool ClipboardScriptingInterface::exportModels(const QString& filename, float x, float y, float z, float s) {
-    return Application::getInstance()->exportModels(filename, x, y, z, s);
+bool ClipboardScriptingInterface::exportEntities(const QString& filename, float x, float y, float z, float s) {
+    return Application::getInstance()->exportEntities(filename, x, y, z, s);
 }
 
-bool ClipboardScriptingInterface::importModels(const QString& filename) {
-    return Application::getInstance()->importModels(filename);
+bool ClipboardScriptingInterface::importEntities(const QString& filename) {
+    return Application::getInstance()->importEntities(filename);
 }
 
-void ClipboardScriptingInterface::pasteModels(float x, float y, float z, float s) {
-    Application::getInstance()->pasteModels(x, y, z);
+void ClipboardScriptingInterface::pasteEntities(float x, float y, float z, float s) {
+    Application::getInstance()->pasteEntities(x, y, z);
 }

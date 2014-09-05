@@ -484,8 +484,8 @@ void MyAvatar::clearReferential() {
     changeReferential(NULL);
 }
 
-bool MyAvatar::setModelReferential(int id) {
-    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+bool MyAvatar::setModelReferential(const QUuid& id) {
+    EntityTree* tree = Application::getInstance()->getEntities()->getTree();
     changeReferential(new ModelReferential(id, tree, this));
     if (_referential->isValid()) {
         return true;
@@ -495,8 +495,8 @@ bool MyAvatar::setModelReferential(int id) {
     }
 }
 
-bool MyAvatar::setJointReferential(int id, int jointIndex) {
-    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
+    EntityTree* tree = Application::getInstance()->getEntities()->getTree();
     changeReferential(new JointReferential(jointIndex, id, tree, this));
     if (!_referential->isValid()) {
         return true;

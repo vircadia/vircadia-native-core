@@ -11,40 +11,41 @@
 
 #include <AvatarData.h>
 
-#include "ModelTree.h"
+#include <EntityTree.h>
 #include "../renderer/Model.h"
 
 #include "ModelReferential.h"
 
-ModelReferential::ModelReferential(Referential* referential, ModelTree* tree, AvatarData* avatar) :
+ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, AvatarData* avatar) :
     Referential(MODEL, avatar),
-    _tree(tree) {
-        _translation = referential->getTranslation();
-        _rotation = referential->getRotation();
-        _scale = referential->getScale();
-        unpackExtraData(reinterpret_cast<unsigned char*>(referential->getExtraData().data()),
-                        referential->getExtraData().size());
-        
-        if (!isValid()) {
-            qDebug() << "ModelReferential::copyConstructor(): Not Valid";
-            return;
-        }
-        
-        const ModelItem* item = _tree->findModelByID(_modelID);
-        if (item != NULL) {
-            _refScale = item->getRadius();
-            _refRotation = item->getModelRotation();
-            _refPosition = item->getPosition() * (float)TREE_SCALE;
-            update();
-        }
+    _tree(tree) 
+{
+    _translation = referential->getTranslation();
+    _rotation = referential->getRotation();
+    _scale = referential->getScale();
+    unpackExtraData(reinterpret_cast<unsigned char*>(referential->getExtraData().data()),
+                    referential->getExtraData().size());
+    
+    if (!isValid()) {
+        qDebug() << "ModelReferential::copyConstructor(): Not Valid";
+        return;
+    }
+    
+    const EntityItem* item = _tree->findEntityByID(_entityID);
+    if (item != NULL) {
+        _refScale = item->getRadius();
+        _refRotation = item->getRotation();
+        _refPosition = item->getPosition() * (float)TREE_SCALE;
+        update();
+    }
 }
 
-ModelReferential::ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData* avatar) :
+ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, AvatarData* avatar) :
     Referential(MODEL, avatar),
-    _modelID(modelID),
+    _entityID(entityID),
     _tree(tree)
 {
-    const ModelItem* item = _tree->findModelByID(_modelID);
+    const EntityItem* item = _tree->findEntityByID(_entityID);
     if (!isValid() || item == NULL) {
         qDebug() << "ModelReferential::constructor(): Not Valid";
         _isValid = false;
@@ -52,7 +53,7 @@ ModelReferential::ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData
     }
     
     _refScale = item->getRadius();
-    _refRotation = item->getModelRotation();
+    _refRotation = item->getRotation();
     _refPosition = item->getPosition() * (float)TREE_SCALE;
     
     glm::quat refInvRot = glm::inverse(_refRotation);
@@ -62,7 +63,7 @@ ModelReferential::ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData
 }
 
 void ModelReferential::update() {
-    const ModelItem* item = _tree->findModelByID(_modelID);
+    const EntityItem* item = _tree->findEntityByID(_entityID);
     if (!isValid() || item == NULL || _avatar == NULL) {
         return;
     }
@@ -73,8 +74,8 @@ void ModelReferential::update() {
         _avatar->setTargetScale(_refScale * _scale, true);
         somethingChanged = true;
     }
-    if (item->getModelRotation() != _refRotation) {
-        _refRotation = item->getModelRotation();
+    if (item->getRotation() != _refRotation) {
+        _refRotation = item->getRotation();
         _avatar->setOrientation(_refRotation * _rotation, true);
         somethingChanged = true;
     }
@@ -85,16 +86,18 @@ void ModelReferential::update() {
 }
 
 int ModelReferential::packExtraData(unsigned char* destinationBuffer) const {
-    memcpy(destinationBuffer, &_modelID, sizeof(_modelID));
-    return sizeof(_modelID);
+    QByteArray encodedEntityID = _entityID.toRfc4122();
+    memcpy(destinationBuffer, encodedEntityID.constData(), encodedEntityID.size());
+    return encodedEntityID.size();
 }
 
 int ModelReferential::unpackExtraData(const unsigned char *sourceBuffer, int size) {
-    memcpy(&_modelID, sourceBuffer, sizeof(_modelID));
-    return sizeof(_modelID);
+    QByteArray encodedEntityID((const char*)sourceBuffer, NUM_BYTES_RFC4122_UUID);
+    _entityID = QUuid::fromRfc4122(encodedEntityID);
+    return NUM_BYTES_RFC4122_UUID;
 }
 
-JointReferential::JointReferential(Referential* referential, ModelTree* tree, AvatarData* avatar) :
+JointReferential::JointReferential(Referential* referential, EntityTree* tree, AvatarData* avatar) :
     ModelReferential(referential, tree, avatar)
 {
     _type = JOINT;
@@ -103,7 +106,7 @@ JointReferential::JointReferential(Referential* referential, ModelTree* tree, Av
         return;
     }
     
-    const ModelItem* item = _tree->findModelByID(_modelID);
+    const EntityItem* item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
     if (!isValid() || model == NULL || _jointIndex >= model->getJointStateCount()) {
         _refScale = item->getRadius();
@@ -113,12 +116,12 @@ JointReferential::JointReferential(Referential* referential, ModelTree* tree, Av
     update();
 }
 
-JointReferential::JointReferential(uint32_t jointIndex, uint32_t modelID, ModelTree* tree, AvatarData* avatar) :
-    ModelReferential(modelID, tree, avatar),
+JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, EntityTree* tree, AvatarData* avatar) :
+    ModelReferential(entityID, tree, avatar),
     _jointIndex(jointIndex)
 {
     _type = JOINT;
-    const ModelItem* item = _tree->findModelByID(_modelID);
+    const EntityItem* item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
     if (!isValid() || model == NULL || _jointIndex >= model->getJointStateCount()) {
         qDebug() << "JointReferential::constructor(): Not Valid";
@@ -137,7 +140,7 @@ JointReferential::JointReferential(uint32_t jointIndex, uint32_t modelID, ModelT
 }
 
 void JointReferential::update() {
-    const ModelItem* item = _tree->findModelByID(_modelID);
+    const EntityItem* item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
     if (!isValid() || model == NULL || _jointIndex >= model->getJointStateCount()) {
         return;
@@ -149,7 +152,7 @@ void JointReferential::update() {
         _avatar->setTargetScale(_refScale * _scale, true);
         somethingChanged = true;
     }
-    if (item->getModelRotation() != _refRotation) {
+    if (item->getRotation() != _refRotation) {
         model->getJointRotationInWorldFrame(_jointIndex, _refRotation);
         _avatar->setOrientation(_refRotation * _rotation, true);
         somethingChanged = true;
@@ -160,10 +163,10 @@ void JointReferential::update() {
     }
 }
 
-const Model* JointReferential::getModel(const ModelItem* item) {
-    ModelItemFBXService* fbxService = _tree->getFBXService();
+const Model* JointReferential::getModel(const EntityItem* item) {
+    EntityItemFBXService* fbxService = _tree->getFBXService();
     if (item != NULL && fbxService != NULL) {
-        return fbxService->getModelForModelItem(*item);
+        return fbxService->getModelForEntityItem(item);
     }
     return NULL;
 }

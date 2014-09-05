@@ -210,7 +210,6 @@ void PreferencesDialog::savePreferences() {
     
     if (shouldDispatchIdentityPacket) {
         myAvatar->sendIdentityPacket();
-        Application::getInstance()->bumpSettings();
     }
     
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger)
@@ -263,4 +262,6 @@ void PreferencesDialog::savePreferences() {
 
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
                                          Application::getInstance()->getGLWidget()->height());
+
+    Application::getInstance()->bumpSettings();
 }

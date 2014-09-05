@@ -168,8 +168,8 @@ public slots:
     glm::vec3 getRightPalmPosition();
     
     void clearReferential();
-    bool setModelReferential(int id);
-    bool setJointReferential(int id, int jointIndex);
+    bool setModelReferential(const QUuid& id);
+    bool setJointReferential(const QUuid& id, int jointIndex);
     
     bool isRecording();
     qint64 recorderElapsed();

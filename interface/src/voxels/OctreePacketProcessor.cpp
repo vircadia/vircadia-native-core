@@ -80,39 +80,46 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
     }
 
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+    app->trackIncomingVoxelPacket(mutablePacket, sendingNode, wasStatsPacket);
 
-        app->trackIncomingVoxelPacket(mutablePacket, sendingNode, wasStatsPacket);
+    if (sendingNode) {
 
-        if (sendingNode) {
-
-            switch(voxelPacketType) {
-                case PacketTypeParticleErase: {
+        switch(voxelPacketType) {
+            case PacketTypeParticleErase: {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
                     app->_particles.processEraseMessage(mutablePacket, sendingNode);
-                } break;
+                }
+            } break;
 
-                case PacketTypeParticleData: {
+            case PacketTypeParticleData: {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
                     app->_particles.processDatagram(mutablePacket, sendingNode);
-                } break;
+                }
+            } break;
 
-                case PacketTypeModelErase: {
-                    app->_models.processEraseMessage(mutablePacket, sendingNode);
-                } break;
+            case PacketTypeEntityErase: {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+                    app->_entities.processEraseMessage(mutablePacket, sendingNode);
+                }
+            } break;
 
-                case PacketTypeModelData: {
-                    app->_models.processDatagram(mutablePacket, sendingNode);
-                } break;
+            case PacketTypeEntityData: {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+                    app->_entities.processDatagram(mutablePacket, sendingNode);
+                }
+            } break;
 
-                case PacketTypeEnvironmentData: {
-                    app->_environment.parseData(*sendingNode->getActiveSocket(), mutablePacket);
-                } break;
+            case PacketTypeEnvironmentData: {
+                app->_environment.parseData(*sendingNode->getActiveSocket(), mutablePacket);
+            } break;
 
-                default : {
+            default : {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
                     app->_voxels.setDataSourceUUID(sendingNode->getUUID());
                     app->_voxels.parseData(mutablePacket);
                     app->_voxels.setDataSourceUUID(QUuid());
-                } break;
-            }
+                }
+            } break;
         }
     }
 }

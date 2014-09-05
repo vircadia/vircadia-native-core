@@ -14,9 +14,11 @@
 
 namespace OctreeTests {
 
-    void propertyFlagsTests();
+    void propertyFlagsTests(bool verbose);
+    void byteCountCodingTests(bool verbose);
+    void modelItemTests(bool verbose);
 
-    void runAllTests(); 
+    void runAllTests(bool verbose); 
 }
 
 #endif // hifi_OctreeTests_h

@@ -882,6 +882,7 @@ void OctreeServer::run() {
     // Before we do anything else, create our tree...
     OctreeElement::resetPopulationStatistics();
     _tree = createTree();
+    _tree->setIsServer(true);
     
     // use common init to setup common timers and logging
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
