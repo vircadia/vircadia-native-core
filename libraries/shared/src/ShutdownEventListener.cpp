@@ -27,5 +27,5 @@ bool ShutdownEventListener::nativeEventFilter(const QByteArray &eventType, void*
         }
     }
 #endif
-    return true;
+    return false;
 }

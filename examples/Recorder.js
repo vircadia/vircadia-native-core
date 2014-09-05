@@ -13,7 +13,6 @@ Script.include("toolBars.js");
 
 var recordingFile = "recording.rec";
 var playFromCurrentLocation = true;
-var loop = true;
 
 var windowDimensions = Controller.getViewportDimensions();
 var TOOL_ICON_URL = "http://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/";
@@ -21,69 +20,91 @@ var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
 var COLOR_ON = { red: 128, green: 0, blue: 0 };
 var COLOR_OFF = { red: 128, green: 128, blue: 128 };
-Tool.IMAGE_WIDTH *= 0.7;
-Tool.IMAGE_HEIGHT *= 0.7;
+var COLOR_TOOL_BAR = { red: 0, green: 0, blue: 0 };
 
 var toolBar = null;
 var recordIcon;
 var playIcon;
+var playLoopIcon;
 var saveIcon;
 var loadIcon;
+var spacing;
+var timerOffset;
 setupToolBar();
 
 var timer = null;
 setupTimer();
+
+var watchStop = false;
 
 function setupToolBar() {
 	if (toolBar != null) {
 		print("Multiple calls to Recorder.js:setupToolBar()");
 		return;
 	}
-
+    Tool.IMAGE_HEIGHT /= 2;
+    Tool.IMAGE_WIDTH /= 2;
+    
 	toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL);
-	toolBar.setBack(COLOR_OFF, ALPHA_OFF);
-
-	recordIcon = toolBar.addTool({
-	    imageURL: TOOL_ICON_URL + "record.svg",
-	    width: Tool.IMAGE_WIDTH,
-	    height: Tool.IMAGE_HEIGHT,
-	    alpha: ALPHA_ON,
-	    visible: true
-	}, false);
-
-	playIcon = toolBar.addTool({
-	    imageURL: TOOL_ICON_URL + "play.svg",
-	    width: Tool.IMAGE_WIDTH,
-	    height: Tool.IMAGE_HEIGHT,
-	    alpha: ALPHA_ON,
-	    visible: true
-	}, false, false);
-
-	saveIcon = toolBar.addTool({
-	    imageURL: TOOL_ICON_URL + "save.svg",
-	    width: Tool.IMAGE_WIDTH,
-	    height: Tool.IMAGE_HEIGHT,
-	    alpha: ALPHA_ON,
-	    visible: true
-	}, false, false);
-
-	loadIcon = toolBar.addTool({
-	    imageURL: TOOL_ICON_URL + "load.svg",
-	    width: Tool.IMAGE_WIDTH,
-	    height: Tool.IMAGE_HEIGHT,
-	    alpha: ALPHA_ON,
-	    visible: true
-	}, false, false);
+    
+    toolBar.setBack(COLOR_TOOL_BAR, ALPHA_OFF);
+    
+    recordIcon = toolBar.addTool({
+                                 imageURL: TOOL_ICON_URL + "recording-record.svg",
+                                 subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                                 x: 0, y: 0,
+                                 width: Tool.IMAGE_WIDTH,
+                                 height: Tool.IMAGE_HEIGHT,
+                                 alpha: MyAvatar.isPlaying() ? ALPHA_OFF : ALPHA_ON,
+                                 visible: true
+                                 }, true, !MyAvatar.isRecording());
+    
+    var playLoopWidthFactor = 1.65;
+    playIcon = toolBar.addTool({
+                               imageURL: TOOL_ICON_URL + "play-pause.svg",
+                               width: playLoopWidthFactor * Tool.IMAGE_WIDTH,
+                               height: Tool.IMAGE_HEIGHT,
+                               alpha: (MyAvatar.isRecording() || MyAvatar.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
+                               visible: true
+                               }, false);
+    
+    playLoopIcon = toolBar.addTool({
+                                   imageURL: TOOL_ICON_URL + "play-and-loop.svg",
+                                   subImage: { x: 0, y: 0, width: playLoopWidthFactor * Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                                   width: playLoopWidthFactor * Tool.IMAGE_WIDTH,
+                                   height: Tool.IMAGE_HEIGHT,
+                                   alpha: (MyAvatar.isRecording() || MyAvatar.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
+                                   visible: true
+                                   }, false);
+    
+    timerOffset = toolBar.width;
+    spacing = toolBar.addSpacing(0);
+    
+    saveIcon = toolBar.addTool({
+                               imageURL: TOOL_ICON_URL + "recording-save.svg",
+                               width: Tool.IMAGE_WIDTH,
+                               height: Tool.IMAGE_HEIGHT,
+                               alpha: (MyAvatar.isRecording() || MyAvatar.isPlaying() || MyAvatar.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
+                               visible: true
+                               }, false);
+    
+    loadIcon = toolBar.addTool({
+                               imageURL: TOOL_ICON_URL + "recording-upload.svg",
+                               width: Tool.IMAGE_WIDTH,
+                               height: Tool.IMAGE_HEIGHT,
+                               alpha: (MyAvatar.isRecording() || MyAvatar.isPlaying()) ? ALPHA_OFF : ALPHA_ON,
+                               visible: true
+                               }, false);
 }
 
 function setupTimer() {
 	timer = Overlays.addOverlay("text", {
-		font: { size: 20 },
+		font: { size: 15 },
 		text: (0.00).toFixed(3),
 		backgroundColor: COLOR_OFF,
 		x: 0, y: 0,
-		width: 100,
-		height: 100,
+		width: 0,
+		height: 0,
 		alpha: 1.0,
 		visible: true
 	});
@@ -92,7 +113,8 @@ function setupTimer() {
 function updateTimer() {
 	var text = "";
 	if (MyAvatar.isRecording()) {
-		text = formatTime(MyAvatar.recorderElapsed())
+		text = formatTime(MyAvatar.recorderElapsed());
+        
 	} else {
 		text = formatTime(MyAvatar.playerElapsed()) + " / " +
 					 formatTime(MyAvatar.playerLength());
@@ -101,6 +123,7 @@ function updateTimer() {
 	Overlays.editOverlay(timer, {
 		text: text
 	})
+    toolBar.changeSpacing(text.length * 8 + ((MyAvatar.isRecording()) ? 15 : 0), spacing);
 }
 
 function formatTime(time) {
@@ -127,54 +150,86 @@ function formatTime(time) {
 }
 
 function moveUI() {
-	var relative = { x: 30, y: 90 };
+	var relative = { x: 70, y: 40 };
 	toolBar.move(relative.x,
 							 windowDimensions.y - relative.y);
 	Overlays.editOverlay(timer, {
-		x: relative.x - 10,
-		y: windowDimensions.y - relative.y - 35,
-		width: 0,
-		height: 0
+		x: relative.x + timerOffset - ToolBar.SPACING,
+		y: windowDimensions.y - relative.y - ToolBar.SPACING
 	});
 }
 
 function mousePressEvent(event) {
 	clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
-
-  if (recordIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isPlaying()) {
-  	if (!MyAvatar.isRecording()) {
-  		MyAvatar.startRecording();
-			toolBar.setBack(COLOR_ON, ALPHA_ON);
-  	} else {
-  		MyAvatar.stopRecording();
-  		MyAvatar.loadLastRecording();
-			toolBar.setBack(COLOR_OFF, ALPHA_OFF);
-  	}
-  } else if (playIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isRecording()) {
-		if (MyAvatar.isPlaying()) {
-			MyAvatar.stopPlaying();
-		} else {
-			MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
-			MyAvatar.setPlayerLoop(loop);
-	  	MyAvatar.startPlaying(true);
-	  }
-  } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
-  	if (!MyAvatar.isRecording()) {
-  		recordingFile = Window.save("Save recording to file", ".", "*.rec");
-  		if (recordingFile != null) {
+    
+    if (recordIcon === toolBar.clicked(clickedOverlay, false) && !MyAvatar.isPlaying()) {
+        if (!MyAvatar.isRecording()) {
+            MyAvatar.startRecording();
+            toolBar.selectTool(recordIcon, false);
+            toolBar.setAlpha(ALPHA_OFF, playIcon);
+            toolBar.setAlpha(ALPHA_OFF, playLoopIcon);
+            toolBar.setAlpha(ALPHA_OFF, saveIcon);
+            toolBar.setAlpha(ALPHA_OFF, loadIcon);
+        } else {
+            MyAvatar.stopRecording();
+            toolBar.selectTool(recordIcon, true );
+            MyAvatar.loadLastRecording();
+            toolBar.setAlpha(ALPHA_ON, playIcon);
+            toolBar.setAlpha(ALPHA_ON, playLoopIcon);
+            toolBar.setAlpha(ALPHA_ON, saveIcon);
+            toolBar.setAlpha(ALPHA_ON, loadIcon);
+        }
+    } else if (playIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isRecording()) {
+        if (MyAvatar.isPlaying()) {
+            MyAvatar.stopPlaying();
+            toolBar.setAlpha(ALPHA_ON, recordIcon);
+            toolBar.setAlpha(ALPHA_ON, saveIcon);
+            toolBar.setAlpha(ALPHA_ON, loadIcon);
+        } else if (MyAvatar.playerLength() > 0) {
+            MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
+            MyAvatar.setPlayerLoop(false);
+            MyAvatar.startPlaying();
+            toolBar.setAlpha(ALPHA_OFF, recordIcon);
+            toolBar.setAlpha(ALPHA_OFF, saveIcon);
+            toolBar.setAlpha(ALPHA_OFF, loadIcon);
+            watchStop = true;
+        }
+    } else if (playLoopIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isRecording()) {
+        if (MyAvatar.isPlaying()) {
+            MyAvatar.stopPlaying();
+            toolBar.setAlpha(ALPHA_ON, recordIcon);
+            toolBar.setAlpha(ALPHA_ON, saveIcon);
+            toolBar.setAlpha(ALPHA_ON, loadIcon);
+        } else if (MyAvatar.playerLength() > 0) {
+            MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
+            MyAvatar.setPlayerLoop(true);
+            MyAvatar.startPlaying();
+            toolBar.setAlpha(ALPHA_OFF, recordIcon);
+            toolBar.setAlpha(ALPHA_OFF, saveIcon);
+            toolBar.setAlpha(ALPHA_OFF, loadIcon);
+        }
+    } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
+        if (!MyAvatar.isRecording() && !MyAvatar.isPlaying() && MyAvatar.playerLength() != 0) {
+            recordingFile = Window.save("Save recording to file", ".", "*.rec");
+            if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
 				MyAvatar.saveRecording(recordingFile);
-  		}
-	  }
-  } else if (loadIcon === toolBar.clicked(clickedOverlay)) {
-  	if (!MyAvatar.isRecording()) {
-  		recordingFile = Window.browse("Load recorcding from file", ".", "*.rec");
-	  	if (recordingFile != "null") {
-	  		MyAvatar.loadRecording(recordingFile);
-  		}
-  	}
-  } else {
-
-  }
+            }
+        }
+    } else if (loadIcon === toolBar.clicked(clickedOverlay)) {
+        if (!MyAvatar.isRecording() && !MyAvatar.isPlaying()) {
+            recordingFile = Window.browse("Load recorcding from file", ".", "*.rec");
+            if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
+                MyAvatar.loadRecording(recordingFile);
+            }
+            if (MyAvatar.playerLength() > 0) {
+                toolBar.setAlpha(ALPHA_ON, playIcon);
+                toolBar.setAlpha(ALPHA_ON, playLoopIcon);
+                toolBar.setAlpha(ALPHA_ON, saveIcon);
+            }
+        }
+    } else {
+        
+    }
 }
 
 function update() {
@@ -186,6 +241,13 @@ function update() {
 	}
 
 	updateTimer();
+    
+    if (watchStop && !MyAvatar.isPlaying()) {
+        watchStop = false;
+        toolBar.setAlpha(ALPHA_ON, recordIcon);
+        toolBar.setAlpha(ALPHA_ON, saveIcon);
+        toolBar.setAlpha(ALPHA_ON, loadIcon);
+    }
 }
 
 function scriptEnding() {
