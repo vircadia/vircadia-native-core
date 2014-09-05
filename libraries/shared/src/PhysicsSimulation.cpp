@@ -30,6 +30,10 @@ PhysicsSimulation::PhysicsSimulation() : _translation(0.0f), _frameCount(0), _en
 }
 
 PhysicsSimulation::~PhysicsSimulation() {
+    clear();
+}
+
+void PhysicsSimulation::clear() {
     // entities have a backpointer to this simulator that must be cleaned up
     int numEntities = _otherEntities.size();
     for (int i = 0; i < numEntities; ++i) {
@@ -43,6 +47,9 @@ PhysicsSimulation::~PhysicsSimulation() {
     // but Ragdolls do not
     _ragdoll = NULL;
     _otherRagdolls.clear();
+
+    // contacts have backpointers to shapes so we clear them
+    _contacts.clear();
 }
 
 void PhysicsSimulation::setRagdoll(Ragdoll* ragdoll) { 
@@ -134,6 +141,18 @@ void PhysicsSimulation::removeShapes(const PhysicsEntity* entity) {
     }
 }
 
+void PhysicsSimulation::removeShape(const Shape* shape) {
+    // remove data structures with pointers to shape
+    QMap<quint64, ContactPoint>::iterator itr = _contacts.begin();
+    while (itr != _contacts.end()) {
+        if (shape == itr.value().getShapeA() || shape == itr.value().getShapeB()) {
+            itr = _contacts.erase(itr);
+        } else {
+            ++itr;
+        }
+    }
+}
+
 const float OTHER_RAGDOLL_MASS_SCALE = 10.0f;
 
 bool PhysicsSimulation::addRagdoll(Ragdoll* doll) {
@@ -195,7 +214,7 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
     quint64 startTime = now;
     quint64 expiry = startTime + maxUsec;
 
-    moveRagdolls(deltaTime);
+    integrate(deltaTime);
     enforceContacts();
     int numDolls = _otherRagdolls.size();
     {
@@ -238,8 +257,12 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
     pruneContacts();
 }
 
-void PhysicsSimulation::moveRagdolls(float deltaTime) {
+void PhysicsSimulation::integrate(float deltaTime) {
     PerformanceTimer perfTimer("integrate");
+    int numEntities = _otherEntities.size();
+    for (int i = 0; i < numEntities; ++i) {
+        _otherEntities[i]->stepForward(deltaTime);
+    }
     _ragdoll->stepForward(deltaTime);
     int numDolls = _otherRagdolls.size();
     for (int i = 0; i < numDolls; ++i) {

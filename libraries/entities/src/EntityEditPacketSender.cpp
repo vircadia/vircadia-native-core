@@ -32,7 +32,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemI
     }
 
     // use MAX_PACKET_SIZE since it's static and guaranteed to be larger than _maxPacketSize
-    static unsigned char bufferOut[MAX_PACKET_SIZE];
+    unsigned char bufferOut[MAX_PACKET_SIZE];
     int sizeOut = 0;
 
     if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
@@ -45,7 +45,7 @@ void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityI
         return; // bail early
     }
     // use MAX_PACKET_SIZE since it's static and guaranteed to be larger than _maxPacketSize
-    static unsigned char bufferOut[MAX_PACKET_SIZE];
+    unsigned char bufferOut[MAX_PACKET_SIZE];
     size_t sizeOut = 0;
     if (EntityItemProperties::encodeEraseEntityMessage(entityItemID, &bufferOut[0], _maxPacketSize, sizeOut)) {
         queueOctreeEditMessage(PacketTypeEntityErase, bufferOut, sizeOut);
