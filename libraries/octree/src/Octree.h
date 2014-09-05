@@ -348,6 +348,7 @@ public:
     bool getIsClient() const { return !_isServer; } /// Is this a client based tree. Allows guards for certain operations
     void setIsClient(bool isClient) { _isServer = !isClient; }
     
+    virtual void dumpTree() { };
 
 signals:
     void importSize(float x, float y, float z);

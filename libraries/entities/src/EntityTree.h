@@ -126,7 +126,7 @@ public:
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void resetContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
-    void dumpTree();
+    virtual void dumpTree();
 
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
