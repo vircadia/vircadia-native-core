@@ -381,16 +381,12 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
         
         int numberOfThreeBitSectionsFromNode = numberOfThreeBitSectionsInCode(bitstreamRootElement->getOctalCode());
 
+        // if the octal code returned is not on the same level as the code being searched for, we have OctreeElements to create
         if (numberOfThreeBitSectionsInStream != numberOfThreeBitSectionsFromNode) {
-            // if the octal code returned is not on the same level as
-            // the code being searched for, we have OctreeElements to create
 
             // Note: we need to create this element relative to root, because we're assuming that the bitstream for the initial
             // octal code is always relative to root!
             bitstreamRootElement = createMissingElement(args.destinationElement, (unsigned char*) bitstreamAt);
-
-            numberOfThreeBitSectionsFromNode = numberOfThreeBitSectionsInCode(bitstreamRootElement->getOctalCode());
-
             if (bitstreamRootElement->isDirty()) {
                 _isDirty = true;
             }
