@@ -29,6 +29,7 @@ TextureCache::TextureCache() :
     _whiteTextureID(0),
     _blueTextureID(0),
     _primaryDepthTextureID(0),
+    _primaryNormalTextureID(0),
     _primaryFramebufferObject(NULL),
     _secondaryFramebufferObject(NULL),
     _tertiaryFramebufferObject(NULL),
@@ -46,6 +47,7 @@ TextureCache::~TextureCache() {
     }
     if (_primaryFramebufferObject) {
         glDeleteTextures(1, &_primaryDepthTextureID);
+        glDeleteTextures(1, &_primaryNormalTextureID);
     }
     
     if (_primaryFramebufferObject) {
@@ -71,6 +73,8 @@ void TextureCache::setFrameBufferSize(QSize frameBufferSize) {
             _primaryFramebufferObject = NULL;
             glDeleteTextures(1, &_primaryDepthTextureID);
             _primaryDepthTextureID = 0;
+            glDeleteTextures(1, &_primaryNormalTextureID);
+            _primaryNormalTextureID = 0;
         }
 
         if (_secondaryFramebufferObject) {
@@ -205,15 +209,22 @@ QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
        
         glGenTextures(1, &_primaryDepthTextureID);
         glBindTexture(GL_TEXTURE_2D, _primaryDepthTextureID);
-
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, _frameBufferSize.width(), _frameBufferSize.height(),
             0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        
+        glGenTextures(1, &_primaryNormalTextureID);
+        glBindTexture(GL_TEXTURE_2D, _primaryNormalTextureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _frameBufferSize.width(), _frameBufferSize.height(),
+            0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glBindTexture(GL_TEXTURE_2D, 0);
         
         _primaryFramebufferObject->bind();
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _primaryDepthTextureID, 0);
+        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, _primaryNormalTextureID, 0);
         _primaryFramebufferObject->release();
     }
     return _primaryFramebufferObject;
@@ -223,6 +234,12 @@ GLuint TextureCache::getPrimaryDepthTextureID() {
     // ensure that the primary framebuffer object is initialized before returning the depth texture id
     getPrimaryFramebufferObject();
     return _primaryDepthTextureID;
+}
+
+GLuint TextureCache::getPrimaryNormalTextureID() {
+    // ensure that the primary framebuffer object is initialized before returning the normal texture id
+    getPrimaryFramebufferObject();
+    return _primaryNormalTextureID;
 }
 
 QOpenGLFramebufferObject* TextureCache::getSecondaryFramebufferObject() {
@@ -278,6 +295,7 @@ bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
             delete _primaryFramebufferObject;
             _primaryFramebufferObject = NULL;
             glDeleteTextures(1, &_primaryDepthTextureID);
+            glDeleteTextures(1, &_primaryNormalTextureID);
         }
         if (_secondaryFramebufferObject && _secondaryFramebufferObject->size() != size) {
             delete _secondaryFramebufferObject;

@@ -33,6 +33,7 @@ class Shape;
 
 #include <CollisionInfo.h>
 
+#include <QHash>
 #include <QObject>
 #include <QReadWriteLock>
 
@@ -47,6 +48,7 @@ public:
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseOctreeOperation)(OctreeElement* element, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
+typedef QHash<quint64, AACube> CubeList;
 
 const bool NO_EXISTS_BITS         = false;
 const bool WANT_EXISTS_BITS       = true;
@@ -307,6 +309,8 @@ public:
 
     bool findShapeCollisions(const Shape* shape, CollisionList& collisions, 
                                     Octree::lockType = Octree::TryLock, bool* accurateResult = NULL);
+
+    bool findContentInCube(const AACube& cube, CubeList& cubes);
 
     OctreeElement* getElementEnclosingPoint(const glm::vec3& point, 
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
