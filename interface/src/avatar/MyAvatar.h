@@ -54,7 +54,6 @@ public:
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
-    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     void setLeanScale(float scale) { _leanScale = scale; }
     void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
@@ -189,23 +188,23 @@ private:
     bool _mousePressed;
     float _bodyPitchDelta;  // degrees
     float _bodyRollDelta;   // degrees
-    bool _shouldJump;
-    float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
+    bool _shouldJump;
+    float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
     bool _isPushing;
     bool _isBraking;
-    float _trapDuration; // seconds that avatar has been trapped by collisions
-    glm::vec3 _thrust;  // final acceleration from outside sources for the current frame
 
-    glm::vec3 _motorVelocity;   // intended velocity of avatar motion
+    float _trapDuration; // seconds that avatar has been trapped by collisions
+    glm::vec3 _thrust;  // impulse accumulator for outside sources
+
+    glm::vec3 _motorVelocity;   // intended velocity of avatar motion (relative to what it's standing on)
     float _motorTimescale;      // timescale for avatar motor to achieve its desired velocity
     float _maxMotorSpeed;
     quint32 _motionBehaviors;
 
-    glm::vec3 _lastBodyPenetration;
     glm::vec3 _lastFloorContactPoint;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
@@ -223,10 +222,7 @@ private:
     float computeDistanceToFloor(const glm::vec3& startPoint);
     void updateOrientation(float deltaTime);
     void updatePosition(float deltaTime);
-    void updateMotorFromKeyboard(float deltaTime, bool walking);
-    float computeMotorTimescale();
-    void applyMotor(float deltaTime);
-    void applyThrust(float deltaTime);
+    float computeMotorTimescale(const glm::vec3& velocity);
     void updateCollisionWithAvatars(float deltaTime);
     void updateCollisionWithEnvironment(float deltaTime, float radius);
     void updateCollisionWithVoxels(float deltaTime, float radius);
