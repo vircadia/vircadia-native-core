@@ -20,10 +20,14 @@ class WindowScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(int innerWidth READ getInnerWidth)
     Q_PROPERTY(int innerHeight READ getInnerHeight)
+    Q_PROPERTY(int x READ getX)
+    Q_PROPERTY(int y READ getY)
 public:
     static WindowScriptingInterface* getInstance();
     int getInnerWidth();
     int getInnerHeight();
+    int getX();
+    int getY();
 
 public slots:
     QScriptValue getCursorPositionX();

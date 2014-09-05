@@ -358,3 +358,11 @@ int WindowScriptingInterface::getInnerWidth() {
 int WindowScriptingInterface::getInnerHeight() {
     return Application::getInstance()->getWindow()->geometry().height();
 }
+
+int WindowScriptingInterface::getX() {
+    return Application::getInstance()->getWindow()->x();
+}
+
+int WindowScriptingInterface::getY() {
+    return Application::getInstance()->getWindow()->y();
+}
