@@ -52,6 +52,7 @@ private slots:
 
     void maybeAttachSession(const SharedNodePointer& node);
     void maybeDeleteSession(const SharedNodePointer& node);   
+    void maybeSaveData();
     
 private:
     
@@ -61,6 +62,8 @@ private:
     MetavoxelPersister* _persister;
     
     MetavoxelData _data;
+    MetavoxelData _savedData;
+    bool _savedDataInitialized;
 };
 
 /// Handles update sending for one thread.

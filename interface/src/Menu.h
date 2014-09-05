@@ -471,6 +471,7 @@ namespace MenuOption {
     const QString Voxels = "Voxels";
     const QString VoxelTextures = "Voxel Textures";
     const QString WalletPrivateKey = "Wallet Private Key...";
+    const QString Wireframe = "Wireframe";
 }
 
 void sendFakeEnterEvent();
