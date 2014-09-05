@@ -199,7 +199,7 @@ function disable() {
             Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
         }
         Window.setCursorVisible(true);
-        //Script.update.disconnect(update);
+        Script.update.disconnect(update);
     }
 }
 
