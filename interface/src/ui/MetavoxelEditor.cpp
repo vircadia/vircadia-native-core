@@ -1252,8 +1252,11 @@ QColor VoxelColorBoxTool::getColor() {
 }
 
 void VoxelColorBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
+    // ensure that color is either 100% transparent or 100% opaque
+    QColor color = _color->getColor();
+    color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
     MetavoxelEditMessage message = { QVariant::fromValue(VoxelColorBoxEdit(Box(minimum, maximum),
-        _editor->getGridSpacing(), _color->getColor())) };
+        _editor->getGridSpacing(), color)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
@@ -1280,8 +1283,13 @@ QColor VoxelMaterialBoxTool::getColor() {
 void VoxelMaterialBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
     SharedObjectPointer material = _materialEditor->getObject();
     _materialEditor->detachObject();
+    QColor color;
+    if (_texture) {
+        color = _texture->getAverageColor();
+        color.setAlphaF(1.0f);
+    }
     MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialBoxEdit(Box(minimum, maximum),
-        _editor->getGridSpacing(), material, _texture ? _texture->getAverageColor() : QColor())) };
+        _editor->getGridSpacing(), material, color)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
@@ -1364,8 +1372,11 @@ QColor VoxelColorSphereTool::getColor() {
 }
 
 void VoxelColorSphereTool::applyValue(const glm::vec3& position, float radius) {
+    // ensure that color is either 100% transparent or 100% opaque
+    QColor color = _color->getColor();
+    color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
     MetavoxelEditMessage message = { QVariant::fromValue(VoxelColorSphereEdit(position, radius,
-        _editor->getGridSpacing(), _color->getColor())) };
+        _editor->getGridSpacing(), color)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
@@ -1387,8 +1398,13 @@ QColor VoxelMaterialSphereTool::getColor() {
 void VoxelMaterialSphereTool::applyValue(const glm::vec3& position, float radius) {
     SharedObjectPointer material = _materialEditor->getObject();
     _materialEditor->detachObject();
+    QColor color;
+    if (_texture) {
+        color = _texture->getAverageColor();
+        color.setAlphaF(1.0f);
+    }
     MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSphereEdit(position, radius,
-        _editor->getGridSpacing(), material, _texture ? _texture->getAverageColor() : QColor())) };
+        _editor->getGridSpacing(), material, color)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 

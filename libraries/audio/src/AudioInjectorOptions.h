@@ -44,6 +44,9 @@ public:
     const glm::quat& getOrientation() const { return _orientation; }
     void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
     
+    const bool isStereo() const { return _isStereo; }
+    void setIsStereo(const bool isStereo) { _isStereo = isStereo; }
+    
     AbstractAudioInterface* getLoopbackAudioInterface() const { return _loopbackAudioInterface; }
     void setLoopbackAudioInterface(AbstractAudioInterface* loopbackAudioInterface)
         { _loopbackAudioInterface = loopbackAudioInterface; }
@@ -52,6 +55,7 @@ private:
     float _volume;
     bool _loop;
     glm::quat _orientation;
+    bool _isStereo;
     AbstractAudioInterface* _loopbackAudioInterface;
 };
 

@@ -19,7 +19,7 @@
 #include "UUID.h"
 
 // NOTE: if adding a new packet type, you can replace one marked usable or add at the end
-
+// NOTE: if you want the name of the packet type to be available for debugging or logging, update nameForPacketType() as well
 enum PacketType {
     PacketTypeUnknown,
     PacketTypeStunResponse,
@@ -87,6 +87,7 @@ const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UU
 const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + NUM_BYTES_MD5_HASH + NUM_STATIC_HEADER_BYTES;
 
 PacketVersion versionForPacketType(PacketType type);
+QString nameForPacketType(PacketType type);
 
 const QUuid nullUUID = QUuid();
 
@@ -116,5 +117,6 @@ const PacketVersion VERSION_ENTITIES_HAVE_ANIMATION = 1;
 const PacketVersion VERSION_ROOT_ELEMENT_HAS_DATA = 2;
 const PacketVersion VERSION_ENTITIES_SUPPORT_SPLIT_MTU = 3;
 const PacketVersion VERSION_ENTITIES_HAS_FILE_BREAKS = VERSION_ENTITIES_SUPPORT_SPLIT_MTU;
+const PacketVersion VERSION_VOXELS_HAS_FILE_BREAKS = 1;
 
 #endif // hifi_PacketHeaders_h
