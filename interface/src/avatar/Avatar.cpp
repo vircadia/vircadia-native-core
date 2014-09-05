@@ -50,12 +50,13 @@ Avatar::Avatar() :
     AvatarData(),
     _skeletonModel(this),
     _bodyYawDelta(0.0f),
-    _velocity(0.0f, 0.0f, 0.0f),
-    _lastVelocity(0.0f, 0.0f, 0.0f),
-    _acceleration(0.0f, 0.0f, 0.0f),
-    _angularVelocity(0.0f, 0.0f, 0.0f),
-    _lastAngularVelocity(0.0f, 0.0f, 0.0f),
-    _angularAcceleration(0.0f, 0.0f, 0.0f),
+    _lastPosition(0.0f),
+    _velocity(0.0f),
+    _lastVelocity(0.0f),
+    _acceleration(0.0f),
+    _angularVelocity(0.0f),
+    _lastAngularVelocity(0.0f),
+    _angularAcceleration(0.0f),
     _lastOrientation(),
     _leanScale(0.5f),
     _scale(1.0f),
@@ -185,11 +186,7 @@ void Avatar::simulate(float deltaTime) {
             _hair.simulate(deltaTime);
         }
     }
-    
-    // update position by velocity, and subtract the change added earlier for gravity
-    _position += _velocity * deltaTime;
-    updateAcceleration(deltaTime);
-    
+
     // update animation for display name fade in/out
     if ( _displayNameTargetAlpha != _displayNameAlpha) {
         // the alpha function is 
@@ -206,17 +203,22 @@ void Avatar::simulate(float deltaTime) {
         }
         _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
+
+    measureMotionDerivatives(deltaTime);
 }
 
-void Avatar::updateAcceleration(float deltaTime) {
-    // Linear Component of Acceleration
-    _acceleration = (_velocity - _lastVelocity) * (1.f / deltaTime);
+void Avatar::measureMotionDerivatives(float deltaTime) {
+    // linear
+    float invDeltaTime = 1.0f / deltaTime;
+    _velocity = (_position - _lastPosition) * invDeltaTime;
+    _lastPosition = _position;
+    _acceleration = (_velocity - _lastVelocity) * invDeltaTime;
     _lastVelocity = _velocity;
-    //  Angular Component of Acceleration
+    // angular
     glm::quat orientation = getOrientation();
     glm::quat delta = glm::inverse(_lastOrientation) * orientation;
-    _angularVelocity = safeEulerAngles(delta) * (1.f / deltaTime);
-    _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * (1.f / deltaTime);
+    _angularVelocity = safeEulerAngles(delta) * invDeltaTime;
+    _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * invDeltaTime;
     _lastOrientation = getOrientation();
 }
 
