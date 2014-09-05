@@ -676,8 +676,7 @@ CollisionInfo* sphereVsAACubeHelper(const glm::vec3& sphereCenter, float sphereR
                 // sphereCenter is touching cube surface, so we can't use the difference between those two 
                 // points to compute the penetration direction.  Instead we use the unitary components of 
                 // cubeContact.
-                direction = cubeContact / halfCubeSide;
-                glm::modf(BA, direction);
+                glm::modf(cubeContact / halfCubeSide, direction);
                 lengthDirection = glm::length(direction);
             } else if (lengthDirection > sphereRadius) {
                 collisions.deleteLastCollision();

@@ -81,17 +81,22 @@ public:
 
 protected:
     // these ctors are protected (used by derived classes only)
-    Shape(Type type) : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _translation(0.f), _rotation() {
+    Shape(Type type) : _type(type), _owningEntity(NULL), 
+            _boundingRadius(0.f), _translation(0.f), 
+            _rotation(), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 
-    Shape(Type type, const glm::vec3& position) 
-        : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _translation(position), _rotation() {
+    Shape(Type type, const glm::vec3& position) : 
+            _type(type), _owningEntity(NULL), 
+            _boundingRadius(0.f), _translation(position), 
+            _rotation(), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 
-    Shape(Type type, const glm::vec3& position, const glm::quat& rotation) 
-        : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _translation(position), _rotation(rotation) {
+    Shape(Type type, const glm::vec3& position, const glm::quat& rotation) : _type(type), _owningEntity(NULL), 
+            _boundingRadius(0.f), _translation(position), 
+            _rotation(rotation), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 

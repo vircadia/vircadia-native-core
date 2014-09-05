@@ -79,7 +79,8 @@ MyAvatar::MyAvatar() :
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
-    _physicsSimulation()
+    _physicsSimulation(),
+    _voxelShapeManager()
 {
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
@@ -90,11 +91,11 @@ MyAvatar::MyAvatar() :
     _skeletonModel.setEnableShapes(true);
     Ragdoll* ragdoll = _skeletonModel.buildRagdoll();
     _physicsSimulation.setRagdoll(ragdoll);
+    _physicsSimulation.addEntity(&_voxelShapeManager);
 }
 
 MyAvatar::~MyAvatar() {
-    _physicsSimulation.setRagdoll(NULL);
-    _physicsSimulation.setEntity(NULL);
+    _physicsSimulation.clear();
     _lookAtTargetAvatar.clear();
 }
 
@@ -1486,112 +1487,125 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
 static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
-    const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
-    float speed = glm::length(_velocity);
-    if (speed > MAX_VOXEL_COLLISION_SPEED) {
-        // don't even bother to try to collide against voxles when moving very fast
-        _trapDuration = 0.0f;
-        return;
-    }
-    bool isTrapped = false;
-    myCollisions.clear();
-    const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
-    if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions, Octree::TryLock)) {
-        const float VOXEL_ELASTICITY = 0.0f;
-        const float VOXEL_DAMPING = 0.0f;
-        float capsuleRadius = boundingShape.getRadius();
-        float capsuleHalfHeight = boundingShape.getHalfHeight();
-        const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
-        const float MIN_STEP_HEIGHT = 0.0f;
-        glm::vec3 footBase = boundingShape.getTranslation() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
-        float highestStep = 0.0f;
-        float lowestStep = MAX_STEP_HEIGHT;
-        glm::vec3 floorPoint;
-        glm::vec3 stepPenetration(0.0f);
-        glm::vec3 totalPenetration(0.0f);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        // We use a multiple of the avatar's boundingRadius as the size of the cube of interest.
+        float cubeScale = 4.0f * getBoundingRadius();
+        glm::vec3 corner = getPosition() - glm::vec3(0.5f * cubeScale);
+        AACube boundingCube(corner, cubeScale);
 
-        for (int i = 0; i < myCollisions.size(); ++i) {
-            CollisionInfo* collision = myCollisions[i];
-            glm::vec3 cubeCenter = collision->_vecData;
-            float cubeSide = collision->_floatData;
-            float verticalDepth = glm::dot(collision->_penetration, _worldUpDirection);
-            float horizontalDepth = glm::length(collision->_penetration - verticalDepth * _worldUpDirection);
-            const float MAX_TRAP_PERIOD = 0.125f;
-            if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
-                isTrapped = true;
-                if (_trapDuration > MAX_TRAP_PERIOD) {
-                    float distance = glm::dot(boundingShape.getTranslation() - cubeCenter, _worldUpDirection);
-                    if (distance < 0.0f) {
-                        distance = fabsf(distance) + 0.5f * cubeSide;
-                    }
-                    distance += capsuleRadius + capsuleHalfHeight;
-                    totalPenetration = addPenetrations(totalPenetration, - distance * _worldUpDirection);
-                    continue;
-                }
-            } else if (_trapDuration > MAX_TRAP_PERIOD) {
-                // we're trapped, ignore this collision
-                continue;
-            }
-            totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
-            if (glm::dot(collision->_penetration, _velocity) >= 0.0f) {
-                glm::vec3 cubeTop = cubeCenter + (0.5f * cubeSide) * _worldUpDirection;
-                float stepHeight = glm::dot(_worldUpDirection, cubeTop - footBase);
-                if (stepHeight > highestStep) {
-                    highestStep = stepHeight;
-                    stepPenetration = collision->_penetration;
-                }
-                if (stepHeight < lowestStep) {
-                    lowestStep = stepHeight;
-                    floorPoint = collision->_contactPoint - collision->_penetration;
-                }
-            }
+        // query the VoxelTree for cubes that touch avatar's boundingCube
+        CubeList cubes;
+        if (Application::getInstance()->getVoxelTree()->findContentInCube(boundingCube, cubes)) {
+            _voxelShapeManager.updateVoxels(cubes);
         }
-        if (lowestStep < MAX_STEP_HEIGHT) {
-            _lastFloorContactPoint = floorPoint;
-        }
-
-        float penetrationLength = glm::length(totalPenetration);
-        if (penetrationLength < EPSILON) {
+    } else {
+        const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
+        float speed = glm::length(_velocity);
+        if (speed > MAX_VOXEL_COLLISION_SPEED) {
+            // don't even bother to try to collide against voxles when moving very fast
             _trapDuration = 0.0f;
             return;
         }
-        float verticalPenetration = glm::dot(totalPenetration, _worldUpDirection);
-        if (highestStep > MIN_STEP_HEIGHT && highestStep < MAX_STEP_HEIGHT && verticalPenetration <= 0.0f) {
-            // we're colliding against an edge
-            glm::vec3 targetVelocity = _motorVelocity;
-            if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
-                // rotate _motorVelocity into world frame
-                glm::quat rotation = getHead()->getCameraOrientation();
-                targetVelocity = rotation * _motorVelocity;
-            }
-            if (_wasPushing && glm::dot(targetVelocity, totalPenetration) > EPSILON) {
-                // we're puhing into the edge, so we want to lift
-
-                // remove unhelpful horizontal component of the step's penetration
-                totalPenetration -= stepPenetration - (glm::dot(stepPenetration, _worldUpDirection) * _worldUpDirection);
-
-                // further adjust penetration to help lift
-                float liftSpeed = glm::max(MAX_WALKING_SPEED, speed);
-                float thisStep = glm::min(liftSpeed * deltaTime, highestStep);
-                float extraStep = glm::dot(totalPenetration, _worldUpDirection) + thisStep;
-                if (extraStep > 0.0f) {
-                    totalPenetration -= extraStep * _worldUpDirection;
+        bool isTrapped = false;
+        myCollisions.clear();
+        const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
+        if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions, Octree::TryLock)) {
+            const float VOXEL_ELASTICITY = 0.0f;
+            const float VOXEL_DAMPING = 0.0f;
+            float capsuleRadius = boundingShape.getRadius();
+            float capsuleHalfHeight = boundingShape.getHalfHeight();
+            const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
+            const float MIN_STEP_HEIGHT = 0.0f;
+            glm::vec3 footBase = boundingShape.getTranslation() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
+            float highestStep = 0.0f;
+            float lowestStep = MAX_STEP_HEIGHT;
+            glm::vec3 floorPoint;
+            glm::vec3 stepPenetration(0.0f);
+            glm::vec3 totalPenetration(0.0f);
+    
+            for (int i = 0; i < myCollisions.size(); ++i) {
+                CollisionInfo* collision = myCollisions[i];
+                glm::vec3 cubeCenter = collision->_vecData;
+                float cubeSide = collision->_floatData;
+                float verticalDepth = glm::dot(collision->_penetration, _worldUpDirection);
+                float horizontalDepth = glm::length(collision->_penetration - verticalDepth * _worldUpDirection);
+                const float MAX_TRAP_PERIOD = 0.125f;
+                if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
+                    isTrapped = true;
+                    if (_trapDuration > MAX_TRAP_PERIOD) {
+                        float distance = glm::dot(boundingShape.getTranslation() - cubeCenter, _worldUpDirection);
+                        if (distance < 0.0f) {
+                            distance = fabsf(distance) + 0.5f * cubeSide;
+                        }
+                        distance += capsuleRadius + capsuleHalfHeight;
+                        totalPenetration = addPenetrations(totalPenetration, - distance * _worldUpDirection);
+                        continue;
+                    }
+                } else if (_trapDuration > MAX_TRAP_PERIOD) {
+                    // we're trapped, ignore this collision
+                    continue;
                 }
-
-                _position -= totalPenetration;
+                totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
+                if (glm::dot(collision->_penetration, _velocity) >= 0.0f) {
+                    glm::vec3 cubeTop = cubeCenter + (0.5f * cubeSide) * _worldUpDirection;
+                    float stepHeight = glm::dot(_worldUpDirection, cubeTop - footBase);
+                    if (stepHeight > highestStep) {
+                        highestStep = stepHeight;
+                        stepPenetration = collision->_penetration;
+                    }
+                    if (stepHeight < lowestStep) {
+                        lowestStep = stepHeight;
+                        floorPoint = collision->_contactPoint - collision->_penetration;
+                    }
+                }
+            }
+            if (lowestStep < MAX_STEP_HEIGHT) {
+                _lastFloorContactPoint = floorPoint;
+            }
+    
+            float penetrationLength = glm::length(totalPenetration);
+            if (penetrationLength < EPSILON) {
+                _trapDuration = 0.0f;
+                return;
+            }
+            float verticalPenetration = glm::dot(totalPenetration, _worldUpDirection);
+            if (highestStep > MIN_STEP_HEIGHT && highestStep < MAX_STEP_HEIGHT && verticalPenetration <= 0.0f) {
+                // we're colliding against an edge
+                glm::vec3 targetVelocity = _motorVelocity;
+                if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
+                    // rotate _motorVelocity into world frame
+                    glm::quat rotation = getHead()->getCameraOrientation();
+                    targetVelocity = rotation * _motorVelocity;
+                }
+                if (_wasPushing && glm::dot(targetVelocity, totalPenetration) > EPSILON) {
+                    // we're puhing into the edge, so we want to lift
+    
+                    // remove unhelpful horizontal component of the step's penetration
+                    totalPenetration -= stepPenetration - (glm::dot(stepPenetration, _worldUpDirection) * _worldUpDirection);
+    
+                    // further adjust penetration to help lift
+                    float liftSpeed = glm::max(MAX_WALKING_SPEED, speed);
+                    float thisStep = glm::min(liftSpeed * deltaTime, highestStep);
+                    float extraStep = glm::dot(totalPenetration, _worldUpDirection) + thisStep;
+                    if (extraStep > 0.0f) {
+                        totalPenetration -= extraStep * _worldUpDirection;
+                    }
+    
+                    _position -= totalPenetration;
+                } else {
+                    // we're not pushing into the edge, so let the avatar fall
+                    applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+                }
             } else {
-                // we're not pushing into the edge, so let the avatar fall
                 applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
             }
-        } else {
-            applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-        }
-
-        // Don't make a collision sound against voxlels by default -- too annoying when walking
-        //const float VOXEL_COLLISION_FREQUENCY = 0.5f;
-        //updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
-    } 
-    _trapDuration = isTrapped ? _trapDuration + deltaTime : 0.0f;
+    
+            // Don't make a collision sound against voxlels by default -- too annoying when walking
+            //const float VOXEL_COLLISION_FREQUENCY = 0.5f;
+            //updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
+        } 
+        _trapDuration = isTrapped ? _trapDuration + deltaTime : 0.0f;
+    }
 }
 
 void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity, float damping) {
@@ -1956,6 +1970,9 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
         menu->setIsOptionChecked(MenuOption::CollideWithVoxels, true);
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+    }
+    if (!(_collisionGroups | COLLISION_GROUP_VOXELS)) {
+        _voxelShapeManager.clearShapes();
     }
 }
 
