@@ -21,6 +21,11 @@ class GLCanvas : public QGLWidget {
 public:
     GLCanvas();
     bool isThrottleRendering() const;
+    
+    int getDeviceWidth() const;
+    int getDeviceHeight() const;
+    QSize getDeviceSize() const { return QSize(getDeviceWidth(), getDeviceHeight()); }
+    
 protected:
 
     QTimer _frameTimer;

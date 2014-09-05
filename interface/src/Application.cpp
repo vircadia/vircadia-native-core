@@ -596,7 +596,7 @@ void Application::paintGL() {
     if (OculusManager::isConnected()) {
         _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
-        _textureCache.setFrameBufferSize(_glWidget->size());
+        _textureCache.setFrameBufferSize(_glWidget->getDeviceSize());
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -986,7 +986,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->width(),_glWidget->height());
+                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
                     }
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
@@ -998,7 +998,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->width(),_glWidget->height());
+                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
                     }
 
                 } else {
@@ -1424,7 +1424,7 @@ void Application::checkBandwidthMeterClick() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))
             <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
-            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
+            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
@@ -1438,7 +1438,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL(_glWidget->width(),_glWidget->height());
+    resizeGL(_glWidget->getDeviceWidth(),_glWidget->getDeviceHeight());
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
@@ -1451,7 +1451,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
         }
     }
     
-    resizeGL(_glWidget->width(), _glWidget->height());
+    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
@@ -1742,8 +1742,8 @@ void Application::init() {
     _voxelShader.init();
     _pointShader.init();
 
-    _mouseX = _glWidget->width() / 2;
-    _mouseY = _glWidget->height() / 2;
+    _mouseX = _glWidget->getDeviceWidth() / 2;
+    _mouseY = _glWidget->getDeviceHeight() / 2;
     QCursor::setPos(_mouseX, _mouseY);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
@@ -1898,8 +1898,8 @@ void Application::updateMouseRay() {
     // if the mouse pointer isn't visible, act like it's at the center of the screen
     float x = 0.5f, y = 0.5f;
     if (!_mouseHidden) {
-        x = _mouseX / (float)_glWidget->width();
-        y = _mouseY / (float)_glWidget->height();
+        x = _mouseX / (float)_glWidget->getDeviceWidth();
+        y = _mouseY / (float)_glWidget->getDeviceHeight();
     }
     _viewFrustum.computePickRay(x, y, _mouseRayOrigin, _mouseRayDirection);
 
@@ -2686,7 +2686,7 @@ void Application::updateShadowMap() {
     
     fbo->release();
 
-    glViewport(0, 0, _glWidget->width(), _glWidget->height());
+    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
 }
 
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
@@ -2716,7 +2716,7 @@ QImage Application::renderAvatarBillboard() {
     glDisable(GL_BLEND);
 
     const int BILLBOARD_SIZE = 64;
-    renderRearViewMirror(QRect(0, _glWidget->height() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
+    renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
@@ -2976,8 +2976,8 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    float horizontalScale = _glWidget->width() / 2.0f;
-    float verticalScale   = _glWidget->height() / 2.0f;
+    float horizontalScale = _glWidget->getDeviceWidth() / 2.0f;
+    float verticalScale   = _glWidget->getDeviceHeight() / 2.0f;
 
     // -1,-1 is 0,windowHeight
     // 1,1 is windowWidth,0
@@ -2996,7 +2996,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     // -1,-1                   1,-1
 
     glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale,
-        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->height());
+        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->getDeviceHeight());
 
     return screenPoint;
 }
@@ -3032,8 +3032,8 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view
-    glViewport(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
-    glScissor(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
+    glViewport(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
+    glScissor(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
     glEnable(GL_SCISSOR_TEST);
@@ -3100,7 +3100,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     }
 
     // reset Viewport and projection matrix
-    glViewport(0, 0, _glWidget->width(), _glWidget->height());
+    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     glDisable(GL_SCISSOR_TEST);
     updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
@@ -3282,8 +3282,8 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
 
 
 void Application::resetSensors() {
-    _mouseX = _glWidget->width() / 2;
-    _mouseY = _glWidget->height() / 2;
+    _mouseX = _glWidget->getDeviceWidth() / 2;
+    _mouseY = _glWidget->getDeviceHeight() / 2;
 
     _faceplus.reset();
     _faceshift.reset();
