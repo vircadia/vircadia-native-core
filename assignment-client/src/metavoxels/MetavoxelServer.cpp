@@ -44,7 +44,7 @@ void MetavoxelServer::setData(const MetavoxelData& data) {
         _savedDataInitialized = true;
         
         // start the save timer
-        QTimer* saveTimer = new QTimer();
+        QTimer* saveTimer = new QTimer(this);
         connect(saveTimer, &QTimer::timeout, this, &MetavoxelServer::maybeSaveData);
         const int SAVE_INTERVAL = 1000 * 30;
         saveTimer->start(SAVE_INTERVAL);
