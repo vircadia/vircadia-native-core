@@ -48,7 +48,7 @@ public:
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseOctreeOperation)(OctreeElement* element, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
-typedef QHash<quint64, AACube> CubeList;
+typedef QHash<uint, AACube> CubeList;
 
 const bool NO_EXISTS_BITS         = false;
 const bool WANT_EXISTS_BITS       = true;

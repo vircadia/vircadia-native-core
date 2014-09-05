@@ -28,7 +28,7 @@ public:
     AACubeShape* _shape;
 };
 
-typedef QHash<quint64, VoxelInfo> VoxelPool;
+typedef QHash<uint, VoxelInfo> VoxelPool;
 
 class VoxelShapeManager : public PhysicsEntity {
 public:
