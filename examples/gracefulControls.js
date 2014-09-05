@@ -120,12 +120,7 @@ function update(dt) {
         pitchFromMouse += ((y - lastY) * movementParameters.MOUSE_PITCH_SCALE * movementParameters.MOUSE_SENSITIVITY);
         pitchFromMouse = Math.max(-180, Math.min(180, pitchFromMouse));
 
-        var newX = Window.innerWidth / 2;
-        var newY = Window.innerHeight / 2;
-        Window.setCursorPosition(newX, newY);
-
-        lastX = newX;
-        lastY = newY;
+        resetCursorPosition();
     }
 
     // Here we use a linear damping model - http://en.wikipedia.org/wiki/Damping#Linear_damping
@@ -179,16 +174,19 @@ function scriptEnding() {
     disable();
 }
 
+function resetCursorPosition() {
+    var newX = Window.x + Window.innerWidth / 2;
+    var newY = Window.y + Window.innerHeight / 2;
+    Window.setCursorPosition(newX, newY);
+    lastX = newX;
+    lastY = newY;
+}
+
 function enable() {
     if (!enabled) {
         enabled = true;
 
-        // Reset mouse position
-        var newX = Window.innerWidth / 2;
-        var newY = Window.innerHeight / 2;
-        Window.setCursorPosition(newX, newY);
-        lastX = newX;
-        lastY = newY;
+        resetCursorPosition();
 
         // Reset movement variables
         yawFromMouse = 0;
