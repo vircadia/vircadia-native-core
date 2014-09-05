@@ -1050,6 +1050,10 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
         params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
         return bytesWritten;
     }
+    
+    qDebug() << "WROTE octalcode for element " << element->getAACube();
+
+    
 
     bytesWritten += codeLength; // keep track of byte count
 
@@ -1468,6 +1472,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     packetData->releaseReservedBytes(sizeof(childrenDataBits));
     continueThisLevel = packetData->appendBitMask(childrenDataBits);
 
+    qDebug() << "WROTE child data bits for element " << element->getAACube();
+
     int childDataBitsPlaceHolder = packetData->getUncompressedByteOffset(sizeof(childrenDataBits));
     unsigned char actualChildrenDataBits = 0;
 
@@ -1556,6 +1562,13 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // repair the child data mask
         continueThisLevel = packetData->updatePriorBitMask(childDataBitsPlaceHolder, actualChildrenDataBits);
 
+        qDebug() << "UPDATED child data bits for element " << element->getAACube()
+                        << " was:" << childrenDataBits
+                        << " now:" << actualChildrenDataBits
+                        << " params.stopReason:" << params.getStopReason()
+                        << " elementAppendState:" << elementAppendState
+                        << " bytesAtThisLevel:" << bytesAtThisLevel;
+
         if (!continueThisLevel) {
             qDebug() << "WARNING UNEXPECTED CASE: Failed to update childDataBitsPlaceHolder";
             qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
@@ -1583,6 +1596,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         packetData->releaseReservedBytes(sizeof(childrenExistInPacketBits));
         continueThisLevel = packetData->appendBitMask(childrenExistInPacketBits);
         if (continueThisLevel) {
+            //qDebug() << "WROTE child exists in packet bits for element " << element->getAACube();
             bytesAtThisLevel += sizeof(childrenExistInPacketBits); // keep track of byte count
             if (params.stats) {
                 params.stats->existsInPacketBitsWritten();
@@ -1654,8 +1668,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     // Allow the datatype a chance to determine if it really wants to recurse this tree. Usually this
                     // will be true. But if the tree has already been encoded, we will skip this.
                     if (element->shouldRecurseChildTree(originalIndex, params)) {
+                        //qDebug() << "START RECURSION child element " << childElement->getAACube();
                         childTreeBytesOut = encodeTreeBitstreamRecursion(childElement, packetData, bag, params,
                                                                                 thisLevel, nodeLocationThisView);
+                        //qDebug() << "END RECURSION child element " << childElement->getAACube();
                     } else {
                         childTreeBytesOut = 0;
                     }
