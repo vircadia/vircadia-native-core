@@ -639,7 +639,6 @@ public:
 private:
     
     Box _region;
-    float _granularity;
     SharedObjectPointer _material;
     QColor _color;
     float _blockSize;
@@ -654,7 +653,6 @@ VoxelMaterialBoxEditVisitor::VoxelMaterialBoxEditVisitor(const Box& region, floa
                 AttributeRegistry::getInstance()->getVoxelHermiteAttribute() <<
                 AttributeRegistry::getInstance()->getVoxelMaterialAttribute()),
     _region(region),
-    _granularity(granularity),
     _material(material),
     _color(color),
     _blockSize(granularity * VOXEL_BLOCK_SIZE) {
@@ -836,7 +834,6 @@ private:
     glm::vec3 _center;
     float _radius;
     Box _bounds;
-    float _granularity;
     SharedObjectPointer _material;
     QColor _color;
     float _blockSize;
@@ -853,7 +850,6 @@ VoxelMaterialSphereEditVisitor::VoxelMaterialSphereEditVisitor(const glm::vec3& 
     _center(center),
     _radius(radius),
     _bounds(bounds),
-    _granularity(granularity),
     _material(material),
     _color(color),
     _blockSize(granularity * VOXEL_BLOCK_SIZE) {
