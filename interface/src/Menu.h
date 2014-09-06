@@ -346,7 +346,9 @@ namespace MenuOption {
     const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
     const QString AudioSpatialProcessingStereoSource = "Stereo Source";
     const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
-    const QString AudioToneInjection = "Inject Test Tone";
+    const QString AudioSourceInject = "Generated Audio";
+    const QString AudioSourcePinkNoise = "Pink Noise";
+    const QString AudioSourceSine440 = "Sine 440hz";
     const QString Avatars = "Avatars";
     const QString AvatarsReceiveShadows = "Avatars Receive Shadows";
     const QString Bandwidth = "Bandwidth Display";
