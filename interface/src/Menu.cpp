@@ -1085,7 +1085,7 @@ void Menu::showLoginForCurrentDomain() {
 
 void Menu::editPreferences() {
     if (!_preferencesDialog) {
-        _preferencesDialog = new PreferencesDialog(Application::getInstance()->getWindow());
+        _preferencesDialog = new PreferencesDialog();
         _preferencesDialog->show();
     } else {
         _preferencesDialog->close();
